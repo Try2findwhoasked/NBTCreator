@@ -96,16 +96,17 @@ class OrbitCamera {
     this.onChange = onChange
 
     canvas.addEventListener('pointerdown', event => {
-      if(event.button===0&&canvas.dataset.pickMode==='true')return
       if(event.button!==0&&event.button!==1)return
       event.preventDefault();this.dragMode=event.button===1?'pan':'rotate'
-      if(this.dragMode==='rotate')this.resumeOrbit()
+      this.pickDragOrigin=this.dragMode==='rotate'&&canvas.dataset.pickMode==='true'?[event.clientX,event.clientY]:null
+      if(this.dragMode==='rotate'&&!this.pickDragOrigin)this.resumeOrbit()
       this.dragging = true
       this.lastPos = [event.clientX, event.clientY]
       canvas.setPointerCapture?.(event.pointerId)
     })
     const stopDragging = event => {
       this.dragging = false
+      this.pickDragOrigin=null
       this.lastPos = null
       if (event?.pointerId !== undefined && canvas.hasPointerCapture?.(event.pointerId)) {
         canvas.releasePointerCapture(event.pointerId)
@@ -116,6 +117,7 @@ class OrbitCamera {
     canvas.addEventListener('lostpointercapture', stopDragging)
     canvas.addEventListener('pointermove', event => {
       if (!this.dragging || !this.lastPos) return
+      if(this.pickDragOrigin){if(Math.hypot(event.clientX-this.pickDragOrigin[0],event.clientY-this.pickDragOrigin[1])<=5)return;this.resumeOrbit();this.pickDragOrigin=null}
       if(this.dragMode==='pan'){
         const state=this.getCamera(),forward=vec3.normalize(vec3.create(),vec3.subtract(vec3.create(),state.target,state.position))
         const right=vec3.normalize(vec3.create(),vec3.cross(vec3.create(),forward,state.up ?? [0,1,0]))
@@ -470,11 +472,12 @@ async function main() {
     }
     pickedBox.visible=false;requestRender();return null
   }
-  let pickStart=null
-  canvas.addEventListener('pointerdown',event=>{if(canvas.dataset.pickMode==='true'&&event.button===0){event.preventDefault();pickStart=[event.clientX,event.clientY]}})
+  let pickStart=null,pickMoved=false
+  canvas.addEventListener('pointerdown',event=>{if(canvas.dataset.pickMode==='true'&&event.button===0){event.preventDefault();pickStart=[event.clientX,event.clientY];pickMoved=false}})
+  canvas.addEventListener('pointermove',event=>{if(pickStart&&Math.hypot(event.clientX-pickStart[0],event.clientY-pickStart[1])>5)pickMoved=true})
   canvas.addEventListener('pointerup',event=>{
     if(!pickStart||event.button!==0)return
-    const start=pickStart;pickStart=null;if(Math.hypot(event.clientX-start[0],event.clientY-start[1])>5)return
+    const start=pickStart;pickStart=null;if(pickMoved||Math.hypot(event.clientX-start[0],event.clientY-start[1])>5)return
     const rect=canvas.getBoundingClientRect(),result=pickBlock((event.clientX-rect.left)/rect.width*2-1,1-(event.clientY-rect.top)/rect.height*2)
     if(window.parent!==window)window.parent.postMessage({type:canvas.dataset.pickPurpose==='comment'?'nbt-coordinate-picked':'nbt-material-picked',result},location.origin)
   })

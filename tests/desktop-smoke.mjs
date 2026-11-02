@@ -37,6 +37,10 @@ try{
  await page.locator('#auto-preview').uncheck()
  await page.locator('#enable-3d').click();await page.waitForFunction(()=>window.detailControl.state.feedbackTarget?.kind==='3d'&&!window.detailControl.state.busy,undefined,{timeout:60000});checks.electron_webgl_and_python_snapshot=true
  await page.locator('#pick-coordinate').click()
+ const orbitBox=await page.frameLocator('#viewer').locator('#preview').boundingBox(),cameraBefore=await page.evaluate(()=>JSON.stringify(document.querySelector('#viewer').contentWindow.nbtModeler.metadata().camera))
+ await page.mouse.move(orbitBox.x+orbitBox.width*.5,orbitBox.y+orbitBox.height*.5);await page.mouse.down();await page.mouse.move(orbitBox.x+orbitBox.width*.5+75,orbitBox.y+orbitBox.height*.5+25,{steps:8});await page.mouse.up()
+ assert.notEqual(await page.evaluate(()=>JSON.stringify(document.querySelector('#viewer').contentWindow.nbtModeler.metadata().camera)),cameraBefore);assert.equal(await page.evaluate(()=>window.detailControl.state.draftPoints.length),0);checks.left_drag_orbits_while_picking_without_marking=true
+
  const point=await page.evaluate(()=>{const v=document.querySelector('#viewer').contentWindow.nbtModeler;for(const y of [0,.2,-.2,.4,-.4])for(const x of [0,.2,-.2,.4,-.4])if(v.pickBlock(x,y))return {x,y}});assert.ok(point)
  const box=await page.frameLocator('#viewer').locator('#preview').boundingBox();await page.mouse.click(box.x+(point.x+1)*box.width/2,box.y+(1-point.y)*box.height/2)
  await page.waitForFunction(()=>window.detailControl.state.draftPoints.length===1)

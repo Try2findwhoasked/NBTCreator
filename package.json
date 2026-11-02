@@ -1,7 +1,7 @@
 {
   "name": "nbtcreator",
   "productName": "NBTCreator",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "private": true,
   "description": "Minecraft NBT authoring desktop migration prototype with portable skill and Python CLI",
   "type": "module",

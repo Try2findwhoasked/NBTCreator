@@ -20,10 +20,10 @@ test('small structures reject out-of-region geometry, air, excess work and unsaf
  const proposal=operation=>({summary:'局部小构件',settings_patch:{lo:ctx.lo,hi:ctx.hi,operations:[operation]}})
  assert.deepEqual(validateSmallStructure(proposal(op),ctx).settings_patch.operations,[op])
  assert.throws(()=>validateSmallStructure(proposal({...op,hi:[16,8,6]}),ctx),/超出/)
- assert.throws(()=>validateSmallStructure(proposal({...op,state:'air'}),ctx),/实体材质/)
+ assert.equal(validateSmallStructure(proposal({...op,state:'air'}),ctx).settings_patch.operations[0].state,'air')
  assert.throws(()=>validateSmallStructure(proposal({...op,script:'exec'}),ctx))
  assert.throws(()=>validateSmallStructure(proposal({...op,kind:'beam',start:[6,4,6],end:[6,8,6],width:5}),ctx),/厚度/)
- assert.throws(()=>validateSmallStructure({...proposal(op),settings_patch:{lo:ctx.lo,hi:ctx.hi,operations:Array(33).fill(op)}},ctx),/32步/)
+ assert.throws(()=>validateSmallStructure({...proposal(op),settings_patch:{lo:ctx.lo,hi:ctx.hi,operations:Array(129).fill(op)}},ctx),/128步/)
 })
 
  test('internal workflow reference reaches only its associated API invocation',async()=>{
@@ -39,4 +39,14 @@ test('local small structure coordinates translate exactly once and reject out-of
  const translated=localSmallStructure(r,c);assert.deepEqual(translated.settings_patch.operations[0].lo,[12,4,22]);assert.deepEqual(r.settings_patch.operations[0].lo,[2,0,2])
  assert.throws(()=>localSmallStructure({...r,coordinate_space:'global'},c),/相对坐标/)
  assert.throws(()=>localSmallStructure({...r,settings_patch:{...r.settings_patch,hi:[7,7,6]}},c),/选区/)
+})
+
+test('small components normalize missing fields, relative blocks and beam bounds',()=>{
+ const {localSmallStructure}=require('../desktop/api-service.cjs');const c={size:[48,24,48],lo:[10,4,20],hi:[20,15,30],materials:[]}
+ const blocks=localSmallStructure({blocks:[{pos:['1','2','3'],block:{Name:'minecraft:oak_stairs',Properties:{facing:'east',half:'bottom'}}}]},c)
+ assert.deepEqual(blocks.settings_patch.operations[0].lo,[11,6,23]);assert.ok(blocks.settings_patch.operations[0].state.includes('facing=east'))
+ const steps=localSmallStructure({operations:[{kind:'beam',start:[1,1,1],end:[5,5,5],state:'oak_log'},{kind:'carve',pos:[2,2,2]}]},c)
+ assert.equal(steps.settings_patch.operations[0].width,1);assert.equal(steps.settings_patch.operations[1].state,'air')
+ assert.equal(localSmallStructure({operations:Array.from({length:64},(_,i)=>({pos:[i%8,0,Math.floor(i/8)],state:'stone'}))},c).settings_patch.operations.length,64)
+ assert.throws(()=>localSmallStructure({blocks:[{pos:[11,1,1],state:'stone'}]},c),/超出/)
 })
