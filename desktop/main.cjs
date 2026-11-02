@@ -1,4 +1,5 @@
 const {app,BrowserWindow,ipcMain,dialog,utilityProcess,Menu,safeStorage,net,clipboard}=require('electron')
+const {createInternalAI}=require('./internal-ai.cjs')
 const {createApiService}=require('./api-service.cjs')
 const {selectWorkspace,normalizeWorkspace}=require('./workspace.cjs')
 const {spawn}=require('node:child_process')
@@ -40,7 +41,8 @@ async function stopBackend(){
 function trustedDestination(url){try{return serverUrl&&new URL(url).origin===new URL(serverUrl).origin}catch{return false}}
 async function boot(){
  await fs.mkdir(app.getPath('userData'),{recursive:true})
- const api=createApiService({directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
+ const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler')})
+ const api=createApiService({workflowContext:key=>internalAI.context(key),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
  await api.load()
  for(const [channel,handler]of Object.entries({'api-config':()=>api.publicConfig(),'api-save':input=>api.save(input),'api-models':()=>api.models(),'api-generate':input=>api.generate(input),'api-cancel':()=>api.cancel()}))ipcMain.handle('nbt:'+channel,(event,input)=>{allowed(event);return handler(input)})
  let config={};try{config=JSON.parse(await fs.readFile(path.join(app.getPath('userData'),'settings.json'),'utf8'))}catch{}
@@ -51,6 +53,9 @@ async function boot(){
  ipcMain.handle('nbt:exposure-config',event=>{allowed(event);return exposure('show')})
  ipcMain.handle('nbt:exposure-save',(event,input)=>{allowed(event);return exposure('apply',input)})
  ipcMain.handle('nbt:exposure-import',async event=>{allowed(event);const selected=await dialog.showOpenDialog(window,{title:'添加知识文件（复制到当前工作区）',properties:['openFile','multiSelections'],filters:[{name:'Markdown / TXT',extensions:['md','txt']}]});return selected.canceled?null:exposure('import',undefined,selected.filePaths)})
+ ipcMain.handle('nbt:internal-ai-config',event=>{allowed(event);return internalAI.show()})
+ ipcMain.handle('nbt:internal-ai-save',(event,input)=>{allowed(event);return internalAI.save(input)})
+ ipcMain.handle('nbt:internal-ai-import',async event=>{allowed(event);const selected=await dialog.showOpenDialog(window,{title:'添加内部AI资料（选中后会在生成时发送到API）',properties:['openFile','multiSelections'],filters:[{name:'Markdown / TXT',extensions:['md','txt']}]});return selected.canceled?null:internalAI.importDocuments(selected.filePaths)})
  await startBackend()
  window=new BrowserWindow({width:1500,height:1000,minWidth:900,minHeight:650,frame:true,show:false,title:'NBTCreator',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}})
  window.webContents.setWindowOpenHandler(()=>({action:'deny'}))

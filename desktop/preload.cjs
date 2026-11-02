@@ -1,5 +1,8 @@
 const {contextBridge,ipcRenderer}=require('electron')
 contextBridge.exposeInMainWorld('nbtDesktop',Object.freeze({
+  internalAIConfig:()=>ipcRenderer.invoke('nbt:internal-ai-config'),
+  internalAISave:input=>ipcRenderer.invoke('nbt:internal-ai-save',input),
+  internalAIImport:()=>ipcRenderer.invoke('nbt:internal-ai-import'),
   info:()=>ipcRenderer.invoke('nbt:info'),
   systemMenu:name=>ipcRenderer.invoke('nbt:system-menu',name),
   copyAgentPlan:text=>ipcRenderer.invoke('nbt:copy-agent-plan',text),

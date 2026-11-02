@@ -25,3 +25,9 @@ test('small structures reject out-of-region geometry, air, excess work and unsaf
  assert.throws(()=>validateSmallStructure(proposal({...op,kind:'beam',start:[6,4,6],end:[6,8,6],width:5}),ctx),/厚度/)
  assert.throws(()=>validateSmallStructure({...proposal(op),settings_patch:{lo:ctx.lo,hi:ctx.hi,operations:Array(33).fill(op)}},ctx),/32步/)
 })
+
+ test('internal workflow reference reaches only its associated API invocation',async()=>{
+  let payload;const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-flow-api-'))
+  const api=createApiService({directory,safeStorage:storage,workflowContext:async key=>({workflow:key,rules:'custom-rule',knowledge:[{label:'reference',content:'selected-reference'}]}),fetchImpl:async(_u,o)=>{payload=JSON.parse(o.body);return new Response(JSON.stringify({choices:[{message:{content:'text'},finish_reason:'stop'}]}))}})
+  try{await api.save({enabled:true});await api.generate({mode:'prompt',instruction:'task',context:null});const sent=JSON.parse(payload.messages[1].content);assert.equal(sent.internal_workflow.workflow,'prompt');assert.equal(sent.internal_workflow.knowledge[0].content,'selected-reference')}finally{await fs.rm(directory,{recursive:true,force:true})}
+ })

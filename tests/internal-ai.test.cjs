@@ -1,0 +1,14 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path')
+const {createInternalAI}=require('../desktop/internal-ai.cjs')
+test('internal workflows and knowledge are separate, portable and selected per call',async t=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-internal-'));t.after(()=>fs.rm(root,{recursive:true,force:true}))
+ let workspace=path.join(root,'one');const skill=path.join(root,'skill');await fs.mkdir(path.join(skill,'references'),{recursive:true});await fs.writeFile(path.join(skill,'references/design-principles.md'),'builtin-design')
+ const service=createInternalAI({workspace:()=>workspace,skill});let c=await service.show();assert.equal(Object.keys(c.workflows).length,5);assert.deepEqual((await service.context('draft')).knowledge,[])
+ const doc=path.join(root,'custom.md');await fs.writeFile(doc,'private-reference');c=await service.importDocuments([doc]);const id=c.documents[0].id
+ c.workflows.draft.rules='draft-only-rule';c.workflows.draft.knowledge=[id,'builtin:design'];await service.save({workflows:c.workflows})
+ assert.equal((await service.context('draft')).knowledge.length,2);assert.equal((await service.context('structure')).knowledge.length,0)
+ await assert.rejects(fs.access(path.join(workspace,'.nbtcreator','skill-exposure.json')))
+ workspace=path.join(root,'two');assert.equal((await service.show()).documents.length,0)
+ workspace=path.join(root,'one');const invalid=await service.show();invalid.workflows.draft.knowledge=['../../secret'];await assert.rejects(service.save({workflows:invalid.workflows}))
+ const bad=await service.show();bad.documents[0].path='../../secret';await fs.writeFile(path.join(workspace,'.nbtcreator/internal-ai/config.json'),JSON.stringify(bad));await assert.rejects(service.context('draft'))
+})

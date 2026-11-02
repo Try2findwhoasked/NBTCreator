@@ -33,7 +33,7 @@ try{
  assert.deepEqual(await page.locator('.creator-workspaces button').evaluateAll(items=>items.map(e=>e.dataset.workspace)),['prompt','model','ai','tasks'])
  assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMenuBarVisible()),false)
  assert.equal(await page.locator('.native-menu-triggers button').count(),2);checks.native_menu_in_single_header=true
- const bridge=await page.evaluate(()=>Object.keys(window.nbtDesktop).sort());assert.deepEqual(bridge,['apiCancel','apiConfig','apiGenerate','apiModels','apiSave','chooseSource','chooseWorkspace','copyAgentPlan','exposureConfig','exposureImport','exposureSave','info','systemMenu']);assert.equal(await page.evaluate(()=>typeof window.require),'undefined')
+ const bridge=await page.evaluate(()=>Object.keys(window.nbtDesktop).sort());assert.deepEqual(bridge,['apiCancel','apiConfig','apiGenerate','apiModels','apiSave','chooseSource','chooseWorkspace','copyAgentPlan','exposureConfig','exposureImport','exposureSave','info','internalAIConfig','internalAIImport','internalAISave','systemMenu']);assert.equal(await page.evaluate(()=>typeof window.require),'undefined')
  await page.locator('#auto-preview').uncheck()
  await page.locator('#enable-3d').click();await page.waitForFunction(()=>window.detailControl.state.feedbackTarget?.kind==='3d'&&!window.detailControl.state.busy,undefined,{timeout:60000});checks.electron_webgl_and_python_snapshot=true
  await page.locator('#pick-coordinate').click()

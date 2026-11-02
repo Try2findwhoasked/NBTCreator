@@ -1,6 +1,6 @@
 # NBTCreator
 
-Minecraft Java 1.20.1 NBT 建模工具的独立 Electron 项目（当前开发版本1.5.0，已保留1.0首次版本标签）。应用、提示词页、Python和skill使用同一份18类工具清单，默认使用Agent当前项目根目录下的nbt_models。原SAODG与冻结资料库不参与修改。已知全屏闪退仍待单独排查，见docs/KNOWN_ISSUES.md。
+Minecraft Java 1.20.1 NBT 建模工具的独立 Electron 项目（当前开发版本1.6.0，已保留1.0首次版本标签）。应用、提示词页、Python和skill使用同一份18类工具清单，默认使用Agent当前项目根目录下的nbt_models。原SAODG与冻结资料库不参与修改。已知全屏闪退仍待单独排查，见docs/KNOWN_ISSUES.md。
 
 1.2调整了模型/提示词工作区：模型选择后自动载入，无图片时自动打开只读3D；上方设置默认收起，3D隐藏缩略图。评论支持筛选、搜索、坐标定位和Ctrl+Enter保存，任务记录以状态卡片呈现。提示词AI可提议回填左侧设计控件/工具序列，左栏底部可读取/保存；AI设置支持导入自定义Markdown/TXT知识，并明确它暴露给当前项目的Codex/文件式Skill Agent。
 
@@ -83,3 +83,5 @@ npm run package
 推送版本标签后由GitHub Actions构建、解压校验并发布Portable ZIP及SHA256；内置Python/NumPy/Pillow、Electron Node与Chromium，完整解压即可使用。源码开发与旧1.4包的外部依赖说明仍适用于旧包。详见 [CI/CD](docs/CI_CD.md)。
 
 模型编辑的AI建模可点击“3D选点放置”联动局部范围，再点“生成并立即预览”，通过API生成受限小型构件步骤，调用本地引擎插入候选并刷新3D。原稿保留，满意后导出下一版；用法见 [3D与AI放置](docs/AI_PLACEMENT.md)。
+
+1.6将AI助手分为内部AI配置和对外Skill暴露。内部5个工作流分别配置补充要求、Rule和资料选择，生成时只发送对应流程资料；自定义内部资料存工作区 `.nbtcreator/internal-ai/`，不会自动加入Skill。见 [内部AI说明](docs/INTERNAL_AI.md)。本地Portable包：`dist/portable-1.6.0/NBTCreator-1.6.0-windows-x64-portable.zip`。
