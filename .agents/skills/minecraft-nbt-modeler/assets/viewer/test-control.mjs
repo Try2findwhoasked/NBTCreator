@@ -47,7 +47,7 @@ try{
     assert.equal(await page.locator('#catalog-summary').isVisible(),false)
     await page.locator('#model-info summary').first().click()
     assert.equal(await page.locator('#catalog-summary').isVisible(),true)
-    await page.locator('#model-info summary').first().click()
+    await page.keyboard.press('Escape')
     checks.metadata_in_info_popover_and_no_page_header=true
     assert.equal(await page.locator('#viewer').isVisible(),false)
     assert.equal(await page.evaluate(()=>performance.getEntriesByType('resource').some(item=>item.name.includes('default-pack'))),false)
@@ -121,7 +121,7 @@ try{
     assert.equal(await page.locator('#structure-mode').isVisible(),true)
     checks.new_tool_panels_and_current_building_materials=true
     await page.locator('#tool-tabs button').nth(1).click()
-    await page.getByRole('button',{name:'生成修改方案',exact:true}).click()
+    await page.getByRole('button',{name:'生成 Agent 修改方案',exact:true}).click()
     await page.waitForFunction(()=>Boolean(window.detailControl.state.bundle)&&!window.detailControl.state.busy,undefined,{timeout:60000})
     const bundle=await page.evaluate(()=>window.detailControl.state.bundle)
     const plan=JSON.parse(await fs.readFile(path.join(path.dirname(bundle),'plan.json')))

@@ -44,7 +44,7 @@ function blockPicker(input) {
     return {range:[start,stop],items:entries.map(([id,name])=>({label:name+' · '+id,value:name,detail:'minecraft:'+id,selected:exact?.[0]===id}))}
   },()=>browse=false,{maxItems:1003,highlightSelection:true})
   button.addEventListener('mousedown',event=>event.preventDefault())
-  button.addEventListener('click',()=>{if(input.disabled)return;browse=true;input.focus({preventScroll:true});picker.refresh()})
+  button.addEventListener('click',()=>{if(input.disabled)return;browse=true;input.focus({preventScroll:true});requestAnimationFrame(()=>picker.refresh())})
   input.addEventListener('click',()=>{if(input.getAttribute('aria-expanded')==='true')picker.refresh()})
   input.addEventListener('keydown',event=>{if(event.altKey&&event.key==='ArrowDown'){event.preventDefault();browse=true;picker.refresh()}})
 }
@@ -154,7 +154,7 @@ async function syncPrompt(){
     const req=request(),result=await api('prompt-export',req)
     const selected=state.models.find(m=>m.source===result.source)
     $('prompt-frame').contentWindow.NbtPromptUI.receive({...result,name:selected?.name,
-      contextPath:req.context,reviewPath:req.review,output:state.output,budget:req.settings.max_changed_blocks})
+      contextPath:req.context,reviewPath:req.review,output:state.info?.workdir??state.output,budget:req.settings.max_changed_blocks})
     label.textContent='已载入当前建筑与参数；面板修改只用于生成提示词'
   }catch(error){label.textContent=error.message}
   finally{$('sync-prompt').disabled=false}
@@ -197,6 +197,7 @@ function updateCount() {
   const count = ['structure-enabled','replace-enabled','pattern-enabled','weather-enabled','floor-enabled'].filter(id => $(id).checked).length+extra
   $('operation-count').textContent = count ? `${count} 项工具已启用 · 总体强度 ${$('strength').value}%` : '所有工具当前关闭'
   syncWorkspace();syncSelectionRange()
+  $('copy-agent-plan').disabled = state.busy || !state.bundle || !state.agentText
   $('apply').disabled = state.busy || !state.bundle || !$('review').value.trim()
 }
 function busy(value) {
@@ -338,7 +339,7 @@ function gallery(images = []) {
 async function runJob(kind, overrides = {}) {
   const payload = { kind, request: request(), bundle: state.bundle, review: $('review').value.trim() }
   Object.assign(payload.request, overrides)
-  busy(true); status('正在执行：'+({plan:'生成计划',snapshot:'载入三维模型',prepare:'生成建筑审阅图',render:'批量保存源视图',apply:'应用已批准计划',revision:'导出建筑下一版'}[kind] ?? kind))
+  busy(true); status('正在执行：'+({plan:'生成计划',snapshot:'载入三维模型',prepare:'准备建筑审阅图',render:'批量保存源视图',apply:'应用已批准计划',revision:'导出建筑下一版'}[kind] ?? kind))
   try {
     while(state.previewBusy)await new Promise(resolve=>setTimeout(resolve,100))
     const submitted = await api('jobs', payload)
@@ -361,10 +362,14 @@ async function runJob(kind, overrides = {}) {
     }
     if(result.preview_source){const button=document.createElement('button');button.textContent='在 3D 中查看新版本';button.addEventListener('click',handle(()=>runJob('snapshot',{source:result.preview_source})));$('result-links').append(button)}
     if (result.bundle) state.bundle=result.bundle
+    if (result.handoff_text) {
+      state.agentText=result.handoff_text
+      const link=document.createElement('a');link.href=result.handoff_download;link.download='交给Agent.md';link.textContent='下载给 Agent 的完整交接方案';$('result-links').append(link)
+    }
     if (result.review) $('review').value=result.review
     if (result.images?.length) { imageMode(); gallery(result.images) }
     if (result.model_key) await loadViewer(result, Boolean(overrides.source))
-    status(result.warning ? '方案已保存，建筑检查未通过：'+result.warning : ({plan:`修改方案已生成：${result.operations} 项操作，原建筑未改变。`,prepare:'建筑审阅图已生成，审阅目录已自动填写。请看图后，在 Agent 对话中明确是否同意继续精修。',render:'原建筑的多角度预览图已保存。',apply:'新建筑已另存，原建筑保留。',revision:'下一版建筑已保存到原工作文件夹；包含主模型、NBT切片和分层交付。',snapshot:state.mode==='3d'?'三维已按需载入；可关闭 3D 返回看图模式。':'已返回看图模式。'}[kind] ?? '完成'), result.warning ? 'warn' : '')
+    status(result.warning ? '方案已保存，建筑检查未通过：'+result.warning : ({plan:`Agent 交接方案已生成：${result.operations} 项操作。点击“复制给 Agent”继续，原建筑未改变。`,prepare:'建筑审阅图已保存到本建筑的 Agent交接 文件夹，目录已自动关联。请看图后，在 Agent 对话中明确是否同意继续精修。',render:'原建筑的多角度预览图已保存。',apply:'新建筑已另存，原建筑保留。',revision:'下一版建筑已保存到原工作文件夹；包含主模型、NBT切片和分层交付。',snapshot:state.mode==='3d'?'三维已按需载入；可关闭 3D 返回看图模式。':'已返回看图模式。'}[kind] ?? '完成'), result.warning ? 'warn' : '')
     return result
   } finally { busy(false) }
 }
@@ -396,6 +401,11 @@ async function loadModel(preserve = false) {
     status('正在打开建筑及门口、通路等保护设置…')
     const previousHash=state.info?.source_sha256
     const info=await api('inspect',{source:$('source').value.trim(),image_limit:state.imageLimit});state.info=info
+    if(info.agent_handoff){
+      const shared=info.agent_handoff
+      $('agent-handoff-path').textContent=shared.directory;$('agent-handoff-path').title=shared.directory
+      if(!preserve)$('review').value=shared.review||''
+    }
     const sourceIndex=state.models.findIndex(model=>model.source===info.source)
     if(sourceIndex>=0)$('models').value=sourceIndex
     if (!$('context').value.trim()) $('context').value=info.context
@@ -443,6 +453,12 @@ $('review-image').addEventListener('load',renderPins)
 new ResizeObserver(renderPins).observe($('review-canvas'))
 $('export-revision').addEventListener('click',handle(async()=>{if(!state.preview||state.previewSettings!==JSON.stringify(gather()))throw new Error('请先更新效果预览，确认当前设置后再导出下一版');return runJob('revision')}))
 $('plan').addEventListener('click',handle(()=>runJob('plan')))
+$('copy-agent-plan').addEventListener('click',handle(async()=>{
+  if(!state.bundle||!state.agentText)throw Error('请先生成当前参数的 Agent 修改方案')
+  if(window.nbtDesktop?.copyAgentPlan)await window.nbtDesktop.copyAgentPlan(state.agentText)
+  else await navigator.clipboard.writeText(state.agentText)
+  status('已复制。粘贴给 Agent，由 Agent 在原建筑工作文件夹生成下一版；完成后刷新建筑列表。')
+}))
 $('prepare').addEventListener('click',handle(()=>runJob('prepare')))
 $('render').addEventListener('click',handle(()=>runJob('render')))
 $('apply').addEventListener('click',handle(()=>runJob('apply')))

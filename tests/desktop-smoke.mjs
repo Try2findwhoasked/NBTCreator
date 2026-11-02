@@ -30,7 +30,10 @@ try{
  assert.equal((await page.evaluate(()=>window.nbtDesktop.info())).frontend,'production');assert.equal(await page.evaluate(()=>performance.getEntriesByType('resource').some(r=>r.name.includes('/@vite/')||r.name.includes('/src/control.js'))),false);checks.production_frontend_without_dev_client=true
  const prefs=await app.evaluate(({BrowserWindow})=>{const p=BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences();return {sandbox:p.sandbox,contextIsolation:p.contextIsolation,nodeIntegration:p.nodeIntegration}})
  assert.deepEqual(prefs,{sandbox:true,contextIsolation:true,nodeIntegration:false});checks.renderer_isolation=true
- const bridge=await page.evaluate(()=>Object.keys(window.nbtDesktop).sort());assert.deepEqual(bridge,['apiCancel','apiConfig','apiGenerate','apiModels','apiSave','chooseSource','chooseWorkspace','exposureConfig','exposureImport','exposureSave','info']);assert.equal(await page.evaluate(()=>typeof window.require),'undefined')
+ assert.deepEqual(await page.locator('.creator-workspaces button').evaluateAll(items=>items.map(e=>e.dataset.workspace)),['prompt','model','ai','tasks'])
+ assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMenuBarVisible()),false)
+ assert.equal(await page.locator('.native-menu-triggers button').count(),2);checks.native_menu_in_single_header=true
+ const bridge=await page.evaluate(()=>Object.keys(window.nbtDesktop).sort());assert.deepEqual(bridge,['apiCancel','apiConfig','apiGenerate','apiModels','apiSave','chooseSource','chooseWorkspace','copyAgentPlan','exposureConfig','exposureImport','exposureSave','info','systemMenu']);assert.equal(await page.evaluate(()=>typeof window.require),'undefined')
  await page.locator('#auto-preview').uncheck()
  await page.locator('#enable-3d').click();await page.waitForFunction(()=>window.detailControl.state.feedbackTarget?.kind==='3d'&&!window.detailControl.state.busy,undefined,{timeout:60000});checks.electron_webgl_and_python_snapshot=true
  await page.locator('#pick-coordinate').click()
@@ -43,6 +46,16 @@ try{
  await page.locator('#review-help-open').click();assert.equal(await page.locator('#review-help-dialog').isVisible(),true);assert.ok((await page.locator('#review-help-dialog').textContent()).includes('普通手动调参'));assert.ok((await page.locator('#review-help-dialog').textContent()).includes('approval.json'));await page.locator('#review-help-close').click();checks.advanced_refinement_help=true
  await page.locator('#pick-coordinate').click()
  await page.locator('#tool-tabs button').nth(1).click();await page.locator('#pattern-enabled').check();await page.locator('#pattern-fraction').fill('12')
+ await page.locator('#plan').click();await page.waitForFunction(()=>!window.detailControl.state.busy&&Boolean(window.detailControl.state.agentText),undefined,{timeout:60000})
+ const handoff=await page.evaluate(()=>({text:window.detailControl.state.agentText,bundle:window.detailControl.state.bundle,source:window.detailControl.state.info.source}))
+ assert.ok(handoff.bundle.includes('Agent交接'));assert.ok(handoff.text.includes('源建筑所属工作文件夹'));assert.equal(await fs.readFile(path.join(path.dirname(handoff.bundle),'交给Agent.md'),'utf8'),handoff.text)
+ const sharedRequest=JSON.parse(await fs.readFile(path.join(path.dirname(handoff.bundle),'request.json'),'utf8'));assert.equal(sharedRequest.path_base,'workspace');assert.equal(hash(await fs.readFile(source)),original)
+ await page.locator('#copy-agent-plan').click();await page.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('已复制'),undefined,{timeout:10000});assert.equal(await app.evaluate(({clipboard})=>clipboard.readText()),handoff.text);checks.agent_handoff_saved_and_copied=true
+ await page.locator('#prepare').click();await page.waitForFunction(()=>!window.detailControl.state.busy&&Boolean(document.querySelector('#review').value),undefined,{timeout:60000})
+ const review=await page.locator('#review').inputValue();assert.equal(path.dirname(review),path.join(path.dirname(path.dirname(handoff.bundle))))
+ await assert.rejects(fs.access(path.join(review,'approval.json')))
+ const associated=await page.evaluate(async source=>(await(await fetch('/__detail__/inspect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source})})).json()),source)
+ assert.equal(associated.agent_handoff.review,review);assert.equal(await page.locator('#advanced-review').evaluate(e=>e.open),true);checks.shared_review_auto_association_without_fake_approval=true
  await page.locator('#update-preview').click();await page.waitForFunction(()=>window.detailControl.state.comparisonSide==='after'&&!window.detailControl.state.previewBusy,undefined,{timeout:90000});checks.parameter_effect_preview=true
  await page.locator('#export-revision').click();await page.waitForFunction(()=>!window.detailControl.state.busy&&document.querySelector('#status').textContent.includes('下一版建筑已保存'),undefined,{timeout:90000})
  const links=await page.locator('#result-links a').allTextContents();assert.ok(links.some(n=>n.endsWith('.nbt')));assert.equal(hash(await fs.readFile(source)),original);checks.explicit_export_new_version_preserves_original=true

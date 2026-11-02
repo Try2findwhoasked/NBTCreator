@@ -1,4 +1,5 @@
 import {portableRequest,absoluteRequest} from './portable-paths.mjs'
+import {handoffInfo,writeHandoff} from './agent-handoff.mjs'
 // Local detail-control API. All work uses argument arrays and data-only requests.
 import fs from 'node:fs/promises'
 import { createReadStream } from 'node:fs'
@@ -117,9 +118,22 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         let result
         if (kind === 'preset') result = { status: 'preset_saved', download: asset(requestPath) }
         else {
-          const args = [kind, '--request', requestPath, '--output', path.join(directory, 'result')]
+          let resultDirectory = path.join(directory, 'result')
+          let info
+          if (['plan','prepare','apply'].includes(kind)) {
+            info = await invoke(['inspect','--source',request.source])
+            modelInfo.set(request.source,info)
+            const handoff = await handoffInfo(info)
+            if (kind === 'apply') resultDirectory = path.join(info.workdir, 'refined_'+Date.now()+parseInt(id.slice(0,8),16))
+            else {
+              await fs.mkdir(handoff.directory,{recursive:true})
+              resultDirectory = path.join(handoff.directory, (kind === 'prepare' ? 'review-' : 'plan-')+id)
+            }
+          }
+          const args = [kind, '--request', requestPath, '--output', resultDirectory]
           if (kind === 'apply') args.push('--bundle', localPath(input.bundle), '--review', localPath(input.review))
           result = await invoke(args, path.join(directory, 'backend.log'), child => { job.child = child })
+          if (kind === 'plan') Object.assign(result,await writeHandoff({workspace,info,request,result,requestFile:requestPath}))
         }
         result.source=request.source
         if(result.baseline_snapshot){const key=randomUUID();snapshots.set(key,result.baseline_snapshot);result.baseline_key=key;result.baseline_feedback_id=await registerSnapshot(result.baseline_snapshot,request.source)}
@@ -134,6 +148,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
           result.images=await registerImages(result.images,info)
         } else result.images=[]
         if (result.plan) result.plan_download = asset(result.plan)
+        if (result.handoff_file) result.handoff_download = asset(result.handoff_file)
         if(result.runtime_files)result.nbt_downloads=result.runtime_files.map(file=>({name:path.basename(file),url:asset(file)}))
         job.result = result; job.status = 'complete'
       } catch (error) { job.error = error.message; job.status = 'failed' }
@@ -188,6 +203,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         const source=localPath(input.source)
         const result = await invoke(['inspect', '--source', source,'--image-limit',String(input.image_limit ?? 8)])
         modelInfo.set(source,result)
+        result.agent_handoff = await handoffInfo(result)
         result.images = await registerImages(result.images,result)
         json(res, result)
       } else if (req.method === 'POST' && url.pathname.startsWith('/__detail__/feedback/')) {

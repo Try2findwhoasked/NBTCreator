@@ -1,4 +1,4 @@
-const {app,BrowserWindow,ipcMain,dialog,utilityProcess,Menu,safeStorage,net}=require('electron')
+const {app,BrowserWindow,ipcMain,dialog,utilityProcess,Menu,safeStorage,net,clipboard}=require('electron')
 const {createApiService}=require('./api-service.cjs')
 const {selectWorkspace,normalizeWorkspace}=require('./workspace.cjs')
 const {spawn}=require('node:child_process')
@@ -50,12 +50,17 @@ async function boot(){
  ipcMain.handle('nbt:exposure-save',(event,input)=>{allowed(event);return exposure('apply',input)})
  ipcMain.handle('nbt:exposure-import',async event=>{allowed(event);const selected=await dialog.showOpenDialog(window,{title:'添加知识文件（复制到当前工作区）',properties:['openFile','multiSelections'],filters:[{name:'Markdown / TXT',extensions:['md','txt']}]});return selected.canceled?null:exposure('import',undefined,selected.filePaths)})
  await startBackend()
- window=new BrowserWindow({width:1500,height:1000,minWidth:900,minHeight:650,show:false,title:'NBTCreator',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}})
+ window=new BrowserWindow({width:1500,height:1000,minWidth:900,minHeight:650,frame:true,show:false,title:'NBTCreator',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}})
  window.webContents.setWindowOpenHandler(()=>({action:'deny'}))
  window.webContents.on('will-navigate',(event,url)=>{if(!trustedDestination(url))event.preventDefault()})
  window.webContents.on('will-attach-webview',event=>event.preventDefault())
  window.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false))
  window.webContents.session.on('will-download',(_event,item)=>{if(!trustedDestination(item.getURL())&&!item.getURL().startsWith('blob:'+new URL(serverUrl).origin))item.cancel()})
+ ipcMain.handle('nbt:copy-agent-plan',(event,text)=>{
+  allowed(event)
+  if(typeof text!=='string'||Buffer.byteLength(text,'utf8')>1024*1024)throw Error('Invalid handoff text')
+  clipboard.writeText(text);return true
+ })
  ipcMain.handle('nbt:info',event=>{allowed(event);return {version:app.getVersion(),workspace,python,frontend,skill:'.agents/skills/nbtcreator-workspace/SKILL.md',migration:'shared-engine'}})
  ipcMain.handle('nbt:source',async event=>{allowed(event);const result=await dialog.showOpenDialog(window,{title:'选择完整 NBT 或主模型',properties:['openFile'],filters:[{name:'NBT / Master',extensions:['nbt','gz']}]});return result.canceled?null:result.filePaths[0]})
  ipcMain.handle('nbt:workspace',async event=>{
@@ -75,7 +80,15 @@ async function boot(){
    await recordConfig();await startBackend();await window.loadURL(serverUrl);return workspace
   }catch(error){workspace=previous;await startBackend();await window.loadURL(serverUrl);throw error}
  })
- Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'项目',submenu:[{label:'选择工作区…',click:()=>window.webContents.executeJavaScript('window.nbtDesktop.chooseWorkspace()')},{type:'separator'},{role:'quit'}]},{label:'视图',submenu:[{role:'reload'},{role:'toggleDevTools'},{type:'separator'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]}]))
+ const systemMenus=Menu.buildFromTemplate([{label:'项目',submenu:[{label:'选择工作区…',click:()=>window.webContents.executeJavaScript('window.nbtDesktop.chooseWorkspace()')},{label:'打开 NBT / 主模型…',click:()=>window.webContents.executeJavaScript('document.getElementById("desktop-source").click()')},{type:'separator'},{role:'quit'}]},{label:'视图',submenu:[{role:'reload'},{role:'toggleDevTools'},{type:'separator'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]}])
+ Menu.setApplicationMenu(systemMenus)
+ window.setMenuBarVisibility(false)
+ ipcMain.handle('nbt:system-menu',(event,name)=>{
+  allowed(event)
+  const index=name==='project'?0:name==='view'?1:-1
+  if(index<0)throw Error('Unknown system menu')
+  systemMenus.items[index].submenu.popup({window})
+ })
  await window.loadURL(serverUrl);window.setTitle('NBTCreator · NBT 建筑工作台');window.show()
 }
 app.on('before-quit',event=>{if(!closing){event.preventDefault();closing=true;stopBackend().finally(()=>app.quit())}})

@@ -1,6 +1,8 @@
 const {contextBridge,ipcRenderer}=require('electron')
 contextBridge.exposeInMainWorld('nbtDesktop',Object.freeze({
   info:()=>ipcRenderer.invoke('nbt:info'),
+  systemMenu:name=>ipcRenderer.invoke('nbt:system-menu',name),
+  copyAgentPlan:text=>ipcRenderer.invoke('nbt:copy-agent-plan',text),
   chooseWorkspace:()=>ipcRenderer.invoke('nbt:workspace'),
   chooseSource:()=>ipcRenderer.invoke('nbt:source'),
   apiConfig:()=>ipcRenderer.invoke('nbt:api-config'),
