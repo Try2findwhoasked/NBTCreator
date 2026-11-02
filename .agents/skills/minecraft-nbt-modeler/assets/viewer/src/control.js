@@ -5,6 +5,7 @@ import {initDesktop} from './desktop-adapter.js'
 import {initApiAssistant} from './api-assistant.js'
 import {initWorkspaceShell} from './workspace-shell.js'
 import {initTaskRecords} from './task-records.js'
+import {initHelpDialogs} from './help-dialogs.js'
 import './modern.css'
 import './usability.css'
 import { createOrthographic } from './orthographic.js'
@@ -337,7 +338,7 @@ function gallery(images = []) {
 async function runJob(kind, overrides = {}) {
   const payload = { kind, request: request(), bundle: state.bundle, review: $('review').value.trim() }
   Object.assign(payload.request, overrides)
-  busy(true); status('正在执行：'+({plan:'生成计划',snapshot:'载入三维模型',prepare:'生成方案预览图',render:'批量保存源视图',apply:'应用已批准计划',revision:'导出建筑下一版'}[kind] ?? kind))
+  busy(true); status('正在执行：'+({plan:'生成计划',snapshot:'载入三维模型',prepare:'生成建筑审阅图',render:'批量保存源视图',apply:'应用已批准计划',revision:'导出建筑下一版'}[kind] ?? kind))
   try {
     while(state.previewBusy)await new Promise(resolve=>setTimeout(resolve,100))
     const submitted = await api('jobs', payload)
@@ -363,7 +364,7 @@ async function runJob(kind, overrides = {}) {
     if (result.review) $('review').value=result.review
     if (result.images?.length) { imageMode(); gallery(result.images) }
     if (result.model_key) await loadViewer(result, Boolean(overrides.source))
-    status(result.warning ? '方案已保存，建筑检查未通过：'+result.warning : ({plan:`修改方案已生成：${result.operations} 项操作，原建筑未改变。`,prepare:'方案预览图已生成。请看图后，在对话中说明是否同意修改。',render:'原建筑的多角度预览图已保存。',apply:'新建筑已另存，原建筑保留。',revision:'下一版建筑已保存到原工作文件夹；包含主模型、NBT切片和分层交付。',snapshot:state.mode==='3d'?'三维已按需载入；可关闭 3D 返回看图模式。':'已返回看图模式。'}[kind] ?? '完成'), result.warning ? 'warn' : '')
+    status(result.warning ? '方案已保存，建筑检查未通过：'+result.warning : ({plan:`修改方案已生成：${result.operations} 项操作，原建筑未改变。`,prepare:'建筑审阅图已生成，审阅目录已自动填写。请看图后，在 Agent 对话中明确是否同意继续精修。',render:'原建筑的多角度预览图已保存。',apply:'新建筑已另存，原建筑保留。',revision:'下一版建筑已保存到原工作文件夹；包含主模型、NBT切片和分层交付。',snapshot:state.mode==='3d'?'三维已按需载入；可关闭 3D 返回看图模式。':'已返回看图模式。'}[kind] ?? '完成'), result.warning ? 'warn' : '')
     return result
   } finally { busy(false) }
 }
@@ -685,6 +686,7 @@ initApiAssistant({
 })
 initWorkspaceShell()
 initTaskRecords()
+initHelpDialogs()
 const commentComposer=document.createElement('div');commentComposer.className='comment-composer'
 for(const element of [$('feedback-text'),document.querySelector('.comment-compose-meta'),$('draft-markers'),$('reference-chips'),document.querySelector('#feedback-card>.note-actions')])commentComposer.append(element)
 const commentThread=document.createElement('div');commentThread.className='comment-thread';commentThread.append(document.querySelector('.comment-tools'),$('feedback-notes'))
