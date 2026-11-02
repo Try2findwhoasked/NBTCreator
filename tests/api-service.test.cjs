@@ -31,3 +31,12 @@ test('small structures reject out-of-region geometry, air, excess work and unsaf
   const api=createApiService({directory,safeStorage:storage,workflowContext:async key=>({workflow:key,rules:'custom-rule',knowledge:[{label:'reference',content:'selected-reference'}]}),fetchImpl:async(_u,o)=>{payload=JSON.parse(o.body);return new Response(JSON.stringify({choices:[{message:{content:'text'},finish_reason:'stop'}]}))}})
   try{await api.save({enabled:true});await api.generate({mode:'prompt',instruction:'task',context:null});const sent=JSON.parse(payload.messages[1].content);assert.equal(sent.internal_workflow.workflow,'prompt');assert.equal(sent.internal_workflow.knowledge[0].content,'selected-reference')}finally{await fs.rm(directory,{recursive:true,force:true})}
  })
+
+test('local small structure coordinates translate exactly once and reject out-of-bounds',()=>{
+ const {localSmallStructure}=require('../desktop/api-service.cjs')
+ const c={size:[48,24,48],lo:[10,4,20],hi:[16,11,26]}
+ const r={coordinate_space:'local',summary:'柱',settings_patch:{lo:[0,0,0],hi:[6,7,6],operations:[{kind:'box',label:'柱',classification:'body',lo:[2,0,2],hi:[2,4,2],state:'stone_bricks'}]}}
+ const translated=localSmallStructure(r,c);assert.deepEqual(translated.settings_patch.operations[0].lo,[12,4,22]);assert.deepEqual(r.settings_patch.operations[0].lo,[2,0,2])
+ assert.throws(()=>localSmallStructure({...r,coordinate_space:'global'},c),/相对坐标/)
+ assert.throws(()=>localSmallStructure({...r,settings_patch:{...r.settings_patch,hi:[7,7,6]}},c),/选区/)
+})

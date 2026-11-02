@@ -5,6 +5,9 @@ import {execFileSync} from 'node:child_process'
 import {root,python} from '../scripts/paths.mjs'
 const i=process.argv.indexOf('--archive-dir'),folder=path.resolve(root,i<0?'dist/portable':process.argv[i+1])
 const zip=(await fs.readdir(folder)).find(f=>f.endsWith('-portable.zip'));if(!zip)throw Error('Missing portable ZIP')
+const manifest=JSON.parse(await fs.readFile(path.join(folder,zip.replace(/\.zip$/,'.manifest.json')),'utf8'))
+const splitFiles=(await fs.readdir(folder)).filter(f=>f.endsWith('-app-update.manifest.json')||f.endsWith('-runtime.manifest.json'))
+if(splitFiles.length===2){const entries=[];for(const file of splitFiles)entries.push(...JSON.parse(await fs.readFile(path.join(folder,file),'utf8')).files);assert.equal(new Set(entries.map(f=>f.path)).size,entries.length);assert.deepEqual(entries.sort((a,b)=>a.path.localeCompare(b.path)),manifest.files.sort((a,b)=>a.path.localeCompare(b.path)))}
 const output=path.join(root,'build','portable-'+Date.now())
 execFileSync(python,[path.join(root,'scripts/portable-archive.py'),'unpack','--source',path.join(folder,zip),'--output',output],{stdio:'inherit'})
 const exe=path.join(output,'NBTCreator-win32-x64/NBTCreator.exe'),app=path.join(path.dirname(exe),'resources/app')

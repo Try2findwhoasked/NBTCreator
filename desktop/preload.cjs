@@ -3,6 +3,7 @@ contextBridge.exposeInMainWorld('nbtDesktop',Object.freeze({
   internalAIConfig:()=>ipcRenderer.invoke('nbt:internal-ai-config'),
   internalAISave:input=>ipcRenderer.invoke('nbt:internal-ai-save',input),
   internalAIImport:()=>ipcRenderer.invoke('nbt:internal-ai-import'),
+  knowledgePreview:input=>ipcRenderer.invoke('nbt:knowledge-preview',input),
   info:()=>ipcRenderer.invoke('nbt:info'),
   systemMenu:name=>ipcRenderer.invoke('nbt:system-menu',name),
   copyAgentPlan:text=>ipcRenderer.invoke('nbt:copy-agent-plan',text),

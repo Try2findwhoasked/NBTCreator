@@ -22,3 +22,11 @@ npm run test:portable -- --archive-dir dist/portable
 Portable表示免安装目录包；工作区仍由用户选择，API密钥仍使用Windows用户级加密配置，不会随ZIP发布。不要仅复制exe。未签名程序与已知全屏问题保持原记录；CI不触发全屏。
 
 运行环境依据Python官方嵌入分发方式打包第三方库：https://docs.python.org/3/using/windows.html#the-embeddable-package 。GitHub触发与权限遵循官方Actions说明：https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow 。
+
+## 1.7分离包
+
+每次构建同时生成full Portable、app-update、runtime三个ZIP及各自SHA256/文件清单。首次可直接用Portable；也可将app-update与runtime解压到同一父文件夹，合并同名NBTCreator-win32-x64目录。后续依赖未改变时只更新app-update，保留已有runtime。
+
+app-update包含应用源码、建模工具、预构建前端和Skill资料，不包含Electron、Python和Chromium。runtime包含Electron宿主、Python与Chromium；体积大但可复用。运行环境ID绑定Electron版本、Python/wheel锁和Playwright版本，启动时核对应用所需ID与runtime-info.json，不匹配时提示下载配套runtime或完整版。旧1.6运行包没有该标识，首次使用1.7应用更新包需要配套运行环境。
+
+CI验证两份分离包文件互不重复且按路径/字节哈希恰好重组成完整包。完整解压测试仍运行私有Python、CLI、Skill生成、Chromium和批量出图。新版本校验文件随Release附带，不复用旧版本ZIP哈希。

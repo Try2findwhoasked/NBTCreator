@@ -40,6 +40,11 @@ async function stopBackend(){
 }
 function trustedDestination(url){try{return serverUrl&&new URL(url).origin===new URL(serverUrl).origin}catch{return false}}
 async function boot(){
+ if(app.isPackaged){
+  let info;try{info=JSON.parse(await fs.readFile(path.join(path.dirname(process.execPath),'portable-info.json'),'utf8'))}catch{}
+  if(info?.runtime_id){let runtime;try{runtime=JSON.parse(await fs.readFile(path.join(path.dirname(process.execPath),'runtime-info.json'),'utf8'))}catch{}if(runtime?.runtime_id!==info.runtime_id)throw Error('应用与运行环境不匹配：请将配套 runtime 包解压到同一目录，或使用完整 portable 包。')}
+ }
+
  await fs.mkdir(app.getPath('userData'),{recursive:true})
  const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler')})
  const api=createApiService({workflowContext:key=>internalAI.context(key),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
@@ -53,6 +58,16 @@ async function boot(){
  ipcMain.handle('nbt:exposure-config',event=>{allowed(event);return exposure('show')})
  ipcMain.handle('nbt:exposure-save',(event,input)=>{allowed(event);return exposure('apply',input)})
  ipcMain.handle('nbt:exposure-import',async event=>{allowed(event);const selected=await dialog.showOpenDialog(window,{title:'添加知识文件（复制到当前工作区）',properties:['openFile','multiSelections'],filters:[{name:'Markdown / TXT',extensions:['md','txt']}]});return selected.canceled?null:exposure('import',undefined,selected.filePaths)})
+ ipcMain.handle('nbt:knowledge-preview',async(event,input)=>{
+  allowed(event)
+  if(input?.scope==='internal')return internalAI.preview(input.id)
+  if(input?.scope!=='external')throw Error('Unknown knowledge scope')
+  if(input.entry)return {title:'当前工作区对外Skill入口',recipient:'由外部Codex/文件式Skill Agent读取，不自动发给内部API。',text:await fs.readFile(path.join(workspace,'.agents/skills/nbtcreator-workspace/SKILL.md'),'utf8')}
+  const config=await exposure('show');let file,title
+  if(input.group){const group=config.groups.find(g=>g.id===input.group);if(!group||!group.files.includes(input.file))throw Error('Unknown skill reference');file=path.join(root,'.agents/skills/minecraft-nbt-modeler/references',input.file);title=input.file}
+  else {const doc=config.custom_knowledge.find(d=>d.id===input.id);if(!doc)throw Error('Unknown skill document');file=path.join(workspace,'.nbtcreator',doc.path);title=doc.label}
+  return {title,recipient:'供当前工作区的Codex/文件式Skill Agent阅读；不会因为暴露而自动发送给内部API。',text:await fs.readFile(file,'utf8')}
+ })
  ipcMain.handle('nbt:internal-ai-config',event=>{allowed(event);return internalAI.show()})
  ipcMain.handle('nbt:internal-ai-save',(event,input)=>{allowed(event);return internalAI.save(input)})
  ipcMain.handle('nbt:internal-ai-import',async event=>{allowed(event);const selected=await dialog.showOpenDialog(window,{title:'添加内部AI资料（选中后会在生成时发送到API）',properties:['openFile','multiSelections'],filters:[{name:'Markdown / TXT',extensions:['md','txt']}]});return selected.canceled?null:internalAI.importDocuments(selected.filePaths)})
