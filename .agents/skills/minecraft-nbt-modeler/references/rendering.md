@@ -1,5 +1,7 @@
 # Agent 批量出图与用户交互预览
 
+NBTCreator 1.1的桌面包和已构建skill使用web-dist静态页面/资源，由本机HTTP服务加载，不需要Vite运行服务。工作区同步会带上构建资源；无构建的源码副本仍可按下方npm ci安装开发依赖，或在NBTCreator根目录运行npm run build:web。批量出图仍需Node、Playwright及可用浏览器，不把移除Vite服务解释成移除了这些依赖。
+
 纹理渲染使用Lodestone 0.6.0默认资源包，只辅助视觉判断，不认证游戏碰撞、完整光照、通行或设计质量。原有 `nbt_preview.py` 纯色几何诊断与 `nbt_sections.py` 保留。
 
 ## Agent 默认走批量入口

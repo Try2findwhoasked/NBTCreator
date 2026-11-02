@@ -94,7 +94,7 @@ def main():
         print(json.dumps(dict(passed=report['passed'], suites=report['suites'], report=str(args.output / 'regression.json'))))
         return 0 if report['passed'] else 1
     viewer = ROOT / 'assets/viewer'
-    if args.command in ('preview', 'render') and not (viewer / 'node_modules/@mattzh72/lodestone').exists():
+    if args.command in ('preview', 'render') and not (viewer/'web-dist/frontend-manifest.json').is_file() and not (viewer / 'node_modules/@mattzh72/lodestone').exists():
         raise RuntimeError(f'Optional viewer dependencies missing. Run npm ci --prefix "{viewer}"')
     cameras = json.loads(args.cameras.read_text(encoding='utf8')) if args.cameras else None
     if args.command == 'render':

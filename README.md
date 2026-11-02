@@ -1,6 +1,6 @@
 # NBTCreator
 
-Minecraft Java 1.20.1 NBT 建模工具的独立 Electron 项目（1.0.0 首次版本快照）。应用、提示词页、Python和skill使用同一份18类工具清单，默认使用Agent当前项目根目录下的nbt_models。原SAODG与冻结资料库不参与修改。已知全屏闪退仍待单独排查，见docs/KNOWN_ISSUES.md；1.0编号不代表这些限制已消除。
+Minecraft Java 1.20.1 NBT 建模工具的独立 Electron 项目（当前开发版本1.1.0，已保留1.0首次版本标签）。应用、提示词页、Python和skill使用同一份18类工具清单，默认使用Agent当前项目根目录下的nbt_models。原SAODG与冻结资料库不参与修改。已知全屏闪退仍待单独排查，见docs/KNOWN_ISSUES.md。
 
 顶部 **AI助手** 只用于API和AI相关设置，包括当前工作区的 **Skill暴露配置**：选择建筑风格、自由形、多空间、细微道具等知识组，保存后生成 `.agents/skills/nbtcreator-workspace/SKILL.md`。核心约束保持，原文不删除，工具种类不随知识组减少。提示词生成位于提示词方案；结构建议位于模型编辑的AI建模页。API默认关闭，Key加密保存。详见 `docs/API_INTEGRATION.md`。
 
@@ -17,6 +17,7 @@ npm install
 npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
 node node_modules/electron/install.js # 仅在 Electron 运行时未下载时需要
 npm run doctor
+npm run build:web
 npm start
 ```
 
@@ -58,14 +59,17 @@ node scripts/cli.mjs convert --input "D:/实际任务/settings.json"
 npm run verify:archive
 npm run doctor
 npm run test:desktop
+npm run test:production
 node scripts/cli.mjs check
 npm run package
 ```
 
 桌面回归只生成合成模型，检查真实Electron窗口、Python调用、WebGL、坐标标注、参数预览、新版本NBT导出和源文件保留。结果与截图位于build中的独立任务目录。
 
-打包输出为 `dist/NBTCreator-win32-x64/NBTCreator.exe`。它是未签名的解压目录原型，不是安装程序；**当前没有内置Python/NumPy/Pillow**，在另一台机器上使用前仍需准备对应环境。批量纹理出图暂时仍走原Node/浏览器工具链。Vite本机服务作为首阶段兼容层保留，后续再迁移为构建产物和更完整的任务协议。
+打包输出为 `dist/NBTCreator-win32-x64/NBTCreator.exe`。它是未签名的解压目录原型，不是安装程序；**当前没有内置Python/NumPy/Pillow**，在另一台机器上使用前仍需准备对应环境。批量纹理出图仍走Node/浏览器工具链。1.1生产包自动构建静态前端，以本机静态HTTP服务加载，不启动Vite开发服务，也不包含Vite运行模块。开发调试可用 `npm run start:dev`；未构建的源码/skill预览可回退到已安装依赖的开发服务，正式包缺少构建文件时明确拒绝启动。
 
 1.0首次版本包另存为 `dist/1.0.0/NBTCreator-win32-x64/NBTCreator.exe`，实际验证与已知限制见 `docs/RELEASE_1.0.0_2026-11-02.md`。
+
+本轮1.1验证包位于 `dist/1.1.0/NBTCreator-win32-x64/NBTCreator.exe`，验证见 `docs/VALIDATION_1.1.0_2026-11-02.md`。build:web的输出web-dist不入Git；打包自动重建，并随工作区skill同步携带。
 
 应用与CLI共用引擎，但暂不支持同项目并发写入协调、跨重启任务恢复或自主AI Agent循环。不要同时对同一个源项目发起两路写出。新任务/参数保存为工作区相对引用，外部跨盘文件与历史证据可能保留绝对路径。旧目录迁移用 `node scripts/cli.mjs migrate-workspace --source <旧根目录> --workspace <新根目录>`，校验复制、更新活动描述引用、保留原始证据且不伪造批准。详见 `docs/SHARED_WORKSPACE.md`。

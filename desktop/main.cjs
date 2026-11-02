@@ -5,7 +5,7 @@ const {spawn}=require('node:child_process')
 const path=require('node:path')
 const fs=require('node:fs/promises')
 const root=path.resolve(__dirname,'..')
-let window,worker,serverUrl,closing=false,workspace
+let window,worker,serverUrl,closing=false,workspace,frontend
 const python=process.env.NBTCREATOR_PYTHON||'python'
 const arg=(name)=>{const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1]}
 if(arg('--user-data-dir'))app.setPath('userData',path.resolve(arg('--user-data-dir')))
@@ -23,11 +23,11 @@ async function startBackend(){
   const timeout=setTimeout(()=>{instance.kill();reject(Error('Backend start timeout'))},30000)
   instance.stdout?.on('data',data=>process.stdout.write(data));instance.stderr?.on('data',data=>process.stderr.write(data))
   instance.on('message',message=>{
-   if(message.type==='ready'){settled=true;clearTimeout(timeout);serverUrl=message.url;resolve(message.url)}
+   if(message.type==='ready'){settled=true;clearTimeout(timeout);serverUrl=message.url;frontend=message.frontend;resolve(message.url)}
    if(message.type==='error'){clearTimeout(timeout);if(!settled)reject(Error(message.error));else dialog.showErrorBox('NBTCreator 后端错误',message.error)}
   })
   instance.on('exit',code=>{clearTimeout(timeout);if(!settled)reject(Error('Backend exited: '+code));else if(!closing&&worker===instance)dialog.showErrorBox('NBTCreator','建模服务已退出，请重新启动应用。')})
-  instance.postMessage({type:'start',workspace,python,output:path.join(workspace,'nbt_models/_workspaces/desktop')})
+  instance.postMessage({type:'start',workspace,python,frontendMode:arg('--frontend')||(app.isPackaged?'production':'auto'),output:path.join(workspace,'nbt_models/_workspaces/desktop')})
  })
 }
 async function stopBackend(){
@@ -54,7 +54,7 @@ async function boot(){
  window.webContents.on('will-attach-webview',event=>event.preventDefault())
  window.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false))
  window.webContents.session.on('will-download',(_event,item)=>{if(!trustedDestination(item.getURL())&&!item.getURL().startsWith('blob:'+new URL(serverUrl).origin))item.cancel()})
- ipcMain.handle('nbt:info',event=>{allowed(event);return {version:app.getVersion(),workspace,python,skill:'.agents/skills/nbtcreator-workspace/SKILL.md',migration:'shared-engine'}})
+ ipcMain.handle('nbt:info',event=>{allowed(event);return {version:app.getVersion(),workspace,python,frontend,skill:'.agents/skills/nbtcreator-workspace/SKILL.md',migration:'shared-engine'}})
  ipcMain.handle('nbt:source',async event=>{allowed(event);const result=await dialog.showOpenDialog(window,{title:'选择完整 NBT 或主模型',properties:['openFile'],filters:[{name:'NBT / Master',extensions:['nbt','gz']}]});return result.canceled?null:result.filePaths[0]})
  ipcMain.handle('nbt:workspace',async event=>{
   allowed(event);const selection=await dialog.showOpenDialog(window,{title:'选择项目根目录或nbt_models（自动识别）',defaultPath:workspace,properties:['openDirectory','createDirectory']})

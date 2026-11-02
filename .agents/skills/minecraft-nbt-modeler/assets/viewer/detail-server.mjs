@@ -38,7 +38,7 @@ function dateStamp() {
   return `${p.year}-${p.month}-${p.day}/${p.hour}${p.minute}${p.second}`
 }
 
-export async function startDetailServer({ workspace, output, python = 'python', port = 0, initialPreset }) {
+export async function startDetailServer({ workspace, output, python = 'python', port = 0, initialPreset, frontendMode='auto' }) {
   workspace = path.resolve(workspace)
   let outputRoot = path.resolve(output ?? path.join(workspace, 'nbt_models/_workspaces', dateStamp()+'_detail_control_web'))
   const skillRoot = path.resolve(here, '../..')
@@ -159,7 +159,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
       })
     } else child.kill('SIGTERM')
   }
-  const viewer = await createViewerServer({ port, modelResolver: key => snapshots.get(key), apiHandler: async (req, res, url) => {
+  const viewer = await createViewerServer({ port, frontendMode, modelResolver: key => snapshots.get(key), apiHandler: async (req, res, url) => {
     if (!url.pathname.startsWith('/__detail__/')) return false
     try {
       if (req.method === 'POST' && url.pathname === '/__detail__/resolve-request') { json(res,absoluteRequest((await body(req)).request,workspace))
@@ -235,7 +235,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     } catch (error) { json(res, { error: error.message }, 400) }
     return true
   } })
-  return { url: viewer.url+'control.html', output: outputRoot, close: async () => { await cancel(); await viewer.close() } }
+  return { url: viewer.url+'control.html', frontend:viewer.frontend, output: outputRoot, close: async () => { await cancel(); await viewer.close() } }
 }
 
 async function main() {

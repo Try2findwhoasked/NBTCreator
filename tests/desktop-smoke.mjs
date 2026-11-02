@@ -27,6 +27,7 @@ try{
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy,undefined,{timeout:60000})
  clearTimeout(diagnostic)
  assert.ok(await page.locator('#desktop-source').isVisible());assert.ok((await page.locator('#desktop-workspace-label').textContent()).includes(workspace));checks.native_bridge_and_workspace=true
+ assert.equal((await page.evaluate(()=>window.nbtDesktop.info())).frontend,'production');assert.equal(await page.evaluate(()=>performance.getEntriesByType('resource').some(r=>r.name.includes('/@vite/')||r.name.includes('/src/control.js'))),false);checks.production_frontend_without_dev_client=true
  const prefs=await app.evaluate(({BrowserWindow})=>{const p=BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences();return {sandbox:p.sandbox,contextIsolation:p.contextIsolation,nodeIntegration:p.nodeIntegration}})
  assert.deepEqual(prefs,{sandbox:true,contextIsolation:true,nodeIntegration:false});checks.renderer_isolation=true
  const bridge=await page.evaluate(()=>Object.keys(window.nbtDesktop).sort());assert.deepEqual(bridge,['apiCancel','apiConfig','apiGenerate','apiModels','apiSave','chooseSource','chooseWorkspace','exposureConfig','exposureSave','info']);assert.equal(await page.evaluate(()=>typeof window.require),'undefined')
