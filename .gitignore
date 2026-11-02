@@ -1,0 +1,16 @@
+node_modules/
+**/__pycache__/
+**/.vite/
+build/
+dist/
+workspace/
+*.log
+
+nbt_models/
+.nbtcreator/
+.agents/skills/nbtcreator-workspace/
+.env
+.env.*
+!.env.example
+api-settings.json
+settings.pre-*.json

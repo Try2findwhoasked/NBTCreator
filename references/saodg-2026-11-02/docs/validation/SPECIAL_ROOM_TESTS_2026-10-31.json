@@ -1,0 +1,81 @@
+{
+  "junit": [
+    {
+      "name": "cn.saodg.domain.puzzle.DeltaStarWiringTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "timestamp": "2026-10-30T17:33:42"
+    },
+    {
+      "name": "cn.saodg.domain.puzzle.PuzzleTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "timestamp": "2026-10-30T17:33:42"
+    },
+    {
+      "name": "cn.saodg.domain.puzzle.StatePuzzleTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "timestamp": "2026-10-30T17:33:42"
+    },
+    {
+      "name": "cn.saodg.integration.kubejs.LegacyWalletAssetScopeTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "timestamp": "2026-10-30T17:33:43"
+    }
+  ],
+  "game_test_log": "logs/special-rooms-delivery.log",
+  "required_game_tests_passed": 6,
+  "physical_new_building_rotations": 41,
+  "classified_collision_cases": 105,
+  "classified_rooms": 69,
+  "tested_catalog_sha256": "07e0e985965249e5866e885c1c45fdd57e1e4d7a9ecddf8dda9aba71a93dc1bd",
+  "scope_note": "Catalog hash is the recorded test snapshot. Three later theme labels and UI wording do not change geometry. Ongoing unrelated work requires the supervisor final snapshot regression.",
+  "full_junit_suite_claimed": false,
+  "real_multiplayer_claimed": false,
+  "retry_and_room_rewards_log": "logs\\special-circuit-retry-final.log",
+  "retry_and_room_rewards_game_tests_passed": 3,
+  "latest_junit": [
+    {
+      "name": "cn.saodg.domain.puzzle.DeltaStarWiringTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "timestamp": "2026-10-30T17:55:18"
+    },
+    {
+      "name": "cn.saodg.domain.puzzle.PuzzleTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "timestamp": "2026-10-30T17:55:18"
+    },
+    {
+      "name": "cn.saodg.domain.puzzle.StatePuzzleTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "timestamp": "2026-10-30T17:55:19"
+    },
+    {
+      "name": "cn.saodg.integration.kubejs.LegacyWalletAssetScopeTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "timestamp": "2026-10-30T17:55:19"
+    }
+  ]
+}

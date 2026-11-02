@@ -1,0 +1,4809 @@
+{
+    "source": "build/选择",
+    "selected_entries": 63,
+    "unique_buildings": 62,
+    "status": "runtime_checked",
+    "counts": {
+        "registered": 53,
+        "rejected": 9
+    },
+    "rooms": [
+        {
+            "catalog_ids": [
+                1
+            ],
+            "name": "十字铸造殿",
+            "source": "cross_t_dungeons_20261030/cross_01",
+            "id": "saodg:selected/cross/cross_t_dungeons_20261030/cross_01",
+            "classification": {
+                "display_name": "room.saodg.selected.cross.cross_t_dungeons_20261030.cross_01",
+                "catalog_ids": [
+                    1
+                ],
+                "source": "cross_t_dungeons_20261030/cross_01",
+                "shape": "cross",
+                "theme": "forge",
+                "connections": "junction"
+            },
+            "size": [
+                144,
+                40,
+                144
+            ],
+            "type": "combat",
+            "arrival": [
+                71,
+                10,
+                3
+            ],
+            "spawns": [
+                [
+                    72,
+                    10,
+                    142
+                ],
+                [
+                    142,
+                    10,
+                    72
+                ],
+                [
+                    3,
+                    10,
+                    72
+                ],
+                [
+                    72,
+                    4,
+                    72
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_01/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_01/p01_body.nbt",
+                    "sha256": "5e6501448b99711537593e069c7405bc9480630693a1fe040fab0cecb78ab94c"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_01/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_01/p01_walls.nbt",
+                    "sha256": "dfe72be7b99007361dad0fa4e0f0f069012fd39c74416d4d597b95259f245b36"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_01/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_01/p10_body.nbt",
+                    "sha256": "034d1750e4f57656d374dd2da69e7755dc5655fe9fb056e130bdf3d7c2ad26d0"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_01/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_01/p10_walls.nbt",
+                    "sha256": "41569869ed298289f021110a088d73929316a583b561f0b1df210f30bd8bd81a"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_01/delivery/p11_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_01/p11_body.nbt",
+                    "sha256": "a2bc9f74e9753eec2e49fb80dac0a0c31053f925041a0c52d6e740c2585c28f3"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_01/delivery/p11_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_01/p11_walls.nbt",
+                    "sha256": "cb49624ddc91ec9ad73df26a3fa266a7ef442f789215afdcd74a611fc981bcdf"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_01/delivery/p12_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_01/p12_body.nbt",
+                    "sha256": "6003e48ac1dd73d7465dd4feb94882acbcd15a1a8cf353f3a57731096d55fc0e"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_01/delivery/p12_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_01/p12_walls.nbt",
+                    "sha256": "2cc4cfed12d69e125e4a772e73a76efd6caf519b60e1f57e9d64994ce21e6e20"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_01/delivery/p21_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_01/p21_body.nbt",
+                    "sha256": "773818c8d7eb5ad42f80c7a855cf84dfeab913f9a7c7feff688ffdeb7d854be1"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_01/delivery/p21_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_01/p21_walls.nbt",
+                    "sha256": "80bdb5c25e51a7412ce3adb702b4496ddf2b807a77d69a2617a97d465e6b7419"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/cross/cross_t_dungeons_20261030/cross_01",
+                "errors": [],
+                "definition_sha256": "e809af761fb31ea90219e77a3f898194bc37d5c7f47c52aeeb458da13b980596",
+                "parts": 5,
+                "ports": 4,
+                "reachable_poses": 35702,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                2
+            ],
+            "name": "十字墓庭",
+            "source": "cross_t_dungeons_20261030/cross_02",
+            "id": "saodg:selected/cross/cross_t_dungeons_20261030/cross_02",
+            "classification": {
+                "display_name": "room.saodg.selected.cross.cross_t_dungeons_20261030.cross_02",
+                "catalog_ids": [
+                    2
+                ],
+                "source": "cross_t_dungeons_20261030/cross_02",
+                "shape": "cross",
+                "theme": "tomb",
+                "connections": "junction"
+            },
+            "size": [
+                144,
+                24,
+                144
+            ],
+            "type": "combat",
+            "arrival": [
+                71,
+                10,
+                3
+            ],
+            "spawns": [
+                [
+                    72,
+                    10,
+                    142
+                ],
+                [
+                    142,
+                    10,
+                    72
+                ],
+                [
+                    3,
+                    10,
+                    72
+                ],
+                [
+                    72,
+                    4,
+                    72
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_02/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_02/p01_body.nbt",
+                    "sha256": "372dbeb7381c76a4a4b1ee49cfb88bc6440ed50a411f606bf6ccb97ce320681e"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_02/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_02/p01_walls.nbt",
+                    "sha256": "a095422918695d570f98c3190fa651ad83915a65ac2b969246bc9499f7c89a7d"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_02/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_02/p10_body.nbt",
+                    "sha256": "65f91e806a3a6439fd9060092bd1f24b8191a01b8bac131ee4d5e0e736c018a1"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_02/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_02/p10_walls.nbt",
+                    "sha256": "c2b39efab7ddc9128d27ebf86928a5a2fa9e50b25569c5437e6069da3a260f01"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_02/delivery/p11_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_02/p11_body.nbt",
+                    "sha256": "57d80ec51d26eea50f69d9ffda070c59f9eb9ddcb475da2bf11dfc775c9b5e13"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_02/delivery/p11_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_02/p11_walls.nbt",
+                    "sha256": "a6a66a2088af8aa14b0284eefc4d2e360f6c2e1ba1a45f1faffa0630b22c356b"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_02/delivery/p12_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_02/p12_body.nbt",
+                    "sha256": "bf63becf5c56aedabb5840bcdb6812034e3b11552cb70f86d41381314d99892d"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_02/delivery/p12_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_02/p12_walls.nbt",
+                    "sha256": "53ab2bbf8de15a846e0d997dbc1e81a639dd302e7ef5f64fe9feed6a9f658701"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_02/delivery/p21_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_02/p21_body.nbt",
+                    "sha256": "f1c9ebb992b6ef8ffdf62086ac43fdede020dcc6cafe07b96b9137b62c5c3d28"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_02/delivery/p21_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_02/p21_walls.nbt",
+                    "sha256": "e40a6387d751a38b08dc2ce8baa18523ebe21affde7b5b39f09a6e512c44516d"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/cross/cross_t_dungeons_20261030/cross_02",
+                "errors": [],
+                "definition_sha256": "663267e17fa2d3c82eb61c0269570b6ca2958df24d5bc838e9845fc777c27f09",
+                "parts": 5,
+                "ports": 4,
+                "reachable_poses": 15896,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                3
+            ],
+            "name": "十字分拣厅",
+            "source": "cross_t_dungeons_20261030/cross_04",
+            "id": "saodg:selected/cross/cross_t_dungeons_20261030/cross_04",
+            "classification": {
+                "display_name": "room.saodg.selected.cross.cross_t_dungeons_20261030.cross_04",
+                "catalog_ids": [
+                    3
+                ],
+                "source": "cross_t_dungeons_20261030/cross_04",
+                "shape": "cross",
+                "theme": "archive",
+                "connections": "junction"
+            },
+            "size": [
+                144,
+                34,
+                144
+            ],
+            "type": "combat",
+            "arrival": [
+                71,
+                8,
+                2
+            ],
+            "spawns": [
+                [
+                    73,
+                    8,
+                    142
+                ],
+                [
+                    2,
+                    8,
+                    73
+                ],
+                [
+                    141,
+                    8,
+                    71
+                ],
+                [
+                    72,
+                    8,
+                    72
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_04/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_04/p01_body.nbt",
+                    "sha256": "9790e83738752d4433fed53609be1ecb5185119ea086f6f3bc53b0c609f57c5d"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_04/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_04/p01_walls.nbt",
+                    "sha256": "bdd6a131e9dc9f7e3bcd7ebbd939611a23604a171aaf8c968c0af7704fda91e7"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_04/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_04/p10_body.nbt",
+                    "sha256": "6db57f58230172e482407854347df8d571ad1faafbe4cae31746466c426523b9"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_04/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_04/p10_walls.nbt",
+                    "sha256": "929b445ad794f0372395bf72becf21c73ee2606de03502b90ddcafd219ceacb7"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_04/delivery/p11_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_04/p11_body.nbt",
+                    "sha256": "fe47dafb54a737920f36cf4ed5dad97eb6e3ad15c21ffda39532b6d58672ad06"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_04/delivery/p11_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_04/p11_walls.nbt",
+                    "sha256": "f216dc133eaf7fa6a588b54e9fe4d2fc03027c5c3601b2dc68a418080f34c00e"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_04/delivery/p12_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_04/p12_body.nbt",
+                    "sha256": "a194e7cb78af9948c3d81654f93dadce861c580a12f3e1ab9faf8b1acea40fce"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_04/delivery/p12_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_04/p12_walls.nbt",
+                    "sha256": "a7367b2640d7b987a6b55eb45e6c880588c33308c39d710f1c915f35726ebfdc"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_04/delivery/p21_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_04/p21_body.nbt",
+                    "sha256": "64c4f5847391cd15ea154d51a5d05d217bbebce467ee7bd144069f1a176977d1"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_04/delivery/p21_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_04/p21_walls.nbt",
+                    "sha256": "ca1eba8bfb9635090ad5de15aa7f46b9e5718c812002a5f72f8ad9e8f020f2c2"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/cross/cross_t_dungeons_20261030/cross_04",
+                "errors": [],
+                "definition_sha256": "a45cb462695210951e2f18b74a8bb7b495bb2bd37cf1a942d2170ca682af8c75",
+                "parts": 5,
+                "ports": 4,
+                "reachable_poses": 36645,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                4
+            ],
+            "name": "十字蓄水殿",
+            "source": "cross_t_dungeons_20261030/cross_05",
+            "id": "saodg:selected/cross/cross_t_dungeons_20261030/cross_05",
+            "classification": {
+                "display_name": "room.saodg.selected.cross.cross_t_dungeons_20261030.cross_05",
+                "catalog_ids": [
+                    4
+                ],
+                "source": "cross_t_dungeons_20261030/cross_05",
+                "shape": "cross",
+                "theme": "waterworks",
+                "connections": "junction"
+            },
+            "size": [
+                144,
+                25,
+                144
+            ],
+            "type": "combat",
+            "arrival": [
+                71,
+                8,
+                2
+            ],
+            "spawns": [
+                [
+                    73,
+                    8,
+                    142
+                ],
+                [
+                    2,
+                    8,
+                    73
+                ],
+                [
+                    141,
+                    8,
+                    71
+                ],
+                [
+                    72,
+                    8,
+                    71
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_05/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_05/p01_body.nbt",
+                    "sha256": "8c864ae2493d2c6c36fd482563cee7418c2787eb7f17a175437de6e8ed541365"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_05/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_05/p01_walls.nbt",
+                    "sha256": "5c4c22fa6af7c600289a0d6367d7499d94110d130427bc3ab313bd7dc2b7cbb5"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_05/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_05/p10_body.nbt",
+                    "sha256": "36988956b2007a74d31856db454399e6a15a615e27ad91835e9e986b6def4018"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_05/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_05/p10_walls.nbt",
+                    "sha256": "ea2ff10a3eb861c8fbe83afe52e87fda5a8534670473216d1f31ac3d64525142"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_05/delivery/p11_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_05/p11_body.nbt",
+                    "sha256": "14aecce2cef2faf14e615b76b12e511558f7bbac4ce4bab45bbb6608e213614d"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_05/delivery/p11_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_05/p11_walls.nbt",
+                    "sha256": "17c86f9a9fcd94f52b8a80d8e225903150791efe21b0c73e93a11fb5a396704a"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_05/delivery/p12_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_05/p12_body.nbt",
+                    "sha256": "e734e86c89e66ab32a05fa4efa3966406def398e8540e9df87029ae8a0b22f8a"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_05/delivery/p12_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_05/p12_walls.nbt",
+                    "sha256": "03a1f9c04181b8578f960082b493137e4b76934805db629a23539bdc2cdcece8"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_05/delivery/p21_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_05/p21_body.nbt",
+                    "sha256": "cd2f07a985444e8bb65acfb3135e61f493e18828772c8a09d3dbd3ff444cb34b"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/cross_05/delivery/p21_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/cross/cross_t_dungeons_20261030/cross_05/p21_walls.nbt",
+                    "sha256": "11b5cec3bb2ea822c23d8d48917f801a64129a6ef381ff1cf6c65593646af6e0"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/cross/cross_t_dungeons_20261030/cross_05",
+                "errors": [],
+                "definition_sha256": "e3cb244f04ec5fc8281ec60d3613f29a1d7653e13c9fdfd19c9791dbb7db859e",
+                "parts": 5,
+                "ports": 4,
+                "reachable_poses": 42069,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                5
+            ],
+            "name": "丁字装配殿",
+            "source": "cross_t_dungeons_20261030/t_02",
+            "id": "saodg:selected/t/cross_t_dungeons_20261030/t_02",
+            "classification": {
+                "display_name": "room.saodg.selected.t.cross_t_dungeons_20261030.t_02",
+                "catalog_ids": [
+                    5
+                ],
+                "source": "cross_t_dungeons_20261030/t_02",
+                "shape": "t",
+                "theme": "forge",
+                "connections": "junction"
+            },
+            "size": [
+                144,
+                35,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                2,
+                10,
+                23
+            ],
+            "spawns": [
+                [
+                    142,
+                    10,
+                    16
+                ],
+                [
+                    73,
+                    10,
+                    94
+                ],
+                [
+                    72,
+                    10,
+                    10
+                ],
+                [
+                    77,
+                    10,
+                    52
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_02/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_02/p00_body.nbt",
+                    "sha256": "1f141147082f1f54e972b0c91ff86f70f556b669c8e483f819fa5446992cd4d1"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_02/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_02/p00_walls.nbt",
+                    "sha256": "c069ee1e3d8a5f73d0b868ec0dfdad1936a0fb39dccb44e8544b482b2551cc65"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_02/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_02/p10_body.nbt",
+                    "sha256": "3f18151344e4af8086419f5a7da3731336c7963d1396531503d858fc4398dabc"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_02/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_02/p10_walls.nbt",
+                    "sha256": "77469223186055c1f8ccb1ffae342e72880a98145c8015749e7546f55880bfd9"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_02/delivery/p11_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_02/p11_body.nbt",
+                    "sha256": "84d729a796287256b87d53e8076608d90339afdc6701e722ef4efdca3d4db3b5"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_02/delivery/p11_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_02/p11_walls.nbt",
+                    "sha256": "8b629caa1c481d0c4d563df128be024c7bfd7afa09609b58aaba572e002637a2"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_02/delivery/p20_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_02/p20_body.nbt",
+                    "sha256": "c990d3c860dce3cea64b7243758480f8029ba817c5c7eb8aff9a2c7ca1b2c9d5"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_02/delivery/p20_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_02/p20_walls.nbt",
+                    "sha256": "de8e035f09dd955a39ffeaa15454e75cd0ad0eeec3d6d228a7bd28e83f6264a6"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/t/cross_t_dungeons_20261030/t_02",
+                "errors": [],
+                "definition_sha256": "3ba3224d80f50b8613dcd1d35a7e5bcef0416e80ce420218c3c231e8e188a907",
+                "parts": 4,
+                "ports": 3,
+                "reachable_poses": 31419,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                6
+            ],
+            "name": "斜层晶隙",
+            "source": "cross_t_dungeons_20261030/t_03",
+            "id": "saodg:selected/t/cross_t_dungeons_20261030/t_03",
+            "classification": {
+                "display_name": "room.saodg.selected.t.cross_t_dungeons_20261030.t_03",
+                "catalog_ids": [
+                    6
+                ],
+                "source": "cross_t_dungeons_20261030/t_03",
+                "shape": "t",
+                "theme": "crystal",
+                "connections": "junction"
+            },
+            "size": [
+                144,
+                38,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                71,
+                8,
+                93
+            ],
+            "spawns": [
+                [
+                    1,
+                    8,
+                    24
+                ],
+                [
+                    141,
+                    8,
+                    24
+                ],
+                [
+                    73,
+                    16,
+                    25
+                ],
+                [
+                    37,
+                    14,
+                    35
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_03/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_03/p00_body.nbt",
+                    "sha256": "f89fcebcc85dfdebc5fe87cc0604302de0990577a4d923d02068b18948d6cf11"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_03/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_03/p00_walls.nbt",
+                    "sha256": "697cc5f36c2b63e2f95772309e5bfdd114ea476bede8da5d64d4c1cf2b81fefa"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_03/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_03/p10_body.nbt",
+                    "sha256": "76455684548d1eccaed85932954ba218ecec7eb2e325bf866b1a47eeed848779"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_03/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_03/p10_walls.nbt",
+                    "sha256": "5e551158cfeb6bb653205768f2ac1584317260d4b6dc680b974794bfa0ac8dc6"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_03/delivery/p11_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_03/p11_body.nbt",
+                    "sha256": "ddd936899d4150e40aaaf6758fe262f601b3372e2d4ae2711336c81744a66a1f"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_03/delivery/p11_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_03/p11_walls.nbt",
+                    "sha256": "b56cffdab00c1ebcc4e277c2e1e9459256401260cfe094ea32043e45204f0d3c"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_03/delivery/p20_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_03/p20_body.nbt",
+                    "sha256": "e3dc2fc5b7b388521731a6c50cff483f79d1019910f95719e88e1d496f71b4f9"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_03/delivery/p20_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_03/p20_walls.nbt",
+                    "sha256": "b37c27d00b56128dc85a421a83185bda0bc710c560c5f7ecc87d9bec1a7a0f4c"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/t/cross_t_dungeons_20261030/t_03",
+                "errors": [],
+                "definition_sha256": "adefd9708b48c53f8efadbfc365f11cc2de317a681c9f8041ea2c04918fb2eb3",
+                "parts": 4,
+                "ports": 3,
+                "reachable_poses": 20143,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                7
+            ],
+            "name": "回声裁判所",
+            "source": "cross_t_dungeons_20261030/t_04",
+            "id": "saodg:selected/t/cross_t_dungeons_20261030/t_04",
+            "classification": {
+                "display_name": "room.saodg.selected.t.cross_t_dungeons_20261030.t_04",
+                "catalog_ids": [
+                    7
+                ],
+                "source": "cross_t_dungeons_20261030/t_04",
+                "shape": "t",
+                "theme": "guild",
+                "connections": "junction"
+            },
+            "size": [
+                144,
+                34,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                71,
+                6,
+                93
+            ],
+            "spawns": [
+                [
+                    129,
+                    9,
+                    7
+                ],
+                [
+                    19,
+                    9,
+                    7
+                ],
+                [
+                    74,
+                    6,
+                    33
+                ],
+                [
+                    2,
+                    6,
+                    45
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_04/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_04/p00_body.nbt",
+                    "sha256": "893533f1327a86411250728d4837984d15bdeec54c113d8a5f42f2203911f79a"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_04/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_04/p00_walls.nbt",
+                    "sha256": "da9b147db2e95b8d417f273418eeb6aed945caa6f5e1c2e31d5fab85a1889fdc"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_04/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_04/p10_body.nbt",
+                    "sha256": "70263ad456e5beb627e8e78c1b32e5f7cac5d5bc3f4d8ed40378c08807456a3d"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_04/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_04/p10_walls.nbt",
+                    "sha256": "e74f6d8190fe277c32d41e0680d8078075ee09b5ffaa4dc3e8f19309d2154b6d"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_04/delivery/p11_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_04/p11_body.nbt",
+                    "sha256": "7e1f97cda943e21be5af9441d3b8f57db5f44128792be861a6024fa45ccec2b5"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_04/delivery/p11_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_04/p11_walls.nbt",
+                    "sha256": "f614b5f851e2415316bfb92dc8399b5afb314cea285abaa3210064966f3d37e4"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_04/delivery/p20_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_04/p20_body.nbt",
+                    "sha256": "8bdadc193eb006843d4078de629cd662daa87c94c27d035b45cca2a73171f709"
+                },
+                {
+                    "source": "build/选择/cross_t_dungeons_20261030/t_04/delivery/p20_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/t/cross_t_dungeons_20261030/t_04/p20_walls.nbt",
+                    "sha256": "ddc19316599ed734276e6520adea655cb3bab03b6426caf964b84f91f14eee4f"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/t/cross_t_dungeons_20261030/t_04",
+                "errors": [],
+                "definition_sha256": "e4b0f8547949cc975ced94b250c1ac18c85e453541a5cf0e2a6074d8c2fdc61c",
+                "parts": 4,
+                "ports": 3,
+                "reachable_poses": 24845,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                9
+            ],
+            "name": "悬渠检修殿",
+            "source": "distinct_ten_subagents_20261029/01_dry_aqueduct",
+            "id": "saodg:selected/single/distinct_ten_subagents_20261029/01_dry_aqueduct",
+            "classification": {
+                "display_name": "room.saodg.selected.single.distinct_ten_subagents_20261029.01_dry_aqueduct",
+                "catalog_ids": [
+                    9
+                ],
+                "source": "distinct_ten_subagents_20261029/01_dry_aqueduct",
+                "shape": "single",
+                "theme": "waterworks",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                32,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                20,
+                14,
+                3
+            ],
+            "spawns": [
+                [
+                    23,
+                    14,
+                    46
+                ],
+                [
+                    42,
+                    3,
+                    23
+                ],
+                [
+                    6,
+                    3,
+                    26
+                ],
+                [
+                    23,
+                    14,
+                    24
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/distinct_ten_subagents_20261029/01_dry_aqueduct/dry_aqueduct.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/distinct_ten_subagents_20261029/01_dry_aqueduct/p00.nbt",
+                    "sha256": "7b082b136435379555df7a8949916fbfa999b26061c1946b5b44e8bb0c9b087a"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/single/distinct_ten_subagents_20261029/01_dry_aqueduct",
+                "errors": [],
+                "definition_sha256": "88c42adcf4ce5c9a24f84298dfc310ed6e8da2689157b0e2005ea7659096affc",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 2650,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                25
+            ],
+            "name": "根瘤育房",
+            "source": "diverse_rooms_20261030/13_branch_nursery",
+            "id": "saodg:selected/single/diverse_rooms_20261030/13_branch_nursery",
+            "classification": {
+                "display_name": "room.saodg.selected.single.diverse_rooms_20261030.13_branch_nursery",
+                "catalog_ids": [
+                    25
+                ],
+                "source": "diverse_rooms_20261030/13_branch_nursery",
+                "shape": "single",
+                "theme": "garden",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                34,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                2,
+                6,
+                23
+            ],
+            "spawns": [
+                [
+                    45,
+                    6,
+                    21
+                ],
+                [
+                    26,
+                    8,
+                    33
+                ],
+                [
+                    18,
+                    6,
+                    20
+                ],
+                [
+                    32,
+                    6,
+                    20
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/diverse_rooms_20261030/13_branch_nursery/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/diverse_rooms_20261030/13_branch_nursery/p00_body.nbt",
+                    "sha256": "f718cc996eb3a583ae37675ade1970aae46ae2454e0a0eab8fb51cf1702b78fc"
+                },
+                {
+                    "source": "build/选择/diverse_rooms_20261030/13_branch_nursery/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/diverse_rooms_20261030/13_branch_nursery/p00_walls.nbt",
+                    "sha256": "12e59973f3786103e2198edd6e4b7c2a6fa797a23158d5a916d92389bc637bf4"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/single/diverse_rooms_20261030/13_branch_nursery",
+                "errors": [],
+                "definition_sha256": "9ce38c87b78062e4c698c9f0d392098b4aed4f4f9399b55aa4bc0d8a856c22c6",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 3267,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                26
+            ],
+            "name": "折轴纪念墓室",
+            "source": "diverse_rooms_20261030/14_folded_memorial",
+            "id": "saodg:selected/single/diverse_rooms_20261030/14_folded_memorial",
+            "classification": {
+                "display_name": "room.saodg.selected.single.diverse_rooms_20261030.14_folded_memorial",
+                "catalog_ids": [
+                    26
+                ],
+                "source": "diverse_rooms_20261030/14_folded_memorial",
+                "shape": "single",
+                "theme": "tomb",
+                "connections": "corner"
+            },
+            "size": [
+                48,
+                28,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                10,
+                2
+            ],
+            "spawns": [
+                [
+                    37,
+                    5,
+                    37
+                ],
+                [
+                    14,
+                    4,
+                    25
+                ],
+                [
+                    45,
+                    10,
+                    23
+                ],
+                [
+                    29,
+                    4,
+                    25
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/diverse_rooms_20261030/14_folded_memorial/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/diverse_rooms_20261030/14_folded_memorial/p00_body.nbt",
+                    "sha256": "e645b865259f38e220d5a269a66b758d2252a1c544265c749f225c33fa48ae50"
+                },
+                {
+                    "source": "build/选择/diverse_rooms_20261030/14_folded_memorial/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/diverse_rooms_20261030/14_folded_memorial/p00_walls.nbt",
+                    "sha256": "960c19563c32dc01a991ba15f9d1f3cc2350024f00b7af5276e5308767cfbddf"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/single/diverse_rooms_20261030/14_folded_memorial",
+                "errors": [],
+                "definition_sha256": "96d052926b0a2055246ca952b54ed40f26a14bd438dbf43a02d592296b354e00",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 3018,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                27
+            ],
+            "name": "沉星潮汐机",
+            "source": "linked_trial",
+            "id": "saodg:selected/square/linked_trial",
+            "classification": {
+                "display_name": "room.saodg.selected.square.linked_trial",
+                "catalog_ids": [
+                    27
+                ],
+                "source": "linked_trial",
+                "shape": "square",
+                "theme": "waterworks",
+                "connections": "straight"
+            },
+            "size": [
+                96,
+                40,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                24,
+                10,
+                24
+            ],
+            "spawns": [
+                [
+                    82,
+                    18,
+                    18
+                ],
+                [
+                    8,
+                    2,
+                    80
+                ],
+                [
+                    70,
+                    2,
+                    88
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/linked_trial/p00_interior.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/linked_trial/p00_interior.nbt",
+                    "sha256": "ead0d569d024de8fc16ad41bf9c95890dac1f02a54012e3720d3cd49716ca749"
+                },
+                {
+                    "source": "build/选择/linked_trial/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/linked_trial/p00_walls.nbt",
+                    "sha256": "ca45b0ed4c9b0713f6a255a3d7d947cd2561b5f3f338d2e3ced51e97fb58ec52"
+                },
+                {
+                    "source": "build/选择/linked_trial/p01_interior.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/linked_trial/p01_interior.nbt",
+                    "sha256": "64e1ae0e2de0600b1b4a48638666b822cece59bc01d6b0ad9e4603bd9508cc47"
+                },
+                {
+                    "source": "build/选择/linked_trial/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/linked_trial/p01_walls.nbt",
+                    "sha256": "9562bef1dc6d1fab1e60df48a8dbbd1ca6fb6754d37771433769f9368f286020"
+                },
+                {
+                    "source": "build/选择/linked_trial/p10_interior.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/linked_trial/p10_interior.nbt",
+                    "sha256": "60e044fc27ed9ef72d2e6c8f28ae4c848be77cedeb8e5bffd8bd6e20070988d0"
+                },
+                {
+                    "source": "build/选择/linked_trial/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/linked_trial/p10_walls.nbt",
+                    "sha256": "36bedbeaaaec9cab3fa2095158d0130c9c33f8506ecd3af3e8cec380f4057335"
+                },
+                {
+                    "source": "build/选择/linked_trial/p11_interior.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/linked_trial/p11_interior.nbt",
+                    "sha256": "06786605b7d5af775ac1cf40c76bbc750620888bf119db23c19c0ec6a71f5238"
+                },
+                {
+                    "source": "build/选择/linked_trial/p11_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/linked_trial/p11_walls.nbt",
+                    "sha256": "0abc703d503dab89dce09606a13a6c081a2bce25ebc9bc6250e9b12266363d79"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/square/linked_trial",
+                "errors": [],
+                "definition_sha256": "c483e7ae43f23f6315182cde734fb938dfbbcff11f23be998ee5b6eb6a6ac65f",
+                "parts": 4,
+                "ports": 2,
+                "reachable_poses": 11530,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                32
+            ],
+            "name": "远征货运站",
+            "source": "nine_distinct_20261029/long/expedition_station",
+            "id": "saodg:selected/line_3/nine_distinct_20261029/long/expedition_station",
+            "classification": {
+                "display_name": "room.saodg.selected.line_3.nine_distinct_20261029.long.expedition_station",
+                "catalog_ids": [
+                    32
+                ],
+                "source": "nine_distinct_20261029/long/expedition_station",
+                "shape": "line_3",
+                "theme": "guild",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                36,
+                144
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                6,
+                3
+            ],
+            "spawns": [
+                [
+                    23,
+                    6,
+                    142
+                ],
+                [
+                    39,
+                    6,
+                    72
+                ],
+                [
+                    23,
+                    6,
+                    105
+                ],
+                [
+                    23,
+                    6,
+                    39
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/nine_distinct_20261029/long/expedition_station/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/nine_distinct_20261029/long/expedition_station/p00_body.nbt",
+                    "sha256": "bd83771d1c45458453efa6469f643dc94c306b63b2d827d6b6116a40a39a102b"
+                },
+                {
+                    "source": "build/选择/nine_distinct_20261029/long/expedition_station/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/nine_distinct_20261029/long/expedition_station/p00_walls.nbt",
+                    "sha256": "06436ca05edde27f44308be523962af6412d97c2076d04d186c752955a754a82"
+                },
+                {
+                    "source": "build/选择/nine_distinct_20261029/long/expedition_station/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/nine_distinct_20261029/long/expedition_station/p01_body.nbt",
+                    "sha256": "3e0480e8d0410dc522eb6056b5a1602ee97f04c7e7b0b61aa8e16b197d0f2232"
+                },
+                {
+                    "source": "build/选择/nine_distinct_20261029/long/expedition_station/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/nine_distinct_20261029/long/expedition_station/p01_walls.nbt",
+                    "sha256": "5a76584b1da6b4a43f3b36bca6538f77c0237e5208d97a7644369919b3947f37"
+                },
+                {
+                    "source": "build/选择/nine_distinct_20261029/long/expedition_station/delivery/p02_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/nine_distinct_20261029/long/expedition_station/p02_body.nbt",
+                    "sha256": "6ecc03d3072022feb4fc04fcfdf52b1ef59444381c8665a8e5d2e066f6e6d645"
+                },
+                {
+                    "source": "build/选择/nine_distinct_20261029/long/expedition_station/delivery/p02_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/nine_distinct_20261029/long/expedition_station/p02_walls.nbt",
+                    "sha256": "d04def35da36ab8213eafd2ee469a67e9b256b6654c49126562f537945e48d1e"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/line_3/nine_distinct_20261029/long/expedition_station",
+                "errors": [],
+                "definition_sha256": "c16005a13c4ce9eae1a15efa1c23f2fdaf510f870ef9611564583925a14ad6c4",
+                "parts": 3,
+                "ports": 2,
+                "reachable_poses": 16256,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                33
+            ],
+            "name": "地下子午仪廊",
+            "source": "nine_distinct_20261029/long/meridian_observatory",
+            "id": "saodg:selected/line_3/nine_distinct_20261029/long/meridian_observatory",
+            "classification": {
+                "display_name": "room.saodg.selected.line_3.nine_distinct_20261029.long.meridian_observatory",
+                "catalog_ids": [
+                    33
+                ],
+                "source": "nine_distinct_20261029/long/meridian_observatory",
+                "shape": "line_3",
+                "theme": "archive",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                42,
+                144
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                8,
+                3
+            ],
+            "spawns": [
+                [
+                    23,
+                    8,
+                    142
+                ],
+                [
+                    41,
+                    12,
+                    71
+                ],
+                [
+                    23,
+                    8,
+                    104
+                ],
+                [
+                    23,
+                    8,
+                    40
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/nine_distinct_20261029/long/meridian_observatory/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/nine_distinct_20261029/long/meridian_observatory/p00_body.nbt",
+                    "sha256": "ed4169b93f887eb435521247193c4ac238a101679c4821a0415c5584c0b44509"
+                },
+                {
+                    "source": "build/选择/nine_distinct_20261029/long/meridian_observatory/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/nine_distinct_20261029/long/meridian_observatory/p00_walls.nbt",
+                    "sha256": "724ccdd72012afbb3ecb3ab7517ad3e8da0b52b23d2f90aa6116ec626767ffc2"
+                },
+                {
+                    "source": "build/选择/nine_distinct_20261029/long/meridian_observatory/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/nine_distinct_20261029/long/meridian_observatory/p01_body.nbt",
+                    "sha256": "c126cbf802962c21889dc8aa7bd1b9d3b41eaa5749859c04575b36c99755c41a"
+                },
+                {
+                    "source": "build/选择/nine_distinct_20261029/long/meridian_observatory/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/nine_distinct_20261029/long/meridian_observatory/p01_walls.nbt",
+                    "sha256": "4ff8a154e670ec324d85321a5ffa8f8578fd8091eff444051e7d8205f8fd4ffa"
+                },
+                {
+                    "source": "build/选择/nine_distinct_20261029/long/meridian_observatory/delivery/p02_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/nine_distinct_20261029/long/meridian_observatory/p02_body.nbt",
+                    "sha256": "470f04251ce2eb999afc00c7886fbb5d29a2ebeb77ea74fc8d5b7f9d8577dbd3"
+                },
+                {
+                    "source": "build/选择/nine_distinct_20261029/long/meridian_observatory/delivery/p02_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/nine_distinct_20261029/long/meridian_observatory/p02_walls.nbt",
+                    "sha256": "9d9192ed7c162945a0dd685db2d5a45150efdb6b88aadfc267a6dee6fe428a15"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/line_3/nine_distinct_20261029/long/meridian_observatory",
+                "errors": [],
+                "definition_sha256": "4749074d9de0bd9feed50a3bc96a16b46138c8d5e4cd0a0051f1a0bb98049330",
+                "parts": 3,
+                "ports": 2,
+                "reachable_poses": 9740,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                49,
+                50
+            ],
+            "name": "残破教堂转角走廊",
+            "source": "ruined_church_set",
+            "status": "rejected",
+            "reason": "占地/高度不符合48格单元规范，原尺寸=[31, 14, 31]"
+        },
+        {
+            "catalog_ids": [
+                51
+            ],
+            "name": "残破教堂直廊",
+            "source": "ruined_church_set",
+            "status": "rejected",
+            "reason": "占地/高度不符合48格单元规范，原尺寸=[31, 14, 31]"
+        },
+        {
+            "catalog_ids": [
+                52
+            ],
+            "name": "残破教堂三岔廊",
+            "source": "ruined_church_set",
+            "status": "rejected",
+            "reason": "占地/高度不符合48格单元规范，原尺寸=[31, 14, 31]"
+        },
+        {
+            "catalog_ids": [
+                53
+            ],
+            "name": "神秘地下室",
+            "source": "ruined_church_set",
+            "status": "rejected",
+            "reason": "占地/高度不符合48格单元规范，原尺寸=[39, 18, 39]"
+        },
+        {
+            "catalog_ids": [
+                54
+            ],
+            "name": "残破教堂",
+            "source": "ruined_church_set",
+            "status": "rejected",
+            "reason": "占地/高度不符合48格单元规范，原尺寸=[41, 34, 47]"
+        },
+        {
+            "catalog_ids": [
+                55
+            ],
+            "name": "废弃神社长殿",
+            "source": "ruined_shrine_1x3",
+            "id": "saodg:selected/line_3/ruined_shrine_1x3",
+            "classification": {
+                "display_name": "room.saodg.selected.line_3.ruined_shrine_1x3",
+                "catalog_ids": [
+                    55
+                ],
+                "source": "ruined_shrine_1x3",
+                "shape": "line_3",
+                "theme": "sacred",
+                "connections": "dead_end"
+            },
+            "size": [
+                48,
+                40,
+                144
+            ],
+            "type": "combat",
+            "arrival": [
+                24,
+                6,
+                2
+            ],
+            "spawns": [
+                [
+                    24,
+                    11,
+                    121
+                ],
+                [
+                    24,
+                    6,
+                    62
+                ],
+                [
+                    24,
+                    6,
+                    32
+                ],
+                [
+                    24,
+                    6,
+                    92
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/ruined_shrine_1x3/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/ruined_shrine_1x3/p00_body.nbt",
+                    "sha256": "aa7368b34878cbc5e88d4fbcda065e98e1c20626cc5f15f1b76c95e564e59fd6"
+                },
+                {
+                    "source": "build/选择/ruined_shrine_1x3/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/ruined_shrine_1x3/p00_walls.nbt",
+                    "sha256": "067fa19f0b6b626f01a07a8e3d1c0c42c060c526bbf8d9ead1d71c47079607e2"
+                },
+                {
+                    "source": "build/选择/ruined_shrine_1x3/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/ruined_shrine_1x3/p01_body.nbt",
+                    "sha256": "ac6238d207f6553645c28636c0b60533ba06b1ee295fbd42aafb3f88c6f6c346"
+                },
+                {
+                    "source": "build/选择/ruined_shrine_1x3/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/ruined_shrine_1x3/p01_walls.nbt",
+                    "sha256": "85cd9e9cf60e5dff4ae24df8de3130a11b7c4cec53e49ab9784198462e4d7653"
+                },
+                {
+                    "source": "build/选择/ruined_shrine_1x3/delivery/p02_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/ruined_shrine_1x3/p02_body.nbt",
+                    "sha256": "9e779347da18a1ec1a20833ade0e05618334da6685c5014dabddbdb7b2672f76"
+                },
+                {
+                    "source": "build/选择/ruined_shrine_1x3/delivery/p02_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/ruined_shrine_1x3/p02_walls.nbt",
+                    "sha256": "932d249c0f390ac9ca616058e8786aa260fd12d47b37e2b375e63223069ef5ef"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/line_3/ruined_shrine_1x3",
+                "errors": [],
+                "definition_sha256": "ecd2b2bb57e208ecc7e8ab576ea0e2cadcfb45f1e910584f978bd88cd677019d",
+                "parts": 3,
+                "ports": 1,
+                "reachable_poses": 6070,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                56
+            ],
+            "name": "废弃神社长殿·精修",
+            "source": "ruined_shrine_1x3/refined_01",
+            "id": "saodg:selected/line_3/ruined_shrine_1x3/refined_01",
+            "classification": {
+                "display_name": "room.saodg.selected.line_3.ruined_shrine_1x3.refined_01",
+                "catalog_ids": [
+                    56
+                ],
+                "source": "ruined_shrine_1x3/refined_01",
+                "shape": "line_3",
+                "theme": "sacred",
+                "connections": "dead_end"
+            },
+            "size": [
+                48,
+                40,
+                144
+            ],
+            "type": "combat",
+            "arrival": [
+                24,
+                6,
+                2
+            ],
+            "spawns": [
+                [
+                    24,
+                    11,
+                    121
+                ],
+                [
+                    24,
+                    6,
+                    62
+                ],
+                [
+                    24,
+                    6,
+                    32
+                ],
+                [
+                    24,
+                    6,
+                    92
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/ruined_shrine_1x3/refined_01/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/ruined_shrine_1x3/refined_01/p00_body.nbt",
+                    "sha256": "c032dab657470f58f14bee8c0923de72f23a50727b8812a7d298c946e4fc0f8d"
+                },
+                {
+                    "source": "build/选择/ruined_shrine_1x3/refined_01/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/ruined_shrine_1x3/refined_01/p00_walls.nbt",
+                    "sha256": "067fa19f0b6b626f01a07a8e3d1c0c42c060c526bbf8d9ead1d71c47079607e2"
+                },
+                {
+                    "source": "build/选择/ruined_shrine_1x3/refined_01/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/ruined_shrine_1x3/refined_01/p01_body.nbt",
+                    "sha256": "47910cc81bf0f18cd628fcc7d18b3c9e4ba49b76dcc2fdd6e07c929d2bb03a81"
+                },
+                {
+                    "source": "build/选择/ruined_shrine_1x3/refined_01/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/ruined_shrine_1x3/refined_01/p01_walls.nbt",
+                    "sha256": "85cd9e9cf60e5dff4ae24df8de3130a11b7c4cec53e49ab9784198462e4d7653"
+                },
+                {
+                    "source": "build/选择/ruined_shrine_1x3/refined_01/delivery/p02_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/ruined_shrine_1x3/refined_01/p02_body.nbt",
+                    "sha256": "b29e866ae5e45d872b1a8a1f8e06639afc8a08b09c41a31539c7d58eaab6e078"
+                },
+                {
+                    "source": "build/选择/ruined_shrine_1x3/refined_01/delivery/p02_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/ruined_shrine_1x3/refined_01/p02_walls.nbt",
+                    "sha256": "932d249c0f390ac9ca616058e8786aa260fd12d47b37e2b375e63223069ef5ef"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/line_3/ruined_shrine_1x3/refined_01",
+                "errors": [],
+                "definition_sha256": "82164c9fd79342c348c008d3eed389fe519391730af24492ad8407a8348a857c",
+                "parts": 3,
+                "ports": 1,
+                "reachable_poses": 6070,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                57
+            ],
+            "name": "折轴关隘",
+            "source": "sao_batch_14/elbow/gate",
+            "id": "saodg:selected/l/sao_batch_14/elbow/gate",
+            "classification": {
+                "display_name": "room.saodg.selected.l.sao_batch_14.elbow.gate",
+                "catalog_ids": [
+                    57
+                ],
+                "source": "sao_batch_14/elbow/gate",
+                "shape": "l",
+                "theme": "guild",
+                "connections": "corner"
+            },
+            "size": [
+                96,
+                32,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                94,
+                8,
+                24
+            ],
+            "spawns": [
+                [
+                    24,
+                    8,
+                    94
+                ],
+                [
+                    12,
+                    14,
+                    15
+                ],
+                [
+                    52,
+                    8,
+                    24
+                ],
+                [
+                    24,
+                    8,
+                    53
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_batch_14/elbow/gate/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/gate/p00_body.nbt",
+                    "sha256": "c6fe20d280a883c48a097d6a03d8921cfb96f16439a8abe220aa9a838a363bbf"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/gate/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/gate/p00_walls.nbt",
+                    "sha256": "46c40229cdb8e1f0c55c45c6879e2922989714c2bbb52b90ae80ce754a6fa8b6"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/gate/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/gate/p01_body.nbt",
+                    "sha256": "3756c788dc85af40d8c4dff73894909f1a80a61068c8a18dacd74bfc8fba448e"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/gate/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/gate/p01_walls.nbt",
+                    "sha256": "3408c12b0318eba45eb69b381cb45bfe3b817aaeb52e75ad091b760d05f5cdfa"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/gate/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/gate/p10_body.nbt",
+                    "sha256": "fe89282cf3085d0ff1f0fb9856e0f9bda9391f50c1f8f745d819c0f91c04c9d7"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/gate/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/gate/p10_walls.nbt",
+                    "sha256": "2daa6a2377cf968f254026d5f1226bf9cd25cbdd0ed371cf29ba26218cc03ab6"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/l/sao_batch_14/elbow/gate",
+                "errors": [],
+                "definition_sha256": "aa710452080f5e56e30dbe2b214fcaadfc5e7f16846a65802c8c5d735650a0c0",
+                "parts": 3,
+                "ports": 2,
+                "reachable_poses": 24253,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                58
+            ],
+            "name": "月影回廊",
+            "source": "sao_batch_14/elbow/moon",
+            "id": "saodg:selected/l/sao_batch_14/elbow/moon",
+            "classification": {
+                "display_name": "room.saodg.selected.l.sao_batch_14.elbow.moon",
+                "catalog_ids": [
+                    58
+                ],
+                "source": "sao_batch_14/elbow/moon",
+                "shape": "l",
+                "theme": "guild",
+                "connections": "corner"
+            },
+            "size": [
+                96,
+                32,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                94,
+                8,
+                24
+            ],
+            "spawns": [
+                [
+                    24,
+                    8,
+                    94
+                ],
+                [
+                    25,
+                    3,
+                    25
+                ],
+                [
+                    10,
+                    14,
+                    59
+                ],
+                [
+                    59,
+                    8,
+                    24
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_batch_14/elbow/moon/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/moon/p00_body.nbt",
+                    "sha256": "54926dfd6beb555ee409f651b313bec7cd6c4d589eb03a2d554cc60783be202a"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/moon/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/moon/p00_walls.nbt",
+                    "sha256": "46c40229cdb8e1f0c55c45c6879e2922989714c2bbb52b90ae80ce754a6fa8b6"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/moon/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/moon/p01_body.nbt",
+                    "sha256": "2f623de9db349102d560e9131d738d5098a62ee5323297bbfcaa6cdc1f3c5b5a"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/moon/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/moon/p01_walls.nbt",
+                    "sha256": "3408c12b0318eba45eb69b381cb45bfe3b817aaeb52e75ad091b760d05f5cdfa"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/moon/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/moon/p10_body.nbt",
+                    "sha256": "8503d86507399651348410cbd7aba31059d815674c1c3b35e8a832c23bd01d8b"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/moon/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/moon/p10_walls.nbt",
+                    "sha256": "2daa6a2377cf968f254026d5f1226bf9cd25cbdd0ed371cf29ba26218cc03ab6"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/l/sao_batch_14/elbow/moon",
+                "errors": [],
+                "definition_sha256": "1dbf4409114fc9d1f55ce64b9002226ef988340e088b7b60b47381b0c36aa28d",
+                "parts": 3,
+                "ports": 2,
+                "reachable_poses": 26035,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                59
+            ],
+            "name": "剑碑转运站",
+            "source": "sao_batch_14/elbow/sword",
+            "id": "saodg:selected/l/sao_batch_14/elbow/sword",
+            "classification": {
+                "display_name": "room.saodg.selected.l.sao_batch_14.elbow.sword",
+                "catalog_ids": [
+                    59
+                ],
+                "source": "sao_batch_14/elbow/sword",
+                "shape": "l",
+                "theme": "guild",
+                "connections": "corner"
+            },
+            "size": [
+                96,
+                32,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                94,
+                8,
+                24
+            ],
+            "spawns": [
+                [
+                    24,
+                    8,
+                    94
+                ],
+                [
+                    21,
+                    8,
+                    16
+                ],
+                [
+                    13,
+                    16,
+                    55
+                ],
+                [
+                    58,
+                    12,
+                    13
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_batch_14/elbow/sword/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/sword/p00_body.nbt",
+                    "sha256": "ebf91610130718444e75b5acfcf85d483c90d8542a1306eaf2b0aed3a7075a52"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/sword/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/sword/p00_walls.nbt",
+                    "sha256": "46c40229cdb8e1f0c55c45c6879e2922989714c2bbb52b90ae80ce754a6fa8b6"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/sword/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/sword/p01_body.nbt",
+                    "sha256": "101db57ab75020961d51e2861121dd50dd62d1f97731669e56de4ef8ba569bf8"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/sword/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/sword/p01_walls.nbt",
+                    "sha256": "3408c12b0318eba45eb69b381cb45bfe3b817aaeb52e75ad091b760d05f5cdfa"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/sword/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/sword/p10_body.nbt",
+                    "sha256": "92d5c2fbcc394f35adb5b2892d93f1678d35698a8c223a395c98f199451ee212"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/elbow/sword/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_batch_14/elbow/sword/p10_walls.nbt",
+                    "sha256": "2daa6a2377cf968f254026d5f1226bf9cd25cbdd0ed371cf29ba26218cc03ab6"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/l/sao_batch_14/elbow/sword",
+                "errors": [],
+                "definition_sha256": "3f6c04ce6e1f8a4979a41a03e053d24627d311694b1dd3e80e0ceefe39b1d3cb",
+                "parts": 3,
+                "ports": 2,
+                "reachable_poses": 27013,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                60
+            ],
+            "name": "黑铁锻剑工场",
+            "source": "sao_batch_14/large/black_iron_forge",
+            "id": "saodg:selected/square/sao_batch_14/large/black_iron_forge",
+            "classification": {
+                "display_name": "room.saodg.selected.square.sao_batch_14.large.black_iron_forge",
+                "catalog_ids": [
+                    60
+                ],
+                "source": "sao_batch_14/large/black_iron_forge",
+                "shape": "square",
+                "theme": "forge",
+                "connections": "corner"
+            },
+            "size": [
+                96,
+                40,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                8,
+                1
+            ],
+            "spawns": [
+                [
+                    94,
+                    8,
+                    92
+                ],
+                [
+                    94,
+                    8,
+                    18
+                ],
+                [
+                    41,
+                    8,
+                    60
+                ],
+                [
+                    86,
+                    8,
+                    55
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_batch_14/large/black_iron_forge/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/black_iron_forge/p00_body.nbt",
+                    "sha256": "9ce5bf132949b628718d2f907ead5a8db1f522d567b67e762db5a845ed55492b"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/black_iron_forge/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/black_iron_forge/p00_walls.nbt",
+                    "sha256": "01c0005ca6596a69d738303f70e716b351b4b697539fed1737259e3c8f1d94fc"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/black_iron_forge/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/black_iron_forge/p01_body.nbt",
+                    "sha256": "cf4875be3ccc0c1199da25a2620599242b909825658333bfdc985d17f86e6cb6"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/black_iron_forge/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/black_iron_forge/p01_walls.nbt",
+                    "sha256": "5a6dd662c67cad4d7949d01bea220289c95ebc3832565bcd48f27bcf912639e3"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/black_iron_forge/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/black_iron_forge/p10_body.nbt",
+                    "sha256": "29058448e89c6c206449274f578eb28c039b58f701573e85773e29c89b8d49e5"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/black_iron_forge/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/black_iron_forge/p10_walls.nbt",
+                    "sha256": "399a98bfd23a303651dc7d107b22b2430cfe3150dd4819175d1def7417252824"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/black_iron_forge/delivery/p11_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/black_iron_forge/p11_body.nbt",
+                    "sha256": "dc8ab84832fd05b2c168604335394d3d2c3e5dd2b8fab762d86c25014da17275"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/black_iron_forge/delivery/p11_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/black_iron_forge/p11_walls.nbt",
+                    "sha256": "23096eb53e8ad97b801da3976127d47b6fd64b75f6c135e0407ced0d3dc7726f"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/square/sao_batch_14/large/black_iron_forge",
+                "errors": [],
+                "definition_sha256": "87193b089489b8625eceece46dde5ed555d54a67f8ade1f565a86dcb040121cf",
+                "parts": 4,
+                "ports": 2,
+                "reachable_poses": 31645,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                61
+            ],
+            "name": "誓约骑士大殿",
+            "source": "sao_batch_14/large/oath_cathedral",
+            "id": "saodg:selected/square/sao_batch_14/large/oath_cathedral",
+            "classification": {
+                "display_name": "room.saodg.selected.square.sao_batch_14.large.oath_cathedral",
+                "catalog_ids": [
+                    61
+                ],
+                "source": "sao_batch_14/large/oath_cathedral",
+                "shape": "square",
+                "theme": "sacred",
+                "connections": "corner"
+            },
+            "size": [
+                96,
+                44,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                8,
+                1
+            ],
+            "spawns": [
+                [
+                    94,
+                    8,
+                    72
+                ],
+                [
+                    91,
+                    8,
+                    4
+                ],
+                [
+                    40,
+                    9,
+                    56
+                ],
+                [
+                    56,
+                    8,
+                    21
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_batch_14/large/oath_cathedral/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/oath_cathedral/p00_body.nbt",
+                    "sha256": "f621680ccc9dc545eea040a950b997b3ace7b895342047bdefb437ba6a341e9d"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/oath_cathedral/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/oath_cathedral/p00_walls.nbt",
+                    "sha256": "11aed466a7736ea440ab47cdeb8989e5536e1a85858412bae6435f92add1c26c"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/oath_cathedral/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/oath_cathedral/p01_body.nbt",
+                    "sha256": "6856ed84f211f099f42f23ae1a41f845d2adc101f78e78dd42479a36c77e7532"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/oath_cathedral/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/oath_cathedral/p01_walls.nbt",
+                    "sha256": "4ca99a71b3627d6ae6aa38de70666303d737cfc393eac0443191ee2c8a7ee971"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/oath_cathedral/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/oath_cathedral/p10_body.nbt",
+                    "sha256": "c0191e446ab4b675b1975938595408f2eb3fed52c2eabe2b9ad251730fb4771b"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/oath_cathedral/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/oath_cathedral/p10_walls.nbt",
+                    "sha256": "a12a1cc3aaacb331d1cfd708a07bdee8eb9c57f043146a9ab166f8d559b0d378"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/oath_cathedral/delivery/p11_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/oath_cathedral/p11_body.nbt",
+                    "sha256": "a13823af7e806a15675a4519871fc5d0090fe80499026e7b339982dc5bdf6e91"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/oath_cathedral/delivery/p11_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/oath_cathedral/p11_walls.nbt",
+                    "sha256": "2b91163b6c2c23a5d6a677c6b0bbc4d856ca75c5f8a379aff3019ea50ad102ee"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/square/sao_batch_14/large/oath_cathedral",
+                "errors": [],
+                "definition_sha256": "11c1877f80d573ddb479e391e391d80da889c36b7b0de00624f3f3c77188fae1",
+                "parts": 4,
+                "ports": 2,
+                "reachable_poses": 32124,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                62
+            ],
+            "name": "沉降水都船坞",
+            "source": "sao_batch_14/large/sunken_dry_dock",
+            "id": "saodg:selected/square/sao_batch_14/large/sunken_dry_dock",
+            "classification": {
+                "display_name": "room.saodg.selected.square.sao_batch_14.large.sunken_dry_dock",
+                "catalog_ids": [
+                    62
+                ],
+                "source": "sao_batch_14/large/sunken_dry_dock",
+                "shape": "square",
+                "theme": "waterworks",
+                "connections": "corner"
+            },
+            "size": [
+                96,
+                36,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                8,
+                1
+            ],
+            "spawns": [
+                [
+                    94,
+                    8,
+                    91
+                ],
+                [
+                    94,
+                    8,
+                    18
+                ],
+                [
+                    34,
+                    8,
+                    70
+                ],
+                [
+                    61,
+                    8,
+                    1
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_batch_14/large/sunken_dry_dock/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/sunken_dry_dock/p00_body.nbt",
+                    "sha256": "7195153f2411641ca241cbae6e4d3d52ace6ebc49873c3000b5ade65b7eab72a"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/sunken_dry_dock/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/sunken_dry_dock/p00_walls.nbt",
+                    "sha256": "54d45fd1ef862c80583668f720c074363f98204418fbe72aebaebe9fedb53906"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/sunken_dry_dock/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/sunken_dry_dock/p01_body.nbt",
+                    "sha256": "8b4f21ab2dda2a0eed6343ba7c36f3bca68a6100b8e847718f29fb385416c76a"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/sunken_dry_dock/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/sunken_dry_dock/p01_walls.nbt",
+                    "sha256": "32bc72aecbbf9dd1f9aeffb73659179bf06defcdc20e807620ade2fd905f23d0"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/sunken_dry_dock/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/sunken_dry_dock/p10_body.nbt",
+                    "sha256": "1334d904c307ef0396044ea7401ba3318c8f38f5744e0eb40f8d23c7c9078863"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/sunken_dry_dock/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/sunken_dry_dock/p10_walls.nbt",
+                    "sha256": "aeea6ab14667a01c0c9abf36b232c0e570dbf5fd1c6e8f1a7c25f726964c05da"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/sunken_dry_dock/delivery/p11_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/sunken_dry_dock/p11_body.nbt",
+                    "sha256": "f9f571cd2ab1fb4b70d211c40e13a0b12f7b02c60bd4c4827276b26d1b7502a4"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/large/sunken_dry_dock/delivery/p11_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_batch_14/large/sunken_dry_dock/p11_walls.nbt",
+                    "sha256": "de5cc9bea4880540d7f15097fb74e79ab06786d7b61f7a6c47bc3e092b66b268"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/square/sao_batch_14/large/sunken_dry_dock",
+                "errors": [],
+                "definition_sha256": "04e85f5d4ce94f0c8d080574bf39c3c25c5c1071deac52978ac80bd82025a09b",
+                "parts": 4,
+                "ports": 2,
+                "reachable_poses": 34622,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                69
+            ],
+            "name": "星纹阶库",
+            "source": "sao_batch_14/single/04_star_archive",
+            "id": "saodg:selected/single/sao_batch_14/single/04_star_archive",
+            "classification": {
+                "display_name": "room.saodg.selected.single.sao_batch_14.single.04_star_archive",
+                "catalog_ids": [
+                    69
+                ],
+                "source": "sao_batch_14/single/04_star_archive",
+                "shape": "single",
+                "theme": "archive",
+                "connections": "dead_end"
+            },
+            "size": [
+                48,
+                32,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                1,
+                8,
+                23
+            ],
+            "spawns": [
+                [
+                    40,
+                    14,
+                    23
+                ],
+                [
+                    21,
+                    10,
+                    23
+                ],
+                [
+                    11,
+                    8,
+                    23
+                ],
+                [
+                    30,
+                    12,
+                    23
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_batch_14/single/04_star_archive/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/sao_batch_14/single/04_star_archive/p00_body.nbt",
+                    "sha256": "25a2e09eec21b04068c0cf383d80b8ba03306dd00d861c45424b841f6a2eb7b3"
+                },
+                {
+                    "source": "build/选择/sao_batch_14/single/04_star_archive/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/sao_batch_14/single/04_star_archive/p00_walls.nbt",
+                    "sha256": "c57815938f049cf6292658d7e20f23049619bddff693ebb2781e13cfae3ecc89"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/single/sao_batch_14/single/04_star_archive",
+                "errors": [],
+                "definition_sha256": "048822d5d27bbd4ed365db34a4df4b88ac81e802221453a1846030234f5a4a42",
+                "parts": 1,
+                "ports": 1,
+                "reachable_poses": 4662,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                71
+            ],
+            "name": "凯旋阶廊",
+            "source": "sao_nine_drafts_20261030/long/01_triumph_stairs",
+            "id": "saodg:selected/line_3/sao_nine_drafts_20261030/long/01_triumph_stairs",
+            "classification": {
+                "display_name": "room.saodg.selected.line_3.sao_nine_drafts_20261030.long.01_triumph_stairs",
+                "catalog_ids": [
+                    71
+                ],
+                "source": "sao_nine_drafts_20261030/long/01_triumph_stairs",
+                "shape": "line_3",
+                "theme": "sacred",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                40,
+                144
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                8,
+                2
+            ],
+            "spawns": [
+                [
+                    23,
+                    8,
+                    142
+                ],
+                [
+                    23,
+                    8,
+                    72
+                ],
+                [
+                    23,
+                    13,
+                    37
+                ],
+                [
+                    23,
+                    10,
+                    108
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/long/01_triumph_stairs/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/sao_nine_drafts_20261030/long/01_triumph_stairs/p00_body.nbt",
+                    "sha256": "ee2f8eef58cea3d55474c3e9e76312b85c4a4f8c8af3e9b4ac8ca245100ab5db"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/long/01_triumph_stairs/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/sao_nine_drafts_20261030/long/01_triumph_stairs/p00_walls.nbt",
+                    "sha256": "baf7cc0fc47b962cea706b50630740c279b51457bec617f374e410aef9a1d00e"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/long/01_triumph_stairs/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/sao_nine_drafts_20261030/long/01_triumph_stairs/p01_body.nbt",
+                    "sha256": "66fb46f794cdee0d17ba2be686f3ea270a84b8a1ed5e89d32578071dd424cb13"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/long/01_triumph_stairs/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/sao_nine_drafts_20261030/long/01_triumph_stairs/p01_walls.nbt",
+                    "sha256": "97e9eb33ef218250287c9a129b6b2477a0cf55fe9f55a08401a5b6bb104926c9"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/long/01_triumph_stairs/delivery/p02_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/sao_nine_drafts_20261030/long/01_triumph_stairs/p02_body.nbt",
+                    "sha256": "ffe3513b09e40b6fcdabc52e8edce4c2357595f8a2902956523a7ccc0b836f81"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/long/01_triumph_stairs/delivery/p02_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/sao_nine_drafts_20261030/long/01_triumph_stairs/p02_walls.nbt",
+                    "sha256": "9d8cc2d0c6332f13afb9c999a7f628ccc5acc8388849114fffbac696108c22f2"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/line_3/sao_nine_drafts_20261030/long/01_triumph_stairs",
+                "errors": [],
+                "definition_sha256": "16000843b271046c7d1550c06e7c53bceac22ff550a4bb6cee5c95220c6cf4ea",
+                "parts": 3,
+                "ports": 2,
+                "reachable_poses": 18108,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                72
+            ],
+            "name": "银辉大教堂",
+            "source": "sao_nine_drafts_20261030/long/02_silver_cathedral",
+            "id": "saodg:selected/line_3/sao_nine_drafts_20261030/long/02_silver_cathedral",
+            "classification": {
+                "display_name": "room.saodg.selected.line_3.sao_nine_drafts_20261030.long.02_silver_cathedral",
+                "catalog_ids": [
+                    72
+                ],
+                "source": "sao_nine_drafts_20261030/long/02_silver_cathedral",
+                "shape": "line_3",
+                "theme": "sacred",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                44,
+                144
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                6,
+                2
+            ],
+            "spawns": [
+                [
+                    23,
+                    6,
+                    142
+                ],
+                [
+                    7,
+                    16,
+                    72
+                ],
+                [
+                    7,
+                    16,
+                    34
+                ],
+                [
+                    7,
+                    16,
+                    110
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/long/02_silver_cathedral/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/sao_nine_drafts_20261030/long/02_silver_cathedral/p00_body.nbt",
+                    "sha256": "c21cb128077e9c94f86da1f25b2fb15b9ce53e47f4b3e3a8788bf98659a3db2e"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/long/02_silver_cathedral/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/sao_nine_drafts_20261030/long/02_silver_cathedral/p00_walls.nbt",
+                    "sha256": "66592218768fc211b28915b36c78e916549e8356acae18a7860a282771eedf49"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/long/02_silver_cathedral/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/sao_nine_drafts_20261030/long/02_silver_cathedral/p01_body.nbt",
+                    "sha256": "023ace4263eba600f5ad44f53cc01091f350da7db5c21f760145892c74a32c74"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/long/02_silver_cathedral/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/sao_nine_drafts_20261030/long/02_silver_cathedral/p01_walls.nbt",
+                    "sha256": "696ffc67b46c8f4718e4ec0e29809b988a0fdf14044f4e0d698d0119f7a01eb0"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/long/02_silver_cathedral/delivery/p02_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/sao_nine_drafts_20261030/long/02_silver_cathedral/p02_body.nbt",
+                    "sha256": "ea2e2817a0114660acc683c0b5b96a666bd9042a98a19535e4184005378cbd5d"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/long/02_silver_cathedral/delivery/p02_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_3/sao_nine_drafts_20261030/long/02_silver_cathedral/p02_walls.nbt",
+                    "sha256": "9e205b0abade4041c355c7803fb0a86ad8b02b5406576cf3dde7e58fa3675560"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/line_3/sao_nine_drafts_20261030/long/02_silver_cathedral",
+                "errors": [],
+                "definition_sha256": "929fdf820cd8aafb910006dd12ad2ef8df13ef455166d669aab55a7484b8ae92",
+                "parts": 3,
+                "ports": 2,
+                "reachable_poses": 28476,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                74
+            ],
+            "name": "王城·折剑高架",
+            "source": "sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct",
+            "id": "saodg:selected/l/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct",
+            "classification": {
+                "display_name": "room.saodg.selected.l.sao_nine_drafts_20261030.lshape.l01_folded_sword_viaduct",
+                "catalog_ids": [
+                    74
+                ],
+                "source": "sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct",
+                "shape": "l",
+                "theme": "guild",
+                "connections": "corner"
+            },
+            "size": [
+                96,
+                36,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                94,
+                8,
+                23
+            ],
+            "spawns": [
+                [
+                    20,
+                    8,
+                    94
+                ],
+                [
+                    23,
+                    16,
+                    23
+                ],
+                [
+                    28,
+                    8,
+                    58
+                ],
+                [
+                    58,
+                    8,
+                    28
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct/p00_body.nbt",
+                    "sha256": "23dfcb72fb69ad06044c7552286064b1b73dcf15954f877e3fe2773023ab56e3"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct/p00_walls.nbt",
+                    "sha256": "e5f70e0add26bd21f095bba21db2584377ccde26f69d9dd33b6c2ddd575312c0"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct/p01_body.nbt",
+                    "sha256": "29aa6b9adff94d4d69ecf37bf326aa3b1c5a0ae69cbf99bdbf3c7088b5619ecd"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct/p01_walls.nbt",
+                    "sha256": "507459496042de4069d9730ee55660308074143c4c616b7e80aef517cf118772"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct/p10_body.nbt",
+                    "sha256": "c4d22d723e9c7939119cece4d54335c01ee75c414399635bf06c6ffc2c10dce6"
+                },
+                {
+                    "source": "build/选择/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct/p10_walls.nbt",
+                    "sha256": "cd3f99efebd6e688e0fd6eed051bcec0b3ea98c7219998c33a9090f33d9bfab7"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/l/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct",
+                "errors": [],
+                "definition_sha256": "474f4f2ff5a389354e8cc67306dbc2d620483ccbf5daa0c03ceae03a7a1c80a8",
+                "parts": 3,
+                "ports": 2,
+                "reachable_poses": 29333,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                80
+            ],
+            "name": "艾恩葛朗特·迷宫区",
+            "source": "sao_rooms",
+            "id": "saodg:selected/single/sao_rooms/aincrad_labyrinth",
+            "classification": {
+                "display_name": "room.saodg.selected.single.sao_rooms.aincrad_labyrinth",
+                "catalog_ids": [
+                    80
+                ],
+                "source": "sao_rooms",
+                "shape": "single",
+                "theme": "ruins",
+                "connections": "junction"
+            },
+            "size": [
+                48,
+                26,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                7,
+                2,
+                8
+            ],
+            "spawns": [
+                [
+                    45,
+                    2,
+                    45
+                ],
+                [
+                    45,
+                    2,
+                    2
+                ],
+                [
+                    2,
+                    2,
+                    45
+                ],
+                [
+                    28,
+                    2,
+                    24
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_rooms/aincrad_labyrinth.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/sao_rooms/aincrad_labyrinth/p00.nbt",
+                    "sha256": "af12f2bdd7781fff95d7b0fc09bab59d90a23d341e90fa94a3669e8ec5c227c0"
+                }
+            ],
+            "status": "rejected",
+            "runtime": {
+                "id": "saodg:selected/single/sao_rooms/aincrad_labyrinth",
+                "errors": [
+                    "封闭声明外门后，49格放置计划仍与外界空气连通"
+                ],
+                "definition_sha256": "e670f9c04609bb5582901e0851e677ec19cb0f0a383e18da3c298d03ea3efd9c",
+                "parts": 1,
+                "ports": 3,
+                "reachable_poses": 6326,
+                "passed": false
+            },
+            "reason": "封闭声明外门后，49格放置计划仍与外界空气连通"
+        },
+        {
+            "catalog_ids": [
+                82
+            ],
+            "name": "黑剑士·双剑修炼室",
+            "source": "sao_rooms",
+            "id": "saodg:selected/single/sao_rooms/dual_blades_training",
+            "classification": {
+                "display_name": "room.saodg.selected.single.sao_rooms.dual_blades_training",
+                "catalog_ids": [
+                    82
+                ],
+                "source": "sao_rooms",
+                "shape": "single",
+                "theme": "guild",
+                "connections": "corner"
+            },
+            "size": [
+                48,
+                30,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                24,
+                2,
+                8
+            ],
+            "spawns": [
+                [
+                    2,
+                    2,
+                    45
+                ],
+                [
+                    45,
+                    2,
+                    45
+                ],
+                [
+                    2,
+                    2,
+                    20
+                ],
+                [
+                    23,
+                    2,
+                    33
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_rooms/dual_blades_training.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/sao_rooms/dual_blades_training/p00.nbt",
+                    "sha256": "f67eca0c0b8825781dc65fe8d42b6a47044319128f3101300c3b14f0b5ee4143"
+                }
+            ],
+            "status": "rejected",
+            "runtime": {
+                "id": "saodg:selected/single/sao_rooms/dual_blades_training",
+                "errors": [
+                    "封闭声明外门后，49格放置计划仍与外界空气连通"
+                ],
+                "definition_sha256": "7ac59538414e0388fe3cbcc037f7f24c517a48c8d61829da03032984574e8820",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 6423,
+                "passed": false
+            },
+            "reason": "封闭声明外门后，49格放置计划仍与外界空气连通"
+        },
+        {
+            "catalog_ids": [
+                83
+            ],
+            "name": "转移水晶·传送广场",
+            "source": "sao_rooms",
+            "id": "saodg:selected/single/sao_rooms/teleport_crystal_plaza",
+            "classification": {
+                "display_name": "room.saodg.selected.single.sao_rooms.teleport_crystal_plaza",
+                "catalog_ids": [
+                    83
+                ],
+                "source": "sao_rooms",
+                "shape": "single",
+                "theme": "guild",
+                "connections": "junction"
+            },
+            "size": [
+                48,
+                32,
+                48
+            ],
+            "type": "safe",
+            "arrival": [
+                24,
+                2,
+                11
+            ],
+            "spawns": [],
+            "files": [
+                {
+                    "source": "build/选择/sao_rooms/teleport_crystal_plaza.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/sao_rooms/teleport_crystal_plaza/p00.nbt",
+                    "sha256": "ed7bb096a04dd29e682b83a891d1dcdb0e1c0cdf2cac8ef2b1c40b11d55f4fe7"
+                }
+            ],
+            "status": "rejected",
+            "runtime": {
+                "id": "saodg:selected/single/sao_rooms/teleport_crystal_plaza",
+                "errors": [
+                    "封闭声明外门后，49格放置计划仍与外界空气连通"
+                ],
+                "definition_sha256": "dc1d55babb447532642bb5c387b288fa2079e28d89a8bd5f46acc1186f464e1e",
+                "parts": 1,
+                "ports": 4,
+                "reachable_poses": 6204,
+                "passed": false
+            },
+            "reason": "封闭声明外门后，49格放置计划仍与外界空气连通"
+        },
+        {
+            "catalog_ids": [
+                84
+            ],
+            "name": "起始之镇·公会大厅",
+            "source": "sao_rooms",
+            "id": "saodg:selected/single/sao_rooms/town_guild_hall",
+            "classification": {
+                "display_name": "room.saodg.selected.single.sao_rooms.town_guild_hall",
+                "catalog_ids": [
+                    84
+                ],
+                "source": "sao_rooms",
+                "shape": "single",
+                "theme": "guild",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                32,
+                48
+            ],
+            "type": "safe",
+            "arrival": [
+                24,
+                2,
+                8
+            ],
+            "spawns": [],
+            "files": [
+                {
+                    "source": "build/选择/sao_rooms/town_guild_hall.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/sao_rooms/town_guild_hall/p00.nbt",
+                    "sha256": "157adb648701ba5749ace212dcef7f994e79165f60673f9f865c8d0788994115"
+                }
+            ],
+            "status": "rejected",
+            "runtime": {
+                "id": "saodg:selected/single/sao_rooms/town_guild_hall",
+                "errors": [
+                    "封闭声明外门后，49格放置计划仍与外界空气连通"
+                ],
+                "definition_sha256": "bfc078dbc2574f7fb75588088774c2ca5e02da0649dbb9fc4d10c8d277a66ed7",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 4871,
+                "passed": false
+            },
+            "reason": "封闭声明外门后，49格放置计划仍与外界空气连通"
+        },
+        {
+            "catalog_ids": [
+                97
+            ],
+            "name": "翠阶育种庭",
+            "source": "sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces",
+            "id": "saodg:selected/line_2/sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces",
+            "classification": {
+                "display_name": "room.saodg.selected.line_2.sao_skill_trial_20261030.rooms_1x2.verdant_seed_terraces",
+                "catalog_ids": [
+                    97
+                ],
+                "source": "sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces",
+                "shape": "line_2",
+                "theme": "garden",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                36,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                2,
+                3
+            ],
+            "spawns": [
+                [
+                    23,
+                    2,
+                    93
+                ],
+                [
+                    34,
+                    8,
+                    49
+                ],
+                [
+                    13,
+                    5,
+                    31
+                ],
+                [
+                    23,
+                    2,
+                    69
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_2/sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces/p00_body.nbt",
+                    "sha256": "a87bde6420f2c8d750fedfba60f617c58d29bac3769919667580ae1c3171ae48"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_2/sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces/p00_walls.nbt",
+                    "sha256": "66a3f720c2a1c03e0fd22d8f0673c5328ca56039eacad30c6b9afdfd9a93acaf"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_2/sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces/p01_body.nbt",
+                    "sha256": "ab785488844952f012ba76084be6bd6dd0cda905aee7c97a7a1c2e14bcb847b0"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/line_2/sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces/p01_walls.nbt",
+                    "sha256": "c11d85af933beeb31d8030674153cf203c7537a2005b4b7bab2064a7be1b67bc"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/line_2/sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces",
+                "errors": [],
+                "definition_sha256": "55df3199539f8b692d18bb335492f504cad62b26cec44cf82f9beb32dd03f5e0",
+                "parts": 2,
+                "ports": 2,
+                "reachable_poses": 12686,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                99
+            ],
+            "name": "银肋扇形大厅",
+            "source": "sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall",
+            "id": "saodg:selected/square/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall",
+            "classification": {
+                "display_name": "room.saodg.selected.square.sao_skill_trial_20261030.rooms_2x2.silver_rib_fan_hall",
+                "catalog_ids": [
+                    99
+                ],
+                "source": "sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall",
+                "shape": "square",
+                "theme": "crystal",
+                "connections": "straight"
+            },
+            "size": [
+                96,
+                40,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                5,
+                6,
+                24
+            ],
+            "spawns": [
+                [
+                    91,
+                    6,
+                    73
+                ],
+                [
+                    65,
+                    6,
+                    19
+                ],
+                [
+                    31,
+                    18,
+                    76
+                ],
+                [
+                    90,
+                    6,
+                    40
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/p00_body.nbt",
+                    "sha256": "83fe5a0b3b351b6c5337a9e5bc56dd30babf2fbc0dc6b0a71fed64c331ec8d3f"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/p00_walls.nbt",
+                    "sha256": "ec05f309c76906c191430fa7aa509d7a5b370c045aeef2c828b6da62ccc77f6e"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/p01_body.nbt",
+                    "sha256": "534775972b4cc1c2658a04cde16f02c5206a3efc58edaa1da47c8416b5fc3a97"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/p01_walls.nbt",
+                    "sha256": "a12b0f87dcffe63526f40e43ced6601a2a6503ecd5e0c7cc465ff63b30ee9ae6"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/p10_body.nbt",
+                    "sha256": "049982066df4f760441f0612450ed7d64f0583698b374d200bbfd3c452cbc1e3"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/p10_walls.nbt",
+                    "sha256": "4f649c1400b9776117f27caae5cd470e087bd3c49b65bdd879de745e7da5cee8"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/delivery/p11_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/p11_body.nbt",
+                    "sha256": "915dacb2ff37ae69b188858070fd11bc57bffb3d97903f3d7ff871f2592dd0c4"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/delivery/p11_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall/p11_walls.nbt",
+                    "sha256": "e04f73c5cdd0583c5ebad8c540a828d5ca3c2b127c9d50001e17ae1407c198b9"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/square/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall",
+                "errors": [],
+                "definition_sha256": "17234e95a87e16c562326cff5a44e4d927103eb2fcb83e61bbaa6b55e2a675f2",
+                "parts": 4,
+                "ports": 2,
+                "reachable_poses": 25768,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                100
+            ],
+            "name": "苔冠巡行庭",
+            "source": "sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol",
+            "id": "saodg:selected/l/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol",
+            "classification": {
+                "display_name": "room.saodg.selected.l.sao_skill_trial_20261030.rooms_lshape.moss_crown_patrol",
+                "catalog_ids": [
+                    100
+                ],
+                "source": "sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol",
+                "shape": "l",
+                "theme": "garden",
+                "connections": "junction"
+            },
+            "size": [
+                96,
+                36,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                24,
+                3,
+                4
+            ],
+            "spawns": [
+                [
+                    24,
+                    3,
+                    94
+                ],
+                [
+                    94,
+                    3,
+                    24
+                ],
+                [
+                    19,
+                    3,
+                    49
+                ],
+                [
+                    57,
+                    3,
+                    21
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol/p00_body.nbt",
+                    "sha256": "967e4f8e5cf4b51917b06f1248eee6281180ab9535780ba9e12f47103a77a8a7"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol/p00_walls.nbt",
+                    "sha256": "11db90e8a568abed6a7b03cb76e4477d20cdfba3c4377eecfd90c952d59f9bd4"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol/p01_body.nbt",
+                    "sha256": "9b25c954ca35e4b0da15bbd8106a1c625fa2ce2b3de2e8e4dbcbe8375a1ce9d0"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol/p01_walls.nbt",
+                    "sha256": "88138d4f23ae6d5dd7efe54da612796090ee6d12783968ec7b5e4c98cbdcd9cc"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol/p10_body.nbt",
+                    "sha256": "a8ff8ec6b07fa0baa3f49e70d30bc639e340b7ea4dcf47151c97190e0c7646e6"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol/p10_walls.nbt",
+                    "sha256": "01b7bd7fef97464ed8e265c6e43a14737b34f0890802eb1aec84d64e5fa6be4e"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/l/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol",
+                "errors": [],
+                "definition_sha256": "211500cc3c2beaebd2611e42f2e5a1c4b3ea0186f430248ed23ed23a3d2284cf",
+                "parts": 3,
+                "ports": 3,
+                "reachable_poses": 20859,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                101
+            ],
+            "name": "潮阶闸渠",
+            "source": "sao_skill_trial_20261030/rooms_lshape/tide_step_sluice",
+            "id": "saodg:selected/l/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice",
+            "classification": {
+                "display_name": "room.saodg.selected.l.sao_skill_trial_20261030.rooms_lshape.tide_step_sluice",
+                "catalog_ids": [
+                    101
+                ],
+                "source": "sao_skill_trial_20261030/rooms_lshape/tide_step_sluice",
+                "shape": "l",
+                "theme": "waterworks",
+                "connections": "junction"
+            },
+            "size": [
+                96,
+                32,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                24,
+                8,
+                4
+            ],
+            "spawns": [
+                [
+                    24,
+                    8,
+                    94
+                ],
+                [
+                    94,
+                    8,
+                    24
+                ],
+                [
+                    25,
+                    8,
+                    49
+                ],
+                [
+                    57,
+                    8,
+                    21
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice/p00_body.nbt",
+                    "sha256": "14b70f359ed302129a42c6914bd9ebba237fcec17230b1e8b0b5ca6e3d42b271"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice/p00_walls.nbt",
+                    "sha256": "1843d697d1c9e5a1f5b9ca5f3df298085a75ac2c5b01bfc6eb8f630cebe090c2"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice/delivery/p01_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice/p01_body.nbt",
+                    "sha256": "1f6af065d179814c800f7e35b955da784e875a4d5d622638066d4615ff52e119"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice/delivery/p01_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice/p01_walls.nbt",
+                    "sha256": "0dabb4bc70d154650e7916d22261e5b998485ba180919c035c160dce7c9ff169"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice/delivery/p10_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice/p10_body.nbt",
+                    "sha256": "3a9cccb86541de6340f22d96e9adcb9f3b812dccf5cb5b7e7fd5b4a9f59b0a16"
+                },
+                {
+                    "source": "build/选择/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice/delivery/p10_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/l/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice/p10_walls.nbt",
+                    "sha256": "4dc7c6b7adec3b182ea959052e6f704390f5844ef364e36061692ca662fa1456"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/l/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice",
+                "errors": [],
+                "definition_sha256": "d23174140043ab71760bb7f06f8c28bb3839175c6ecb86e8d6dfca162cd235d7",
+                "parts": 3,
+                "ports": 3,
+                "reachable_poses": 18674,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                102
+            ],
+            "name": "剑士行会誓约厅",
+            "source": "sao_twenty_1x1_20261030/01_oath_hall",
+            "id": "saodg:latest/01_oath_hall",
+            "classification": {
+                "display_name": "room.saodg.latest.01_oath_hall",
+                "catalog_ids": [
+                    102
+                ],
+                "source": "sao_twenty_1x1_20261030/01_oath_hall",
+                "shape": "single",
+                "theme": "guild",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                32,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                2,
+                44
+            ],
+            "spawns": [
+                [
+                    23,
+                    2,
+                    2
+                ],
+                [
+                    32,
+                    2,
+                    23
+                ],
+                [
+                    13,
+                    6,
+                    27
+                ],
+                [
+                    36,
+                    2,
+                    37
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/01_oath_hall/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/01_oath_hall/p00_body.nbt",
+                    "sha256": "d80b069d203f643621e003f32427f64a2c09a801708d29211475db69a328e2a1"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/01_oath_hall/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/01_oath_hall/p00_walls.nbt",
+                    "sha256": "f617ad2f5b00b8ef295087aaf9322e06a2eef752c414e5d81395706adebc552f"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/01_oath_hall",
+                "errors": [],
+                "definition_sha256": "eee96138a96b32cf451b52fd3fa38d2113a41af157b3840e3b71333d3fffb52c",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 4636,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                103
+            ],
+            "name": "麦穗层磨坊",
+            "source": "sao_twenty_1x1_20261030/02_grain_mill",
+            "id": "saodg:latest/02_grain_mill",
+            "classification": {
+                "display_name": "room.saodg.latest.02_grain_mill",
+                "catalog_ids": [
+                    103
+                ],
+                "source": "sao_twenty_1x1_20261030/02_grain_mill",
+                "shape": "single",
+                "theme": "guild",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                30,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                2,
+                44
+            ],
+            "spawns": [
+                [
+                    23,
+                    2,
+                    2
+                ],
+                [
+                    30,
+                    2,
+                    23
+                ],
+                [
+                    16,
+                    8,
+                    13
+                ],
+                [
+                    30,
+                    2,
+                    35
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/02_grain_mill/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/02_grain_mill/p00_body.nbt",
+                    "sha256": "64e645f072624c3c4476297cece7e300ef2b28b4f9d9ebf02e940a8227231945"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/02_grain_mill/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/02_grain_mill/p00_walls.nbt",
+                    "sha256": "3249d25c3a183d84b2761c0fbccd6f7ec4250f61b894f67188f9cb96fc2f7c1c"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/02_grain_mill",
+                "errors": [],
+                "definition_sha256": "51da287cec7dbbde8c007637c0f87565ff3a3b388254fb27580cc74c57f49148",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 4499,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                104
+            ],
+            "name": "染织阶场",
+            "source": "sao_twenty_1x1_20261030/03_dye_terraces",
+            "id": "saodg:latest/03_dye_terraces",
+            "classification": {
+                "display_name": "room.saodg.latest.03_dye_terraces",
+                "catalog_ids": [
+                    104
+                ],
+                "source": "sao_twenty_1x1_20261030/03_dye_terraces",
+                "shape": "single",
+                "theme": "guild",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                27,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                2,
+                44
+            ],
+            "spawns": [
+                [
+                    23,
+                    2,
+                    2
+                ],
+                [
+                    41,
+                    2,
+                    39
+                ],
+                [
+                    39,
+                    2,
+                    8
+                ],
+                [
+                    23,
+                    5,
+                    30
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/03_dye_terraces/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/03_dye_terraces/p00_body.nbt",
+                    "sha256": "8b64bf65717403ac8c9c1be6591e6d5979ce5a6c54c1a4ff36633dc7f6d82292"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/03_dye_terraces/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/03_dye_terraces/p00_walls.nbt",
+                    "sha256": "630520e4a7ef63659bccd41ccc8437735cbe0e462e98fba1ad7ea50c2886332c"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/03_dye_terraces",
+                "errors": [],
+                "definition_sha256": "01e4c3062c1d5af33802d271f5f6f231836428d7e6e7d3655d04d11b645fe5bf",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 5518,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                107
+            ],
+            "name": "攻略使驿站",
+            "source": "sao_twenty_1x1_20261030/06_courier_interchange",
+            "id": "saodg:latest/06_courier_interchange",
+            "classification": {
+                "display_name": "room.saodg.latest.06_courier_interchange",
+                "catalog_ids": [
+                    107
+                ],
+                "source": "sao_twenty_1x1_20261030/06_courier_interchange",
+                "shape": "single",
+                "theme": "guild",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                29,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                2,
+                44
+            ],
+            "spawns": [
+                [
+                    23,
+                    2,
+                    2
+                ],
+                [
+                    19,
+                    2,
+                    23
+                ],
+                [
+                    33,
+                    6,
+                    19
+                ],
+                [
+                    12,
+                    2,
+                    35
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/06_courier_interchange/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/06_courier_interchange/p00_body.nbt",
+                    "sha256": "0f1ea71434b760438388d94a711c6e94fb0d61b0b684e9014afef83dbc59f7bf"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/06_courier_interchange/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/06_courier_interchange/p00_walls.nbt",
+                    "sha256": "4321a867a7db85e8e76ff7a0fb0a3b411087dd0e3e561e2f5e4008a5a536d238"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/06_courier_interchange",
+                "errors": [],
+                "definition_sha256": "e27153d041aac613925694c8920fbb193cdacdf869b89158d0f1dfb07ed45d60",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 4542,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                108
+            ],
+            "name": "攻略地形议室",
+            "source": "sao_twenty_1x1_20261030/07_expedition_cartography",
+            "id": "saodg:latest/07_expedition_cartography",
+            "classification": {
+                "display_name": "room.saodg.latest.07_expedition_cartography",
+                "catalog_ids": [
+                    108
+                ],
+                "source": "sao_twenty_1x1_20261030/07_expedition_cartography",
+                "shape": "single",
+                "theme": "archive",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                28,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                2,
+                44
+            ],
+            "spawns": [
+                [
+                    34,
+                    2,
+                    2
+                ],
+                [
+                    36,
+                    7,
+                    26
+                ],
+                [
+                    29,
+                    2,
+                    15
+                ],
+                [
+                    34,
+                    2,
+                    38
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/07_expedition_cartography/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/07_expedition_cartography/p00_body.nbt",
+                    "sha256": "69a43e29306913d0ffecfe0e5da8e8761b55d56673db99ff755a4f0db8df21a1"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/07_expedition_cartography/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/07_expedition_cartography/p00_walls.nbt",
+                    "sha256": "6857e80b831394f49e64af14a919dd64cf8bd799b5337b63ecc1c618ed9a5cb5"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/07_expedition_cartography",
+                "errors": [],
+                "definition_sha256": "ac4da270d6c56fed36ab082539a4d5040a4c03578a6f6bbfd1ad080ae43a4d4a",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 4506,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                109
+            ],
+            "name": "锻刃修复工坊",
+            "source": "sao_twenty_1x1_20261030/08_blade_workshop",
+            "id": "saodg:latest/08_blade_workshop",
+            "classification": {
+                "display_name": "room.saodg.latest.08_blade_workshop",
+                "catalog_ids": [
+                    109
+                ],
+                "source": "sao_twenty_1x1_20261030/08_blade_workshop",
+                "shape": "single",
+                "theme": "forge",
+                "connections": "corner"
+            },
+            "size": [
+                48,
+                32,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                3,
+                2,
+                24
+            ],
+            "spawns": [
+                [
+                    35,
+                    5,
+                    24
+                ],
+                [
+                    19,
+                    2,
+                    44
+                ],
+                [
+                    19,
+                    2,
+                    24
+                ],
+                [
+                    5,
+                    2,
+                    39
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/08_blade_workshop/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/08_blade_workshop/p00_body.nbt",
+                    "sha256": "d11663205d271543386883f8f6f04c9686464c6a3ae87e17fc8b09cf45c48ff6"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/08_blade_workshop/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/08_blade_workshop/p00_walls.nbt",
+                    "sha256": "687af679a3b86eddf9327e352eda8c5e3c85677fa4d6468894868504dbb9a459"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/08_blade_workshop",
+                "errors": [],
+                "definition_sha256": "cfbcb2ae218229e57019e001bec126c15e8e509baf6b86c7cfb95aed076b8890",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 4609,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                110
+            ],
+            "name": "艾恩葛朗特药草阶地",
+            "source": "sao_twenty_1x1_20261030/09_herb_terraces",
+            "id": "saodg:latest/09_herb_terraces",
+            "classification": {
+                "display_name": "room.saodg.latest.09_herb_terraces",
+                "catalog_ids": [
+                    110
+                ],
+                "source": "sao_twenty_1x1_20261030/09_herb_terraces",
+                "shape": "single",
+                "theme": "garden",
+                "connections": "dead_end"
+            },
+            "size": [
+                48,
+                30,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                24,
+                2,
+                3
+            ],
+            "spawns": [
+                [
+                    24,
+                    8,
+                    42
+                ],
+                [
+                    30,
+                    5,
+                    22
+                ],
+                [
+                    24,
+                    5,
+                    31
+                ],
+                [
+                    24,
+                    4,
+                    14
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/09_herb_terraces/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/09_herb_terraces/p00_body.nbt",
+                    "sha256": "5416f434d7b5e511634672aa4e5bd65a45a9aeaed739f554b95f4aec45edaeff"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/09_herb_terraces/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/09_herb_terraces/p00_walls.nbt",
+                    "sha256": "c64414ac476c0fb1d9f1da42b6da6f5b78e0496a8ed9ce960ebc4c0a51e49c38"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/09_herb_terraces",
+                "errors": [],
+                "definition_sha256": "cc6533e749bd5c49f821a34141d5ba586507d2de0280949ecf06cd827e05174d",
+                "parts": 1,
+                "ports": 1,
+                "reachable_poses": 2904,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                111
+            ],
+            "name": "骑士驻营套间",
+            "source": "sao_twenty_1x1_20261030/10_knight_quarters",
+            "id": "saodg:latest/10_knight_quarters",
+            "classification": {
+                "display_name": "room.saodg.latest.10_knight_quarters",
+                "catalog_ids": [
+                    111
+                ],
+                "source": "sao_twenty_1x1_20261030/10_knight_quarters",
+                "shape": "single",
+                "theme": "guild",
+                "connections": "corner"
+            },
+            "size": [
+                48,
+                30,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                24,
+                2,
+                44
+            ],
+            "spawns": [
+                [
+                    40,
+                    2,
+                    10
+                ],
+                [
+                    13,
+                    2,
+                    10
+                ],
+                [
+                    41,
+                    2,
+                    31
+                ],
+                [
+                    18,
+                    2,
+                    27
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/10_knight_quarters/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/10_knight_quarters/p00_body.nbt",
+                    "sha256": "e1072808ae1b5ecaa4336aa57c8570aaf7fa226c0cf0c3042f141cb9ab8d6886"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/10_knight_quarters/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/10_knight_quarters/p00_walls.nbt",
+                    "sha256": "c895e9778f6d0d3135f6db026889771d4216b6fb65e92fd1635e9e1509a820de"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/10_knight_quarters",
+                "errors": [],
+                "definition_sha256": "6fecdd3d6c41d24bb45a3dc52a96a3fd0c24d5650f0fe3f8a3611e0880cd5654",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 4799,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                112
+            ],
+            "name": "双脊封存档案库",
+            "source": "sao_twenty_1x1_20261030/11_twin_archive",
+            "id": "saodg:latest/11_twin_archive",
+            "classification": {
+                "display_name": "room.saodg.latest.11_twin_archive",
+                "catalog_ids": [
+                    112
+                ],
+                "source": "sao_twenty_1x1_20261030/11_twin_archive",
+                "shape": "single",
+                "theme": "archive",
+                "connections": "dead_end"
+            },
+            "size": [
+                48,
+                30,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                24,
+                2,
+                45
+            ],
+            "spawns": [
+                [
+                    38,
+                    5,
+                    9
+                ],
+                [
+                    12,
+                    2,
+                    19
+                ],
+                [
+                    28,
+                    2,
+                    27
+                ],
+                [
+                    12,
+                    2,
+                    35
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/11_twin_archive/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/11_twin_archive/p00_body.nbt",
+                    "sha256": "e6ae18546e2e1eccf381a0d8eba14f55b0c1c85b8bfbeaa03a465df94fef0759"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/11_twin_archive/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/11_twin_archive/p00_walls.nbt",
+                    "sha256": "7a586f25876c6406c9b05a21d6af87c4bc66ec78bd48709abb0ad339471b8246"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/11_twin_archive",
+                "errors": [],
+                "definition_sha256": "0f65ddcfc2ea407d31b4d279a7dc186b9985c9b26d477b6a281dbf0106f26770",
+                "parts": 1,
+                "ports": 1,
+                "reachable_poses": 3689,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                113
+            ],
+            "name": "山城折街",
+            "source": "sao_twenty_1x1_20261030/12_switchback_street",
+            "id": "saodg:latest/12_switchback_street",
+            "classification": {
+                "display_name": "room.saodg.latest.12_switchback_street",
+                "catalog_ids": [
+                    113
+                ],
+                "source": "sao_twenty_1x1_20261030/12_switchback_street",
+                "shape": "single",
+                "theme": "guild",
+                "connections": "dead_end"
+            },
+            "size": [
+                48,
+                34,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                24,
+                2,
+                3
+            ],
+            "spawns": [
+                [
+                    33,
+                    8,
+                    42
+                ],
+                [
+                    15,
+                    5,
+                    28
+                ],
+                [
+                    29,
+                    5,
+                    19
+                ],
+                [
+                    38,
+                    2,
+                    7
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/12_switchback_street/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/12_switchback_street/p00_body.nbt",
+                    "sha256": "2371d1e97ae3113497891fd93b53959de93937f10aad955ca56b658550ef5571"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/12_switchback_street/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/12_switchback_street/p00_walls.nbt",
+                    "sha256": "5e9632cb953a2749e9c2ac463181f6b20a0dae1a8106563728be476d88e277c2"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/12_switchback_street",
+                "errors": [],
+                "definition_sha256": "e64352f3be4332880e0fd0a476927674f3efde4601e9a4657ad7d91df790738c",
+                "parts": 1,
+                "ports": 1,
+                "reachable_poses": 4733,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                114
+            ],
+            "name": "古城低穹浴场",
+            "source": "sao_twenty_1x1_20261030/13_vault_baths",
+            "id": "saodg:latest/13_vault_baths",
+            "classification": {
+                "display_name": "room.saodg.latest.13_vault_baths",
+                "catalog_ids": [
+                    114
+                ],
+                "source": "sao_twenty_1x1_20261030/13_vault_baths",
+                "shape": "single",
+                "theme": "waterworks",
+                "connections": "dead_end"
+            },
+            "size": [
+                48,
+                24,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                24,
+                2,
+                45
+            ],
+            "spawns": [
+                [
+                    6,
+                    2,
+                    15
+                ],
+                [
+                    41,
+                    2,
+                    16
+                ],
+                [
+                    16,
+                    2,
+                    29
+                ],
+                [
+                    32,
+                    2,
+                    31
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/13_vault_baths/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/13_vault_baths/p00_body.nbt",
+                    "sha256": "b16c9ac3112461aeea1fe01bce18111f3b4404ce89a0f40a780cd63148e12ee4"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/13_vault_baths/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/13_vault_baths/p00_walls.nbt",
+                    "sha256": "86d9cfb670e98e4ec5dc14e5f1301996a2655b738a4d0ecf10a346ae5e393860"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/13_vault_baths",
+                "errors": [],
+                "definition_sha256": "07f5302bcf0fec34f794af99012af9861929c48476374067f94a6958703508eb",
+                "parts": 1,
+                "ports": 1,
+                "reachable_poses": 3920,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                115
+            ],
+            "name": "水晶筛炼工序厅",
+            "source": "sao_twenty_1x1_20261030/14_crystal_process",
+            "id": "saodg:latest/14_crystal_process",
+            "classification": {
+                "display_name": "room.saodg.latest.14_crystal_process",
+                "catalog_ids": [
+                    115
+                ],
+                "source": "sao_twenty_1x1_20261030/14_crystal_process",
+                "shape": "single",
+                "theme": "forge",
+                "connections": "dead_end"
+            },
+            "size": [
+                48,
+                34,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                3,
+                2,
+                24
+            ],
+            "spawns": [
+                [
+                    39,
+                    8,
+                    17
+                ],
+                [
+                    22,
+                    5,
+                    28
+                ],
+                [
+                    31,
+                    5,
+                    24
+                ],
+                [
+                    12,
+                    2,
+                    27
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/14_crystal_process/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/14_crystal_process/p00_body.nbt",
+                    "sha256": "d73fb5a1aa6763b86ebd8440605de40c7bbacc6f1bb9b070b9638bc5f5676abc"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/14_crystal_process/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/14_crystal_process/p00_walls.nbt",
+                    "sha256": "5406fbec9ead3a72db9193485ade55bed9e84d52b8da41e99827b65f6e365260"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/14_crystal_process",
+                "errors": [],
+                "definition_sha256": "4b74e9985a9d3da9c0030a81354457b3319235941fd3f9e00cdefd906f63db3f",
+                "parts": 1,
+                "ports": 1,
+                "reachable_poses": 4140,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                116
+            ],
+            "name": "龙骨拱仓栈",
+            "source": "sao_twenty_1x1_20261030/15_dragon_rib_store",
+            "id": "saodg:latest/15_dragon_rib_store",
+            "classification": {
+                "display_name": "room.saodg.latest.15_dragon_rib_store",
+                "catalog_ids": [
+                    116
+                ],
+                "source": "sao_twenty_1x1_20261030/15_dragon_rib_store",
+                "shape": "single",
+                "theme": "guild",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                34,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                2,
+                2,
+                24
+            ],
+            "spawns": [
+                [
+                    45,
+                    2,
+                    23
+                ],
+                [
+                    26,
+                    2,
+                    9
+                ],
+                [
+                    25,
+                    2,
+                    34
+                ],
+                [
+                    16,
+                    2,
+                    23
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/15_dragon_rib_store/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/15_dragon_rib_store/p00_body.nbt",
+                    "sha256": "4cdcbd9725c55306402c08c77a83280a4bb3ef7cafdac96d5d0074f7ce5b6e11"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/15_dragon_rib_store/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/15_dragon_rib_store/p00_walls.nbt",
+                    "sha256": "ee6eecf9cce837689b1f0c1bdd0ef5cfdeb7c4dab140ca21ea9edd360166f921"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/15_dragon_rib_store",
+                "errors": [],
+                "definition_sha256": "262f65006beb6ae431df5db3bdf6ca1ac2a90cf2ab4e09c49cb26a2a6912a80e",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 4999,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                117
+            ],
+            "name": "月影礼拜套殿",
+            "source": "sao_twenty_1x1_20261030/16_moon_suite_chapel",
+            "id": "saodg:latest/16_moon_suite_chapel",
+            "classification": {
+                "display_name": "room.saodg.latest.16_moon_suite_chapel",
+                "catalog_ids": [
+                    117
+                ],
+                "source": "sao_twenty_1x1_20261030/16_moon_suite_chapel",
+                "shape": "single",
+                "theme": "sacred",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                36,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                2,
+                2,
+                24
+            ],
+            "spawns": [
+                [
+                    45,
+                    2,
+                    23
+                ],
+                [
+                    22,
+                    2,
+                    8
+                ],
+                [
+                    24,
+                    6,
+                    37
+                ],
+                [
+                    17,
+                    2,
+                    24
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/16_moon_suite_chapel/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/16_moon_suite_chapel/p00_body.nbt",
+                    "sha256": "9794b1585e235d02148f44df69441f33117b7c17244e8dd7051529b86dcf78e8"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/16_moon_suite_chapel/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/16_moon_suite_chapel/p00_walls.nbt",
+                    "sha256": "9a873a88504c3d6c2d3b6a7bb3666f7efe7ea9259180d4c1d6b6ef5e8172793b"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/16_moon_suite_chapel",
+                "errors": [],
+                "definition_sha256": "e85b994a4996dd3d6ab58475f3ab5fd3c2742c3ea42acf74550d886e1f3aeaf2",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 4589,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                118
+            ],
+            "name": "古代闸渠检修场",
+            "source": "sao_twenty_1x1_20261030/17_ancient_sluice",
+            "id": "saodg:latest/17_ancient_sluice",
+            "classification": {
+                "display_name": "room.saodg.latest.17_ancient_sluice",
+                "catalog_ids": [
+                    118
+                ],
+                "source": "sao_twenty_1x1_20261030/17_ancient_sluice",
+                "shape": "single",
+                "theme": "waterworks",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                34,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                2,
+                6,
+                24
+            ],
+            "spawns": [
+                [
+                    45,
+                    6,
+                    24
+                ],
+                [
+                    23,
+                    2,
+                    10
+                ],
+                [
+                    23,
+                    2,
+                    38
+                ],
+                [
+                    29,
+                    6,
+                    24
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/17_ancient_sluice/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/17_ancient_sluice/p00_body.nbt",
+                    "sha256": "a2046195b9af8c579bcdab8187335122fe6fdb5139e43b0b9ada18938b84e47b"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/17_ancient_sluice/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/17_ancient_sluice/p00_walls.nbt",
+                    "sha256": "373e48ba184541452eb91d107ed3075ead398966fa0323ccb98569e0966ba429"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/17_ancient_sluice",
+                "errors": [],
+                "definition_sha256": "2884f4a5aa53427d89e589bb629f9cbe15f739f6f9101ffec1ea71abbb7f731a",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 6552,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                119
+            ],
+            "name": "森林根系隐修所",
+            "source": "sao_twenty_1x1_20261030/18_root_hermitage",
+            "id": "saodg:latest/18_root_hermitage",
+            "classification": {
+                "display_name": "room.saodg.latest.18_root_hermitage",
+                "catalog_ids": [
+                    119
+                ],
+                "source": "sao_twenty_1x1_20261030/18_root_hermitage",
+                "shape": "single",
+                "theme": "garden",
+                "connections": "corner"
+            },
+            "size": [
+                48,
+                36,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                2,
+                2,
+                24
+            ],
+            "spawns": [
+                [
+                    37,
+                    2,
+                    19
+                ],
+                [
+                    24,
+                    2,
+                    45
+                ],
+                [
+                    20,
+                    2,
+                    24
+                ],
+                [
+                    29,
+                    6,
+                    33
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/18_root_hermitage/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/18_root_hermitage/p00_body.nbt",
+                    "sha256": "2af65275d1ce56ed5305d5fbf30e05721c292bbac950e951993b14d930ce4ed2"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/18_root_hermitage/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/18_root_hermitage/p00_walls.nbt",
+                    "sha256": "b98a9e2d293ded42f2c79f7d06cf01c207d577bd1405d7edd41032161a3ce86d"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/18_root_hermitage",
+                "errors": [],
+                "definition_sha256": "51578a8f563a11091622bd0be86ae32f2f497defe6ba39b4e9eed626e7a041f6",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 3787,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                121
+            ],
+            "name": "沉降遗迹勘探站",
+            "source": "sao_twenty_1x1_20261030/20_sunken_excavation",
+            "id": "saodg:latest/20_sunken_excavation",
+            "classification": {
+                "display_name": "room.saodg.latest.20_sunken_excavation",
+                "catalog_ids": [
+                    121
+                ],
+                "source": "sao_twenty_1x1_20261030/20_sunken_excavation",
+                "shape": "single",
+                "theme": "waterworks",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                36,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                2,
+                6,
+                24
+            ],
+            "spawns": [
+                [
+                    45,
+                    6,
+                    34
+                ],
+                [
+                    37,
+                    8,
+                    14
+                ],
+                [
+                    22,
+                    2,
+                    25
+                ],
+                [
+                    37,
+                    6,
+                    26
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/20_sunken_excavation/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/20_sunken_excavation/p00_body.nbt",
+                    "sha256": "2816cf5c86a4269ce0e70242433192bba3087ca4386035afd5a8c43ab6f167f2"
+                },
+                {
+                    "source": "build/选择/sao_twenty_1x1_20261030/20_sunken_excavation/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/latest/20_sunken_excavation/p00_walls.nbt",
+                    "sha256": "25cd28ca6450d6407a2106a43f3bbac5f0936e42c4e570e19e44c2a7fd145a7a"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:latest/20_sunken_excavation",
+                "errors": [],
+                "definition_sha256": "cff9326535b6d98d5a2201fee81d50ba0132b7e31e4e9189736a04c652910b3d",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 6034,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                122
+            ],
+            "name": "茶药共庭",
+            "source": "skill_ceiling_forward_test",
+            "id": "saodg:selected/single/skill_ceiling_forward_test",
+            "classification": {
+                "display_name": "room.saodg.selected.single.skill_ceiling_forward_test",
+                "catalog_ids": [
+                    122
+                ],
+                "source": "skill_ceiling_forward_test",
+                "shape": "single",
+                "theme": "garden",
+                "connections": "dead_end"
+            },
+            "size": [
+                48,
+                22,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                1,
+                2,
+                23
+            ],
+            "spawns": [
+                [
+                    40,
+                    2,
+                    26
+                ],
+                [
+                    27,
+                    2,
+                    2
+                ],
+                [
+                    20,
+                    2,
+                    26
+                ],
+                [
+                    11,
+                    2,
+                    10
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/skill_ceiling_forward_test/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/skill_ceiling_forward_test/p00_body.nbt",
+                    "sha256": "b0d9241736ca01c90948d9c4b14cfc734897af829f3f0b41ef3c4dc5cfc73346"
+                },
+                {
+                    "source": "build/选择/skill_ceiling_forward_test/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/skill_ceiling_forward_test/p00_walls.nbt",
+                    "sha256": "271f2f2eced20df058243cc9f851860d0dc7eaa27fd7e4fb42da847a0d18c5f6"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/single/skill_ceiling_forward_test",
+                "errors": [],
+                "definition_sha256": "e19c5ed26ef24a9272f3509cc282a4d23b97e30f4f11c60aa98edd85bb2c9c38",
+                "parts": 1,
+                "ports": 1,
+                "reachable_poses": 5766,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                123
+            ],
+            "name": "逆潮铸钟井",
+            "source": "skill_trial_a",
+            "id": "saodg:selected/single/skill_trial_a",
+            "classification": {
+                "display_name": "room.saodg.selected.single.skill_trial_a",
+                "catalog_ids": [
+                    123
+                ],
+                "source": "skill_trial_a",
+                "shape": "single",
+                "theme": "forge",
+                "connections": "dead_end"
+            },
+            "size": [
+                48,
+                48,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                5,
+                14,
+                24
+            ],
+            "spawns": [
+                [
+                    25,
+                    4,
+                    14
+                ],
+                [
+                    26,
+                    4,
+                    38
+                ],
+                [
+                    23,
+                    14,
+                    21
+                ],
+                [
+                    35,
+                    34,
+                    11
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/skill_trial_a/data/saodg/structures/trial_a/countertide_bell_foundry.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/skill_trial_a/p00.nbt",
+                    "sha256": "15579e368d21ce0211b1b5ca035e364658de557253094005a8f3f52496d0caee"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/single/skill_trial_a",
+                "errors": [],
+                "definition_sha256": "83eb3228ae6aef51e9bdc6c5edc74636088c29cc01cb3b8d00adf27b398b3341",
+                "parts": 1,
+                "ports": 1,
+                "reachable_poses": 6114,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                124
+            ],
+            "name": "悬星测潮井",
+            "source": "skill_trial_b",
+            "id": "saodg:selected/single/skill_trial_b",
+            "classification": {
+                "display_name": "room.saodg.selected.single.skill_trial_b",
+                "catalog_ids": [
+                    124
+                ],
+                "source": "skill_trial_b",
+                "shape": "single",
+                "theme": "waterworks",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                44,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                5,
+                12,
+                24
+            ],
+            "spawns": [
+                [
+                    23,
+                    18,
+                    24
+                ],
+                [
+                    16,
+                    3,
+                    24
+                ],
+                [
+                    25,
+                    25,
+                    42
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/skill_trial_b/suspended_star_tidewell.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/skill_trial_b/p00.nbt",
+                    "sha256": "264c4df0c2d3cef09b9ab328973e3144e805b501b28dd56789e1585af37f9282"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/single/skill_trial_b",
+                "errors": [],
+                "definition_sha256": "eda282efc444d72ea73aca833b14c518dc2e164c39a0f756416be58278b8ef74",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 6741,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                125
+            ],
+            "name": "闸机工坊",
+            "source": "three_rooms_20261030/01_lockworks",
+            "id": "saodg:selected/single/three_rooms_20261030/01_lockworks",
+            "classification": {
+                "display_name": "room.saodg.selected.single.three_rooms_20261030.01_lockworks",
+                "catalog_ids": [
+                    125
+                ],
+                "source": "three_rooms_20261030/01_lockworks",
+                "shape": "single",
+                "theme": "forge",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                32,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                5,
+                8,
+                23
+            ],
+            "spawns": [
+                [
+                    46,
+                    8,
+                    23
+                ],
+                [
+                    25,
+                    2,
+                    41
+                ],
+                [
+                    24,
+                    8,
+                    23
+                ],
+                [
+                    10,
+                    12,
+                    9
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/three_rooms_20261030/01_lockworks/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/three_rooms_20261030/01_lockworks/p00_body.nbt",
+                    "sha256": "363f6980fd7bfedd9a24e8c423527e0d452612ce4b5a3e4815399f6fb5712b8c"
+                },
+                {
+                    "source": "build/选择/three_rooms_20261030/01_lockworks/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/three_rooms_20261030/01_lockworks/p00_walls.nbt",
+                    "sha256": "7a49ed4ccf7cb9532460fb5cfeca7843422916a9ae4437b0a14eded5fa80975d"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/single/three_rooms_20261030/01_lockworks",
+                "errors": [],
+                "definition_sha256": "045cd3a7a01b3f0476bad0f0909b5f031b422cc9a8bb231dd647be1334da0204",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 4810,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                126
+            ],
+            "name": "阶层档案馆",
+            "source": "three_rooms_20261030/02_archive",
+            "id": "saodg:selected/single/three_rooms_20261030/02_archive",
+            "classification": {
+                "display_name": "room.saodg.selected.single.three_rooms_20261030.02_archive",
+                "catalog_ids": [
+                    126
+                ],
+                "source": "three_rooms_20261030/02_archive",
+                "shape": "single",
+                "theme": "archive",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                27,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                23,
+                2,
+                43
+            ],
+            "spawns": [
+                [
+                    23,
+                    2,
+                    1
+                ],
+                [
+                    10,
+                    2,
+                    22
+                ],
+                [
+                    36,
+                    7,
+                    21
+                ],
+                [
+                    41,
+                    2,
+                    39
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/three_rooms_20261030/02_archive/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/three_rooms_20261030/02_archive/p00_body.nbt",
+                    "sha256": "6e4dfdd097420eddc9a16dc1e38b1925f0e97c4a1762324c8ffc52639d0b0635"
+                },
+                {
+                    "source": "build/选择/three_rooms_20261030/02_archive/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/three_rooms_20261030/02_archive/p00_walls.nbt",
+                    "sha256": "766278e151e9f2e42db49d94e2426eba4aa524cbc9da16071ce76659b4b96e29"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/single/three_rooms_20261030/02_archive",
+                "errors": [],
+                "definition_sha256": "6e4b18c6fe3640aba3f4959f2501a751496f953ce9044d904ea4591e5798b984",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 4291,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                128
+            ],
+            "name": "双生育种房",
+            "source": "twin_seedhouse_1x1",
+            "id": "saodg:selected/single/twin_seedhouse_1x1",
+            "classification": {
+                "display_name": "room.saodg.selected.single.twin_seedhouse_1x1",
+                "catalog_ids": [
+                    128
+                ],
+                "source": "twin_seedhouse_1x1",
+                "shape": "single",
+                "theme": "garden",
+                "connections": "straight"
+            },
+            "size": [
+                48,
+                22,
+                48
+            ],
+            "type": "combat",
+            "arrival": [
+                2,
+                2,
+                23
+            ],
+            "spawns": [
+                [
+                    46,
+                    2,
+                    23
+                ],
+                [
+                    1,
+                    2,
+                    1
+                ],
+                [
+                    24,
+                    2,
+                    23
+                ],
+                [
+                    36,
+                    4,
+                    10
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/twin_seedhouse_1x1/delivery/p00_body.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/twin_seedhouse_1x1/p00_body.nbt",
+                    "sha256": "a0c10af52bb0c805e8562d65af0efc903670e730193ba7238cb00181d0d8618b"
+                },
+                {
+                    "source": "build/选择/twin_seedhouse_1x1/delivery/p00_walls.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/single/twin_seedhouse_1x1/p00_walls.nbt",
+                    "sha256": "dc15cdbd2ecd7b6dc6142f73cfb80a305778f3a526aa38cec3982fa9560b6a06"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/single/twin_seedhouse_1x1",
+                "errors": [],
+                "definition_sha256": "236769703dff54a24a7148a8f821dd4e0932b2e39029827be095a6ac344dc2d9",
+                "parts": 1,
+                "ports": 2,
+                "reachable_poses": 4424,
+                "passed": true
+            }
+        },
+        {
+            "catalog_ids": [
+                129
+            ],
+            "name": "跨层潮汐工场",
+            "source": "whole_cut_trial",
+            "id": "saodg:selected/square/whole_cut_trial",
+            "classification": {
+                "display_name": "room.saodg.selected.square.whole_cut_trial",
+                "catalog_ids": [
+                    129
+                ],
+                "source": "whole_cut_trial",
+                "shape": "square",
+                "theme": "waterworks",
+                "connections": "straight"
+            },
+            "size": [
+                96,
+                40,
+                96
+            ],
+            "type": "combat",
+            "arrival": [
+                1,
+                8,
+                24
+            ],
+            "spawns": [
+                [
+                    84,
+                    8,
+                    93
+                ],
+                [
+                    72,
+                    22,
+                    24
+                ],
+                [
+                    35,
+                    22,
+                    60
+                ],
+                [
+                    70,
+                    5,
+                    58
+                ]
+            ],
+            "files": [
+                {
+                    "source": "build/选择/whole_cut_trial/parts/p00.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/whole_cut_trial/p00.nbt",
+                    "sha256": "fef116efde57ca6e0327f6b65b3db544b8fe1634c33901220a4ded2d13dcffc3"
+                },
+                {
+                    "source": "build/选择/whole_cut_trial/parts/p01.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/whole_cut_trial/p01.nbt",
+                    "sha256": "2a33750ab21559b05912012d0796b32b6569cf400d821c28b402d9b3285c6fbe"
+                },
+                {
+                    "source": "build/选择/whole_cut_trial/parts/p10.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/whole_cut_trial/p10.nbt",
+                    "sha256": "9fd79c1fd8d868e0f20ca554efa25775b2128d2bccd7a7c454cce7a111d6b68a"
+                },
+                {
+                    "source": "build/选择/whole_cut_trial/parts/p11.nbt",
+                    "destination": "src/main/resources/data/saodg/structures/selected/square/whole_cut_trial/p11.nbt",
+                    "sha256": "b43443b6e97a105f86d715af96f0cded114d413c4c4bb67f6355ce230a27976b"
+                }
+            ],
+            "status": "registered",
+            "runtime": {
+                "id": "saodg:selected/square/whole_cut_trial",
+                "errors": [],
+                "definition_sha256": "02a76453362ff9ab34bf9c641e6df473e88b4a789dfe3d4091039eab53813d7b",
+                "parts": 4,
+                "ports": 2,
+                "reachable_poses": 11109,
+                "passed": true
+            },
+            "source_warning": "原交付报告标注旧49格拼接不兼容；原件未修改，本次以当前StructurePlacer重新复核。"
+        }
+    ],
+    "limitations": [
+        "仅注册原朝向0度；未执行多人真人通行验收。",
+        "建筑主题不自动生成谜题、秘密、血房或首领机制。"
+    ]
+}

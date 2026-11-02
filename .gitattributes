@@ -1,0 +1,3 @@
+# Runtime/catalogue and frozen-reference SHA256 values require exact bytes.
+* -text
+references/** -whitespace

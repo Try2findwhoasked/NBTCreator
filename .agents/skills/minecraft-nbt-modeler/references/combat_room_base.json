@@ -1,0 +1,128 @@
+{
+    "schema_version": 3,
+    "type": "combat",
+    "template": "saodg:ruins/combat_01",
+    "footprint": [
+        1,
+        1
+    ],
+    "size": [
+        48,
+        24,
+        48
+    ],
+    "rotations": [
+        0,
+        90,
+        180,
+        270
+    ],
+    "ports": [
+        {
+            "id": "north",
+            "min": [
+                21,
+                2,
+                0
+            ],
+            "max": [
+                26,
+                6,
+                0
+            ],
+            "facing": "north"
+        },
+        {
+            "id": "east",
+            "min": [
+                47,
+                2,
+                21
+            ],
+            "max": [
+                47,
+                6,
+                26
+            ],
+            "facing": "east"
+        },
+        {
+            "id": "south",
+            "min": [
+                21,
+                2,
+                47
+            ],
+            "max": [
+                26,
+                6,
+                47
+            ],
+            "facing": "south"
+        },
+        {
+            "id": "west",
+            "min": [
+                0,
+                2,
+                21
+            ],
+            "max": [
+                0,
+                6,
+                26
+            ],
+            "facing": "west"
+        }
+    ],
+    "spawns": [
+        [
+            16,
+            2,
+            30
+        ],
+        [
+            31,
+            2,
+            30
+        ],
+        [
+            16,
+            2,
+            36
+        ],
+        [
+            31,
+            2,
+            36
+        ]
+    ],
+    "arrival": [
+        24,
+        2,
+        24
+    ],
+    "secrets": [
+        [
+            10,
+            2,
+            10
+        ]
+    ],
+    "enemies": 3,
+    "health": 30,
+    "attack": 3,
+    "encounter": "saodg:ruins/combat_light",
+    "secret_scenes": [
+        {
+            "index": 0,
+            "kind": "cache",
+            "clue": [
+                24,
+                2,
+                10
+            ],
+            "text": "saodg.secret.clue.lanterns"
+        }
+    ]
+}

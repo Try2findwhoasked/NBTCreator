@@ -1,0 +1,593 @@
+// Generated from ../tool-catalog.json. Run node scripts/sync-capabilities.mjs after edits.
+globalThis.NbtToolCatalog = {
+  "schema_version": 1,
+  "common": {
+    "label": "局部构件调整",
+    "classification": "body",
+    "lo": [
+      4,
+      4,
+      4
+    ],
+    "hi": [
+      19,
+      15,
+      19
+    ]
+  },
+  "shapes": {
+    "box": {
+      "min": [
+        6,
+        4,
+        6
+      ],
+      "max": [
+        12,
+        10,
+        12
+      ]
+    },
+    "sphere": {
+      "centre": [
+        12,
+        10,
+        12
+      ],
+      "radius": 4
+    },
+    "ellipsoid": {
+      "centre": [
+        12,
+        10,
+        12
+      ],
+      "radii": [
+        4,
+        5,
+        3
+      ]
+    },
+    "cylinder": {
+      "centre": [
+        12,
+        10,
+        12
+      ],
+      "radius": 3,
+      "height": 8,
+      "axis": "y"
+    },
+    "cone": {
+      "centre": [
+        12,
+        10,
+        12
+      ],
+      "radius": 4,
+      "top_radius": 0,
+      "height": 8,
+      "axis": "y"
+    },
+    "torus": {
+      "centre": [
+        12,
+        10,
+        12
+      ],
+      "major_radius": 4,
+      "minor_radius": 1
+    },
+    "polyline": {
+      "points": [
+        [
+          6,
+          6,
+          6
+        ],
+        [
+          12,
+          10,
+          12
+        ],
+        [
+          17,
+          7,
+          17
+        ]
+      ],
+      "radius": 1
+    },
+    "bezier": {
+      "points": [
+        [
+          6,
+          6,
+          6
+        ],
+        [
+          12,
+          12,
+          12
+        ],
+        [
+          17,
+          7,
+          17
+        ]
+      ],
+      "radius": 1,
+      "samples": 64
+    },
+    "extrude": {
+      "vertices": [
+        [
+          6,
+          6
+        ],
+        [
+          15,
+          6
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          6,
+          15
+        ]
+      ],
+      "bottom": 5,
+      "top": 10
+    },
+    "union": {
+      "children": [
+        {
+          "shape": "sphere",
+          "centre": [
+            10,
+            10,
+            10
+          ],
+          "radius": 3
+        },
+        {
+          "shape": "sphere",
+          "centre": [
+            14,
+            10,
+            10
+          ],
+          "radius": 3
+        }
+      ]
+    },
+    "intersection": {
+      "children": [
+        {
+          "shape": "sphere",
+          "centre": [
+            10,
+            10,
+            10
+          ],
+          "radius": 4
+        },
+        {
+          "shape": "sphere",
+          "centre": [
+            14,
+            10,
+            10
+          ],
+          "radius": 4
+        }
+      ]
+    },
+    "difference": {
+      "children": [
+        {
+          "shape": "sphere",
+          "centre": [
+            12,
+            10,
+            12
+          ],
+          "radius": 4
+        },
+        {
+          "shape": "sphere",
+          "centre": [
+            12,
+            10,
+            12
+          ],
+          "radius": 3
+        }
+      ]
+    }
+  },
+  "tools": {
+    "geometry": [
+      "几何 / 布尔 / 拉伸",
+      {
+        "geometry": {
+          "shape": "cylinder",
+          "centre": [
+            12,
+            10,
+            12
+          ],
+          "radius": 3,
+          "height": 8,
+          "axis": "y"
+        },
+        "mode": "set",
+        "state": "stone_bricks",
+        "max_writes": 4096
+      },
+      "形体取样在方块中心；内部box的min/max是连续表面。几何超出lo/hi会被裁剪。"
+    ],
+    "box": [
+      "体素填充 / 挖空",
+      {
+        "state": "stone_bricks"
+      },
+      "lo/hi含边界。挖空时将state改为air。"
+    ],
+    "hollow_box": [
+      "空心外壳",
+      {
+        "state": "stone_bricks",
+        "thickness": 1
+      },
+      "内部会挖空气；保留密闭外层与支承。"
+    ],
+    "frame": [
+      "平面边框",
+      {
+        "lo": [
+          4,
+          4,
+          4
+        ],
+        "hi": [
+          4,
+          12,
+          16
+        ],
+        "state": "stone_bricks",
+        "thickness": 1
+      },
+      "选区必须恰有一个轴的lo=hi。"
+    ],
+    "beam": [
+      "直线 / 斜梁",
+      {
+        "start": [
+          5,
+          5,
+          5
+        ],
+        "end": [
+          15,
+          12,
+          15
+        ],
+        "state": "oak_log",
+        "width": 1
+      },
+      "width仅1、3、5；自行检查端点支承与六邻接。"
+    ],
+    "replace": [
+      "精确状态替换",
+      {
+        "from_states": [
+          "stone_bricks"
+        ],
+        "state": "andesite",
+        "max_writes": 4096
+      },
+      "精确状态匹配；填写完整原状态，朝向不会自动迁移。"
+    ],
+    "move_region": [
+      "平移构件",
+      {
+        "offset": [
+          2,
+          0,
+          0
+        ],
+        "classification": "inherit"
+      },
+      "保留源状态与墙mask；目标冲突和保护区修改拒绝。"
+    ],
+    "copy_region": [
+      "快照复制",
+      {
+        "offset": [
+          8,
+          0,
+          0
+        ],
+        "include_air": false,
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "复制不旋转朝向；主体与墙体请拆分操作。"
+    ],
+    "repeat_region": [
+      "线性阵列",
+      {
+        "offset": [
+          8,
+          0,
+          0
+        ],
+        "count": 3,
+        "include_air": false,
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "源快照复制到偏移的1..count倍处，目标需有足够空间。"
+    ],
+    "transform_region": [
+      "旋转 / 镜像",
+      {
+        "destination": [
+          24,
+          4,
+          4
+        ],
+        "quarter_turns": 1,
+        "mirror": null,
+        "move": false,
+        "include_air": false,
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "先镜像再绕Y转90°整数倍；不支持的状态家族拒绝，楼梯/门/轨道不能任意旋转。"
+    ],
+    "morphology": [
+      "膨胀 / 侵蚀 / 表皮",
+      {
+        "mode": "dilate",
+        "iterations": 1,
+        "state": "stone_bricks",
+        "from_states": [
+          "stone_bricks"
+        ],
+        "max_writes": 4096
+      },
+      "六邻接；域外视为空。薄梁与外壳要保护，新格用state。"
+    ],
+    "diffusion": [
+      "多源 / 表面扩散",
+      {
+        "seeds": [
+          [
+            12,
+            8,
+            12
+          ]
+        ],
+        "steps": 8,
+        "decay": 0.2,
+        "surface_only": false,
+        "from_states": [
+          "stone_bricks"
+        ],
+        "state": "mossy_stone_bricks",
+        "seed": 2718,
+        "max_writes": 4096
+      },
+      "种子必须在合格未保护位置，steps为图距离；不会跨越断开的表面。"
+    ],
+    "explosion": [
+      "静态爆炸 / 放射裂缝",
+      {
+        "centre": [
+          12,
+          10,
+          12
+        ],
+        "radius": 3,
+        "roughness": 0.15,
+        "rays": 8,
+        "ray_length": 5,
+        "ray_width": 0.55,
+        "from_states": [
+          "stone_bricks"
+        ],
+        "seed": 2718,
+        "max_writes": 4096
+      },
+      "静态挖除，不是TNT物理；球包围必须在选区内，保护位置跳过，保留坑底与外壳。"
+    ],
+    "scatter": [
+      "带间距散落",
+      {
+        "fraction": 0.1,
+        "spacing": 2,
+        "supported": true,
+        "state": "cobblestone",
+        "from_states": [
+          "air"
+        ],
+        "seed": 2718,
+        "max_writes": 4096
+      },
+      "supported只做下方非空气筛选，不认证真实碰撞或重力。"
+    ],
+    "pattern": [
+      "带权混材 / 连片噪声",
+      {
+        "action": "replace",
+        "scope": "surface",
+        "mode": "clustered",
+        "scale": 6,
+        "fraction": 0.15,
+        "from_states": [
+          "stone_bricks"
+        ],
+        "palette": [
+          {
+            "state": "stone_bricks",
+            "weight": 70
+          },
+          {
+            "state": "cracked_stone_bricks",
+            "weight": 20
+          },
+          {
+            "state": "mossy_stone_bricks",
+            "weight": 10
+          }
+        ],
+        "preserve_properties": true,
+        "shape_policy": "preserve",
+        "seed": 2718,
+        "classification": "inherit"
+      },
+      "palette是相对权重，fraction是覆盖率。源状态/形状策略另验。"
+    ],
+    "surface_palette": [
+      "低密度表面换材",
+      {
+        "from_states": [
+          "stone_bricks"
+        ],
+        "palette": [
+          "cracked_stone_bricks",
+          "mossy_stone_bricks"
+        ],
+        "fraction": 0.1,
+        "seed": 2718,
+        "classification": "inherit"
+      },
+      "不挖空气；带权需求请用pattern。"
+    ],
+    "weathering": [
+      "连片风化 / 苔痕 / 裂纹",
+      {
+        "from_states": [
+          "stone_bricks"
+        ],
+        "seed": 2718,
+        "moss": {
+          "fraction": 0.12,
+          "patch_size": [
+            12,
+            40
+          ],
+          "state": "mossy_stone_bricks"
+        },
+        "cracks": {
+          "fraction": 0.06,
+          "length": [
+            6,
+            18
+          ],
+          "state": "cracked_stone_bricks"
+        },
+        "floor": {
+          "fraction": 0
+        },
+        "classification": "inherit"
+      },
+      "完整块材质为主；地面自动识别优先auto_floor。"
+    ],
+    "auto_floor": [
+      "多层地面识别 / 半砖坑",
+      {
+        "profile": "worn",
+        "style_note": "保留必要路线，局部轻度磨损",
+        "fraction": 0.04,
+        "slab_share": 0.85,
+        "patch_size": [
+          2,
+          4
+        ],
+        "pit_depth": 1,
+        "route_margin": 0.5,
+        "exclude_boxes": [],
+        "slab_overrides": {},
+        "seed": 2718,
+        "classification": "body"
+      },
+      "需要真实start/targets/ports/interior_probes；依赖实际模型，网页不能估算通过。"
+    ]
+  },
+  "labels": {
+    "label": "操作说明",
+    "classification": "层归属",
+    "lo": "选区最小 XYZ",
+    "hi": "选区最大 XYZ",
+    "geometry": "几何定义",
+    "mode": "模式",
+    "state": "目标方块状态",
+    "from_states": "原状态列表",
+    "seed": "全局随机种子",
+    "max_writes": "本步最大变化",
+    "offset": "偏移 XYZ",
+    "count": "副本数量",
+    "destination": "目标最小 XYZ",
+    "quarter_turns": "90°旋转次数",
+    "mirror": "镜像轴",
+    "move": "移动源选区",
+    "include_air": "包含空气",
+    "overwrite": "允许覆盖",
+    "iterations": "迭代次数",
+    "seeds": "扩散种子 XYZ 列表",
+    "steps": "扩散步数",
+    "decay": "远处衰减",
+    "surface_only": "仅沿表面",
+    "centre": "中心 XYZ",
+    "radius": "半径",
+    "roughness": "边缘起伏",
+    "rays": "放射裂缝数",
+    "ray_length": "裂缝长度",
+    "ray_width": "裂缝半径",
+    "fraction": "覆盖比例 0～1",
+    "spacing": "最小间距",
+    "supported": "粗略支承筛选",
+    "action": "填充或替换",
+    "scope": "表面或体积",
+    "scale": "噪声尺度",
+    "palette": "材质与权重",
+    "preserve_properties": "保留兼容属性",
+    "shape_policy": "形状策略",
+    "profile": "地面风格",
+    "style_note": "设计说明",
+    "slab_share": "半砖份额",
+    "patch_size": "片区范围",
+    "pit_depth": "坑深",
+    "route_margin": "路线保护余量",
+    "exclude_boxes": "排除体积",
+    "slab_overrides": "半砖映射",
+    "moss": "苔痕参数",
+    "cracks": "裂纹参数",
+    "floor": "地面风化参数",
+    "thickness": "厚度",
+    "width": "梁宽",
+    "start": "起点 XYZ",
+    "end": "终点 XYZ"
+  },
+  "commands": {
+    "inspect": "nbt_task.py",
+    "snapshot": "nbt_task.py",
+    "render": "nbt_task.py",
+    "regress": "nbt_task.py",
+    "control": "nbt_detail_control.py",
+    "refine": "nbt_refine.py",
+    "model": "nbt_tools.py",
+    "convert": "nbt_web_revision.py",
+    "registry": "nbt_registry.py",
+    "library": "nbt_library.py",
+    "check": "check_skill.py",
+    "capabilities": "nbt_capabilities.py",
+    "migrate-workspace": "nbt_workspace.py",
+    "exposure": "nbt_exposure.py"
+  }
+};

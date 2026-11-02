@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "enabled_groups": [
+    "core",
+    "architecture",
+    "organic",
+    "linked",
+    "props",
+    "materials",
+    "modelling",
+    "rendering",
+    "saodg",
+    "desktop",
+    "library",
+    "handoff"
+  ]
+}

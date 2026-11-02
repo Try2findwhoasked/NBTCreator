@@ -1,0 +1,30 @@
+{
+  "name": "nbtcreator",
+  "productName": "NBTCreator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minecraft NBT authoring desktop migration prototype with portable skill and Python CLI",
+  "type": "module",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "start": "node scripts/start.mjs",
+    "cli": "node scripts/cli.mjs",
+    "doctor": "node scripts/cli.mjs doctor",
+    "test:desktop": "node tests/desktop-smoke.mjs",
+    "test:api": "node --test tests/api-service.test.cjs",
+    "test:api-desktop": "node tests/api-desktop.mjs",
+    "package": "node scripts/package.mjs",
+    "verify:archive": "node scripts/verify-archive.mjs",
+    "sync:tools": "node scripts/sync-capabilities.mjs",
+    "check:tools": "node scripts/sync-capabilities.mjs --check",
+    "test:workspace": "python tests/workspace-contracts.py && node --test tests/workspace-resolution.cjs",
+    "test:catalog": "python tests/catalog-nbt.py && node tests/catalog-desktop.mjs"
+  },
+  "devDependencies": {
+    "electron": "45.2.1",
+    "@electron/packager": "20.3.0"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

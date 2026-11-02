@@ -1,0 +1,256 @@
+{
+    "base_commit": "a02d64f853bb4736d90b906f32fe4e7489223b58",
+    "scope": "Only 15 simple prototype combat rooms; retain all refined/latest/selected and functional rooms",
+    "retired_room_ids": [
+        "saodg:ruins/combat_01",
+        "saodg:ruins/combat_02",
+        "saodg:ruins/combat_03",
+        "saodg:ruins/combat_04",
+        "saodg:ruins/combat_05",
+        "saodg:ruins/combat_06",
+        "saodg:ruins/combat_07",
+        "saodg:ruins/combat_08",
+        "saodg:ruins/combat_09",
+        "saodg:ruins/combat_10",
+        "saodg:ruins/combat_11",
+        "saodg:ruins/combat_12",
+        "saodg:ruins/combat_cross",
+        "saodg:ruins/combat_l",
+        "saodg:ruins/combat_t"
+    ],
+    "retired_template_ids": [
+        "saodg:ruins/combat_01",
+        "saodg:ruins/combat_02",
+        "saodg:ruins/combat_03",
+        "saodg:ruins/combat_04",
+        "saodg:ruins/combat_05",
+        "saodg:ruins/combat_06",
+        "saodg:ruins/combat_07",
+        "saodg:ruins/combat_08",
+        "saodg:ruins/combat_09",
+        "saodg:ruins/combat_10",
+        "saodg:ruins/combat_11",
+        "saodg:ruins/combat_12",
+        "saodg:ruins/combat_cross/p01",
+        "saodg:ruins/combat_cross/p10",
+        "saodg:ruins/combat_cross/p11",
+        "saodg:ruins/combat_cross/p12",
+        "saodg:ruins/combat_cross/p21",
+        "saodg:ruins/combat_l/p00",
+        "saodg:ruins/combat_l/p01",
+        "saodg:ruins/combat_l/p10",
+        "saodg:ruins/combat_t/p00",
+        "saodg:ruins/combat_t/p10",
+        "saodg:ruins/combat_t/p11",
+        "saodg:ruins/combat_t/p20"
+    ],
+    "removed": [
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_01.json",
+            "sha256": "ef1a20528345ec93f86e468d6187fd96ef0405a07f3af23b66d0ba41873073b0"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_02.json",
+            "sha256": "9283d1f2a0d2b31c24b52c741e2f2218f7a8852819cf33cf804493c2d2903485"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_03.json",
+            "sha256": "384991afe5c5d0091146787bacde30bbf1037b0e8f779561c57a9e68ed6dd560"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_04.json",
+            "sha256": "0b4e93c055941c2020b899de8ca9afa62406238793e8a80f3ed098bae364817a"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_05.json",
+            "sha256": "7a9096b96127152999bd4eb82f2cf46ee9567569c892812f25e296bcd214d406"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_06.json",
+            "sha256": "0cb569c6dbc576c9aed4571cf419c19b1702aed1fed160ac9a97cc7100d3986d"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_07.json",
+            "sha256": "92ad367c60e5a1f17ce6c63113722ceb4dfe8322812c7975298db2433c8bb055"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_08.json",
+            "sha256": "de7688539d8c6bed4529fed723e20a7b42a4ed22ea16687aad2bbb1917e463f6"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_09.json",
+            "sha256": "14e387bd774b610eee53ca71f68925e455d3ad719d2071b716565970d621e53e"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_10.json",
+            "sha256": "50e042fe3275e18125a88f84029f6331c8256f56b32b0ecc9c32e7b2d129e769"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_11.json",
+            "sha256": "7484780e9a794a05952b79fc087746c6de62329d92d9a5293194017b60c59b04"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_12.json",
+            "sha256": "49a9716602a6df41df0e4f7f25de92eb6738bee414705cd691fbc727cf39d1cb"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_cross.json",
+            "sha256": "f337992dbc61f50afaed6ad000a02fd1d79afca08df79e70591c4315c1e37376"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_l.json",
+            "sha256": "39af9c7fe960a279763f9b72f71abe3985948725d8e0bcd81d9f76b7b35c0acc"
+        },
+        {
+            "path": "src/main/resources/data/saodg/rooms/ruins/combat_t.json",
+            "sha256": "2a6712e8116def5e57005fa1da7948f4338a814ad5bba7aab510e9004f87c77d"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_01.nbt",
+            "sha256": "bb3b52a0079e8da09a95277820790a579a592ab75dd8d4d45ec09482874ef729"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_02.nbt",
+            "sha256": "9a7c1299275d3fbccb2fe50a2bdc98768aa061f44180a10fa500a4bb3a10520f"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_03.nbt",
+            "sha256": "ad89434aad70c4b41c845d163bdce40b627e5450307b62f513db3ffc37f661c2"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_04.nbt",
+            "sha256": "61aaca774d87895d74d62618a8394183ac76d6c3f660bf6d767b099fa8878278"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_05.nbt",
+            "sha256": "b791af1187106c122c0a489785059dcb2c0570f36a17e27dcba55b40b6936adc"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_06.nbt",
+            "sha256": "591bf366effa3104528c9d90474ef05e49af9bdb9ef42b872f3aeb84af7a8d95"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_07.nbt",
+            "sha256": "27c606c8173c740cc39413b2d0e23ce86233db80510e8ec44cbf6a3f149fc7b8"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_08.nbt",
+            "sha256": "b50c56721efd251b354283bd2bf66961cce9847703b055817f8152b881fdf880"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_09.nbt",
+            "sha256": "ce4b2bf04ae274a7dba65d60cc1e6012c7c44a72243b3e3d8287d2aa2fa988c1"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_10.nbt",
+            "sha256": "cf15fe9c5f95cf9ca3d90666052873643aaeab00aa57fda3c22d171b3f3c2cdb"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_11.nbt",
+            "sha256": "c3d3f2c92bc8fbaa675611a8a34b66d08d7c208f5688f9351f774a44e9ff4a62"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_12.nbt",
+            "sha256": "0b67c76733f52e76c29ba36f3ace234c8a063956189a6f81093758de523507c7"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_cross/p01.nbt",
+            "sha256": "5756571fbfdd388749a717104141dd476a2998eaefa24b17c662ac187944727d"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_cross/p10.nbt",
+            "sha256": "a2eb4cd045fede59c2e4f3c15627e9571dadc9a8d2d920b8bfd947ede6b15c27"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_cross/p11.nbt",
+            "sha256": "5756571fbfdd388749a717104141dd476a2998eaefa24b17c662ac187944727d"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_cross/p12.nbt",
+            "sha256": "5756571fbfdd388749a717104141dd476a2998eaefa24b17c662ac187944727d"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_cross/p21.nbt",
+            "sha256": "5756571fbfdd388749a717104141dd476a2998eaefa24b17c662ac187944727d"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_l/p00.nbt",
+            "sha256": "20372fcec841bfb4b44c92c2e3d08f86a666dc04409d5dc2419b99619de6e495"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_l/p01.nbt",
+            "sha256": "4f4241eef25eb445d8541055b187ea47bc422404d21a25b08b9ff8fbffbcc112"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_l/p10.nbt",
+            "sha256": "4f4241eef25eb445d8541055b187ea47bc422404d21a25b08b9ff8fbffbcc112"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_t/p00.nbt",
+            "sha256": "bd2921f126a7edeb14403f9344bc335b1e3a3bb58e6fc03bf64e6db8cd9868a5"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_t/p10.nbt",
+            "sha256": "9d5377130d1caac5f918170e6f8a12ef34ec1ee433c0cd96f93e13022718be22"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_t/p11.nbt",
+            "sha256": "9d5377130d1caac5f918170e6f8a12ef34ec1ee433c0cd96f93e13022718be22"
+        },
+        {
+            "path": "src/main/resources/data/saodg/structures/ruins/combat_t/p20.nbt",
+            "sha256": "9d5377130d1caac5f918170e6f8a12ef34ec1ee433c0cd96f93e13022718be22"
+        }
+    ],
+    "active_room_count": 76,
+    "validation_status": "passed",
+    "validation": {
+        "junit": [
+            {
+                "suite": "cn.saodg.domain.layout.ArenaLayoutTest",
+                "tests": 2,
+                "failures": 0,
+                "errors": 0,
+                "time_seconds": 158.346
+            },
+            {
+                "suite": "cn.saodg.domain.layout.BloodRouteTest",
+                "tests": 3,
+                "failures": 0,
+                "errors": 0,
+                "time_seconds": 0.005
+            },
+            {
+                "suite": "cn.saodg.domain.layout.PortalAlignmentTest",
+                "tests": 2,
+                "failures": 0,
+                "errors": 0,
+                "time_seconds": 0.006
+            },
+            {
+                "suite": "cn.saodg.domain.layout.RoomGeometryTest",
+                "tests": 3,
+                "failures": 0,
+                "errors": 0,
+                "time_seconds": 0.003
+            },
+            {
+                "suite": "cn.saodg.domain.layout.SimpleCombatRetirementTest",
+                "tests": 1,
+                "failures": 0,
+                "errors": 0,
+                "time_seconds": 0.021
+            }
+        ],
+        "layout_seeds": 1536,
+        "deterministic_reverse_order_checks": 9,
+        "runtime_required_tests": 4,
+        "geometry_rotation_cases": 64,
+        "successful_cycles": 3,
+        "fault_cycles": 2,
+        "artifact": "build/libs/saodg-0.41.64-dev.jar",
+        "artifact_sha256": "7ddde70297ceb9cb024519247109b99dbe62043a2228ddc8fe70c71f19793a91",
+        "artifact_bytes": 3614355,
+        "packaged_beta_files": 0
+    }
+}

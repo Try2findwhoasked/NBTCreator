@@ -1,0 +1,438 @@
+[
+  {
+    "id": "saodg:refined/sword_oath",
+    "title": "起始层·剑誓回廊",
+    "source_directory": "build\\nbt_models\\sao_selected_refined_20261030\\single\\01_sword_oath\\v1",
+    "arrival": [
+      2,
+      8,
+      24
+    ],
+    "spawns": [
+      [
+        45,
+        8,
+        24
+      ],
+      [
+        23,
+        3,
+        24
+      ],
+      [
+        24,
+        14,
+        40
+      ],
+      [
+        3,
+        8,
+        24
+      ]
+    ],
+    "source_files": [
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\single\\01_sword_oath\\v1\\delivery\\p00_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\sword_oath\\p00_body.nbt",
+        "sha256": "bda2271364dd957ad88f99249bb28dc470fe3a6774a927e6dd696b940775c355"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\single\\01_sword_oath\\v1\\delivery\\p00_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\sword_oath\\p00_walls.nbt",
+        "sha256": "b0d8d90b23782db22a836ddaa247d7d765a3f75129d8a431e7380112bcb52488"
+      }
+    ],
+    "rotations": [
+      0
+    ],
+    "in_game_verified": false
+  },
+  {
+    "id": "saodg:refined/seal_tomb",
+    "title": "常暗·封印棱墓",
+    "source_directory": "build\\nbt_models\\sao_selected_refined_20261030\\single\\03_seal_tomb\\v1",
+    "arrival": [
+      2,
+      5,
+      24
+    ],
+    "spawns": [
+      [
+        19,
+        5,
+        29
+      ],
+      [
+        31,
+        11,
+        33
+      ],
+      [
+        29,
+        14,
+        20
+      ],
+      [
+        3,
+        5,
+        24
+      ]
+    ],
+    "source_files": [
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\single\\03_seal_tomb\\v1\\delivery\\p00_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\seal_tomb\\p00_body.nbt",
+        "sha256": "1dfe1ab2ddd85c1f950e9675f5a6869d57730957ee1cca192eee24500586f89e"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\single\\03_seal_tomb\\v1\\delivery\\p00_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\seal_tomb\\p00_walls.nbt",
+        "sha256": "af209cec1f8df8ba4701932a33a93704214bdd66645db2d13e7ad15bc45107ef"
+      }
+    ],
+    "rotations": [
+      0
+    ],
+    "in_game_verified": false
+  },
+  {
+    "id": "saodg:refined/folded_sword_viaduct",
+    "title": "王城·折剑高架",
+    "source_directory": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l01_folded_sword_viaduct\\refined_02",
+    "arrival": [
+      94,
+      8,
+      23
+    ],
+    "spawns": [
+      [
+        60,
+        8,
+        23
+      ],
+      [
+        23,
+        8,
+        94
+      ],
+      [
+        70,
+        16,
+        23
+      ],
+      [
+        23,
+        16,
+        23
+      ]
+    ],
+    "source_files": [
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l01_folded_sword_viaduct\\refined_02\\delivery\\p00_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\folded_sword_viaduct\\p00_body.nbt",
+        "sha256": "397cc3f5954fa21f3d9cb95ce32dc5308f3d4c5c536b3260d33b6d7d4b79c0f1"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l01_folded_sword_viaduct\\refined_02\\delivery\\p00_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\folded_sword_viaduct\\p00_walls.nbt",
+        "sha256": "e5f70e0add26bd21f095bba21db2584377ccde26f69d9dd33b6c2ddd575312c0"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l01_folded_sword_viaduct\\refined_02\\delivery\\p01_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\folded_sword_viaduct\\p01_body.nbt",
+        "sha256": "f09e029497000c4b61eff6f75106e7218f28d41fde059211c4ce5619f8ca3bdf"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l01_folded_sword_viaduct\\refined_02\\delivery\\p01_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\folded_sword_viaduct\\p01_walls.nbt",
+        "sha256": "507459496042de4069d9730ee55660308074143c4c616b7e80aef517cf118772"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l01_folded_sword_viaduct\\refined_02\\delivery\\p10_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\folded_sword_viaduct\\p10_body.nbt",
+        "sha256": "33077d9679ac4219662a8ed3e9b15d6f3e703c1e4356d38246d0c6ed4296f9e5"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l01_folded_sword_viaduct\\refined_02\\delivery\\p10_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\folded_sword_viaduct\\p10_walls.nbt",
+        "sha256": "cd3f99efebd6e688e0fd6eed051bcec0b3ea98c7219998c33a9090f33d9bfab7"
+      }
+    ],
+    "rotations": [
+      0
+    ],
+    "in_game_verified": false
+  },
+  {
+    "id": "saodg:refined/crescent_drydock",
+    "title": "水都·弯月船坞",
+    "source_directory": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l02_crescent_drydock\\refined_01",
+    "arrival": [
+      94,
+      8,
+      23
+    ],
+    "spawns": [
+      [
+        67,
+        2,
+        23
+      ],
+      [
+        30,
+        2,
+        30
+      ],
+      [
+        23,
+        2,
+        68
+      ],
+      [
+        23,
+        8,
+        90
+      ]
+    ],
+    "source_files": [
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l02_crescent_drydock\\refined_01\\delivery\\p00_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\crescent_drydock\\p00_body.nbt",
+        "sha256": "09833c5b6057d06f402d0f65f9580063ffec1c25017b31e0cff1ad4b09468125"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l02_crescent_drydock\\refined_01\\delivery\\p00_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\crescent_drydock\\p00_walls.nbt",
+        "sha256": "2d5f8e9a93abd88569f95b4193d9e6f206c192aa17470e3d39a59a658fc152e7"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l02_crescent_drydock\\refined_01\\delivery\\p01_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\crescent_drydock\\p01_body.nbt",
+        "sha256": "4d4696ace95efc56f1362d34979fb0c14e57d100c05ff1d0cabaa63745a47706"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l02_crescent_drydock\\refined_01\\delivery\\p01_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\crescent_drydock\\p01_walls.nbt",
+        "sha256": "23fb9c740a2bf38aabf98fdf4c65194f2675dc7a5c772e45a37449ce85b3648f"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l02_crescent_drydock\\refined_01\\delivery\\p10_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\crescent_drydock\\p10_body.nbt",
+        "sha256": "dc6e299b4fb2312e205bacde678e69c67252f36b18699ad11d6cdfee3b9e36ad"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l02_crescent_drydock\\refined_01\\delivery\\p10_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\crescent_drydock\\p10_walls.nbt",
+        "sha256": "c32fa88531af819ae48121cc94c66e6775d9b475e9d31004b4626c7c20383d56"
+      }
+    ],
+    "rotations": [
+      0
+    ],
+    "in_game_verified": false
+  },
+  {
+    "id": "saodg:refined/rootcourt_cloister",
+    "title": "森林层·根庭巡廊",
+    "source_directory": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l03_rootcourt_cloister\\refined_01",
+    "arrival": [
+      94,
+      8,
+      23
+    ],
+    "spawns": [
+      [
+        76,
+        8,
+        23
+      ],
+      [
+        40,
+        17,
+        32
+      ],
+      [
+        36,
+        8,
+        62
+      ],
+      [
+        41,
+        12,
+        74
+      ]
+    ],
+    "source_files": [
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l03_rootcourt_cloister\\refined_01\\delivery\\p00_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\rootcourt_cloister\\p00_body.nbt",
+        "sha256": "2504f436c74857ad3a1da804c9858a998abfc8c510902887432de9f1a33c2f0d"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l03_rootcourt_cloister\\refined_01\\delivery\\p00_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\rootcourt_cloister\\p00_walls.nbt",
+        "sha256": "ddd5db1cef63a088ae56f6484e607ad91f5a0b040fc214b19273871c383c1485"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l03_rootcourt_cloister\\refined_01\\delivery\\p01_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\rootcourt_cloister\\p01_body.nbt",
+        "sha256": "2fff85ec9c15ad642a03fc09f0e114e68162ddc9cebdf2dd52c7c2ba1c40c215"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l03_rootcourt_cloister\\refined_01\\delivery\\p01_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\rootcourt_cloister\\p01_walls.nbt",
+        "sha256": "cab2b96c2ed04cdeb624598f827ab76a8c433627678ba5ebd4c5b2df5cdd9656"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l03_rootcourt_cloister\\refined_01\\delivery\\p10_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\rootcourt_cloister\\p10_body.nbt",
+        "sha256": "4f803826e40d688f8fa9d292bd7ee6294c2730fe2e4f684eac1cb3ac98479a74"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\lshape\\l03_rootcourt_cloister\\refined_01\\delivery\\p10_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\rootcourt_cloister\\p10_walls.nbt",
+        "sha256": "f58f56e4a7d284a2693b6e6fddb8c069e69d72fb0d139c755f98b8ecceaeeece"
+      }
+    ],
+    "rotations": [
+      0
+    ],
+    "in_game_verified": false
+  },
+  {
+    "id": "saodg:refined/silver_cathedral",
+    "title": "白银圣堂·双岸悬廊",
+    "source_directory": "build\\nbt_models\\sao_selected_refined_20261030\\long\\02_silver_cathedral\\final",
+    "arrival": [
+      23,
+      6,
+      2
+    ],
+    "spawns": [
+      [
+        7,
+        16,
+        40
+      ],
+      [
+        23,
+        6,
+        112
+      ],
+      [
+        23,
+        6,
+        3
+      ],
+      [
+        23,
+        6,
+        7
+      ]
+    ],
+    "source_files": [
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\long\\02_silver_cathedral\\final\\delivery\\p00_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\silver_cathedral\\p00_body.nbt",
+        "sha256": "afb90f3281a4bafeaa0f4f95f2d7cd89bd98b3dc3ff40f961c339443027c3c50"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\long\\02_silver_cathedral\\final\\delivery\\p00_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\silver_cathedral\\p00_walls.nbt",
+        "sha256": "66592218768fc211b28915b36c78e916549e8356acae18a7860a282771eedf49"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\long\\02_silver_cathedral\\final\\delivery\\p01_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\silver_cathedral\\p01_body.nbt",
+        "sha256": "2a75b5401ff5c01e96f8f072339799b5f6f98c1901c3390c47dfd37a5062d23b"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\long\\02_silver_cathedral\\final\\delivery\\p01_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\silver_cathedral\\p01_walls.nbt",
+        "sha256": "696ffc67b46c8f4718e4ec0e29809b988a0fdf14044f4e0d698d0119f7a01eb0"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\long\\02_silver_cathedral\\final\\delivery\\p02_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\silver_cathedral\\p02_body.nbt",
+        "sha256": "44a42818112c466a31fbc482cd0ce8875260f59f873c93efb05609686ef09412"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\long\\02_silver_cathedral\\final\\delivery\\p02_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\silver_cathedral\\p02_walls.nbt",
+        "sha256": "9e205b0abade4041c355c7803fb0a86ad8b02b5406576cf3dde7e58fa3675560"
+      }
+    ],
+    "rotations": [
+      0
+    ],
+    "in_game_verified": false
+  },
+  {
+    "id": "saodg:refined/dry_aqueduct",
+    "title": "遗迹层·断脊输水道",
+    "source_directory": "build\\nbt_models\\sao_selected_refined_20261030\\long\\03_dry_aqueduct\\final",
+    "arrival": [
+      23,
+      8,
+      2
+    ],
+    "spawns": [
+      [
+        11,
+        8,
+        70
+      ],
+      [
+        36,
+        12,
+        70
+      ],
+      [
+        23,
+        8,
+        137
+      ],
+      [
+        22,
+        8,
+        2
+      ]
+    ],
+    "source_files": [
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\long\\03_dry_aqueduct\\final\\delivery\\p00_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\dry_aqueduct\\p00_body.nbt",
+        "sha256": "938719dbb6e3d19d9246d114d34c4bd9838a80f3248107d011fd407923164da0"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\long\\03_dry_aqueduct\\final\\delivery\\p00_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\dry_aqueduct\\p00_walls.nbt",
+        "sha256": "2b571cea454aecc0e28ad420e1d0772c822e1e676227e4c45f68dbe202bd56cf"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\long\\03_dry_aqueduct\\final\\delivery\\p01_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\dry_aqueduct\\p01_body.nbt",
+        "sha256": "3565965a226b54cfb646dbb299b92ebd70cc1bbec0abd57a123f67ce3bbdaee9"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\long\\03_dry_aqueduct\\final\\delivery\\p01_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\dry_aqueduct\\p01_walls.nbt",
+        "sha256": "a20f73032951eb8be5be7f5ecad5a10035cca40a50a5804d0038cb7d7bbee5bf"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\long\\03_dry_aqueduct\\final\\delivery\\p02_body.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\dry_aqueduct\\p02_body.nbt",
+        "sha256": "31c614e4da5768a5a79c129e4deb4a75c28adeea96f645440d0eb53e49c7fcea"
+      },
+      {
+        "source": "build\\nbt_models\\sao_selected_refined_20261030\\long\\03_dry_aqueduct\\final\\delivery\\p02_walls.nbt",
+        "destination": "src\\main\\resources\\data\\saodg\\structures\\refined\\dry_aqueduct\\p02_walls.nbt",
+        "sha256": "6e2f411bf1f914e13b973d04bca98847e6079de03d003ff815071d393a11f6a6"
+      }
+    ],
+    "rotations": [
+      0
+    ],
+    "in_game_verified": false
+  }
+]

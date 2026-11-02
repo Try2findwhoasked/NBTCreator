@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAODG · 简单结构制作指南</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f3ed;color:#253e36;font:15px/1.8 "Segoe UI","Microsoft YaHei",sans-serif}main{max-width:940px;margin:auto;padding:34px 28px 48px}header{display:flex;justify-content:space-between;border-bottom:1px solid #d9dfd3;padding-bottom:15px;font-size:12px;color:#6d7b6c}header b{color:#266b52;letter-spacing:2px}h1{font-size:35px;line-height:1.35;letter-spacing:-1px;margin:30px 0 10px}p{margin:8px 0;color:#647365}section{margin-top:28px}h2{font-size:20px;margin:0 0 13px}h2 span{font-size:12px;color:#2c7557;margin-right:10px}.card{background:#fffefa;border:1px solid #d9dfd3;border-radius:12px;padding:22px}.drawings{display:grid;grid-template-columns:1fr 1fr;gap:22px}.drawing{text-align:center}.drawing svg{display:block;width:100%;height:240px}.drawing b{font-size:14px}.drawing p{font-size:12px;margin:0}.note{background:#e9efe1;border-radius:7px;padding:12px 16px;font-size:13px;margin-top:16px}.note p{color:#496247;margin:0}.steps{margin:0;padding-left:23px}.steps li{padding:4px 0}.steps code{background:#eef1e6;padding:3px 6px;border-radius:4px}code,pre{font-family:Consolas,monospace;font-size:13px}table{width:100%;border-collapse:collapse;font-size:14px;margin:15px 0}td{padding:9px 10px;border-bottom:1px solid #e4e8dc}td:first-child{width:42%;color:#6a7869}td:last-child{font-weight:550}pre{padding:14px 16px;background:#eaf0e2;border-radius:7px;overflow:auto;line-height:1.8;color:#315940}.small{font-size:12px}.shapes{display:flex;align-items:flex-start;justify-content:space-around;gap:12px;padding:8px 0}.shape{text-align:center;min-width:65px}.shape svg{width:76px;height:65px;display:block;margin:auto}.shape span{font-size:12px;color:#6a7869}footer{margin-top:28px;padding-top:16px;border-top:1px solid #d9dfd3;font-size:12px;color:#788471}a{color:#2b7153}strong{color:#284d3b}@media(max-width:600px){main{padding:22px 18px 32px}h1{font-size:28px}.drawings{grid-template-columns:1fr;gap:20px}.drawing svg{height:215px}.card{padding:17px}.shapes{flex-wrap:wrap;justify-content:center;gap:20px}td{padding:9px 5px;font-size:13px}header span{font-size:11px}}@media print{body{background:#fff}main{padding:0}section{break-inside:avoid}.card{border-color:#ccc}.note,pre{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<main>
+<header><b>SAODG / 建筑指南</b><span>Minecraft Java 1.20.1</span></header>
+<h1>搭一间房，留好门，保存。</h1>
+<p>先做一间普通战斗房。配好模板与房间定义后，模组负责刷怪、开门和随机拼接。适用于当前 0.41.26。</p>
+
+<section>
+<h2><span>01</span>按这个尺寸建</h2>
+<div class="card">
+<div class="drawings">
+<div class="drawing">
+<svg viewBox="0 0 330 240" role="img" aria-label="俯视图，房间48乘48格，东西两面留门洞">
+<defs><pattern id="grid" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M16 0H0V16" fill="none" stroke="#dbe5d2" stroke-width=".7"/></pattern></defs>
+<rect x="69" y="29" width="192" height="192" rx="2" fill="#eef3e7"/>
+<rect x="69" y="29" width="192" height="192" fill="url(#grid)"/>
+<path d="M69 111V29H261V111 M261 135V221H69V135" fill="none" stroke="#397654" stroke-width="6"/>
+<path d="M69 112V134 M261 112V134" stroke="#cd9b57" stroke-width="6"/>
+<text x="165" y="17" text-anchor="middle" fill="#5a735c" font-size="13">48 格，包含外墙</text>
+<text x="165" y="114" text-anchor="middle" fill="#315d42" font-size="18">房间内部</text>
+<text x="165" y="138" text-anchor="middle" fill="#789175" font-size="12">自由布置柱子、掩体、秘密</text>
+<text x="45" y="126" text-anchor="end" fill="#9b6d34" font-size="12">门</text>
+<text x="285" y="126" fill="#9b6d34" font-size="12">门</text>
+</svg>
+<b>房间：48 × 48 格</b><p>初次建议高 24 格；支持高 8～48 格。</p>
+</div>
+<div class="drawing">
+<svg viewBox="0 0 330 240" role="img" aria-label="门洞正面，六格宽五格高，地板下面保持完整">
+<rect x="61" y="50" width="208" height="156" fill="#a4bba0"/>
+<rect x="87" y="50" width="156" height="130" fill="#fffefa"/>
+<path d="M113 50V180 M139 50V180 M165 50V180 M191 50V180 M217 50V180 M87 76H243 M87 102H243 M87 128H243 M87 154H243" fill="none" stroke="#dbe5d2"/>
+<path d="M87 39H243 M280 50V180" stroke="#9d793c" stroke-width="1.5"/>
+<text x="165" y="29" text-anchor="middle" fill="#8d6b32" font-size="14">6 格宽</text>
+<text x="288" y="118" fill="#8d6b32" font-size="13">5 格高</text>
+<text x="165" y="120" text-anchor="middle" fill="#6e836b" font-size="13">这里挖空</text>
+<text x="165" y="226" text-anchor="middle" fill="#57734d" font-size="12">脚下地板完整，两边同高度</text>
+</svg>
+<b>门洞：6 格宽 × 5 格高</b><p>门开在墙正中；厚墙后面也要打通。</p>
+</div>
+</div>
+<div class="note"><p><strong>连接缝由引擎生成。</strong>每片模板宽 48 格，世界中相邻原点间隔 49 格，中间留一格连接。主线煤炭门生成在中间，未使用出口封石砖；支路及同一多格房内部无钥匙门。不要把外部连接缝存进模板。</p></div>
+</div>
+</section>
+
+<section>
+<h2><span>02</span>用结构方块保存</h2>
+<div class="card">
+<ol class="steps">
+<li>在<strong>单独的创造存档</strong>里建造。这个例子把房间最低西北角设在 <code>0 64 0</code>。</li>
+<li>地板铺在 <code>Y=65</code>，玩家站在 <code>Y=66</code>；门洞从 <code>Y=66</code> 挖到 <code>Y=70</code>。</li>
+<li>输入 <code>/give @s minecraft:structure_block</code>，把结构方块放在 <code>-1 64 -1</code>。</li>
+<li>打开结构方块，切到 <strong>SAVE / 保存</strong> 模式，照表填写：</li>
+</ol>
+<table aria-label="结构方块保存设置">
+<tbody>
+<tr><td>结构名称</td><td><code>saodg:ruins/combat_01</code></td></tr>
+<tr><td>相对位置 X / Y / Z</td><td><code>1 / 0 / 1</code></td></tr>
+<tr><td>大小 X / Y / Z</td><td><code>48 / 24 / 48</code></td></tr>
+<tr><td>包含实体</td><td>关闭</td></tr>
+<tr><td>显示边界</td><td>开启</td></tr>
+</tbody>
+</table>
+<p>确认边框包含整个房间，再点 <strong>SAVE</strong>。</p>
+<p class="small">这个例子保存范围是 <code>0 64 0</code> 到 <code>47 87 47</code>。东西门横向为 <code>Z=21…26</code>；南北门则为 <code>X=21…26</code>。</p>
+<p class="small">文件在制作存档的：</p>
+<pre>generated/saodg/structures/ruins/combat_01.nbt</pre>
+<p><strong>保存 .nbt，并配套房间 JSON。</strong>记录门口、落点、刷怪及秘密坐标；完整定义示例见<a href="ROOM_BUILDING_GUIDE.md">文字指南第8节</a>。</p>
+</div>
+</section>
+
+<section>
+<h2><span>03</span>用 door_y 对齐不同门高</h2>
+<div class="card">
+<p>地下室、洞穴或多层房可以把门开在不同的局部高度。每个逻辑房间用一个 <code>door_y</code>，所有外门共用它；房间内部的高低差自行设计通路。</p>
+<table aria-label="门高对齐示例"><tbody>
+<tr><td>默认模板</td><td>门洞局部 Y2～6 → 基底世界 Y64</td></tr>
+<tr><td>高 32 格，door_y=10</td><td>门洞局部 Y10～14 → 基底世界 Y56</td></tr>
+<tr><td>两种模板的外部门洞</td><td>共同对齐世界 Y66～70</td></tr>
+</tbody></table>
+<pre>"schema_version": 4,
+"door_y": 10,
+"size": [48, 32, 48]</pre>
+<p class="small">这是定义片段。门口 min.y=10、max.y=14，脚下地板 Y9；门高范围为 2～height-6。到达点、刷怪及机关写原始局部坐标，不预先减门高。引擎整体平移，不自动补内部楼梯。完整可填写示例见文字指南。</p>
+</div>
+</section>
+
+<section>
+<h2><span>04</span>多格房这样分片</h2>
+<div class="card">
+<div class="shapes">
+<div class="shape"><svg viewBox="0 0 76 65" aria-label="单格房"><rect x="24" y="20" width="27" height="27" rx="3" fill="#8aab82"/></svg><span>单格</span></div>
+<div class="shape"><svg viewBox="0 0 76 65" aria-label="长条房"><path d="M8 20H68V47H8Z" fill="#8aab82"/><path d="M28 20V47 M48 20V47" stroke="#f7f7ee" stroke-dasharray="3 3"/></svg><span>长条</span></div>
+<div class="shape"><svg viewBox="0 0 76 65" aria-label="2乘2大房"><rect x="13" y="9" width="50" height="50" rx="3" fill="#8aab82"/><path d="M38 9V59 M13 34H63" stroke="#f7f7ee" stroke-dasharray="3 3"/></svg><span>2 × 2</span></div>
+<div class="shape"><svg viewBox="0 0 76 65" aria-label="L形房"><path d="M13 9H63V34H38V59H13Z" fill="#8aab82"/><path d="M38 9V34H13" fill="none" stroke="#f7f7ee" stroke-dasharray="3 3"/></svg><span>L 形</span></div>
+<div class="shape"><svg viewBox="0 0 76 65" aria-label="T形房"><path d="M7 12H70V33H49V54H28V33H7Z" fill="#8aab82"/></svg><span>T 形</span></div>
+</div>
+<p>每片仍是48×48。多格可以连成一个大厅，<strong>内部不用加隔墙</strong>。导出时按作者的 48 格网格分片，偏移仍为 0、48、96；引擎在世界展开为 49 格间距并连通接缝。L形只存三片，缺角不存；同房所有分片共用高度和 door_y。</p>
+<p class="small">不要在模板里保存真实怪物、掉落物或刷怪笼。敌人由服务端按定义生成，普通房固定一批，精英房和封印大厅分轮。</p>
+</div>
+</section>
+<section>
+<h2><span>05</span>接入，再预览四种朝向</h2>
+<div class="card">
+<ol class="steps">
+<li>将模板放入 <code>data/saodg/structures/...</code>，定义放入 <code>data/saodg/rooms/...</code>。</li>
+<li>把房间 ID 加入迷宫区定义的 <code>layout.room_pool</code>。仅放文件不会自动加入目录。</li>
+<li>在独立制作世界执行 <code>/reload</code>，用 OP 2 权限检查：</li>
+</ol>
+<pre>/saodg admin validate
+/saodg admin preview saodg:custom/combat_high 0
+/saodg admin previews
+/saodg admin previewvisit &lt;预览UUID&gt;
+/saodg leave
+/saodg admin previewclear &lt;预览UUID&gt; checked</pre>
+<p class="small">示例房间需先自行制作并接入。preview 返回 UUID；状态 READY 后才能进入，且不能已有大厅或活动局。leave 返回原位置与模式，previewclear 排队清理。一次最多两个预览，清理后再依次检查 90、180、270 度；validate 不代替实际通行检查。</p>
+</div>
+</section>
+<footer>模板加载、随机拼接、旋转与预览已实现；新建筑仍需逐房验证。更多字段和完整 JSON 见 <a href="ROOM_BUILDING_GUIDE.md">完整文字指南</a>。本页可离线打开，也可用浏览器打印。</footer>
+</main>
+</body>
+</html>

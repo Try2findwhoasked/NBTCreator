@@ -1,0 +1,49 @@
+{
+    "status": "passed",
+    "layout_seeds": 30000,
+    "additional_fixed_role_seeds": 144,
+    "suites": [
+        {
+            "suite": "cn.saodg.domain.layout.ArenaLayoutTest",
+            "tests": 2,
+            "failures": 0,
+            "errors": 0,
+            "time_seconds": 11.91
+        },
+        {
+            "suite": "cn.saodg.domain.layout.BloodRouteTest",
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "time_seconds": 0.004
+        },
+        {
+            "suite": "cn.saodg.domain.layout.LayoutTest",
+            "tests": 8,
+            "failures": 0,
+            "errors": 0,
+            "time_seconds": 1438.58
+        },
+        {
+            "suite": "cn.saodg.domain.layout.RoomGeometryTest",
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "time_seconds": 0.002
+        },
+        {
+            "suite": "cn.saodg.infrastructure.content.RoomIdentityTest",
+            "tests": 3,
+            "failures": 0,
+            "errors": 0,
+            "time_seconds": 0.004
+        }
+    ],
+    "alignment_suite": {
+        "suite": "cn.saodg.domain.layout.PortalAlignmentTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0
+    },
+    "total_test_cases": 21
+}

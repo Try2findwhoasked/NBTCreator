@@ -1,0 +1,62 @@
+{
+  "version": "0.41.66-dev",
+  "branch": "codex/challenge-math-master",
+  "jar": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\build\\libs\\saodg-0.41.66-dev.jar",
+  "sha256": "793f272940eb68eefb247dca164f0f814799478802e70e855c26e9e239c5e974",
+  "focused_junit": {
+    "tests": 30,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "unfiltered_junit_before_count_update": {
+    "tests": 176,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 2
+  },
+  "forge_tests": {
+    "passed": 3,
+    "scope": [
+      "actual refined theatre placement/collision/walking/NPC-target approach",
+      "two authenticated test peers, concurrent independent instances, command/revision/reach/visibility/NPC ownership, saved-state round trip, skip and cleanup",
+      "eligible/ineligible member reward offers, one/two math bonuses, actual player-save payment, journal reload and idempotent replay"
+    ]
+  },
+  "content": {
+    "active_rooms": 80,
+    "inactive_protected_rooms": [
+      "saodg:ruins/boss_01",
+      "saodg:ruins/outpost_01",
+      "saodg:ruins/safe_01",
+      "saodg:ruins/safe_02",
+      "saodg:ruins/safe_gallery"
+    ],
+    "production_templates": 340,
+    "referenced_templates": 340,
+    "errors": []
+  },
+  "authoring": {
+    "source": "draft_01/runtime/parts/p00.nbt",
+    "final": "refined_05/runtime/p00.nbt",
+    "changes": 256,
+    "routes": "refined_05/final_routes.json",
+    "delivery_layers": 2
+  },
+  "limits": [
+    "Unfiltered build had one outdated count assertion (expected 6 puzzles, actual 7); corrected and focused suite passed; full suite not rerun",
+    "Two optional native archer binary checks skipped because SAODG_ARCHER_REFERENCE_JAR was not set",
+    "Not a full default GameTest suite run",
+    "No physical two-client rendering or manual chat interaction acceptance",
+    "No actual process restart/resume test; existing restart policy still aborts unfinished runs",
+    "No real SAO/downed adapter or multiplayer pack acceptance",
+    "No production world deployment or release tag"
+  ],
+  "logs": [
+    "build/math-build.log",
+    "build/math-focused-final.log",
+    "build/math-package.log",
+    "build/math-gametest-final.log"
+  ],
+  "validation_sequence": "Unfiltered run: 176 tests, 173 passed, 1 outdated puzzle-count fixture failed, 2 optional skipped. All 30000 layout seeds passed. Corrected the count while retaining original room preservation assertions; 30 focused tests then passed. Final static NBT support fixes packaged with build -x test, final three Forge fixtures passed. Full unit suite not rerun."
+}

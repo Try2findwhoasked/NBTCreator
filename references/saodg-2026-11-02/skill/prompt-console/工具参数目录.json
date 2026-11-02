@@ -1,0 +1,452 @@
+{
+  "purpose": "参数参考，不是待执行方案；在网页按需选取工具",
+  "operations": [
+    {
+      "kind": "geometry",
+      "label": "几何 / 布尔 / 拉伸",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "geometry": {
+        "shape": "cylinder",
+        "centre": [
+          12,
+          10,
+          12
+        ],
+        "radius": 3,
+        "height": 8,
+        "axis": "y"
+      },
+      "mode": "set",
+      "state": "stone_bricks",
+      "max_writes": 4096
+    },
+    {
+      "kind": "box",
+      "label": "体素填充 / 挖空",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "state": "stone_bricks"
+    },
+    {
+      "kind": "hollow_box",
+      "label": "空心外壳",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "state": "stone_bricks",
+      "thickness": 1
+    },
+    {
+      "kind": "frame",
+      "label": "平面边框",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        4,
+        12,
+        16
+      ],
+      "state": "stone_bricks",
+      "thickness": 1
+    },
+    {
+      "kind": "beam",
+      "label": "直线 / 斜梁",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "start": [
+        5,
+        5,
+        5
+      ],
+      "end": [
+        15,
+        12,
+        15
+      ],
+      "state": "oak_log",
+      "width": 1
+    },
+    {
+      "kind": "replace",
+      "label": "精确状态替换",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "from_states": [
+        "stone_bricks"
+      ],
+      "state": "andesite",
+      "max_writes": 4096
+    },
+    {
+      "kind": "move_region",
+      "label": "平移构件",
+      "classification": "inherit",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "offset": [
+        2,
+        0,
+        0
+      ]
+    },
+    {
+      "kind": "copy_region",
+      "label": "快照复制",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "offset": [
+        8,
+        0,
+        0
+      ],
+      "include_air": false,
+      "overwrite": false,
+      "max_writes": 4096
+    },
+    {
+      "kind": "repeat_region",
+      "label": "线性阵列",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "offset": [
+        8,
+        0,
+        0
+      ],
+      "count": 3,
+      "include_air": false,
+      "overwrite": false,
+      "max_writes": 4096
+    },
+    {
+      "kind": "transform_region",
+      "label": "旋转 / 镜像",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "destination": [
+        24,
+        4,
+        4
+      ],
+      "quarter_turns": 1,
+      "mirror": null,
+      "move": false,
+      "include_air": false,
+      "overwrite": false,
+      "max_writes": 4096
+    },
+    {
+      "kind": "morphology",
+      "label": "膨胀 / 侵蚀 / 表皮",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "mode": "dilate",
+      "iterations": 1,
+      "state": "stone_bricks",
+      "from_states": [
+        "stone_bricks"
+      ],
+      "max_writes": 4096
+    },
+    {
+      "kind": "diffusion",
+      "label": "多源 / 表面扩散",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "seeds": [
+        [
+          12,
+          8,
+          12
+        ]
+      ],
+      "steps": 8,
+      "decay": 0.2,
+      "surface_only": false,
+      "from_states": [
+        "stone_bricks"
+      ],
+      "state": "mossy_stone_bricks",
+      "seed": 2718,
+      "max_writes": 4096
+    },
+    {
+      "kind": "explosion",
+      "label": "静态爆炸 / 放射裂缝",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "centre": [
+        12,
+        10,
+        12
+      ],
+      "radius": 3,
+      "roughness": 0.15,
+      "rays": 8,
+      "ray_length": 5,
+      "ray_width": 0.55,
+      "from_states": [
+        "stone_bricks"
+      ],
+      "seed": 2718,
+      "max_writes": 4096
+    },
+    {
+      "kind": "scatter",
+      "label": "带间距散落",
+      "classification": "body",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "fraction": 0.1,
+      "spacing": 2,
+      "supported": true,
+      "state": "cobblestone",
+      "from_states": [
+        "air"
+      ],
+      "seed": 2718,
+      "max_writes": 4096
+    },
+    {
+      "kind": "pattern",
+      "label": "带权混材 / 连片噪声",
+      "classification": "inherit",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "action": "replace",
+      "scope": "surface",
+      "mode": "clustered",
+      "scale": 6,
+      "fraction": 0.15,
+      "from_states": [
+        "stone_bricks"
+      ],
+      "palette": [
+        {
+          "state": "stone_bricks",
+          "weight": 70
+        },
+        {
+          "state": "cracked_stone_bricks",
+          "weight": 20
+        },
+        {
+          "state": "mossy_stone_bricks",
+          "weight": 10
+        }
+      ],
+      "preserve_properties": true,
+      "shape_policy": "preserve",
+      "seed": 2718
+    },
+    {
+      "kind": "surface_palette",
+      "label": "低密度表面换材",
+      "classification": "inherit",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "from_states": [
+        "stone_bricks"
+      ],
+      "palette": [
+        "cracked_stone_bricks",
+        "mossy_stone_bricks"
+      ],
+      "fraction": 0.1,
+      "seed": 2718
+    },
+    {
+      "kind": "weathering",
+      "label": "连片风化 / 苔痕 / 裂纹",
+      "classification": "inherit",
+      "lo": [
+        4,
+        4,
+        4
+      ],
+      "hi": [
+        19,
+        15,
+        19
+      ],
+      "from_states": [
+        "stone_bricks"
+      ],
+      "seed": 2718,
+      "moss": {
+        "fraction": 0.12,
+        "patch_size": [
+          12,
+          40
+        ],
+        "state": "mossy_stone_bricks"
+      },
+      "cracks": {
+        "fraction": 0.06,
+        "length": [
+          6,
+          18
+        ],
+        "state": "cracked_stone_bricks"
+      },
+      "floor": {
+        "fraction": 0
+      }
+    },
+    {
+      "kind": "auto_floor",
+      "label": "多层地面识别 / 半砖坑",
+      "classification": "body",
+      "profile": "worn",
+      "style_note": "保留必要路线，局部轻度磨损",
+      "fraction": 0.04,
+      "slab_share": 0.85,
+      "patch_size": [
+        2,
+        4
+      ],
+      "pit_depth": 1,
+      "route_margin": 0.5,
+      "exclude_boxes": [],
+      "slab_overrides": {},
+      "seed": 2718,
+      "include_boxes": []
+    }
+  ]
+}

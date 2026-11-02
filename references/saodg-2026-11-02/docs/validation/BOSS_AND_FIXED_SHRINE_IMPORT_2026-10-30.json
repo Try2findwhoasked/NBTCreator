@@ -1,0 +1,1565 @@
+{
+    "boss_chat": "01a18ca8-3fbf-7441-bb62-deb639797692",
+    "shrine_chat": "01a18c9f-6889-73c3-abe0-b308058e47ee",
+    "final_source_threads_completed": true,
+    "shrine_door_authorization": "给鸟居房开门洞",
+    "rune_chat": "01a18ccf-11e1-70a1-a40f-66d1cda8c9ee",
+    "rune_source_stage": "completed initial model; no refinement or NBT modification performed",
+    "active_safe_room": "saodg:fixed/torii_shrine",
+    "active_blood_room": "saodg:fixed/rune_blood_hall",
+    "boss_model_policy": "all three final refined arenas, no physical doors, portal entry only",
+    "status": "registered_and_acceptance_verified",
+    "rooms": [
+        {
+            "id": "saodg:fixed/torii_shrine",
+            "name": "鸟居神社",
+            "files": [
+                {
+                    "source": "build/nbt_models/boss_and_fixed_shrine_integration_20261030/torii_shrine/delivery/p00_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/fixed/torii_shrine/p00_body.nbt",
+                    "sha256": "f4e1c53e35c9c8b440f60ae04bf3d94982398e14d04e58221d8035bf4101cc35"
+                },
+                {
+                    "source": "build/nbt_models/boss_and_fixed_shrine_integration_20261030/torii_shrine/delivery/p00_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/fixed/torii_shrine/p00_walls.nbt",
+                    "sha256": "39bdc3f76793a66c6783047262f8fa28f65c21b9b347717b4e67b168b863c1b3"
+                }
+            ],
+            "definition": {
+                "schema_version": 5,
+                "type": "safe",
+                "parts": [
+                    {
+                        "body_template": "saodg:fixed/torii_shrine/p00_body",
+                        "wall_template": "saodg:fixed/torii_shrine/p00_walls",
+                        "offset": [
+                            0,
+                            0,
+                            0
+                        ]
+                    }
+                ],
+                "footprint": [
+                    1,
+                    1
+                ],
+                "cells": [
+                    [
+                        0,
+                        0
+                    ]
+                ],
+                "size": [
+                    48,
+                    36,
+                    48
+                ],
+                "door_y": 2,
+                "rotations": [
+                    0,
+                    90,
+                    180,
+                    270
+                ],
+                "selection_priority": 100,
+                "ports": [
+                    {
+                        "id": "south",
+                        "facing": "south",
+                        "min": [
+                            21,
+                            2,
+                            47
+                        ],
+                        "max": [
+                            26,
+                            6,
+                            47
+                        ]
+                    },
+                    {
+                        "id": "west",
+                        "facing": "west",
+                        "min": [
+                            0,
+                            2,
+                            21
+                        ],
+                        "max": [
+                            0,
+                            6,
+                            26
+                        ]
+                    },
+                    {
+                        "id": "east",
+                        "facing": "east",
+                        "min": [
+                            47,
+                            2,
+                            21
+                        ],
+                        "max": [
+                            47,
+                            6,
+                            26
+                        ]
+                    }
+                ],
+                "spawns": [],
+                "arrival": [
+                    23,
+                    2,
+                    44
+                ],
+                "secrets": [],
+                "secret_scenes": [],
+                "enemies": 0,
+                "health": 30,
+                "attack": 0,
+                "identity": {
+                    "display_name": "room.saodg.fixed.torii_shrine",
+                    "catalog_ids": [],
+                    "source": "boss_and_fixed_shrine_integration_20261030/torii_shrine",
+                    "shape": "single",
+                    "theme": "sacred",
+                    "connections": "junction"
+                }
+            }
+        },
+        {
+            "id": "saodg:boss/01_gilded_crown",
+            "name": "鎏金王庭",
+            "files": [
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/01_gilded_crown/refined_v3/delivery/p00_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/01_gilded_crown/p00_body.nbt",
+                    "sha256": "169c2fd1ee4ec866fc5178149bc7860d41b2a1329b7c34ac2322968f884a4fe7"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/01_gilded_crown/refined_v3/delivery/p00_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/01_gilded_crown/p00_walls.nbt",
+                    "sha256": "b2e7eb983c27567210bb9647d25c8ffca05f36bafe3b2d242d1d3b682fa4c260"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/01_gilded_crown/refined_v3/delivery/p01_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/01_gilded_crown/p01_body.nbt",
+                    "sha256": "046219d844bc786373e98eac1e7d47b903b4cf35254b3276e41f80f21f14a0be"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/01_gilded_crown/refined_v3/delivery/p01_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/01_gilded_crown/p01_walls.nbt",
+                    "sha256": "9985a23ca1a3030b300bfda95607682f6b6f99a209b4af8e8a083e739fa4799c"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/01_gilded_crown/refined_v3/delivery/p10_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/01_gilded_crown/p10_body.nbt",
+                    "sha256": "e7ec950deab1db5c30c7e776f013f9dce3a942a26b2fa6c985e664d30f75b9ed"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/01_gilded_crown/refined_v3/delivery/p10_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/01_gilded_crown/p10_walls.nbt",
+                    "sha256": "10cd8dcb171710c8a2b25a3cbe20f3f79967d996f2755cb95a5ae40df0337e5a"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/01_gilded_crown/refined_v3/delivery/p11_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/01_gilded_crown/p11_body.nbt",
+                    "sha256": "4fc4e5e43cf3c9eb81ba32381317594629bf4939f1e3abf46d569aa809e6ccb2"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/01_gilded_crown/refined_v3/delivery/p11_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/01_gilded_crown/p11_walls.nbt",
+                    "sha256": "ce6a273e848bc8fc57aadb2032df697746ec11203963020250f635f11eadacc6"
+                }
+            ],
+            "definition": {
+                "schema_version": 5,
+                "type": "boss",
+                "entry_mode": "portal",
+                "parts": [
+                    {
+                        "body_template": "saodg:boss/01_gilded_crown/p00_body",
+                        "wall_template": "saodg:boss/01_gilded_crown/p00_walls",
+                        "offset": [
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "body_template": "saodg:boss/01_gilded_crown/p01_body",
+                        "wall_template": "saodg:boss/01_gilded_crown/p01_walls",
+                        "offset": [
+                            0,
+                            0,
+                            48
+                        ]
+                    },
+                    {
+                        "body_template": "saodg:boss/01_gilded_crown/p10_body",
+                        "wall_template": "saodg:boss/01_gilded_crown/p10_walls",
+                        "offset": [
+                            48,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "body_template": "saodg:boss/01_gilded_crown/p11_body",
+                        "wall_template": "saodg:boss/01_gilded_crown/p11_walls",
+                        "offset": [
+                            48,
+                            0,
+                            48
+                        ]
+                    }
+                ],
+                "footprint": [
+                    2,
+                    2
+                ],
+                "cells": [
+                    [
+                        0,
+                        0
+                    ],
+                    [
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        1
+                    ],
+                    [
+                        1,
+                        1
+                    ]
+                ],
+                "size": [
+                    96,
+                    48,
+                    96
+                ],
+                "door_y": 4,
+                "rotations": [
+                    0
+                ],
+                "selection_priority": 100,
+                "ports": [],
+                "arrival": [
+                    48,
+                    4,
+                    64
+                ],
+                "spawns": [
+                    [
+                        48,
+                        4,
+                        48
+                    ],
+                    [
+                        36,
+                        4,
+                        48
+                    ],
+                    [
+                        60,
+                        4,
+                        48
+                    ],
+                    [
+                        48,
+                        4,
+                        36
+                    ],
+                    [
+                        48,
+                        4,
+                        60
+                    ]
+                ],
+                "secrets": [],
+                "secret_scenes": [],
+                "enemies": 1,
+                "health": 320,
+                "attack": 6,
+                "boss_seals": [
+                    [
+                        40,
+                        4,
+                        40
+                    ],
+                    [
+                        56,
+                        4,
+                        40
+                    ]
+                ],
+                "boss": "saodg:ruin_sentinel",
+                "identity": {
+                    "display_name": "room.saodg.boss.01_gilded_crown",
+                    "catalog_ids": [],
+                    "source": "boss_three_2x2_20261030/refinement_approved_20261030/01_gilded_crown/refined_v3",
+                    "shape": "square",
+                    "theme": "sacred",
+                    "connections": "portal"
+                }
+            }
+        },
+        {
+            "id": "saodg:boss/02_ember_foundry",
+            "name": "余烬铸造厅",
+            "files": [
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/02_ember_foundry/refined_v2/delivery/p00_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/02_ember_foundry/p00_body.nbt",
+                    "sha256": "2895726be7cb7db6398e4ba0956d9968abc55e2ff686e4b1fea94d51a4c4d425"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/02_ember_foundry/refined_v2/delivery/p00_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/02_ember_foundry/p00_walls.nbt",
+                    "sha256": "f76b3ff8647c7e5b9a1f743cb2a0a4c7098e83a59c3e6a06628dd747deac7881"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/02_ember_foundry/refined_v2/delivery/p01_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/02_ember_foundry/p01_body.nbt",
+                    "sha256": "ded3090d04b29770217c9ba769830ee153a9de108b70c6638d1c054f49c6dfcc"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/02_ember_foundry/refined_v2/delivery/p01_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/02_ember_foundry/p01_walls.nbt",
+                    "sha256": "df7cc8c6d3c2bbdcc63a8f2c59e6144366ef4b9fb1e861418532d67baf39d019"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/02_ember_foundry/refined_v2/delivery/p10_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/02_ember_foundry/p10_body.nbt",
+                    "sha256": "8ac3c208d686880cb5b40069e9f19e2839b619851b9ecbdd38f541ff60c75f2f"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/02_ember_foundry/refined_v2/delivery/p10_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/02_ember_foundry/p10_walls.nbt",
+                    "sha256": "a639fbb3be97a7e959da6e53ca880d7f82635d9c28b909755afa908bc4475e22"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/02_ember_foundry/refined_v2/delivery/p11_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/02_ember_foundry/p11_body.nbt",
+                    "sha256": "97de0e09c11d5238d3c9e3fbeeb2da8d335df5b5e31b8c1c9a43a5fc441cf256"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/02_ember_foundry/refined_v2/delivery/p11_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/02_ember_foundry/p11_walls.nbt",
+                    "sha256": "cd39f04cf3f10fa7b096deb6143c5db32c2fa918e6a44ea52f891511aa97ab05"
+                }
+            ],
+            "definition": {
+                "schema_version": 5,
+                "type": "boss",
+                "entry_mode": "portal",
+                "parts": [
+                    {
+                        "body_template": "saodg:boss/02_ember_foundry/p00_body",
+                        "wall_template": "saodg:boss/02_ember_foundry/p00_walls",
+                        "offset": [
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "body_template": "saodg:boss/02_ember_foundry/p01_body",
+                        "wall_template": "saodg:boss/02_ember_foundry/p01_walls",
+                        "offset": [
+                            0,
+                            0,
+                            48
+                        ]
+                    },
+                    {
+                        "body_template": "saodg:boss/02_ember_foundry/p10_body",
+                        "wall_template": "saodg:boss/02_ember_foundry/p10_walls",
+                        "offset": [
+                            48,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "body_template": "saodg:boss/02_ember_foundry/p11_body",
+                        "wall_template": "saodg:boss/02_ember_foundry/p11_walls",
+                        "offset": [
+                            48,
+                            0,
+                            48
+                        ]
+                    }
+                ],
+                "footprint": [
+                    2,
+                    2
+                ],
+                "cells": [
+                    [
+                        0,
+                        0
+                    ],
+                    [
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        1
+                    ],
+                    [
+                        1,
+                        1
+                    ]
+                ],
+                "size": [
+                    96,
+                    44,
+                    96
+                ],
+                "door_y": 4,
+                "rotations": [
+                    0
+                ],
+                "selection_priority": 100,
+                "ports": [],
+                "arrival": [
+                    48,
+                    4,
+                    64
+                ],
+                "spawns": [
+                    [
+                        48,
+                        4,
+                        48
+                    ],
+                    [
+                        36,
+                        4,
+                        48
+                    ],
+                    [
+                        60,
+                        4,
+                        48
+                    ],
+                    [
+                        48,
+                        4,
+                        36
+                    ],
+                    [
+                        48,
+                        4,
+                        60
+                    ]
+                ],
+                "secrets": [],
+                "secret_scenes": [],
+                "enemies": 1,
+                "health": 320,
+                "attack": 6,
+                "boss_seals": [
+                    [
+                        40,
+                        4,
+                        40
+                    ],
+                    [
+                        56,
+                        4,
+                        40
+                    ]
+                ],
+                "boss": "saodg:ruin_sentinel",
+                "identity": {
+                    "display_name": "room.saodg.boss.02_ember_foundry",
+                    "catalog_ids": [],
+                    "source": "boss_three_2x2_20261030/refinement_approved_20261030/02_ember_foundry/refined_v2",
+                    "shape": "square",
+                    "theme": "forge",
+                    "connections": "portal"
+                }
+            }
+        },
+        {
+            "id": "saodg:boss/03_azure_meridian",
+            "name": "苍星圣所",
+            "files": [
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/03_azure_meridian/refined_v3/delivery/p00_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/03_azure_meridian/p00_body.nbt",
+                    "sha256": "5636705ab9adef1aba235fefcdbe28a75a7e79de7982eeebbafb40eea760089b"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/03_azure_meridian/refined_v3/delivery/p00_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/03_azure_meridian/p00_walls.nbt",
+                    "sha256": "9aa4982afc71791ee2b5493a04df6e1238c2b780209ce8b605eb168df59c910a"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/03_azure_meridian/refined_v3/delivery/p01_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/03_azure_meridian/p01_body.nbt",
+                    "sha256": "c818b014f6276643398c1b3c6c79b532b47464ae63a7dcd83bb36effa358dc67"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/03_azure_meridian/refined_v3/delivery/p01_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/03_azure_meridian/p01_walls.nbt",
+                    "sha256": "cba089bc3b49ebd7642d55f8a9424c8bd1af41806d17fe72ccb13dd3105b4c63"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/03_azure_meridian/refined_v3/delivery/p10_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/03_azure_meridian/p10_body.nbt",
+                    "sha256": "dcebbe38cc036f337d86742a22ef8a97f675d08b99b1c24ff2dd776f9c63f3fc"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/03_azure_meridian/refined_v3/delivery/p10_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/03_azure_meridian/p10_walls.nbt",
+                    "sha256": "ea6e195510b652f9ca3606a4ee6f9c16eb7620460527e4bf80dd5d586489ffd1"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/03_azure_meridian/refined_v3/delivery/p11_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/03_azure_meridian/p11_body.nbt",
+                    "sha256": "f5e237be0b1594c2a12ef2da63f55e5e398a9e39a17b9755bd1732e17d549db1"
+                },
+                {
+                    "source": "build/nbt_models/boss_three_2x2_20261030/refinement_approved_20261030/03_azure_meridian/refined_v3/delivery/p11_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/boss/03_azure_meridian/p11_walls.nbt",
+                    "sha256": "4cce04e2e423036f100621ce393988fb031607a9d73e3c6610c3fd3e60ae5374"
+                }
+            ],
+            "definition": {
+                "schema_version": 5,
+                "type": "boss",
+                "entry_mode": "portal",
+                "parts": [
+                    {
+                        "body_template": "saodg:boss/03_azure_meridian/p00_body",
+                        "wall_template": "saodg:boss/03_azure_meridian/p00_walls",
+                        "offset": [
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "body_template": "saodg:boss/03_azure_meridian/p01_body",
+                        "wall_template": "saodg:boss/03_azure_meridian/p01_walls",
+                        "offset": [
+                            0,
+                            0,
+                            48
+                        ]
+                    },
+                    {
+                        "body_template": "saodg:boss/03_azure_meridian/p10_body",
+                        "wall_template": "saodg:boss/03_azure_meridian/p10_walls",
+                        "offset": [
+                            48,
+                            0,
+                            0
+                        ]
+                    },
+                    {
+                        "body_template": "saodg:boss/03_azure_meridian/p11_body",
+                        "wall_template": "saodg:boss/03_azure_meridian/p11_walls",
+                        "offset": [
+                            48,
+                            0,
+                            48
+                        ]
+                    }
+                ],
+                "footprint": [
+                    2,
+                    2
+                ],
+                "cells": [
+                    [
+                        0,
+                        0
+                    ],
+                    [
+                        1,
+                        0
+                    ],
+                    [
+                        0,
+                        1
+                    ],
+                    [
+                        1,
+                        1
+                    ]
+                ],
+                "size": [
+                    96,
+                    48,
+                    96
+                ],
+                "door_y": 4,
+                "rotations": [
+                    0
+                ],
+                "selection_priority": 100,
+                "ports": [],
+                "arrival": [
+                    48,
+                    4,
+                    64
+                ],
+                "spawns": [
+                    [
+                        48,
+                        4,
+                        48
+                    ],
+                    [
+                        36,
+                        4,
+                        48
+                    ],
+                    [
+                        60,
+                        4,
+                        48
+                    ],
+                    [
+                        48,
+                        4,
+                        36
+                    ],
+                    [
+                        48,
+                        4,
+                        60
+                    ]
+                ],
+                "secrets": [],
+                "secret_scenes": [],
+                "enemies": 1,
+                "health": 320,
+                "attack": 6,
+                "boss_seals": [
+                    [
+                        40,
+                        4,
+                        40
+                    ],
+                    [
+                        56,
+                        4,
+                        40
+                    ]
+                ],
+                "boss": "saodg:ruin_sentinel",
+                "identity": {
+                    "display_name": "room.saodg.boss.03_azure_meridian",
+                    "catalog_ids": [],
+                    "source": "boss_three_2x2_20261030/refinement_approved_20261030/03_azure_meridian/refined_v3",
+                    "shape": "square",
+                    "theme": "sacred",
+                    "connections": "portal"
+                }
+            }
+        },
+        {
+            "id": "saodg:fixed/rune_blood_hall",
+            "name": "终誓符文厅",
+            "files": [
+                {
+                    "source": "build/nbt_models/rune_boss_antechamber_1x1_20261030/delivery/p00_body.nbt",
+                    "target": "src/main/resources/data/saodg/structures/fixed/rune_blood_hall/p00_body.nbt",
+                    "sha256": "7d6b9a5ced6be3a7bd62f7fabdef6cbc09c8ac76d13bdf72f510a2308907f486"
+                },
+                {
+                    "source": "build/nbt_models/rune_boss_antechamber_1x1_20261030/delivery/p00_walls.nbt",
+                    "target": "src/main/resources/data/saodg/structures/fixed/rune_blood_hall/p00_walls.nbt",
+                    "sha256": "0af95da5bf9616fd9b3dcba688ece9c1936eb12d16053ec2262f0d2f8b1bc918"
+                }
+            ],
+            "definition": {
+                "schema_version": 5,
+                "type": "outpost",
+                "parts": [
+                    {
+                        "body_template": "saodg:fixed/rune_blood_hall/p00_body",
+                        "wall_template": "saodg:fixed/rune_blood_hall/p00_walls",
+                        "offset": [
+                            0,
+                            0,
+                            0
+                        ]
+                    }
+                ],
+                "footprint": [
+                    1,
+                    1
+                ],
+                "cells": [
+                    [
+                        0,
+                        0
+                    ]
+                ],
+                "size": [
+                    48,
+                    34,
+                    48
+                ],
+                "door_y": 2,
+                "rotations": [
+                    0,
+                    90,
+                    180,
+                    270
+                ],
+                "selection_priority": 100,
+                "ports": [
+                    {
+                        "id": "north",
+                        "facing": "north",
+                        "min": [
+                            21,
+                            2,
+                            0
+                        ],
+                        "max": [
+                            26,
+                            6,
+                            0
+                        ]
+                    }
+                ],
+                "arrival": [
+                    24,
+                    2,
+                    2
+                ],
+                "spawns": [
+                    [
+                        16,
+                        4,
+                        14
+                    ],
+                    [
+                        31,
+                        4,
+                        14
+                    ],
+                    [
+                        16,
+                        4,
+                        26
+                    ],
+                    [
+                        31,
+                        4,
+                        26
+                    ]
+                ],
+                "secrets": [],
+                "secret_scenes": [],
+                "enemies": 4,
+                "health": 45,
+                "attack": 4,
+                "encounter": "saodg:ruins/outpost",
+                "boss_portal": {
+                    "facing": "south",
+                    "cells": [
+                        [
+                            19,
+                            6,
+                            38
+                        ],
+                        [
+                            19,
+                            7,
+                            38
+                        ],
+                        [
+                            19,
+                            8,
+                            38
+                        ],
+                        [
+                            19,
+                            9,
+                            38
+                        ],
+                        [
+                            19,
+                            10,
+                            38
+                        ],
+                        [
+                            19,
+                            11,
+                            38
+                        ],
+                        [
+                            19,
+                            12,
+                            38
+                        ],
+                        [
+                            19,
+                            13,
+                            38
+                        ],
+                        [
+                            19,
+                            14,
+                            38
+                        ],
+                        [
+                            19,
+                            15,
+                            38
+                        ],
+                        [
+                            19,
+                            16,
+                            38
+                        ],
+                        [
+                            19,
+                            17,
+                            38
+                        ],
+                        [
+                            19,
+                            18,
+                            38
+                        ],
+                        [
+                            20,
+                            6,
+                            38
+                        ],
+                        [
+                            20,
+                            7,
+                            38
+                        ],
+                        [
+                            20,
+                            8,
+                            38
+                        ],
+                        [
+                            20,
+                            9,
+                            38
+                        ],
+                        [
+                            20,
+                            10,
+                            38
+                        ],
+                        [
+                            20,
+                            11,
+                            38
+                        ],
+                        [
+                            20,
+                            12,
+                            38
+                        ],
+                        [
+                            20,
+                            13,
+                            38
+                        ],
+                        [
+                            20,
+                            14,
+                            38
+                        ],
+                        [
+                            20,
+                            15,
+                            38
+                        ],
+                        [
+                            20,
+                            16,
+                            38
+                        ],
+                        [
+                            20,
+                            17,
+                            38
+                        ],
+                        [
+                            20,
+                            18,
+                            38
+                        ],
+                        [
+                            20,
+                            19,
+                            38
+                        ],
+                        [
+                            21,
+                            6,
+                            38
+                        ],
+                        [
+                            21,
+                            7,
+                            38
+                        ],
+                        [
+                            21,
+                            8,
+                            38
+                        ],
+                        [
+                            21,
+                            9,
+                            38
+                        ],
+                        [
+                            21,
+                            10,
+                            38
+                        ],
+                        [
+                            21,
+                            11,
+                            38
+                        ],
+                        [
+                            21,
+                            12,
+                            38
+                        ],
+                        [
+                            21,
+                            13,
+                            38
+                        ],
+                        [
+                            21,
+                            14,
+                            38
+                        ],
+                        [
+                            21,
+                            15,
+                            38
+                        ],
+                        [
+                            21,
+                            16,
+                            38
+                        ],
+                        [
+                            21,
+                            17,
+                            38
+                        ],
+                        [
+                            21,
+                            18,
+                            38
+                        ],
+                        [
+                            21,
+                            19,
+                            38
+                        ],
+                        [
+                            21,
+                            20,
+                            38
+                        ],
+                        [
+                            22,
+                            6,
+                            38
+                        ],
+                        [
+                            22,
+                            7,
+                            38
+                        ],
+                        [
+                            22,
+                            8,
+                            38
+                        ],
+                        [
+                            22,
+                            9,
+                            38
+                        ],
+                        [
+                            22,
+                            10,
+                            38
+                        ],
+                        [
+                            22,
+                            11,
+                            38
+                        ],
+                        [
+                            22,
+                            12,
+                            38
+                        ],
+                        [
+                            22,
+                            13,
+                            38
+                        ],
+                        [
+                            22,
+                            14,
+                            38
+                        ],
+                        [
+                            22,
+                            15,
+                            38
+                        ],
+                        [
+                            22,
+                            16,
+                            38
+                        ],
+                        [
+                            22,
+                            17,
+                            38
+                        ],
+                        [
+                            22,
+                            18,
+                            38
+                        ],
+                        [
+                            22,
+                            19,
+                            38
+                        ],
+                        [
+                            22,
+                            20,
+                            38
+                        ],
+                        [
+                            22,
+                            21,
+                            38
+                        ],
+                        [
+                            23,
+                            6,
+                            38
+                        ],
+                        [
+                            23,
+                            7,
+                            38
+                        ],
+                        [
+                            23,
+                            8,
+                            38
+                        ],
+                        [
+                            23,
+                            9,
+                            38
+                        ],
+                        [
+                            23,
+                            10,
+                            38
+                        ],
+                        [
+                            23,
+                            11,
+                            38
+                        ],
+                        [
+                            23,
+                            12,
+                            38
+                        ],
+                        [
+                            23,
+                            13,
+                            38
+                        ],
+                        [
+                            23,
+                            14,
+                            38
+                        ],
+                        [
+                            23,
+                            15,
+                            38
+                        ],
+                        [
+                            23,
+                            16,
+                            38
+                        ],
+                        [
+                            23,
+                            17,
+                            38
+                        ],
+                        [
+                            23,
+                            18,
+                            38
+                        ],
+                        [
+                            23,
+                            19,
+                            38
+                        ],
+                        [
+                            23,
+                            20,
+                            38
+                        ],
+                        [
+                            23,
+                            21,
+                            38
+                        ],
+                        [
+                            23,
+                            22,
+                            38
+                        ],
+                        [
+                            23,
+                            23,
+                            38
+                        ],
+                        [
+                            24,
+                            6,
+                            38
+                        ],
+                        [
+                            24,
+                            7,
+                            38
+                        ],
+                        [
+                            24,
+                            8,
+                            38
+                        ],
+                        [
+                            24,
+                            9,
+                            38
+                        ],
+                        [
+                            24,
+                            10,
+                            38
+                        ],
+                        [
+                            24,
+                            11,
+                            38
+                        ],
+                        [
+                            24,
+                            12,
+                            38
+                        ],
+                        [
+                            24,
+                            13,
+                            38
+                        ],
+                        [
+                            24,
+                            14,
+                            38
+                        ],
+                        [
+                            24,
+                            15,
+                            38
+                        ],
+                        [
+                            24,
+                            16,
+                            38
+                        ],
+                        [
+                            24,
+                            17,
+                            38
+                        ],
+                        [
+                            24,
+                            18,
+                            38
+                        ],
+                        [
+                            24,
+                            19,
+                            38
+                        ],
+                        [
+                            24,
+                            20,
+                            38
+                        ],
+                        [
+                            24,
+                            21,
+                            38
+                        ],
+                        [
+                            24,
+                            22,
+                            38
+                        ],
+                        [
+                            24,
+                            23,
+                            38
+                        ],
+                        [
+                            25,
+                            6,
+                            38
+                        ],
+                        [
+                            25,
+                            7,
+                            38
+                        ],
+                        [
+                            25,
+                            8,
+                            38
+                        ],
+                        [
+                            25,
+                            9,
+                            38
+                        ],
+                        [
+                            25,
+                            10,
+                            38
+                        ],
+                        [
+                            25,
+                            11,
+                            38
+                        ],
+                        [
+                            25,
+                            12,
+                            38
+                        ],
+                        [
+                            25,
+                            13,
+                            38
+                        ],
+                        [
+                            25,
+                            14,
+                            38
+                        ],
+                        [
+                            25,
+                            15,
+                            38
+                        ],
+                        [
+                            25,
+                            16,
+                            38
+                        ],
+                        [
+                            25,
+                            17,
+                            38
+                        ],
+                        [
+                            25,
+                            18,
+                            38
+                        ],
+                        [
+                            25,
+                            19,
+                            38
+                        ],
+                        [
+                            25,
+                            20,
+                            38
+                        ],
+                        [
+                            25,
+                            21,
+                            38
+                        ],
+                        [
+                            26,
+                            6,
+                            38
+                        ],
+                        [
+                            26,
+                            7,
+                            38
+                        ],
+                        [
+                            26,
+                            8,
+                            38
+                        ],
+                        [
+                            26,
+                            9,
+                            38
+                        ],
+                        [
+                            26,
+                            10,
+                            38
+                        ],
+                        [
+                            26,
+                            11,
+                            38
+                        ],
+                        [
+                            26,
+                            12,
+                            38
+                        ],
+                        [
+                            26,
+                            13,
+                            38
+                        ],
+                        [
+                            26,
+                            14,
+                            38
+                        ],
+                        [
+                            26,
+                            15,
+                            38
+                        ],
+                        [
+                            26,
+                            16,
+                            38
+                        ],
+                        [
+                            26,
+                            17,
+                            38
+                        ],
+                        [
+                            26,
+                            18,
+                            38
+                        ],
+                        [
+                            26,
+                            19,
+                            38
+                        ],
+                        [
+                            26,
+                            20,
+                            38
+                        ],
+                        [
+                            27,
+                            6,
+                            38
+                        ],
+                        [
+                            27,
+                            7,
+                            38
+                        ],
+                        [
+                            27,
+                            8,
+                            38
+                        ],
+                        [
+                            27,
+                            9,
+                            38
+                        ],
+                        [
+                            27,
+                            10,
+                            38
+                        ],
+                        [
+                            27,
+                            11,
+                            38
+                        ],
+                        [
+                            27,
+                            12,
+                            38
+                        ],
+                        [
+                            27,
+                            13,
+                            38
+                        ],
+                        [
+                            27,
+                            14,
+                            38
+                        ],
+                        [
+                            27,
+                            15,
+                            38
+                        ],
+                        [
+                            27,
+                            16,
+                            38
+                        ],
+                        [
+                            27,
+                            17,
+                            38
+                        ],
+                        [
+                            27,
+                            18,
+                            38
+                        ],
+                        [
+                            27,
+                            19,
+                            38
+                        ],
+                        [
+                            28,
+                            6,
+                            38
+                        ],
+                        [
+                            28,
+                            7,
+                            38
+                        ],
+                        [
+                            28,
+                            8,
+                            38
+                        ],
+                        [
+                            28,
+                            9,
+                            38
+                        ],
+                        [
+                            28,
+                            10,
+                            38
+                        ],
+                        [
+                            28,
+                            11,
+                            38
+                        ],
+                        [
+                            28,
+                            12,
+                            38
+                        ],
+                        [
+                            28,
+                            13,
+                            38
+                        ],
+                        [
+                            28,
+                            14,
+                            38
+                        ],
+                        [
+                            28,
+                            15,
+                            38
+                        ],
+                        [
+                            28,
+                            16,
+                            38
+                        ],
+                        [
+                            28,
+                            17,
+                            38
+                        ],
+                        [
+                            28,
+                            18,
+                            38
+                        ]
+                    ]
+                },
+                "identity": {
+                    "display_name": "room.saodg.fixed.rune_blood_hall",
+                    "catalog_ids": [],
+                    "source": "rune_boss_antechamber_1x1_20261030",
+                    "shape": "single",
+                    "theme": "runes",
+                    "connections": "dead_end"
+                }
+            }
+        }
+    ],
+    "verification": {
+        "geometry_cases": 64,
+        "unique_identified_rooms": 58,
+        "portal_rotations": [
+            0,
+            90,
+            180,
+            270
+        ],
+        "layout_seeds": 30000,
+        "additional_fixed_role_seeds": 144,
+        "successful_combat_cycles": 3,
+        "fault_cycles": 2,
+        "portal_entry_opposite_and_centered": true,
+        "real_multiplayer_clients_verified": false,
+        "artifact": "build/libs/saodg-0.41.63-dev.jar",
+        "artifact_sha256": "e45adf9aba6404965184b9aa32239b5ead3246dfd0e9eebc8487b78e1abd97a6"
+    }
+}

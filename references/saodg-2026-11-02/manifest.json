@@ -1,0 +1,2476 @@
+{
+  "schema_version": 1,
+  "created_date": "2026-11-02",
+  "timezone": "Asia/Shanghai",
+  "source_root": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG",
+  "source_head": "6eeb961352330890620e4433a7276dbec814e1e9",
+  "exclusions": [
+    ".git",
+    ".pytest_cache",
+    ".vite",
+    "__pycache__",
+    "node_modules",
+    "*.pyc",
+    "*.pyo",
+    "worlds",
+    "nbt_models",
+    "logs",
+    "build"
+  ],
+  "files": [
+    {
+      "path": "skill/assets/viewer/browser-launch.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\browser-launch.mjs",
+      "size": 1348,
+      "sha256": "f1884e9fbfd29327b700414e101bac9e0e3c9e2fd54f0795946ebbef774bf924"
+    },
+    {
+      "path": "skill/assets/viewer/control.html",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\control.html",
+      "size": 18660,
+      "sha256": "867a88e280c47d12beb28bc07b8ccae04777b122dade23e89c50b2ebca180817"
+    },
+    {
+      "path": "skill/assets/viewer/detail-server.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\detail-server.mjs",
+      "size": 17067,
+      "sha256": "23a09da1a9f72e8f63b13f9d60d5b348e04ad975934c50a93aecaed44d348885"
+    },
+    {
+      "path": "skill/assets/viewer/feedback-store.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\feedback-store.mjs",
+      "size": 6958,
+      "sha256": "4e7ec429de9134dca75d10445a43e04f46133fba54964054434593115e1a2d0a"
+    },
+    {
+      "path": "skill/assets/viewer/index.html",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\index.html",
+      "size": 1612,
+      "sha256": "241eaccbabdb7fddab18dcb0131580716ff3ae514b013536f6a69484d6b54c78"
+    },
+    {
+      "path": "skill/assets/viewer/LICENSE.upstream",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\LICENSE.upstream",
+      "size": 11558,
+      "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6"
+    },
+    {
+      "path": "skill/assets/viewer/package-lock.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\package-lock.json",
+      "size": 32023,
+      "sha256": "5519547b528a259e78eed3c3c559ee229933d0f103f1bdc25e1ac50ea32c382e"
+    },
+    {
+      "path": "skill/assets/viewer/package.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\package.json",
+      "size": 314,
+      "sha256": "8cd498c3eb0e8481abc936a573a5afc020ae29020124a49b82603171011aa3a9"
+    },
+    {
+      "path": "skill/assets/viewer/render-batch.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\render-batch.mjs",
+      "size": 8292,
+      "sha256": "716bdaa5683a157a9006427e528cd07194f3191836bcf38117920f675193a08f"
+    },
+    {
+      "path": "skill/assets/viewer/saved-effects.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\saved-effects.mjs",
+      "size": 4159,
+      "sha256": "70bb325f66014ca73a02b31e4186f424780d15a2800c630bfcf07c95340de3a9"
+    },
+    {
+      "path": "skill/assets/viewer/server.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\server.mjs",
+      "size": 1185,
+      "sha256": "cc32b43b7e94b514d450a366f71e65fa9d215757a3becea5d5a8ca96bb740d1a"
+    },
+    {
+      "path": "skill/assets/viewer/src/block-names.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\src\\block-names.json",
+      "size": 41412,
+      "sha256": "50476bc89b11e78f67b41474b8d9be9ef534606c2d6802a60f723932bfce5064"
+    },
+    {
+      "path": "skill/assets/viewer/src/completion.js",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\src\\completion.js",
+      "size": 2902,
+      "sha256": "67a5656dd66532938bf84f42405cdef7f00453e96585d7726b48a5effaac6d61"
+    },
+    {
+      "path": "skill/assets/viewer/src/control.css",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\src\\control.css",
+      "size": 21504,
+      "sha256": "67ae0e04f9a752cd8cb55fe9ac9ff70db37ec550ab455ea69f5ca267d460ebf0"
+    },
+    {
+      "path": "skill/assets/viewer/src/control.js",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\src\\control.js",
+      "size": 59394,
+      "sha256": "830368916636e86868faca838ea9d78638b377204a77b8b503bdbfd66b87ea9c"
+    },
+    {
+      "path": "skill/assets/viewer/src/main.js",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\src\\main.js",
+      "size": 24849,
+      "sha256": "4a7b7fada3a7d4ae9eb75362d09dbd7009cfe508048d332f7a40e8fd0651f772"
+    },
+    {
+      "path": "skill/assets/viewer/src/orthographic.js",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\src\\orthographic.js",
+      "size": 3726,
+      "sha256": "b1f2c54c81d8bcabca560fde9351383b7b5dcd7cc2b2443c89cf6c9f5a078c51"
+    },
+    {
+      "path": "skill/assets/viewer/src/prompt-panel.css",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\src\\prompt-panel.css",
+      "size": 857,
+      "sha256": "88a868caa10416ff8e2e8d65ce20dc53453291adfb2c86a77b6b74e1aadff0e7"
+    },
+    {
+      "path": "skill/assets/viewer/src/range-box.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\src\\range-box.mjs",
+      "size": 1581,
+      "sha256": "c351b8f5e705ecc311676d0fdd3e2ee73187efde494300971417375573c49090"
+    },
+    {
+      "path": "skill/assets/viewer/src/style.css",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\src\\style.css",
+      "size": 3242,
+      "sha256": "d2a9391af33e157db4450202fc5804cba924df8c2b9dcad47b9dc83ce3227b24"
+    },
+    {
+      "path": "skill/assets/viewer/src/view-contract.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\src\\view-contract.mjs",
+      "size": 3726,
+      "sha256": "8561e2f9f6c834c1947aafea4c024228e29e0881b975089897192cd3a26fbcc2"
+    },
+    {
+      "path": "skill/assets/viewer/test-control.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\test-control.mjs",
+      "size": 29264,
+      "sha256": "23a741605b7d842bebca4654834c2f2100ae3d071680e2fc811c296a3c0595b6"
+    },
+    {
+      "path": "skill/assets/viewer/test-feedback.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\test-feedback.mjs",
+      "size": 5228,
+      "sha256": "bf5f2c4aab734b439129c793d128cb23f67ba93bf3f07d0bdf300aeaaa132661"
+    },
+    {
+      "path": "skill/assets/viewer/test-multi-feedback.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\test-multi-feedback.mjs",
+      "size": 5825,
+      "sha256": "0049777c747b556667523bfc44a5a7f74795149830266f426506b13b693feed6"
+    },
+    {
+      "path": "skill/assets/viewer/test-prompt-integration.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\test-prompt-integration.mjs",
+      "size": 6147,
+      "sha256": "5501923506e2d852e297a057ec0bb767907654b31fb265e91e1bdf204c241ad1"
+    },
+    {
+      "path": "skill/assets/viewer/test-render.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\test-render.mjs",
+      "size": 8638,
+      "sha256": "66ee6d478bcc8ccef5b0cd5c0adc83e49cf19c6bb8425f85d68f8c3f4a14e20d"
+    },
+    {
+      "path": "skill/assets/viewer/test-saved-effects.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\test-saved-effects.mjs",
+      "size": 1698,
+      "sha256": "8cd6dfa0457d738203a9b95d43b79fbc0f7b8266cb7ea5126d7ad68877308a42"
+    },
+    {
+      "path": "skill/assets/viewer/test-selection.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\test-selection.mjs",
+      "size": 4002,
+      "sha256": "0960a1603ff06f01c3c92d3882fb835c0c428086e65d3979f07b09114bac7143"
+    },
+    {
+      "path": "skill/assets/viewer/test-sidebar-layout.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\test-sidebar-layout.mjs",
+      "size": 3262,
+      "sha256": "3b268a7ed80601476fcc2f24c6ac79a3875cf8140dcacdecdd74472fd81c1a5a"
+    },
+    {
+      "path": "skill/assets/viewer/viewer-server.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\assets\\viewer\\viewer-server.mjs",
+      "size": 3128,
+      "sha256": "7f49fab8687c8c2ad3a57fa776ae9c4e1a32d162d260aaf79bc78d5e108c2ecf"
+    },
+    {
+      "path": "skill/prompt-console/app.js",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\prompt-console\\app.js",
+      "size": 12059,
+      "sha256": "70469a21082779c47c9e3dd422307653dd2312a0ef0d5aba5f558325f1518701"
+    },
+    {
+      "path": "skill/prompt-console/core.js",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\prompt-console\\core.js",
+      "size": 15098,
+      "sha256": "caecb64f054a9e847c3820989eaefe89b3a1763661cb6aa1ccd74a68e475d038"
+    },
+    {
+      "path": "skill/prompt-console/index.html",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\prompt-console\\index.html",
+      "size": 2625,
+      "sha256": "6cde5435cd6a0c18693fc604c9bf8236bd924e4b4f54fd59e120eb08d1292e62"
+    },
+    {
+      "path": "skill/prompt-console/style.css",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\prompt-console\\style.css",
+      "size": 3633,
+      "sha256": "480755fa74d57db80cddcb8c5339d1008c34f551cd2961092959ccc32729fb1c"
+    },
+    {
+      "path": "skill/prompt-console/test-console.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\prompt-console\\test-console.mjs",
+      "size": 5230,
+      "sha256": "efcc2ed51e7ff2c2728651e98782b9565c4277f20c0fb0936ad98b58f3e6a3fd"
+    },
+    {
+      "path": "skill/prompt-console/完整可编辑提示词.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\prompt-console\\完整可编辑提示词.md",
+      "size": 4620,
+      "sha256": "8ff477a41e2cd3e022324bc97da02c0d38e7bdd1c612f2e61238b316ee744a09"
+    },
+    {
+      "path": "skill/prompt-console/工具参数目录.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\prompt-console\\工具参数目录.json",
+      "size": 7663,
+      "sha256": "5112ef31c5ad321cae43801b90e95682723de19fc4835cf673f73e634c1d0df3"
+    },
+    {
+      "path": "skill/references/architecture-knowledge-base.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\architecture-knowledge-base.md",
+      "size": 26140,
+      "sha256": "d886a5749bd7dc394163dc172572c2e527f646990eaa69bbefd958c2e1772e51"
+    },
+    {
+      "path": "skill/references/block-registry-1.20.1.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\block-registry-1.20.1.json",
+      "size": 292534,
+      "sha256": "643c64b63a6c730ef6f17aa59e18e3206a6b8404e8ca771d6def6b40ad6f1aa1"
+    },
+    {
+      "path": "skill/references/combat_room_base.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\combat_room_base.json",
+      "size": 2256,
+      "sha256": "ef1a20528345ec93f86e468d6187fd96ef0405a07f3af23b66d0ba41873073b0"
+    },
+    {
+      "path": "skill/references/delegation-and-review.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\delegation-and-review.md",
+      "size": 6752,
+      "sha256": "927c754ccef059a46041f6f868a63460d769d5999f9f6394a839fe557192fcaf"
+    },
+    {
+      "path": "skill/references/delivery-workflow.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\delivery-workflow.md",
+      "size": 3679,
+      "sha256": "610f762550b032704ba6f7dfdd2598612779f7a49e9c2f58201d878a29fa7134"
+    },
+    {
+      "path": "skill/references/design-grammar.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\design-grammar.md",
+      "size": 12916,
+      "sha256": "c6d3eb5f5a2f4b2cf117094f335788f6a467cca64dcb19cab188ac8174c1895d"
+    },
+    {
+      "path": "skill/references/design-principles.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\design-principles.md",
+      "size": 7740,
+      "sha256": "f6615e77846048f6c191c468903399366c6b83195ed329fd3dafe94f1df98c2d"
+    },
+    {
+      "path": "skill/references/detail-control.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\detail-control.md",
+      "size": 22238,
+      "sha256": "8fa5b2723e1123c9b0d15c98943578ba453a52f2983dc84f02c3c20ad595c03e"
+    },
+    {
+      "path": "skill/references/floors.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\floors.md",
+      "size": 9244,
+      "sha256": "32fc6aa1f6d553a19103e5a0e7ebd0c6d66b56586f9380a315859459a9812107"
+    },
+    {
+      "path": "skill/references/library-archive.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\library-archive.md",
+      "size": 2837,
+      "sha256": "787387ca1e02e86a607e0104490fcd3ccae4935e39cca9fbb865e4e17e35de07"
+    },
+    {
+      "path": "skill/references/linked-spaces.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\linked-spaces.md",
+      "size": 5507,
+      "sha256": "5a8731b3484b54925680a66fcf7bccf444157d20d1ed2a962db056aab2bd9f76"
+    },
+    {
+      "path": "skill/references/micro-props.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\micro-props.md",
+      "size": 5009,
+      "sha256": "6b4ec5dfda685390a4deaccf173430b39b0607aceb62c439eb734944ed946d24"
+    },
+    {
+      "path": "skill/references/mod-structures.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\mod-structures.md",
+      "size": 5007,
+      "sha256": "9011f625014b370680af8af4f878a7de006a6aa4171592638193be4081f8972c"
+    },
+    {
+      "path": "skill/references/modelling-tools.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\modelling-tools.md",
+      "size": 8433,
+      "sha256": "bdc61b91291eefeaf514a4a9b16ed759fcd1e4432bc4c445feb1f97138f156e1"
+    },
+    {
+      "path": "skill/references/organic-spaces.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\organic-spaces.md",
+      "size": 6034,
+      "sha256": "b53cea3900537e8e37a1ae900b87504f541aff34653fa00720e3e053595dd939"
+    },
+    {
+      "path": "skill/references/output-storage.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\output-storage.md",
+      "size": 6016,
+      "sha256": "3ab73173f0e1bba8b2c08b3342dc09124d8251c7d8970e0bb8ca32abdf08e341"
+    },
+    {
+      "path": "skill/references/patterns.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\patterns.md",
+      "size": 8034,
+      "sha256": "1c52c1c0fa8015e22e139e274405b79490a04eb16ec83d5b6c80c28a932e1a03"
+    },
+    {
+      "path": "skill/references/player-scale.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\player-scale.md",
+      "size": 7763,
+      "sha256": "0889a5b0f32ea5795729d615f6752d1e5c52a1a8e6602cbb4651c7a3cf25d99e"
+    },
+    {
+      "path": "skill/references/prompt-console.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\prompt-console.md",
+      "size": 4368,
+      "sha256": "5ce02f0be0ea02d3e4dcfa88e8baaaf0652af0addaf2513b9093ede5574d4255"
+    },
+    {
+      "path": "skill/references/refinement.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\refinement.md",
+      "size": 14779,
+      "sha256": "b16d4eec4ce4d0e74cf7177abd3d75dbd6f1936c881d9424ac7ef4cf23e61fe2"
+    },
+    {
+      "path": "skill/references/rendering.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\rendering.md",
+      "size": 7361,
+      "sha256": "c9f62e830e39641e0d9dc09e10b5220b11e0ab12cc2f6d79800fe907f8564090"
+    },
+    {
+      "path": "skill/references/room-examples.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\room-examples.md",
+      "size": 2254,
+      "sha256": "337f1b35e46ee7d6ef29e5b5b931eb2a2ad3cce20780faa6689bae1baf33ae0e"
+    },
+    {
+      "path": "skill/references/SAOartguide.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\SAOartguide.md",
+      "size": 7973,
+      "sha256": "d7a76ca3e44dbcf8224bf47fd45b9a35f5a761010e798a80a9fddd4d93876350"
+    },
+    {
+      "path": "skill/references/saodg-constraints.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\saodg-constraints.md",
+      "size": 4785,
+      "sha256": "41099a925bc1609abf553e5fce125649a9a987bae80804156ef5c584b2f086a0"
+    },
+    {
+      "path": "skill/references/sealed-examples.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\sealed-examples.md",
+      "size": 2237,
+      "sha256": "7d26c91e41c5ba88e2b5c686900fd8c5f8b93edaba3dfbab3ec507d8891280b0"
+    },
+    {
+      "path": "skill/references/spatial-detail-design.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\spatial-detail-design.md",
+      "size": 19265,
+      "sha256": "f2950e1961dcf2911f6f6525b86c3c40f622ad47518c5db67a38362a934071d0"
+    },
+    {
+      "path": "skill/references/state-and-maintenance.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\state-and-maintenance.md",
+      "size": 6531,
+      "sha256": "5859eea59e935c110e692ce660a32173246392f137007195a2587da95706896d"
+    },
+    {
+      "path": "skill/references/structure-atlas.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\structure-atlas.md",
+      "size": 21480,
+      "sha256": "a4c3e42fc44cf4c7c3f9983214d651c6bdb47379147c637ecd0e23c00031b814"
+    },
+    {
+      "path": "skill/references/structure-selector.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\structure-selector.md",
+      "size": 4243,
+      "sha256": "2c2ca06409cf7d5d65283a6aa19c56a86c068aaaad6af3e50632000cd96e4402"
+    },
+    {
+      "path": "skill/references/toolkit.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\toolkit.md",
+      "size": 21634,
+      "sha256": "1d56c80486815101a71df494b2636aad4d5e0cfc24ae744056fc4bb279023c83"
+    },
+    {
+      "path": "skill/references/upstream-sources.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\upstream-sources.json",
+      "size": 1766,
+      "sha256": "1f61b666a3eaac778cc7ea5136502d1b657050edb3e68881fbc992528ac434de"
+    },
+    {
+      "path": "skill/references/validation-workflow.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\validation-workflow.md",
+      "size": 3156,
+      "sha256": "c1065d779a3c81c0c21f71bb1451a580f0d2c59c7bfd96edd3f6787913a6875e"
+    },
+    {
+      "path": "skill/references/weathering.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\weathering.md",
+      "size": 8028,
+      "sha256": "fb59a2303f0c513683f9d6556e7632610dd90dc4e3fc1f562ab228ec9ab77b43"
+    },
+    {
+      "path": "skill/references/web-revision.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\web-revision.md",
+      "size": 4496,
+      "sha256": "56e1a8010bcd31db36a71f07e315c4385a50b1b5361b902636571247a9ee7c26"
+    },
+    {
+      "path": "skill/references/whole-model-workflow.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\references\\whole-model-workflow.md",
+      "size": 3740,
+      "sha256": "615beb236d6b15b0a834d977db0d95f72029f2507d12f8567d62fde2260a0766"
+    },
+    {
+      "path": "skill/requirements.txt",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\requirements.txt",
+      "size": 15,
+      "sha256": "09cd233b446c6092ad9c124447e57aaaf5685dc80e4d55f9eb96d39730fad71f"
+    },
+    {
+      "path": "skill/scripts/check_assembly_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_assembly_fixtures.py",
+      "size": 4157,
+      "sha256": "f5547e61d7c711c1af61eb971ae1f7c991aa361b386716e400902a3ed9d40921"
+    },
+    {
+      "path": "skill/scripts/check_collision_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_collision_fixtures.py",
+      "size": 5922,
+      "sha256": "7bd2b3d349d3d74a5cf46c680e9696657824a9206bbc432748a7f217dbd0a648"
+    },
+    {
+      "path": "skill/scripts/check_delivery_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_delivery_fixtures.py",
+      "size": 3441,
+      "sha256": "038910cc1d1600dd3c4e58a3c9f46136bac28ab9c4e7f72b32f666ca41686e51"
+    },
+    {
+      "path": "skill/scripts/check_detail_control_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_detail_control_fixtures.py",
+      "size": 6872,
+      "sha256": "6b4fc60f51a11f269896adbc58d422b9f7a4f4f63b0dba98b26c2774c28d5e46"
+    },
+    {
+      "path": "skill/scripts/check_field_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_field_fixtures.py",
+      "size": 4691,
+      "sha256": "d4aae4857c8bf017d941e65634d98aa92e1f5f9f11f360ca12077c48a452d2d1"
+    },
+    {
+      "path": "skill/scripts/check_floor_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_floor_fixtures.py",
+      "size": 8002,
+      "sha256": "a23b722efb9b52232f4e553fb1b4533cb8de812e9fb3c90b63b4e4212f20ee22"
+    },
+    {
+      "path": "skill/scripts/check_model_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_model_fixtures.py",
+      "size": 2692,
+      "sha256": "61ec775586bcf9e5e1bd5892eaf6a373d022ad925cbee86cd21684c4fdf1f6bb"
+    },
+    {
+      "path": "skill/scripts/check_modelling_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_modelling_fixtures.py",
+      "size": 8251,
+      "sha256": "2f8d1cf10c92c271ac793241ef119904c5987e950b7a5b479dc9bebd138c92c6"
+    },
+    {
+      "path": "skill/scripts/check_pattern_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_pattern_fixtures.py",
+      "size": 10965,
+      "sha256": "a16442fdbf5d0708d162c0f6a0d243eebe77ebc1f380360f56ec7bebf8e21efb"
+    },
+    {
+      "path": "skill/scripts/check_refine_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_refine_fixtures.py",
+      "size": 11511,
+      "sha256": "2c7e96acaf6be87c8e4f33928fb46b0883ff0e5df8068019168b0f40c5e7d353"
+    },
+    {
+      "path": "skill/scripts/check_skill.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_skill.py",
+      "size": 1927,
+      "sha256": "dde7ea36f6a5f66d841a358ca3fe06cfeca200e7b0445543c46e689324116463"
+    },
+    {
+      "path": "skill/scripts/check_state_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_state_fixtures.py",
+      "size": 5441,
+      "sha256": "b044818b85760147945d1043dbdd8e45552720bcdf4634e6f1d8810c2e6e8d80"
+    },
+    {
+      "path": "skill/scripts/check_wall_layer_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_wall_layer_fixtures.py",
+      "size": 3566,
+      "sha256": "b116ae54b191cd63774703727d1cd98a77b0bdc9053dec8d2ed6996a36963979"
+    },
+    {
+      "path": "skill/scripts/check_weathering_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_weathering_fixtures.py",
+      "size": 15113,
+      "sha256": "8c695321bdc0ce5848bfe5355b2e28752de2ee1cd3bb94cc8da7a201adb4d619"
+    },
+    {
+      "path": "skill/scripts/check_web_revision_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_web_revision_fixtures.py",
+      "size": 3767,
+      "sha256": "2776d5e36e36de22fe73daaf15f81b81d7d3a3d435bf223956480f967ebabd3c"
+    },
+    {
+      "path": "skill/scripts/check_web_tools_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_web_tools_fixtures.py",
+      "size": 4497,
+      "sha256": "2c5eac10ba741ed7bb473081e2babcecec178fd507916cb2f5cef5172d674c67"
+    },
+    {
+      "path": "skill/scripts/check_whole_cut_fixtures.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\check_whole_cut_fixtures.py",
+      "size": 3397,
+      "sha256": "3ba1450e367635ab218fca2261de1251abc2d5b1829c42b4c30a9df91030e52f"
+    },
+    {
+      "path": "skill/scripts/generate_room_models.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\generate_room_models.py",
+      "size": 12283,
+      "sha256": "96afb3d9d4ee6b8bd2f46a964643010d91220b3d4b59cadd5efa2e73edb8fbfb"
+    },
+    {
+      "path": "skill/scripts/generate_sealed_models.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\generate_sealed_models.py",
+      "size": 9819,
+      "sha256": "7589fb0913a93e841c807acf48251f1272c9d6d64f1bfeae6c1e3be6ef9e0f3b"
+    },
+    {
+      "path": "skill/scripts/nbt_assembly.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_assembly.py",
+      "size": 7317,
+      "sha256": "70558b780f0fcc0a0d1d2fe3cec72c2cd7cd4181043117eeb2e212ccf9232507"
+    },
+    {
+      "path": "skill/scripts/nbt_collision.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_collision.py",
+      "size": 16770,
+      "sha256": "ce4281eee267e616b1f32971c29ebd9aed789e9e00b93aa3b512dc990115462b"
+    },
+    {
+      "path": "skill/scripts/nbt_connections.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_connections.py",
+      "size": 3824,
+      "sha256": "773f585aa3db3a7fe83b23ab2fe42b6d5541a6ea7c53f38ce360e40ea66dc777"
+    },
+    {
+      "path": "skill/scripts/nbt_delivery.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_delivery.py",
+      "size": 5961,
+      "sha256": "cd85eb32e74e0b65f42ee05e3bb6cfa574572c3593b7fdab9d9b1981f443eec7"
+    },
+    {
+      "path": "skill/scripts/nbt_detail_control.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_detail_control.py",
+      "size": 42696,
+      "sha256": "4c30a7d37234553e642c09cecdeecc1b70f1c49a6d79d1eb1f1fe688def6ac0f"
+    },
+    {
+      "path": "skill/scripts/nbt_detail_web.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_detail_web.py",
+      "size": 2130,
+      "sha256": "4b2cb71b9141e20a6720c28e3627c4cf0b3ede25beb75a6714a75b5aa39f0c73"
+    },
+    {
+      "path": "skill/scripts/nbt_fields.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_fields.py",
+      "size": 9952,
+      "sha256": "421e0825c43f6e179ce0e7f9561a0971530b0667bcfee219c0c2cec992960f3e"
+    },
+    {
+      "path": "skill/scripts/nbt_floors.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_floors.py",
+      "size": 23401,
+      "sha256": "63a1ef5d0e06efe28edbf449883ede791653a31899c616c9e414973e3aee3f47"
+    },
+    {
+      "path": "skill/scripts/nbt_library.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_library.py",
+      "size": 15593,
+      "sha256": "8babea3bdd29495e477740272107448ea5f3865b9ffab343f9537fde23b3dc4d"
+    },
+    {
+      "path": "skill/scripts/nbt_library_finalize.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_library_finalize.py",
+      "size": 4143,
+      "sha256": "488a30d8d8f2d6c2d8d359e9bd28a6803debcd68f91be462b6971b8652633a03"
+    },
+    {
+      "path": "skill/scripts/nbt_library_migrate.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_library_migrate.py",
+      "size": 18635,
+      "sha256": "d38af2d59d37736cd4239a8acabddb955cc5c7142588998ecf5af5da40d715b3"
+    },
+    {
+      "path": "skill/scripts/nbt_model.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_model.py",
+      "size": 11572,
+      "sha256": "71f4fd1504bfdaf0d9c0172d585b8d2f38017e3c14d02f7ebee07c01b6f2a33d"
+    },
+    {
+      "path": "skill/scripts/nbt_patterns.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_patterns.py",
+      "size": 14271,
+      "sha256": "2b82326eb45f3b2a438d3fdc9e6dde1a7e76fc7ff22cd836c5299e9f34816204"
+    },
+    {
+      "path": "skill/scripts/nbt_preview.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_preview.py",
+      "size": 23199,
+      "sha256": "770a129e41e8b2222263a64cc650b40040c00620c071ba808faae601e962b7cf"
+    },
+    {
+      "path": "skill/scripts/nbt_provenance.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_provenance.py",
+      "size": 1794,
+      "sha256": "6b1ad3ee692643e9486ea5b7911c9b48407f90ae99a4b41a360018b201d78a00"
+    },
+    {
+      "path": "skill/scripts/nbt_refine.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_refine.py",
+      "size": 24211,
+      "sha256": "326686db65d476545e57dbbcf193a831fdc7b917ac23f201e0bf090374077f94"
+    },
+    {
+      "path": "skill/scripts/nbt_registry.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_registry.py",
+      "size": 5538,
+      "sha256": "c8d51543103deb8adc84f838f30878ced6585ace078d055761c45b81644c6c21"
+    },
+    {
+      "path": "skill/scripts/nbt_roof_preview.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_roof_preview.py",
+      "size": 3629,
+      "sha256": "024f1e3361e2961cd8a958798171d1e0fe9af469a015b68489f53f5230185ae8"
+    },
+    {
+      "path": "skill/scripts/nbt_sections.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_sections.py",
+      "size": 3547,
+      "sha256": "ee953674ead01be0a3d83408b799f48af6eafdc3132bc7c2af9bb41be6e0027d"
+    },
+    {
+      "path": "skill/scripts/nbt_task.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_task.py",
+      "size": 7523,
+      "sha256": "cbc69f9b691fee1757a607a67804a2eade1cbdce06839f2226f20af109cc2286"
+    },
+    {
+      "path": "skill/scripts/nbt_tools.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_tools.py",
+      "size": 17886,
+      "sha256": "3049f69e70a692c880ac4682c189c1a5476751ce0c5ada1b5bb269fcebd8f498"
+    },
+    {
+      "path": "skill/scripts/nbt_wall_layers.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_wall_layers.py",
+      "size": 7659,
+      "sha256": "bde1e035ca7d40145afc500f3f75dd49d52ed94763e894a19f020602732cdb05"
+    },
+    {
+      "path": "skill/scripts/nbt_weathering.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_weathering.py",
+      "size": 15819,
+      "sha256": "c5278f7a25aa80ac8f8c06050064b2d70c046e3515ddb5a66ff4cb365535ee8b"
+    },
+    {
+      "path": "skill/scripts/nbt_web_paths.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_web_paths.py",
+      "size": 2112,
+      "sha256": "a79e9ea70a62951067d26e7e0d8ebbd4fc9449a0c6a6e85102d46ba1419ee03e"
+    },
+    {
+      "path": "skill/scripts/nbt_web_revision.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_web_revision.py",
+      "size": 10387,
+      "sha256": "be01f7967c02e0825aeaf33d3a92b1d1fae7b1606906191fd9077008768eb3b6"
+    },
+    {
+      "path": "skill/scripts/nbt_whole_cut.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\scripts\\nbt_whole_cut.py",
+      "size": 6437,
+      "sha256": "03adeab7022144023fda1533f3d7f3b413b25ba0563bb2c5c8ab260850edc609"
+    },
+    {
+      "path": "skill/SKILL.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\SKILL.md",
+      "size": 12230,
+      "sha256": "a65134dcb4fb43e954b6f160c517abd70154ceff0a7a0859c20e875b95aa0fac"
+    },
+    {
+      "path": "skill/启动作者结构库.cmd",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\启动作者结构库.cmd",
+      "size": 85,
+      "sha256": "56812ea68e1b7495d77a0f40338d68261a403aaaefe793677263f3a7a5156f07"
+    },
+    {
+      "path": "skill/启动建模提示词工作台.cmd",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\启动建模提示词工作台.cmd",
+      "size": 75,
+      "sha256": "305c770a6ccbbbc7a8c5877560b5afe9a43d669ec3993d35e59bbef5d116ffa6"
+    },
+    {
+      "path": "skill/启动模组结构管理器.cmd",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\启动模组结构管理器.cmd",
+      "size": 92,
+      "sha256": "8d2363b971b221594237b225f3a227ed7e0973090d341a6a3cc8dce50f4b7c7a"
+    },
+    {
+      "path": "skill/启动现有结构选择器.cmd",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\启动现有结构选择器.cmd",
+      "size": 92,
+      "sha256": "8d2363b971b221594237b225f3a227ed7e0973090d341a6a3cc8dce50f4b7c7a"
+    },
+    {
+      "path": "skill/启动网页细节控制台.cmd",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\.agents\\skills\\minecraft-nbt-modeler\\启动网页细节控制台.cmd",
+      "size": 78,
+      "sha256": "6686ef373f9d5c0b0ad3ed9ea98fc20364847129bce62a4d40e5ad73987a60d4"
+    },
+    {
+      "path": "workbench/api/library.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\api\\library.mjs",
+      "size": 4005,
+      "sha256": "be8c6f80cb689e01180091b23447ef98127da0a91904e5e3b128e5024d290661"
+    },
+    {
+      "path": "workbench/api/mod-structures.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\api\\mod-structures.mjs",
+      "size": 2825,
+      "sha256": "27283aa3581bcd4e193c5aeea13344d62e6080118be7887c98084d30ce08698b"
+    },
+    {
+      "path": "workbench/backend.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\backend.py",
+      "size": 15774,
+      "sha256": "e00297ccfcdae49226e72122f05275862107f7908705004f360f48fd613ba07d"
+    },
+    {
+      "path": "workbench/launch.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\launch.py",
+      "size": 1026,
+      "sha256": "15f7d6884ec4372c38a86edc662d8d425e92cfba8dece735001ec98d9c680cc8"
+    },
+    {
+      "path": "workbench/library_backend.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\library_backend.py",
+      "size": 1717,
+      "sha256": "c6a3075edcd7a1ae484efe4aa09bd7906b6c68e48b7710e8d02a726663382d9b"
+    },
+    {
+      "path": "workbench/README.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\README.md",
+      "size": 4135,
+      "sha256": "c48bf48704961e4908fa35f76f9ae72948e87f6a2cbbfc9118a3c8eb26acfd4f"
+    },
+    {
+      "path": "workbench/server.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\server.mjs",
+      "size": 9344,
+      "sha256": "e90a89375976ec48c9a2fbf88d7ef53e949a6a060348af67ca66b38c55d0b447"
+    },
+    {
+      "path": "workbench/tests/check_backend.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\tests\\check_backend.py",
+      "size": 6077,
+      "sha256": "116800958ad5dba5c2ac7185bd264fe7683b291deacd43e7df93b68da8205a7d"
+    },
+    {
+      "path": "workbench/tests/runtime.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\tests\\runtime.mjs",
+      "size": 405,
+      "sha256": "20d7bcbf3dcb738191e08b1a59ab087a44f572a4371076f06ad94e6b10ea5944"
+    },
+    {
+      "path": "workbench/tests/test-library.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\tests\\test-library.mjs",
+      "size": 9880,
+      "sha256": "8e5d4e6454cc36595cec2ee91d7300b232233b0195ec8c2e98ac2ab05f12e63f"
+    },
+    {
+      "path": "workbench/tests/test-mod-structures.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\tests\\test-mod-structures.mjs",
+      "size": 7154,
+      "sha256": "50e73c3a449137445229e0a673b657493eaade45b50ff2c877183a8125a647d0"
+    },
+    {
+      "path": "workbench/tests/test-separation.mjs",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\tests\\test-separation.mjs",
+      "size": 4273,
+      "sha256": "a495a9d813575dfbb5d11e9202be7df7e063c91fa2d30e5eb7a411f6523afee1"
+    },
+    {
+      "path": "workbench/toolkit.py",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\toolkit.py",
+      "size": 498,
+      "sha256": "8f9319c104e3485477e992b9e671bce0cced61c1f33ba7ca8bfed9dc05165183"
+    },
+    {
+      "path": "workbench/web/library.html",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\web\\library.html",
+      "size": 3354,
+      "sha256": "da8e20a2426e8b714857be2aa929dfeb8badc82221ee32af0047b4f390d14f96"
+    },
+    {
+      "path": "workbench/web/mod-structures.html",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\web\\mod-structures.html",
+      "size": 4275,
+      "sha256": "e4971ff341cd961a4d3b7a865cd57954aeb175ec5b1e1acefb9055d88f6063cf"
+    },
+    {
+      "path": "workbench/web/src/library.css",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\web\\src\\library.css",
+      "size": 9668,
+      "sha256": "963bec9889f7a581657d375453712573546c464bd3332cd7026737c9fc45ce8d"
+    },
+    {
+      "path": "workbench/web/src/library.js",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\web\\src\\library.js",
+      "size": 14847,
+      "sha256": "4acb4e686cb9fc13837236acda7ecf94ba4fc1e0c4af90a47fdbc636e3a49662"
+    },
+    {
+      "path": "workbench/web/src/mod-structures.css",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\web\\src\\mod-structures.css",
+      "size": 4084,
+      "sha256": "8083249fe549d28e6076740dab9c326fee471423a7d805e81e450f09f047a46f"
+    },
+    {
+      "path": "workbench/web/src/mod-structures.js",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\web\\src\\mod-structures.js",
+      "size": 15165,
+      "sha256": "874e6a8964260969545befec9d1f9fe5c1367678f531292bc67821cd2ff6d994"
+    },
+    {
+      "path": "workbench/启动结构工作台.cmd",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\tools\\structures\\workbench\\启动结构工作台.cmd",
+      "size": 59,
+      "sha256": "37c5ad36aacd17c5491742f3a918d38946da8200eb91c0d85eab65916c5641e8"
+    },
+    {
+      "path": "docs/ACCEPTANCE_PLAN.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\ACCEPTANCE_PLAN.md",
+      "size": 66823,
+      "sha256": "ee1921a142ce0606d9f3ce5f5b454fa19f92b2c73ce05ed74c249bcf5007aa0c"
+    },
+    {
+      "path": "docs/CHALLENGE_MATH_MASTER.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\CHALLENGE_MATH_MASTER.md",
+      "size": 4988,
+      "sha256": "0489bc396078fa2b9af7fc4b34b79a4cb8786b74d83c61e14d7e9dc6c991119b"
+    },
+    {
+      "path": "docs/CI_CD.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\CI_CD.md",
+      "size": 4558,
+      "sha256": "7400304af985a0777c4112ec014412a0bcdb7f783c79ffb52e311476a4aa3448"
+    },
+    {
+      "path": "docs/COMPAT_INSTALL_ROLLBACK.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\COMPAT_INSTALL_ROLLBACK.md",
+      "size": 3395,
+      "sha256": "10d1866402baa8ec37375ee5e2f7d86a6aa401d6d2bcef1dc4effe5e23945ec5"
+    },
+    {
+      "path": "docs/CONTACTOR_ROOM.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\CONTACTOR_ROOM.md",
+      "size": 3243,
+      "sha256": "8ae54fe7a084a9d41ca8e107300fde7eb3823eb94a0798ecb28c00d090eec567"
+    },
+    {
+      "path": "docs/CONTENT_CATALOG.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\CONTENT_CATALOG.md",
+      "size": 29663,
+      "sha256": "e7e93e68385256d1a4f8c8d4e03bc38cebe41e400a657e2f6923588ea41e6a22"
+    },
+    {
+      "path": "docs/DEVELOPMENT.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\DEVELOPMENT.md",
+      "size": 74393,
+      "sha256": "e2903209b002cc1d86714cbd26d0d793ddae52cbae8bc608f55e7e0264c5d8ad"
+    },
+    {
+      "path": "docs/DIFFICULTY_AND_PREPARATION.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\DIFFICULTY_AND_PREPARATION.md",
+      "size": 4791,
+      "sha256": "3e400906df741d1016c391b2cf90463ef9838e70db43d3fa356da7967805cdc9"
+    },
+    {
+      "path": "docs/DIFFICULTY_JSON.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\DIFFICULTY_JSON.md",
+      "size": 10998,
+      "sha256": "99acb427d8a2742df1d189c32ee9c43da97058b23cab8e95c70cb475404d75b8"
+    },
+    {
+      "path": "docs/DUNGEON_DESIGN.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\DUNGEON_DESIGN.md",
+      "size": 54108,
+      "sha256": "4933f8437d8e2481998be07a18113c91ae0cde015ca8c010b6e781696224732d"
+    },
+    {
+      "path": "docs/ENCOUNTER_BALANCE.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\ENCOUNTER_BALANCE.md",
+      "size": 3838,
+      "sha256": "47253196ddba841dc16d387f4048845ffeb2a997860303102da1ee3d6892a847"
+    },
+    {
+      "path": "docs/EVENT_SOUNDS.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\EVENT_SOUNDS.md",
+      "size": 4741,
+      "sha256": "0eca6a45ed794ceeb9df411fcb60c04e596e498db5bf9a570790b8714a8d6597"
+    },
+    {
+      "path": "docs/IMPLEMENTATION_STATUS.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\IMPLEMENTATION_STATUS.md",
+      "size": 69580,
+      "sha256": "0017a2674c8a5793c8902ea7f8952009de0cf17e8e8777249ad80087dcf9ca17"
+    },
+    {
+      "path": "docs/INTEGRATION_IMPLEMENTATION.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\INTEGRATION_IMPLEMENTATION.md",
+      "size": 68498,
+      "sha256": "98526ca7500bb15fe6d7b0a2c9cd36d080967a52e9a131b351957ddfafedb1f8"
+    },
+    {
+      "path": "docs/INTEGRATION_SPEC.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\INTEGRATION_SPEC.md",
+      "size": 23181,
+      "sha256": "c800bbecd9ec430b40f9f89f2b0f3b1a3a448b05d58a47bbe1e278161c28d3c5"
+    },
+    {
+      "path": "docs/LEGACY_UI_DEPENDENCY.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\LEGACY_UI_DEPENDENCY.md",
+      "size": 2511,
+      "sha256": "746c4011334ec37a65cc51877bad3ea2885e7157330e70b6f0c9f0cc4c1a8b0b"
+    },
+    {
+      "path": "docs/NBT_AUTHORING.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\NBT_AUTHORING.md",
+      "size": 10521,
+      "sha256": "d0812a928b753a707ab01d9377ca3e244cdca07a5220a071859fb33bff4919e4"
+    },
+    {
+      "path": "docs/PARTY_USAGE.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\PARTY_USAGE.md",
+      "size": 6837,
+      "sha256": "422c5e475ac105de2dfde74bd3844873582e52fa85b2e12e0dbd51ecae3dadce"
+    },
+    {
+      "path": "docs/PERFORMANCE_MEASUREMENT.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\PERFORMANCE_MEASUREMENT.md",
+      "size": 8008,
+      "sha256": "159870bbbd8214abcb9c4b3ec3bcd1cd8fb5ebfe01f8766724ddb7e1de73728e"
+    },
+    {
+      "path": "docs/REFERENCE_GUIDE.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\REFERENCE_GUIDE.md",
+      "size": 7390,
+      "sha256": "62467775e2d1ec30531e92b9c18f9fc3141c35d2fff19e50a8e5040fb38c42aa"
+    },
+    {
+      "path": "docs/ROOM_BUILDING_GUIDE.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\ROOM_BUILDING_GUIDE.md",
+      "size": 19734,
+      "sha256": "992093c7f435d6bb61214b8f298c9d9278348ff62884adedd1e30743dadc7773"
+    },
+    {
+      "path": "docs/ROOM_MODEL_SAMPLES.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\ROOM_MODEL_SAMPLES.md",
+      "size": 2257,
+      "sha256": "79bffe8bacf7c92f4a242daa80b888c5c8de10e6e70724a160e2f2308ba8b874"
+    },
+    {
+      "path": "docs/SEALED_MODEL_SAMPLES.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\SEALED_MODEL_SAMPLES.md",
+      "size": 2237,
+      "sha256": "7d26c91e41c5ba88e2b5c686900fd8c5f8b93edaba3dfbab3ec507d8891280b0"
+    },
+    {
+      "path": "docs/SERVER_CONFIGURATION.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\SERVER_CONFIGURATION.md",
+      "size": 7673,
+      "sha256": "2599b3c2a35ee3e29e7bc5e222f4dfea7f3ebb7d20082aed7022b5675245be87"
+    },
+    {
+      "path": "docs/SPECIAL_ROOM_REPLACEMENT_PLAN.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\SPECIAL_ROOM_REPLACEMENT_PLAN.md",
+      "size": 5157,
+      "sha256": "8ebb0f34525b8ba9c0798dcd0505687667d4f7e623843bb42d441c9d00f2db5f"
+    },
+    {
+      "path": "docs/structure-guide.html",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\structure-guide.html",
+      "size": 10755,
+      "sha256": "9af802c93f8d8174663fe3f344f60e8f04ebbc360ebbf8c551b660cdee14bfd1"
+    },
+    {
+      "path": "docs/TOOLS_MIGRATION_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\TOOLS_MIGRATION_2026-10-31.md",
+      "size": 3493,
+      "sha256": "88d082029acddacf486a1b9179ed2e780793c4b2ff5045ea7b140c362bfab47a"
+    },
+    {
+      "path": "docs/UI_INTERACTION_0.41.54.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\UI_INTERACTION_0.41.54.md",
+      "size": 6081,
+      "sha256": "16a1abc0e8d1d1e2590dfe6ee5c3bd39fc7d524f66c54397eb03e865fa68d6fe"
+    },
+    {
+      "path": "docs/validation/ADMIN_CONFIGURATION_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\ADMIN_CONFIGURATION_2026-10-31.md",
+      "size": 5968,
+      "sha256": "6fa006013e8f09edf343e79671ce5a648743c9c3620ad17ed7fd879527dcd795"
+    },
+    {
+      "path": "docs/validation/ALL_BUILDINGS_GALLERY_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\ALL_BUILDINGS_GALLERY_2026-10-31.md",
+      "size": 4121,
+      "sha256": "f9cfb977018850906fb1f0258f6bfba93f2c7382d6e0b75349f0b36a228ce969"
+    },
+    {
+      "path": "docs/validation/APOTHEOSIS_BOSS_RESOURCES_0.41.46_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\APOTHEOSIS_BOSS_RESOURCES_0.41.46_2026-10-30.md",
+      "size": 4551,
+      "sha256": "159bb548019edd7c0f20577d482d5da5645d64b2aaac6d33e454b365e87ef741"
+    },
+    {
+      "path": "docs/validation/ARCHER_BOW_ADMISSION_0.41.65_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\ARCHER_BOW_ADMISSION_0.41.65_2026-10-31.md",
+      "size": 4325,
+      "sha256": "a8d9fc0d45edd6193b70b02cf8c368175b73531efcbc7adf46dd697d0cc9bd65"
+    },
+    {
+      "path": "docs/validation/ARENA_BOUNDS_0.41.14.1_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\ARENA_BOUNDS_0.41.14.1_2026-10-29.md",
+      "size": 2665,
+      "sha256": "72e0add94cdc6f4f1eee5da9b24b44506b79517e5c79df1a831860db0e9aa308"
+    },
+    {
+      "path": "docs/validation/ASSET_HISTORY_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\ASSET_HISTORY_2026-10-28.md",
+      "size": 2191,
+      "sha256": "43ccbe0cb95a76686b4fb3bed4b2d6b8aca1524e14f667868b3850475f131af9"
+    },
+    {
+      "path": "docs/validation/BLOOD_ROUTE_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\BLOOD_ROUTE_2026-10-28.md",
+      "size": 3150,
+      "sha256": "c7a0c480bce322cdcb8b9d25aacb44041fdba14a9193b920e26b7ec19c098741"
+    },
+    {
+      "path": "docs/validation/BLOOD_WAVES_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\BLOOD_WAVES_2026-10-28.md",
+      "size": 2769,
+      "sha256": "4da5633b20987f0239b316f667bf278b4e07c9c5b4d4fbf38361c306abe313c6"
+    },
+    {
+      "path": "docs/validation/BOSS_AND_FIXED_SHRINE_IMPORT_2026-10-30.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\BOSS_AND_FIXED_SHRINE_IMPORT_2026-10-30.json",
+      "size": 55515,
+      "sha256": "29fae4720f72e59eaef5e2d6809b72c737a9d125b211d334aac41a9c0aa65cd1"
+    },
+    {
+      "path": "docs/validation/BOSS_RECONNECT_0.41.25_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\BOSS_RECONNECT_0.41.25_2026-10-29.md",
+      "size": 4222,
+      "sha256": "a83898e2b02226f3a7089809f91ec8727be64453e0d4a78c07efa3f15267ec90"
+    },
+    {
+      "path": "docs/validation/BOSS_SHRINE_RUNE_0.41.63_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\BOSS_SHRINE_RUNE_0.41.63_2026-10-30.md",
+      "size": 9726,
+      "sha256": "016814d5ea4fe5103a2f825bdc6d45ba3f7b3a50bb3ef3d226aefa85a41d6f15"
+    },
+    {
+      "path": "docs/validation/BOSS_SHRINE_RUNE_GEOMETRY_2026-10-30.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\BOSS_SHRINE_RUNE_GEOMETRY_2026-10-30.json",
+      "size": 19294,
+      "sha256": "02a5932b833aa1e5142189c7ec69c1d7e98bf8efac37b2986d05765ff7fb442b"
+    },
+    {
+      "path": "docs/validation/BOSS_SHRINE_RUNE_JUNIT_2026-10-30.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\BOSS_SHRINE_RUNE_JUNIT_2026-10-30.json",
+      "size": 1328,
+      "sha256": "a3dba3b8de56e1016eeb0b79bb898e32e5254605eb2186894e12bbb6f60a50c3"
+    },
+    {
+      "path": "docs/validation/BUILD_RESUMED_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\BUILD_RESUMED_2026-10-28.md",
+      "size": 5987,
+      "sha256": "7a7b3fa020d5b4394f44cce4db18b844143465079d4d3dc20f40640b2ca0371d"
+    },
+    {
+      "path": "docs/validation/CI_TOOLS_CLEANUP_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CI_TOOLS_CLEANUP_2026-10-31.md",
+      "size": 5623,
+      "sha256": "adc9c6380f5afb138e160c70e8aa1b7420fa35be2fd1febcfc94d42f1af79ed6"
+    },
+    {
+      "path": "docs/validation/CIRCUIT_MOTOR_BONUS_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CIRCUIT_MOTOR_BONUS_2026-10-31.md",
+      "size": 5977,
+      "sha256": "72c651645153e3da3424a82e24c14f72db2ec50ff0d34912fc26d2c510d292bb"
+    },
+    {
+      "path": "docs/validation/CLEANUP_RECOVERY_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CLEANUP_RECOVERY_2026-10-29.md",
+      "size": 2121,
+      "sha256": "7ff8aa8d4094245ef61656dc36aa72488d730f81c57082e09145b52338d3ee1e"
+    },
+    {
+      "path": "docs/validation/CLIENT_0.41.10_MANUAL.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CLIENT_0.41.10_MANUAL.md",
+      "size": 2274,
+      "sha256": "f4f93eef56fd42c778d460204bdd55e2370fc80d8509bf8f1e0feea70365356c"
+    },
+    {
+      "path": "docs/validation/CLIENT_0.41.8_MANUAL.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CLIENT_0.41.8_MANUAL.md",
+      "size": 2040,
+      "sha256": "cee321176598849f689da4a93529d00b4b4a4ac463df898cddf31aafbef638b9"
+    },
+    {
+      "path": "docs/validation/CLIENT_C2_STARTUP_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CLIENT_C2_STARTUP_2026-10-30.md",
+      "size": 3198,
+      "sha256": "6cda4df34662b844b0f8fc16087be33bd3c3935c255a903c3b8417beb1c5e76d"
+    },
+    {
+      "path": "docs/validation/CLIENT_FEEDBACK_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CLIENT_FEEDBACK_2026-10-28.md",
+      "size": 4322,
+      "sha256": "afebe8003f17a8b1a86597e49452b5c0fffa5fd6b6bb4f70da183405463bea76"
+    },
+    {
+      "path": "docs/validation/CLIENT_FRAME_STUTTER_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CLIENT_FRAME_STUTTER_2026-10-30.md",
+      "size": 3808,
+      "sha256": "ffc9f150a052d61ab6eb2906536da09f9a61c012410d1d9be9850bb3d12453d6"
+    },
+    {
+      "path": "docs/validation/CLIENT_GC_CRASH_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CLIENT_GC_CRASH_2026-10-30.md",
+      "size": 3752,
+      "sha256": "84703f5927bdbfad4a5787e52df34bb380f7ab9d29368178e31f8182925fd8ff"
+    },
+    {
+      "path": "docs/validation/CLIENT_PALETTE_STARTUP_0.41.51_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CLIENT_PALETTE_STARTUP_0.41.51_2026-10-30.md",
+      "size": 3228,
+      "sha256": "a1c820f32deccb1481a95809afbd4ae736dd55c4a8e3943c8bc0eb8a3edf0117"
+    },
+    {
+      "path": "docs/validation/COMBAT_0.41.10_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\COMBAT_0.41.10_2026-10-29.md",
+      "size": 2882,
+      "sha256": "35d4481d11626e4e308e4dcd11e80b7903b62983c8d51c5e95cdc2a68e0e70b6"
+    },
+    {
+      "path": "docs/validation/COMPANION_IDENTITY_0.41.37_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\COMPANION_IDENTITY_0.41.37_2026-10-29.md",
+      "size": 4106,
+      "sha256": "7572f9326aff5c6af83e3468fc2abdc9bb6f34f2ab5b05b0ae4e2d1d7cddfe97"
+    },
+    {
+      "path": "docs/validation/COMPANION_RECOVERY_FENCE_0.41.39_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\COMPANION_RECOVERY_FENCE_0.41.39_2026-10-29.md",
+      "size": 3838,
+      "sha256": "21c38ac3ebe98d4d9ee909983aa586f4b41ed3ea09ee0c3efac2c5c9246f95a4"
+    },
+    {
+      "path": "docs/validation/COMPAT_INSTALL_ROLLBACK_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\COMPAT_INSTALL_ROLLBACK_2026-10-29.md",
+      "size": 2922,
+      "sha256": "13d31bb70c56bfaaf7a52f914a79c6042d5082af56216e385da07cb3a320e6a3"
+    },
+    {
+      "path": "docs/validation/COMPLETION_REWARDS_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\COMPLETION_REWARDS_2026-10-31.md",
+      "size": 10012,
+      "sha256": "2eb81a524a01bbca320863ad4a267ea11ce5dd78513afbfd0b3c333962224c6e"
+    },
+    {
+      "path": "docs/validation/CONCURRENT_INSTANCES_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CONCURRENT_INSTANCES_2026-10-28.md",
+      "size": 4005,
+      "sha256": "e94703ad1c0cfb6d7369c94119d078ecece39332d0da13a43482b72b35fcc9ed"
+    },
+    {
+      "path": "docs/validation/CONCURRENT_SPACING_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CONCURRENT_SPACING_2026-10-29.md",
+      "size": 2613,
+      "sha256": "b5f55e1b9dbe0f2e76e5c220cfde4db2978780c161fdba5626715bc21d777b29"
+    },
+    {
+      "path": "docs/validation/CONFIG_RELOAD_SYNCHRONIZATION_2026-11-02.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CONFIG_RELOAD_SYNCHRONIZATION_2026-11-02.md",
+      "size": 6162,
+      "sha256": "32271b172d11659202b6145ce40920661e63d4485b65932347c06c640796149b"
+    },
+    {
+      "path": "docs/validation/CONTACTOR_CONSOLE_2026-11-01.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CONTACTOR_CONSOLE_2026-11-01.md",
+      "size": 4447,
+      "sha256": "28fd2a95e2f0b6bfe7e85acce9e334f3bbeae4756465664aee845e74593a2afa"
+    },
+    {
+      "path": "docs/validation/CONTACTOR_GUIDANCE_2026-11-02.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CONTACTOR_GUIDANCE_2026-11-02.md",
+      "size": 3568,
+      "sha256": "2c88669c0e7617451b577d048a4b0abce94d3236a1e0f8d08260f87cdb74dded"
+    },
+    {
+      "path": "docs/validation/CURRENT_PACK_CONTRACTS_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\CURRENT_PACK_CONTRACTS_2026-10-29.md",
+      "size": 2404,
+      "sha256": "5bc4218e9874a69b2375131ca5321486e7fcd5b375429fe6cc4d5e53a6733be1"
+    },
+    {
+      "path": "docs/validation/DETACHED_BOSS_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\DETACHED_BOSS_2026-10-28.md",
+      "size": 5830,
+      "sha256": "d7a9bb7103044318126b1f97eb157ad288670e672d87dbcd144d295c96a7e626"
+    },
+    {
+      "path": "docs/validation/DEVELOPMENT_PACKAGE_0.41.10.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\DEVELOPMENT_PACKAGE_0.41.10.md",
+      "size": 1591,
+      "sha256": "9b1fde1d01ce45e9a415f92c1866b9cb53c68ff0e460d12388752e0f60ec06c2"
+    },
+    {
+      "path": "docs/validation/DEVELOPMENT_PACKAGE_0.41.11.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\DEVELOPMENT_PACKAGE_0.41.11.md",
+      "size": 1270,
+      "sha256": "b9a8d48f5dac22528824138f99612355e18d7d7107481a740419132469444d3d"
+    },
+    {
+      "path": "docs/validation/DEVELOPMENT_PACKAGE_0.41.12.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\DEVELOPMENT_PACKAGE_0.41.12.md",
+      "size": 2109,
+      "sha256": "964b75b547d2df87e7178afb3da128ce72938188117981724ef3c36f87c4b513"
+    },
+    {
+      "path": "docs/validation/DEVELOPMENT_PACKAGE_0.41.8.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\DEVELOPMENT_PACKAGE_0.41.8.md",
+      "size": 1513,
+      "sha256": "c5d69cdd3bdc5dd10b89de67cb4ce70d5432bcc0d596f28ae07ff4984f384a46"
+    },
+    {
+      "path": "docs/validation/DEVELOPMENT_PACKAGE_0.41.9.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\DEVELOPMENT_PACKAGE_0.41.9.md",
+      "size": 1332,
+      "sha256": "3dd1ee8f78c4514120af07a725c7dfebab9ef9f78fb7b3e5933ac72ae8b02b5e"
+    },
+    {
+      "path": "docs/validation/DIFFICULTY_JSON_2026-11-01.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\DIFFICULTY_JSON_2026-11-01.md",
+      "size": 4032,
+      "sha256": "a0d463a5b9dd432476816b927829ebeea92503cb194e716597f9ec936fcf92dc"
+    },
+    {
+      "path": "docs/validation/DOORWAY_WALL_FILL_2026-11-02.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\DOORWAY_WALL_FILL_2026-11-02.md",
+      "size": 3101,
+      "sha256": "c1778b37c90b59c3c8cc3f3f19dc36102a9e1bb139725cf7a83ff5b79a87b8fd"
+    },
+    {
+      "path": "docs/validation/DUNGEON_SPAWNING_0.41.33_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\DUNGEON_SPAWNING_0.41.33_2026-10-29.md",
+      "size": 5341,
+      "sha256": "a78e44dec0d49821324e9083ddc7cbc1075beed0bded1bf48af903e31aaf4ec9"
+    },
+    {
+      "path": "docs/validation/ENCOUNTER_BALANCE_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\ENCOUNTER_BALANCE_2026-10-31.md",
+      "size": 7569,
+      "sha256": "cc6f017582c7a935d8c26be6a7d34b048c5681b41feee2e96b827d95dfa276c7"
+    },
+    {
+      "path": "docs/validation/ENDURANCE_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\ENDURANCE_2026-10-29.md",
+      "size": 3568,
+      "sha256": "b85dabae4eddb57d993b234b4d4ddf1ede67b5fe13920d395a0ccf6dee8d31b2"
+    },
+    {
+      "path": "docs/validation/EVENT_SOUNDS_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\EVENT_SOUNDS_2026-10-31.md",
+      "size": 2682,
+      "sha256": "073c32f88f8d61d2ae929e603906b1fe15994246e840dd6eb28451fa516077cf"
+    },
+    {
+      "path": "docs/validation/FIVE_TIER_REWARD_CHESTS_2026-11-02.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\FIVE_TIER_REWARD_CHESTS_2026-11-02.md",
+      "size": 6671,
+      "sha256": "b658eda9ef5fdf5af84879be9e8773be845b7c141efdb7a24baf16baad62025d"
+    },
+    {
+      "path": "docs/validation/FTB_FACTS_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\FTB_FACTS_2026-10-28.md",
+      "size": 6097,
+      "sha256": "dd6791488c6500dc3eb7dde01259bc3525a01b9e3de39e00f5c6fb703d331111"
+    },
+    {
+      "path": "docs/validation/FTB_RECEIVER_BINDING_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\FTB_RECEIVER_BINDING_2026-10-28.md",
+      "size": 1641,
+      "sha256": "b91d7de5b92528a993118c95209a554e1f0c02bc96948db19d1095acf58b878d"
+    },
+    {
+      "path": "docs/validation/FULL_REGRESSION_0.5.4_2026-11-02.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\FULL_REGRESSION_0.5.4_2026-11-02.md",
+      "size": 6140,
+      "sha256": "f82588e91dd1cd183b7194efef7cf05b5f7c82f840c4ef583d0ee4d995b98bf1"
+    },
+    {
+      "path": "docs/validation/GENERATION_AND_LATEST_ROOMS_0.41.61_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\GENERATION_AND_LATEST_ROOMS_0.41.61_2026-10-30.md",
+      "size": 7016,
+      "sha256": "0aea470edb8e7c378434d150af6fedb936ba577145181e05ca1e819d286c5731"
+    },
+    {
+      "path": "docs/validation/GENERATION_RECOVERY_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\GENERATION_RECOVERY_2026-10-29.md",
+      "size": 2763,
+      "sha256": "1b05b3cb24d9064dadc3ebd021673071b8f755513a2d642a56b775598a936948"
+    },
+    {
+      "path": "docs/validation/GIT_MAINTENANCE_0.41.65_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\GIT_MAINTENANCE_0.41.65_2026-10-31.md",
+      "size": 7872,
+      "sha256": "2dd1475c4747550e60be103528a67767245981796cfd6558220b9237d1f271c7"
+    },
+    {
+      "path": "docs/validation/GUIDE_FLOW_0.41.14.2_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\GUIDE_FLOW_0.41.14.2_2026-10-29.md",
+      "size": 1818,
+      "sha256": "ebe4754ba74e62f624aade10758c686274cdd1c4eef837a47c7d6d818377b3f6"
+    },
+    {
+      "path": "docs/validation/HUD_SETTINGS_0.41.28_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\HUD_SETTINGS_0.41.28_2026-10-29.md",
+      "size": 2844,
+      "sha256": "3aab469e933e093605e2a066a031b82b54b43a295647653401de1e331abb7b95"
+    },
+    {
+      "path": "docs/validation/images/0.41.63/reward-chest-confirmation.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\0.41.63\\reward-chest-confirmation.png",
+      "size": 80318,
+      "sha256": "6703023397626b599dbc782a765055432f926512e944c7bbf8f68bf9988ddb85"
+    },
+    {
+      "path": "docs/validation/images/0.41.63/reward-chest.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\0.41.63\\reward-chest.png",
+      "size": 78491,
+      "sha256": "bdb82d729e54c919b09350483f424e871aebc537ce683d6ee9e504b655c85c47"
+    },
+    {
+      "path": "docs/validation/images/0.41.63/reward-models.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\0.41.63\\reward-models.png",
+      "size": 109399,
+      "sha256": "363dba0c90d21285069b342a452dda39f4542c75d0e54f08556864505dc407e8"
+    },
+    {
+      "path": "docs/validation/images/0.41.63/shrine-side-doors.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\0.41.63\\shrine-side-doors.png",
+      "size": 46632,
+      "sha256": "61b03b4323229a5f71994566cadf627bf10acf38ef266f42930dd288d3e9b942"
+    },
+    {
+      "path": "docs/validation/images/completion-rewards/reward-chest-center.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\completion-rewards\\reward-chest-center.png",
+      "size": 1521470,
+      "sha256": "563aa4d603f3646b11bbadc09f1603a68cb3ccb282328b4efacb45654ecbc97d"
+    },
+    {
+      "path": "docs/validation/images/completion-rewards/reward-chest-closeup.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\completion-rewards\\reward-chest-closeup.png",
+      "size": 1113094,
+      "sha256": "8d84c8cd1683b381fbad150b355e939901d218eaab8d31c883be653d9ff87dcd"
+    },
+    {
+      "path": "docs/validation/images/contactor_20261101/circuit_accelerating.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_20261101\\circuit_accelerating.png",
+      "size": 108797,
+      "sha256": "400e42608dc94458814c58c775f89ff9302b479bf56c88417f757d6e65c98640"
+    },
+    {
+      "path": "docs/validation/images/contactor_20261101/circuit_delta.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_20261101\\circuit_delta.png",
+      "size": 104982,
+      "sha256": "6005be1d3360fded40f7f02ee57d40eaec2c0bac3077f02e0b6abe3d3682d630"
+    },
+    {
+      "path": "docs/validation/images/contactor_20261101/circuit_done.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_20261101\\circuit_done.png",
+      "size": 108061,
+      "sha256": "6c6b2020bd8017669c07527f6076d058dadd2c27a2397b017859dfd985a486de"
+    },
+    {
+      "path": "docs/validation/images/contactor_20261101/circuit_gap.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_20261101\\circuit_gap.png",
+      "size": 108271,
+      "sha256": "2a53b5888a3179095503cfc39c8f4ff78c058babee6ef2fdf0907bab80062d97"
+    },
+    {
+      "path": "docs/validation/images/contactor_20261101/circuit_star.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_20261101\\circuit_star.png",
+      "size": 107905,
+      "sha256": "fa0308b8f7eab5abc74590dbbcbd9e7f1d954bd38a054f1a53c45a409c2f44ba"
+    },
+    {
+      "path": "docs/validation/images/contactor_guidance_20261102/circuit_accelerating.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_guidance_20261102\\circuit_accelerating.png",
+      "size": 106467,
+      "sha256": "7467a40afebe81b8e40e0242fdde314a3c1fc12b2cf4a29530564f1337041a3f"
+    },
+    {
+      "path": "docs/validation/images/contactor_guidance_20261102/circuit_delta.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_guidance_20261102\\circuit_delta.png",
+      "size": 104590,
+      "sha256": "d0dceb58c139326d2da5af824929fcc17bf504e1f66ec9641f4cd4f1f584ce9f"
+    },
+    {
+      "path": "docs/validation/images/contactor_guidance_20261102/circuit_delta_ready.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_guidance_20261102\\circuit_delta_ready.png",
+      "size": 104108,
+      "sha256": "11994c7b7f683de16e5c0e4164efca9f74ec6ef8dcf136284b17e3ff11bea08c"
+    },
+    {
+      "path": "docs/validation/images/contactor_guidance_20261102/circuit_done.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_guidance_20261102\\circuit_done.png",
+      "size": 108029,
+      "sha256": "947d000a1b191565a0984c1424a871c5abd782c16b0100c62f844687426ada28"
+    },
+    {
+      "path": "docs/validation/images/contactor_guidance_20261102/circuit_gap.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_guidance_20261102\\circuit_gap.png",
+      "size": 105849,
+      "sha256": "69e2c69b2a479560bc232d39b53cbe93490ca2964e19911491ee48c9a187c4de"
+    },
+    {
+      "path": "docs/validation/images/contactor_guidance_20261102/circuit_star.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_guidance_20261102\\circuit_star.png",
+      "size": 105669,
+      "sha256": "fb381f1a5e574e1e8dc58b8d203e161904e4bf249faac0d6337557da948c6ad3"
+    },
+    {
+      "path": "docs/validation/images/contactor_guidance_20261102/circuit_stopped.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_guidance_20261102\\circuit_stopped.png",
+      "size": 105618,
+      "sha256": "75d0c5156e6cec6dabbdfe736840a14328de237cb81b1784d654ffde921fa6a3"
+    },
+    {
+      "path": "docs/validation/images/contactor_guidance_20261102/circuit_transfer_ready.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\contactor_guidance_20261102\\circuit_transfer_ready.png",
+      "size": 104901,
+      "sha256": "1477b42a4f145121f1d37fc972db6b93453b290b6eacd2b87f048158b38fa465"
+    },
+    {
+      "path": "docs/validation/images/reward-chest-entity/reward-chest-center.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\reward-chest-entity\\reward-chest-center.png",
+      "size": 1474132,
+      "sha256": "0180beba8d8579d72e93d1607211294629a34bb9203d606286d2559a760bbafb"
+    },
+    {
+      "path": "docs/validation/images/reward-chest-entity/reward-chest-closeup.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\reward-chest-entity\\reward-chest-closeup.png",
+      "size": 1111026,
+      "sha256": "4f1e4e4dd4b93ab0b64993d8c64fa24b9451d4c9c1fa8d1314c3a61b58b80191"
+    },
+    {
+      "path": "docs/validation/images/reward-chest-entity/reward-chest-open.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\reward-chest-entity\\reward-chest-open.png",
+      "size": 1080692,
+      "sha256": "60a5ea9fa1ad0f7e3197c47ed958f4bccfdda2720c9e0f8732e9d38228a33188"
+    },
+    {
+      "path": "docs/validation/images/reward_corners_20261102/reward-chest-center.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\reward_corners_20261102\\reward-chest-center.png",
+      "size": 1387549,
+      "sha256": "828ab598484da7b95f5e8f69e35b6c987cc9d3d2f38e74645f55e2cbd0df8984"
+    },
+    {
+      "path": "docs/validation/images/reward_corners_20261102/reward-chest-closeup.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\reward_corners_20261102\\reward-chest-closeup.png",
+      "size": 1231099,
+      "sha256": "9dc841f80d61719fb70696d1f3b7ac39d90acfcaf05cb69fc88e4cfbb2cae25a"
+    },
+    {
+      "path": "docs/validation/images/reward_corners_20261102/reward-chest-open.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\reward_corners_20261102\\reward-chest-open.png",
+      "size": 1231400,
+      "sha256": "78ef368a2c1694783d8c25e4ffdf7dd1b9ca3ec047affbfb82f19db590f6d91d"
+    },
+    {
+      "path": "docs/validation/images/reward_five_tiers_20261102/reward-chest-center.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\reward_five_tiers_20261102\\reward-chest-center.png",
+      "size": 1490319,
+      "sha256": "8de7e83b4341d0a6376ccd0564818dd2c13af34ecd8652b788143a9a607d6733"
+    },
+    {
+      "path": "docs/validation/images/reward_five_tiers_20261102/reward-chest-closeup.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\reward_five_tiers_20261102\\reward-chest-closeup.png",
+      "size": 1142552,
+      "sha256": "d9dbcc4f5e67c05b037eb064453e940f85d09bb5b9a5803a6173b45e1a94f2ad"
+    },
+    {
+      "path": "docs/validation/images/reward_five_tiers_20261102/reward-chest-confirmation.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\reward_five_tiers_20261102\\reward-chest-confirmation.png",
+      "size": 72665,
+      "sha256": "b49c5e1f7c04165ab1e8a5e4c7277b8c97e925f6efb95402216d31b094fb47d3"
+    },
+    {
+      "path": "docs/validation/images/reward_five_tiers_20261102/reward-chest-open.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\reward_five_tiers_20261102\\reward-chest-open.png",
+      "size": 1137816,
+      "sha256": "5f76ba579078e25972ec377a9e31485021affb2f7ec854354e15be98764617de"
+    },
+    {
+      "path": "docs/validation/images/reward_five_tiers_20261102/reward-chest.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\reward_five_tiers_20261102\\reward-chest.png",
+      "size": 72049,
+      "sha256": "0f4bf34554224d57a4ecc3e36e6480b6ba9f14fb598cecb869978f768fb3740a"
+    },
+    {
+      "path": "docs/validation/images/reward_five_tiers_20261102/reward-models.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\reward_five_tiers_20261102\\reward-models.png",
+      "size": 109995,
+      "sha256": "ae14acf3a40a4dc3b7aa4b3c239409169adfc511c5a682502a5028541ef6056d"
+    },
+    {
+      "path": "docs/validation/images/special_rooms_20261031/balance.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\special_rooms_20261031\\balance.png",
+      "size": 100828,
+      "sha256": "37d6657b34579e9fec9af1c0ed6f942b87ec69dd77d5ee689bf58905d7db309e"
+    },
+    {
+      "path": "docs/validation/images/special_rooms_20261031/circuit_delta.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\special_rooms_20261031\\circuit_delta.png",
+      "size": 100802,
+      "sha256": "e7de3ed4db8714cce07c621cffbc8a9d7062409798eaa03f3f5262e5c85fa23f"
+    },
+    {
+      "path": "docs/validation/images/special_rooms_20261031/circuit_failed.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\special_rooms_20261031\\circuit_failed.png",
+      "size": 106141,
+      "sha256": "cb9876744cfbe2c33705b5cda807e494fdc32ac8146dd88d0b30bd4160775f66"
+    },
+    {
+      "path": "docs/validation/images/special_rooms_20261031/circuit_partial.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\special_rooms_20261031\\circuit_partial.png",
+      "size": 100843,
+      "sha256": "75c85a022601bf59a4f65cd843270fc816481c2bc8cafc72d5b17c542b437382"
+    },
+    {
+      "path": "docs/validation/images/special_rooms_20261031/circuit_star.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\special_rooms_20261031\\circuit_star.png",
+      "size": 103629,
+      "sha256": "da7a3b57131713be9216431acf30cbc4d34c1434d5515bbbfc37c2d55312bfc7"
+    },
+    {
+      "path": "docs/validation/images/special_rooms_20261031/flow.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\special_rooms_20261031\\flow.png",
+      "size": 101183,
+      "sha256": "3ed6d9b41207ee5552ec49687e1706cf6ff5e64868eb4e0e4a2fd7e078645548"
+    },
+    {
+      "path": "docs/validation/images/ui-neoforge-6e0e0af/azure-chest.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\ui-neoforge-6e0e0af\\azure-chest.png",
+      "size": 83612,
+      "sha256": "2548322397a167590fa794056fb141effc0c8d4f6216de0e3585614c4be1990f"
+    },
+    {
+      "path": "docs/validation/images/ui-neoforge-6e0e0af/contactor.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\ui-neoforge-6e0e0af\\contactor.png",
+      "size": 84244,
+      "sha256": "2a861e11f20c1c7a6f9c1f4dfb210e24364294df0808b971d39299cf9daa1110"
+    },
+    {
+      "path": "docs/validation/images/ui-neoforge-6e0e0af/five-tiers.png",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\images\\ui-neoforge-6e0e0af\\five-tiers.png",
+      "size": 109995,
+      "sha256": "ae14acf3a40a4dc3b7aa4b3c239409169adfc511c5a682502a5028541ef6056d"
+    },
+    {
+      "path": "docs/validation/IMPROVEMENT_ACCEPTANCE_0.5.4_2026-11-02.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\IMPROVEMENT_ACCEPTANCE_0.5.4_2026-11-02.md",
+      "size": 5913,
+      "sha256": "aa8707ccc8ba72e8dadc9a02f9c6ddf14d0552dd9f8d5906eb40fa92f98c826b"
+    },
+    {
+      "path": "docs/validation/INSTANCE_MESSAGES_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\INSTANCE_MESSAGES_2026-10-31.md",
+      "size": 6990,
+      "sha256": "9b7e09f09c7c10ca15c85e0d884e2cc83a7485ffc8472c990e877419bab385bd"
+    },
+    {
+      "path": "docs/validation/JOINT_0.41.8_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\JOINT_0.41.8_2026-10-28.md",
+      "size": 2866,
+      "sha256": "468605e477817788efa57858ce3da380e20834ccd1565f739705700664bb1182"
+    },
+    {
+      "path": "docs/validation/KILL_EXPERIENCE_GUIDANCE_0.41.56_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\KILL_EXPERIENCE_GUIDANCE_0.41.56_2026-10-30.md",
+      "size": 3542,
+      "sha256": "3768b5fa65086282800e5d95d35aa6c6f0b7e18baa61a0b554e5937565d8cbb8"
+    },
+    {
+      "path": "docs/validation/KUBE_BINDING_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\KUBE_BINDING_2026-10-28.md",
+      "size": 4265,
+      "sha256": "b010bc3294fe0bab0c8c097c3872152de14bd227106161aa874e0a0a5b517f45"
+    },
+    {
+      "path": "docs/validation/LATEST_ROOM_IMPORT_2026-10-30.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\LATEST_ROOM_IMPORT_2026-10-30.json",
+      "size": 23716,
+      "sha256": "7202c35c1491d1c861ec6343b0334934ad1bf9b2ace090e753eda420a4dbafca"
+    },
+    {
+      "path": "docs/validation/LEAVE_CONFIRMATION_0.41.31_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\LEAVE_CONFIRMATION_0.41.31_2026-10-29.md",
+      "size": 2311,
+      "sha256": "90a34c96c18ffea4fc2c19a5dca2048d17f2f025c412a187ac3fd4111247b6f8"
+    },
+    {
+      "path": "docs/validation/LEGACY_KILLS_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\LEGACY_KILLS_2026-10-28.md",
+      "size": 6223,
+      "sha256": "6cf5ce53e7e0f7cd320be4b244b26574e3457132554884f692e43e5ab6a2a358"
+    },
+    {
+      "path": "docs/validation/LEGACY_UI_DEPENDENCY_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\LEGACY_UI_DEPENDENCY_2026-10-29.md",
+      "size": 3397,
+      "sha256": "6bc2eca0583b13485a1a0c941bcd987ceeee3a8eb2b400788c098777cffdd07e"
+    },
+    {
+      "path": "docs/validation/LEGACY_WALLET_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\LEGACY_WALLET_2026-10-28.md",
+      "size": 6951,
+      "sha256": "51a1e9e55ebcad4b146e261b5d0c63b1728ea70c04036e79b4a916ba5884017c"
+    },
+    {
+      "path": "docs/validation/LEGACY_WALLET_FENCE_0.41.16_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\LEGACY_WALLET_FENCE_0.41.16_2026-10-29.md",
+      "size": 3064,
+      "sha256": "4af042506471e4e87ca322725b48f6d6bc6702229a4d36c69881c07d50cad2d0"
+    },
+    {
+      "path": "docs/validation/LEGACY_WALLET_FENCE_NATIVE_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\LEGACY_WALLET_FENCE_NATIVE_2026-10-29.md",
+      "size": 4059,
+      "sha256": "67ca17c932dcc4457498de17005b968bc08b0e69fc65ceedee69d67fb1c57b34"
+    },
+    {
+      "path": "docs/validation/LOBBY_MEMBERSHIP_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\LOBBY_MEMBERSHIP_2026-10-29.md",
+      "size": 2803,
+      "sha256": "55f677b0ea28353bc172f94b490dd254011c1e740d27a697de9aefd151771b8e"
+    },
+    {
+      "path": "docs/validation/LOBBY_START_DIAGNOSTICS_0.41.17_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\LOBBY_START_DIAGNOSTICS_0.41.17_2026-10-29.md",
+      "size": 2492,
+      "sha256": "43e37ed1b5e2f8a7d1486f0a9f0a7b76bf50f9fb361367bef5c0e82ac68a346d"
+    },
+    {
+      "path": "docs/validation/LOBBY_UI_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\LOBBY_UI_2026-10-29.md",
+      "size": 1371,
+      "sha256": "15c1aefc1034c19b00273a0deb9198e23df1e1d6cae4b5366f989156b54b5f8b"
+    },
+    {
+      "path": "docs/validation/LOCAL_PACK_FINGERPRINTS_2026-10-27.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\LOCAL_PACK_FINGERPRINTS_2026-10-27.json",
+      "size": 5629,
+      "sha256": "e33036cb2074f6c7d437dbe2d9837c45b5cd1a21efb8c99425aba238e9fcf49b"
+    },
+    {
+      "path": "docs/validation/LOCALIZATION_FALLBACK_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\LOCALIZATION_FALLBACK_2026-10-28.md",
+      "size": 1608,
+      "sha256": "05f562839493d29adc50a68fde447ea26f013c7288c63a6ab3ec5ce22b8660ee"
+    },
+    {
+      "path": "docs/validation/M0_BASELINE_2026-10-27.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\M0_BASELINE_2026-10-27.md",
+      "size": 5623,
+      "sha256": "0ca0d2b2d136e91046fa4bd52ced676a9635c8cd066fc11025496597832c75e2"
+    },
+    {
+      "path": "docs/validation/M1_ENGINE_2026-10-27.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\M1_ENGINE_2026-10-27.md",
+      "size": 7863,
+      "sha256": "be534c42bfc2a47e2d4e5830d74144c0f4a0c01c4fae1328be8447b6239c0b84"
+    },
+    {
+      "path": "docs/validation/M2_COMBAT_2026-10-27.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\M2_COMBAT_2026-10-27.md",
+      "size": 6800,
+      "sha256": "37adde6be1a808d2398bae818f7752344bd95d671b5f3a5184bfe73ccc401959"
+    },
+    {
+      "path": "docs/validation/MANAGED_CONVERSION_0.41.30_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\MANAGED_CONVERSION_0.41.30_2026-10-29.md",
+      "size": 3058,
+      "sha256": "96026d6b33f674dd98a4d4a8c62e13582e383867f0bb4591d427410f9dfe6e0b"
+    },
+    {
+      "path": "docs/validation/MAP_LAYOUT_0.41.12_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\MAP_LAYOUT_0.41.12_2026-10-29.md",
+      "size": 4305,
+      "sha256": "864d6c7574ef6c0450c97f7692e8eebf0d049f33f6c9b4b4761133b5eea1636b"
+    },
+    {
+      "path": "docs/validation/MAP_LAYOUT_0.41.13_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\MAP_LAYOUT_0.41.13_2026-10-29.md",
+      "size": 3350,
+      "sha256": "13b166ad05d12578111a4bf8c33bcb2e4df757de5bd57466c2359e3c59c805a5"
+    },
+    {
+      "path": "docs/validation/MAP_PANEL_0.41.43_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\MAP_PANEL_0.41.43_2026-10-30.md",
+      "size": 1943,
+      "sha256": "64764429fd01d0e53440967748b11578b73e7296a124ea0c3e6c0c9f9f9d05ad"
+    },
+    {
+      "path": "docs/validation/MAP_PORTAL_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\MAP_PORTAL_2026-10-28.md",
+      "size": 4557,
+      "sha256": "c50a809e6de180414462c8c806ea180d4ada1446e5e6d34547a513a5ac72cdb6"
+    },
+    {
+      "path": "docs/validation/MATH_CHALLENGE_2026-10-31.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\MATH_CHALLENGE_2026-10-31.json",
+      "size": 2569,
+      "sha256": "455b8a51a7cf96282540750f0abaec89bcd7e12f42b371e24b25e4ab3be17f52"
+    },
+    {
+      "path": "docs/validation/MATH_CHALLENGE_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\MATH_CHALLENGE_2026-10-31.md",
+      "size": 5949,
+      "sha256": "b1529bd508f8fcbb62e9c5e22283dbff71da96a3b8e39968c2b6109dbea54a71"
+    },
+    {
+      "path": "docs/validation/MESSAGE_ISOLATION_MERGE_0.41.66_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\MESSAGE_ISOLATION_MERGE_0.41.66_2026-10-31.md",
+      "size": 5121,
+      "sha256": "24c4a0eaf75e3bc2d760aafba8d14fc4f421b1df7cbd832e1902ef5688620442"
+    },
+    {
+      "path": "docs/validation/MOVEMENT_VOLUME_0.41.20_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\MOVEMENT_VOLUME_0.41.20_2026-10-29.md",
+      "size": 2331,
+      "sha256": "afa51a91bf994801d63e204b75f6b3655f0c8028a667fb31261fbf25f90513f7"
+    },
+    {
+      "path": "docs/validation/NATIVE_AI_AND_ROLLOUT_0.41.50_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_AI_AND_ROLLOUT_0.41.50_2026-10-30.md",
+      "size": 6507,
+      "sha256": "ca736978fd1cd0aca350e2cb504c846f3efbffcc4e0d3023380d374ac2621a89"
+    },
+    {
+      "path": "docs/validation/NATIVE_BOW_FLIGHT_0.41.35_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_BOW_FLIGHT_0.41.35_2026-10-29.md",
+      "size": 6755,
+      "sha256": "fb4f16ef68122bd49c6182c718da368d61dfd6fa76b08f6552ec6035b0d7e319"
+    },
+    {
+      "path": "docs/validation/NATIVE_COMBAT_STATS_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_COMBAT_STATS_2026-10-31.md",
+      "size": 7765,
+      "sha256": "2834fce62edb897a64851c02223cf4fd61de0deac5b3d66b045c3588e8f633db"
+    },
+    {
+      "path": "docs/validation/NATIVE_CRYSTAL_DROPS_0.41.34_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_CRYSTAL_DROPS_0.41.34_2026-10-29.md",
+      "size": 9837,
+      "sha256": "2222b41c0d9f70f0d31cc7d2b37884b3ebf8d6e5c47ede5cc35b3d4d2a23946c"
+    },
+    {
+      "path": "docs/validation/NATIVE_DAMAGE_XP_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_DAMAGE_XP_2026-10-29.md",
+      "size": 6245,
+      "sha256": "ecfbb8b9348e828a7dad54f6f004e91cded9e7e75c67849bde8b32a190bd1561"
+    },
+    {
+      "path": "docs/validation/NATIVE_DIFFICULTIES_0.41.42_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_DIFFICULTIES_0.41.42_2026-10-30.md",
+      "size": 4074,
+      "sha256": "8f6d7776ebde939d94b9097dbbea2b129711dce9781018d7eb5fca197c08ba32"
+    },
+    {
+      "path": "docs/validation/NATIVE_DOWNED_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_DOWNED_2026-10-28.md",
+      "size": 2009,
+      "sha256": "393df46b2fcc967bbe20c74b87d7fb383ab83d5d55730fb74bd82e5c9a503905"
+    },
+    {
+      "path": "docs/validation/NATIVE_DOWNED_RECONNECT_0.41.27_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_DOWNED_RECONNECT_0.41.27_2026-10-29.md",
+      "size": 4646,
+      "sha256": "7455d1bf9aba1436f6d0929bb9de0426ccc87fd786ae201cf7deef79d875f570"
+    },
+    {
+      "path": "docs/validation/NATIVE_DUAL_RETAINED_0.41.34_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_DUAL_RETAINED_0.41.34_2026-10-29.md",
+      "size": 9186,
+      "sha256": "cdcadeda7a52ac70eb1d869c26f2db60e58b1d59c79b6d68fff9b24e225a57f1"
+    },
+    {
+      "path": "docs/validation/NATIVE_DUAL_TRIAL_0.41.33_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_DUAL_TRIAL_0.41.33_2026-10-29.md",
+      "size": 5809,
+      "sha256": "67b9fd38321919db8a364e33b2db0c1cfcb380e9675703741c6c1d601be16393"
+    },
+    {
+      "path": "docs/validation/NATIVE_FULL_EXPLORATION_0.41.41_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_FULL_EXPLORATION_0.41.41_2026-10-29.md",
+      "size": 5096,
+      "sha256": "43ce3891cf8f1bf12ce23a38a25d3da496640883ef14625da6d1415328080ef2"
+    },
+    {
+      "path": "docs/validation/NATIVE_GENERATED_TRIAL_0.41.32_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_GENERATED_TRIAL_0.41.32_2026-10-29.md",
+      "size": 5240,
+      "sha256": "7de8e98b2f5b8c3b00fff78bd004bbe7e6b24c6b4972971f01469df652fe6f21"
+    },
+    {
+      "path": "docs/validation/NATIVE_ICE_CAST_0.41.36_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_ICE_CAST_0.41.36_2026-10-29.md",
+      "size": 6708,
+      "sha256": "268ab1f567e1f155e891f3e1bc3960e6ef9e20bde9cb1426db07bdd4dfa3e950"
+    },
+    {
+      "path": "docs/validation/NATIVE_ICE_MATRIX_0.41.36_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_ICE_MATRIX_0.41.36_2026-10-29.md",
+      "size": 8912,
+      "sha256": "cf942f35e0544d5a49999e053a23387ddb0086773819b5d81d1dde40ed1495df"
+    },
+    {
+      "path": "docs/validation/NATIVE_ICE_TARGETS_0.41.34_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_ICE_TARGETS_0.41.34_2026-10-29.md",
+      "size": 5042,
+      "sha256": "aaaf73f8196a858002317b437adb2827a3d31709627d9be230b3082317acc50d"
+    },
+    {
+      "path": "docs/validation/NATIVE_OWNER_BEHAVIOR_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_OWNER_BEHAVIOR_2026-10-28.md",
+      "size": 5077,
+      "sha256": "a86d392b1be00f183f48b1d525be4c5c47ec75a7a6f5f07f65c0c3813c2d6b65"
+    },
+    {
+      "path": "docs/validation/NATIVE_PARTY_SCALING_0.41.42_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_PARTY_SCALING_0.41.42_2026-10-29.md",
+      "size": 6632,
+      "sha256": "bd9129f4755ad18fe4be8ed117280e757c04f7878e40051445f259357de1fcf7"
+    },
+    {
+      "path": "docs/validation/NATIVE_PET_0.41.37_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_PET_0.41.37_2026-10-29.md",
+      "size": 5849,
+      "sha256": "0b8b0ce31295b760f3b26e09b5465c4317327efd8c3fc44fb47ce7e720d9abc1"
+    },
+    {
+      "path": "docs/validation/NATIVE_PET_AI_0.41.37_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_PET_AI_0.41.37_2026-10-29.md",
+      "size": 4351,
+      "sha256": "057965bcaa7f5fbf37f8ed4a18aa0a0b033bd18bb591589794ed72f18d512e60"
+    },
+    {
+      "path": "docs/validation/NATIVE_PET_FOLLOW_0.41.38_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_PET_FOLLOW_0.41.38_2026-10-29.md",
+      "size": 6069,
+      "sha256": "fa5c5319ec18d5a98337f330587dd41ed5030dc2b369f0658fc9c51bac1a5077"
+    },
+    {
+      "path": "docs/validation/NATIVE_PET_RESTART_0.41.39_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_PET_RESTART_0.41.39_2026-10-29.md",
+      "size": 5876,
+      "sha256": "4ffd625b9e96a49cde65678c5d387eede93e985b3e07a590f065a9351b3c5b3a"
+    },
+    {
+      "path": "docs/validation/NATIVE_PUZZLE_MATRIX_0.41.41_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_PUZZLE_MATRIX_0.41.41_2026-10-29.md",
+      "size": 5050,
+      "sha256": "e9b798a52f24c17483287c9b0b487a557b23ee0f8060bbedfedc83d72912070d"
+    },
+    {
+      "path": "docs/validation/NATIVE_RESCUE_EDGES_0.41.22_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_RESCUE_EDGES_0.41.22_2026-10-29.md",
+      "size": 5143,
+      "sha256": "441fabda59843c7063cf39bb653fc85b3d93f79299ba6a55c2998eacd2cee01e"
+    },
+    {
+      "path": "docs/validation/NATIVE_RESCUE_TIMING_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_RESCUE_TIMING_2026-10-29.md",
+      "size": 4977,
+      "sha256": "1ebde184e03177fc45a675a9e568a0ebd93d93f2babbd612d4ceab2deb139258"
+    },
+    {
+      "path": "docs/validation/NATIVE_ROSTER_GENERATION_2026-11-02.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_ROSTER_GENERATION_2026-11-02.md",
+      "size": 6167,
+      "sha256": "66d66bafe91427b38eaf297a11d80082b42a283a00456c29f6a101c9f8e35018"
+    },
+    {
+      "path": "docs/validation/NATIVE_SAO_CATACLYSM_0.41.49_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_SAO_CATACLYSM_0.41.49_2026-10-30.md",
+      "size": 6672,
+      "sha256": "aa7e72d78772d4d4dde9335bf0127504d25a439b84649567b01a4d6c9b90f683"
+    },
+    {
+      "path": "docs/validation/NATIVE_SPIRIT_END_0.41.40_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_SPIRIT_END_0.41.40_2026-10-29.md",
+      "size": 6048,
+      "sha256": "6b0fd4513216b82814df56750a09b5ba619d213f5aa72be3163127c943e220d7"
+    },
+    {
+      "path": "docs/validation/NATIVE_TACTICS_AND_INSTALL_0.41.45_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_TACTICS_AND_INSTALL_0.41.45_2026-10-30.md",
+      "size": 5733,
+      "sha256": "d48deaa18f42eda96132e4e2d2d397fc038c0b28cda07345e7076184ea7afff3"
+    },
+    {
+      "path": "docs/validation/NATIVE_XP_PIPELINE_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_XP_PIPELINE_2026-10-29.md",
+      "size": 5011,
+      "sha256": "f9b96952fab93b07dfa34a39b2570fa936244cd308b27905db54e0ac99944f79"
+    },
+    {
+      "path": "docs/validation/NATIVE_XP_PORT_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_XP_PORT_2026-10-29.md",
+      "size": 3547,
+      "sha256": "b43c65563a9aac848f182cff66f29dc0909c2a0a243ac1e216206334f0447d1f"
+    },
+    {
+      "path": "docs/validation/NATIVE_XP_RESTART_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NATIVE_XP_RESTART_2026-10-29.md",
+      "size": 3458,
+      "sha256": "09aeb2e62120dfa9968df6a51150fd21a42ea62af5df26d34e3c90bebb576f19"
+    },
+    {
+      "path": "docs/validation/NBT_AUTHORING_TOOLS_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NBT_AUTHORING_TOOLS_2026-10-31.md",
+      "size": 2244,
+      "sha256": "70c987220a19895f3e6c85c1ad40a4fe38b259c7bfaf5c69238e7ab0180f3128"
+    },
+    {
+      "path": "docs/validation/NEOFORGE_MIGRATION_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\NEOFORGE_MIGRATION_2026-10-31.md",
+      "size": 6858,
+      "sha256": "f4a88ed5770cab1b72be19963dcd03fc166a62fbe301c6b092fa692a1b80cafa"
+    },
+    {
+      "path": "docs/validation/OFFLINE_EXPIRY_0.41.24_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\OFFLINE_EXPIRY_0.41.24_2026-10-29.md",
+      "size": 2358,
+      "sha256": "f3907b7fc65ba85dcb6af770bad33a85f6b50a1bf837fa61efcd3ec68758474d"
+    },
+    {
+      "path": "docs/validation/PACK_IDLE_0.41.14.2_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PACK_IDLE_0.41.14.2_2026-10-29.md",
+      "size": 3874,
+      "sha256": "907be5d6002a31c5ae115cfa754d0ada18541a29a10277f7487856f6da942851"
+    },
+    {
+      "path": "docs/validation/PACK_PREPARATION_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PACK_PREPARATION_2026-10-28.md",
+      "size": 3173,
+      "sha256": "72948c2e4983f636fceed623d2c8552f97dd3fef5e2ee441054c4dd5c9d8a845"
+    },
+    {
+      "path": "docs/validation/PACK_RUNTIME_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PACK_RUNTIME_2026-10-28.md",
+      "size": 3810,
+      "sha256": "84a7f2c89c6875a370da747a94a1a438532af707b89d928b38be65d743114d42"
+    },
+    {
+      "path": "docs/validation/PACK_RUNTIME_COMPAT_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PACK_RUNTIME_COMPAT_2026-10-30.md",
+      "size": 4564,
+      "sha256": "f36f3c6eaef34f7b14977f4d727aa736f50d1c3f761f64000106d66289e5573b"
+    },
+    {
+      "path": "docs/validation/PARTY_0.41.15_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PARTY_0.41.15_2026-10-29.md",
+      "size": 3144,
+      "sha256": "cc5c37fc79f04ea8754a0bc090a965211482467735ebc643a138bdc01cf3f7ca"
+    },
+    {
+      "path": "docs/validation/PARTY_VITALS_0.41.18_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PARTY_VITALS_0.41.18_2026-10-29.md",
+      "size": 3257,
+      "sha256": "79c9c5b7e595e16e237c1ffbc9d8687e7f3c581c05d45dc655c9e2ffa908ed9e"
+    },
+    {
+      "path": "docs/validation/PATCHED_DAMAGE_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PATCHED_DAMAGE_2026-10-28.md",
+      "size": 3827,
+      "sha256": "65691ad211f19359539e61f951b8cf8a810643da287dc91c51a0ba365f57efee"
+    },
+    {
+      "path": "docs/validation/PATCHED_HEALING_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PATCHED_HEALING_2026-10-28.md",
+      "size": 4303,
+      "sha256": "4fa551c4b515066703849254eaa06ed5cfcfebbfe64b3a17517d9a6e881d94c0"
+    },
+    {
+      "path": "docs/validation/PLAYER_PROGRESSION_BALANCE_REVIEW_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PLAYER_PROGRESSION_BALANCE_REVIEW_2026-10-31.md",
+      "size": 8860,
+      "sha256": "777dff7c2b675a99fe05dcbd8ca3858033eb46ad9cc1a85745339ac0ba403291"
+    },
+    {
+      "path": "docs/validation/POINTS_CLEANUP_0.41.58_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\POINTS_CLEANUP_0.41.58_2026-10-30.md",
+      "size": 6000,
+      "sha256": "6ee5d76f05a7c51eac027147cd2155893095a322dbcf1ca77f46774bb4b8aab6"
+    },
+    {
+      "path": "docs/validation/PORTAL_ONLY_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PORTAL_ONLY_2026-10-29.md",
+      "size": 2029,
+      "sha256": "f31a6a74dc322a8d97cee750e88b563f224a40122a7c8b864680a93a3d0c3cac"
+    },
+    {
+      "path": "docs/validation/PORTAL_WARNING_0.41.19_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PORTAL_WARNING_0.41.19_2026-10-29.md",
+      "size": 3044,
+      "sha256": "e33bd5754b057884cfe2cff8c61c18ee0175c70642531d403efacc91fe7145be"
+    },
+    {
+      "path": "docs/validation/PREPARATION_DIFFICULTY_2026-11-01.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PREPARATION_DIFFICULTY_2026-11-01.md",
+      "size": 4083,
+      "sha256": "8f2bb8e51494013ddf2ba725efd41d792147a5ae835e58c4a969ec633f0680e1"
+    },
+    {
+      "path": "docs/validation/PROCESS_RECOVERY_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PROCESS_RECOVERY_2026-10-28.md",
+      "size": 3900,
+      "sha256": "c50f8b7cf024fb62315001ba2a91f7b11bbcac23f58d420a2e3d887d00fc2335"
+    },
+    {
+      "path": "docs/validation/PROFILE_PARTY_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\PROFILE_PARTY_2026-10-28.md",
+      "size": 2159,
+      "sha256": "d8d3a047922ebd3187fcb4b64a6a0825741c70f250eadc142557c67badc5ad3c"
+    },
+    {
+      "path": "docs/validation/RECONNECT_CHECKPOINT_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\RECONNECT_CHECKPOINT_2026-10-29.md",
+      "size": 1557,
+      "sha256": "d2678809a0e2dcd1f30c7f67f24e439f331c52149f4d20de69416671e99a9ebc"
+    },
+    {
+      "path": "docs/validation/RECONNECT_WATCHDOG_0.41.23_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\RECONNECT_WATCHDOG_0.41.23_2026-10-29.md",
+      "size": 2537,
+      "sha256": "3fe2dd5c960f9fa45e53404df4e07243c22403c7e94151e78efc2a5f79bd5025"
+    },
+    {
+      "path": "docs/validation/REFINED_LAYERS_0.41.47_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REFINED_LAYERS_0.41.47_2026-10-30.md",
+      "size": 5790,
+      "sha256": "1d5616b89e421789b1c2e2477114374e908f41ca08a69a398e83eff1cf3042e9"
+    },
+    {
+      "path": "docs/validation/REFINED_ROOM_SOURCES_2026-10-30.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REFINED_ROOM_SOURCES_2026-10-30.json",
+      "size": 16258,
+      "sha256": "1b1b8488aad2a598c39510e8423aade5610511b60f1c6bcae24febd12851844d"
+    },
+    {
+      "path": "docs/validation/REGISTERED_BUILDINGS_GALLERY_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REGISTERED_BUILDINGS_GALLERY_2026-10-31.md",
+      "size": 2713,
+      "sha256": "b40ca270d01bca0833b965fc2d2646695a53a17c5cfa362f28d2194d252df362"
+    },
+    {
+      "path": "docs/validation/REGISTERED_GALLERY_DIMENSION_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REGISTERED_GALLERY_DIMENSION_2026-10-31.md",
+      "size": 3756,
+      "sha256": "02bd81599d2dbfc6a70bf35efd605fdf61c938b14379c77d1eb4e4578a4f24ab"
+    },
+    {
+      "path": "docs/validation/RELEASE_0.5.1beta_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\RELEASE_0.5.1beta_2026-10-31.md",
+      "size": 3212,
+      "sha256": "2d7a653b50edfc0514593fdb3138842b392384ea62e41eb93dfc0d78dfa9e7d7"
+    },
+    {
+      "path": "docs/validation/RELEASE_0.5beta_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\RELEASE_0.5beta_2026-10-31.md",
+      "size": 6571,
+      "sha256": "3f3f8019bfd160517a5076ff4372cf4e972a4cf4de9c110cf899aa93974146db"
+    },
+    {
+      "path": "docs/validation/REPLACEMENT_RECONNECT_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REPLACEMENT_RECONNECT_2026-10-29.md",
+      "size": 1935,
+      "sha256": "b76025467edd9acaf6de6a64314e43f74457d76cd62636e64d2d2dfe85279368"
+    },
+    {
+      "path": "docs/validation/RESULTS_LAYOUT_0.41.29_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\RESULTS_LAYOUT_0.41.29_2026-10-29.md",
+      "size": 1996,
+      "sha256": "5eb76f94a5217607f5f7d85548a9264292eb25759da4c1555894d868f6bed014"
+    },
+    {
+      "path": "docs/validation/REWARD_BOUNDARY_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REWARD_BOUNDARY_2026-10-28.md",
+      "size": 4998,
+      "sha256": "a479691edb4eedca63610b71fdce7eff8657092c038cf0c38980af20a5e3eb68"
+    },
+    {
+      "path": "docs/validation/REWARD_CHEST_CORNERS_2026-11-02.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REWARD_CHEST_CORNERS_2026-11-02.md",
+      "size": 5535,
+      "sha256": "12fb23edc99d4e0869066a810eb2fdd284a068b0bee00a9799cb727b3163d9e8"
+    },
+    {
+      "path": "docs/validation/REWARD_CHEST_ENTITY_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REWARD_CHEST_ENTITY_2026-10-31.md",
+      "size": 8197,
+      "sha256": "7436e8bf29ffaca29373395a8a6ae080cda86067870e1735f2481de14f62d364"
+    },
+    {
+      "path": "docs/validation/REWARD_INTENT_RECOVERY_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REWARD_INTENT_RECOVERY_2026-10-29.md",
+      "size": 3587,
+      "sha256": "a3c7786d0287918791de2ab96f7cc900f406226055ebe39bdc49e9ca4a8c4c94"
+    },
+    {
+      "path": "docs/validation/REWARD_RECEIPT_RECOVERY_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REWARD_RECEIPT_RECOVERY_2026-10-29.md",
+      "size": 4413,
+      "sha256": "e4f05201c3f454382b2c667a2bf78573987f3571ba00f650231fdf243c93403e"
+    },
+    {
+      "path": "docs/validation/REWARD_RESPONSE_RECOVERY_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REWARD_RESPONSE_RECOVERY_2026-10-29.md",
+      "size": 3973,
+      "sha256": "d121d0a1d25034d0887f51eddb48f99ef2e2fbfdd869c21787a75e17cc10f996"
+    },
+    {
+      "path": "docs/validation/REWARD_UI_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REWARD_UI_2026-10-28.md",
+      "size": 2709,
+      "sha256": "e9e771dd1ea0598dd49cfd1d5376e51c9640a7f0714b7fdcb303377cee4308af"
+    },
+    {
+      "path": "docs/validation/REWARD_UNSAVED_RECOVERY_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\REWARD_UNSAVED_RECOVERY_2026-10-29.md",
+      "size": 3974,
+      "sha256": "8926c8ce9670a184417862a6bc6b5bb1d5256c88d9b7041ad8c5eb0f9a614c5f"
+    },
+    {
+      "path": "docs/validation/ROOM_HEIGHT_ENTRY_0.41.21_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\ROOM_HEIGHT_ENTRY_0.41.21_2026-10-29.md",
+      "size": 3738,
+      "sha256": "5fdca3e0314888c53fec0a5be99a2a432f7515d1097ea7ca086d30d00de4f372"
+    },
+    {
+      "path": "docs/validation/ROOM_REWARDS_0.41.62_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\ROOM_REWARDS_0.41.62_2026-10-30.md",
+      "size": 6466,
+      "sha256": "36fe5d376ec5ac74cf5b353f2e429f6f4b3b0a2e83b9315718e796af9d9b18e8"
+    },
+    {
+      "path": "docs/validation/ROOM_SPACING_0.41.14_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\ROOM_SPACING_0.41.14_2026-10-29.md",
+      "size": 4308,
+      "sha256": "ffc6dbd730d6c4271915557d8e32129211c939fcb62ba86fdc59bc94db88d134"
+    },
+    {
+      "path": "docs/validation/ROOM_TRAVERSAL_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\ROOM_TRAVERSAL_2026-10-28.md",
+      "size": 2940,
+      "sha256": "db769dc8612a0fa6f1caa816fb928648d700f342c410fae13c2582d7e69d0f0b"
+    },
+    {
+      "path": "docs/validation/RUN_REVIEWS_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\RUN_REVIEWS_2026-10-28.md",
+      "size": 6797,
+      "sha256": "2853f58f0b95776ac7a53f8bdec6f0084b0a94abde23a1ba0f46d1d4c6509616"
+    },
+    {
+      "path": "docs/validation/RUNE_BOSS_PORTALS_2026-11-02.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\RUNE_BOSS_PORTALS_2026-11-02.md",
+      "size": 7266,
+      "sha256": "e10af0718b008864d38b3a6f339cfc897a933f19cab8c864bbc5572cfdfbd31b"
+    },
+    {
+      "path": "docs/validation/RUNE_PORTAL_EFFECTS_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\RUNE_PORTAL_EFFECTS_2026-10-31.md",
+      "size": 5884,
+      "sha256": "2d7cc58f8c9264240554eeb3f244cf03c14539ef707c9c1cedc2b7499ceefd5c"
+    },
+    {
+      "path": "docs/validation/SAFE_EXIT_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SAFE_EXIT_2026-10-28.md",
+      "size": 3033,
+      "sha256": "33e52f0dd4eb0364654e262f77ddbcadc34aba5ae17f6584429f133db220cc64"
+    },
+    {
+      "path": "docs/validation/SAFE_RETURN_HUB_0.41.26_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SAFE_RETURN_HUB_0.41.26_2026-10-29.md",
+      "size": 2332,
+      "sha256": "615c1f69d1b1d5a93fbfb57ec55fbd01f2eb59502c5cd648ee3b682df686fe01"
+    },
+    {
+      "path": "docs/validation/SAO_GAMEPLAY_PRESENTATION_0.41.52_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SAO_GAMEPLAY_PRESENTATION_0.41.52_2026-10-30.md",
+      "size": 3258,
+      "sha256": "5e9dc7dd2c0ed3a53bc1f9af11581b88ca93436ca07d10eff8e15b08a1526046"
+    },
+    {
+      "path": "docs/validation/SAO_MISSION_FLOW_0.41.53_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SAO_MISSION_FLOW_0.41.53_2026-10-30.md",
+      "size": 3319,
+      "sha256": "5a557131906afe70444d81fb5000e9758fe77f65fda5f6cc3dadd026e46c840d"
+    },
+    {
+      "path": "docs/validation/SAO_NOTICE_STYLE_0.41.57_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SAO_NOTICE_STYLE_0.41.57_2026-10-30.md",
+      "size": 5207,
+      "sha256": "2fe3d0953d4fae330660ff02df1d6b18aec9962bcd1a2a7b50503f3d90259201"
+    },
+    {
+      "path": "docs/validation/SAO_TEXT_LAYOUT_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SAO_TEXT_LAYOUT_2026-10-31.md",
+      "size": 2700,
+      "sha256": "5c700eb9c9c59afa2798e158b8b46870963edaf265b673284b65ca542f34b9b1"
+    },
+    {
+      "path": "docs/validation/SEAMS_AND_CLEANUP_0.41.59_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SEAMS_AND_CLEANUP_0.41.59_2026-10-30.md",
+      "size": 3507,
+      "sha256": "3c313ef1467776471b776526b9669ed16e13a4141d1495e6dc44029055582640"
+    },
+    {
+      "path": "docs/validation/SELECTED_ROOM_IMPORT_2026-10-30.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SELECTED_ROOM_IMPORT_2026-10-30.json",
+      "size": 198314,
+      "sha256": "1dd81317d9e33047d0e1f1f35f8601b8bfbb253e694420dcc9111efe25dcd76b"
+    },
+    {
+      "path": "docs/validation/SELECTED_ROOM_IMPORT_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SELECTED_ROOM_IMPORT_2026-10-30.md",
+      "size": 9346,
+      "sha256": "8a6d5f885cabc0a8e6b70a382146f5048e15ce4fce9fd1ec429f0702132b3db9"
+    },
+    {
+      "path": "docs/validation/SELECTED_ROOM_RUNTIME_2026-10-30.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SELECTED_ROOM_RUNTIME_2026-10-30.json",
+      "size": 15103,
+      "sha256": "21c7aacc0fa14c3f67d36beafc9d96069b0a7915bce5e1afff6833bac58865b1"
+    },
+    {
+      "path": "docs/validation/SELECTED_ROOM_VALIDATION_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SELECTED_ROOM_VALIDATION_2026-10-30.md",
+      "size": 5952,
+      "sha256": "2f4616c35bc1a402616f15d86d9a4b4a8170b98bef39a012513aa23e35a78a1c"
+    },
+    {
+      "path": "docs/validation/SENTINEL_RUNTIME_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SENTINEL_RUNTIME_2026-10-28.md",
+      "size": 3234,
+      "sha256": "ba219bb7fc772c51e903fb92b9f7b9229446da1b35442a962a55aef7a6b89651"
+    },
+    {
+      "path": "docs/validation/SERVER_UI_DEPENDENCIES_0.41.50_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SERVER_UI_DEPENDENCIES_0.41.50_2026-10-30.md",
+      "size": 4692,
+      "sha256": "e2a5bc56f4f3b02d58c187baa5e540561ef5a84e8861b4d28cee5a2c9a93e4b4"
+    },
+    {
+      "path": "docs/validation/SETTLEMENT_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SETTLEMENT_2026-10-28.md",
+      "size": 4898,
+      "sha256": "5b9a2430762d67dcb5c7908414bb1a01cb4d61c0433d3740cb19e4e7182e7f4d"
+    },
+    {
+      "path": "docs/validation/SETTLEMENT_RECOVERY_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SETTLEMENT_RECOVERY_2026-10-28.md",
+      "size": 3209,
+      "sha256": "c1c0521e512afb8126be5176eb3492b81d643879aee19a16e3232b9818a565d4"
+    },
+    {
+      "path": "docs/validation/SIMPLE_COMBAT_RETIREMENT_0.41.64_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SIMPLE_COMBAT_RETIREMENT_0.41.64_2026-10-30.md",
+      "size": 4918,
+      "sha256": "f74e0d8cc6ce332d4909c5fe4ab9a302630390d2c46c930d73e5b24587b7ff6c"
+    },
+    {
+      "path": "docs/validation/SIMPLE_COMBAT_RETIREMENT_2026-10-30.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SIMPLE_COMBAT_RETIREMENT_2026-10-30.json",
+      "size": 10855,
+      "sha256": "488791f822c0c3a50659da499e0f79ffd18f4658cb290deb1611f3bfccdbbd69"
+    },
+    {
+      "path": "docs/validation/SIMPLE_COMBAT_RETIREMENT_GEOMETRY_2026-10-30.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SIMPLE_COMBAT_RETIREMENT_GEOMETRY_2026-10-30.json",
+      "size": 19294,
+      "sha256": "675ea3584d384b560c66c40c793026429c229ed3fb18bfeba350cfd41f29fc01"
+    },
+    {
+      "path": "docs/validation/SPAWN_PLACEMENT_POLICY_2026-11-02.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SPAWN_PLACEMENT_POLICY_2026-11-02.md",
+      "size": 4194,
+      "sha256": "73cc2abae28fdd2d6c73bc3d9bc76512a59d86341c1c4bf9042ee0af46c52571"
+    },
+    {
+      "path": "docs/validation/SPAWN_PUBLICATION_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SPAWN_PUBLICATION_2026-10-28.md",
+      "size": 4160,
+      "sha256": "219815584d938f48d1ac11cfd40f46d4d00cfcf4e2e80f9d54afdbff43f4fdbf"
+    },
+    {
+      "path": "docs/validation/SPECIAL_ROOM_ASSETS_2026-10-31.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SPECIAL_ROOM_ASSETS_2026-10-31.json",
+      "size": 13853,
+      "sha256": "81f081916219a3ed86fbaa4aca0f803e783b2bdecbaebbcce9af6eeca05fe85b"
+    },
+    {
+      "path": "docs/validation/SPECIAL_ROOM_COLLISION_2026-10-31.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SPECIAL_ROOM_COLLISION_2026-10-31.json",
+      "size": 30564,
+      "sha256": "1da4ad811dfc1f088b54d104a15a4c66a94012aa5beef2c1782125cc5d596bab"
+    },
+    {
+      "path": "docs/validation/SPECIAL_ROOM_OLD_TEMPLATES_2026-10-31.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SPECIAL_ROOM_OLD_TEMPLATES_2026-10-31.json",
+      "size": 2057,
+      "sha256": "29adc549bc93bce982fa0c4074ae3d93dbab667de4b602cf61ce2e76dd340a7f"
+    },
+    {
+      "path": "docs/validation/SPECIAL_ROOM_TESTS_2026-10-31.json",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SPECIAL_ROOM_TESTS_2026-10-31.json",
+      "size": 2327,
+      "sha256": "6cc65ec05021e7986d646e40458c89ac67a6318e99ad9275ef55f2f0943058f1"
+    },
+    {
+      "path": "docs/validation/SPECIAL_ROOMS_INTEGRATION_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SPECIAL_ROOMS_INTEGRATION_2026-10-31.md",
+      "size": 10420,
+      "sha256": "2e68d7bf2b6024aaf9c91c20c67051f9a8b0a1307a6aab46cd625d5ead9ef740"
+    },
+    {
+      "path": "docs/validation/SPINE_VANILLA_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SPINE_VANILLA_2026-10-28.md",
+      "size": 6836,
+      "sha256": "8f6d46e10f8d687ac04f7efbd3657e2d41d8c4f66e4ef5ebbe788cdb981a9d66"
+    },
+    {
+      "path": "docs/validation/SPIRIT_UNRESOLVED_IDENTITY_0.41.41_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SPIRIT_UNRESOLVED_IDENTITY_0.41.41_2026-10-29.md",
+      "size": 5512,
+      "sha256": "f24ae0af729023cfcf2ddc7cd9f460ba258cf0cbe0a5c5ddd52374b4893a32e1"
+    },
+    {
+      "path": "docs/validation/STARRED_ENEMIES_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\STARRED_ENEMIES_2026-10-28.md",
+      "size": 4258,
+      "sha256": "13e21e9ec6d9b54319034f2912f82e83423a701b7205a2893195a91cce901a0c"
+    },
+    {
+      "path": "docs/validation/STARRED_MINIBOSS_0.41.45_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\STARRED_MINIBOSS_0.41.45_2026-10-30.md",
+      "size": 4373,
+      "sha256": "d3a0d791d43e56de1ae1807b586818a0c0fae80afb60e4a6023222bdaa629a43"
+    },
+    {
+      "path": "docs/validation/STATE_SYNC_0.41.27_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\STATE_SYNC_0.41.27_2026-10-29.md",
+      "size": 1896,
+      "sha256": "1b337793966ccfee51a498ef15494ff9a8c5188a856743ca5a6d307f767d4787"
+    },
+    {
+      "path": "docs/validation/SUPERVISOR_REVIEW_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\SUPERVISOR_REVIEW_2026-10-31.md",
+      "size": 11051,
+      "sha256": "fe6a7a1314a37520294f85d1faee30885e7b7514c06da353a82d76b07dfd2016"
+    },
+    {
+      "path": "docs/validation/TRANSFER_RECOVERY_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\TRANSFER_RECOVERY_2026-10-29.md",
+      "size": 2679,
+      "sha256": "f2999ab8c6b6f2d5ecdb206348e8c20b936ff3d28d74dc741a24495006f3844b"
+    },
+    {
+      "path": "docs/validation/TRIAL_CLEANUP_TIMING_0.41.32_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\TRIAL_CLEANUP_TIMING_0.41.32_2026-10-29.md",
+      "size": 5889,
+      "sha256": "66d5e6ad7b4476cd252f8585780e5910be730b6e126c2ae2b164d9e18f1fb15b"
+    },
+    {
+      "path": "docs/validation/UI_BRANCH_6E0E0AF_NEOFORGE_2026-11-02.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\UI_BRANCH_6E0E0AF_NEOFORGE_2026-11-02.md",
+      "size": 4685,
+      "sha256": "480741718b166b5fd686b2857dec0716180bb858159493382fdc7baeaa54c50d"
+    },
+    {
+      "path": "docs/validation/VANILLA_NATIVE_XP_2026-10-29.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\VANILLA_NATIVE_XP_2026-10-29.md",
+      "size": 2094,
+      "sha256": "28da39f6e1c339c4ef40cf321cf679f9b9f05db5ab6ae88640375dff17bd2c03"
+    },
+    {
+      "path": "docs/validation/VANILLA_TACTICS_AND_PACK_ROLLOUT_0.41.44_2026-10-30.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\VANILLA_TACTICS_AND_PACK_ROLLOUT_0.41.44_2026-10-30.md",
+      "size": 4886,
+      "sha256": "202e37638264327630d680ce57aa815cd278cb65e0d385218339a4ee3cdd3d4e"
+    },
+    {
+      "path": "docs/validation/VERIFIED_ARTIFACT_2026-10-28.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\VERIFIED_ARTIFACT_2026-10-28.md",
+      "size": 2951,
+      "sha256": "fa3aca8936a38faf87c69f23c5ee089f5ae08ddc527aa98ca2d54d1e0d7aaf43"
+    },
+    {
+      "path": "docs/validation/VICTORY_EXIT_PORTAL_0.41.65_2026-10-31.md",
+      "source": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\docs\\validation\\VICTORY_EXIT_PORTAL_0.41.65_2026-10-31.md",
+      "size": 5876,
+      "sha256": "d365ceae3e047beb1cb1e6ef6e654c3856f18c5d52b0e2064882407a84e3d664"
+    }
+  ]
+}

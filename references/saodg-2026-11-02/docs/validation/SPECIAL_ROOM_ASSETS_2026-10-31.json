@@ -1,0 +1,368 @@
+{
+  "stage": "scoped verification complete; unified regression owned by supervisor chat",
+  "rooms": [
+    {
+      "id": "saodg:ruins/entrance_01",
+      "definition": "src/main/resources/data/saodg/rooms/ruins/entrance_01.json",
+      "definition_sha256": "33cb37cc1be6e373b1504b21f022479e9d6c4809e21158ab349360466c82ee39",
+      "name": "room.saodg.special.entrance_oath",
+      "theme": "sacred",
+      "size": [
+        48,
+        36,
+        48
+      ],
+      "rotations": [
+        0
+      ],
+      "source_geometry_sha256": "b6a4c7cc71def5765767e8b8e2b52b3ae5fa2b306016c2f84747b77233010b47",
+      "delivery_nbt_files": 2,
+      "assets": [
+        {
+          "path": "src/main/resources/data/saodg/structures/special/entrance_oath/p00_body.nbt",
+          "sha256": "4391e6bc4ab8d64d7bf1787e5ca35a79b7598450ba8feed54776aee53dabbf86"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/entrance_oath/p00_walls.nbt",
+          "sha256": "053637a8f1a41cfb4392b44605aa5acef78986824e2b45aa52c0464f938476a9"
+        }
+      ],
+      "model_review": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\build\\nbt_models\\sao_spawn_oath_1x1_20261031\\refined_02\\design_review.json",
+      "selected_by_user": "B; wait for refinement and integrate final refined_02"
+    },
+    {
+      "id": "saodg:ruins/elite_01",
+      "definition": "src/main/resources/data/saodg/rooms/ruins/elite_01.json",
+      "definition_sha256": "36907c0a351bc24499d581e284794bad8b9500666d7c4e8782e1607e458e761a",
+      "name": "room.saodg.special.elite_01",
+      "theme": "sacred",
+      "size": [
+        48,
+        36,
+        48
+      ],
+      "rotations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "source_geometry_sha256": "e8490d8f705c197c5e473bbc7254dd911aa3f48f5817cf7923262e81e3dc1c5c",
+      "delivery_nbt_files": 2,
+      "assets": [
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_01/p00_body.nbt",
+          "sha256": "3f86bc8c52fa64fcbfcf76dbfb28d1a9cb6d189c83bcc311c5126bcc6054a858"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_01/p00_walls.nbt",
+          "sha256": "1f534d254c49f2e6018759aea60b7ce36fc48a52153d325dd45c205aaaf46431"
+        }
+      ],
+      "model_review": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\build\\nbt_models\\special_rooms_20261031\\elite_01\\design_review.json"
+    },
+    {
+      "id": "saodg:ruins/elite_02",
+      "definition": "src/main/resources/data/saodg/rooms/ruins/elite_02.json",
+      "definition_sha256": "82ffaef0ae7c88ac50894942d9944990c33828de3085304dd16eaa5db45d7b4d",
+      "name": "room.saodg.special.elite_02",
+      "theme": "forge",
+      "size": [
+        48,
+        34,
+        48
+      ],
+      "rotations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "source_geometry_sha256": "e75923142ad1445e58baaae53fe82aa8de2a1c7770876ddaaa4733c3a23bb052",
+      "delivery_nbt_files": 2,
+      "assets": [
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_02/p00_body.nbt",
+          "sha256": "d9932eb557d45ecde14e622ecf37f1b454bbbe55310aa362a33beee7c6a6292f"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_02/p00_walls.nbt",
+          "sha256": "93dc01cb863ec2d6e6ad7d91ce47f4655f5a3465893bcfd643c4e018d22c04e5"
+        }
+      ],
+      "model_review": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\build\\nbt_models\\special_rooms_20261031\\elite_02\\design_review.json"
+    },
+    {
+      "id": "saodg:ruins/elite_03",
+      "definition": "src/main/resources/data/saodg/rooms/ruins/elite_03.json",
+      "definition_sha256": "56607f710962e43e1b0d7da21cb8aca68813f26232c1d8bb7eb1cc65e0ce30d8",
+      "name": "room.saodg.special.elite_03",
+      "theme": "ruins",
+      "size": [
+        48,
+        36,
+        48
+      ],
+      "rotations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "source_geometry_sha256": "57863012e500755e1e85beb082330b64d508db11cde61ef4b92d80ea5c9b76a1",
+      "delivery_nbt_files": 2,
+      "assets": [
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_03/p00_body.nbt",
+          "sha256": "c62423c145681fb3fc44881d5a9aed8c2c2dfcc35c8e8a289b018f434ce5bce2"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_03/p00_walls.nbt",
+          "sha256": "aece3f2e4acd4508a97431aeb95cdad21073e728787fae57c18a48fcd739eab6"
+        }
+      ],
+      "model_review": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\build\\nbt_models\\special_rooms_20261031\\elite_03\\design_review.json"
+    },
+    {
+      "id": "saodg:ruins/elite_hall",
+      "definition": "src/main/resources/data/saodg/rooms/ruins/elite_hall.json",
+      "definition_sha256": "811c9c6e5d2a393627d73fb456aa54d0cac4eb53a6516a41ad318caf8bc9a1fb",
+      "name": "room.saodg.special.elite_hall",
+      "theme": "ruins",
+      "size": [
+        96,
+        42,
+        96
+      ],
+      "rotations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "source_geometry_sha256": "2835898f26c9deecd49429d26cca96deb30bbf2c38d318656e2f8cc0a07030b7",
+      "delivery_nbt_files": 8,
+      "assets": [
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_hall/p00_body.nbt",
+          "sha256": "abb73411605bb0622fbf6262860c1e9a3c2a4b1e1ac4ae8c684a40acf43382b1"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_hall/p00_walls.nbt",
+          "sha256": "830f1ee509ca8d15e89a8cc548318a08e4c28d73f8f33b18c4bd1789f53d7457"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_hall/p01_body.nbt",
+          "sha256": "e271c72ea1b005893f80edee15f8d0e2ad44e36a8a57c27187207f54d4784f94"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_hall/p01_walls.nbt",
+          "sha256": "b73d17f5cce604f2d841d9145e4e93a1c646613451f54ac3fdc366a1a81678b7"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_hall/p10_body.nbt",
+          "sha256": "3e8745ce4d131f13888c63e6a8a4b61abe1a529652ba00229074f156599e6b01"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_hall/p10_walls.nbt",
+          "sha256": "ac16f2d7e513e458e91af5092ff5dffa09c7bf63f4ca62969de3561636c68910"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_hall/p11_body.nbt",
+          "sha256": "8251cb15f5b04311925ba188d7f26793858acb92973ee674b437cb424e1b5f69"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/elite_hall/p11_walls.nbt",
+          "sha256": "86aaf8f8343faaf5d15d7c47d85c473433a9d7e0ae3e31a5e5a3e802f26d5b5f"
+        }
+      ],
+      "model_review": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\build\\nbt_models\\special_rooms_20261031\\elite_hall\\design_review.json"
+    },
+    {
+      "id": "saodg:ruins/puzzle_01",
+      "definition": "src/main/resources/data/saodg/rooms/ruins/puzzle_01.json",
+      "definition_sha256": "286495281f6f0577695150f8f3ba9eeb9373c7295ad8d35bd6fd986555a96ef0",
+      "name": "room.saodg.special.puzzle_01",
+      "theme": "runes",
+      "size": [
+        48,
+        32,
+        48
+      ],
+      "rotations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "source_geometry_sha256": "bdf03a51f8d78d8843b369d2721b14ea902b9fd35eac40df5aba721e1ec7ef65",
+      "delivery_nbt_files": 2,
+      "assets": [
+        {
+          "path": "src/main/resources/data/saodg/structures/special/puzzle_01/p00_body.nbt",
+          "sha256": "bfa26e206b19d14b1d32a28b02c7c3efbf27c9e20c37e296d871018e98f1c6db"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/puzzle_01/p00_walls.nbt",
+          "sha256": "bca61a010a556ef3f59d9d7d836b4100ef68b21782e7a3a6ee079d1716a1cd1e"
+        }
+      ],
+      "model_review": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\build\\nbt_models\\special_rooms_20261031\\puzzle_01\\design_review.json"
+    },
+    {
+      "id": "saodg:ruins/puzzle_02",
+      "definition": "src/main/resources/data/saodg/rooms/ruins/puzzle_02.json",
+      "definition_sha256": "4d6633968c28beb66ff5c2aab7acc4ce5d0a72d4520615cfe77bb6ed88ed02d2",
+      "name": "room.saodg.special.puzzle_02",
+      "theme": "crystal",
+      "size": [
+        48,
+        34,
+        48
+      ],
+      "rotations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "source_geometry_sha256": "56c42303a7fb7ba5c20b0598b77af15998467d47ab4adb6590d710f8ee2fd9a8",
+      "delivery_nbt_files": 2,
+      "assets": [
+        {
+          "path": "src/main/resources/data/saodg/structures/special/puzzle_02/p00_body.nbt",
+          "sha256": "ddf886c47582044ab63e235d9d43c7388f3951ae74d9c3617a3face0a8b3be06"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/puzzle_02/p00_walls.nbt",
+          "sha256": "5f126ecfce1dc0ec0034f69075fa1c528e44acc4002afd4c51889e6b97b702c3"
+        }
+      ],
+      "model_review": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\build\\nbt_models\\special_rooms_20261031\\puzzle_02\\design_review.json"
+    },
+    {
+      "id": "saodg:ruins/puzzle_03",
+      "definition": "src/main/resources/data/saodg/rooms/ruins/puzzle_03.json",
+      "definition_sha256": "e7e713bb9eb34cd0ba0c3686a857d52cfd82a923cb782c32e926b8935afa58af",
+      "name": "room.saodg.special.puzzle_03",
+      "theme": "sacred",
+      "size": [
+        48,
+        38,
+        48
+      ],
+      "rotations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "source_geometry_sha256": "b85c864f676a5e518b5d06492436cb8d9729333f131126a758247413b3a4a27c",
+      "delivery_nbt_files": 2,
+      "assets": [
+        {
+          "path": "src/main/resources/data/saodg/structures/special/puzzle_03/p00_body.nbt",
+          "sha256": "ad93274713b1f38f83e68e57cdb4bef324934566dc439fa7e3c543c8e79d0f8a"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/puzzle_03/p00_walls.nbt",
+          "sha256": "cbc43eb7dab4c8411cdf71f7a68be8b5e6a4c961f2cd028b9456253a4dbac13f"
+        }
+      ],
+      "model_review": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\build\\nbt_models\\special_rooms_20261031\\puzzle_03\\design_review.json"
+    },
+    {
+      "id": "saodg:special/balance",
+      "definition": "src/main/resources/data/saodg/rooms/special/balance.json",
+      "definition_sha256": "620c244bdc65b4ea3b80ef88e855fa0644d8f3b5c073895abb699ed2ff91d449",
+      "name": "room.saodg.special.balance",
+      "theme": "forge",
+      "size": [
+        48,
+        34,
+        48
+      ],
+      "rotations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "source_geometry_sha256": "6d51cfead68a2e97d93e32c7f5f3da124a8de712d7dedee5db0e192085ccfc56",
+      "delivery_nbt_files": 2,
+      "assets": [
+        {
+          "path": "src/main/resources/data/saodg/structures/special/balance/p00_body.nbt",
+          "sha256": "5f1628d8859f659bc5ae2f320f23466c880010ad194bcb4aa655a63f872366a3"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/balance/p00_walls.nbt",
+          "sha256": "5f126ecfce1dc0ec0034f69075fa1c528e44acc4002afd4c51889e6b97b702c3"
+        }
+      ],
+      "model_review": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\build\\nbt_models\\special_rooms_20261031\\balance\\design_review.json"
+    },
+    {
+      "id": "saodg:special/flow",
+      "definition": "src/main/resources/data/saodg/rooms/special/flow.json",
+      "definition_sha256": "cb7fb0a691e2d090e1beb8e8996a14bf8fd89d5ee1bb2dc1e6806adf6cc531e2",
+      "name": "room.saodg.special.flow",
+      "theme": "waterworks",
+      "size": [
+        48,
+        36,
+        48
+      ],
+      "rotations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "source_geometry_sha256": "bfb52509d25a603839eb0cea5553dc2a5f9a289f607690d29712b84b526407fe",
+      "delivery_nbt_files": 2,
+      "assets": [
+        {
+          "path": "src/main/resources/data/saodg/structures/special/flow/p00_body.nbt",
+          "sha256": "8811cadbfe4cad6d7da2d760183d660682079a42ea295da76ec00675142be1f0"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/flow/p00_walls.nbt",
+          "sha256": "da76681482f9c5ac2e78b85b57467bcb07fbd935ae269a5d3c695487d1cd9f8e"
+        }
+      ],
+      "model_review": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\build\\nbt_models\\special_rooms_20261031\\flow\\design_review.json"
+    },
+    {
+      "id": "saodg:special/circuit",
+      "definition": "src/main/resources/data/saodg/rooms/special/circuit.json",
+      "definition_sha256": "f620bdc925aa7ec4bee494291ed9be1d891d11268d64d30177395e73a57102fd",
+      "name": "room.saodg.special.circuit",
+      "theme": "forge",
+      "size": [
+        48,
+        32,
+        48
+      ],
+      "rotations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "source_geometry_sha256": "1d4fe95220c9ce93f39e667d85b1d56e5e70fe5f767602cec48680d73d8c3a2f",
+      "delivery_nbt_files": 2,
+      "assets": [
+        {
+          "path": "src/main/resources/data/saodg/structures/special/circuit/p00_body.nbt",
+          "sha256": "5df7b49c648f885fccacc93662453c937e07d5ee36120dcb348e391d4e65751a"
+        },
+        {
+          "path": "src/main/resources/data/saodg/structures/special/circuit/p00_walls.nbt",
+          "sha256": "1572289f23ea46fa4dec3b12710bd256ecda24e838666417f4107e990d035dd4"
+        }
+      ],
+      "model_review": "D:\\Documents\\Coding\\Game\\Minecraft\\SAODG\\build\\nbt_models\\special_rooms_20261031\\circuit\\design_review.json"
+    }
+  ]
+}

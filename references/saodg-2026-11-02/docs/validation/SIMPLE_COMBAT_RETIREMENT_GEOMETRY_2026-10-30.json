@@ -1,0 +1,648 @@
+{
+  "rooms": [
+    {
+      "id": "saodg:boss/01_gilded_crown",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "cb50907adc296669b9274f2e753ca679d8c0933f74dc17c7a6f03d0d337bfb7a",
+      "parts": 4,
+      "ports": 0,
+      "reachable_poses": 6907,
+      "passed": true
+    },
+    {
+      "id": "saodg:boss/02_ember_foundry",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "8eb93b3c692dbf9d13fc1a39e851ba27b5536e7efc6dc0d04d11328fabaafa84",
+      "parts": 4,
+      "ports": 0,
+      "reachable_poses": 9236,
+      "passed": true
+    },
+    {
+      "id": "saodg:boss/03_azure_meridian",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "3d31ed99dda5c0145a349522a1c1d1c643801e8568eda9417573f5f8444e1ff5",
+      "parts": 4,
+      "ports": 0,
+      "reachable_poses": 9177,
+      "passed": true
+    },
+    {
+      "id": "saodg:fixed/rune_blood_hall",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "6c7536ae9d53bd0e9a6af48d0444f7c73b502cd2247d2bc1f44ee2aa0bbe52a8",
+      "parts": 1,
+      "ports": 1,
+      "reachable_poses": 2719,
+      "passed": true
+    },
+    {
+      "id": "saodg:fixed/rune_blood_hall",
+      "errors": [],
+      "rotation": 90,
+      "definition_sha256": "6c7536ae9d53bd0e9a6af48d0444f7c73b502cd2247d2bc1f44ee2aa0bbe52a8",
+      "parts": 1,
+      "ports": 1,
+      "reachable_poses": 2699,
+      "passed": true
+    },
+    {
+      "id": "saodg:fixed/rune_blood_hall",
+      "errors": [],
+      "rotation": 180,
+      "definition_sha256": "6c7536ae9d53bd0e9a6af48d0444f7c73b502cd2247d2bc1f44ee2aa0bbe52a8",
+      "parts": 1,
+      "ports": 1,
+      "reachable_poses": 2685,
+      "passed": true
+    },
+    {
+      "id": "saodg:fixed/rune_blood_hall",
+      "errors": [],
+      "rotation": 270,
+      "definition_sha256": "6c7536ae9d53bd0e9a6af48d0444f7c73b502cd2247d2bc1f44ee2aa0bbe52a8",
+      "parts": 1,
+      "ports": 1,
+      "reachable_poses": 2698,
+      "passed": true
+    },
+    {
+      "id": "saodg:fixed/torii_shrine",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "eade3c83d02ec9150140e4897d435ac0ff72daa9cab58566b3450b0f3526e4e9",
+      "parts": 1,
+      "ports": 3,
+      "reachable_poses": 4893,
+      "passed": true
+    },
+    {
+      "id": "saodg:fixed/torii_shrine",
+      "errors": [],
+      "rotation": 90,
+      "definition_sha256": "eade3c83d02ec9150140e4897d435ac0ff72daa9cab58566b3450b0f3526e4e9",
+      "parts": 1,
+      "ports": 3,
+      "reachable_poses": 4823,
+      "passed": true
+    },
+    {
+      "id": "saodg:fixed/torii_shrine",
+      "errors": [],
+      "rotation": 180,
+      "definition_sha256": "eade3c83d02ec9150140e4897d435ac0ff72daa9cab58566b3450b0f3526e4e9",
+      "parts": 1,
+      "ports": 3,
+      "reachable_poses": 4822,
+      "passed": true
+    },
+    {
+      "id": "saodg:fixed/torii_shrine",
+      "errors": [],
+      "rotation": 270,
+      "definition_sha256": "eade3c83d02ec9150140e4897d435ac0ff72daa9cab58566b3450b0f3526e4e9",
+      "parts": 1,
+      "ports": 3,
+      "reachable_poses": 4942,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/01_oath_hall",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "eee96138a96b32cf451b52fd3fa38d2113a41af157b3840e3b71333d3fffb52c",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 4636,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/02_grain_mill",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "51da287cec7dbbde8c007637c0f87565ff3a3b388254fb27580cc74c57f49148",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 4499,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/03_dye_terraces",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "01e4c3062c1d5af33802d271f5f6f231836428d7e6e7d3655d04d11b645fe5bf",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 5518,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/06_courier_interchange",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "e27153d041aac613925694c8920fbb193cdacdf869b89158d0f1dfb07ed45d60",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 4542,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/07_expedition_cartography",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "ac4da270d6c56fed36ab082539a4d5040a4c03578a6f6bbfd1ad080ae43a4d4a",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 4506,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/08_blade_workshop",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "cfbcb2ae218229e57019e001bec126c15e8e509baf6b86c7cfb95aed076b8890",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 4609,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/09_herb_terraces",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "cc6533e749bd5c49f821a34141d5ba586507d2de0280949ecf06cd827e05174d",
+      "parts": 1,
+      "ports": 1,
+      "reachable_poses": 2904,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/10_knight_quarters",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "6fecdd3d6c41d24bb45a3dc52a96a3fd0c24d5650f0fe3f8a3611e0880cd5654",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 4799,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/11_twin_archive",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "0f65ddcfc2ea407d31b4d279a7dc186b9985c9b26d477b6a281dbf0106f26770",
+      "parts": 1,
+      "ports": 1,
+      "reachable_poses": 3689,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/12_switchback_street",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "e64352f3be4332880e0fd0a476927674f3efde4601e9a4657ad7d91df790738c",
+      "parts": 1,
+      "ports": 1,
+      "reachable_poses": 4733,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/13_vault_baths",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "07f5302bcf0fec34f794af99012af9861929c48476374067f94a6958703508eb",
+      "parts": 1,
+      "ports": 1,
+      "reachable_poses": 3920,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/14_crystal_process",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "4b74e9985a9d3da9c0030a81354457b3319235941fd3f9e00cdefd906f63db3f",
+      "parts": 1,
+      "ports": 1,
+      "reachable_poses": 4140,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/15_dragon_rib_store",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "262f65006beb6ae431df5db3bdf6ca1ac2a90cf2ab4e09c49cb26a2a6912a80e",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 4999,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/16_moon_suite_chapel",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "e85b994a4996dd3d6ab58475f3ab5fd3c2742c3ea42acf74550d886e1f3aeaf2",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 4589,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/17_ancient_sluice",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "2884f4a5aa53427d89e589bb629f9cbe15f739f6f9101ffec1ea71abbb7f731a",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 6552,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/18_root_hermitage",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "51578a8f563a11091622bd0be86ae32f2f497defe6ba39b4e9eed626e7a041f6",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 3787,
+      "passed": true
+    },
+    {
+      "id": "saodg:latest/20_sunken_excavation",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "cff9326535b6d98d5a2201fee81d50ba0132b7e31e4e9189736a04c652910b3d",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 6034,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/cross/cross_t_dungeons_20261030/cross_01",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "e809af761fb31ea90219e77a3f898194bc37d5c7f47c52aeeb458da13b980596",
+      "parts": 5,
+      "ports": 4,
+      "reachable_poses": 35702,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/cross/cross_t_dungeons_20261030/cross_02",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "663267e17fa2d3c82eb61c0269570b6ca2958df24d5bc838e9845fc777c27f09",
+      "parts": 5,
+      "ports": 4,
+      "reachable_poses": 15896,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/cross/cross_t_dungeons_20261030/cross_04",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "a45cb462695210951e2f18b74a8bb7b495bb2bd37cf1a942d2170ca682af8c75",
+      "parts": 5,
+      "ports": 4,
+      "reachable_poses": 36645,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/cross/cross_t_dungeons_20261030/cross_05",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "e3cb244f04ec5fc8281ec60d3613f29a1d7653e13c9fdfd19c9791dbb7db859e",
+      "parts": 5,
+      "ports": 4,
+      "reachable_poses": 42069,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/l/sao_batch_14/elbow/gate",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "aa710452080f5e56e30dbe2b214fcaadfc5e7f16846a65802c8c5d735650a0c0",
+      "parts": 3,
+      "ports": 2,
+      "reachable_poses": 24253,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/l/sao_batch_14/elbow/moon",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "1dbf4409114fc9d1f55ce64b9002226ef988340e088b7b60b47381b0c36aa28d",
+      "parts": 3,
+      "ports": 2,
+      "reachable_poses": 26035,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/l/sao_batch_14/elbow/sword",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "3f6c04ce6e1f8a4979a41a03e053d24627d311694b1dd3e80e0ceefe39b1d3cb",
+      "parts": 3,
+      "ports": 2,
+      "reachable_poses": 27013,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/l/sao_nine_drafts_20261030/lshape/l01_folded_sword_viaduct",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "474f4f2ff5a389354e8cc67306dbc2d620483ccbf5daa0c03ceae03a7a1c80a8",
+      "parts": 3,
+      "ports": 2,
+      "reachable_poses": 29333,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/l/sao_skill_trial_20261030/rooms_lshape/moss_crown_patrol",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "211500cc3c2beaebd2611e42f2e5a1c4b3ea0186f430248ed23ed23a3d2284cf",
+      "parts": 3,
+      "ports": 3,
+      "reachable_poses": 20859,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/l/sao_skill_trial_20261030/rooms_lshape/tide_step_sluice",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "d23174140043ab71760bb7f06f8c28bb3839175c6ecb86e8d6dfca162cd235d7",
+      "parts": 3,
+      "ports": 3,
+      "reachable_poses": 18674,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/line_2/sao_skill_trial_20261030/rooms_1x2/verdant_seed_terraces",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "55df3199539f8b692d18bb335492f504cad62b26cec44cf82f9beb32dd03f5e0",
+      "parts": 2,
+      "ports": 2,
+      "reachable_poses": 12686,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/line_3/nine_distinct_20261029/long/expedition_station",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "c16005a13c4ce9eae1a15efa1c23f2fdaf510f870ef9611564583925a14ad6c4",
+      "parts": 3,
+      "ports": 2,
+      "reachable_poses": 16256,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/line_3/nine_distinct_20261029/long/meridian_observatory",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "4749074d9de0bd9feed50a3bc96a16b46138c8d5e4cd0a0051f1a0bb98049330",
+      "parts": 3,
+      "ports": 2,
+      "reachable_poses": 9740,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/line_3/ruined_shrine_1x3",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "ecd2b2bb57e208ecc7e8ab576ea0e2cadcfb45f1e910584f978bd88cd677019d",
+      "parts": 3,
+      "ports": 1,
+      "reachable_poses": 6070,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/line_3/ruined_shrine_1x3/refined_01",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "82164c9fd79342c348c008d3eed389fe519391730af24492ad8407a8348a857c",
+      "parts": 3,
+      "ports": 1,
+      "reachable_poses": 6070,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/line_3/sao_nine_drafts_20261030/long/01_triumph_stairs",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "16000843b271046c7d1550c06e7c53bceac22ff550a4bb6cee5c95220c6cf4ea",
+      "parts": 3,
+      "ports": 2,
+      "reachable_poses": 18108,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/line_3/sao_nine_drafts_20261030/long/02_silver_cathedral",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "929fdf820cd8aafb910006dd12ad2ef8df13ef455166d669aab55a7484b8ae92",
+      "parts": 3,
+      "ports": 2,
+      "reachable_poses": 28476,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/single/distinct_ten_subagents_20261029/01_dry_aqueduct",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "88c42adcf4ce5c9a24f84298dfc310ed6e8da2689157b0e2005ea7659096affc",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 2650,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/single/diverse_rooms_20261030/13_branch_nursery",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "9ce38c87b78062e4c698c9f0d392098b4aed4f4f9399b55aa4bc0d8a856c22c6",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 3267,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/single/diverse_rooms_20261030/14_folded_memorial",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "96d052926b0a2055246ca952b54ed40f26a14bd438dbf43a02d592296b354e00",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 3018,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/single/sao_batch_14/single/04_star_archive",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "048822d5d27bbd4ed365db34a4df4b88ac81e802221453a1846030234f5a4a42",
+      "parts": 1,
+      "ports": 1,
+      "reachable_poses": 4662,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/single/skill_ceiling_forward_test",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "e19c5ed26ef24a9272f3509cc282a4d23b97e30f4f11c60aa98edd85bb2c9c38",
+      "parts": 1,
+      "ports": 1,
+      "reachable_poses": 5766,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/single/skill_trial_a",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "83eb3228ae6aef51e9bdc6c5edc74636088c29cc01cb3b8d00adf27b398b3341",
+      "parts": 1,
+      "ports": 1,
+      "reachable_poses": 6114,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/single/skill_trial_b",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "eda282efc444d72ea73aca833b14c518dc2e164c39a0f756416be58278b8ef74",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 6741,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/single/three_rooms_20261030/01_lockworks",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "045cd3a7a01b3f0476bad0f0909b5f031b422cc9a8bb231dd647be1334da0204",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 4810,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/single/three_rooms_20261030/02_archive",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "6e4b18c6fe3640aba3f4959f2501a751496f953ce9044d904ea4591e5798b984",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 4291,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/single/twin_seedhouse_1x1",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "236769703dff54a24a7148a8f821dd4e0932b2e39029827be095a6ac344dc2d9",
+      "parts": 1,
+      "ports": 2,
+      "reachable_poses": 4424,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/square/linked_trial",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "c483e7ae43f23f6315182cde734fb938dfbbcff11f23be998ee5b6eb6a6ac65f",
+      "parts": 4,
+      "ports": 2,
+      "reachable_poses": 11530,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/square/sao_batch_14/large/black_iron_forge",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "87193b089489b8625eceece46dde5ed555d54a67f8ade1f565a86dcb040121cf",
+      "parts": 4,
+      "ports": 2,
+      "reachable_poses": 31645,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/square/sao_batch_14/large/oath_cathedral",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "11c1877f80d573ddb479e391e391d80da889c36b7b0de00624f3f3c77188fae1",
+      "parts": 4,
+      "ports": 2,
+      "reachable_poses": 32124,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/square/sao_batch_14/large/sunken_dry_dock",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "04e85f5d4ce94f0c8d080574bf39c3c25c5c1071deac52978ac80bd82025a09b",
+      "parts": 4,
+      "ports": 2,
+      "reachable_poses": 34622,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/square/sao_skill_trial_20261030/rooms_2x2/silver_rib_fan_hall",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "17234e95a87e16c562326cff5a44e4d927103eb2fcb83e61bbaa6b55e2a675f2",
+      "parts": 4,
+      "ports": 2,
+      "reachable_poses": 25768,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/square/whole_cut_trial",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "02a76453362ff9ab34bf9c641e6df473e88b4a789dfe3d4091039eab53813d7b",
+      "parts": 4,
+      "ports": 2,
+      "reachable_poses": 11109,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/t/cross_t_dungeons_20261030/t_02",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "3ba3224d80f50b8613dcd1d35a7e5bcef0416e80ce420218c3c231e8e188a907",
+      "parts": 4,
+      "ports": 3,
+      "reachable_poses": 31419,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/t/cross_t_dungeons_20261030/t_03",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "adefd9708b48c53f8efadbfc365f11cc2de317a681c9f8041ea2c04918fb2eb3",
+      "parts": 4,
+      "ports": 3,
+      "reachable_poses": 20143,
+      "passed": true
+    },
+    {
+      "id": "saodg:selected/t/cross_t_dungeons_20261030/t_04",
+      "errors": [],
+      "rotation": 0,
+      "definition_sha256": "e4b0f8547949cc975ced94b250c1ac18c85e453541a5cf0e2a6074d8c2fdc61c",
+      "parts": 4,
+      "ports": 3,
+      "reachable_poses": 24845,
+      "passed": true
+    }
+  ],
+  "method": "production_49_grid_plan; Minecraft collision shapes; swept 0.6x1.8 player; half-block walking; closed-port air flood",
+  "multiplayer_verified": false,
+  "catalog_sha256": "03c0cc422d71653a7d04ac59951a3e8bfacf41f40c55517715e8f028755ac901",
+  "passed": true
+}

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:," />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NBT 模型审阅</title>
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body>
+    <canvas id="preview"></canvas>
+    <aside class="hud" aria-live="polite">
+      <strong id="build-name">Minecraft Build</strong>
+      <span id="build-stats">Loading...</span>
+    </aside>
+    <div class="viewer-actions" aria-label="Preview controls">
+      <button id="lighting-toggle" class="icon-button" type="button" aria-pressed="false" title="Switch to night lighting">Night</button>
+    </div>
+    <section class="model-controls">
+      <label>剖切高度 <input id="cut-level" type="range" min="0" value="0" /></label>
+      <span id="cut-value"></span>
+      <label>图层 <select id="layer"><option value="all">全部</option><option value="body">主体</option><option value="walls">墙面</option></select></label>
+      <div id="camera-presets"></div>
+      <button id="save-view">导出相机记录</button><button id="save-image">下载截图</button>
+      <label>方块坐标 <input id="position" placeholder="x,y,z" /></label><button id="inspect">查询</button>
+      <output id="inspection"></output><small id="source-hash"></small>
+      <small>纹理及昼夜为预览效果；剖切只影响显示。此页面不批准精修、不验证游戏碰撞。</small>
+    </section>
+    <div id="loading" class="loading">Loading build...</div>
+  </body>
+</html>

@@ -1,0 +1,152 @@
+{
+  "checked_on": "2026-10-27",
+  "scope": "Selected local SAO and scripting JAR fingerprints only; not a runtime compatibility claim or a complete pack manifest.",
+  "excluded": "Archived SAO rewrite is not a build or runtime dependency of SAODG.",
+  "artifacts": [
+    {
+      "target": "client-SAO-0.76",
+      "file": "architectury-9.2.14-forge.jar",
+      "sha256": "218b471d0b8a1f6cda14cfc1beb9eeb0df54304500acc6c5613d9b88ec65d9af"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "kubejs-forge-2001.6.5-build.26.jar",
+      "sha256": "1769312192fbf9d72f45054ba61130523bfb471b5f480a4bff8c210ec09400bb"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "mod_1cab0b39_1cab0b39-1.2.0-r234.jar",
+      "sha256": "d64bb5b72b2748c8b101489eca7fc2b5bfdd3254bf4a19c97d7b637703adafdf"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "rhino-forge-2001.2.3-build.10.jar",
+      "sha256": "fed2211429301bf043864183cab9ab8e92d4cc4dbb9e488ce6c75217c54584a6"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao_archer-0.5.1.jar",
+      "sha256": "c3e0e45709b1ac7a127e47422f965bac2a182b66ccefc326aed7930237e2ee9b"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao_battle_report-1.0.0.jar",
+      "sha256": "1c2c62b9b95cb4b8b695258094aa5bba72de41a06443ddd7ef98276558d3f6b9"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao_enchanter-0.74.0.jar",
+      "sha256": "3d9a080d916107ceaeff0f96120c564abee8bb71b6e78fe3d1e33d9808a48921"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao_interface_packui-0.1.0.jar",
+      "sha256": "0e720c0f53b0559ab725b1cbc25285091cf9f54aed567786fa2d7e7401c82afc"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao_models-1.0.0.jar",
+      "sha256": "0d9903728ff4dd7888cce85e430117a8a6675cf914aa82aa4f20b496bf5e720d"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao_rules074-0.75.0.jar",
+      "sha256": "fcca9d713c2fe94fe645a6d952abd5799d6c4562724907b265b13443ee2b79dc"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-arena-0.75.0.jar",
+      "sha256": "207cb4a58901370af2ebefc3b543de37ec1b566ca855c8f410ded853151e2dc0"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-boss-combat-1.20.1-1.1.0.jar",
+      "sha256": "ada5524e31978bc94b5a7059f22fc7f3783d55fbd6b744193c3dcf3fb9a5c4fb"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-boss-mechanics-0.75.0.jar",
+      "sha256": "5dcdd358e7356e96267184c11ef28a9475a4d0c6fbc8dbbe6d701ddb28b564fe"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-boss-retirement-1.20.1-1.0.0.jar",
+      "sha256": "b80f0fd3e465992fcda2050bb1fc8f0b642dea97da08661fb2b91f3e3b65d7d8"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-casting-vfx-1.20.1-1.0.0.jar",
+      "sha256": "a56f354f1fadf0aa87923dc6dff253ba9821af1814ade9588205f34b4eabc273"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-elemental-war-0.75.0.jar",
+      "sha256": "3f50d4c4ee8fda8cbf61a16c40c8179a104148a486277461f9871630b4695379"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-gameplay-fixes-1.20.1-1.0.0.jar",
+      "sha256": "25a8fce9dd7e86375c0890036875ae694f644920e24fbc64532256ee8d62eb33"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-misc073-1.20.1-1.0.0.jar",
+      "sha256": "fa47506dd795a438cac13198522065684c9d3d41dc42e94809d5231afed085a7"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-performance-0.75.0.jar",
+      "sha256": "1d0c4ede175c44e709db6b3865ecabf74a0335fd3f64c666b4214a357e9049e3"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-personal-hud-1.20.1-1.0.0.jar",
+      "sha256": "87a9db67a501628ae025ddfd8800f59fc10923ebfd91f9ca5ba201502bdc7025"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-player-trade-1.20.1-1.0.0.jar",
+      "sha256": "ac32dae399f4ce909b9ff8f736dbaa8d544a25ac09becd6af3f1418b2f18f8b6"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-points-0.75.2.jar",
+      "sha256": "f0b35f622ce95ace13011e26ad08172dc92cbff7ce7774b20492a1083b8ad701"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-talents-1.20.1-0.1.0.jar",
+      "sha256": "cd782845345a97bd71ada5b019beba4be723efeccf0b99fc5aa758a0e9e3b903"
+    },
+    {
+      "target": "client-SAO-0.76",
+      "file": "sao-ui-polish-1.20.1-1.0.0.jar",
+      "sha256": "09363ca3e4c3ba7fbe9b8a904eea8e4e7ab4b02cdc29c46f121984d2329ef1b4"
+    },
+    {
+      "target": "server-SAO-server-0.7",
+      "file": "architectury-9.2.14-forge.jar",
+      "sha256": "218b471d0b8a1f6cda14cfc1beb9eeb0df54304500acc6c5613d9b88ec65d9af"
+    },
+    {
+      "target": "server-SAO-server-0.7",
+      "file": "kubejs-forge-2001.6.5-build.26.jar",
+      "sha256": "1769312192fbf9d72f45054ba61130523bfb471b5f480a4bff8c210ec09400bb"
+    },
+    {
+      "target": "server-SAO-server-0.7",
+      "file": "mod_1cab0b39_1cab0b39-1.2.0-r234.jar",
+      "sha256": "4d6ff00c069ecacbab4353311bccf8fcb0abfc528ccd2f47fe10594113888d9b"
+    },
+    {
+      "target": "server-SAO-server-0.7",
+      "file": "rhino-forge-2001.2.3-build.10.jar",
+      "sha256": "fed2211429301bf043864183cab9ab8e92d4cc4dbb9e488ce6c75217c54584a6"
+    },
+    {
+      "target": "server-SAO-server-0.7",
+      "file": "sao-gameplay-fixes-1.20.1-1.0.0.jar",
+      "sha256": "72e00091956d081c070af8e40dd132e07effeece3cf2ef7d30b72760f2118354"
+    }
+  ]
+}

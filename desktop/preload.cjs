@@ -1,0 +1,13 @@
+const {contextBridge,ipcRenderer}=require('electron')
+contextBridge.exposeInMainWorld('nbtDesktop',Object.freeze({
+  info:()=>ipcRenderer.invoke('nbt:info'),
+  chooseWorkspace:()=>ipcRenderer.invoke('nbt:workspace'),
+  chooseSource:()=>ipcRenderer.invoke('nbt:source'),
+  apiConfig:()=>ipcRenderer.invoke('nbt:api-config'),
+  apiSave:input=>ipcRenderer.invoke('nbt:api-save',input),
+  apiModels:()=>ipcRenderer.invoke('nbt:api-models'),
+  apiGenerate:input=>ipcRenderer.invoke('nbt:api-generate',input),
+  apiCancel:()=>ipcRenderer.invoke('nbt:api-cancel'),
+  exposureConfig:()=>ipcRenderer.invoke('nbt:exposure-config'),
+  exposureSave:input=>ipcRenderer.invoke('nbt:exposure-save',input)
+}))

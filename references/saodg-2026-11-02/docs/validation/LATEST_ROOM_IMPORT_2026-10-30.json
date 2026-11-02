@@ -1,0 +1,942 @@
+[
+  {
+    "id": "saodg:latest/01_oath_hall",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/01_oath_hall",
+    "arrival": [
+      23,
+      2,
+      44
+    ],
+    "spawns": [
+      [
+        23,
+        2,
+        2
+      ],
+      [
+        32,
+        2,
+        23
+      ],
+      [
+        13,
+        6,
+        27
+      ],
+      [
+        36,
+        2,
+        37
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/01_oath_hall/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/01_oath_hall/p00_body.nbt",
+        "sha256": "d80b069d203f643621e003f32427f64a2c09a801708d29211475db69a328e2a1"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/01_oath_hall/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/01_oath_hall/p00_walls.nbt",
+        "sha256": "f617ad2f5b00b8ef295087aaf9322e06a2eef752c414e5d81395706adebc552f"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/02_grain_mill",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/02_grain_mill",
+    "arrival": [
+      23,
+      2,
+      44
+    ],
+    "spawns": [
+      [
+        23,
+        2,
+        2
+      ],
+      [
+        30,
+        2,
+        23
+      ],
+      [
+        16,
+        8,
+        13
+      ],
+      [
+        30,
+        2,
+        35
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/02_grain_mill/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/02_grain_mill/p00_body.nbt",
+        "sha256": "64e645f072624c3c4476297cece7e300ef2b28b4f9d9ebf02e940a8227231945"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/02_grain_mill/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/02_grain_mill/p00_walls.nbt",
+        "sha256": "3249d25c3a183d84b2761c0fbccd6f7ec4250f61b894f67188f9cb96fc2f7c1c"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/03_dye_terraces",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/03_dye_terraces",
+    "arrival": [
+      23,
+      2,
+      44
+    ],
+    "spawns": [
+      [
+        23,
+        2,
+        2
+      ],
+      [
+        41,
+        2,
+        39
+      ],
+      [
+        39,
+        2,
+        8
+      ],
+      [
+        23,
+        5,
+        30
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/03_dye_terraces/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/03_dye_terraces/p00_body.nbt",
+        "sha256": "8b64bf65717403ac8c9c1be6591e6d5979ce5a6c54c1a4ff36633dc7f6d82292"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/03_dye_terraces/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/03_dye_terraces/p00_walls.nbt",
+        "sha256": "630520e4a7ef63659bccd41ccc8437735cbe0e462e98fba1ad7ea50c2886332c"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/04_clock_keep",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/04_clock_keep",
+    "arrival": [
+      23,
+      2,
+      44
+    ],
+    "spawns": [
+      [
+        23,
+        2,
+        2
+      ],
+      [
+        12,
+        2,
+        23
+      ],
+      [
+        25,
+        2,
+        29
+      ],
+      [
+        13,
+        12,
+        32
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/04_clock_keep/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/04_clock_keep/p00_body.nbt",
+        "sha256": "f360f7c8b84ea89b606d147017ac6855bd7faca333215d386c2bdb81ba5842e2"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/04_clock_keep/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/04_clock_keep/p00_walls.nbt",
+        "sha256": "d28d1df48f9c43492ca9514bcd03f01bd7faad52009ae80a31458fabdf691ac2"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/05_seal_observatory",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/05_seal_observatory",
+    "arrival": [
+      23,
+      2,
+      44
+    ],
+    "spawns": [
+      [
+        23,
+        2,
+        2
+      ],
+      [
+        16,
+        2,
+        23
+      ],
+      [
+        28,
+        2,
+        31
+      ],
+      [
+        32,
+        6,
+        11
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/05_seal_observatory/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/05_seal_observatory/p00_body.nbt",
+        "sha256": "585a8e188997b72dc4915a29bae684059573f60b5f63a080fc42284ab670b182"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/05_seal_observatory/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/05_seal_observatory/p00_walls.nbt",
+        "sha256": "3249d25c3a183d84b2761c0fbccd6f7ec4250f61b894f67188f9cb96fc2f7c1c"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/06_courier_interchange",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/06_courier_interchange",
+    "arrival": [
+      23,
+      2,
+      44
+    ],
+    "spawns": [
+      [
+        23,
+        2,
+        2
+      ],
+      [
+        19,
+        2,
+        23
+      ],
+      [
+        33,
+        6,
+        19
+      ],
+      [
+        12,
+        2,
+        35
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/06_courier_interchange/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/06_courier_interchange/p00_body.nbt",
+        "sha256": "0f1ea71434b760438388d94a711c6e94fb0d61b0b684e9014afef83dbc59f7bf"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/06_courier_interchange/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/06_courier_interchange/p00_walls.nbt",
+        "sha256": "4321a867a7db85e8e76ff7a0fb0a3b411087dd0e3e561e2f5e4008a5a536d238"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/07_expedition_cartography",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/07_expedition_cartography",
+    "arrival": [
+      23,
+      2,
+      44
+    ],
+    "spawns": [
+      [
+        34,
+        2,
+        2
+      ],
+      [
+        36,
+        7,
+        26
+      ],
+      [
+        29,
+        2,
+        15
+      ],
+      [
+        34,
+        2,
+        38
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/07_expedition_cartography/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/07_expedition_cartography/p00_body.nbt",
+        "sha256": "69a43e29306913d0ffecfe0e5da8e8761b55d56673db99ff755a4f0db8df21a1"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/07_expedition_cartography/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/07_expedition_cartography/p00_walls.nbt",
+        "sha256": "6857e80b831394f49e64af14a919dd64cf8bd799b5337b63ecc1c618ed9a5cb5"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/08_blade_workshop",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/08_blade_workshop",
+    "arrival": [
+      3,
+      2,
+      24
+    ],
+    "spawns": [
+      [
+        35,
+        5,
+        24
+      ],
+      [
+        19,
+        2,
+        44
+      ],
+      [
+        19,
+        2,
+        24
+      ],
+      [
+        5,
+        2,
+        39
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/08_blade_workshop/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/08_blade_workshop/p00_body.nbt",
+        "sha256": "d11663205d271543386883f8f6f04c9686464c6a3ae87e17fc8b09cf45c48ff6"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/08_blade_workshop/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/08_blade_workshop/p00_walls.nbt",
+        "sha256": "687af679a3b86eddf9327e352eda8c5e3c85677fa4d6468894868504dbb9a459"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/09_herb_terraces",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/09_herb_terraces",
+    "arrival": [
+      24,
+      2,
+      3
+    ],
+    "spawns": [
+      [
+        24,
+        8,
+        42
+      ],
+      [
+        30,
+        5,
+        22
+      ],
+      [
+        24,
+        5,
+        31
+      ],
+      [
+        24,
+        4,
+        14
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/09_herb_terraces/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/09_herb_terraces/p00_body.nbt",
+        "sha256": "5416f434d7b5e511634672aa4e5bd65a45a9aeaed739f554b95f4aec45edaeff"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/09_herb_terraces/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/09_herb_terraces/p00_walls.nbt",
+        "sha256": "c64414ac476c0fb1d9f1da42b6da6f5b78e0496a8ed9ce960ebc4c0a51e49c38"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/10_knight_quarters",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/10_knight_quarters",
+    "arrival": [
+      24,
+      2,
+      44
+    ],
+    "spawns": [
+      [
+        40,
+        2,
+        10
+      ],
+      [
+        13,
+        2,
+        10
+      ],
+      [
+        41,
+        2,
+        31
+      ],
+      [
+        18,
+        2,
+        27
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/10_knight_quarters/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/10_knight_quarters/p00_body.nbt",
+        "sha256": "e1072808ae1b5ecaa4336aa57c8570aaf7fa226c0cf0c3042f141cb9ab8d6886"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/10_knight_quarters/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/10_knight_quarters/p00_walls.nbt",
+        "sha256": "c895e9778f6d0d3135f6db026889771d4216b6fb65e92fd1635e9e1509a820de"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/11_twin_archive",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/11_twin_archive",
+    "arrival": [
+      24,
+      2,
+      45
+    ],
+    "spawns": [
+      [
+        38,
+        5,
+        9
+      ],
+      [
+        12,
+        2,
+        19
+      ],
+      [
+        28,
+        2,
+        27
+      ],
+      [
+        12,
+        2,
+        35
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/11_twin_archive/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/11_twin_archive/p00_body.nbt",
+        "sha256": "e6ae18546e2e1eccf381a0d8eba14f55b0c1c85b8bfbeaa03a465df94fef0759"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/11_twin_archive/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/11_twin_archive/p00_walls.nbt",
+        "sha256": "7a586f25876c6406c9b05a21d6af87c4bc66ec78bd48709abb0ad339471b8246"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/12_switchback_street",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/12_switchback_street",
+    "arrival": [
+      24,
+      2,
+      3
+    ],
+    "spawns": [
+      [
+        33,
+        8,
+        42
+      ],
+      [
+        15,
+        5,
+        28
+      ],
+      [
+        29,
+        5,
+        19
+      ],
+      [
+        38,
+        2,
+        7
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/12_switchback_street/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/12_switchback_street/p00_body.nbt",
+        "sha256": "2371d1e97ae3113497891fd93b53959de93937f10aad955ca56b658550ef5571"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/12_switchback_street/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/12_switchback_street/p00_walls.nbt",
+        "sha256": "5e9632cb953a2749e9c2ac463181f6b20a0dae1a8106563728be476d88e277c2"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/13_vault_baths",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/13_vault_baths",
+    "arrival": [
+      24,
+      2,
+      45
+    ],
+    "spawns": [
+      [
+        6,
+        2,
+        15
+      ],
+      [
+        41,
+        2,
+        16
+      ],
+      [
+        16,
+        2,
+        29
+      ],
+      [
+        32,
+        2,
+        31
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/13_vault_baths/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/13_vault_baths/p00_body.nbt",
+        "sha256": "b16c9ac3112461aeea1fe01bce18111f3b4404ce89a0f40a780cd63148e12ee4"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/13_vault_baths/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/13_vault_baths/p00_walls.nbt",
+        "sha256": "86d9cfb670e98e4ec5dc14e5f1301996a2655b738a4d0ecf10a346ae5e393860"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/14_crystal_process",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/14_crystal_process",
+    "arrival": [
+      3,
+      2,
+      24
+    ],
+    "spawns": [
+      [
+        39,
+        8,
+        17
+      ],
+      [
+        22,
+        5,
+        28
+      ],
+      [
+        31,
+        5,
+        24
+      ],
+      [
+        12,
+        2,
+        27
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/14_crystal_process/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/14_crystal_process/p00_body.nbt",
+        "sha256": "d73fb5a1aa6763b86ebd8440605de40c7bbacc6f1bb9b070b9638bc5f5676abc"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/14_crystal_process/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/14_crystal_process/p00_walls.nbt",
+        "sha256": "5406fbec9ead3a72db9193485ade55bed9e84d52b8da41e99827b65f6e365260"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/15_dragon_rib_store",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/15_dragon_rib_store",
+    "arrival": [
+      2,
+      2,
+      24
+    ],
+    "spawns": [
+      [
+        45,
+        2,
+        23
+      ],
+      [
+        26,
+        2,
+        9
+      ],
+      [
+        25,
+        2,
+        34
+      ],
+      [
+        16,
+        2,
+        23
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/15_dragon_rib_store/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/15_dragon_rib_store/p00_body.nbt",
+        "sha256": "4cdcbd9725c55306402c08c77a83280a4bb3ef7cafdac96d5d0074f7ce5b6e11"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/15_dragon_rib_store/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/15_dragon_rib_store/p00_walls.nbt",
+        "sha256": "ee6eecf9cce837689b1f0c1bdd0ef5cfdeb7c4dab140ca21ea9edd360166f921"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/16_moon_suite_chapel",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/16_moon_suite_chapel",
+    "arrival": [
+      2,
+      2,
+      24
+    ],
+    "spawns": [
+      [
+        45,
+        2,
+        23
+      ],
+      [
+        22,
+        2,
+        8
+      ],
+      [
+        24,
+        6,
+        37
+      ],
+      [
+        17,
+        2,
+        24
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/16_moon_suite_chapel/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/16_moon_suite_chapel/p00_body.nbt",
+        "sha256": "9794b1585e235d02148f44df69441f33117b7c17244e8dd7051529b86dcf78e8"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/16_moon_suite_chapel/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/16_moon_suite_chapel/p00_walls.nbt",
+        "sha256": "9a873a88504c3d6c2d3b6a7bb3666f7efe7ea9259180d4c1d6b6ef5e8172793b"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/17_ancient_sluice",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/17_ancient_sluice",
+    "arrival": [
+      2,
+      6,
+      24
+    ],
+    "spawns": [
+      [
+        45,
+        6,
+        24
+      ],
+      [
+        23,
+        2,
+        10
+      ],
+      [
+        23,
+        2,
+        38
+      ],
+      [
+        29,
+        6,
+        24
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/17_ancient_sluice/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/17_ancient_sluice/p00_body.nbt",
+        "sha256": "a2046195b9af8c579bcdab8187335122fe6fdb5139e43b0b9ada18938b84e47b"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/17_ancient_sluice/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/17_ancient_sluice/p00_walls.nbt",
+        "sha256": "373e48ba184541452eb91d107ed3075ead398966fa0323ccb98569e0966ba429"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/18_root_hermitage",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/18_root_hermitage",
+    "arrival": [
+      2,
+      2,
+      24
+    ],
+    "spawns": [
+      [
+        37,
+        2,
+        19
+      ],
+      [
+        24,
+        2,
+        45
+      ],
+      [
+        20,
+        2,
+        24
+      ],
+      [
+        29,
+        6,
+        33
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/18_root_hermitage/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/18_root_hermitage/p00_body.nbt",
+        "sha256": "2af65275d1ce56ed5305d5fbf30e05721c292bbac950e951993b14d930ce4ed2"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/18_root_hermitage/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/18_root_hermitage/p00_walls.nbt",
+        "sha256": "b98a9e2d293ded42f2c79f7d06cf01c207d577bd1405d7edd41032161a3ce86d"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/19_fan_sword_school",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/19_fan_sword_school",
+    "arrival": [
+      2,
+      2,
+      24
+    ],
+    "spawns": [
+      [
+        35,
+        7,
+        35
+      ],
+      [
+        19,
+        2,
+        24
+      ],
+      [
+        34,
+        5,
+        24
+      ],
+      [
+        15,
+        2,
+        14
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/19_fan_sword_school/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/19_fan_sword_school/p00_body.nbt",
+        "sha256": "fda23bf1dac7e6184fd57d4a59909612a2bd7b7333f9a32b20b0999b527105f3"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/19_fan_sword_school/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/19_fan_sword_school/p00_walls.nbt",
+        "sha256": "38c81758b1eb3be8999f339ef0e7487d67c3fa91633d717a076bd53dcd187e5c"
+      }
+    ]
+  },
+  {
+    "id": "saodg:latest/20_sunken_excavation",
+    "source": "build/nbt_models/sao_twenty_1x1_20261030/20_sunken_excavation",
+    "arrival": [
+      2,
+      6,
+      24
+    ],
+    "spawns": [
+      [
+        45,
+        6,
+        34
+      ],
+      [
+        37,
+        8,
+        14
+      ],
+      [
+        22,
+        2,
+        25
+      ],
+      [
+        37,
+        6,
+        26
+      ]
+    ],
+    "rotations": [
+      0
+    ],
+    "stage": "existing draft; no refinement performed",
+    "files": [
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/20_sunken_excavation/delivery/p00_body.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/20_sunken_excavation/p00_body.nbt",
+        "sha256": "2816cf5c86a4269ce0e70242433192bba3087ca4386035afd5a8c43ab6f167f2"
+      },
+      {
+        "source": "build/nbt_models/sao_twenty_1x1_20261030/20_sunken_excavation/delivery/p00_walls.nbt",
+        "destination": "src/main/resources/data/saodg/structures/latest/20_sunken_excavation/p00_walls.nbt",
+        "sha256": "25cd28ca6450d6407a2106a43f3bbac5f0936e42c4e570e19e44c2a7fd145a7a"
+      }
+    ]
+  }
+]

@@ -1,0 +1,49 @@
+{
+  "reason": "Eight authorized old special rooms replaced; entrance uses user-selected refined B model",
+  "files": [
+    {
+      "path": "src/main/resources/data/saodg/structures/ruins/elite_01.nbt",
+      "sha256": "bb06a69965b29b71f49bfe7c4ed5992c089f4c69b3a0b92b0535c7cf203a90f3"
+    },
+    {
+      "path": "src/main/resources/data/saodg/structures/ruins/elite_02.nbt",
+      "sha256": "eae682aca79f4b289fb0d057e1299f04a1eed943e70fb58c4da2fa94c8bad4f9"
+    },
+    {
+      "path": "src/main/resources/data/saodg/structures/ruins/elite_03.nbt",
+      "sha256": "40faee8d9358836d8b0404dec07b41c30f4613522fee30b2b49417b3b706aa42"
+    },
+    {
+      "path": "src/main/resources/data/saodg/structures/ruins/puzzle_01.nbt",
+      "sha256": "de6bdf473ecfa9f89342cf67187289c21e85b4e5959ea7b4e2266cc544ebf8ef"
+    },
+    {
+      "path": "src/main/resources/data/saodg/structures/ruins/puzzle_02.nbt",
+      "sha256": "f9dc0dd4bce196f4bfc6e73561798d2fee3e50295040c788dbc804b9c4bc8ecf"
+    },
+    {
+      "path": "src/main/resources/data/saodg/structures/ruins/puzzle_03.nbt",
+      "sha256": "320477c9fe65e5c3c8027f2a3133754056c337397b7eec81b6f4cfe1148e9e7d"
+    },
+    {
+      "path": "src/main/resources/data/saodg/structures/ruins/elite_hall/p00.nbt",
+      "sha256": "fe172198456caf068e56cc296fa2053e4326703b64993e5fa7c8477c91551b1c"
+    },
+    {
+      "path": "src/main/resources/data/saodg/structures/ruins/elite_hall/p01.nbt",
+      "sha256": "9b341d33628bd6c5ae35d8e3cc8f63dfc761873cb4f82ca8c7c638fcb3c0a0f4"
+    },
+    {
+      "path": "src/main/resources/data/saodg/structures/ruins/elite_hall/p10.nbt",
+      "sha256": "9b341d33628bd6c5ae35d8e3cc8f63dfc761873cb4f82ca8c7c638fcb3c0a0f4"
+    },
+    {
+      "path": "src/main/resources/data/saodg/structures/ruins/elite_hall/p11.nbt",
+      "sha256": "9b341d33628bd6c5ae35d8e3cc8f63dfc761873cb4f82ca8c7c638fcb3c0a0f4"
+    },
+    {
+      "path": "src/main/resources/data/saodg/structures/ruins/entrance_01.nbt",
+      "sha256": "fc55be343d17291f7fbf7c04eadb489374fbf493ab9caeb72d2eeeef3b71e619"
+    }
+  ]
+}

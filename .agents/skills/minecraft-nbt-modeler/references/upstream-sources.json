@@ -1,0 +1,39 @@
+{
+  "references": [
+    {
+      "repository": "https://github.com/mattzh72/minecraft-builder-skill",
+      "commit": "ce57d4804290d8dd2d9d4abbce564db09cd2bd92",
+      "license": "Apache-2.0",
+      "reused": [
+        {
+          "upstream": "assets/viewer/index.html",
+          "local": "assets/viewer/index.html",
+          "source_sha256": "7c09267d6fa30870986708f5fe08002133b6d02c282402d9be8545cfb0622de0"
+        },
+        {
+          "upstream": "assets/viewer/src/main.js",
+          "local": "assets/viewer/src/main.js",
+          "source_sha256": "f4511176d741797274669aad28fb2af9f3209b5c9e0a65c3f3c553e64961b403"
+        },
+        {
+          "upstream": "assets/viewer/src/style.css",
+          "local": "assets/viewer/src/style.css",
+          "source_sha256": "2fa5650320a275bb1299ef6c4f1c866f174d60eae22e900393b9fb6353246c73"
+        }
+      ],
+      "modifications": "JSON whole-master snapshot input; Chinese inspection controls; layer/Y filtering; camera/screenshot export; optional operation lookup. Original license retained at assets/viewer/LICENSE.upstream. Shared headless batch capture and direct file output; camera changes repaint without mesh rebuild; queued filter/capture operations and balanced shadow settings."
+    },
+    {
+      "repository": "https://github.com/SimoneRecchia/minecraft-schematic-lab",
+      "commit": "99fcc1484fd0f84e4d06a1e6dd8635f567c6ded6",
+      "license": "AGPL-3.0",
+      "reused": [],
+      "design_reference": [
+        "strict version-aware validation",
+        "stable operation IDs and last-writer provenance",
+        "feedback tied to source version"
+      ],
+      "scope": "Design reference only; no source, assets, guides or simulator copied."
+    }
+  ]
+}
