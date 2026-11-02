@@ -1,16 +1,20 @@
 const catalog=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json')
-const fields=['name','theme','purpose','footprint','style','ceiling','floor','wall','props','preserve','extras']
+const fields=['buildingShape','layout','circulation','name','theme','purpose','footprint','style','ceiling','floor','wall','props','preserve','extras']
 function cleanContext(input){
  if(!input||!input.project||!Array.isArray(input.project.size))throw Error('需要当前提示词方案')
  const project={size:input.project.size}
  for(const key of fields)if(typeof input.project[key]==='string')project[key]=input.project[key].slice(0,4000)
- return {project,existing_model:input.existing_model===true,operations:Array.isArray(input.operations)?input.operations.slice(0,64):[]}
+ if(!project.size||project.size.length!==3||!project.size.every(v=>Number.isInteger(v)&&v>0&&v<=4096))throw Error('设计尺寸无效');
+ if(input.task==='draft'&&input.existing_model)throw Error('完整初稿必须是新建任务');
+ return {project,task:input.task==='draft'?'draft':'controls',existing_model:input.existing_model===true,operations:Array.isArray(input.operations)?input.operations.slice(0,64):[]}
 }
 function validateWorkbench(result,context){
  if(!result||typeof result!=='object'||Array.isArray(result)||Object.keys(result).some(k=>!['summary','project_patch','operations'].includes(k))||typeof result.summary!=='string'||result.summary.length>4000)throw Error('AI控件方案格式无效')
  const patch=result.project_patch??{}
  if(!patch||Array.isArray(patch)||typeof patch!=='object'||Object.keys(patch).some(k=>!fields.includes(k)&&k!=='size'))throw Error('AI只能调整设计字段，不能修改源路径、阶段、保护或批准')
  for(const [key,value]of Object.entries(patch))if(key!=='size'&&(typeof value!=='string'||value.length>4000))throw Error('AI设计文字字段无效')
+ if(patch.buildingShape){if(!catalog.building_shapes[patch.buildingShape])throw Error('建筑形状无效');if(context.existing_model&&patch.buildingShape!==context.project.buildingShape)throw Error('已有模型形状不可由AI改写')}
+ if(context.task==='draft'){for(const key of ['name','theme','purpose','layout','circulation','style','ceiling','floor','wall','props'])if(typeof patch[key]!=='string'||!patch[key].trim())throw Error('完整初稿缺少设计字段：'+key);if(!Array.isArray(result.operations)||!result.operations.length)throw Error('完整初稿需要初始构造工具步骤')}
  if(patch.size){if(!Array.isArray(patch.size)||patch.size.length!==3||!patch.size.every(v=>Number.isInteger(v)&&v>0&&v<=4096))throw Error('设计尺寸无效');if(context.existing_model&&JSON.stringify(patch.size)!==JSON.stringify(context.project.size))throw Error('已有模型尺寸不可由AI改写')}
  if(result.operations!==undefined){
   if(!Array.isArray(result.operations)||result.operations.length>64)throw Error('工具序列最多64项')

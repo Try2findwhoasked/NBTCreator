@@ -12,3 +12,16 @@ test('arbitrary fields, code, out of selection and invalid states rejected',()=>
 test('empty and truncated outputs are reported; response error body never exposed',async()=>{for(const data of [{choices:[{message:{content:' '}}]},{choices:[{message:{content:'x'},finish_reason:'length'}]}]){const s=await service(async()=>new Response(JSON.stringify(data)));try{await s.api.save({enabled:true});await assert.rejects(s.api.generate({mode:'prompt',instruction:'task',context}))}finally{await s.close()}}const s=await service(async()=>new Response('mock-secret',{status:401}));try{await s.api.save({enabled:true});await assert.rejects(s.api.models(),e=>e.message.includes('401')&&!e.message.includes('mock-secret'))}finally{await s.close()}})
 test('cancel in-flight request and reject concurrency',async()=>{const s=await service((_url,opts)=>new Promise((_resolve,reject)=>opts.signal.addEventListener('abort',()=>reject(new DOMException('cancel','AbortError')))));try{await s.api.save({enabled:true});const pending=s.api.models();await new Promise(r=>setImmediate(r));await assert.rejects(s.api.models(),/已有/);await assert.rejects(s.api.save({enabled:false}),/进行中/);s.api.cancel();await assert.rejects(pending,/取消/)}finally{await s.close()}})
 test('changed server does not inherit previous key; broken optional config keeps offline mode',async()=>{const s=await service();try{await s.api.save({enabled:true,key:'mock-secret'});await s.api.save({baseUrl:'https://other.example/v1',provider:'compatible',enabled:true});assert.equal(s.api.publicConfig().hasKey,false);await fs.writeFile(path.join(s.directory,'api-settings.json'),'{broken');const loaded=await s.api.load();assert.equal(loaded.enabled,false);assert.equal(loaded.hasKey,false)}finally{await s.close()}})
+
+test('small structures reject out-of-region geometry, air, excess work and unsafe beam widths',()=>{
+ const {validateSmallStructure}=require('../desktop/api-service.cjs')
+ const ctx={size:[48,24,48],lo:[4,4,4],hi:[15,15,15]}
+ const op={kind:'box',label:'柱',classification:'body',lo:[6,4,6],hi:[6,8,6],state:'stone_bricks'}
+ const proposal=operation=>({summary:'局部小构件',settings_patch:{lo:ctx.lo,hi:ctx.hi,operations:[operation]}})
+ assert.deepEqual(validateSmallStructure(proposal(op),ctx).settings_patch.operations,[op])
+ assert.throws(()=>validateSmallStructure(proposal({...op,hi:[16,8,6]}),ctx),/超出/)
+ assert.throws(()=>validateSmallStructure(proposal({...op,state:'air'}),ctx),/实体材质/)
+ assert.throws(()=>validateSmallStructure(proposal({...op,script:'exec'}),ctx))
+ assert.throws(()=>validateSmallStructure(proposal({...op,kind:'beam',start:[6,4,6],end:[6,8,6],width:5}),ctx),/厚度/)
+ assert.throws(()=>validateSmallStructure({...proposal(op),settings_patch:{lo:ctx.lo,hi:ctx.hi,operations:Array(33).fill(op)}},ctx),/32步/)
+})

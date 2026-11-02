@@ -59,7 +59,7 @@ try{
  await page.locator('#update-preview').click();await page.waitForFunction(()=>window.detailControl.state.comparisonSide==='after'&&!window.detailControl.state.previewBusy,undefined,{timeout:90000});checks.parameter_effect_preview=true
  await page.locator('#export-revision').click();await page.waitForFunction(()=>!window.detailControl.state.busy&&document.querySelector('#status').textContent.includes('下一版建筑已保存'),undefined,{timeout:90000})
  const links=await page.locator('#result-links a').allTextContents();assert.ok(links.some(n=>n.endsWith('.nbt')));assert.equal(hash(await fs.readFile(source)),original);checks.explicit_export_new_version_preserves_original=true
- await page.locator('button[data-workspace=prompt]').click();await page.waitForFunction(()=>document.querySelector('#prompt-sync-status').textContent.startsWith('已载入'),undefined,{timeout:30000})
+ await page.locator('button[data-workspace=prompt]').click();await page.waitForFunction(()=>document.querySelector('#prompt-frame').contentWindow.NbtPromptUI);await page.locator('#sync-prompt').click();await page.waitForFunction(()=>document.querySelector('#prompt-sync-status').textContent.startsWith('已载入'),undefined,{timeout:30000})
  assert.ok((await page.frameLocator('#prompt-frame').locator('#result').inputValue()).includes(source));await page.locator('#close-prompt').click();checks.prompt_console_reused=true
  await page.screenshot({path:path.join(output,'desktop.png')})
  const cli=spawnSync(process.execPath,[path.join(root,'scripts/cli.mjs'),'inspect','--source',source],{encoding:'utf8',windowsHide:true});assert.equal(cli.status,0,cli.stderr);assert.equal(JSON.parse(cli.stdout).source_sha256,original);checks.cli_same_engine_without_ui_automation=true

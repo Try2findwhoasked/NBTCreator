@@ -153,7 +153,7 @@ async function syncPrompt(){
     label.textContent='正在读取当前建筑、参数和保护配置…'
     const req=request(),result=await api('prompt-export',req)
     const selected=state.models.find(m=>m.source===result.source)
-    $('prompt-frame').contentWindow.NbtPromptUI.receive({...result,name:selected?.name,
+    $('prompt-frame').contentWindow.NbtPromptUI.receive({...result,name:selected?.name,buildingShape:selected?.shape,
       contextPath:req.context,reviewPath:req.review,output:state.info?.workdir??state.output,budget:req.settings.max_changed_blocks})
     label.textContent='已载入当前建筑与参数；面板修改只用于生成提示词'
   }catch(error){label.textContent=error.message}
@@ -163,11 +163,12 @@ $('open-prompt').addEventListener('click',()=>{
   if(!$('prompt-dialog').open)$('prompt-dialog').show()
   window.creatorWorkspace?.opened('prompt')
   if(!promptLoaded){
-    const frame=$('prompt-frame');frame.addEventListener('load',()=>{promptLoaded=true;if(state.info)syncPrompt()},{once:true})
+    const frame=$('prompt-frame');frame.addEventListener('load',()=>{promptLoaded=true;$('prompt-sync-status').textContent='新建初稿方案；修改已有作品时请主动载入当前建筑'},{once:true})
     frame.src='/__detail__/prompt/index.html'
   }else $('prompt-sync-status').textContent='保留上次编辑。需要更新时点击“载入当前建筑与参数”（替换工具序列）'
 })
 $('sync-prompt').addEventListener('click',syncPrompt)
+$('prompt-new').addEventListener('click',()=>{if(!promptLoaded)return;$('prompt-frame').contentWindow.NbtPromptUI.newDraft();$('prompt-sync-status').textContent='新建初稿方案：形状、尺寸与保存位置按 skill 规范自动填写'})
 $('close-prompt').addEventListener('click',()=>$('prompt-dialog').close())
 for(const [button,target]of [['prompt-import','import'],['prompt-save','save'],['prompt-reset','reset']])$(button).addEventListener('click',()=>$('prompt-frame').contentDocument?.getElementById(target)?.click())
 function setValue(id, value) {
@@ -694,7 +695,8 @@ initApiAssistant({
  apply:async patch=>{
   if(state.busy||state.previewBusy)throw Error('请等待当前任务完成')
   const next=gather();next.whole_region=false;next.lo=patch.lo;next.hi=patch.hi
-  next.structure={...next.structure,enabled:false,...patch.structure};next.replace={...next.replace,enabled:false,...patch.replace}
+  if(patch.operations)next.operations=[...(next.operations||[]),...patch.operations]
+  else {next.structure={...next.structure,enabled:false,...patch.structure};next.replace={...next.replace,enabled:false,...patch.replace}}
   await api('prompt-export',{...request(),settings:next})
   restore(next);state.configChanged=true;state.bundle='';updateCount();recordSettings();state.previewRevision++;clearTimeout(previewTimer)
   await updatePreview()
