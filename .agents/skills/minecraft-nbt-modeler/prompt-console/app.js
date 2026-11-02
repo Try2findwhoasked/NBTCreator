@@ -11,7 +11,7 @@
  function aiDraft(){return state.aiDraft&&typeof state.aiDraft.text==='string'&&state.aiDraft.text.length<=60000&&state.aiDraft.binding===binding()?state.aiDraft:null;}
  function composeAI(text){const base=C.prompt(state);return base.slice(0,base.indexOf('# 全局设计与细节要求'))+'# 全局设计与细节要求（AI 建议，待审阅）\n'+text+'\n\n'+base.slice(base.indexOf('# 阶段执行边界'));}
  function outputText(){return aiDraft()?composeAI(aiDraft().text):C.prompt(state);}
- function update(){const errors=[...pending.values(),...C.validate(state)];const invalid=errors.length>0;for(const id of ['copy','markdown','plan','config','save'])$(id).disabled=invalid;
+ function update(){const errors=[...pending.values(),...C.validate(state)];const invalid=errors.length>0;for(const id of ['copy','markdown','plan','config','save','left-save'])$(id).disabled=invalid;
    $('result').value=invalid?'参数尚未有效，请先修正：\n'+errors.join('\n'):outputText();notify(invalid?errors.join('\n'):`${state.operations.length} 个步骤 · 参数草案有效 · 尚未验证模型`,invalid);$('count').textContent=state.operations.length;
    $('output-mode').textContent=aiDraft()?'当前导出：AI 设计建议 + 本地任务元数据、工具计划与验证要求':state.aiDraft?'方案已变化，当前导出参数生成稿；AI 建议需重新生成或重新审阅':'当前导出：参数生成稿';
    if(!invalid)try{localStorage.setItem(storage,JSON.stringify(state));}catch{notify('当前浏览器无法自动暂存，请使用“保存方案”');}
@@ -57,16 +57,18 @@
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab').forEach(x=>x.hidden=x.id!==b.dataset.tab);});
  $('context-json').oninput=()=>{try{const v=JSON.parse($('context-json').value);if(!v||typeof v!=='object'||Array.isArray(v))throw Error('上下文须为对象');state.project.context=v;pending.delete('context');$('context-error').textContent='';}catch(e){pending.set('context','上下文JSON无效：'+e.message);$('context-error').textContent=e.message;}update();};
  $('save').onclick=()=>download('nbt_prompt_settings.json',state);
+ $('left-read').onclick=()=>$('import').click();$('left-save').onclick=()=>$('save').click();
  $('markdown').onclick=()=>download('NBT建模完整提示词.md',outputText(),'text/markdown;charset=utf-8');
  $('plan').onclick=()=>download('plan.json',C.plan(state));
  $('config').onclick=()=>download('context_draft.json',{...state.project.context,max_changed_blocks:state.project.budget});
  $('copy').onclick=async()=>{try{if(navigator.clipboard?.writeText)await navigator.clipboard.writeText($('result').value);else throw Error('fallback');notify('完整提示词已复制');}catch{$('result').focus();$('result').select();notify(document.execCommand('copy')?'完整提示词已复制':'已选中提示词，请按 Ctrl+C');}};
  $('import').onclick=()=>$('file').click();$('file').onchange=async()=>{const f=$('file').files[0];if(!f)return;try{const v=JSON.parse(await f.text());const candidate={...C.defaults(),...v,project:{...C.defaults().project,...v.project}};const errors=C.validate(candidate);if(errors.length)throw Error(errors.join('；'));state=candidate;pending.clear();renderProject();renderOperations();update();}catch(e){notify('导入失败：'+e.message,true);}finally{$('file').value='';}};
  $('reset').onclick=()=>{if(!confirm('重置当前方案？未导出的修改将清除。'))return;state=C.defaults();pending.clear();renderProject();renderOperations();update();};
- let aiBridge=null,candidateBinding=null,aiRunning=false;
+ let aiBridge=null,candidateBinding=null,aiRunning=false,candidateMode='text';
  try{if(window.parent!==window&&window.parent.location.origin===location.origin)aiBridge=window.parent.nbtPromptAI;}catch{}
  function aiMessage(text,error=false){$('prompt-ai-status').textContent=text;$('prompt-ai-status').classList.toggle('error',error);}
- function aiLock(value){aiRunning=value;$('prompt-ai-generate').disabled=value;$('prompt-ai-cancel').disabled=!value;$('prompt-ai-settings').disabled=value;}
+ function aiLock(value){aiRunning=value;$('prompt-ai-mode').disabled=value;$('prompt-ai-generate').disabled=value;$('prompt-ai-cancel').disabled=!value;$('prompt-ai-settings').disabled=value;}
+ $('prompt-ai-mode').onchange=()=>{candidateBinding=null;$('prompt-ai-apply').disabled=true;aiMessage('已切换AI模式，请重新生成候选方案。');}
  async function refreshAI(){
    if(!aiBridge){$('prompt-ai-indicator').textContent='离线编辑模式';aiMessage('在 NBTCreator 桌面细节控制台内打开本页，可使用共用 API；当前仍可离线编辑和导出。');return;}
    try{const c=await aiBridge.config();$('prompt-ai-indicator').textContent=c.enabled?'API 已启用':'API 未启用';if(!c.enabled)aiMessage('请先通过“API 设置”启用并保存连接。');}catch(e){aiMessage(e.message,true);}
@@ -78,7 +80,7 @@
    const project=Object.fromEntries(keys.map(k=>[k,p[k]]));
    project.extras=String(p.extras??'').split('\n').filter(line=>!line.startsWith('源文件 SHA256：')).join('\n');
    const allowed=new Set(['kind','label','classification','lo','hi','geometry','mode','state','from_states','seed','max_writes','offset','count','destination','quarter_turns','mirror','move','include_air','overwrite','iterations','seeds','steps','decay','surface_only','centre','radius','roughness','rays','ray_length','ray_width','fraction','spacing','supported','action','scope','scale','palette','preserve_properties','shape_policy','profile','style_note','slab_share','patch_size','pit_depth','route_margin','exclude_boxes','include_boxes','slab_overrides','moss','cracks','floor','thickness','width','start','end']);
-   return {project,operations:state.operations.map(op=>Object.fromEntries(Object.entries(op).filter(([key])=>allowed.has(key))))};
+   return {project,existing_model:!!p.source,operations:state.operations.map(op=>Object.fromEntries(Object.entries(op).filter(([key])=>allowed.has(key))))};
  }
  $('prompt-ai-generate').onclick=async()=>{
    if(aiRunning)return;
@@ -89,16 +91,25 @@
      const instruction='请基于下面的建筑设计草案，生成可供审阅的中文设计要求段落，补足天花承托、地板分区、墙面层次、交接收口与细节主次。保留主题、布局和已给定工具意图，不输出新坐标、不声称已执行或已批准；不必重复技术命令，因为应用将保留本地阶段规则、工具计划、保护配置和交付要求。\n用户补充：'+$('prompt-ai-instruction').value+'\n设计草案 JSON：\n'+JSON.stringify(sanitizedDesign());
      if(instruction.length>12000)throw Error('方案较大，请减少工具序列或缩短设计要求后再调用 AI');
      aiLock(true);aiMessage('正在根据当前设计要求生成建议…');
-     const result=await aiBridge.generate(instruction);
+     candidateMode=$('prompt-ai-mode').value;
+     const result=candidateMode==='controls'?await aiBridge.generateWorkbench($('prompt-ai-instruction').value||'请完善当前建筑方案，配置合适的设计字段，保留不需要修改的工具',sanitizedDesign()):await aiBridge.generate(instruction);
      if(binding()!==before)throw Error('生成期间方案已改变，请基于当前方案重新生成');
-     if(result.mode!=='prompt'||typeof result.text!=='string'||!result.text.trim())throw Error('AI 返回内容无效');
-     $('prompt-ai-candidate').value=result.text;candidateBinding=before;$('prompt-ai-apply').disabled=false;aiMessage('建议已生成，可编辑后采用；当前导出内容尚未改变。');
+     if(candidateMode==='text'&&(result.mode!=='prompt'||typeof result.text!=='string'||!result.text.trim()))throw Error('AI 返回内容无效');
+     $('prompt-ai-candidate').value=candidateMode==='controls'?JSON.stringify({summary:result.summary,project_patch:result.project_patch,operations:result.operations},null,2):result.text;candidateBinding=before;$('prompt-ai-apply').disabled=false;aiMessage(candidateMode==='controls'?'控件方案已生成，审阅JSON后点击采用，即可回填左侧。':'建议已生成，可编辑后采用；当前导出内容尚未改变。');
    }catch(e){aiMessage(e.message,true);}finally{aiLock(false);}
  };
  $('prompt-ai-cancel').onclick=()=>aiBridge?.cancel();
  $('prompt-ai-apply').onclick=()=>{try{
    if(aiRunning||candidateBinding!==binding()||pending.size||C.validate(state).length)throw Error('方案已改变或参数无效，请重新生成建议');
    const text=$('prompt-ai-candidate').value.trim();if(!text||text.length>60000)throw Error('填写有效的候选建议');
+   if(candidateMode==='controls'){
+     const proposal=JSON.parse(text),patch=proposal.project_patch??{},allowed=['name','theme','purpose','footprint','style','ceiling','floor','wall','props','preserve','extras','size'];
+     if(Object.keys(patch).some(key=>!allowed.includes(key)))throw Error('方案不能改写路径、阶段、预算或保护字段');
+     if(state.project.source&&patch.size&&JSON.stringify(patch.size)!==JSON.stringify(state.project.size))throw Error('已有模型的尺寸保持不变');
+     const next=C.clone(state);for(const [key,value]of Object.entries(patch)){if(key!=='size'&&(typeof value!=='string'||value.length>4000))throw Error('设计字段需为有效文字');next.project[key]=value;}
+     if(proposal.operations!==undefined)next.operations=proposal.operations;
+     const errors=C.validate(next);if(errors.length)throw Error(errors.join('；'));delete next.aiDraft;state=next;pending.clear();renderProject();renderOperations();update();candidateBinding=null;$('prompt-ai-apply').disabled=true;aiMessage('已回填左侧设计控件和工具序列；未改动源路径、保护配置或批准状态。');return;
+   }
    state.aiDraft={text,binding:binding()};update();aiMessage('已采用 AI 设计建议；工具计划、任务元数据、阶段与保护要求沿用本地方案。');
  }catch(e){aiMessage(e.message,true);}};
  $('prompt-ai-reset').onclick=()=>{delete state.aiDraft;update();aiMessage('已切回参数生成稿；表单和工具序列保持。');};

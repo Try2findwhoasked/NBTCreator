@@ -8,5 +8,5 @@ export function initDesktop(loadSource){
  async function show(){const data=await window.nbtDesktop.info();info.textContent='工作区：'+data.workspace;info.title=data.workspace}
  workspace.onclick=async()=>{try{await window.nbtDesktop.chooseWorkspace();await show()}catch(e){info.textContent=e.message}}
  source.onclick=async()=>{try{const file=await window.nbtDesktop.chooseSource();if(file)await loadSource(file)}catch(e){info.textContent=e.message}}
- host.append(workspace,source);document.querySelector('.sidebar>.card').prepend(host,info);show().catch(e=>info.textContent=e.message)
+ host.append(workspace,source);(document.getElementById('workspace-tools-content')??document.querySelector('.sidebar>.card')).prepend(host,info);show().catch(e=>info.textContent=e.message)
 }

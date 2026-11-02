@@ -3,7 +3,7 @@ import json,sys,tempfile,unittest,shutil,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];ENGINE=ROOT/'.agents/skills/minecraft-nbt-modeler';sys.path.insert(0,str(ENGINE/'scripts'))
 from nbt_capabilities import capabilities
-from nbt_exposure import apply as expose
+from nbt_exposure import apply as expose,import_knowledge
 from nbt_workspace import migrate
 from nbt_request_paths import read_request,metadata_path
 from nbt_detail_control import default_settings,compile_plan,preview_effect
@@ -58,4 +58,9 @@ class Contracts(unittest.TestCase):
    run=subprocess.run([sys.executable,str(new/'.agents/skills/nbtcreator-workspace/nbt.py'),'capabilities'],cwd=new,capture_output=True,text=True,encoding='utf8')
    self.assertEqual(run.returncode,0,run.stderr);self.assertEqual(len(json.loads(run.stdout)['tools']),18)
    text=(new/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8');self.assertIn('.nbtcreator/runtimes',text);self.assertNotIn(str(ROOT),text)
+ def test_custom_knowledge_copied_selected_and_portable(self):
+  with tempfile.TemporaryDirectory() as temp:
+   root=Path(temp);workspace=root/'project';doc=root/'建筑规范.md';doc.write_text('梁端需要承托。',encoding='utf8')
+   result=import_knowledge(workspace,[doc]);item=result['custom_knowledge'][0];self.assertTrue((workspace/'.nbtcreator'/item['path']).is_file());self.assertIn('建筑规范',(workspace/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8'))
+   item['enabled']=False;expose(workspace,dict(schema_version=1,enabled_groups=['core'],custom_knowledge=[item]));self.assertNotIn('建筑规范',(workspace/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8'));self.assertTrue(doc.is_file());self.assertTrue((workspace/'.nbtcreator'/item['path']).is_file())
 if __name__=='__main__':unittest.main(verbosity=2)

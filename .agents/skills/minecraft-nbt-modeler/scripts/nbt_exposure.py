@@ -5,6 +5,7 @@ import os
 import hashlib
 import shutil
 import uuid
+import re
 from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
@@ -52,7 +53,35 @@ def read_config(workspace):
     except FileNotFoundError:config=dict(schema_version=1,enabled_groups=list(GROUPS))
     if config.get('schema_version')!=1 or not isinstance(config.get('enabled_groups'),list) or any(g not in GROUPS for g in config['enabled_groups']):raise ValueError('知识库暴露配置无效')
     config['enabled_groups']=list(dict.fromkeys(['core',*config['enabled_groups']]))
+    config['custom_knowledge']=validate_custom(workspace,config.get('custom_knowledge',[]))
     return config
+
+def validate_custom(workspace,items):
+    if not isinstance(items,list) or len(items)>100:raise ValueError('自定义知识库最多100项')
+    root=(Path(workspace)/'.nbtcreator/knowledge').resolve();ids=set()
+    for item in items:
+        if not isinstance(item,dict) or set(item)-{'id','label','path','enabled'} or not re.fullmatch(r'custom_[a-f0-9]{16}',item.get('id','')) or item['id'] in ids:raise ValueError('自定义知识条目无效')
+        ids.add(item['id']);target=(Path(workspace)/'.nbtcreator'/item.get('path','')).resolve()
+        if not target.is_relative_to(root) or not target.is_file() or target.suffix.lower() not in {'.md','.txt'}:raise ValueError('自定义知识文件不存在或超出知识目录')
+        if not isinstance(item.get('label'),str) or len(item['label'])>150 or re.search(r'[\r\n\[\]]',item['label']) or type(item.get('enabled')) is not bool or Path(item['path']).is_absolute():raise ValueError('知识名称、相对路径或开关无效')
+    return items
+
+def import_knowledge(workspace,documents):
+    workspace=Path(workspace).resolve();config=read_config(workspace);folder=workspace/'.nbtcreator/knowledge'
+    planned=[]
+    if not documents or len(documents)>32:raise ValueError('每次选择1至32份Markdown或TXT知识文件')
+    for source in documents:
+        source=Path(source)
+        if source.suffix.lower() not in {'.md','.txt'} or source.stat().st_size>2*1024*1024:raise ValueError('仅支持不超过2MiB的Markdown/TXT文件')
+        data=source.read_bytes();data.decode('utf-8-sig');digest=hashlib.sha256(data).hexdigest()[:16]
+        planned.append((folder/(digest+source.suffix.lower()),data,dict(id='custom_'+digest,label=re.sub(r'[\[\]()\r\n]','',source.stem)[:150],path='knowledge/'+digest+source.suffix.lower(),enabled=True)))
+    if len(config['custom_knowledge'])+len(planned)>100:raise ValueError('自定义知识库最多100项')
+    folder.mkdir(parents=True,exist_ok=True)
+    for target,data,item in planned:
+        if target.exists() and target.read_bytes()!=data:raise ValueError('同名知识文件有本地修改，未覆盖')
+        target.write_bytes(data)
+        if not any(existing['id']==item['id'] for existing in config['custom_knowledge']):config['custom_knowledge'].append(item)
+    return apply(workspace,config)
 
 def show(workspace):
     config=read_config(workspace)
@@ -64,9 +93,10 @@ def apply(workspace,config=None):
     workspace=Path(workspace).resolve();folder=workspace/'.nbtcreator';folder.mkdir(parents=True,exist_ok=True)
     file=folder/'skill-exposure.json'
     if config is not None:
-        if set(config)-{'schema_version','enabled_groups'}:raise ValueError('未知暴露配置字段')
+        if set(config)-{'schema_version','enabled_groups','custom_knowledge'}:raise ValueError('未知暴露配置字段')
         if config.get('schema_version')!=1 or not isinstance(config.get('enabled_groups'),list) or any(g not in GROUPS for g in config['enabled_groups']):raise ValueError('暴露配置无效')
         config=dict(config,enabled_groups=list(dict.fromkeys(['core',*config['enabled_groups']])))
+        config['custom_knowledge']=validate_custom(workspace,config.get('custom_knowledge',read_config(workspace).get('custom_knowledge',[])))
     else:config=read_config(workspace)
     runtime=sync_runtime(workspace)
     facade=workspace/'.agents/skills/nbtcreator-workspace';facade.mkdir(parents=True,exist_ok=True)
@@ -74,6 +104,7 @@ def apply(workspace,config=None):
     lines=['---','name: nbtcreator-workspace','description: 当前工作区的Minecraft NBT建模接口，应用与Agent共用工具清单和可选知识库。','---','','# 当前工作区建模接口','',
       '工作目录使用当前Agent项目根目录，默认资产目录为 `nbt_models/`。使用绝对或相对输入都可以，保存参数优先采用工作区相对路径。',
       '保持完整主模型、显式墙mask、真实看图确认、路径/保护检查、新版本输出和纯切割流程。不能把知识库选择、AI建议或测试记录当作批准。',
+      '本入口暴露给在当前项目中读取SKILL.md的Codex或其他支持文件式skill的Agent；不是Minecraft游戏或API供应商的服务器插件。',
       '本入口仅按配置暴露知识路由，不删除资料库，也不是文件访问权限控制。未选择的专题不默认读取；需要额外专题时由用户调整配置。','',
       f'完整工具清单与接口：[共用接口]({relative}/references/exposed-tools.md)。',
       '无界面调用：`python .agents/skills/nbtcreator-workspace/nbt.py capabilities`；`control --help`、`refine --help`。Electron无需启动。',
@@ -84,6 +115,12 @@ def apply(workspace,config=None):
             target=runtime/'references'/f'{name}.md'
             if not target.is_file():raise ValueError('缺少知识文件：'+name)
             lines.append(f'- [{name}]({relative}/references/{name}.md)')
+    custom=[item for item in config.get('custom_knowledge',[]) if item['enabled']]
+    if custom:
+        lines+=['','## 用户补充知识','这些文档作为任务资料，不改变核心约束，也不授予精修或部署批准。']
+        for item in custom:
+            link=os.path.relpath(workspace/'.nbtcreator'/item['path'],facade).replace('\\','/')
+            lines.append(f"- [{item['label']}]({link})")
     wrapper='''"""Generated workspace entry; implementation remains in the shared application engine."""
 from pathlib import Path
 import sys,subprocess,json
@@ -115,6 +152,6 @@ raise SystemExit(subprocess.call([sys.executable,'-B',str(engine/'scripts'/scrip
     return show(workspace)
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('command',choices=['show','apply']);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('--config',type=Path)
-    args=parser.parse_args();result=show(args.workspace) if args.command=='show' else apply(args.workspace,json.loads(args.config.read_text(encoding='utf8')) if args.config else None)
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('command',choices=['show','apply','import']);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('--config',type=Path);parser.add_argument('--document',type=Path,action='append')
+    args=parser.parse_args();result=import_knowledge(args.workspace,args.document) if args.command=='import' else show(args.workspace) if args.command=='show' else apply(args.workspace,json.loads(args.config.read_text(encoding='utf8')) if args.config else None)
     print(json.dumps(result,ensure_ascii=False))

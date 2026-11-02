@@ -11,13 +11,14 @@
     if(!['draft','plan','refine'].includes(p.stage))errors.push('请选择有效阶段');
     if(!Array.isArray(p.size)||p.size.length!==3||!p.size.every(n=>Number.isInteger(n)&&n>0))errors.push('整体尺寸必须是三个正整数');
     if(!Number.isInteger(p.budget)||p.budget<1)errors.push('总变化预算须为正整数');
-    if(!p.name?.trim()||!p.style?.trim())errors.push('填写建筑名称与全局风格');
+    if(typeof p.name!=='string'||!p.name.trim()||typeof p.style!=='string'||!p.style.trim())errors.push('填写建筑名称与全局风格');
     if(!p.context||typeof p.context!=='object'||Array.isArray(p.context))errors.push('验证上下文须为JSON对象');
     s.operations.forEach((o,i)=>{
       const prefix=`第${i+1}步：`;
       if(!o||typeof o!=='object'){errors.push(prefix+'操作须为JSON对象');return;}
       if(!catalog[o.kind]) {errors.push(prefix+'未知工具');return;}
-      if(!o.label?.trim())errors.push(prefix+'填写操作说明');
+      if(typeof o.label!=='string'||!o.label.trim())errors.push(prefix+'填写操作说明');
+      if(o.kind==='geometry'&&(!o.geometry||!shapes[o.geometry.shape]))errors.push(prefix+'填写有效几何形状');
       if(!['wall','body','inherit'].includes(o.classification))errors.push(prefix+'层归属无效');
       if(o.kind!=='auto_floor')for(const k of ['lo','hi'])if(!Array.isArray(o[k])||o[k].length!==3||!o[k].every(Number.isInteger))errors.push(prefix+k+'须为整数XYZ');
       if(Array.isArray(o.lo)&&Array.isArray(o.hi)&&p.size?.length===3&&o.lo.some((v,j)=>v<0||v>o.hi[j]||o.hi[j]>=p.size[j]))errors.push(prefix+'选区越界或上下界颠倒');

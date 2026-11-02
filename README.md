@@ -1,6 +1,8 @@
 # NBTCreator
 
-Minecraft Java 1.20.1 NBT 建模工具的独立 Electron 项目（当前开发版本1.1.0，已保留1.0首次版本标签）。应用、提示词页、Python和skill使用同一份18类工具清单，默认使用Agent当前项目根目录下的nbt_models。原SAODG与冻结资料库不参与修改。已知全屏闪退仍待单独排查，见docs/KNOWN_ISSUES.md。
+Minecraft Java 1.20.1 NBT 建模工具的独立 Electron 项目（当前开发版本1.2.0，已保留1.0首次版本标签）。应用、提示词页、Python和skill使用同一份18类工具清单，默认使用Agent当前项目根目录下的nbt_models。原SAODG与冻结资料库不参与修改。已知全屏闪退仍待单独排查，见docs/KNOWN_ISSUES.md。
+
+1.2调整了模型/提示词工作区：模型选择后自动载入，无图片时自动打开只读3D；上方设置默认收起，3D隐藏缩略图。评论支持筛选、搜索、坐标定位和Ctrl+Enter保存，任务记录以状态卡片呈现。提示词AI可提议回填左侧设计控件/工具序列，左栏底部可读取/保存；AI设置支持导入自定义Markdown/TXT知识，并明确它暴露给当前项目的Codex/文件式Skill Agent。
 
 顶部 **AI助手** 只用于API和AI相关设置，包括当前工作区的 **Skill暴露配置**：选择建筑风格、自由形、多空间、细微道具等知识组，保存后生成 `.agents/skills/nbtcreator-workspace/SKILL.md`。核心约束保持，原文不删除，工具种类不随知识组减少。提示词生成位于提示词方案；结构建议位于模型编辑的AI建模页。API默认关闭，Key加密保存。详见 `docs/API_INTEGRATION.md`。
 
@@ -71,5 +73,7 @@ npm run package
 1.0首次版本包另存为 `dist/1.0.0/NBTCreator-win32-x64/NBTCreator.exe`，实际验证与已知限制见 `docs/RELEASE_1.0.0_2026-11-02.md`。
 
 本轮1.1验证包位于 `dist/1.1.0/NBTCreator-win32-x64/NBTCreator.exe`，验证见 `docs/VALIDATION_1.1.0_2026-11-02.md`。build:web的输出web-dist不入Git；打包自动重建，并随工作区skill同步携带。
+
+当前1.2包：`dist/1.2.0/NBTCreator-win32-x64/NBTCreator.exe`。相关验证见 `docs/VALIDATION_1.2.0_2026-11-02.md`。
 
 应用与CLI共用引擎，但暂不支持同项目并发写入协调、跨重启任务恢复或自主AI Agent循环。不要同时对同一个源项目发起两路写出。新任务/参数保存为工作区相对引用，外部跨盘文件与历史证据可能保留绝对路径。旧目录迁移用 `node scripts/cli.mjs migrate-workspace --source <旧根目录> --workspace <新根目录>`，校验复制、更新活动描述引用、保留原始证据且不伪造批准。详见 `docs/SHARED_WORKSPACE.md`。

@@ -4,7 +4,9 @@ import './prompt-panel.css'
 import {initDesktop} from './desktop-adapter.js'
 import {initApiAssistant} from './api-assistant.js'
 import {initWorkspaceShell} from './workspace-shell.js'
+import {initTaskRecords} from './task-records.js'
 import './modern.css'
+import './usability.css'
 import { createOrthographic } from './orthographic.js'
 import { complete } from './completion.js'
 import blockNames from './block-names.json'
@@ -41,7 +43,7 @@ function blockPicker(input) {
     return {range:[start,stop],items:entries.map(([id,name])=>({label:name+' · '+id,value:name,detail:'minecraft:'+id,selected:exact?.[0]===id}))}
   },()=>browse=false,{maxItems:1003,highlightSelection:true})
   button.addEventListener('mousedown',event=>event.preventDefault())
-  button.addEventListener('click',()=>{if(input.disabled)return;browse=true;input.focus();picker.refresh()})
+  button.addEventListener('click',()=>{if(input.disabled)return;browse=true;input.focus({preventScroll:true});picker.refresh()})
   input.addEventListener('click',()=>{if(input.getAttribute('aria-expanded')==='true')picker.refresh()})
   input.addEventListener('keydown',event=>{if(event.altKey&&event.key==='ArrowDown'){event.preventDefault();browse=true;picker.refresh()}})
 }
@@ -139,6 +141,7 @@ let promptLoaded=false
 window.nbtPromptAI=Object.freeze({
  config:()=>window.nbtDesktop?.apiConfig?.()??Promise.resolve({enabled:false,available:false}),
  generate:instruction=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI 需要 Electron 桌面版');return window.nbtDesktop.apiGenerate({mode:'prompt',instruction,context:null})},
+ generateWorkbench:(instruction,context)=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI需要Electron桌面版');return window.nbtDesktop.apiGenerate({mode:'workbench',instruction,context})},
  cancel:()=>window.nbtDesktop?.apiCancel?.(),
  settings:()=>$('open-api').click()
 })
@@ -216,6 +219,7 @@ function syncMarkers(){renderPins();const viewer=$('viewer').contentWindow?.nbtM
 function focusMarker(number){
   const point=allMarkers().find(p=>p.number===number);if(!point)return
   if(point.status==='draft'){removeDraftMarker(number);return}
+  if(!document.getElementById('note-'+point.noteNumber)&&state.noteRecord){$('comment-search').value='';$('comment-filter').value='all';renderNotes(state.noteRecord)}
   state.activeNote=point.noteNumber;document.getElementById('note-'+point.noteNumber)?.scrollIntoView({block:'nearest'})
   document.querySelectorAll('.feedback-note').forEach(row=>row.classList.toggle('active',row.id==='note-'+point.noteNumber));renderPins()
 }
@@ -234,6 +238,7 @@ function addDraftMarker(point){
   // Keep focus in the preview for consecutive selections; the comment field stays editable below.
 }
 async function activateFeedback(target){
+  state.noteRecord=null
   stashDraft();const generation=state.feedbackGeneration=(state.feedbackGeneration ?? 0)+1
   state.feedbackTarget=target;state.notes=[];state.noteKey=target?.key ?? null;state.draftPoints=[];state.draftPoint=null
   $('feedback-notes').replaceChildren();$('feedback-links').replaceChildren();$('feedback-text').value='';$('feedback-file').textContent=''
@@ -272,15 +277,22 @@ function renderPins() {
   }
 }
 function renderNotes(record) {
+  state.noteRecord=record
   state.notes=record.notes;$('feedback-file').textContent='意见文件：'+record.file
   $('feedback-notes').replaceChildren()
-  for(const note of record.notes){
+  const query=$('comment-search').value.toLowerCase(),filter=$('comment-filter').value
+  const shown=record.notes.filter(note=>(filter==='all'||note.status===filter)&&(!query||JSON.stringify([note.text,note.number,anchorsOf(note)]).toLowerCase().includes(query)))
+  $('comment-count').textContent=`${record.notes.filter(n=>n.status==='open').length} 待修改 / ${record.notes.length} 条`
+  if(!shown.length){const empty=document.createElement('p');empty.className='comment-empty';empty.textContent=record.notes.length?'没有匹配的意见':'暂无已保存意见。点击画面添加位置，写下修改内容。';$('feedback-notes').append(empty)}
+  for(const note of shown){
     const row=document.createElement('div');row.id='note-'+note.number;row.className='feedback-note '+note.status
     const content=document.createElement('div'),title=document.createElement('strong'),text=document.createElement('p')
     const anchors=anchorsOf(note)
-    title.textContent=`意见 ${note.number} · ${note.status==='open'?'待修改':'已解决'} · ${anchors.length?anchors.map(p=>'#'+p.number+(p.kind==='voxel'?' ('+p.position.join(', ')+')':'')).join('、'):(state.feedbackTarget?.kind==='3d'?'整座建筑':'整张图片')}`
+    title.textContent=`意见 #${note.number} · ${note.status==='open'?'待修改':'已解决'}`
     title.title=anchors.map(p=>p.kind==='voxel'?`#${p.number}：${p.state}`:`#${p.number}：图片 ${(p.x*100).toFixed(1)}%, ${(p.y*100).toFixed(1)}%`).join('\n')
-    text.textContent=note.text;content.append(title,text);for(const ref of note.references ?? []){const file=document.createElement('small');file.textContent='引用效果：'+ref.name;file.title=ref.path+' · SHA256 '+ref.sha256;content.append(file)}
+    text.textContent=note.text;content.append(title,text)
+    const positions=document.createElement('div');positions.className='comment-anchor-links';for(const anchor of anchors){const b=document.createElement('button');b.type='button';b.textContent='#'+anchor.number+(anchor.kind==='voxel'?' · '+anchor.position.join(', '):' · 图片位置');b.onclick=()=>focusMarker(anchor.number);positions.append(b)}content.append(positions)
+    for(const ref of note.references ?? []){const file=document.createElement('small');file.textContent='引用效果：'+ref.name;file.title=ref.path+' · SHA256 '+ref.sha256;content.append(file)}
     const toggle=document.createElement('button');toggle.textContent=note.status==='open'?'标为已解决':'重新打开'
     toggle.addEventListener('click',handle(async()=>{
       const target=state.feedbackTarget,updated=await api('feedback/status',{target_id:target.id,note_id:note.id,status:note.status==='open'?'resolved':'open'})
@@ -392,6 +404,7 @@ async function loadModel(preserve = false) {
     renderMaterials();if(!preserve||previousHash!==info.source_sha256)resetSettingsHistory();gallery(info.images);if(!preserve||previousHash!==info.source_sha256)state.bundle=''
   } finally { busy(false) }
   status(state.images.length?'图片已打开。点击上方缩略图切换视角，点击大图标位置、写修改意见。':'这座建筑还没有对应的图片。可点击“为原建筑生成预览图”，或打开 3D 查看。')
+  if(!preserve&&!state.images.length)await runJob('snapshot')
 }
 
 async function initialize() {
@@ -513,6 +526,7 @@ function syncWorkspace(){
   $('workspace-context').textContent=`${modelName(source)} · ${view} · ${state.configChanged?'设置已修改，等待效果预览':'显示已保存的建筑'}`
 }
 function syncMessageContext(){
+  $('comment-length').textContent=$('feedback-text').value.length+' / 4000'
   const target=state.feedbackTarget,points=state.draftPoints ?? []
   $('feedback-context').textContent=target?`${modelName(target.source)} · ${target.name}`:'请先打开图片或3D'
   $('feedback-context').title=[target?.source,target?.name,target?.geometry].filter(Boolean).join('\n')
@@ -670,6 +684,14 @@ initApiAssistant({
  }
 })
 initWorkspaceShell()
+initTaskRecords()
+const commentComposer=document.createElement('div');commentComposer.className='comment-composer'
+for(const element of [$('feedback-text'),document.querySelector('.comment-compose-meta'),$('draft-markers'),$('reference-chips'),document.querySelector('#feedback-card>.note-actions')])commentComposer.append(element)
+const commentThread=document.createElement('div');commentThread.className='comment-thread';commentThread.append(document.querySelector('.comment-tools'),$('feedback-notes'))
+$('feedback-card').insertBefore(commentComposer,$('feedback-links'));$('feedback-card').insertBefore(commentThread,$('feedback-links'))
+for(const id of ['comment-search','comment-filter'])$(id).addEventListener(id==='comment-search'?'input':'change',()=>{if(state.noteRecord)renderNotes(state.noteRecord)})
+$('feedback-text').addEventListener('input',()=>$('comment-length').textContent=$('feedback-text').value.length+' / 4000')
+$('feedback-text').addEventListener('keydown',event=>{if(!event.isComposing&&(event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();$('save-feedback').click()}})
 initialize().then(()=>{
   const source=new URLSearchParams(location.search).get('source')
   if(source){const index=state.models.findIndex(model=>model.source===source);if(index<0)throw new Error('所选结构不在当前建筑目录中，请刷新现有结构选择器。');selectModel(index);renderModels()}

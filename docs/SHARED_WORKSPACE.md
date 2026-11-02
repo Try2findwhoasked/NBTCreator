@@ -10,6 +10,8 @@ NBTCreator继续使用原minecraft-nbt-modeler的模型与导出协议。主模�
 
 当前项目根目录的 `.nbtcreator/skill-exposure.json` 保存知识组选择，AI助手配置页负责修改并同步生成入口。它是路由与阅读范围配置，不是文件访问权限控制，不删除资料库。所有知识组共享同一份18类工具能力；`tool-catalog.json`为源，`sync:tools`生成网页目录与工具接口文档，`check:tools`阻止版本漂移后打包。
 
+1.2可在AI设置导入自己的Markdown/TXT，文件复制到 `.nbtcreator/knowledge/`，选中的文档通过相对链接加入Agent入口。目标工作区没有配置时，切换携带自定义文档和开关；已有目标配置保持目标列表。知识只作为参考，不获得执行或批准权限，也不自动上传API。
+
 保存的request/settings文件尽量使用工作区相对source/context/cameras/review路径，room_description.master相对描述文件定位；旧绝对路径仍可读取。外部文件或跨盘引擎无法相对化时保留绝对定位，不宣称任意单文件都可独立搬迁。Agent应在项目根目录执行，或对统一CLI使用前置 `--workspace <根目录>`。
 
 共用时选择一个明确的磁盘根目录（其中包含nbt_models），在桌面通过“选择工作区…”指定；误选nbt_models、缓存或房间子目录时会自动识别项目根目录。Agent在同一根目录调用，保存参数使用工作区相对引用；旧绝对路径保持兼容。

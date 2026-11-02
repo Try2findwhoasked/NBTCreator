@@ -11,9 +11,10 @@ const arg=(name)=>{const i=process.argv.indexOf(name);return i<0?null:process.ar
 if(arg('--user-data-dir'))app.setPath('userData',path.resolve(arg('--user-data-dir')))
 function allowed(event){if(!window||event.sender!==window.webContents||event.senderFrame!==window.webContents.mainFrame||!serverUrl||new URL(event.senderFrame.url).origin!==new URL(serverUrl).origin)throw Error('Unexpected IPC sender')}
 async function recordConfig(){let value=path.relative(app.getPath('userData'),workspace);if(path.isAbsolute(value))value=workspace;await fs.writeFile(path.join(app.getPath('userData'),'settings.json'),JSON.stringify({workspace:value,path_base:'settings',workspace_source:'manual'},null,2))}
-async function exposure(command,config){
+async function exposure(command,config,documents=[]){
  const args=['-B',path.join(root,'.agents/skills/minecraft-nbt-modeler/scripts/nbt_exposure.py'),command,'--workspace',workspace]
  if(config){const file=path.join(app.getPath('userData'),'exposure-pending.json');await fs.writeFile(file,JSON.stringify(config));args.push('--config',file)}
+ for(const document of documents)args.push('--document',document)
  return new Promise((resolve,reject)=>{const child=spawn(python,args,{cwd:workspace,shell:false,windowsHide:true});let output='',error='';child.stdout.on('data',d=>output+=d);child.stderr.on('data',d=>error+=d);child.on('error',reject);child.on('close',code=>{try{if(code!==0)throw Error(error||'Skill暴露配置失败');resolve(JSON.parse(output))}catch(e){reject(e)}})})
 }
 async function startBackend(){
@@ -47,6 +48,7 @@ async function boot(){
  await exposure('apply')
  ipcMain.handle('nbt:exposure-config',event=>{allowed(event);return exposure('show')})
  ipcMain.handle('nbt:exposure-save',(event,input)=>{allowed(event);return exposure('apply',input)})
+ ipcMain.handle('nbt:exposure-import',async event=>{allowed(event);const selected=await dialog.showOpenDialog(window,{title:'添加知识文件（复制到当前工作区）',properties:['openFile','multiSelections'],filters:[{name:'Markdown / TXT',extensions:['md','txt']}]});return selected.canceled?null:exposure('import',undefined,selected.filePaths)})
  await startBackend()
  window=new BrowserWindow({width:1500,height:1000,minWidth:900,minHeight:650,show:false,title:'NBTCreator',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}})
  window.webContents.setWindowOpenHandler(()=>({action:'deny'}))
@@ -68,7 +70,8 @@ async function boot(){
   try{
    await fs.mkdir(path.join(workspace,'nbt_models'),{recursive:true})
    let targetHasConfig=false;try{await fs.access(path.join(workspace,'.nbtcreator/skill-exposure.json'));targetHasConfig=true}catch{}
-   await exposure('apply',targetHasConfig?undefined:{schema_version:1,enabled_groups:currentExposure.enabled_groups})
+   if(!targetHasConfig)for(const item of currentExposure.custom_knowledge??[]){const from=path.resolve(previous,'.nbtcreator',item.path),to=path.resolve(workspace,'.nbtcreator',item.path);const bytes=await fs.readFile(from);await fs.mkdir(path.dirname(to),{recursive:true});try{const existing=await fs.readFile(to);if(!bytes.equals(existing))throw Error('目标自定义知识文件已有不同内容，未覆盖')}catch(e){if(e.code!=='ENOENT')throw e;await fs.writeFile(to,bytes)}}
+   await exposure('apply',targetHasConfig?undefined:{schema_version:1,enabled_groups:currentExposure.enabled_groups,custom_knowledge:currentExposure.custom_knowledge??[]})
    await recordConfig();await startBackend();await window.loadURL(serverUrl);return workspace
   }catch(error){workspace=previous;await startBackend();await window.loadURL(serverUrl);throw error}
  })

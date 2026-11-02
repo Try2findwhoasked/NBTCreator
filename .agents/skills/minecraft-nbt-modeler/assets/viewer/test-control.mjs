@@ -40,7 +40,7 @@ try{
     page.on('pageerror',error=>errors.push(error.message))
     await page.goto(app.url)
     await page.waitForFunction(()=>window.detailControl?.state.selectedImage && document.querySelector('#review-image').naturalWidth>0 && !window.detailControl.state.busy,undefined,{timeout:60000})
-    await page.locator('#auto-preview').uncheck()
+    await page.locator('#workspace-tools').evaluate(e=>e.open=true);await page.locator('#auto-preview').uncheck()
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
     checks['dpi_'+scale+'_no_horizontal_overflow']=true
     assert.equal(await page.locator('.app-header').count(),0)
@@ -176,7 +176,7 @@ try{
       checks.image_pin_and_safe_comment_text=true
       await page.reload()
       await page.waitForFunction(()=>window.detailControl?.state.notes.length===1&&!window.detailControl.state.busy,undefined,{timeout:60000})
-      await page.locator('#auto-preview').uncheck()
+      await page.locator('#workspace-tools').evaluate(e=>e.open=true);await page.locator('#auto-preview').uncheck()
       checks.feedback_survives_reload=true
       assert.equal(await page.locator('.image-pin').count(),2)
       const freshPoint=await page.locator('#review-image').evaluate(el=>{const r=el.getBoundingClientRect(),s=Math.min(r.width/el.naturalWidth,r.height/el.naturalHeight);return{x:r.x+r.width/2-el.naturalWidth*s*.2,y:r.y+r.height/2}})

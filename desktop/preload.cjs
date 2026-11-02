@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('nbtDesktop',Object.freeze({
   apiGenerate:input=>ipcRenderer.invoke('nbt:api-generate',input),
   apiCancel:()=>ipcRenderer.invoke('nbt:api-cancel'),
   exposureConfig:()=>ipcRenderer.invoke('nbt:exposure-config'),
-  exposureSave:input=>ipcRenderer.invoke('nbt:exposure-save',input)
+  exposureSave:input=>ipcRenderer.invoke('nbt:exposure-save',input),
+  exposureImport:()=>ipcRenderer.invoke('nbt:exposure-import')
 }))

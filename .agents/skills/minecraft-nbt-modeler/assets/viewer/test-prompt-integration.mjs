@@ -22,7 +22,7 @@ try{
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy,undefined,{timeout:60000})
  await page.locator('#auto-preview').uncheck()
  await page.evaluate(()=>{const c=window.detailControl,s=c.gather();s.pattern.enabled=true;s.pattern.fraction=.23;s.style_note='集成回归统一石构';s.whole_region=false;s.lo=[2,4,2];s.hi=[20,12,20];c.restore(s)})
- await page.locator('#open-prompt').click()
+ await page.locator('button[data-workspace=prompt]').click()
  await page.waitForFunction(()=>document.querySelector('#prompt-sync-status').textContent.startsWith('已载入'),undefined,{timeout:30000})
  const frame=page.frameLocator('#prompt-frame')
  const text=await frame.locator('#result').inputValue()
@@ -34,7 +34,7 @@ try{
  const plan=JSON.parse(await fs.readFile(path.join(output,'plan.json'),'utf8'));assert.equal(plan.operations[0].fraction,.23);assert.deepEqual(plan.operations[0].lo,[2,4,2]);checks.backend_compiler_matches_download=true
  await frame.locator('[data-field=name]').fill('保留的设计要求')
  await page.locator('#close-prompt').click();assert.equal(await page.locator('#prompt-dialog').isVisible(),false)
- await page.locator('#open-prompt').click();assert.equal(await frame.locator('[data-field=name]').inputValue(),'保留的设计要求');checks.close_reopen_keeps_edits=true
+ await page.locator('button[data-workspace=prompt]').click();assert.equal(await frame.locator('[data-field=name]').inputValue(),'保留的设计要求');checks.close_reopen_keeps_edits=true
  await frame.getByRole('button',{name:/02 工具序列/}).click();await frame.locator('#kind').selectOption('explosion');await frame.locator('#add').click()
  assert.equal(await frame.locator('.step').count(),2)
  assert.equal(await page.evaluate(()=>window.detailControl.gather().pattern.fraction),.23);checks.prompt_edits_do_not_apply_to_model=true
@@ -52,7 +52,7 @@ try{
  const denied=await fetch(new URL('/__detail__/prompt-export',app.url),{method:'POST',headers:{Origin:'http://example.com'},body:'{}'});assert.equal(denied.status,403)
  const traversal=await fetch(new URL('/__detail__/prompt/no-file.js',app.url));assert.equal(traversal.status,400);checks.origin_and_static_allowlist=true
  await fs.writeFile(source,Buffer.concat([original,Buffer.from('changed')]))
- await page.locator('#open-prompt').click();await page.locator('#sync-prompt').click()
+ await page.locator('button[data-workspace=prompt]').click();await page.locator('#sync-prompt').click()
  await page.waitForFunction(()=>document.querySelector('#prompt-sync-status').textContent.includes('版本已改变'))
  await fs.writeFile(source,original);checks.changed_disk_source_rejected=true
  assert.equal(hash(await fs.readFile(source)),hash(original));assert.deepEqual(errors,[])
