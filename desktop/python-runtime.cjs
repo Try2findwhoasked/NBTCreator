@@ -1,4 +1,6 @@
 const fs=require('node:fs'),path=require('node:path')
+process.env.PYTHONUTF8='1'
+process.env.PYTHONIOENCODING='utf-8'
 function resolvePython(root,override=process.env.NBTCREATOR_PYTHON){
  if(override)return override
  const bundled=path.join(root,'runtime','python','python.exe')

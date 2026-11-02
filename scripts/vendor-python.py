@@ -37,6 +37,8 @@ def vendor(destination,cache):
     # explicitly invoked script's directory so copied workspace runtimes work too.
     (destination/'sitecustomize.py').write_text(
         'import os,sys\n'
+        'for stream in (sys.stdout,sys.stderr):\n'
+        '    if stream and hasattr(stream,"reconfigure"):stream.reconfigure(encoding="utf-8")\n'
         'if sys.argv and os.path.isfile(sys.argv[0]):\n'
         '    sys.path.insert(0,os.path.dirname(os.path.abspath(sys.argv[0])))\n',encoding='utf8')
     (destination/'runtime-lock.json').write_text(json.dumps(lock,indent=2)+'\n',encoding='utf8')
