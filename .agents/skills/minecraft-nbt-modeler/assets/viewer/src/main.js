@@ -466,7 +466,7 @@ async function main() {
       const position=hit.point.clone().addScaledVector(normal,-.001).floor().toArray(),key=position.join(','),value=lookup.get(key)
       if(!value||!visible.has(key)||['minecraft:air','minecraft:cave_air','minecraft:void_air'].includes(value.split('[')[0]))continue
       pickedBox.box.min.fromArray(position);pickedBox.box.max.fromArray(position.map(v=>v+1));pickedBox.visible=true;requestRender()
-      return {position,state:value,source_sha256:snapshot.source_sha256,geometry_sha256:snapshot.geometry_sha256,view:metadata()}
+      return {position,normal:normal.toArray().map(v=>Math.round(v)),state:value,source_sha256:snapshot.source_sha256,geometry_sha256:snapshot.geometry_sha256,view:metadata()}
     }
     pickedBox.visible=false;requestRender();return null
   }

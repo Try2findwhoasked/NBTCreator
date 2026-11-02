@@ -1,0 +1,23 @@
+{
+  "python": {
+    "version": "3.14.10",
+    "url": "https://www.python.org/ftp/python/3.14.10/python-3.14.10-embeddable-amd64.zip",
+    "sha256": "b553e7dac884469b40e0740bb527271c3378f700b427e0485835f1bb6424361c"
+  },
+  "wheels": [
+    {
+      "name": "numpy",
+      "version": "2.4.2",
+      "filename": "numpy-2.4.2-cp314-cp314-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/05/cb/eff72a91b2efdd1bc98b3b8759f6a1654aa87612fc86e3d87d6fe4f948c4/numpy-2.4.2-cp314-cp314-win_amd64.whl",
+      "sha256": "068cdb2d0d644cdb45670810894f6a0600797a69c05f1ac478e8d31670b8ee75"
+    },
+    {
+      "name": "pillow",
+      "version": "12.1.0",
+      "filename": "pillow-12.1.0-cp314-cp314-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/1c/af/f23697f587ac5f9095d67e31b81c95c0249cd461a9798a061ed6709b09b5/pillow-12.1.0-cp314-cp314-win_amd64.whl",
+      "sha256": "4f9f6a650743f0ddee5593ac9e954ba1bdbc5e150bc066586d4f26127853ab94"
+    }
+  ]
+}

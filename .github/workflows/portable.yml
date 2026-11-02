@@ -1,0 +1,122 @@
+name: Windows Portable
+on:
+  push:
+    branches: [main, 'codex/**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: portable-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            .agents/skills/minecraft-nbt-modeler/assets/viewer/package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.14'
+      - name: Check tag version
+        env:
+          BUILD_REF: ${{ github.ref }}
+        run: |
+          if ($env:BUILD_REF.StartsWith('refs/tags/')) {
+            $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+            if ($env:BUILD_REF -ne "refs/tags/v$version") { throw 'Tag must match package.json version' }
+          }
+      - name: Install locked dependencies
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install numpy==2.4.2 Pillow==12.1.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Validate source and contracts
+        run: |
+          npm run check:tools
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run verify:archive
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:api
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:workspace
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/prompt-creation.mjs tests/agent-handoff.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/cli.mjs check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build self-contained portable ZIP
+        run: npm run package:portable -- --out dist/portable
+      - name: Verify extracted package without system Python or Node
+        run: npm run test:portable -- --archive-dir dist/portable
+      - name: Packaged Electron regression
+        run: |
+          $env:NBTCREATOR_TEST_EXE = Join-Path $PWD 'dist/portable/NBTCreator-win32-x64/NBTCreator.exe'
+          Remove-Item Env:NBTCREATOR_PYTHON -ErrorAction SilentlyContinue
+          npm run test:desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:api-desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: windows-x64-portable
+          path: |
+            dist/portable/*.zip
+            dist/portable/*.sha256
+            dist/portable/*.manifest.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: test-diagnostics
+          path: |
+            build/**/results.json
+            build/**/electron.log
+            build/**/*.png
+          retention-days: 7
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: windows-x64-portable
+          path: assets
+      - name: Publish versioned Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd assets
+          sha256sum --check ./*.sha256
+          args=(--verify-tag --title "NBTCreator $RELEASE_TAG" --generate-notes)
+          if [[ "$RELEASE_TAG" == *-* ]]; then args+=(--prerelease); fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo 'Release already exists; refusing to replace published assets.' >&2
+            exit 1
+          fi
+          gh release create "$RELEASE_TAG" ./*.zip ./*.sha256 ./*.manifest.json "${args[@]}"

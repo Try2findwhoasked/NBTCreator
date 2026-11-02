@@ -397,6 +397,7 @@ async function loadViewer(result, isNewVersion = false) {
   $('model-hash').textContent=(isNewVersion?'新版本预览 ':'原建筑版本 ')+result.geometry_sha256.slice(0,16)
 }
 async function loadModel(preserve = false) {
+  state.aiPlacing=null
   stashDraft();imageMode();busy(true)
   try {
     status('正在打开建筑及门口、通路等保护设置…')
@@ -649,14 +650,14 @@ function syncPicking(){
   $('pick-material').textContent=state.picking?'结束取材':'3D 取材'
   $('pick-coordinate').setAttribute('aria-pressed',String(Boolean(state.coordinatePicking)))
   $('pick-coordinate').textContent=state.coordinatePicking?'结束选点':'3D 选点评论'
-  $('viewer').contentWindow?.nbtModeler?.setPicking(Boolean(state.picking||state.coordinatePicking),state.coordinatePicking?'comment':'material')
+  $('viewer').contentWindow?.nbtModeler?.setPicking(Boolean(state.aiPlacing||state.picking||state.coordinatePicking),state.coordinatePicking?'comment':'material')
 }
 $('pick-coordinate').addEventListener('click',()=>{
-  state.coordinatePicking=!state.coordinatePicking;state.picking=false;syncPicking()
+  state.aiPlacing=null;state.coordinatePicking=!state.coordinatePicking;state.picking=false;syncPicking()
   $('view-hint').textContent=state.coordinatePicking?'连续点击表面添加 #编号，下面按编号写意见；中键平移，滚轮缩放。':'左键旋转，中键平移，滚轮缩放'
 })
 $('pick-material').addEventListener('click',()=>{
-  state.picking=!state.picking;state.coordinatePicking=false;syncPicking()
+  state.aiPlacing=null;state.picking=!state.picking;state.coordinatePicking=false;syncPicking()
   if(state.picking)$('view-hint').textContent='点击可见方块取材；中键可平移。取材后在左侧选择用途。'
 })
 window.addEventListener('message',event=>{
@@ -667,6 +668,12 @@ window.addEventListener('message',event=>{
   if(!picked){$('view-hint').textContent='此处没有选到可见方块，请点击建筑表面。';return}
   if(typeof picked.state!=='string'||!Array.isArray(picked.position)||picked.position.length!==3)return
   if(picked.geometry_sha256!==$('viewer').contentWindow.nbtModeler.metadata().geometry_sha256)return
+  if(state.aiPlacing){
+    const size=state.aiPlacing,normal=picked.normal||[0,1,0],anchor=picked.position.map((v,i)=>v+normal[i]);
+    const lo=anchor.map((v,i)=>Math.max(0,Math.min(state.info.size[i]-size[i],v-(i===1?0:Math.floor(size[i]/2))))),hi=lo.map((v,i)=>v+size[i]-1)
+    $('whole-region').checked=false;['x','y','z'].forEach((axis,i)=>{setValue('lo-'+axis,lo[i]);setValue('hi-'+axis,hi[i])});state.aiPlacing=null;state.bundle='';syncPicking();updateCount();recordSettings();selectTool(9)
+    $('ai-placement-status').textContent='放置表面 '+picked.position.join(', ')+'；选区 '+lo.join(', ')+' → '+hi.join(', ');return
+  }
   if(event.data.type==='nbt-coordinate-picked'){
     if(state.coordinatePicking&&state.feedbackTarget?.kind==='3d'&&state.feedbackTarget.geometry===picked.geometry_sha256)addDraftMarker({kind:'voxel',...picked})
     return
@@ -692,6 +699,12 @@ initApiAssistant({
  context:()=>{const s=gather(),info=state.info;if(!info)return null;return {size:info.size,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?info.size.map(v=>v-1):s.hi,materials:info.materials}},
  binding:()=>JSON.stringify({source:state.info?.source_sha256,settings:gather()}),
  localSelection:()=>!!state.info&&!gather().whole_region,
+ pickPlacement:async size=>{
+   if(!state.info||state.busy||state.previewBusy)throw Error('请先打开建筑并等待当前任务完成')
+   if(size.some((v,i)=>v>state.info.size[i]))throw Error('放置范围大于当前建筑尺寸')
+   if(state.mode!=='3d')await runJob('snapshot')
+   state.aiPlacing=size;state.picking=false;state.coordinatePicking=false;syncPicking();$('view-hint').textContent='点击表面确定 AI 构件放置位置；随后点击“生成并立即预览”。'
+ },
  apply:async patch=>{
   if(state.busy||state.previewBusy)throw Error('请等待当前任务完成')
   const next=gather();next.whole_region=false;next.lo=patch.lo;next.hi=patch.hi

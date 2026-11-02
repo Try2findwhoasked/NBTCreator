@@ -1,4 +1,5 @@
 """Shared inspection, snapshot, preview and regression entrypoint; no approval shortcut."""
+import os
 import argparse
 import hashlib
 import json
@@ -107,7 +108,7 @@ def main():
         with tempfile.TemporaryDirectory(prefix='nbt-render-') as temporary:
             source_snapshot = Path(temporary) / 'snapshot.json'
             write_snapshot(args.source, source_snapshot, args.provenance, cameras)
-            cmd = ['node', str(viewer / 'render-batch.mjs'), '--model', str(source_snapshot),
+            cmd = [os.environ.get('NBTCREATOR_NODE','node'), str(viewer / 'render-batch.mjs'), '--model', str(source_snapshot),
                    '--cameras', str(args.cameras.resolve()), '--output', str(args.output.resolve()),
                    '--width', str(args.width), '--height', str(args.height), '--quality', args.quality,
                    '--timeout', str(args.timeout_ms)]
@@ -115,17 +116,17 @@ def main():
                 cmd.extend(['--file-prefix', args.file_prefix])
             if args.browser_executable:
                 cmd.extend(['--browser-executable', str(args.browser_executable.resolve())])
-            return subprocess.call(cmd)
+            return subprocess.call(cmd,env=dict(os.environ,**({'ELECTRON_RUN_AS_NODE':'1'} if os.environ.get('NBTCREATOR_NODE_IS_ELECTRON')=='1' else {})))
     if args.command == 'inspect':
         result = inspect_source(args.source, args.provenance, cameras)
     else:
         result = write_snapshot(args.source, args.output, args.provenance, cameras)
     print(json.dumps({k: v for k, v in result.items() if k not in ('blocks', 'wall_positions', 'owners', 'operations')}, ensure_ascii=False))
     if args.command == 'preview':
-        cmd = ['node', str(viewer / 'server.mjs'), '--model', str(args.output.resolve()), '--port', str(args.port)]
+        cmd = [os.environ.get('NBTCREATOR_NODE','node'), str(viewer / 'server.mjs'), '--model', str(args.output.resolve()), '--port', str(args.port)]
         if args.no_open:
             cmd.append('--no-open')
-        return subprocess.call(cmd)
+        return subprocess.call(cmd,env=dict(os.environ,**({'ELECTRON_RUN_AS_NODE':'1'} if os.environ.get('NBTCREATOR_NODE_IS_ELECTRON')=='1' else {})))
     return 0
 
 

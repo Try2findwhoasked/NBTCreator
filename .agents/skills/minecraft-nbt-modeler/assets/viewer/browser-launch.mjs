@@ -8,6 +8,7 @@ async function exists(file) {
 
 export async function launchRenderBrowser(executablePath) {
   // A fresh, headless browser profile: never attach to a user's existing session.
+  executablePath ||= process.env.NBTCREATOR_BROWSER
   if (executablePath) return chromium.launch({ executablePath: path.resolve(executablePath), headless: true })
   if (await exists(chromium.executablePath())) return chromium.launch({ headless: true })
   if (process.platform === 'win32') {

@@ -6,7 +6,9 @@ const path=require('node:path')
 const fs=require('node:fs/promises')
 const root=path.resolve(__dirname,'..')
 let window,worker,serverUrl,closing=false,workspace,frontend
-const python=process.env.NBTCREATOR_PYTHON||'python'
+const {resolvePython,configureRenderRuntime}=require('./python-runtime.cjs')
+const python=resolvePython(root)
+configureRenderRuntime(root,app.isPackaged?process.execPath:null)
 const arg=(name)=>{const i=process.argv.indexOf(name);return i<0?null:process.argv[i+1]}
 if(arg('--user-data-dir'))app.setPath('userData',path.resolve(arg('--user-data-dir')))
 function allowed(event){if(!window||event.sender!==window.webContents||event.senderFrame!==window.webContents.mainFrame||!serverUrl||new URL(event.senderFrame.url).origin!==new URL(serverUrl).origin)throw Error('Unexpected IPC sender')}

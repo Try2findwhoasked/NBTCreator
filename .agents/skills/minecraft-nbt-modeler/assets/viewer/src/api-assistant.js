@@ -6,6 +6,12 @@ export function initApiAssistant(hooks){
  document.body.append(dialog)
  const configStatus=document.createElement('p');configStatus.id='api-config-status';configStatus.setAttribute('role','status');dialog.querySelector('.ai-config').append(configStatus)
  const task=dialog.querySelector('.ai-task');$('ai-model-panel').append(task);$('ai-mode').value='small_structure';$('ai-instruction').placeholder='例如：在当前局部选区内添加一根石柱，保留通路和外壳。'
+ const placement=document.createElement('div');placement.innerHTML='<button id="ai-pick-placement" type="button">3D 选点放置</button><label>放置范围 XYZ（格）<span class="two"><input id="ai-place-width" type="number" min="1" max="32" value="7" aria-label="放置宽度"><input id="ai-place-height" type="number" min="1" max="32" value="8" aria-label="放置高度"><input id="ai-place-depth" type="number" min="1" max="32" value="7" aria-label="放置深度"></span></label><p id="ai-placement-status" class="muted">点建筑表面确定放置中心，范围框会同步更新。也可使用修改范围中的现有选区。</p>'
+ $('ai-small-field').after(placement)
+ $('ai-pick-placement').onclick=async()=>{try{const size=['width','height','depth'].map(k=>Number($('ai-place-'+k).value));if(!size.every(v=>Number.isInteger(v)&&v>0&&v<=32))throw Error('放置尺寸须为1到32格整数');await hooks.pickPlacement(size);message('请在3D中点击放置表面')}catch(e){message(e.message,true)}}
+ const generatePreview=document.createElement('button');generatePreview.id='ai-generate-preview';generatePreview.type='button';generatePreview.className='primary';generatePreview.textContent='生成并立即预览';$('ai-generate').after(generatePreview)
+ let immediate=false
+ generatePreview.onclick=async()=>{immediate=true;try{await $('ai-generate').onclick()}finally{immediate=false}}
  let customKnowledge=[]
  const knowledge=document.createElement('section');knowledge.className='knowledge-config';knowledge.innerHTML='<h3>Skill 暴露配置</h3><p class="muted">暴露给在当前项目中读取 SKILL.md 的 Codex / 文件式 Skill Agent。应用会生成工作区入口及本地工具副本；它不是自动发给 DeepSeek 的知识库，也不是游戏插件。选择只控制默认阅读路由，不删除原文。</p><div id="knowledge-groups"></div><h4>自定义知识库</h4><div id="custom-knowledge-list"></div><div class="ai-buttons"><button id="knowledge-import" type="button">＋ 添加 Markdown / TXT</button><button id="knowledge-save" type="button" class="primary">保存并同步 Skill</button></div><p id="knowledge-status" role="status"></p><p class="muted">工具调用入口：.agents/skills/nbtcreator-workspace/SKILL.md。核心工作流与验收要求不能关闭。</p>'
  dialog.querySelector('.ai-layout').append(knowledge)
@@ -27,11 +33,12 @@ export function initApiAssistant(hooks){
  $('api-clear').onclick=async()=>{try{$('api-key').value='';await save(true);message('已删除保存的 Key')}catch(e){message(e.message,true)}}
  $('api-models').onclick=async()=>{locked(true);try{await save();const ids=await window.nbtDesktop.apiModels();$('api-model-list').replaceChildren(...ids.map(id=>{const o=document.createElement('option');o.value=id;return o}));message(`连接成功，获取 ${ids.length} 个模型；可在模型 ID 输入框选择`)}catch(e){message(e.message,true)}finally{locked(false)}}
  $('ai-mode').onchange=()=>{clearResult();$('ai-small-field').hidden=$('ai-mode').value!=='small_structure'}
- $('ai-generate').onclick=async()=>{clearResult();try{
+ $('ai-generate').onclick=async()=>{if(running)return;clearResult();try{
   if(!window.nbtDesktop?.apiGenerate)throw Error('AI生成需要Electron桌面版');const mode=$('ai-mode').value;if(mode!=='prompt'&&!hooks.localSelection())throw Error('请先在“修改范围”中取消整座建筑并指定局部 XYZ 选区')
   const context=hooks.context();binding=hooks.binding();let instruction=$('ai-instruction').value.trim();if(mode==='small_structure')instruction='构件参考：'+$('ai-small-kind').value+'。请在当前选区内生成可预览的小型结构。'+instruction;if(!instruction)throw Error('先填写任务要求')
   locked(true);message('正在生成建议…')
   result=await window.nbtDesktop.apiGenerate({mode,instruction,context})
+  if(immediate){if(mode!=='small_structure')throw Error('立即预览仅用于小型结构');if(binding!==hooks.binding())throw Error('模型或选区已改变，请重新生成');await hooks.apply(result.settings_patch);message('AI构件已插入候选模型并刷新3D；原稿保留，满意后导出下一版');return}
   $('ai-result').value=mode==='prompt'?result.text:JSON.stringify({summary:result.summary,settings_patch:result.settings_patch},null,2)
   $('ai-copy').disabled=false;$('ai-download').disabled=false;$('ai-apply').disabled=mode==='prompt';message('建议已生成；尚未修改模型')
  }catch(e){message(e.message,true)}finally{locked(false)}}
