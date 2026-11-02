@@ -194,10 +194,10 @@ try{
       assert.equal(exported.notes.length,1);assert.equal(exported.binding.source_sha256,original)
       assert.ok((await page.locator('#feedback-file').textContent()).includes('修改意见'))
       checks.feedback_resolution_and_export=true
-      await page.locator('#image-select').selectOption('1')
+      await page.locator('#image-mode').click();await page.locator('#image-select').selectOption('1')
       await page.waitForFunction(()=>window.detailControl.state.notes.length===0)
       checks.notes_do_not_cross_images=true
-      await page.locator('#image-select').selectOption('0')
+      await page.locator('#image-mode').click();await page.locator('#image-select').selectOption('0')
       await page.waitForFunction(()=>window.detailControl.state.notes.length===1)
       await page.getByRole('button',{name:'打开 3D',exact:true}).click()
       await page.waitForFunction(()=>document.querySelector('#viewer').contentWindow?.nbtModeler?.status==='ready'&&!window.detailControl.state.busy,undefined,{timeout:60000})
@@ -271,13 +271,13 @@ try{
       assert.equal(await page.locator('#three-toolbar').evaluate(el=>el.parentElement.classList.contains('review-toolbar')),true)
       assert.ok(await page.locator('#save-feedback').evaluate(el=>el.getBoundingClientRect().bottom<=document.querySelector('#feedback-card').getBoundingClientRect().bottom))
       checks.single_preview_toolbar_and_visible_comment_save=true
-      assert.equal(await page.locator('#image-select').isVisible(),true)
+      assert.equal(await page.locator('#image-select').isVisible(),false)
       await page.locator('.stage').evaluate(el=>el.scrollTop=el.scrollHeight)
       const selectorStaysVisible=await page.locator('#image-select').evaluate(el=>{
         const r=el.getBoundingClientRect(),p=el.closest('.stage').getBoundingClientRect()
         return r.top>=p.top && r.bottom<=p.bottom
       })
-      assert.equal(selectorStaysVisible,true);checks.image_selector_visible_in_3d_after_scroll=true
+      assert.equal(await page.locator('.thumbnail-card').isVisible(),false);checks.image_selector_hidden_in_3d=true
       await page.screenshot({path:path.join(output,'control-3d.png')})
       const cameraCheck=await page.evaluate(()=>{
         const v=document.querySelector('#viewer').contentWindow.nbtModeler
@@ -295,7 +295,7 @@ try{
       assert.equal(await page.evaluate(()=>window.detailControl.state.notes[0].anchors.length),2)
       assert.equal(await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.commentMarkerStatus().length),2)
       checks.three_dimensional_comments_reload_for_same_geometry=true
-      await page.locator('#image-select').selectOption('1')
+      await page.locator('#image-mode').click();await page.locator('#image-select').selectOption('1')
       await page.waitForFunction(()=>window.detailControl.state.mode==='images'&&document.querySelector('#viewer').src==='about:blank')
       assert.equal(await page.locator('#review-canvas').isVisible(),true)
       checks.selecting_image_exits_3d=true
