@@ -19,14 +19,14 @@ const builtins={
 }
 function createInternalAI({workspace,skill}){
  const base=()=>path.join(workspace(),'.nbtcreator','internal-ai'),file=()=>path.join(base(),'config.json')
- const defaults=()=>({schema_version:1,workflows:Object.fromEntries(Object.entries(flows).map(([key,value])=>[key,{rules:value.rules,instruction:'',knowledge:[]}])),documents:[]})
+ const defaults=()=>({schema_version:1,workflows:Object.fromEntries(Object.entries(flows).map(([key,value])=>[key,{rules:value.rules,instruction:'',knowledge:[],attachViewport:false}])),documents:[]})
  async function load(){try{return JSON.parse(await fs.readFile(file(),'utf8'))}catch(e){if(e.code==='ENOENT')return defaults();throw e}}
  function validate(c){
   if(!c||c.schema_version!==1||!c.workflows||!Array.isArray(c.documents)||c.documents.length>100)throw Error('内部AI配置无效')
   const ids=new Set(Object.keys(builtins))
   for(const d of c.documents){if(!/^[a-f0-9]{64}$/.test(d.id)||d.path!==`knowledge/${d.id}.md`||typeof d.label!=='string'||d.label.length>150)throw Error('内部资料记录无效');ids.add(d.id)}
   if(Object.keys(c.workflows).some(k=>!flows[k]))throw Error('未知AI工作流')
-  for(const key of Object.keys(flows)){const f=c.workflows[key];if(!f||typeof f.rules!=='string'||f.rules.length>12000||typeof f.instruction!=='string'||f.instruction.length>6000||!Array.isArray(f.knowledge)||f.knowledge.some(id=>!ids.has(id)))throw Error('工作流规则或资料选择无效')}
+  for(const key of Object.keys(flows)){const f=c.workflows[key];if(f?.attachViewport!==undefined&&typeof f.attachViewport!=='boolean')throw Error('截图开关无效');if(!f||typeof f.rules!=='string'||f.rules.length>12000||typeof f.instruction!=='string'||f.instruction.length>6000||!Array.isArray(f.knowledge)||f.knowledge.some(id=>!ids.has(id)))throw Error('工作流规则或资料选择无效')}
   return c
  }
  async function persist(c){validate(c);await fs.mkdir(base(),{recursive:true});const tmp=file()+'.'+crypto.randomUUID()+'.tmp';await fs.writeFile(tmp,JSON.stringify(c,null,2));await fs.rename(tmp,file())}
@@ -38,7 +38,7 @@ function createInternalAI({workspace,skill}){
  }
  async function context(key){if(!flows[key])throw Error('未知AI工作流');const c=validate(await load()),flow=c.workflows[key],knowledge=[];let total=0
   for(const id of flow.knowledge){const b=builtins[id],d=c.documents.find(d=>d.id===id);const content=await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8');total+=content.length;if(total>48000)throw Error('本工作流资料总量超过48000字，请减少选中的文档');knowledge.push({label:b?.label??d.label,content})}
-  return {workflow:key,workflow_steps:flows[key].steps,base_rules:flows[key].rules,rules:flow.rules,instruction:flow.instruction,knowledge}
+  return {attachViewport:flow.attachViewport===true,workflow:key,workflow_steps:flows[key].steps,base_rules:flows[key].rules,rules:flow.rules,instruction:flow.instruction,knowledge}
  }
  async function preview(id){const c=validate(await load()),b=builtins[id],d=c.documents.find(d=>d.id===id);if(!b&&!d)throw Error('未知内部资料');return {title:b?.label??d.label,recipient:'仅在勾选并保存后，随对应工作流发送全文给已配置的 API。',text:await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8')}}
  return {show,save,importDocuments,context,preview}

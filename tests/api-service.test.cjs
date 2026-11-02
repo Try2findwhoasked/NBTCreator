@@ -50,3 +50,10 @@ test('small components normalize missing fields, relative blocks and beam bounds
  assert.equal(localSmallStructure({operations:Array.from({length:64},(_,i)=>({pos:[i%8,0,Math.floor(i/8)],state:'stone'}))},c).settings_patch.operations.length,64)
  assert.throws(()=>localSmallStructure({blocks:[{pos:[11,1,1],state:'stone'}]},c),/超出/)
 })
+
+test('viewport attachments use image messages only for explicitly enabled workflows',async()=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-image-api-'));let payload,enabled=true
+ const api=createApiService({directory,safeStorage:storage,workflowContext:async()=>({attachViewport:enabled}),fetchImpl:async(_u,o)=>{payload=JSON.parse(o.body);return new Response(JSON.stringify({choices:[{message:{content:'text'},finish_reason:'stop'}]}))}})
+ const input={mode:'prompt',instruction:'查看当前画面',context:null,viewport:{dataUrl:'data:image/jpeg;base64,/9j/2Q==',width:64,height:64}}
+ try{await api.save({enabled:true});await api.generate(input);assert.equal(payload.messages[1].content[1].type,'image_url');await assert.rejects(api.generate({...input,viewport:{...input.viewport,dataUrl:'https://external/image'}}),/截图格式/);enabled=false;await assert.rejects(api.generate(input),/未启用/)}finally{await fs.rm(directory,{recursive:true,force:true})}
+})

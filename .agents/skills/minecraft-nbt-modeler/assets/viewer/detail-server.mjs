@@ -237,6 +237,25 @@ export async function startDetailServer({ workspace, output, python = 'python', 
       } else if(req.method==='GET'&&url.pathname==='/__detail__/effects')json(res,await effects.scan())
       else if(req.method==='POST'&&url.pathname==='/__detail__/effects/save'){
         const input=await body(req);json(res,await effects.save(input.request,input.name))
+      } else if(req.method==='POST'&&url.pathname==='/__detail__/ai-activities'){
+        const input=await body(req)
+        if(input.action==='start'){
+          if(!['draft','prompt','workbench','structure','small_structure'].includes(input.workflow))throw Error('Unknown AI workflow')
+          const id=randomUUID(),directory=path.join(outputRoot,'jobs',id)
+          await fs.mkdir(directory,{recursive:true})
+          const job={id,kind:'ai',workflow:input.workflow,label:String(input.label||'AI构建').slice(0,200),instruction:String(input.instruction||'').slice(0,12000),model:String(input.model||'').slice(0,150),provider:String(input.provider||'').slice(0,100),screenshot:input.screenshot===true,status:'running',created_at:new Date().toISOString(),directory,events:[{time:new Date().toISOString(),message:'AI请求已创建'}]}
+          jobs.set(id,job);await fs.writeFile(path.join(directory,'job.json'),JSON.stringify(job,null,2));json(res,{id})
+        }else{
+          const job=jobs.get(input.id);if(!job||job.kind!=='ai')throw Error('Unknown AI activity')
+          const message=String(input.message||'').slice(0,2000)
+          if(job.events.length<200)job.events.push({time:new Date().toISOString(),message})
+          if(input.action==='stage'){job.status='running';delete job.completed_at}
+          else if(input.action==='finish'){
+            if(!['complete','failed','cancelled'].includes(input.status))throw Error('Invalid AI activity status')
+            job.status=input.status;job.completed_at=new Date().toISOString();job.result={...job.result,summary:String(input.summary??job.result?.summary??'').slice(0,4000),operations:Number(input.operations??job.result?.operations??0),preview_only:true};if(job.status!=='complete')job.error=message;else delete job.error
+          }else throw Error('Unknown AI activity action')
+          await fs.writeFile(path.join(job.directory,'job.json'),JSON.stringify(job,null,2));json(res,{id:job.id})
+        }
       } else if (req.method === 'POST' && url.pathname === '/__detail__/jobs') json(res, await launchJob(await body(req)), 202)
       else if (req.method === 'GET' && url.pathname === '/__detail__/jobs') json(res, [...jobs.values()].map(serialJob))
       else if (req.method === 'POST' && url.pathname === '/__detail__/cancel') { await cancel(); json(res, { ok: true }) }

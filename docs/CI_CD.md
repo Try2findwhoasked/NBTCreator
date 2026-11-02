@@ -30,3 +30,5 @@ Portable表示免安装目录包；工作区仍由用户选择，API密钥仍使
 app-update包含应用源码、建模工具、预构建前端和Skill资料，不包含Electron、Python和Chromium。runtime包含Electron宿主、Python与Chromium；体积大但可复用。运行环境ID绑定Electron版本、Python/wheel锁和Playwright版本，启动时核对应用所需ID与runtime-info.json，不匹配时提示下载配套runtime或完整版。旧1.6运行包没有该标识，首次使用1.7应用更新包需要配套运行环境。
 
 CI验证两份分离包文件互不重复且按路径/字节哈希恰好重组成完整包。完整解压测试仍运行私有Python、CLI、Skill生成、Chromium和批量出图。新版本校验文件随Release附带，不复用旧版本ZIP哈希。
+
+本地仅制作应用更新包可运行 `npm run package:portable -- --app-only --out dist/update-版本`，它不下载/复制Python或Chromium；不能把该临时构建文件夹当完整免安装包。应用更新ZIP需解压覆盖已有兼容runtime，启动时仍验证runtime_id。云端发布继续构建完整与两种分离包并执行全套解压验证。

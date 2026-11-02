@@ -501,6 +501,11 @@ async function main() {
     }),
     setCamera: view => enqueue(() => { setCamera(view); draw(); return metadata() }),
     renderView: view => enqueue(async () => { await applyView(normalizeView(view, size)); return metadata() }),
+    captureCurrent: () => enqueue(async () => {
+      await renderer.whenReady();draw()
+      const image=document.createElement('canvas'),ratio=Math.min(1,1280/Math.max(canvas.width,canvas.height));image.width=Math.max(1,Math.round(canvas.width*ratio));image.height=Math.max(1,Math.round(canvas.height*ratio));image.getContext('2d').drawImage(canvas,0,0,image.width,image.height)
+      return {dataUrl:image.toDataURL('image/jpeg',.82),width:image.width,height:image.height}
+    }),
     capture: view => enqueue(async () => {
       await applyView(normalizeView(view, size))
       // Encode in the same task as the completed draw: never read a cleared WebGL buffer.

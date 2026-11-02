@@ -14,7 +14,7 @@ export function initWorkspaceShell(){
    active=name;document.body.dataset.workspace=name
    model.inert=name==='prompt'||name==='ai'||name==='tasks';actions.inert=name==='prompt'||name==='ai'
    $('task-workspace').hidden=name!=='tasks'
-   if(name==='tasks'){$('task-workspace-content').append(result);result.open=true}else if(result.parentElement===$('task-workspace-content'))marker.after(result)
+   if(name==='tasks'){$('task-workspace-content').append(result)}else if(result.parentElement===$('task-workspace-content'))marker.after(result)
    document.querySelectorAll('button[data-workspace]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.workspace===name)))
    window.dispatchEvent(new CustomEvent('creator-workspace-change',{detail:name}))
   }finally{moving=false}

@@ -1,3 +1,5 @@
+import {translateComponent} from './component-move.js'
+import {requestAI,cancelAI} from './ai-request.js'
 import '../../../prompt-console/catalog.js'
 import './control.css'
 import './prompt-panel.css'
@@ -137,13 +139,21 @@ function request() {
   if(state.info&&$('source').value.trim()!==state.info.source)throw new Error('建筑路径已改变，请先打开该建筑再保存效果或生成方案')
   return { schema_version: 1, source: $('source').value.trim(), source_sha256: state.info?.source_sha256, context: $('context').value.trim(), cameras: $('cameras').value.trim(), review: $('review').value.trim(), settings: gather() }
 }
+async function captureViewport(){
+ if(state.busy||state.previewBusy)throw Error('请等当前模型任务完成后再截图')
+ const viewer=$('viewer').contentWindow?.nbtModeler
+ if(state.mode==='3d'&&viewer?.status==='ready')return viewer.captureCurrent()
+ const img=$('review-image')
+ if(state.info&&img.complete&&img.naturalWidth){const canvas=document.createElement('canvas'),ratio=Math.min(1,1280/Math.max(img.naturalWidth,img.naturalHeight));canvas.width=Math.max(1,Math.round(img.naturalWidth*ratio));canvas.height=Math.max(1,Math.round(img.naturalHeight*ratio));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);return {dataUrl:canvas.toDataURL('image/jpeg',.82),width:canvas.width,height:canvas.height}}
+ throw Error('没有可用的建模视口，请先打开3D或建筑图片，或关闭该工作流的截图开关')
+}
 let promptLoaded=false
 // The iframe gets only prompt generation, never the native API/key management bridge.
 window.nbtPromptAI=Object.freeze({
  config:()=>window.nbtDesktop?.apiConfig?.()??Promise.resolve({enabled:false,available:false}),
- generate:instruction=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI 需要 Electron 桌面版');return window.nbtDesktop.apiGenerate({mode:'prompt',instruction,context:null})},
- generateWorkbench:(instruction,context)=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI需要Electron桌面版');return window.nbtDesktop.apiGenerate({mode:'workbench',instruction,context})},
- cancel:()=>window.nbtDesktop?.apiCancel?.(),
+ generate:instruction=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI 需要 Electron 桌面版');return requestAI({mode:'prompt',instruction,context:null},captureViewport)},
+ generateWorkbench:(instruction,context)=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI需要Electron桌面版');return requestAI({mode:'workbench',instruction,context},captureViewport)},
+ cancel:()=>cancelAI(),
  settings:()=>$('open-api').click()
 })
 async function syncPrompt(){
@@ -372,7 +382,7 @@ async function runJob(kind, overrides = {}) {
     if (result.model_key) await loadViewer(result, Boolean(overrides.source))
     status(result.warning ? '方案已保存，建筑检查未通过：'+result.warning : ({plan:`Agent 交接方案已生成：${result.operations} 项操作。点击“复制给 Agent”继续，原建筑未改变。`,prepare:'建筑审阅图已保存到本建筑的 Agent交接 文件夹，目录已自动关联。请看图后，在 Agent 对话中明确是否同意继续精修。',render:'原建筑的多角度预览图已保存。',apply:'新建筑已另存，原建筑保留。',revision:'下一版建筑已保存到原工作文件夹；包含主模型、NBT切片和分层交付。',snapshot:state.mode==='3d'?'三维已按需载入；可关闭 3D 返回看图模式。':'已返回看图模式。'}[kind] ?? '完成'), result.warning ? 'warn' : '')
     return result
-  } finally { busy(false) }
+  } catch(error) { if(['prepare','apply'].includes(kind))$('advanced-review').open=true;throw error } finally { busy(false) }
 }
 async function loadViewer(result, isNewVersion = false) {
   result={...result,cameras:(result.cameras??[]).map(camera=>({...camera,cuts:(camera.cuts??[]).map(c=>Array.isArray(c)?{axis:c[0],position:c[1],removed_side:c[2]}:c)}))}
@@ -397,7 +407,7 @@ async function loadViewer(result, isNewVersion = false) {
   $('model-hash').textContent=(isNewVersion?'新版本预览 ':'原建筑版本 ')+result.geometry_sha256.slice(0,16)
 }
 async function loadModel(preserve = false) {
-  state.aiPlacing=null
+  state.aiPlacing=null;state.lastAIGroup=null
   stashDraft();imageMode();busy(true)
   try {
     status('正在打开建筑及门口、通路等保护设置…')
@@ -482,7 +492,7 @@ $('view-layer').addEventListener('change',handle(manualFilter));$('view-cut').ad
 $('save-preset').addEventListener('click',handle(async()=>{
   const result=await api('effects/save',{request:request(),name:$('effect-name').value})
   await refreshEffects();status('效果设置已保存：'+result.path+'；可在右侧用 @ 引用。')
-  const link=document.createElement('a');link.textContent='另下载一份设置';const url=URL.createObjectURL(new Blob([JSON.stringify(request(),null,2)],{type:'application/json'}));link.href=url;link.download='detail_settings.json';$('result-links').replaceChildren(link);document.querySelector('.result-panel').open=true;link.addEventListener('click',()=>setTimeout(()=>document.querySelector('.result-panel').open=false,0));setTimeout(()=>URL.revokeObjectURL(url),60000)
+  const link=document.createElement('a');link.textContent='另下载一份设置';const url=URL.createObjectURL(new Blob([JSON.stringify(request(),null,2)],{type:'application/json'}));link.href=url;link.download='detail_settings.json';$('result-links').replaceChildren(link);setTimeout(()=>URL.revokeObjectURL(url),60000)
 }))
 $('load-preset').addEventListener('click',()=>$('preset-file').click())
 $('preset-file').addEventListener('change',handle(async()=>{
@@ -696,6 +706,7 @@ createOrthographic({getInfo:()=>state.info,getRange:()=>($('whole-region').check
 window.detailControl={gather,request,restore,loadModel,runJob,state,selectImage,imageMode}
 initDesktop(async source=>{$('source').value=source;$('context').value='';$('cameras').value='';await loadModel()})
 initApiAssistant({
+ captureViewport,
  context:()=>{const s=gather(),info=state.info;if(!info)return null;return {size:info.size,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?info.size.map(v=>v-1):s.hi,materials:info.materials}},
  binding:()=>JSON.stringify({source:state.info?.source_sha256,settings:gather()}),
  localSelection:()=>!!state.info&&!gather().whole_region,
@@ -713,6 +724,17 @@ initApiAssistant({
   await api('prompt-export',{...request(),settings:next})
   restore(next);state.configChanged=true;state.bundle='';updateCount();recordSettings();state.previewRevision++;clearTimeout(previewTimer)
   await updatePreview()
+  if(patch.operations)state.lastAIGroup={source:state.info.source_sha256,start:next.operations.length-patch.operations.length,base:structuredClone(patch.operations),applied:JSON.stringify(patch.operations)}
+ },
+ moveComponent:async offset=>{
+  if(state.busy||state.previewBusy)throw Error('请等待当前任务完成')
+  const group=state.lastAIGroup;if(!group||group.source!==state.info?.source_sha256)throw Error('请先载入或生成一组AI构件')
+  const before=gather(),current=before.operations.slice(group.start,group.start+group.base.length)
+  if(JSON.stringify(current)!==group.applied)throw Error('这组工具步骤已经手动改变，请重新生成构件后再整体移动')
+  const moved=translateComponent(group.base,offset,state.info.size),next=structuredClone(before);next.operations.splice(group.start,group.base.length,...moved)
+  await api('prompt-export',{...request(),settings:next})
+  restore(next);state.configChanged=true;state.bundle='';updateCount();state.previewRevision++;clearTimeout(previewTimer)
+  try{await updatePreview();group.applied=JSON.stringify(moved);recordSettings()}catch(e){restore(before);throw e}
  }
 })
 initWorkspaceShell()
