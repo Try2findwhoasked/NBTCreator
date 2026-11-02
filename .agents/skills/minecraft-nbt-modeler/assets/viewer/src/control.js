@@ -1,3 +1,4 @@
+import {initAppSettings} from './app-settings.js'
 import {translateComponent} from './component-move.js'
 import {requestAI,cancelAI} from './ai-request.js'
 import '../../../prompt-console/catalog.js'
@@ -739,6 +740,7 @@ initApiAssistant({
 })
 initWorkspaceShell()
 initTaskRecords()
+initAppSettings()
 initHelpDialogs()
 const commentComposer=document.createElement('div');commentComposer.className='comment-composer'
 for(const element of [$('feedback-text'),document.querySelector('.comment-compose-meta'),$('draft-markers'),$('reference-chips'),document.querySelector('#feedback-card>.note-actions')])commentComposer.append(element)

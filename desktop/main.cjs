@@ -1,4 +1,6 @@
-const {app,BrowserWindow,ipcMain,dialog,utilityProcess,Menu,safeStorage,net,clipboard}=require('electron')
+const {app,BrowserWindow,ipcMain,dialog,utilityProcess,Menu,safeStorage,net,clipboard,shell}=require('electron')
+const {createAppSettings}=require('./app-settings.cjs')
+const {createUpdater}=require('./updater.cjs')
 const {createInternalAI}=require('./internal-ai.cjs')
 const {createApiService}=require('./api-service.cjs')
 const {selectWorkspace,normalizeWorkspace}=require('./workspace.cjs')
@@ -46,6 +48,8 @@ async function boot(){
  }
 
  await fs.mkdir(app.getPath('userData'),{recursive:true})
+ const preferences=createAppSettings(app.getPath('userData')),updater=createUpdater({directory:app.getPath('userData'),version:app.getVersion(),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
+ const initialPreferences=await preferences.load()
  const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler')})
  const api=createApiService({workflowContext:key=>internalAI.context(key),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
  await api.load()
@@ -73,6 +77,9 @@ async function boot(){
  ipcMain.handle('nbt:internal-ai-import',async event=>{allowed(event);const selected=await dialog.showOpenDialog(window,{title:'添加内部AI资料（选中后会在生成时发送到API）',properties:['openFile','multiSelections'],filters:[{name:'Markdown / TXT',extensions:['md','txt']}]});return selected.canceled?null:internalAI.importDocuments(selected.filePaths)})
  await startBackend()
  window=new BrowserWindow({width:1500,height:1000,minWidth:900,minHeight:650,frame:true,show:false,title:'NBTCreator',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}})
+ ipcMain.handle('nbt:app-settings',async event=>{allowed(event);return {...await preferences.load(),version:app.getVersion(),workspace,python,electron:process.versions.electron,node:process.versions.node,platform:process.platform,arch:process.arch,packaged:app.isPackaged}})
+ ipcMain.handle('nbt:app-settings-save',async(event,input)=>{allowed(event);const saved=await preferences.save(input);window.webContents.setZoomFactor(saved.zoom/100);return saved})
+ for(const [name,handler]of Object.entries({'update-access':()=>updater.access(),'update-access-save':input=>updater.saveAccess(input),'update-check':()=>updater.check(),'update-download':kind=>updater.download(kind),'update-status':()=>updater.status(),'update-folder':async()=>{await fs.mkdir(updater.folder(),{recursive:true});return shell.openPath(updater.folder())}}))ipcMain.handle('nbt:'+name,(event,input)=>{allowed(event);return handler(input)})
  window.webContents.setWindowOpenHandler(()=>({action:'deny'}))
  window.webContents.on('will-navigate',(event,url)=>{if(!trustedDestination(url))event.preventDefault()})
  window.webContents.on('will-attach-webview',event=>event.preventDefault())
@@ -111,7 +118,7 @@ async function boot(){
   if(index<0)throw Error('Unknown system menu')
   systemMenus.items[index].submenu.popup({window})
  })
- await window.loadURL(serverUrl);window.setTitle('NBTCreator · NBT 建筑工作台');window.show()
+ await window.loadURL(serverUrl);window.webContents.setZoomFactor(initialPreferences.zoom/100);window.setTitle('NBTCreator · NBT 建筑工作台');window.show()
 }
 app.on('before-quit',event=>{if(!closing){event.preventDefault();closing=true;stopBackend().finally(()=>app.quit())}})
 app.on('window-all-closed',()=>app.quit())
