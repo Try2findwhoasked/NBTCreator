@@ -60,7 +60,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   const projectStages=createProjectStages(workspace)
   const editSessions=createEditSessionStore(workspace)
   const commandStore=createCommandStore(workspace,JSON.parse(await fs.readFile(path.join(skillRoot,'tool-catalog.json'),'utf8')))
-  const ownedChildren=new Set(),stoppingChildren=new WeakMap(),childStopped=Symbol('childStopped')
+  const ownedChildren=new Set(),workerInfo=new WeakMap(),stoppingChildren=new WeakMap(),childStopped=Symbol('childStopped')
   let closing=false,closePromise
   const feedback = createFeedbackStore(binding=>{if(!binding.workdir)throw new Error('请重新打开建筑以识别修改意见目录');return path.join(binding.workdir,'修改意见')},path.join(workspace,'build/nbt_feedback'))
   const jobFinished=Symbol('jobFinished')
@@ -84,6 +84,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     return new Promise((resolve, reject) => {
       const child = spawn(python, ['-B', backend, ...args], { cwd: workspace, windowsHide: true, shell: false })
       ownedChildren.add(child)
+      const sourceIndex=args.indexOf('--source');workerInfo.set(child,{phase:args[0],...(sourceIndex>=0?{source:args[sourceIndex+1]}:{})})
       child[childStopped]=new Promise(done=>child.once('close',()=>{ownedChildren.delete(child);done()}))
       if(job){job.child=child;job.phase=args[0];job.backend_pid=child.pid}
       onSpawn?.(child)
@@ -457,6 +458,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         }
       } else if (req.method === 'POST' && url.pathname === '/__detail__/jobs') json(res, await launchJob(await body(req)), 202)
       else if (req.method === 'GET' && url.pathname === '/__detail__/jobs') json(res, [...jobs.values()].map(serialJob))
+      else if(req.method==='GET'&&url.pathname==='/__detail__/workers')json(res,{items:[...ownedChildren].filter(child=>Number.isSafeInteger(child.pid)&&child.exitCode===null&&child.signalCode===null).map(child=>({pid:child.pid,...workerInfo.get(child)}))})
       else if (req.method === 'POST' && url.pathname === '/__detail__/cancel') { await cancel(); json(res, { ok: true }) }
       else if (req.method === 'GET' && url.pathname.startsWith('/__detail__/jobs/')) {
         const job = jobs.get(url.pathname.split('/').at(-1)); if (!job) throw new Error('Unknown job'); json(res, serialJob(job))
