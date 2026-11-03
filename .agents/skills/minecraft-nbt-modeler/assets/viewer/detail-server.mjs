@@ -345,7 +345,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         json(res,result)
       } else if ((url.pathname==='/__detail__/components'||url.pathname.startsWith('/__detail__/components/'))) {
         const action=url.pathname.split('/')[3]||'list'
-        if(!['list','save','get','place','batch','import','update','extract','transform'].includes(action)||req.method!==(action==='list'?'GET':'POST'))throw Error('无效构件请求')
+        if(!['list','save','get','place','batch','import','update','extract','transform','agent'].includes(action)||req.method!==(action==='list'?'GET':'POST'))throw Error('无效构件请求')
         const input=action==='list'?{}:await body(req)
         if(['save','extract','transform'].includes(action)){
           const binding=bindings.get(input.target_id)
@@ -367,6 +367,11 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         const expose=item=>({...item,thumbnail:item.thumbnail?asset(item.thumbnail):null,download:item.file?asset(item.file):null})
         if(action==='list')result={...result,items:result.items.map(expose)}
         if(['save','import'].includes(action))result=expose(result)
+        if(action==='agent'){
+          if(result.items)result={...result,items:result.items.map(expose)}
+          if(result.thumbnail||result.file)result=expose(result)
+          if(result.snapshot){const key=randomUUID();snapshots.set(key,result.snapshot);result.model_key=key}
+        }
         json(res,result)
       } else if (req.method === 'POST' && url.pathname === '/__detail__/inspect') {
         const input = await body(req)
@@ -432,7 +437,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
       } else if(req.method==='POST'&&url.pathname==='/__detail__/ai-activities'){
         const input=await body(req)
         if(input.action==='start'){
-          if(!['draft','prompt','workbench','structure','small_structure'].includes(input.workflow))throw Error('Unknown AI workflow')
+          if(!['draft','prompt','workbench','structure','small_structure','component'].includes(input.workflow))throw Error('Unknown AI workflow')
           const id=randomUUID(),directory=path.join(outputRoot,'jobs',id)
           await fs.mkdir(directory,{recursive:true})
           const job={id,kind:'ai',workflow:input.workflow,label:String(input.label||'AI构建').slice(0,200),instruction:String(input.instruction||'').slice(0,12000),model:String(input.model||'').slice(0,150),provider:String(input.provider||'').slice(0,100),screenshot:input.screenshot===true,status:'running',created_at:new Date().toISOString(),directory,events:[{time:new Date().toISOString(),message:'AI请求已创建'}]}

@@ -262,6 +262,7 @@ def paste_plan(model, operation, protected):
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());sub=parser.add_subparsers(dest='command',required=True)
     sub.add_parser('list')
+    agent=sub.add_parser('agent');agent.add_argument('--tool',required=True);agent.add_argument('--request',type=Path,required=True)
     save=sub.add_parser('save');save.add_argument('--source',type=Path,required=True);save.add_argument('--name',required=True);save.add_argument('--lo',required=True);save.add_argument('--hi',required=True);save.add_argument('--tags',default='');save.add_argument('--include-air',action='store_true');save.add_argument('--snapshot',type=Path);save.add_argument('--snapshot-sha256')
     imp=sub.add_parser('import');imp.add_argument('--file',type=Path,required=True)
     get=sub.add_parser('get');get.add_argument('--id',required=True)
@@ -273,7 +274,11 @@ def main():
     args=parser.parse_args()
     try:
         xyz=lambda text:[int(v) for v in text.split(',')]
-        if args.command=='list':result=listing(args.workspace)
+        if args.command=='agent':
+            from nbt_structure_agent import dispatch
+            if args.request.stat().st_size>MAX_BYTES:raise ValueError('结构参数超过8 MiB')
+            result=dispatch(args.workspace,args.tool,json.loads(args.request.read_text(encoding='utf-8-sig')))
+        elif args.command=='list':result=listing(args.workspace)
         elif args.command=='get':result=load(args.workspace,args.id)
         elif args.command=='extract':result=extract(args.source,args.name,xyz(args.lo),xyz(args.hi),snapshot=args.snapshot,snapshot_sha256=args.snapshot_sha256)
         elif args.command=='transform':result=transform_selection(args.source,xyz(args.lo),xyz(args.hi),xyz(args.position),snapshot=args.snapshot,snapshot_sha256=args.snapshot_sha256,quarter_turns=args.quarter_turns,mirror=args.mirror,overwrite=args.overwrite,move=args.move,name=args.name)

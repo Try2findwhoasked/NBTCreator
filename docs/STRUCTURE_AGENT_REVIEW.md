@@ -1,0 +1,41 @@
+# 结构 Agent 分支交接（2026-11-04）
+
+分支：`codex/shared-structure-agent`。该分支基于 `codex/ai-request-efficiency` 的 `2e0228e`，包含两批功能：
+
+- `84cc4a6`：文字润色输入摘要、规则去重、请求/重试/失败分阶段测量、结构名称与一个脚本计算的观察角度。
+- `2e0228e`：方案基线与步骤指纹绑定的工具增量返回，在完整本地序列上重放，保留未上传字段与旧完整序列协议。
+- 当前结构 Agent 提交：共用结构读写/预览/放置接口，以及资产管理独立创建入口和控件对齐。
+
+`f0f36c3` 是隔离 worktree 时对原会话未提交源码的基线快照，不是本次功能提交。整合到原 UI 分支时，先保留原会话自己的改动，再按实际分支状态整合上述功能提交，不应把基线快照当作新增功能重复合入。
+
+## 行为与实现
+
+`tool-catalog.json.agent_tools` 定义六个共用工具：`structure_list/read/view/preview/write/place`。CLI 的 `components agent` 和应用的同源 `components/agent` 都调用 `nbt_structure_agent.dispatch`；不暴露任意脚本、路径或进程执行。
+
+独立创建采用原建模工具目录、局部整数 XYZ、主体/墙层归属与合法状态。`simulate_plan` 从原模型预览中抽出，独立结构和模型候选共用同一计算循环，并实际执行总变化预算。预览创建真实主模型草稿、快照、图片和一个相机；保存必须提供完整预览指纹，产生全新资产ID。放置只返回参数化候选，实际模型的哈希、占用、保护和预算仍在原预览/验证/显式导出流程检查。
+
+资产管理新增“Agent创建独立结构”、外部Agent任务复制、参数JSON预览和“独立3D查看”。创建无需打开建筑，内置AI可读取选择的已有资产并按引用参数组合。新弹窗与现有资产控件共享颜色、字号、按钮和输入框尺寸；左侧表单右侧材质预览，高级JSON默认折叠，头尾固定。只读查看不进入模型编辑状态。修复了全局iframe定位导致遮挡关闭按钮的问题，以及资产列表异步加载覆盖参考选择的竞争。
+
+新增独立 `component` AI工作流/创作偏好；旧五区域配置保留并补齐，旧流程截图开关不自动继承。所选资料仍全文发送，不静默裁剪。能力列表及生成Facade已同步，外部Skill入口包含该协议与按任务阅读路由。
+
+## 验证
+
+以下测试在独立合成工作区完成，没有使用真实外部AI密钥或修改原SAODG资产：
+
+| 检查 | 结果 |
+| --- | --- |
+| `npm run test:api` | 38项通过 |
+| AI偏好/迁移、草稿、工作区生命周期Node回归 | 15项通过 |
+| `python tests/structure-agent.py` | 5项通过，包含同引擎边界/预算、非法状态、预览指纹、CLI与参数组合 |
+| 既有components / overwrite-policy / operation-history Python回归 | 6 / 3 / 3项通过 |
+| `npm run test:desktop` | 28项通过 |
+| `node tests/api-desktop.mjs` | 42项通过 |
+| `node tests/asset-workspace-desktop.mjs` | 11项通过 |
+| `node tests/structure-agent-desktop.mjs` | 12项通过 |
+| doctor、build:web、check:tools、check_skill、verify:archive | 通过；409份迁移参考未变 |
+
+新桌面检查覆盖空白项目创建、真实材质预览、控件对齐、改参后重新预览、保存后外部CLI读取、已有资产只读3D查看、内置AI引用组合、外部Agent组合后UI刷新，以及CLI/HTTP放置操作完全相同。测试使用最小化窗口，没有进入全屏。
+
+最终新界面与结果：`build/structure-agent-1793721605915/independent-structure.png`、同目录`results.json`。旧资产流程结果：`build/assets-1793720906498/results.json`；完整API结果：`build/api-desktop-1793721063801/results.json`。
+
+本轮验证的是源码与生产静态前端流程；没有制作新便携包，也没有测量真实服务商的时延或认证AI设计质量。真实看图批准、游戏通行验收和正式NBT导出仍是独立阶段。

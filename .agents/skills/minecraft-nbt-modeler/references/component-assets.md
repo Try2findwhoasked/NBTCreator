@@ -2,6 +2,51 @@
 
 资产管理保存可复用的体素构件，不覆盖源建筑。库位于工作区 `.nbtcreator/components/`，随工作区移动，不进入应用安装包。
 
+## 内外 Agent 共用结构协议
+
+`capabilities` 的 `agent_tools` 是结构工具定义与 JSON 参数 Schema 的共同来源，内部 API、资产管理与外部 Agent 都通过同一个 Python 引擎执行。入口无需 Electron：
+
+```powershell
+python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool structure_list --request list.json
+python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool structure_preview --request preview.json
+```
+
+`list.json` 内容为 `{}`。`preview.json` 是下面的独立结构方案，不是已经编码的构件文件：
+
+```json
+{
+  "spec": {
+    "name": "带基座石柱",
+    "size": [7, 8, 7],
+    "tags": ["支承"],
+    "operations": [
+      {"kind": "box", "label": "基座", "classification": "body", "lo": [1, 0, 1], "hi": [5, 0, 5], "state": "stone_bricks"},
+      {"kind": "box", "label": "柱身", "classification": "body", "lo": [2, 1, 2], "hi": [4, 6, 4], "state": "stone_bricks"}
+    ],
+    "camera": {"azimuth": 45, "elevation": 25}
+  }
+}
+```
+
+| 工具 | 参数与行为 |
+| --- | --- |
+| structure_list | `{}`；列出当前工作区资产 |
+| structure_read | `{id}`；读取完整体素、材质、墙层、锚点和内容哈希 |
+| structure_view | `{id}`；生成已有资产的独立只读快照、缩略图和一个相机，不打开或修改建筑 |
+| structure_preview | `{spec}`；使用共用工具序列或已有资产的放置参数，生成空白空间中的候选及实际预览 |
+| structure_write | `{preview_id,preview_sha256}`；核对完整候选绑定后，保存为全新资产ID，不覆盖旧资产 |
+| structure_place | `{id,content_sha256,position,size,quarter_turns?,mirror?,overwrite?}`；返回放置操作，不修改模型 |
+
+工具响应为 `{ok,result}`，失败为 `{ok:false,error}`。本地 HTTP 对应 `POST /__detail__/components/agent`，请求是 `{tool,arguments}`，它是应用的同源接口，不是外部网络服务。外部 Agent 使用 CLI，不需要 GUI 自动化或发现临时端口。
+
+结构使用局部整数XYZ、包含两端的lo/hi、合法1.20.1方块状态及明确的body/wall归属。每轴1～64格，展开后最多128步、65536条方块记录；总变化预算可由 `max_changed_blocks` 降低，不能超过65536。空白结构和模型编辑调用相同的编译、候选计算、墙层和预算逻辑。不能提交Python、脚本、任意路径或自行构造write_group。锚点默认底部中心，可显式指定界内整数坐标。
+
+已有资产可用 `spec.placements` 组合，每项包括 `id/content_sha256/position` 及可选 `quarter_turns/mirror/overwrite`；不必重新发送体素。position表示目标空间中的资产锚点，不能猜测ID或哈希。需要复制、阵列或曲面时使用工具目录支持的参数，减少逐块输出。`include_air=true` 明确保留空气，整个体积也必须不超过65536格。
+
+预览返回 `preview_id/preview_sha256`、真实缩略图、主模型草稿、快照、相机文件、几何内容哈希与未完成的设计/通行验证状态。查看真实图像后，按当前用户授权显式调用structure_write；不能把保存资产当作看图批准。生成的诊断草稿位于 `nbt_models/_workspaces/structure_agent/`，正式复用资产仍在 `.nbtcreator/components/`。应用新入口“Agent创建独立结构”支持内置API生成、外部参数JSON预览及复制外部Agent任务；它不要求先打开建筑。创作偏好使用 `component` 区域，旧五区域配置会保留并补齐新区域。
+
+保存资产后按structure_place返回的operations走现有模型preview/validate/新版本手动导出流程；落地位置仍需真实源哈希、保护、占用和预算检查。观察机位由脚本补齐，不声明玩家站立或无遮挡。独立资产预览与保存不自动写出NBT，也不授予精修批准。
+
 ## 保存与读取
 
 ```powershell

@@ -553,22 +553,13 @@ def export_plan(request, output):
                 plan=str(output/'plan.json'), bundle=str(output/'bundle.json'), output=str(output))
 
 
-def preview_effect(request, output):
-    # User-requested visual experiment only: no master/NBT, approval or delivery.
+def simulate_plan(model, walls, plan, config):
+    """The shared data-only candidate engine for model edits and new assets."""
     from nbt_assembly import Volume
     from nbt_patterns import pattern_plan
     from nbt_weathering import weathering_plan
     from nbt_floors import auto_floor_plan
-    from nbt_registry import effective, normalize, registry
-    source=Path(request['source']).resolve(); baseline=digest(source)
-    if request.get('source_sha256') and request['source_sha256']!=baseline: raise ValueError('原建筑已变化，请重新打开')
-    model,walls=read_master(source);settings=request['settings'];plan=compile_plan(settings,model.size)
-    config=normalize_context(model,request['context'],request.get('cameras',''),settings)
-    if 'wall_positions' in config:
-        from nbt_refine import point
-        walls={point(p) for p in config['wall_positions']}
-        if any(not model.in_bounds(p) for p in walls):raise ValueError('墙mask超出原建筑范围')
-    walls={p for p in walls if p in model.blocks};source_walls=set(walls)
+    walls=set(walls);source_walls=set(walls)
     virtual=Volume(model.size);virtual.blocks=dict(model.blocks);protected=protections(virtual,config)
     write_owners={}
     for operation in plan['operations']:
@@ -593,7 +584,27 @@ def preview_effect(request, output):
             elif value.split('[')[0] in ('minecraft:air','minecraft:cave_air','minecraft:void_air') or operation.get('classification')=='body':walls.discard(position)
             elif operation.get('classification')=='wall' or position in moved_walls:walls.add(position)
     from nbt_change_policy import enforce_changes
-    difference=enforce_changes(model.blocks,virtual.blocks,source_walls,walls,protected)
+    difference=enforce_changes(model.blocks,virtual.blocks,source_walls,walls,protected,maximum=config.get('max_changed_blocks'))
+    return virtual,walls,difference
+
+
+def preview_effect(request, output):
+    # User-requested visual experiment only: no master/NBT, approval or delivery.
+    from nbt_assembly import Volume
+    from nbt_patterns import pattern_plan
+    from nbt_weathering import weathering_plan
+    from nbt_floors import auto_floor_plan
+    from nbt_registry import effective, normalize, registry
+    source=Path(request['source']).resolve(); baseline=digest(source)
+    if request.get('source_sha256') and request['source_sha256']!=baseline: raise ValueError('原建筑已变化，请重新打开')
+    model,walls=read_master(source);settings=request['settings'];plan=compile_plan(settings,model.size)
+    config=normalize_context(model,request['context'],request.get('cameras',''),settings)
+    if 'wall_positions' in config:
+        from nbt_refine import point
+        walls={point(p) for p in config['wall_positions']}
+        if any(not model.in_bounds(p) for p in walls):raise ValueError('墙mask超出原建筑范围')
+    walls={p for p in walls if p in model.blocks};source_walls=set(walls)
+    virtual,walls,difference=simulate_plan(model,walls,plan,config)
     changed=difference['changed_blocks']
     output=reserve_output(output)
     def snapshot(current,mask):
@@ -714,7 +725,7 @@ def main():
     cmd = sub.add_parser('catalog'); cmd.add_argument('--workspace', type=Path, required=True);cmd.add_argument('--include-bugged',action='store_true');cmd.add_argument('--index-only',action='store_true')
     cmd = sub.add_parser('inspect'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--image-limit',type=int,default=8)
     cmd = sub.add_parser('cover'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--geometry', default=''); cmd.add_argument('--cache',type=Path,required=True); cmd.add_argument('--generate-missing',action='store_true')
-    cmd = sub.add_parser('components'); cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','save','get','place','batch','import','update','extract','transform'],required=True);cmd.add_argument('--request',type=Path)
+    cmd = sub.add_parser('components'); cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','save','get','place','batch','import','update','extract','transform','agent'],required=True);cmd.add_argument('--request',type=Path)
     cmd = sub.add_parser('recipes');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','get','save','capture','archive','compile'],required=True);cmd.add_argument('--request',type=Path)
     cmd = sub.add_parser('project-batch');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','create','get','run','retry','cancel'],required=True);cmd.add_argument('--request',type=Path)
     cmd = sub.add_parser('protection-mask');cmd.add_argument('--request',type=Path,required=True)
@@ -745,7 +756,11 @@ def main():
         elif args.command == 'components':
             import nbt_components as components
             data=read_request(args.request) if args.request else {}
-            if args.action=='list':result=components.listing(args.workspace)
+            if args.action=='agent':
+                from nbt_structure_agent import dispatch
+                if set(data)!={'tool','arguments'}:raise ValueError('结构Agent请求须包含tool和arguments')
+                result=dispatch(args.workspace,data['tool'],data['arguments'])
+            elif args.action=='list':result=components.listing(args.workspace)
             elif args.action=='get':result=components.load(args.workspace,data['id'])
             elif args.action=='save':result=components.capture(args.workspace,data['source'],data['name'],data['lo'],data['hi'],tags=data.get('tags',[]),include_air=data.get('include_air',False),snapshot=data['snapshot'],snapshot_sha256=data['snapshot_sha256'])
             elif args.action=='import':result=components.store(args.workspace,data['component'])
