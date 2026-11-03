@@ -255,7 +255,7 @@ function syncVersionReadonly(){
 }
 function busy(value) {
   state.busy = value
-  for (const button of document.querySelectorAll('button')) if (button.id !== 'cancel'&&button.id!=='open-command-center'&&!button.closest('#command-dialog,#project-batch-dialog')) button.disabled = value
+  for (const button of document.querySelectorAll('button')) if (button.id !== 'cancel'&&button.id!=='open-command-center'&&!button.closest('#command-dialog,#project-batch-dialog,#component-author')) button.disabled = value
   for (const input of document.querySelectorAll('.sidebar input, .sidebar select, .sidebar textarea')) input.disabled = value
   $('compare-before').disabled=value||!state.preview;$('compare-after').disabled=value||!state.preview
   $('pick-material').disabled=value||state.mode!=='3d';$('pick-coordinate').disabled=value||state.mode!=='3d';

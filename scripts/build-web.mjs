@@ -5,6 +5,8 @@ import {pathToFileURL} from 'node:url'
 import {createHash} from 'node:crypto'
 import {skill} from './paths.mjs'
 export async function buildWeb(){
+ // Keep native build allocation bounded on Windows while other creator tools run.
+ process.env.RAYON_NUM_THREADS??='1'
  const viewer=path.join(skill,'assets/viewer'),require=createRequire(path.join(viewer,'package.json'))
  const {build}=await import(pathToFileURL(require.resolve('vite')).href)
  const output=path.join(viewer,'web-dist')

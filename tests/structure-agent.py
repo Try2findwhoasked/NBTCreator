@@ -39,6 +39,12 @@ class StructureAgent(unittest.TestCase):
    with self.subTest(patch=patch),self.assertRaises((ValueError,AssertionError)):dispatch(self.root,'structure_preview',{'spec':dict(self.spec,**patch)})
   for tool,args in [('shell',{}),('structure_write',{'preview_id':'../bad','preview_sha256':'0'*64}),('structure_list',{'path':'elsewhere'})]:
    with self.assertRaises(ValueError):dispatch(self.root,tool,args)
+ def test_all_preview_artifacts_are_bound_and_pattern_keeps_its_shared_strict_schema(self):
+  for name in ('draft.master.json.gz','snapshot.json','thumbnail.jpg','cameras.json'):
+   result=dispatch(self.root,'structure_preview',{'spec':self.spec});file=Path(result['source']).parent/name;file.write_bytes(file.read_bytes()+b'changed')
+   with self.assertRaisesRegex(ValueError,'预览已改变'):dispatch(self.root,'structure_write',{k:result[k] for k in ['preview_id','preview_sha256']})
+  spec=dict(self.spec,operations=[self.spec['operations'][0],dict(kind='pattern',label='连片换材',classification='inherit',lo=[0,0,0],hi=[4,7,4],action='replace',scope='surface',mode='independent',fraction=1,from_states=['stone_bricks'],palette=[dict(state='andesite',weight=1)],seed=2718)])
+  data=build(self.root,spec);self.assertIn('minecraft:andesite',data['palette'])
  def test_existing_assets_are_composed_by_parameters_without_reemitting_voxels(self):
   result=dispatch(self.root,'structure_preview',{'spec':self.spec});item=dispatch(self.root,'structure_write',{k:result[k] for k in ['preview_id','preview_sha256']})
   spec=dict(name='组合双柱',size=[16,10,8],placements=[dict(id=item['id'],content_sha256=item['content_sha256'],position=[3,0,3]),dict(id=item['id'],content_sha256=item['content_sha256'],position=[11,0,3],quarter_turns=1)])

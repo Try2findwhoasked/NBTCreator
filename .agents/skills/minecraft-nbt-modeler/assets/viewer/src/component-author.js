@@ -23,10 +23,11 @@ export function initComponentAuthor({actions,api,created}){
  const status=(message,error=false)=>{$('component-status').textContent=message;$('component-status').classList.toggle('error',error)}
  const fingerprint=()=>JSON.stringify(['component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec'].map(id=>$(id).value))
  function invalidate(){candidate=null;binding=null;$('component-write').disabled=true}
- function lock(value,kind=null){phase=value?kind:null;for(const id of ['component-generate','component-copy-agent','component-preview','component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec'])$(id).disabled=value;$('component-close').disabled=value&&kind==='write';$('component-write').disabled=value||!candidate||binding!==fingerprint()}
+ function lock(value,kind=null){phase=value?kind:null;for(const id of ['component-generate','component-copy-agent','component-preview','component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec'])$(id).disabled=value;$('component-close').disabled=value&&kind==='write';$('component-write').disabled=value||!candidate||binding!==fingerprint()||dialog.dataset.mode==='view'}
  function context(){const name=$('component-name').value.trim(),size=['x','y','z'].map(axis=>Number($('component-size-'+axis).value));if(!name||name.length>80||!size.every(n=>Number.isInteger(n)&&n>=1&&n<=64))throw Error('请填写名称和1～64格的整数尺寸');return {name,size,references:[]}}
  async function show(result,token){
   if(token!==epoch||!dialog.open)return
+  candidate=null;binding=null
   $('component-preview-area').hidden=false;$('component-preview-empty').hidden=true;$('component-thumbnail').src=result.thumbnail;$('component-preview-name').textContent=result.name+' · '+result.size.join(' × ')+' · '+result.block_count+' 格'
   $('component-view-info').textContent=JSON.stringify({name:result.name,size:result.size,content_sha256:result.content_sha256,camera:result.cameras[0],verification:result.verification},null,2)
   const frame=$('component-viewer')

@@ -55,7 +55,7 @@ def build(workspace, spec):
         if not isinstance(op,dict) or op.get('kind') not in catalog['tools']:raise ValueError('未知结构工具')
         allowed=set(catalog['common'])|set(catalog['tools'][op['kind']][1])|{'kind','overwrite'}
         if set(op)-allowed:raise ValueError('结构步骤含未开放字段（不接收代码、路径或写入组）')
-        operations.append(dict(op,write_group=group))
+        operations.append(dict(op,write_group=group) if op['kind'] in ('box','beam','frame','hollow_box','geometry') else dict(op))
     for placed in spec.get('placements',[]):
         data=library.load(workspace,placed['id'])
         if placed['content_sha256']!=data['content_sha256']:raise ValueError('引用构件已变化，请重新读取')
@@ -78,6 +78,13 @@ def build(workspace, spec):
 
 
 def _draft_root(workspace):return Path(workspace).resolve()/'nbt_models/_workspaces/structure_agent'
+
+
+def _preview_fingerprint(directory):
+    names=('draft.json','draft.master.json.gz','snapshot.json','thumbnail.jpg','cameras.json')
+    if any(not (directory/name).resolve().is_relative_to(directory.resolve()) for name in names):raise ValueError('预览文件超出本次目录')
+    record={name:hashlib.sha256((directory/name).read_bytes()).hexdigest() for name in names}
+    return hashlib.sha256(json.dumps(record,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 
 
 def _camera(data,hint):
@@ -108,7 +115,7 @@ def preview(workspace,data,spec=None):
     cameras=directory/'cameras.json';cameras.write_text(json.dumps([camera],ensure_ascii=False),encoding='utf8')
     image=directory/'thumbnail.jpg';library.thumbnail(data,image)
     draft=directory/'draft.json';raw=json.dumps(dict(component=data,spec=spec),ensure_ascii=False,separators=(',',':')).encode('utf8');draft.write_bytes(raw)
-    return dict(preview_id=directory.name,preview_sha256=hashlib.sha256(raw).hexdigest(),content_sha256=data['content_sha256'],name=data['name'],size=data['size'],
+    return dict(preview_id=directory.name,preview_sha256=_preview_fingerprint(directory),content_sha256=data['content_sha256'],name=data['name'],size=data['size'],
                 block_count=len(data['blocks']),source=str(source),snapshot=str(snapshot),thumbnail=str(image),cameras=[camera],cameras_file=str(cameras),
                 verification=dict(block_states=True,bounds=True,design='pending_visual_review',routes='not_checked',game='not_checked'),model_modified=False)
 
@@ -125,7 +132,7 @@ def dispatch(workspace,tool,arguments):
         root=_draft_root(workspace).resolve();directory=(root/arguments['preview_id']).resolve();draft=(directory/'draft.json').resolve()
         if not directory.is_relative_to(root) or not draft.is_relative_to(root) or draft.stat().st_size>library.MAX_BYTES:raise ValueError('结构预览路径或大小无效')
         raw=draft.read_bytes()
-        if hashlib.sha256(raw).hexdigest()!=arguments['preview_sha256']:raise ValueError('预览已改变，请重新生成并查看')
+        if _preview_fingerprint(directory)!=arguments['preview_sha256']:raise ValueError('预览已改变，请重新生成并查看')
         data=json.loads(raw);result=library.store(workspace,data['component'])
         recipes=library.library_root(workspace)/'recipes';recipes.mkdir(exist_ok=True)
         (recipes/(result['id']+'.json')).write_text(json.dumps(dict(spec=data.get('spec'),preview_sha256=arguments['preview_sha256'],content_sha256=result['content_sha256']),ensure_ascii=False),encoding='utf8')

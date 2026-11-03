@@ -166,7 +166,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   let response
   const invoke=async()=>{
    if(token.cancelled)throw Error('API 请求已取消')
-   const measurement={attempt:++api_metrics.attempts,max_tokens:payload.max_tokens,input_text_chars:textChars()};api_metrics.calls.push(measurement)
+   const measurement={attempt:++api_metrics.attempts,max_tokens:payload.max_tokens??payload.max_completion_tokens,input_text_chars:textChars()};api_metrics.calls.push(measurement)
    try{
     const value=await request('chat/completions',payload,measurement)
     const reason=value.choices?.[0]?.finish_reason

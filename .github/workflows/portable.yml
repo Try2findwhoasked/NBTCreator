@@ -80,6 +80,16 @@ jobs:
           New-Item -ItemType Directory -Path $probeRoot | Out-Null
           npm run test:projects
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/structure-agent.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/protection-mask.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/reusable-recipes.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/edit-session-store.test.mjs tests/app-settings.test.cjs tests/command-preferences.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/structure-agent-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/render-runtime.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/feedback-index.py
@@ -115,6 +125,8 @@ jobs:
           npm run test:desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run test:api-desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/protection-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/workspace-api-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
