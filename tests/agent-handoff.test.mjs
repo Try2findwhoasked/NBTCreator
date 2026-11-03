@@ -5,6 +5,14 @@ import os from 'node:os'
 import path from 'node:path'
 import {handoffInfo,writeHandoff} from '../.agents/skills/minecraft-nbt-modeler/assets/viewer/agent-handoff.mjs'
 
+test('new handoff directories belong to the current version while older reviews remain discoverable',async t=>{
+ const workdir=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-version-handoff-'));t.after(()=>fs.rm(workdir,{recursive:true,force:true}))
+ const version=path.join(workdir,'v03'),source=path.join(version,'master/model.json.gz'),legacy=path.join(workdir,'Agent交接/review-old')
+ await fs.mkdir(legacy,{recursive:true});await fs.writeFile(path.join(legacy,'review.json'),JSON.stringify({source,source_sha256:'same'}))
+ const info=await handoffInfo({workdir,version_dir:version,source,source_sha256:'same'})
+ assert.equal(info.directory,path.join(version,'Agent交接'));assert.equal(info.review,legacy)
+})
+
 test('review discovery never associates a different source or stale version',async t=>{
   const workspace=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-handoff-'))
   t.after(()=>fs.rm(workspace,{recursive:true,force:true}))

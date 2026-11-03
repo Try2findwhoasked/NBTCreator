@@ -449,7 +449,7 @@ function selectModel(index) {
   const item=state.models[index];if(!item)return
   $('source').value=item.source;$('context').value=item.context;$('cameras').value=item.cameras;state.bundle='';state.info=null;state.pickedMaterial=null;$('picked-material').hidden=true;$('orthographic-dialog').hidden=true
   $('viewer').hidden=true;$('viewer').src='about:blank';$('empty-view').hidden=false;$('view-select').disabled=true
-  state.imageLimit=8;state.configChanged=false;state.activeNote=null;state.preview=null;state.previewRevision++;clearTimeout(previewTimer);$('compare-before').disabled=true;$('compare-after').disabled=true;$('preview-state').textContent='效果预览不会保存为正式建筑'
+  state.imageLimit=state.defaultImageLimit??8;state.configChanged=false;state.activeNote=null;state.preview=null;state.previewRevision++;clearTimeout(previewTimer);$('compare-before').disabled=true;$('compare-after').disabled=true;$('preview-state').textContent='效果预览不会保存为正式建筑'
   $('model-summary').textContent='正在切换建筑…';$('result-links').replaceChildren();$('result-log').textContent='';$('status').textContent='请选择效果设置，右侧将载入对应图片。'
   imageMode();gallery([]);updateCount()
 }
@@ -506,7 +506,7 @@ let previewTimer
 function schedulePreview(){
   state.previewRevision++;clearTimeout(previewTimer)
   $('preview-state').textContent='设置已改变，等待更新预览…'
-  if($('auto-preview').checked&&state.info)previewTimer=setTimeout(()=>updatePreview().catch(error=>{$('preview-state').textContent='预览失败：'+error.message}),1400)
+  if($('auto-preview').checked&&state.info)previewTimer=setTimeout(()=>updatePreview().catch(error=>{$('preview-state').textContent='预览失败：'+error.message}),(state.previewDelay??1400))
 }
 async function updatePreview(){
   if(!state.info)return

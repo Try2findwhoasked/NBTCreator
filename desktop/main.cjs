@@ -48,8 +48,8 @@ async function boot(){
  }
 
  await fs.mkdir(app.getPath('userData'),{recursive:true})
- const preferences=createAppSettings(app.getPath('userData')),updater=createUpdater({directory:app.getPath('userData'),version:app.getVersion(),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
- const initialPreferences=await preferences.load()
+ const preferences=createAppSettings(()=>path.join(workspace,'.nbtcreator')),updater=createUpdater({directory:app.getPath('userData'),version:app.getVersion(),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
+ let initialPreferences
  const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler')})
  const api=createApiService({workflowContext:key=>internalAI.context(key),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
  await api.load()
@@ -57,6 +57,9 @@ async function boot(){
  let config={};try{config=JSON.parse(await fs.readFile(path.join(app.getPath('userData'),'settings.json'),'utf8'))}catch{}
  workspace=selectWorkspace({explicit:arg('--workspace'),environment:process.env.NBTCREATOR_WORKSPACE,agentCwd:process.env.NBTCREATOR_AGENT_CWD,cwd:process.cwd(),root,packaged:app.isPackaged,executable:app.getPath('exe'),config,settingsDirectory:app.getPath('userData'),systemDirectory:process.env.WINDIR})
  if(!workspace){const choice=await dialog.showOpenDialog({title:'选择项目根目录或nbt_models（自动识别）',properties:['openDirectory','createDirectory']});if(choice.canceled){app.quit();return}workspace=normalizeWorkspace(choice.filePaths[0]);await recordConfig()}
+ const localPreferences=path.join(workspace,'.nbtcreator/preferences.json')
+ try{await fs.access(localPreferences)}catch(e){if(e.code!=='ENOENT')throw e;try{const legacy=JSON.parse(await fs.readFile(path.join(app.getPath('userData'),'preferences.json'),'utf8'));await preferences.save(legacy)}catch(e){if(e.code!=='ENOENT')console.error('Legacy preferences:',e.message)}}
+ initialPreferences=await preferences.load()
  await fs.mkdir(path.join(workspace,'nbt_models'),{recursive:true})
  await exposure('apply')
  ipcMain.handle('nbt:exposure-config',event=>{allowed(event);return exposure('show')})
@@ -76,8 +79,11 @@ async function boot(){
  ipcMain.handle('nbt:internal-ai-save',(event,input)=>{allowed(event);return internalAI.save(input)})
  ipcMain.handle('nbt:internal-ai-import',async event=>{allowed(event);const selected=await dialog.showOpenDialog(window,{title:'添加内部AI资料（选中后会在生成时发送到API）',properties:['openFile','multiSelections'],filters:[{name:'Markdown / TXT',extensions:['md','txt']}]});return selected.canceled?null:internalAI.importDocuments(selected.filePaths)})
  await startBackend()
- window=new BrowserWindow({width:1500,height:1000,minWidth:900,minHeight:650,frame:true,show:false,title:'NBTCreator',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}})
- ipcMain.handle('nbt:app-settings',async event=>{allowed(event);return {...await preferences.load(),version:app.getVersion(),workspace,python,electron:process.versions.electron,node:process.versions.node,platform:process.platform,arch:process.arch,packaged:app.isPackaged}})
+ window=new BrowserWindow({width:initialPreferences.rememberWindow?initialPreferences.windowWidth:1500,height:initialPreferences.rememberWindow?initialPreferences.windowHeight:1000,minWidth:900,minHeight:650,frame:true,show:false,title:'NBTCreator',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}})
+ ipcMain.handle('nbt:app-settings',async event=>{allowed(event);return {...await preferences.load(),version:app.getVersion(),workspace,python,electron:process.versions.electron,node:process.versions.node,platform:process.platform,arch:process.arch,packaged:app.isPackaged,configDirectory:path.join(workspace,'.nbtcreator'),userDirectory:app.getPath('userData'),applicationDirectory:root,assetsDirectory:path.join(workspace,'nbt_models'),skillEntry:path.join(workspace,'.agents/skills/nbtcreator-workspace/SKILL.md')}})
+ let resizeTimer
+ window.on('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(async()=>{try{const p=await preferences.load(),b=window.getBounds();if(p.rememberWindow&&!window.isMaximized()&&b.width>=900&&b.height>=650)await preferences.save({windowWidth:b.width,windowHeight:b.height})}catch(e){console.error(e.message)}},400)})
+ ipcMain.handle('nbt:settings-open-folder',async(event,kind)=>{allowed(event);const folders={workspace,config:path.join(workspace,'.nbtcreator'),assets:path.join(workspace,'nbt_models'),user:app.getPath('userData')};if(!Object.hasOwn(folders,kind))throw Error('Unknown directory');await fs.mkdir(folders[kind],{recursive:true});return shell.openPath(folders[kind])})
  ipcMain.handle('nbt:app-settings-save',async(event,input)=>{allowed(event);const saved=await preferences.save(input);window.webContents.setZoomFactor(saved.zoom/100);return saved})
  for(const [name,handler]of Object.entries({'update-access':()=>updater.access(),'update-access-save':input=>updater.saveAccess(input),'update-check':()=>updater.check(),'update-download':kind=>updater.download(kind),'update-status':()=>updater.status(),'update-folder':async()=>{await fs.mkdir(updater.folder(),{recursive:true});return shell.openPath(updater.folder())}}))ipcMain.handle('nbt:'+name,(event,input)=>{allowed(event);return handler(input)})
  window.webContents.setWindowOpenHandler(()=>({action:'deny'}))
@@ -106,7 +112,7 @@ async function boot(){
    let targetHasConfig=false;try{await fs.access(path.join(workspace,'.nbtcreator/skill-exposure.json'));targetHasConfig=true}catch{}
    if(!targetHasConfig)for(const item of currentExposure.custom_knowledge??[]){const from=path.resolve(previous,'.nbtcreator',item.path),to=path.resolve(workspace,'.nbtcreator',item.path);const bytes=await fs.readFile(from);await fs.mkdir(path.dirname(to),{recursive:true});try{const existing=await fs.readFile(to);if(!bytes.equals(existing))throw Error('目标自定义知识文件已有不同内容，未覆盖')}catch(e){if(e.code!=='ENOENT')throw e;await fs.writeFile(to,bytes)}}
    await exposure('apply',targetHasConfig?undefined:{schema_version:1,enabled_groups:currentExposure.enabled_groups,custom_knowledge:currentExposure.custom_knowledge??[]})
-   await recordConfig();await startBackend();await window.loadURL(serverUrl);return workspace
+   await recordConfig();await startBackend();await window.loadURL(serverUrl);window.webContents.setZoomFactor((await preferences.load()).zoom/100);return workspace
   }catch(error){workspace=previous;await startBackend();await window.loadURL(serverUrl);throw error}
  })
  const systemMenus=Menu.buildFromTemplate([{label:'项目',submenu:[{label:'选择工作区…',click:()=>window.webContents.executeJavaScript('window.nbtDesktop.chooseWorkspace()')},{label:'打开 NBT / 主模型…',click:()=>window.webContents.executeJavaScript('document.getElementById("desktop-source").click()')},{type:'separator'},{role:'quit'}]},{label:'视图',submenu:[{role:'reload'},{role:'toggleDevTools'},{type:'separator'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]}])

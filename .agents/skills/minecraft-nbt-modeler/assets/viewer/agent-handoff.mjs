@@ -2,12 +2,12 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 
 export async function handoffInfo(info) {
-  const directory = path.join(info.workdir, 'Agent交接')
+  const directory = path.join(info.version_dir??info.workdir, 'Agent交接')
   const matches = []
-  try {
-    for (const item of await fs.readdir(directory, {withFileTypes:true})) {
+  for(const searchDirectory of new Set([directory,path.join(info.workdir,'Agent交接')]))try {
+    for (const item of await fs.readdir(searchDirectory, {withFileTypes:true})) {
       if (!item.isDirectory() || !/^review(?:[-_]|$)/.test(item.name)) continue
-      const review = path.join(directory, item.name)
+      const review = path.join(searchDirectory, item.name)
       try {
         const record = JSON.parse(await fs.readFile(path.join(review, 'review.json'), 'utf8'))
         if (path.resolve(record.source) === path.resolve(info.source) && record.source_sha256 === info.source_sha256) {
@@ -27,7 +27,7 @@ export async function writeHandoff({workspace,info,request,result,requestFile}) 
     return (path.isAbsolute(value) || value === '..' || value.startsWith('..'+path.sep) ? file : value).split(path.sep).join('/')
   }
   const directory = path.dirname(result.bundle)
-  const shared = path.join(info.workdir,'Agent交接')
+  const shared = path.join(info.version_dir??info.workdir,'Agent交接')
   const sharedRequest = path.join(directory,'request.json')
   await fs.writeFile(sharedRequest,await fs.readFile(requestFile),{flag:'wx'})
   const text = `请使用当前工作区的 .agents/skills/nbtcreator-workspace/SKILL.md 处理以下建筑修改任务。\n\n`+

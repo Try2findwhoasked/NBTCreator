@@ -182,7 +182,7 @@ def inspect_source(source, image_limit=8):
     solid=[p for p,value in model.blocks.items() if value.split('[')[0] not in ('minecraft:air','minecraft:cave_air','minecraft:void_air')]
     projections=dict(top=dict(size=[sx,sz],cells=sorted({x+z*sx for x,y,z in solid})),front=dict(size=[sx,sy],cells=sorted({x+y*sx for x,y,z in solid})),side=dict(size=[sz,sy],cells=sorted({z+y*sz for x,y,z in solid})))
     data = read_json(context) if context else {}
-    return dict(source=str(source), source_sha256=digest(source), workdir=str(project_paths(source)['workdir']), geometry_sha256=model.fingerprint(),
+    return dict(source=str(source), source_sha256=digest(source), workdir=str(project_paths(source)['workdir']), version_dir=str(project_paths(source)['version']), geometry_sha256=model.fingerprint(),
                 projections=projections,size=list(model.size), solid_blocks=len(model.blocks), wall_blocks=len(walls),
                 context=context, cameras=cameras, images=images, unknown_shapes=unknown,
                 materials=[dict(state=value,count=count) for value,count in counts.most_common() if value.split('[')[0] not in ('minecraft:air','minecraft:cave_air','minecraft:void_air')],

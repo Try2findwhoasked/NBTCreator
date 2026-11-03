@@ -1,0 +1,10 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path')
+const {createAppSettings}=require('../desktop/app-settings.cjs')
+test('application preferences follow the selected workspace and preserve independent choices',async t=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-prefs-'));t.after(()=>fs.rm(root,{recursive:true,force:true}))
+ let workspace=path.join(root,'one');const p=createAppSettings(()=>path.join(workspace,'.nbtcreator'))
+ await p.save({zoom:125,previewDelay:900,startPage:'prompt'});assert.equal((await p.load()).quality,'fast')
+ workspace=path.join(root,'two');assert.equal((await p.load()).zoom,100);await p.save({quality:'balanced'})
+ workspace=path.join(root,'one');assert.equal((await p.load()).zoom,125);assert.equal((await p.load()).previewDelay,900)
+ await assert.rejects(p.save({imageLimit:999}));await assert.rejects(p.save({windowWidth:100}));await assert.rejects(p.save({unknown:true}))
+})
