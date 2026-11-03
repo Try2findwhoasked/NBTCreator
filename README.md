@@ -14,7 +14,7 @@ Minecraft Java 1.20.1 NBT 建筑创作工作台，集成建筑方案、模型编
 
 ## 下载与启动
 
-从 [GitHub Releases](https://github.com/Try2findwhoasked/NBTCreator/releases) 下载 Windows x64 版本。私有仓库需有访问权限。
+从 [GitHub Releases](https://github.com/Try2findwhoasked/NBTCreator/releases) 下载 Windows x64 版本；当前仓库公开，可直接下载。
 
 | 下载包 | 用途 |
 | --- | --- |

@@ -1,6 +1,6 @@
 # Windows Portable CI/CD
 
-`.github/workflows/portable.yml` 在main、codex分支提交、PR和手动触发时构建Windows x64包；推送与package.json版本一致的 `v<版本>` 标签时，在构建及解压验证通过后自动创建GitHub Release。不覆盖已有Release或标签。预发行版本标签含连字符时标为prerelease。仓库保持私有，下载遵循仓库权限。
+`.github/workflows/portable.yml` 在main、codex分支提交、PR和手动触发时构建Windows x64包；推送与package.json版本一致的 `v<版本>` 标签时，在构建及解压验证通过后自动创建GitHub Release。不覆盖已有Release或标签。预发行版本标签含连字符时标为prerelease。当前仓库按用户确认保持公开，发行包可直接下载；若将部署改为私有，下载仍遵循仓库权限。
 
 包内带固定版本及SHA256校验的Python 3.14.10、NumPy 2.4.2、Pillow 12.1.0；Electron提供Node，Playwright锁定版本提供Chromium用于批量出图。完整解压后运行NBTCreator.exe，无需另外安装这些运行环境。NBTCREATOR_PYTHON仍可显式覆盖解释器。
 
