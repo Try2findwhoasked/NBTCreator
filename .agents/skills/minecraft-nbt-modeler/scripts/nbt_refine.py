@@ -236,7 +236,19 @@ def record_user_approval(review,user_message,user_reviewed_thumbnails=False):
 
 
 def operation_candidates(model,operation,protected=()):
+    candidates=_operation_candidates(model,operation,protected)
+    if operation.get('kind') in ('box','beam','frame') and 'overwrite' in operation and not operation.get('write_group'):
+        if type(operation['overwrite']) is not bool:raise ValueError('覆盖现有方块须为布尔开关')
+        if not operation['overwrite']:
+            occupied=[p for p,value in candidates if model.get(p) not in AIR_NAMES and model.get(p)!=value]
+            if occupied:raise ValueError('目标位置已有方块；移动构件，或勾选“允许AI构件覆盖现有方块”：'+str(occupied[:8]))
+    return candidates
+
+
+def _operation_candidates(model,operation,protected=()):
     kind=operation['kind']
+    if type(operation.get('enabled',True)) is not bool:raise ValueError('Operation enabled must be a boolean')
+    if not operation.get('enabled',True):return []
     from nbt_tools import KINDS, modelling_plan
     if kind in KINDS:
         return modelling_plan(model,operation,protected)[0]
@@ -311,9 +323,13 @@ def refine(review_dir,plan,output_dir):
     protected=protections(model,config);operations=plan['operations']
     if not operations or not isinstance(plan.get('style_note'),str) or not plan['style_note'].strip():
         raise ValueError('Detail plan needs operations and a shared whole-building style_note')
-    summary=[]
+    summary=[];write_owners={}
     for operation in operations:
         if not operation.get('label'):raise ValueError('Each operation needs a meaningful node label')
+        if type(operation.get('enabled',True)) is not bool:raise ValueError('Operation enabled must be a boolean')
+        if not operation.get('enabled',True):
+            summary.append(dict(label=operation['label'],kind=operation['kind'],skipped=True,reason='disabled',candidate_writes=0))
+            continue
         classification=operation.get('classification','body' if operation['kind']=='auto_floor' else 'inherit')
         if classification not in ('inherit','wall','body'):raise ValueError('Invalid detail classification')
         weathering_report=None
@@ -334,6 +350,8 @@ def refine(review_dir,plan,output_dir):
             edits,floor_report=auto_floor_plan(model,operation,config,protected)
         else:
             edits=operation_candidates(model,operation)
+        from nbt_change_policy import enforce_overwrite
+        enforce_overwrite(model,walls,operation,edits,write_owners)
         moved_walls={tuple(p[i]+operation['offset'][i] for i in range(3)) for p in walls if all(operation['lo'][i]<=p[i]<=operation['hi'][i] for i in range(3))} if operation['kind']=='move_region' else set()
         for p,value in edits:
             if not model.in_bounds(p) or (not standalone and (p[0]//48,p[2]//48) not in cells):raise ValueError('Detail exceeds approved footprint')

@@ -13,7 +13,8 @@ globalThis.NbtToolCatalog = {
       19,
       15,
       19
-    ]
+    ],
+    "enabled": true
   },
   "shapes": {
     "box": {
@@ -517,6 +518,34 @@ globalThis.NbtToolCatalog = {
         "classification": "body"
       },
       "需要真实start/targets/ports/interior_probes；依赖实际模型，网页不能估算通过。"
+    ],
+    "paste_component": [
+      "构件资产粘贴",
+      {
+        "lo": [
+          4,
+          4,
+          4
+        ],
+        "hi": [
+          4,
+          4,
+          4
+        ],
+        "palette": [
+          "minecraft:stone_bricks"
+        ],
+        "voxels": [
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "overwrite": false
+      },
+      "palette为完整状态数组；voxels为相对lo的[x,y,z,材质编号]，最多65536格。默认拒绝冲突；墙层与主体拆为不同操作。"
     ]
   },
   "labels": {
@@ -572,7 +601,8 @@ globalThis.NbtToolCatalog = {
     "thickness": "厚度",
     "width": "梁宽",
     "start": "起点 XYZ",
-    "end": "终点 XYZ"
+    "end": "终点 XYZ",
+    "enabled": "启用本步骤"
   },
   "commands": {
     "inspect": "nbt_task.py",
@@ -591,7 +621,11 @@ globalThis.NbtToolCatalog = {
     "exposure": "nbt_exposure.py",
     "feedback": "nbt_feedback.py",
     "paths": "nbt_paths.py",
-    "validate": "nbt_candidate.py"
+    "validate": "nbt_candidate.py",
+    "components": "nbt_components.py",
+    "ai-style": "nbt_ai_style.py",
+    "recipes": "nbt_recipes.py",
+    "project-batch": "nbt_project_batch.py"
   },
   "building_shapes": {
     "single": {
@@ -776,6 +810,17 @@ globalThis.NbtToolCatalog = {
       ],
       "cells": [],
       "footprint": "独立建筑，尺寸由用途、玩家活动与轮廓决定，不强加48网格或四门。"
+    }
+  },
+  "optional_operation_fields": {
+    "overwrite": {
+      "default": "omitted preserves legacy behavior",
+      "description": "AI box/beam/frame and component placement use explicit false to reject occupied writes; true permits only touched positions, never bypasses protection or budget.",
+      "type": "boolean"
+    },
+    "write_group": {
+      "description": "Trusted application group id for AI box/beam/frame operations. The same group may layer its own newly-created blocks; cannot claim existing solids with identity writes. Never accept this permission from API output.",
+      "type": "string"
     }
   }
 };

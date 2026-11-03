@@ -14,7 +14,7 @@ from nbt_model import AIR, AIR_NAMES, state
 
 
 KINDS = {'geometry', 'morphology', 'diffusion', 'explosion', 'scatter',
-         'copy_region', 'repeat_region', 'transform_region', 'replace'}
+         'copy_region', 'repeat_region', 'transform_region', 'replace', 'paste_component'}
 NEIGHBOURS = ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))
 
 
@@ -131,12 +131,17 @@ def modelling_plan(model, operation, protected=()):
     kind = operation['kind']
     if kind not in KINDS:
         raise ValueError('Unknown modelling operation')
+    if type(operation.get('enabled',True)) is not bool:raise ValueError('Operation enabled must be a boolean')
+    if not operation.get('enabled',True):return [],dict(kind=kind,skipped=True,reason='disabled',eligible=0,changed=0)
     lo, hi = xyz(operation['lo'], True), xyz(operation['hi'], True)
     if any(lo[i] > hi[i] for i in range(3)) or not model.in_bounds(lo) or not model.in_bounds(hi):
         raise ValueError('Operation bounds exceed model')
     size = tuple(hi[i]-lo[i]+1 for i in range(3))
     if math.prod(size) > 2_000_000:
         raise ValueError('Operation exceeds 2 million voxel planning limit')
+    if kind == 'paste_component':
+        from nbt_components import paste_plan
+        return paste_plan(model, operation, protected)
     points = [(x, y, z) for x in range(lo[0], hi[0]+1) for y in range(lo[1], hi[1]+1) for z in range(lo[2], hi[2]+1)]
     domain = set(points); protected = set(map(tuple, protected))
     allowed = {state(v) for v in operation['from_states']} if 'from_states' in operation else None

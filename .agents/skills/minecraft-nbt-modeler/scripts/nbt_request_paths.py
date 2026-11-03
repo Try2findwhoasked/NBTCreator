@@ -2,7 +2,7 @@
 import json
 import os
 from pathlib import Path
-FIELDS=('source','context','cameras','review')
+FIELDS=('source','context','cameras','review','reference_source')
 
 def resolve_request_paths(data,workspace=None):
     value=dict(data);base=Path(workspace or Path.cwd()).resolve()

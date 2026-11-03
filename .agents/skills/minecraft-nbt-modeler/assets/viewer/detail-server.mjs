@@ -11,6 +11,10 @@ import { spawn } from 'node:child_process'
 import { createViewerServer } from './viewer-server.mjs'
 import { savedEffects } from './saved-effects.mjs'
 import { createFeedbackStore } from './feedback-store.mjs'
+import {createCatalogStore} from './catalog-store.mjs'
+import {createProjectStages} from './project-stages.mjs'
+import {createEditSessionStore} from './edit-session-store.mjs'
+import {createCommandStore} from './command-store.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const backend = path.resolve(here, '../../scripts/nbt_detail_control.py')
@@ -18,12 +22,12 @@ const json = (res, value, status = 200) => {
   res.statusCode = status; res.setHeader('Content-Type', 'application/json; charset=utf-8')
   res.setHeader('Cache-Control', 'no-store'); res.end(JSON.stringify(value))
 }
-async function body(req) {
+async function body(req,limit=8*1024*1024) {
   req.setEncoding('utf8')
   let text = ''
   for await (const chunk of req) {
     text += chunk
-    if (Buffer.byteLength(text) > 1024*1024) throw new Error('Request exceeds 1 MiB')
+    if (Buffer.byteLength(text) > limit) throw new Error('Request exceeds '+(limit/1024/1024)+' MiB')
   }
   return JSON.parse(text)
 }
@@ -48,6 +52,13 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   outputRoot=await effects.init()
   const jobs = new Map(), snapshots = new Map(), assets = new Map()
   const bindings = new Map(), modelInfo = new Map()
+  const sameSource=(a,b)=>typeof a==='string'&&typeof b==='string'&&(process.platform==='win32'?a.toLowerCase()===b.toLowerCase():a===b)
+  const openedSource=source=>modelInfo.get(source)||[...modelInfo.values()].find(info=>sameSource(info.source,source))
+  const catalogStore=createCatalogStore({workspace,scan:()=>invoke(['catalog','--workspace',workspace,'--include-bugged','--index-only'])})
+  const covers=new Map(),batchAssets=new Map()
+  const projectStages=createProjectStages(workspace)
+  const editSessions=createEditSessionStore(workspace)
+  const commandStore=createCommandStore(workspace,JSON.parse(await fs.readFile(path.join(skillRoot,'tool-catalog.json'),'utf8')))
   const ownedChildren=new Set(),stoppingChildren=new WeakMap(),childStopped=Symbol('childStopped')
   let closing=false,closePromise
   const feedback = createFeedbackStore(binding=>{if(!binding.workdir)throw new Error('请重新打开建筑以识别修改意见目录');return path.join(binding.workdir,'修改意见')},path.join(workspace,'build/nbt_feedback'))
@@ -87,9 +98,9 @@ export async function startDetailServer({ workspace, output, python = 'python', 
           checkpoint(job)
           const data = JSON.parse(stdout)
           if(args[0]==='validate' && code===1 && data.ok && data.result?.status==='candidate_failed')return resolve(data.result)
-          if (code !== 0 || !data.ok) throw new Error(data.error ?? stderr ?? 'Backend failed')
+          if (code !== 0 || !data.ok) throw Object.assign(new Error(data.error ?? stderr ?? 'Backend failed'),{details:data.details})
           resolve(data.result)
-        } catch (error) { reject(new Error(error.message + (stderr ? '\n'+stderr : ''))) }
+        } catch (error) { reject(Object.assign(new Error(error.message + (stderr ? '\n'+stderr : '')),{details:error.details})) }
       })
     })
   }
@@ -120,11 +131,13 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     if(closing)throw new Error('建模服务正在关闭')
     if (activeJob) throw new Error('A job is already running; wait or cancel it first')
     const kind = input.kind
-    if (!['plan', 'prepare', 'render', 'snapshot', 'apply', 'preset', 'preview', 'revision', 'validate'].includes(kind)) throw new Error('Unknown job kind')
+    if(kind==='batch')return launchProjectBatch(input)
+    if (!['plan', 'prepare', 'render', 'snapshot', 'apply', 'preset', 'preview', 'revision', 'validate', 'compare'].includes(kind)) throw new Error('Unknown job kind')
     const request = input.request
     request.source = localPath(request.source)
     if(request.context)request.context=localPath(request.context)
-    else if(kind!=='snapshot')throw new Error('修改、验证或导出需要门口/路线等坐标保护配置；缺少配置时可先打开3D只读查看')
+    else if(!['snapshot','compare'].includes(kind))throw new Error('修改、验证或导出需要门口/路线等坐标保护配置；缺少配置时可先打开3D只读查看')
+    if(kind==='compare'){if(typeof request.reference_source!=='string'||!request.reference_source)throw new Error('请选择要比较的已有版本');request.reference_source=localPath(request.reference_source)}
     if (request.cameras) request.cameras = localPath(request.cameras)
     const checkedSnapshot=kind==='validate'?snapshots.get(input.snapshot_key):null
     if(kind==='validate'&&!checkedSnapshot)throw new Error('请先计算当前效果预览，再检查该候选')
@@ -166,7 +179,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         }
         checkpoint(job)
         result.source=request.source
-        if(result.baseline_snapshot){const key=randomUUID();snapshots.set(key,result.baseline_snapshot);result.baseline_key=key;result.baseline_feedback_id=await registerSnapshot(result.baseline_snapshot,request.source,job)}
+        if(result.baseline_snapshot){const key=randomUUID();snapshots.set(key,result.baseline_snapshot);result.baseline_key=key;result.baseline_feedback_id=await registerSnapshot(result.baseline_snapshot,result.reference_source??request.source,job)}
         if (result.snapshot) {
           checkpoint(job)
           const key = randomUUID(); snapshots.set(key, result.snapshot); result.model_key = key
@@ -183,10 +196,11 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         checkpoint(job)
         if (result.plan) result.plan_download = asset(result.plan)
         if (result.validation) result.validation_download = asset(result.validation)
+        if (result.difference) result.difference_download = asset(result.difference)
         if (result.handoff_file) result.handoff_download = asset(result.handoff_file)
         if(result.runtime_files)result.nbt_downloads=result.runtime_files.map(file=>({name:path.basename(file),url:asset(file)}))
         job.result = result; job.status = 'complete'
-      } catch (error) { job.error = job.cancel_requested?cancelledError().message:error.message; job.status = job.cancel_requested||error.code==='NBTCREATOR_CANCELLED'?'cancelled':'failed' }
+      } catch (error) { job.error = job.cancel_requested?cancelledError().message:error.message;if(error.details)job.error_details=error.details;job.status = job.cancel_requested||error.code==='NBTCREATOR_CANCELLED'?'cancelled':'failed' }
       finally {
         job.completed_at = new Date().toISOString(); delete job.child;delete job.backend_pid
         try{await fs.writeFile(path.join(directory, 'job.json'), JSON.stringify(job, null, 2))}
@@ -195,6 +209,28 @@ export async function startDetailServer({ workspace, output, python = 'python', 
       }
     })()
     return { id }
+  }
+  async function projectBatch(action,input={}){
+    const system=path.join(outputRoot,'system');await fs.mkdir(system,{recursive:true});const request=path.join(system,'batch-'+randomUUID()+'.json');await fs.writeFile(request,JSON.stringify(input))
+    try{return await invoke(['project-batch','--workspace',workspace,'--action',action,'--request',request])}finally{await fs.unlink(request).catch(()=>{})}
+  }
+  function exposeProjectQueue(queue){
+    const safeAsset=(file,base=workspace)=>{const resolved=path.resolve(workspace,file),relative=path.relative(base,resolved);if(relative==='..'||relative.startsWith('..'+path.sep)||path.isAbsolute(relative))throw Error('批量任务产物路径越界');if(!batchAssets.has(resolved))batchAssets.set(resolved,asset(resolved));return batchAssets.get(resolved)}
+    return {...queue,items:queue.items.map(item=>({...item,steps:Object.fromEntries(Object.entries(item.steps).map(([kind,step])=>[kind,{...step,...(step.report?{report_download:safeAsset(step.report,path.join(workspace,'.nbtcreator/project-queues',queue.id))}:{}),...(step.result?.image?{image_download:safeAsset(step.result.image),thumbnail_download:safeAsset(step.result.thumbnail)}:{})}]))}))}
+  }
+  async function launchProjectBatch(input){
+    if(typeof input.queue_id!=='string'||!/^[a-f0-9]{32}$/.test(input.queue_id))throw Error('批量任务编号无效')
+    const id=randomUUID(),directory=path.join(outputRoot,'jobs',id),job={id,kind:'batch',status:'running',created_at:new Date().toISOString(),directory,queue_id:input.queue_id};jobs.set(id,job);activeJob=job
+    job[jobFinished]=(async()=>{const file=path.join(directory,'request.json');try{
+      await fs.mkdir(directory,{recursive:true});await fs.writeFile(file,JSON.stringify({id:input.queue_id}));checkpoint(job)
+      const queue=await invoke(['project-batch','--workspace',workspace,'--action','run','--request',file],path.join(directory,'backend.log'),undefined,job);checkpoint(job)
+      for(const item of queue.items){const checked=item.steps.check?.result;if(!checked)continue;const source=path.resolve(workspace,item.source);if(checked.checks?.file?.passed)await catalogStore.record({source,geometry_sha256:checked.geometry_sha256,size:checked.size});else if(checked.checks?.file?.passed===false)await catalogStore.recordFailure(source,checked.checks.file.error)}
+      job.result={queue_id:queue.id,progress:queue.progress,summary:`${queue.progress.complete} 项完成 · ${queue.progress.failed} 项未通过`,output:path.join(workspace,'.nbtcreator/project-queues',queue.id)};job.status='complete'
+    }catch(error){job.status=job.cancel_requested?'cancelled':'failed';job.error=error.message}
+    finally{
+      if(job.cancel_requested&&!closing)await projectBatch('cancel',{id:input.queue_id}).catch(()=>{})
+      job.completed_at=new Date().toISOString();await fs.writeFile(path.join(directory,'job.json'),JSON.stringify(job,null,2)).catch(error=>{job.persistence_error=error.message});if(activeJob===job)activeJob=null
+    }})();return {id}
   }
   function serialJob(job) {
     const { child, ...rest } = job
@@ -227,11 +263,56 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   const viewer = await createViewerServer({ port, frontendMode, modelResolver: key => snapshots.get(key), apiHandler: async (req, res, url) => {
     if (!url.pathname.startsWith('/__detail__/')) return false
     try {
-      if (req.method === 'POST' && url.pathname === '/__detail__/resolve-request') { json(res,absoluteRequest((await body(req)).request,workspace))
+      if(url.pathname==='/__detail__/edit-sessions/recent'&&req.method==='GET'){json(res,{recent:await editSessions.recent()})
+      } else if(url.pathname==='/__detail__/edit-sessions/load'&&req.method==='POST'){
+        const input=await body(req),source=localPath(input.source),info=openedSource(source);if(!info)throw Error('请先打开完整建筑再恢复编辑草稿')
+        const result=await editSessions.load(source),view=result.state?.view
+        if(view?.mode==='images'&&view.image_hash&&!info.images?.some(image=>image.image_sha256===view.image_hash&&(!view.image_name||image.name===view.image_name))){
+          try{const file=await editSessions.imageEvidence(result.source_sha256,view.image_hash,view.image_name,info.geometry_sha256);if(file){result.image=(await registerImages([file],info))[0];result.image.restored=true}else result.warning='上次图片不在当前列表，且没有可用的图片证据；其文字和标记草稿仍保留'}catch(error){result.warning=error.message}
+        }
+        json(res,result)
+      } else if(url.pathname==='/__detail__/edit-sessions/save'&&req.method==='POST'){
+        const input=await body(req,32*1024*1024);input.source=localPath(input.source);if(!openedSource(input.source))throw Error('请先打开完整建筑再保存编辑草稿')
+        let warning;const view=input.state?.view
+        if(view?.mode==='images'&&view.image_hash){const binding=[...bindings.values()].find(b=>b.image&&sameSource(b.source,input.source)&&b.source_sha256===input.source_sha256&&b.image_sha256===view.image_hash&&(!view.image_name||path.basename(b.image)===view.image_name));try{if(!binding)throw Error('请重新打开该图片以保存画面证据');await editSessions.rememberImage(binding)}catch(error){warning='参数与文字草稿已存，但图片未归档：'+error.message}}
+        json(res,{...await editSessions.save(input),...(warning?{warning}:{})})
+      } else if (req.method === 'POST' && url.pathname === '/__detail__/resolve-request') { json(res,absoluteRequest((await body(req)).request,workspace))
+      } else if (url.pathname === '/__detail__/project-stage' && req.method==='POST') {
+        const input=await body(req);json(res,await projectStages.save(localPath(input.source),input.stage))
+      } else if(url.pathname==='/__detail__/project-stage-batch'&&req.method==='POST'){
+        const input=await body(req);if(!Array.isArray(input.items)||input.items.length<1||input.items.length>100||!['auto','unrefined','refined','finalized','discarded'].includes(input.stage))throw Error('批量标记需要1～100个版本及有效创作状态')
+        const results=[];for(const item of input.items){try{const result=await projectStages.save(localPath(item.source),input.stage,{bytes:item.file_size,modified_ns:typeof item.modified_ns==='string'?item.modified_ns:undefined,modified_ms:Math.trunc(Number(item.modified_ns)/1e6)});results.push({...result,status:'complete'})}catch(error){results.push({source:item.source,status:'failed',error:error.message})}}
+        json(res,{items:results,asset_written:false,approval_created:false})
+      } else if(url.pathname==='/__detail__/project-batch'||url.pathname.startsWith('/__detail__/project-batch/')){
+        const action=url.pathname.split('/')[3]||'list'
+        if(!['list','create','get','retry','cancel'].includes(action)||req.method!==(action==='list'?'GET':'POST'))throw Error('无效批量任务请求')
+        const input=action==='list'?{}:await body(req)
+        const result=action==='get'&&activeJob?.kind==='batch'&&activeJob.queue_id===input.id?JSON.parse(await fs.readFile(path.join(workspace,'.nbtcreator/project-queues',input.id,'queue.json'),'utf8')):await projectBatch(action,input)
+        if(action==='get'&&!result.progress){const steps=result.items.flatMap(item=>Object.values(item.steps));result.progress=Object.fromEntries(['pending','running','complete','failed','cancelled'].map(key=>[key,steps.filter(step=>step.status===key).length]));result.progress.total=steps.length}
+        json(res,action==='list'?result:exposeProjectQueue(result))
+      } else if (url.pathname === '/__detail__/project-layout' && ['GET','POST'].includes(req.method)) {
+        const directory=path.join(workspace,'.nbtcreator'),file=path.join(directory,'project-manager.json')
+        if(req.method==='GET'){
+          try{json(res,JSON.parse(await fs.readFile(file,'utf8')))}catch(error){if(error.code!=='ENOENT')throw error;json(res,{orders:{}})}
+        }else{
+          const input=await body(req),orders=input.orders
+          if(!orders||Array.isArray(orders)||typeof orders!=='object'||Object.keys(input).some(key=>key!=='orders')||Object.keys(orders).length>3000)throw Error('项目排序配置无效')
+          let count=0
+          for(const [key,items]of Object.entries(orders)){if(key.length>4096||!Array.isArray(items)||items.some(item=>typeof item!=='string'||item.length>4096)||new Set(items).size!==items.length)throw Error('项目排序配置无效');count+=items.length}
+          if(count>6000)throw Error('排序项目过多')
+          await fs.mkdir(directory,{recursive:true});const temporary=file+'.'+randomUUID()+'.tmp'
+          await fs.writeFile(temporary,JSON.stringify({orders},null,2));await fs.rename(temporary,file);json(res,{orders})
+        }
       } else if (req.method === 'GET' && url.pathname === '/__detail__/init') {
-        const [catalog, defaults] = await Promise.all([invoke(['catalog','--workspace',workspace]), invoke(['defaults'])])
+        const [loaded, defaults] = await Promise.all([catalogStore.initial(), invoke(['defaults'])]),projectCatalog=await projectStages.apply(loaded.catalog)
+        const catalog={...projectCatalog,models:projectCatalog.models.filter(item=>!item.bugged&&!item.unreadable)}
         json(res, { catalog, defaults, workspace, output: outputRoot, features:{web_revision:true,project_feedback:true},
-          initial_request:initialPreset ? absoluteRequest(JSON.parse(await fs.readFile(initialPreset,'utf8')),workspace) : null })
+          project_catalog:projectCatalog,catalog_cached:loaded.cached,initial_request:initialPreset ? absoluteRequest(JSON.parse(await fs.readFile(initialPreset,'utf8')),workspace) : null })
+      } else if(req.method==='GET'&&url.pathname==='/__detail__/command-preferences')json(res,await commandStore.read())
+      else if(req.method==='POST'&&url.pathname==='/__detail__/command-preferences')json(res,await commandStore.save(await body(req,64*1024)))
+      else if (req.method === 'GET' && url.pathname === '/__detail__/catalog') {
+        const projectCatalog=await projectStages.apply(await catalogStore.refresh());covers.clear()
+        json(res,{project_catalog:projectCatalog,catalog:{...projectCatalog,models:projectCatalog.models.filter(item=>!item.bugged&&!item.unreadable)}})
       } else if (req.method === 'GET' && url.pathname.startsWith('/__detail__/prompt/')) {
         const name=url.pathname.slice('/__detail__/prompt/'.length)
         if(!['index.html','core.js','app.js','style.css','design-tokens.css','theme.css','catalog.js'].includes(name))throw new Error('Unknown prompt asset')
@@ -248,14 +329,74 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         const requestPath=path.join(directory,'prompt-'+randomUUID()+'.json')
         await fs.writeFile(requestPath,JSON.stringify(portableRequest(input,workspace)))
         json(res,await invoke(['prompt','--request',requestPath]))
+      } else if(url.pathname==='/__detail__/recipes'||url.pathname.startsWith('/__detail__/recipes/')){
+        const action=url.pathname.split('/')[3]||'list'
+        if(!['list','get','save','capture','archive','compile'].includes(action)||req.method!==(action==='list'?'GET':'POST'))throw Error('无效配方请求')
+        const input=action==='list'?{}:await body(req)
+        if(action==='compile'){
+          const info=openedSource(localPath(input.source));if(!info||input.source_sha256!==info.source_sha256)throw Error('当前建筑已改变，请重新载入')
+          if(createHash('sha256').update(await fs.readFile(info.source)).digest('hex')!==info.source_sha256)throw Error('源文件已改变，请刷新建筑')
+          input.size=info.size
+        }
+        const system=path.join(outputRoot,'system');await fs.mkdir(system,{recursive:true});const file=path.join(system,'recipe-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));let result
+        try{result=await invoke(['recipes','--workspace',workspace,'--action',action,'--request',file])}finally{await fs.unlink(file).catch(()=>{})}
+        if(action==='list')result={...result,items:result.items.map(item=>({...item,download:asset(item.file)}))}
+        json(res,result)
+      } else if ((url.pathname==='/__detail__/components'||url.pathname.startsWith('/__detail__/components/'))) {
+        const action=url.pathname.split('/')[3]||'list'
+        if(!['list','save','get','place','batch','import','update','extract','transform'].includes(action)||req.method!==(action==='list'?'GET':'POST'))throw Error('无效构件请求')
+        const input=action==='list'?{}:await body(req)
+        if(['save','extract','transform'].includes(action)){
+          const binding=bindings.get(input.target_id)
+          if(!binding||binding.kind!=='3d')throw Error('请先打开要保存的3D模型或候选')
+          Object.assign(input,{source:binding.source,snapshot:binding.snapshot,snapshot_sha256:binding.snapshot_sha256})
+        }
+        if(['place','batch','transform'].includes(action)){
+          const info=openedSource(localPath(input.source))
+          if(!info||input.source_sha256!==info.source_sha256)throw Error('当前模型版本已改变，请重新打开')
+          const actual=createHash('sha256').update(await fs.readFile(info.source)).digest('hex')
+          if(actual!==info.source_sha256)throw Error('源文件已改变，请刷新模型')
+          input.size=info.size
+        }
+        const system=path.join(outputRoot,'system');await fs.mkdir(system,{recursive:true})
+        const file=path.join(system,'components-'+randomUUID()+'.json')
+        await fs.writeFile(file,JSON.stringify(input))
+        let result
+        try{result=await invoke(['components','--workspace',workspace,'--action',action,'--request',file])}finally{await fs.unlink(file).catch(()=>{})}
+        const expose=item=>({...item,thumbnail:item.thumbnail?asset(item.thumbnail):null,download:item.file?asset(item.file):null})
+        if(action==='list')result={...result,items:result.items.map(expose)}
+        if(['save','import'].includes(action))result=expose(result)
+        json(res,result)
       } else if (req.method === 'POST' && url.pathname === '/__detail__/inspect') {
         const input = await body(req)
         const source=localPath(input.source)
         const result = await invoke(['inspect', '--source', source,'--image-limit',String(input.image_limit ?? 8)])
+        await catalogStore.record(result)
         modelInfo.set(source,result)
         result.agent_handoff = await handoffInfo(result)
         result.images = await registerImages(result.images,result)
         json(res, result)
+      } else if(req.method==='POST'&&url.pathname==='/__detail__/protection-mask'){
+        const input=await body(req),info=openedSource(localPath(input.source));if(!info||info.source_sha256!==input.source_sha256)throw Error('请先打开当前版本再查看保护区')
+        const system=path.join(outputRoot,'system');await fs.mkdir(system,{recursive:true});const file=path.join(system,'protection-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify({source:info.source,source_sha256:info.source_sha256,context:input.context?localPath(input.context):''}))
+        try{json(res,await invoke(['protection-mask','--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
+      } else if (req.method === 'POST' && url.pathname === '/__detail__/project-cover') {
+        const input=await body(req),source=localPath(input.source)
+        const geometry=input.geometry??''
+        if(typeof geometry!=='string'||(geometry&&! /^[a-f0-9]{64}$/.test(geometry)))throw new Error('请选择建筑库中的有效模型')
+        const modelRoot=path.join(workspace,'nbt_models'),relative=path.relative(modelRoot,await fs.realpath(source))
+        if(relative==='..'||relative.startsWith('..'+path.sep)||path.isAbsolute(relative))throw new Error('请选择当前工作区建筑库中的模型')
+        const stat=await fs.stat(source),key=JSON.stringify([source,geometry,stat.mtimeMs,stat.size,input.generate===true])
+        let entry=covers.get(key)
+        if(!entry||Date.now()-entry.created>60000){
+          const promise=invoke(['cover','--source',source,'--geometry',geometry,'--cache',path.join(workspace,'.nbtcreator/cache/section-covers'),...(input.generate===true?['--generate-missing']:[])]).then(result=>({image:result.image?asset(result.image):null,thumbnail:result.thumbnail?asset(result.thumbnail):null,section:result.section,profile:result.profile,cached:result.cached,generated:result.generated})).catch(error=>{covers.delete(key);throw error})
+          entry={created:Date.now(),promise};if(covers.size>=600)covers.delete(covers.keys().next().value);covers.set(key,entry)
+        }
+        const result=await entry.promise
+        // A newly generated cover must replace a cached miss immediately,
+        // including after the library is filtered or refreshed.
+        if(input.generate===true)for(const saved of covers.keys())if(saved!==key&&JSON.parse(saved)[0]===source)covers.delete(saved)
+        json(res,result)
       } else if (req.method === 'POST' && url.pathname.startsWith('/__detail__/feedback/')) {
         const input=await body(req), binding=bindings.get(input.target_id ?? input.image_id)
         if(!binding)throw new Error('请先打开对应图片或3D建筑')
@@ -299,10 +440,11 @@ export async function startDetailServer({ workspace, output, python = 'python', 
           const job=jobs.get(input.id);if(!job||job.kind!=='ai')throw Error('Unknown AI activity')
           const message=String(input.message||'').slice(0,2000)
           if(job.events.length<200)job.events.push({time:new Date().toISOString(),message})
-          if(input.action==='stage'){job.status='running';delete job.completed_at}
+          if(input.action==='stage'){job.status='running';delete job.completed_at;if(['capture','api','preview'].includes(input.phase))job.phase=input.phase}
           else if(input.action==='finish'){
             if(!['complete','failed','cancelled'].includes(input.status))throw Error('Invalid AI activity status')
             job.status=input.status;job.completed_at=new Date().toISOString();job.result={...job.result,summary:String(input.summary??job.result?.summary??'').slice(0,4000),operations:Number(input.operations??job.result?.operations??0),preview_only:true};if(job.status!=='complete')job.error=message;else delete job.error
+            if(input.api_metrics){const metrics={};for(const key of ['attempts','prompt_tokens','completion_tokens','total_tokens'])if(Number.isSafeInteger(input.api_metrics[key])&&input.api_metrics[key]>=0)metrics[key]=input.api_metrics[key];metrics.retried_compact=input.api_metrics.retried_compact===true;metrics.finish_reason=String(input.api_metrics.finish_reason??'').slice(0,40);job.api_metrics=metrics}
           }else throw Error('Unknown AI activity action')
           await fs.writeFile(path.join(job.directory,'job.json'),JSON.stringify(job,null,2));json(res,{id:job.id})
         }

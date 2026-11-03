@@ -9,6 +9,8 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 
 当前副本属于独立 **NBTCreator** 迁移项目，Python引擎与本文仍可在Electron未启动时直接使用。原SAODG归档只作参考，不反向修改；SAODG接入规则仅在用户要求该集成时适用。桌面迁移与统一CLI入口见[NBTCreator调用](references/nbtcreator.md)。
 
+生成建筑方案、提示词或局部构件前，按[各区域 AI 创作偏好](references/ai-creative-preferences.md)读取当前工作区 `.nbtcreator/ai-style.json` 中对应任务区域的参数；无配置时使用默认值。应用和外部 Agent 共用它，创意与详略偏好不改变建模约束或确认流程。
+
 交付来自完整建筑设计的 `.nbt`，SAODG 接入另按当前加载器验收。主题、轮廓、布局、建模方法与高低差自由设计；示例只提供工具，不是建筑模板。用户只要 NBT 时，不强加 OBJ、谜题、刷怪、奖励、世界部署或交互预览。
 
 ## 开工与阅读路由
@@ -38,7 +40,10 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 | 用户已看图并同意精修 | [精修流程](references/refinement.md)；风化另读 [连片风化](references/weathering.md) |
 | 几何布尔、拉伸、复制阵列、旋转镜像、膨胀侵蚀、扩散或爆炸破坏 | [建模与效果工具](references/modelling-tools.md)；已有资产仍按精修流程 |
 | 资产迁移、形状归档、中文名称索引 | [建筑库归档](references/library-archive.md) |
+| 保存选区为构件、搜索构件库、3D复制/移动/旋转/吸附、AI局部放置 | [构件资产库](references/component-assets.md)；应用与 CLI 共用工作区库，extract/transform仅返回候选，先预览再导出下一版 |
+| 保存参数化工具序列、复用材质主题、XYZ构件批量阵列 | [配方与主题](references/reusable-recipes.md)；recipes compile / components batch返回原工具候选，不直接写建筑 |
 | 图形化浏览已有结构、收藏、版本筛选与批量选择清单 | [现有结构选择器](references/structure-selector.md) |
+| 项目多选、批量截面预览、文件/路线检查、进度与失败重试 | [项目批量任务](references/project-batch.md)；只读队列，阶段标记不等于精修批准或验收 |
 | 管理SAODG模组已接入结构、房间池与选择优先级 | [模组结构管理器](references/mod-structures.md) |
 | 输出、分层交付、世界转换 | [交付流程](references/delivery-workflow.md)、[文件与世界转换](references/output-storage.md) |
 

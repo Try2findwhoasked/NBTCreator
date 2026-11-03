@@ -78,6 +78,8 @@ jobs:
           $probeRoot = Join-Path $PWD 'build/ci-model-pipelines'
           if (Test-Path -LiteralPath $probeRoot) { throw 'Keep prior regression evidence; expected a fresh CI directory' }
           New-Item -ItemType Directory -Path $probeRoot | Out-Null
+          npm run test:projects
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/render-runtime.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/feedback-index.py

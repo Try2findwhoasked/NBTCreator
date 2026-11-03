@@ -45,7 +45,7 @@ def nearby(source, names):
     return ''
 
 
-def catalog(workspace, cache_path=None):
+def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
     selected=Path(workspace).resolve();workspace=selected
     for candidate in [selected,*selected.parents]:
         if candidate.name.lower()=='nbt_models':workspace=candidate.parent
@@ -54,40 +54,62 @@ def catalog(workspace, cache_path=None):
     if marker.is_file() and read_json(marker).get('status')!='complete':return dict(models=[],skipped=0,scanned=0,cache_hits=0,migration_in_progress=True)
     files = []
     for directory, dirs, names in os.walk(root):
+        quarantined=include_bugged and 'bugged' in Path(directory).relative_to(root).parts
         refinement=Path(directory)/'refinement.json'
         if refinement.is_file():
-            try:incomplete=read_json(refinement).get('state') in ('writing','failed','cancelled')
-            except (OSError,ValueError):incomplete=True
+            try:
+                state=read_json(refinement).get('state')
+                incomplete=state=='writing' or (not quarantined and state in ('failed','cancelled'))
+            except (OSError,ValueError):incomplete=not quarantined
             if incomplete:dirs[:]=[];continue
         conversion=Path(directory)/'conversion.json'
         if conversion.is_file():
             try:ready=read_json(conversion).get('status')=='complete'
             except (OSError,ValueError):ready=False
-            if not ready:dirs[:]=[];continue
+            if not ready and not quarantined:dirs[:]=[];continue
         dirs[:] = [name for name in dirs if not (name.startswith(('.', 'synthetic', 'test_')) or
                     any(word in name.lower() for word in ('validation', 'fixture', 'cache', 'control_web', 'regression')) or
-                    name in {'bugged','_migration','_workspaces','_tests','world', 'worlds', 'saves', 'node_modules', 'previews', 'jobs', 'review','delivery','layers'})]
+                    (name=='bugged' and not include_bugged) or name in {'_migration','_workspaces','_tests','world', 'worlds', 'saves', 'node_modules', 'previews', 'jobs', 'review','delivery','layers'})]
         files.extend(Path(directory)/name for name in names if (name.lower().endswith('.json.gz') and 'master' in name.lower()) or name.lower().endswith('.nbt'))
     files.sort(key=lambda p: (p.suffix.lower()=='.nbt',-p.stat().st_mtime_ns,str(p)))
-    cache_path = Path(cache_path) if cache_path else root/'_workspaces/catalog_metadata.json'
+    cache_path = Path(cache_path) if cache_path else root/('_workspaces/catalog_metadata_index.json' if index_only else '_workspaces/catalog_metadata_projects.json' if include_bugged else '_workspaces/catalog_metadata.json')
     try: cache = read_json(cache_path)
-    except (OSError, ValueError): cache = {}
+    except (OSError, ValueError):
+        try:cache=read_json(root/'_workspaces/catalog_metadata.json') if include_bugged else {}
+        except (OSError,ValueError):cache={}
     next_cache = {}; cache_hits = 0
     models, seen, skipped = [], set(), 0
-    descriptions={};errors=[]
+    descriptions={};description_paths={};errors=[]
+    def description_near(source):
+        for parent in list(source.parents)[:4]:
+            if parent not in description_paths:
+                candidate=parent/'room_description.json';description_paths[parent]=candidate if candidate.is_file() else None
+            if description_paths[parent]:return description_paths[parent]
+        return None
     for p in files:
+        bugged='bugged' in p.relative_to(root).parts
         try:
-            descriptor=next((parent/'room_description.json' for parent in [p.parent,*list(p.parents)[:4]] if (parent/'room_description.json').is_file()),None)
+            descriptor=description_near(p)
             if descriptor:
                 if descriptor not in descriptions:descriptions[descriptor]=read_json(descriptor)
                 declaration=descriptions[descriptor]
-                if declaration.get('audit',{}).get('compliant') is False:continue
+                if declaration.get('audit',{}).get('compliant') is False and not bugged:continue
                 declared_master=declaration.get('master')
-                if declared_master and metadata_path(descriptor,declared_master).is_file() and metadata_path(descriptor,declared_master)!=p.resolve():continue
+                if declared_master and not bugged and metadata_path(descriptor,declared_master).is_file() and metadata_path(descriptor,declared_master)!=p.resolve():continue
             stat=p.stat(); stamp=[stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns]
             entry=cache.get(str(p))
             if entry and entry.get('stamp')==stamp:
                 data=entry['metadata'];cache_hits+=1
+            elif bugged:
+                # Quarantine can contain thousands of old NBT exports. Index it
+                # without constructing every volume; inspect on explicit open.
+                with p.open('rb') as stream:
+                    if stream.read(2)!=b'\x1f\x8b':raise ValueError('文件不是有效的 gzip NBT / 主模型，无法读取')
+                data=dict(geometry_sha256=None,size=declaration.get('size') if descriptor else None,unverified=True)
+            elif index_only:
+                with p.open('rb') as stream:
+                    if stream.read(2)!=b'\x1f\x8b':raise ValueError('文件不是有效的 gzip NBT / 主模型，无法读取')
+                data=dict(geometry_sha256=declaration.get('geometry_sha256') if descriptor else None,size=declaration.get('size') if descriptor else None,unverified=True)
             elif descriptor and declaration.get('audit',{}).get('compliant') is True and declaration.get('master_file_sha256') and declaration.get('geometry_sha256') and digest(p)==declaration['master_file_sha256']:
                 data={'geometry_sha256':declaration['geometry_sha256'], 'size':declaration.get('size')};cache_hits+=1
             elif p.suffix.lower()=='.nbt':
@@ -97,7 +119,7 @@ def catalog(workspace, cache_path=None):
                 with gzip.open(p, 'rt', encoding='utf8') as stream: raw = json.load(stream)
                 data = {'geometry_sha256':raw['geometry_sha256'], 'size':raw['size']} if isinstance(raw,dict) and all(key in raw for key in ('size','blocks','geometry_sha256')) else None
             next_cache[str(p)]={'stamp':stamp,'metadata':data}
-            if not data: skipped += 1; continue
+            if not data: raise ValueError('缺少完整主模型的尺寸、方块或几何哈希')
             relative = p.relative_to(root)
             parts = relative.parts
             building_index = next((i for i, part in enumerate(parts[:-1]) if re.match(r'^(?:[rR]\d{2,3}|[sSlL]\d{2}|\d{2}|cross_\d+|t_\d+)(?:_|$)', part)), None)
@@ -112,14 +134,14 @@ def catalog(workspace, cache_path=None):
                     parent_parts.pop()
                 group = '/'.join(parent_parts) or '.'; name = parent_parts[-1] if parent_parts else p.name
                 batch = '/'.join(parent_parts[:-1])
-            description_file=next((parent/'room_description.json' for parent in [p.parent,*list(p.parents)[:4]] if (parent/'room_description.json').is_file()),None)
+            description_file=descriptor
             room_description={}
             if description_file:
-                try:room_description=read_json(description_file)
+                try:room_description=descriptions[description_file]
                 except (ValueError,OSError):room_description={}
-                if room_description.get('audit',{}).get('compliant') is False:continue
+                if room_description.get('audit',{}).get('compliant') is False and not bugged:continue
                 recorded_master=room_description.get('master')
-                if recorded_master and metadata_path(description_file,recorded_master)!=p.resolve() and metadata_path(description_file,recorded_master).is_file():continue
+                if recorded_master and not bugged and metadata_path(description_file,recorded_master)!=p.resolve() and metadata_path(description_file,recorded_master).is_file():continue
                 name=room_description.get('name_zh') or name
                 parts=description_file.parent.relative_to(root).parts
                 if len(parts)>=3 and parts[0] in {'single','long','square','l_shape','t_shape','cross','standalone','irregular'}:
@@ -127,7 +149,10 @@ def catalog(workspace, cache_path=None):
                 elif 'versions' in parts:group='/'.join(parts[:parts.index('versions')])
                 else:group=str(description_file.parent.parent.relative_to(root)) if description_file.parent.name.startswith(('版本_','v_','detail_v','refined_v')) or re.fullmatch(r'v\d+',description_file.parent.name) else str(description_file.parent.relative_to(root))
                 batch=room_description.get('shape_zh') or batch
-            key = (group, data['geometry_sha256'])
+            version_dir=description_file.parent if description_file else p.parent
+            if not description_file:
+                while version_dir!=root and version_dir.name in {'master','masters','runtime','parts'}:version_dir=version_dir.parent
+            key = (group, str(version_dir), data['geometry_sha256'] or str(p))
             if key in seen: continue
             seen.add(key)
             version = ' / '.join(part for part in parts[(building_index+1 if building_index is not None else len(parts)-2):-1]
@@ -141,10 +166,37 @@ def catalog(workspace, cache_path=None):
                                context=str(description_file.parent/room_description['context_file']) if room_description.get('context_file') else nearby(p, ('coordinates.json', 'config.json', 'context.json')),
                                cameras=nearby(p, ('cameras.json',)), size=room_description.get('size') or data.get('size'),
                                cells=room_description.get('cells'), description_zh=room_description.get('description_zh',''),
-                               modified_ns=stat.st_mtime_ns, file_size=stat.st_size, relative_path=str(relative)))
+                               modified_ns=str(stat.st_mtime_ns), file_size=stat.st_size, relative_path=str(relative),bugged=bugged,unreadable=False,unverified=bool(data.get('unverified'))))
         except (OSError, ValueError, TypeError, KeyError,AssertionError,EOFError) as error:
             skipped+=1
             if len(errors)<10:errors.append(dict(file=str(p.relative_to(root)),reason=str(error) or '不满足当前完整结构格式要求（版本、显式空气、实体或尺寸）'))
+            if (bugged and include_bugged) or index_only:
+                relative=p.relative_to(root)
+                models.append(dict(source=str(p.resolve()),label=str(relative),name=p.parent.name,group=str(relative.parent),version=p.name,
+                                   relative_path=str(relative),bugged=bugged,unreadable=True,error=str(error) or '模型格式不完整',size=None,geometry_sha256=None,context='',cameras='',intermediate=False))
+    shapes={'single':'单格','long':'长条','square':'方形','l_shape':'L 形','t_shape':'T 形','cross':'十字','standalone':'独立结构','irregular':'不规则','bugged':'bugged（待修复）'}
+    for item in models:
+        parts=Path(item['relative_path']).parts
+        shape_index=next((i for i,part in enumerate(parts[:-1]) if part in shapes),None)
+        item['project_key']='/'.join(parts[:shape_index]) if shape_index is not None else ''
+        item['project_name']=item['project_key'] or workspace.name
+        declared_shape=item.get('shape')
+        item['shape_group']='bugged' if item['bugged'] else parts[shape_index] if shape_index is not None else declared_shape if isinstance(declared_shape,str) and declared_shape else 'unclassified'
+        item['shape_group_zh']=shapes.get(item['shape_group'],'未分类')
+        if not isinstance(item.get('size'),(list,tuple)) or len(item['size'])!=3 or any(type(v) is not int or v<=0 for v in item['size']):item['size']=None
+        item['object_key']=item['group'].replace('\\','/')
+        item['object_name']=item.get('name_zh') or item['name']
+        if not item.get('unreadable'):
+            declared=descriptions.get(description_near(Path(item['source'])),{})
+            phase=declared.get('workflow_stage',declared.get('status'))
+            if phase in {'unrefined','refined','finalized','discarded'} and declared.get('master') and metadata_path(description_near(Path(item['source'])),declared['master'])==Path(item['source']):item['stage']=phase
+        item['is_delivery']='_deliveries' in parts or 'delivery' in parts
+        if (shape_index is not None and len(parts)==shape_index+2) or len(parts)==1:
+            item['object_key']='/'.join(parts)
+            item['object_name']=item.get('name_zh') or Path(parts[-1]).stem.removesuffix('.json').removesuffix('.master')
+        if isinstance(item.get('name_zh'),str) and item['name_zh'].strip():
+            # A delivery and its authoring version belong to one named object.
+            item['object_key']=json.dumps([item['project_key'],item['shape_group'],item['name_zh'].strip()],ensure_ascii=False,separators=(',',':'))
     cache_path.parent.mkdir(parents=True,exist_ok=True)
     import uuid
     temporary=cache_path.with_name(cache_path.name+'.'+uuid.uuid4().hex+'.tmp')
@@ -394,7 +446,9 @@ def compile_plan(settings, size):
     supported=set(capabilities()['tools'])
     for op in extra:
         if not isinstance(op,dict) or op.get('kind') not in supported or not isinstance(op.get('label'),str) or not op['label'].strip():raise ValueError('建模工具种类或说明无效')
+        if type(op.get('enabled',True)) is not bool:raise ValueError('工具步骤的 enabled 开关须为布尔值')
         if op.get('classification','body') not in ('body','wall','inherit'):raise ValueError('工具归属无效')
+        if not op.get('enabled',True):continue
         if op['kind']=='auto_floor':
             if op.get('classification','body')!='body':raise ValueError('自动地面归主体层')
         elif op['kind']=='beam':
@@ -467,14 +521,21 @@ def export_plan(request, output):
         from nbt_floors import auto_floor_plan
         virtual = Volume(model.size); virtual.blocks = dict(model.blocks)
         protected = protections(virtual, config)
+        write_owners={};virtual_walls=set(walls)
         for operation in plan['operations']:
             if operation['kind'] == 'pattern': edits, report = pattern_plan(virtual, operation, protected)
             elif operation['kind'] == 'weathering': edits, report = weathering_plan(virtual, operation, protected)
             elif operation['kind']=='auto_floor': edits, report = auto_floor_plan(virtual, operation, config, protected)
             else: edits,report=operation_candidates(virtual,operation,protected),{}
-            if any(p in protected and virtual.get(p)!=value for p,value in edits):raise ValueError('结构编辑触及保护区，请调整范围')
+            from nbt_change_policy import enforce_overwrite
+            enforce_overwrite(virtual,virtual_walls,operation,edits,write_owners)
+            conflicts=[p for p,value in edits if p in protected and virtual.get(p)!=value]
+            if conflicts:raise ValueError(f'步骤“{operation.get("label",operation["kind"])}”触及保护区：{conflicts[:8]}。请移动构件或缩小范围；允许覆盖不会取消保护。')
             estimates.append(dict(kind=operation['kind'], label=operation['label'], writes=len(edits), report=report))
-            for p, value in edits: virtual.put(p, value)
+            for p, value in edits:
+                virtual.put(p, value)
+                if value in ('minecraft:air','minecraft:cave_air','minecraft:void_air') or operation.get('classification')=='body':virtual_walls.discard(p)
+                elif operation.get('classification')=='wall':virtual_walls.add(p)
     except (ValueError, AssertionError, KeyError) as error:
         warning_detail = str(error)
         from nbt_collision import bounded_obstacle
@@ -509,12 +570,20 @@ def preview_effect(request, output):
         if any(not model.in_bounds(p) for p in walls):raise ValueError('墙mask超出原建筑范围')
     walls={p for p in walls if p in model.blocks};source_walls=set(walls)
     virtual=Volume(model.size);virtual.blocks=dict(model.blocks);protected=protections(virtual,config)
+    write_owners={}
     for operation in plan['operations']:
         if operation['kind']=='pattern': edits,_=pattern_plan(virtual,operation,protected)
         elif operation['kind']=='weathering': edits,_=weathering_plan(virtual,operation,protected)
         elif operation['kind']=='auto_floor': edits,_=auto_floor_plan(virtual,operation,config,protected)
         else: edits=operation_candidates(virtual,operation,protected)
-        if any(not virtual.in_bounds(p) or p in protected and virtual.get(p)!=value for p,value in edits):raise ValueError('结构编辑超出边界或触及保护区，请调整范围')
+        from nbt_change_policy import enforce_overwrite
+        enforce_overwrite(virtual,walls,operation,edits,write_owners)
+        outside=[p for p,value in edits if not virtual.in_bounds(p)]
+        if outside:raise ValueError(f'步骤“{operation.get("label",operation["kind"])}”超出建筑边界：{outside[:8]}，建筑尺寸为{virtual.size}。请调整构件位置。')
+        conflicts=[p for p,value in edits if p in protected and virtual.get(p)!=value]
+        if conflicts:
+            from nbt_protection_view import ProtectionConflict
+            raise ProtectionConflict(operation.get('label',operation['kind']),conflicts)
         moved_walls={tuple(p[i]+operation['offset'][i] for i in range(3)) for p in walls if all(operation['lo'][i]<=p[i]<=operation['hi'][i] for i in range(3))} if operation['kind']=='move_region' else set()
         for position,value in edits:
             virtual.put(position,value)
@@ -536,10 +605,14 @@ def preview_effect(request, output):
                     registry_sha256=registry()['blocks_sha256'],preview_only=True,
                     verification=dict(routes='not_checked',game='not_checked',design='pending_visual_review'))
     write_json(output/'before.json',snapshot(model,source_walls));write_json(output/'after.json',snapshot(virtual,walls))
+    from nbt_compare import describe
+    diff=describe(model,virtual,source_walls,walls)
+    diff.update(before_source_sha256=baseline,after_source_sha256=baseline,before_geometry_sha256=model.fingerprint(),after_geometry_sha256=virtual.fingerprint())
+    write_json(output/'difference.json',diff)
     if digest(source)!=baseline: raise ValueError('原建筑在计算中变化，请重新打开')
     return dict(status='visual_preview_only',snapshot=str(output/'after.json'),baseline_snapshot=str(output/'before.json'),
                 geometry_sha256=virtual.fingerprint(),source_sha256=baseline,size=list(model.size),
-                cameras=config['cameras'],changed_blocks=changed,wall_membership_changes=difference['wall_membership_changes'],settings_sha256=canonical(settings),preview_only=True)
+                cameras=config['cameras'],changed_blocks=changed,wall_membership_changes=difference['wall_membership_changes'],settings_sha256=canonical(settings),preview_only=True,difference=str(output/'difference.json'))
 
 
 def create_review(request, output):
@@ -638,32 +711,54 @@ def prompt_export(request):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
-    cmd = sub.add_parser('catalog'); cmd.add_argument('--workspace', type=Path, required=True)
+    cmd = sub.add_parser('catalog'); cmd.add_argument('--workspace', type=Path, required=True);cmd.add_argument('--include-bugged',action='store_true');cmd.add_argument('--index-only',action='store_true')
     cmd = sub.add_parser('inspect'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--image-limit',type=int,default=8)
-    cmd = sub.add_parser('cover'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--geometry', required=True); cmd.add_argument('--cache',type=Path,required=True)
+    cmd = sub.add_parser('cover'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--geometry', default=''); cmd.add_argument('--cache',type=Path,required=True); cmd.add_argument('--generate-missing',action='store_true')
+    cmd = sub.add_parser('components'); cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','save','get','place','batch','import','update','extract','transform'],required=True);cmd.add_argument('--request',type=Path)
+    cmd = sub.add_parser('recipes');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','get','save','capture','archive','compile'],required=True);cmd.add_argument('--request',type=Path)
+    cmd = sub.add_parser('project-batch');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','create','get','run','retry','cancel'],required=True);cmd.add_argument('--request',type=Path)
+    cmd = sub.add_parser('protection-mask');cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('thumbnails'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--cache',type=Path,required=True)
     sub.add_parser('defaults')
     cmd = sub.add_parser('prompt'); cmd.add_argument('--request', type=Path, required=True)
     cmd = sub.add_parser('validate'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True)
-    for name in ('plan', 'prepare', 'render', 'snapshot', 'preview', 'revision'):
+    for name in ('plan', 'prepare', 'render', 'snapshot', 'preview', 'revision', 'compare'):
         cmd = sub.add_parser(name); cmd.add_argument('--request', type=Path, required=True); cmd.add_argument('--output', type=Path, required=True)
     cmd = sub.add_parser('apply'); cmd.add_argument('--request', type=Path, required=True)
     cmd.add_argument('--bundle', type=Path, required=True); cmd.add_argument('--review', type=Path, required=True)
     cmd.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     try:
-        if args.command == 'catalog': result = catalog(args.workspace)
+        if args.command == 'catalog': result = catalog(args.workspace,include_bugged=args.include_bugged,index_only=args.index_only)
         elif args.command == 'cover':
-            images = preview_images(args.source,args.geometry,1)
-            if images:
-                from PIL import Image
-                cache=args.cache;cache.mkdir(parents=True,exist_ok=True)
-                image=Path(images[0]);fingerprint=digest(image);target=cache/(fingerprint+'.jpg')
-                if not target.is_file():
-                    with Image.open(image) as original:
-                        thumb=original.convert('RGB');thumb.thumbnail((320,200));thumb.save(target,'JPEG',quality=78)
-                result=dict(image=str(image),thumbnail=str(target))
-            else: result=dict(image=None,thumbnail=None)
+            from nbt_cover import section_cover
+            result = section_cover(args.source,args.geometry,args.cache,generate=args.generate_missing)
+        elif args.command == 'recipes':
+            from nbt_recipes import dispatch
+            result=dispatch(args.workspace,args.action,read_request(args.request) if args.request else {})
+        elif args.command == 'project-batch':
+            from nbt_project_batch import dispatch
+            result=dispatch(args.workspace,args.action,read_request(args.request) if args.request else {})
+        elif args.command == 'protection-mask':
+            from nbt_protection_view import mask
+            result=mask(read_request(args.request))
+        elif args.command == 'components':
+            import nbt_components as components
+            data=read_request(args.request) if args.request else {}
+            if args.action=='list':result=components.listing(args.workspace)
+            elif args.action=='get':result=components.load(args.workspace,data['id'])
+            elif args.action=='save':result=components.capture(args.workspace,data['source'],data['name'],data['lo'],data['hi'],tags=data.get('tags',[]),include_air=data.get('include_air',False),snapshot=data['snapshot'],snapshot_sha256=data['snapshot_sha256'])
+            elif args.action=='import':result=components.store(args.workspace,data['component'])
+            elif args.action=='update':result=components.update(args.workspace,data['id'],data.get('name'),data.get('tags'),data.get('archived'))
+            elif args.action=='extract':result=components.extract(data['source'],data.get('name','选区构件'),data['lo'],data['hi'],snapshot=data['snapshot'],snapshot_sha256=data['snapshot_sha256'])
+            elif args.action=='transform':result=components.transform_selection(data['source'],data['lo'],data['hi'],data['position'],snapshot=data['snapshot'],snapshot_sha256=data['snapshot_sha256'],quarter_turns=data.get('quarter_turns',0),mirror=data.get('mirror'),overwrite=data.get('overwrite',False),move=data.get('move',False),name=data.get('name','选区构件'))
+            else:
+                component=components.load(args.workspace,data['id']) if data.get('id') else components.validate(data['component'])
+                if data.get('content_sha256') and data['content_sha256']!=component['content_sha256']:raise ValueError('构件内容已改变，请重新载入')
+                if args.action=='batch':
+                    from nbt_recipes import load as load_theme
+                    result=components.batch_placement(component,data['position'],data['size'],data.get('counts'),data.get('spacing'),data.get('quarter_turns',0),data.get('mirror'),data.get('overwrite',False),load_theme(args.workspace,data['theme']) if data.get('theme') else None)
+                else:result=components.placement(component,data['position'],data['size'],data.get('quarter_turns',0),data.get('mirror'),data.get('overwrite',False))
         elif args.command == 'inspect':
             if not 1 <= args.image_limit <= 64: raise ValueError('image-limit must be 1..64')
             result = inspect_source(args.source,args.image_limit)
@@ -681,11 +776,14 @@ def main():
             result=convert_web_json(args.request)
         elif args.command == 'preview': result = preview_effect(read_request(args.request), args.output)
         elif args.command == 'snapshot': result = source_snapshot(read_request(args.request), args.output)
+        elif args.command == 'compare':
+            from nbt_compare import compare_sources
+            result=compare_sources(read_request(args.request),args.output)
         else: result = apply_approved(read_request(args.request), args.bundle, args.review, args.output)
         print(json.dumps(dict(ok=True, result=result), ensure_ascii=False))
         if args.command=='validate' and not result['passed']:return 1
     except Exception as error:
-        print(json.dumps(dict(ok=False, error=str(error)), ensure_ascii=False)); return 1
+        print(json.dumps(dict(ok=False, error=str(error),**(dict(details=error.details) if hasattr(error,'details') else {})), ensure_ascii=False)); return 1
     return 0
 
 

@@ -12,7 +12,7 @@
  function composeAI(text){const base=C.prompt(state);return base.slice(0,base.indexOf('# 全局设计与细节要求'))+'# 全局设计与细节要求（AI 建议，待审阅）\n'+text+'\n\n'+base.slice(base.indexOf('# 自动存放规则'));}
  function outputText(){return aiDraft()?composeAI(aiDraft().text):C.prompt(state);}
  function update(){if(state.project.stage==='draft'){state.project.output=C.outputPath(state.project);const output=document.querySelector('[data-field=output]');if(output)output.value=state.project.output;}const errors=[...pending.values(),...C.validate(state)];const invalid=errors.length>0;for(const id of ['copy','markdown','plan','config','save','left-save'])$(id).disabled=invalid;
-   $('result').value=invalid?'参数尚未有效，请先修正：\n'+errors.join('\n'):outputText();notify(invalid?errors.join('\n'):`${state.operations.length} 个步骤 · 参数草案有效 · 尚未验证模型`,invalid);$('count').textContent=state.operations.length;
+   $('result').value=invalid?'参数尚未有效，请先修正：\n'+errors.join('\n'):outputText();notify(invalid?errors.join('\n'):`${state.operations.filter(op=>op.enabled!==false).length} 个启用 / ${state.operations.length} 个步骤 · 参数草案有效 · 尚未验证模型`,invalid);$('count').textContent=state.operations.length;
    $('output-mode').textContent=aiDraft()?'当前导出：AI 设计建议 + 本地任务元数据、工具计划与验证要求':state.aiDraft?'方案已变化，当前导出参数生成稿；AI 建议需重新生成或重新审阅':'当前导出：参数生成稿';
    if(!invalid)try{localStorage.setItem(storage,JSON.stringify(state));}catch{notify('当前浏览器无法自动暂存，请使用“保存方案”');}
  }
@@ -62,10 +62,10 @@
 
  function renderOperations(){const host=$('operations');host.replaceChildren();if(!state.operations.length)host.append(element('p','尚未添加工具。可以先只填写建筑要求，由 Agent 按需选择。','empty'));
    state.operations.forEach((op,i)=>{const card=element('article',undefined,'step');card.dataset.step=i;const header=element('div',undefined,'step-head');header.append(element('strong',`${String(i+1).padStart(2,'0')}  ${C.catalog[op.kind][0]}`));
-     for(const [text,action,disabled]of [['↑',()=>{[state.operations[i-1],state.operations[i]]=[op,state.operations[i-1]];},i===0],['↓',()=>{[state.operations[i+1],state.operations[i]]=[op,state.operations[i+1]];},i===state.operations.length-1],['复制',()=>state.operations.splice(i+1,0,C.clone(op)),false],['删除',()=>state.operations.splice(i,1),false]]){const b=element('button',text);b.disabled=disabled;b.onclick=()=>{if(pending.size){notify('请先修复未完成的参数，再调整步骤',true);return;}action();renderOperations();update();};header.append(b);}card.append(header,element('p',C.catalog[op.kind][2],'hint'));
+     for(const [text,action,disabled]of [['↑',()=>{[state.operations[i-1],state.operations[i]]=[op,state.operations[i-1]];},i===0],['↓',()=>{[state.operations[i+1],state.operations[i]]=[op,state.operations[i+1]];},i===state.operations.length-1],['复制',()=>state.operations.splice(i+1,0,C.clone(op)),false],['删除',()=>state.operations.splice(i,1),false]]){const b=element('button',text);b.disabled=disabled;b.onclick=()=>{if(pending.size){notify('请先修复未完成的参数，再调整步骤',true);return;}action();renderOperations();update();};header.append(b);}const toggleLabel=element("label","启用 "),toggle=element("input");toggle.type="checkbox";toggle.checked=op.enabled!==false;toggle.setAttribute("aria-label",`启用第${i+1}步`);toggle.onchange=()=>{op.enabled=toggle.checked;renderOperations();update();};toggleLabel.append(toggle);header.append(toggleLabel);card.dataset.enabled=String(op.enabled!==false);card.append(header,element('p',C.catalog[op.kind][2],'hint'));
      const fields=element('div',undefined,'fields');
      if(op.kind==='geometry'){const label=element('label','几何类型'),sel=element('select');sel.dataset.field='shape';for(const shape of Object.keys(C.shapes)){const o=element('option',shape);o.value=shape;sel.append(o);}sel.value=op.geometry.shape;sel.onchange=()=>{op.geometry={shape:sel.value,...C.clone(C.shapes[sel.value])};pending.delete(`op.${i}.geometry`);renderOperations();update();};label.append(sel);fields.append(label);}
-     for(const [key,value]of Object.entries(op)){if(key==='kind')continue;field(fields,key,value,v=>{op[key]=v;},{kind:op.kind,token:`op.${i}.${key}`,wide:key==='label'});}card.append(fields);
+     for(const [key,value]of Object.entries(op)){if(key==='kind'||key==='enabled')continue;field(fields,key,value,v=>{op[key]=v;},{kind:op.kind,token:`op.${i}.${key}`,wide:key==='label'});}card.append(fields);
      const details=element('details');details.append(element('summary','高级：编辑本步骤完整 JSON（可补充可选参数）'));const raw=element('textarea');raw.className='json';raw.value=JSON.stringify(op,null,2);raw.setAttribute('aria-label','本步骤完整 JSON');details.ontoggle=()=>{if(details.open)raw.value=JSON.stringify(op,null,2);};const apply=element('button','应用步骤 JSON');apply.onclick=()=>{try{const value=JSON.parse(raw.value);const candidate=C.clone(state);candidate.operations[i]=value;const errors=C.validate(candidate);if(errors.length)throw Error(errors.join('；'));state=candidate;for(const k of pending.keys())if(k.startsWith(`op.${i}.`))pending.delete(k);renderOperations();update();}catch(e){notify('步骤 JSON：'+e.message,true);}};details.append(raw,apply);card.append(details);host.append(card);
    });
  }
@@ -90,13 +90,13 @@
    if(!aiBridge){$('prompt-ai-indicator').textContent='离线编辑模式';aiMessage('在 NBTCreator 桌面细节控制台内打开本页，可使用共用 API；当前仍可离线编辑和导出。');return;}
    try{const c=await aiBridge.config();$('prompt-ai-indicator').textContent=c.enabled?'API 已启用':'API 未启用';if(!c.enabled)aiMessage('请先通过“API 设置”启用并保存连接。');}catch(e){aiMessage(e.message,true);}
  }
- $('prompt-ai-open').onclick=()=>{$('prompt-ai-panel').open=true;refreshAI();};
+ document.querySelector('[data-tab=ai]').addEventListener('click',refreshAI);refreshAI();
  $('prompt-ai-settings').onclick=()=>{if(aiBridge)aiBridge.settings();else aiMessage('API 设置在 Electron 桌面版主界面右上角提供。',true);};
  function sanitizedDesign(){
    const p=state.project,keys=['name','buildingShape','layout','circulation','stage','size','footprint','theme','purpose','integration','style','ceiling','floor','wall','props','preserve','budget'];
    const project=Object.fromEntries(keys.map(k=>[k,p[k]]));
    project.extras=String(p.extras??'').split('\n').filter(line=>!line.startsWith('源文件 SHA256：')).join('\n');
-   const allowed=new Set(['kind','label','classification','lo','hi','geometry','mode','state','from_states','seed','max_writes','offset','count','destination','quarter_turns','mirror','move','include_air','overwrite','iterations','seeds','steps','decay','surface_only','centre','radius','roughness','rays','ray_length','ray_width','fraction','spacing','supported','action','scope','scale','palette','preserve_properties','shape_policy','profile','style_note','slab_share','patch_size','pit_depth','route_margin','exclude_boxes','include_boxes','slab_overrides','moss','cracks','floor','thickness','width','start','end']);
+   const allowed=new Set(['kind','label','enabled','classification','lo','hi','geometry','mode','state','from_states','seed','max_writes','offset','count','destination','quarter_turns','mirror','move','include_air','overwrite','iterations','seeds','steps','decay','surface_only','centre','radius','roughness','rays','ray_length','ray_width','fraction','spacing','supported','action','scope','scale','palette','preserve_properties','shape_policy','profile','style_note','slab_share','patch_size','pit_depth','route_margin','exclude_boxes','include_boxes','slab_overrides','moss','cracks','floor','thickness','width','start','end']);
    return {project,task:$('prompt-ai-mode').value==='draft'?'draft':'controls',existing_model:!!p.source,operations:state.operations.map(op=>Object.fromEntries(Object.entries(op).filter(([key])=>allowed.has(key))))};
  }
  $('prompt-ai-generate').onclick=async()=>{
@@ -106,7 +106,7 @@
      if(pending.size||C.validate(state).length)throw Error('请先修正当前方案参数');
      const before=binding();candidateBinding=null;$('prompt-ai-apply').disabled=true;
      const instruction='请基于下面的建筑设计草案，生成可供审阅的中文设计要求段落，补足天花承托、地板分区、墙面层次、交接收口与细节主次。保留主题、布局和已给定工具意图，不输出新坐标、不声称已执行或已批准；不必重复技术命令，因为应用将保留本地阶段规则、工具计划、保护配置和交付要求。\n用户补充：'+$('prompt-ai-instruction').value+'\n设计草案 JSON：\n'+JSON.stringify(sanitizedDesign());
-     if(instruction.length>12000)throw Error('方案较大，请减少工具序列或缩短设计要求后再调用 AI');
+     if($('prompt-ai-mode').value==='text'&&instruction.length>12000)throw Error('方案较大，请减少工具序列或缩短设计要求后再调用 AI');
      aiLock(true);aiMessage('正在根据当前设计要求生成建议…');
      candidateMode=$('prompt-ai-mode').value;
      if(candidateMode==='draft'&&(state.project.stage!=='draft'||state.project.source))throw Error('请先点击“新建初稿”，再生成完整初稿方案');
@@ -130,7 +130,7 @@
        for(const key of ['name','theme','purpose','layout','circulation','style','ceiling','floor','wall','props'])if(typeof patch[key]!=='string'||!patch[key].trim())throw Error('完整初稿需补齐：'+(projectFields[key]||key));
        if(!Array.isArray(proposal.operations)||!proposal.operations.length)throw Error('完整初稿需包含初始构造工具步骤');
      }
-     const errors=C.validate(next);if(errors.length)throw Error(errors.join('；'));delete next.aiDraft;state=next;pending.clear();renderProject();renderOperations();update();candidateBinding=null;$('prompt-ai-apply').disabled=true;aiMessage(candidateMode==='draft'?'完整初稿方案已回填；复制提示词交给 Agent 制作，尚未生成 NBT。':'已回填左侧设计控件和工具序列；未改动源路径、保护配置或批准状态。');return;
+     const errors=C.validate(next);if(errors.length)throw Error(errors.join('；'));delete next.aiDraft;state=next;pending.clear();renderProject();renderOperations();update();candidateBinding=null;$('prompt-ai-apply').disabled=true;document.querySelector('[data-tab=project]').click();aiMessage(candidateMode==='draft'?'完整初稿方案已回填；复制提示词交给 Agent 制作，尚未生成 NBT。':'已回填左侧设计控件和工具序列；未改动源路径、保护配置或批准状态。');return;
    }
    state.aiDraft={text,binding:binding()};update();aiMessage('已采用 AI 设计建议；工具计划、任务元数据、阶段与保护要求沿用本地方案。');
  }catch(e){aiMessage(e.message,true);}};
@@ -138,7 +138,7 @@
  window.NbtPromptUI={newDraft(){
    try{localStorage.setItem(storage+'-previous',JSON.stringify(state));}catch{}
    state=C.defaults();pending.clear();candidateBinding=null;$('prompt-ai-mode').value='draft';$('prompt-ai-apply').disabled=true;
-   renderProject();renderOperations();update();notify('已新建初稿方案；上一份表单已在本浏览器暂存备份。');
+   renderProject();renderOperations();update();document.querySelector('[data-tab=ai]').click();notify('已新建初稿方案；上一份表单已在本浏览器暂存备份。');
  },receive(payload){
    if(pending.size)throw Error('提示词中有未完成的参数，请先修复或保存');
    const same=state.project.source===payload.source;

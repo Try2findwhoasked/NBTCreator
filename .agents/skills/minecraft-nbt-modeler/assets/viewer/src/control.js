@@ -1,5 +1,20 @@
+import {initProtectionView} from './protection-view.js'
+import {initDisclosureIcons} from './ui-icons.js'
+import {floatingDetails,chevron} from './floating-panel.js'
+import {initAssetWorkspace} from './asset-workspace.js'
+import {initReusableLibrary} from './reusable-library.js'
+import {initOperationHistory} from './operation-history.js'
+import {initPreviewToolbar} from './preview-toolbar.js'
+import {initVersionCompare} from './version-compare.js'
+import {initComponentEditor} from './component-editor.js'
+import {initModelPicker} from './model-picker.js'
+import {initCommandCenter} from './command-center.js'
+import {toolPanels as commandPanels} from './command-contract.mjs'
+import {createSettingsHistory} from './settings-history.mjs'
+import {createEditSessionController} from './edit-session.js'
 import {initAppSettings} from './app-settings.js'
 import {translateComponent} from './component-move.js'
+import {aiBounds,aiGroupMatches,moveAIGroup,aiSurfaceOffset} from './ai-component.mjs'
 import {requestAI,cancelAI} from './ai-request.js'
 import '../../../prompt-console/catalog.js'
 import './control.css'
@@ -7,6 +22,8 @@ import './prompt-panel.css'
 import {initDesktop} from './desktop-adapter.js'
 import {initApiAssistant} from './api-assistant.js'
 import {initWorkspaceShell} from './workspace-shell.js'
+import {initProjectManager} from './project-manager.js'
+import {filterProjects} from './project-catalog.js'
 import {initTaskRecords} from './task-records.js'
 import {initHelpDialogs} from './help-dialogs.js'
 import './modern.css'
@@ -21,7 +38,7 @@ const blockId = value => value.replace(/[^;\n]+/g, part => {
   return (entry ? 'minecraft:'+entry[0] : base)+(split<0?'':text.slice(split))
 })
 function blockPicker(input) {
-  input.placeholder='输入中文或 ID，也可点击 ▾ 选择'
+  input.placeholder='输入中文或 ID，也可展开列表选择'
   input.value=input.value.split(';').map(value=>{
     const text=value.trim(),split=text.indexOf('['),base=(split<0?text:text.slice(0,split)).replace(/^minecraft:/,'')
     return (blockNames[base] ?? (split<0?text:text.slice(0,split)))+(split<0?'':text.slice(split))
@@ -30,7 +47,7 @@ function blockPicker(input) {
   input.dataset.blockPicker='1';input.removeAttribute('list')
   const wrapper=document.createElement('span');wrapper.className='block-select'
   input.replaceWith(wrapper);wrapper.append(input)
-  const button=document.createElement('button');button.type='button';button.className='block-select-toggle';button.textContent='▾'
+  const button=document.createElement('button');button.type='button';button.className='block-select-toggle';button.innerHTML=chevron
   button.setAttribute('aria-label','展开方块选择');button.title='展开中文方块列表；可输入名称或 ID 搜索'
   wrapper.append(button)
   let browse=false
@@ -55,6 +72,7 @@ for(const id of ['pattern-from','weather-from','moss-state','crack-state','repla
 
 const $ = id => document.getElementById(id)
 const state = { models: [], settings: null, info: null, bundle: '', busy: false, currentViews: [], images: [], selectedImage: null, notes: [], noteDrafts: new Map(), draftPoint: null, imageGeneration: 0, viewerGeneration: 0, mode: 'images', savingNote: false, imageLimit: 8, effectFiles: [], output: '', references: [], workspace: '', configChanged: false, previewRevision: 0, previewBusy: false, preview: null }
+let operationEditor,previewToolbar,editSession,lastValidSessionSettings,versionComparison,componentEditor,apiAssistant,protectionView
 async function api(route, data) {
   const response = await fetch('/__detail__/'+route, data === undefined ? {} : {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
@@ -93,19 +111,20 @@ percent('floor-fields', 'slab-share', '破损位置中使用半砖的比例', 85
 
 // Show one parameter group at a time; values remain mounted when switching.
 const toolPanels=[...document.querySelectorAll('#settings > .card')]
-const toolLabels=['整体效果','方块混搭','长苔与裂纹','自动地面','修改范围','精确换块','建筑取材','结构编辑','建模工具','AI建模']
+const toolLabels=Object.fromEntries(commandPanels.map(([label,index])=>[index,label]))
+const toolOrder=commandPanels.map(([,index])=>index)
 function selectTool(index){
   toolPanels.forEach((panel,i)=>{panel.hidden=i!==index;if(i===index&&panel.tagName==='DETAILS')panel.open=true})
-  ;[...$('tool-tabs').children].forEach((button,i)=>button.setAttribute('aria-pressed',String(i===index)))
+  ;[...$('tool-tabs').children].forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.toolIndex)===index)))
 }
-toolLabels.forEach((label,index)=>{
-  const button=document.createElement('button');button.type='button';button.textContent=label
+toolOrder.forEach(index=>{
+  const button=document.createElement('button');button.type='button';button.textContent=toolLabels[index];button.dataset.toolIndex=index
   button.addEventListener('click',()=>selectTool(index));$('tool-tabs').append(button)
 })
 selectTool(0)
 for(const [kind,[label]]of Object.entries(globalThis.NbtToolCatalog.tools)){const option=document.createElement('option');option.value=kind;option.textContent=label;$('operation-kind').append(option)}
-$('operation-add').onclick=()=>{try{const kind=$('operation-kind').value,[label,defaults]=globalThis.NbtToolCatalog.tools[kind];const op={kind,...structuredClone(globalThis.NbtToolCatalog.common),...structuredClone(defaults),label};if(kind==='auto_floor'){delete op.lo;delete op.hi;op.include_boxes=[]}const list=JSON.parse($('operation-sequence').value);if(!Array.isArray(list))throw Error('序列须为数组');list.push(op);$('operation-sequence').value=JSON.stringify(list,null,2);$('operation-sequence').dispatchEvent(new Event('input',{bubbles:true}))}catch(e){status(e.message,'error')}}
-$('operation-clear').onclick=()=>{$('operation-sequence').value='[]';$('operation-sequence').dispatchEvent(new Event('input',{bubbles:true}))}
+$('operation-add').onclick=()=>{try{const kind=$('operation-kind').value,[label,defaults]=globalThis.NbtToolCatalog.tools[kind];const op={kind,...structuredClone(globalThis.NbtToolCatalog.common),...structuredClone(defaults),label};if(kind==='auto_floor'){delete op.lo;delete op.hi;op.include_boxes=[]}const list=JSON.parse($('operation-sequence').value);if(!Array.isArray(list))throw Error('序列须为数组');list.push(op);operationEditor.replace(list,'添加：'+label)}catch(e){status(e.message,'error')}}
+$('operation-clear').onclick=()=>operationEditor.replace([],'清空工具序列')
 
 function addMaterial(material = '', weight = 1) {
   const row = document.createElement('div'); row.className = 'palette-row'
@@ -140,8 +159,14 @@ function request() {
   if(state.info&&$('source').value.trim()!==state.info.source)throw new Error('建筑路径已改变，请先打开该建筑再保存效果或生成方案')
   return { schema_version: 1, source: $('source').value.trim(), source_sha256: state.info?.source_sha256, context: $('context').value.trim(), cameras: $('cameras').value.trim(), review: $('review').value.trim(), settings: gather() }
 }
-async function captureViewport(){
- if(state.busy||state.previewBusy)throw Error('请等当前模型任务完成后再截图')
+async function captureViewport(isCancelled=()=>false){
+ const source=state.info?.source,sha=state.info?.source_sha256,started=Date.now()
+ while(state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring){
+  if(isCancelled())throw Error('API请求已取消')
+  if(Date.now()-started>15000)throw Error('预览仍在运行，尚未向API发送内容；请完成当前任务后重试，或关闭该工作流的截图开关')
+  await new Promise(resolve=>setTimeout(resolve,100))
+ }
+ if(source!==state.info?.source||sha!==state.info?.source_sha256)throw Error('等待截图时建筑已切换，请重新生成')
  const viewer=$('viewer').contentWindow?.nbtModeler
  if(state.mode==='3d'&&viewer?.status==='ready')return viewer.captureCurrent()
  const img=$('review-image')
@@ -188,6 +213,7 @@ function setValue(id, value) {
 }
 function restore(s) {
   $('operation-sequence').value=JSON.stringify(s.operations??[],null,2)
+  operationEditor?.sync()
   state.settings = structuredClone(s)
   const structure=s.structure ?? {enabled:false,mode:'fill',state:'stone_bricks',classification:'body',thickness:1,offset:[0,0,0]}
   $('structure-enabled').checked=structure.enabled;setValue('structure-mode',structure.mode);setValue('structure-state',structure.state);setValue('structure-classification',structure.classification);setValue('structure-thickness',structure.thickness);['move-x','move-y','move-z'].forEach((id,i)=>setValue(id,structure.offset[i]))
@@ -205,7 +231,8 @@ function restore(s) {
   setValue('floor-excludes',JSON.stringify(s.floor.exclude_boxes,null,2));setValue('slab-overrides',JSON.stringify(s.floor.slab_overrides,null,2)); updateCount()
 }
 function updateCount() {
-  let extra=0;try{const operations=JSON.parse($('operation-sequence').value);if(Array.isArray(operations))extra=operations.length}catch{}
+  operationEditor?.sync()
+  let extra=0;try{const operations=JSON.parse($('operation-sequence').value);if(Array.isArray(operations))extra=operations.filter(op=>op?.enabled!==false).length}catch{}
   const count = ['structure-enabled','replace-enabled','pattern-enabled','weather-enabled','floor-enabled'].filter(id => $(id).checked).length+extra
   $('operation-count').textContent = count ? `${count} 项工具已启用 · 总体强度 ${$('strength').value}%` : '所有工具当前关闭'
   syncWorkspace();syncSelectionRange()
@@ -213,16 +240,33 @@ function updateCount() {
   $('apply').disabled = state.busy || !state.bundle || !$('review').value.trim()
   let currentPreview=false;try{currentPreview=!!state.preview&&state.previewSettings===JSON.stringify(gather())}catch{}
   $('validate-preview').disabled=state.busy||state.previewBusy||!currentPreview
+  syncVersionReadonly()
+  versionComparison?.sync()
+  componentEditor?.sync()
+}
+function syncVersionReadonly(){
+ const locked=!!(state.versionComparing||state.transforming)
+ document.querySelector('.sidebar').inert=locked
+ if(locked){document.querySelector('.action-bar').inert=!!state.versionComparing||!state.previewBusy;$('feedback-card').hidden=true
+  for(const button of document.querySelectorAll('.action-bar button'))if(button.id!=='cancel')button.disabled=true
+  for(const id of ['pick-material','pick-coordinate','viewport-assets','update-preview','validate-preview','compare-before','compare-after','three-quality','view-select','auto-preview','show-selection'])if($(id))$(id).disabled=true
+  if(state.transforming&&$('open-version-compare'))$('open-version-compare').disabled=true
+ }
 }
 function busy(value) {
   state.busy = value
-  for (const button of document.querySelectorAll('button')) if (button.id !== 'cancel') button.disabled = value
+  for (const button of document.querySelectorAll('button')) if (button.id !== 'cancel'&&button.id!=='open-command-center'&&!button.closest('#command-dialog,#project-batch-dialog')) button.disabled = value
   for (const input of document.querySelectorAll('.sidebar input, .sidebar select, .sidebar textarea')) input.disabled = value
   $('compare-before').disabled=value||!state.preview;$('compare-after').disabled=value||!state.preview
   $('pick-material').disabled=value||state.mode!=='3d';$('pick-coordinate').disabled=value||state.mode!=='3d';
   $('export-revision').disabled=value||!state.info;
   $('cancel').disabled = !(value||state.previewBusy); $('pause-3d').disabled=state.mode!=='3d'; $('enable-3d').disabled=value||!state.info; $('save-feedback').disabled=value||!state.feedbackTarget||state.feedbackLoading||state.savingNote; updateCount()
   historyButtons()
+  operationEditor?.setBusy(value)
+  previewToolbar?.sync(state.mode,value,!!state.info)
+  syncVersionReadonly()
+  for(const id of ['session-save-now','session-reload','session-valid-inputs'])if($(id))$(id).disabled=value||state.restoreSession===false
+  window.dispatchEvent(new Event('creator-editor-state'))
   if (!$('status-badge').classList.contains('warn') && !$('status-badge').classList.contains('error')) $('status-badge').textContent=value?'进行中':'就绪'
 }
 function stashDraft() {
@@ -268,6 +312,8 @@ async function activateFeedback(target){
 function activateImageFeedback(){const image=state.selectedImage;return activateFeedback(image?{kind:'image',id:image.id,key:(image.source_sha256 ?? state.info.source_sha256)+':'+image.image_sha256,name:image.name,source:image.source}:null)}
 function activateViewerFeedback(id){const meta=$('viewer').contentWindow.nbtModeler.metadata();return activateFeedback({kind:'3d',id,key:meta.source_sha256+':3d:'+meta.geometry_sha256,name:'3D 方块坐标 · '+(state.comparisonSide==='after'?'调整效果':'当前建筑'),source:state.viewerSource,geometry:meta.geometry_sha256})}
 function imageMode() {
+  if(state.transforming){componentEditor?.cancel().then(imageMode).catch(error=>status(error.message,'error'));return}
+  if(state.versionComparing){versionComparison?.close().then(imageMode).catch(error=>status(error.message,'error'));return}
   state.mode='images';state.viewerGeneration++;$('pick-material').disabled=true
   $('pick-coordinate').disabled=true
   $('viewer').src='about:blank';$('viewer').hidden=true;$('three-toolbar').hidden=true
@@ -275,6 +321,7 @@ function imageMode() {
   $('pause-3d').disabled=true;$('view-hint').textContent='点击图片定位修改位置；需要旋转查看时可打开 3D。'
   activateImageFeedback().catch(error=>status(error.message,'error'))
   syncWorkspace()
+  previewToolbar?.sync(state.mode,state.busy,!!state.info)
 }
 function imageBox() {
   const image=$('review-image'),rect=image.getBoundingClientRect()
@@ -338,7 +385,7 @@ function gallery(images = []) {
     const button=document.createElement('button'),img=document.createElement('img'),label=document.createElement('span')
     img.src=image.thumbnail ?? image.url;img.loading='lazy';img.decoding='async';img.alt=image.name;label.textContent=image.name
     button.title=image.name;button.append(img,label);button.addEventListener('click',handle(()=>{imageMode();return selectImage(index)}));$('gallery').append(button)
-    const option=document.createElement('option');option.value=index;option.textContent=image.name;$('image-select').append(option)
+    const option=document.createElement('option');option.value=index;option.textContent=image.name+(image.restored?' · 草稿画面':'');$('image-select').append(option)
   })
   $('image-count').textContent=images.length ? `共 ${images.length} 张，点击切换` : '这座建筑暂时没有对应的预览图'
   if(!images.length){
@@ -351,6 +398,7 @@ function gallery(images = []) {
 }
 
 async function runJob(kind, overrides = {}) {
+  if(state.versionComparing)throw Error('请先结束版本对比，再执行编辑、验证或导出')
   const cancelEpoch=state.cancelEpoch??0
   const payload = { kind, request: request(), bundle: state.bundle, review: $('review').value.trim() }
   Object.assign(payload.request, overrides)
@@ -405,10 +453,11 @@ async function loadViewer(result, isNewVersion = false) {
   state.comparisonSide=result.preview_only?(result.model_key===result.baseline_key?'before':'after'):null
   const generation=++state.viewerGeneration
   state.mode='3d';state.viewerSource=result.source ?? state.info?.source;syncWorkspace();$('image-toolbar').hidden=false;$('three-toolbar').hidden=false;$('review-canvas').hidden=true;$('feedback-card').hidden=!state.selectedImage;$('pause-3d').disabled=false
-  $('view-hint').textContent=$('three-quality').value==='fast'?'颜色用于区分朝向；看实际方块请切换材质 3D 或看图片':'材质 3D（看方块） · 左键旋转，中键平移，滚轮缩放'
+  previewToolbar?.sync(state.mode,state.busy,!!state.info)
+  $('view-hint').textContent=$('three-quality').value==='fast'?'颜色用于区分朝向；看实际方块请切换材质 3D 或看图片':'材质 3D（看方块） · 左键原地转向，中键平移，滚轮前进／后退'
   state.currentViews = result.cameras
   $('view-select').replaceChildren()
-  result.cameras.forEach((view, i) => { const option=document.createElement('option');option.value=i;option.textContent=view.role ?? view.id;$('view-select').append(option) })
+  result.cameras.forEach((view, i) => { const option=document.createElement('option');option.value=i;option.textContent=({whole:'整体',entry:'入口'})[view.role ?? view.id] ?? view.role ?? view.id;$('view-select').append(option) })
   $('view-select').disabled=false
   $('view-cut').max=result.size[1]-1;$('view-cut').value=result.size[1]-1;$('cut-value').textContent='完整'
   const frame=$('viewer');frame.hidden=false;$('empty-view').hidden=true
@@ -417,17 +466,32 @@ async function loadViewer(result, isNewVersion = false) {
     frame.onload=async()=>{try{if(generation!==state.viewerGeneration){clearTimeout(timer);resolve();return};await frame.contentWindow.nbtModeler.ready;if(generation!==state.viewerGeneration){clearTimeout(timer);resolve();return};if(result.cameras.length)await frame.contentWindow.nbtModeler.renderView(result.cameras[0]);clearTimeout(timer);resolve()}catch(error){clearTimeout(timer);reject(error)}}
     frame.src=`/?model_key=${encodeURIComponent(result.model_key)}&embedded=1&quality=${$('three-quality').value}&pixelRatio=0.75&maxFps=24`
   })
-  syncSelectionRange();$('pick-material').disabled=false;$('pick-coordinate').disabled=false;syncPicking()
+  protectionView?.refresh();syncSelectionRange();$('pick-material').disabled=false;$('pick-coordinate').disabled=false;syncPicking()
   state.viewerFeedbackId=result.feedback_id;await activateViewerFeedback(result.feedback_id)
   $('model-hash').textContent=(isNewVersion?'新版本预览 ':'原建筑版本 ')+result.geometry_sha256.slice(0,16)
+  syncVersionReadonly()
 }
-async function loadModel(preserve = false) {
-  state.aiPlacing=null;state.lastAIGroup=null
+async function loadModel(preserve=false){
+  await componentEditor?.cancel()
+  await versionComparison?.close()
+  const previous=state.info?.source_sha256
+  const previousGroup=state.lastAIGroup,previousSource=state.info?.source
+  lockEditorRecovery()
+  try{
+  await editSession?.beforeOpen()
+  if(state.info&&state.info.source!==$('source').value.trim()){state.noteDrafts=new Map();state.noteKey=null;state.preview=null;state.previewSettings=null;state.comparisonSide=null;if(!preserve&&state.defaultSettings)restore(state.defaultSettings)}
+  try{await loadModelCore(preserve);if(previousSource===state.info.source&&previous===state.info.source_sha256)state.lastAIGroup=previousGroup;try{lastValidSessionSettings=gather()}catch{}await editSession?.opened(state.info,(!preserve||previous!==state.info.source_sha256)&&!state.skipSessionRestore);state.skipSessionRestore=false;setResumeSource(state.info.source);notifyAIComponent(true)}
+  catch(error){editSession?.resume();throw error}
+  }finally{unlockEditorRecovery();protectionView?.refresh()}
+}
+async function loadModelCore(preserve = false) {
+  state.aiPlacing=null;state.assetPicking=null;state.lastAIGroup=null
   stashDraft();imageMode();busy(true)
   try {
     status('正在打开建筑及门口、通路等保护设置…')
     const previousHash=state.info?.source_sha256
     const info=await api('inspect',{source:$('source').value.trim(),image_limit:state.imageLimit});state.info=info
+    projectManager.checked(info)
     if(info.agent_handoff){
       const shared=info.agent_handoff
       $('agent-handoff-path').textContent=shared.directory;$('agent-handoff-path').title=shared.directory
@@ -446,22 +510,42 @@ async function loadModel(preserve = false) {
   if(!preserve&&!state.images.length)await runJob('snapshot')
 }
 
+let catalogEpoch=0
+function updateCatalog(data){
+ const previous=$('source').value
+ state.models=data.catalog.models;state.catalogReady=true
+ renderModels(previous);projectManager.update(data.project_catalog?.models??state.models,state.workspace)
+ if(state.models.length&&!state.info&&!state.busy&&(!previous||!state.models.some(item=>item.source===previous))&&$('models').value!=='')selectModel(Number($('models').value))
+ if(data.catalog.migration_in_progress)status('建筑库正在按形状迁移和校验，完成后刷新列表即可。','warn')
+ else if(!state.models.length)status(`未发现可载入的完整建筑。扫描目录：${data.catalog.scan_root??state.workspace+'/nbt_models'}。已检查 ${data.catalog.scanned} 个文件，${data.catalog.skipped} 个格式不支持或损坏。请确认项目根目录，或直接打开完整 NBT / 主模型。`,'warn')
+}
 async function initialize() {
-  busy(true)
-  try {
-    const data=await api('init'); state.models=data.catalog.models;state.workspace=data.workspace;state.output=data.output;$('save-root').value=data.output
-    await refreshEffects()
-    if(!state.settings){if(data.initial_request){restore(data.initial_request.settings);for(const key of ['source','context','cameras','review'])$(key).value=data.initial_request[key] ?? ''}else restore(data.defaults)}
-    $('output-path').textContent=data.output
-    const previous=$('source').value
-    renderModels(previous)
-    if(state.models.length && !previous&&$('models').value!==''){selectModel(Number($('models').value))}
-    else if(data.catalog.migration_in_progress)status('建筑库正在按形状迁移和校验，完成后刷新列表即可。','warn')
-    else if(!state.models.length)status(`未发现可载入的完整建筑。扫描目录：${data.catalog.scan_root??state.workspace+'/nbt_models'}。已检查 ${data.catalog.scanned} 个文件，${data.catalog.skipped} 个格式不支持或损坏。请确认项目根目录，或直接打开完整 NBT / 主模型。`,'warn')
-  } finally { busy(false) }
+ await settingsReady
+ const epoch=++catalogEpoch
+ projectManager.setLoading('正在读取建筑库…')
+ try {
+  const data=await api('init');if(epoch!==catalogEpoch)return
+  state.defaultSettings=data.defaults
+  state.workspace=data.workspace;state.output=data.output;$('save-root').value=data.output;$('output-path').textContent=data.output
+  if(!state.settings){if(data.initial_request){state.skipSessionRestore=true;restore(data.initial_request.settings);for(const key of ['source','context','cameras','review'])$(key).value=data.initial_request[key] ?? ''}else restore(data.defaults)}
+  updateCatalog(data)
+  if(!state.sessionStartupRead){state.sessionStartupRead=true;try{const result=state.restoreSession!==false?await api('edit-sessions/recent'):{recent:null};const recent=result.recent;if(recent?.exists&&!data.initial_request){const index=state.models.findIndex(item=>item.source===recent.source);if(index>=0)selectModel(index);else{$('source').value=recent.source;$('context').value='';$('cameras').value=''}$('resume-edit').hidden=false;$('resume-edit').title=recent.source;$('resume-edit').onclick=()=>openProjectModel({source:recent.source}).catch(error=>status(error.message,'error'))}}catch(error){sessionStatus.textContent='草稿索引暂时不可用：'+error.message;sessionStatus.classList.add('session-error')}}
+  await refreshEffects()
+  if(data.catalog_cached){
+   projectManager.setLoading('已载入建筑索引，正在后台检查新增和变更…')
+   const fresh=await api('catalog');if(epoch!==catalogEpoch)return
+   updateCatalog(fresh)
+  }
+ } finally {
+  if(epoch===catalogEpoch){projectManager.setLoading('');if(!state.busy&&!state.previewBusy)busy(false)}
+ }
 }
 function selectModel(index) {
   const item=state.models[index];if(!item)return
+  editSession?.checkpoint();editSession?.flush().catch(()=>{})
+  if(state.info&&state.info.source!==item.source&&state.defaultSettings)restore(state.defaultSettings)
+  state.noteDrafts=new Map();state.noteKey=null
+  lastValidSessionSettings=null;state.previewSettings=null;state.comparisonSide=null;state.selectedImage=null
   $('source').value=item.source;$('context').value=item.context;$('cameras').value=item.cameras;state.bundle='';state.info=null;state.pickedMaterial=null;$('picked-material').hidden=true;$('orthographic-dialog').hidden=true
   $('viewer').hidden=true;$('viewer').src='about:blank';$('empty-view').hidden=false;$('view-select').disabled=true
   state.imageLimit=state.defaultImageLimit??8;state.configChanged=false;state.activeNote=null;state.preview=null;state.candidateValidation=null;$('candidate-check-state').textContent='候选尚未检查';state.previewRevision++;clearTimeout(previewTimer);$('compare-before').disabled=true;$('compare-after').disabled=true;$('preview-state').textContent='效果预览不会保存为正式建筑'
@@ -472,7 +556,7 @@ function handle(fn) { return async event => { try { await fn(event) } catch(erro
 $('refresh').addEventListener('click',handle(initialize))
 $('models').addEventListener('change',handle(async()=>{selectModel(Number($('models').value));await loadModel()}))
 $('load').addEventListener('click',handle(()=>loadModel()))
-$('enable-3d').addEventListener('click',handle(()=>runJob('snapshot')))
+  $('enable-3d').addEventListener('click',handle(()=>state.mode==='3d'?imageMode():runJob('snapshot')))
 $('pause-3d').addEventListener('click',imageMode)
 $('image-mode').addEventListener('click',imageMode)
 $('image-select').addEventListener('change',handle(()=>{imageMode();return selectImage(Number($('image-select').value))}))
@@ -492,7 +576,7 @@ $('render').addEventListener('click',handle(()=>runJob('render')))
 $('apply').addEventListener('click',handle(()=>runJob('apply')))
 $('cancel').addEventListener('click',handle(async()=>{state.cancelEpoch=(state.cancelEpoch??0)+1;state.previewRevision++;clearTimeout(previewTimer);await api('cancel',{});status('任务取消已处理；已产生的诊断文件保留。','cancelled')}))
 $('add-material').addEventListener('click',()=>{addMaterial();$('settings').dispatchEvent(new Event('input',{bubbles:true}))})
-$('settings').addEventListener('input',event=>{if(event.target.id==='materials-search')return;if(/^(lo|hi)-[xyz]$/.test(event.target.id))$('whole-region').checked=false;state.configChanged=true;state.bundle='';updateCount();recordSettings();if(event.target.id!=='style-note')schedulePreview()});$('review').addEventListener('input',updateCount)
+$('settings').addEventListener('input',event=>{if(event.target.id==='materials-search'||event.target.closest('#operation-list,#ai-model-panel'))return;if(/^(lo|hi)-[xyz]$/.test(event.target.id))$('whole-region').checked=false;state.configChanged=true;state.bundle='';updateCount();const title=event.target.closest('label')?.firstChild?.textContent?.trim()||event.target.getAttribute('aria-label')||'工具参数';recordSettings('调整：'+title.slice(0,36),{group:event.target.id||''});if(event.target.id!=='style-note')schedulePreview()});$('review').addEventListener('input',updateCount)
 $('settings').addEventListener('submit',event=>event.preventDefault())
 $('floor-profile').addEventListener('change',()=>{
   const defaults={maintained:[0,100,3],worn:[4,85,4],ruined:[8,70,6],cavern:[6,85,5]}[$('floor-profile').value]
@@ -513,7 +597,7 @@ $('save-preset').addEventListener('click',handle(async()=>{
 $('load-preset').addEventListener('click',()=>$('preset-file').click())
 $('preset-file').addEventListener('change',handle(async()=>{
   const file=$('preset-file').files[0];if(!file)return
-  const data=await api('resolve-request',{request:JSON.parse(await file.text())});restore(data.settings)
+  const data=await api('resolve-request',{request:JSON.parse(await file.text())});await editSession?.beforeOpen();state.skipSessionRestore=true;restore(data.settings)
   for(const key of ['source','context','cameras','review'])$(key).value=data[key] ?? ''
   state.bundle='';await loadModel(true)
 }))
@@ -522,13 +606,16 @@ function schedulePreview(){
   state.previewRevision++;clearTimeout(previewTimer)
   state.candidateValidation=null;$('candidate-check-state').textContent='参数已改变，需重新检查';$('validate-preview').disabled=true
   $('preview-state').textContent='设置已改变，等待更新预览…'
-  if($('auto-preview').checked&&state.info)previewTimer=setTimeout(()=>updatePreview().catch(error=>{$('preview-state').textContent='预览失败：'+error.message}),(state.previewDelay??1400))
+  if($('auto-preview').checked&&state.info&&window.creatorWorkspace?.current()==='model')previewTimer=setTimeout(()=>{if(window.creatorWorkspace.current()==='model')updatePreview().catch(error=>{$('preview-state').textContent='预览失败：'+error.message})},(state.previewDelay??1400))
 }
-async function updatePreview(){
+async function updatePreview(required=false){
+  await versionComparison?.close()
   if(!state.info)return
-  if(state.previewBusy||state.busy){if($('auto-preview').checked)previewTimer=setTimeout(()=>updatePreview().catch(error=>$('preview-state').textContent='预览失败：'+error.message),700);return}
+  if(state.commitBusy&&required!==true)return
+  if(state.previewBusy||state.busy){if(required===true)throw Error('已有建模任务正在运行，本次未更新预览');if($('auto-preview').checked)previewTimer=setTimeout(()=>updatePreview().catch(error=>$('preview-state').textContent='预览失败：'+error.message),700);return}
   const revision=state.previewRevision,source=state.info.source,payload=request(),cancelEpoch=state.cancelEpoch??0
   state.previewBusy=true;$('update-preview').disabled=true;$('preview-state').textContent='正在计算效果，仍可继续调参…'
+  syncVersionReadonly()
   $('cancel').disabled=false
   state.candidateValidation=null;$('candidate-check-state').textContent='候选尚未检查';$('validate-preview').disabled=true
   try{
@@ -536,17 +623,19 @@ async function updatePreview(){
     if(cancelEpoch!==(state.cancelEpoch??0)){await api('cancel',{});throw new DOMException('预览已取消','AbortError')}
     let job;do{await new Promise(resolve=>setTimeout(resolve,300));job=await api('jobs/'+submitted.id)}while(job.status==='running')
     if(job.status==='cancelled'||cancelEpoch!==(state.cancelEpoch??0))throw new DOMException('预览已取消，原稿保留','AbortError')
-    if(job.status!=='complete')throw new Error(job.error ?? '计算失败')
-    if(revision!==state.previewRevision||source!==state.info?.source)return
+    if(job.status!=='complete'){await protectionView?.conflict(job.error_details,job.error);throw new Error(job.error ?? '计算失败')}
+    if(revision!==state.previewRevision||source!==state.info?.source){if(required===true)throw Error('建筑或参数在计算期间改变，本次预览未采用');return}
     state.preview=job.result;state.previewSettings=JSON.stringify(payload.settings)
     await showComparison('after')
+    if(required===true&&(state.previewSettings!==JSON.stringify(gather())||$('viewer').contentWindow?.nbtModeler?.metadata().geometry_sha256!==job.result.geometry_sha256))throw Error('当前3D画面未与本次参数一致，请重新更新预览')
     $('compare-before').disabled=false;$('compare-after').disabled=false
     $('preview-state').textContent=`调整效果 · ${job.result.changed_blocks} 个方块变化${job.result.wall_membership_changes?' · '+job.result.wall_membership_changes+' 个墙层归属变化':''} · 仅预览，未生成正式建筑`
     status('参数效果预览已更新。用“看原建筑 / 看调整效果”在同一视角对比；保存调整设置可留存当前配方。')
-  }finally{state.previewBusy=false;$('update-preview').disabled=false;$('cancel').disabled=!state.busy;updateCount()}
+  }finally{state.previewBusy=false;$('update-preview').disabled=false;$('cancel').disabled=!state.busy;updateCount();window.dispatchEvent(new Event('creator-editor-state'))}
 }
 async function showComparison(side){
   const result=state.preview;if(!result)return
+  const previousViewer=$('viewer').contentWindow?.nbtModeler,previousView=state.mode==='3d'&&previousViewer?.status==='ready'?previousViewer.metadata():null
   state.comparisonSide=null
   const generation=state.comparisonGeneration=(state.comparisonGeneration ?? 0)+1
   const key=side==='before'?result.baseline_key:result.model_key
@@ -554,13 +643,14 @@ async function showComparison(side){
   // Material changes need textures: normal-color geometry mode cannot show mixing.
   if(state.mode!=='3d'||$('viewer').contentWindow?.nbtModeler?.status!=='ready'||$('three-quality').value!=='balanced'){
     $('three-quality').value='balanced';await loadViewer({...result,model_key:key,feedback_id:side==='before'?result.baseline_feedback_id:result.feedback_id},false)
+    if(previousView)await $('viewer').contentWindow.nbtModeler.renderView({...previousView.camera,cuts:previousView.cuts,layer:previousView.layer,lighting:previousView.lighting})
   }else{
     const response=await fetch('/__nbt_modeler__/model.json?model_key='+encodeURIComponent(key));if(!response.ok)throw new Error('预览读取失败')
     const snapshot=await response.json();if(generation!==state.comparisonGeneration)return
     await $('viewer').contentWindow.nbtModeler.replaceSnapshot(snapshot)
   }
   if(generation!==state.comparisonGeneration)return
-  state.comparisonSide=side
+  protectionView?.sync();state.comparisonSide=side
   state.viewerFeedbackId=side==='before'?result.baseline_feedback_id:result.feedback_id;await activateViewerFeedback(state.viewerFeedbackId)
   $('workspace-context').textContent=`${modelName()} · ${side==='before'?'原建筑':'参数调整效果'} · 同一视角对比，仅预览`
   $('model-hash').textContent=side==='before'?'原建筑':'效果预览（未保存为正式建筑）'
@@ -601,14 +691,8 @@ async function refreshEffects(){
   $('refresh-effects').title=`已找到 ${result.files.length} 个效果文件${result.truncated?'（文件较多，请选更具体的文件夹）':''}`;syncReferences()
 }
 function renderModels(previous=$('source').value){
-  const query=$('model-search').value.toLocaleLowerCase(),history=$('model-history').checked,groups=new Set(),options=[]
-  state.models.forEach((model,index)=>{
-    if(!history&&model.intermediate&&state.models.some(other=>other.group===model.group&&!other.intermediate))return
-    if(!history&&groups.has(model.group))return
-    groups.add(model.group)
-    if(query&&!(model.label+' '+model.source).toLocaleLowerCase().includes(query))return
-    options.push({model,index})
-  })
+  const query=$('model-search').value.toLocaleLowerCase(),history=$('model-history').checked
+  const options=filterProjects(state.models,{version:history?'all':'latest',query}).map(model=>({model,index:state.models.indexOf(model)}))
   $('models').replaceChildren();const batches=new Map()
   for(const {model,index} of options){
     let group=batches.get(model.batch)
@@ -638,23 +722,34 @@ complete($('feedback-text'),(value,caret)=>{
 for(const id of ['source','context','cameras'])complete($(id),(value)=>({range:[0,value.length],items:[...new Set(state.models.map(model=>model[id==='source'?'source':id]).filter(Boolean))].filter(file=>file.toLocaleLowerCase().includes(value.toLocaleLowerCase())).map(file=>({label:file,value:file}))}))
 complete($('save-root'),value=>({range:[0,value.length],items:[...new Set([state.output,...state.effectFiles.map(file=>file.path.replace(/[\\/][^\\/]+$/,''))])].filter(Boolean).filter(folder=>folder!==value&&folder.toLocaleLowerCase().includes(value.toLocaleLowerCase())).map(folder=>({label:folder,value:folder}))}))
 complete($('model-search'),value=>({range:[0,value.length],items:!value?[]:[...new Set(state.models.map(model=>model.name))].filter(name=>name.includes(value)&&name!==value).map(name=>({label:name,value:name}))}),()=>renderModels())
-let settingsHistory=[],settingsCursor=-1
+const settingsHistory=createSettingsHistory()
+document.body.append($('settings-history-dialog'))
+$('open-settings-history').onclick=()=>$('settings-history-dialog').showModal()
+$('close-settings-history').onclick=()=>$('settings-history-dialog').close()
+const historyRename=document.createElement('dialog');historyRename.id='history-rename-dialog';historyRename.innerHTML='<form method="dialog"><h3>历史记录名称</h3><label>名称<input id="history-name" maxlength="160" required></label><div class="note-actions"><button value="cancel" formnovalidate>取消</button><button id="history-name-save" value="save" class="primary">保存名称</button></div></form>';document.body.append(historyRename)
+let renamingHistory=-1
+historyRename.querySelector('form').addEventListener('submit',event=>{if(event.submitter?.value!=='save')return;event.preventDefault();try{settingsHistory.rename(renamingHistory,$('history-name').value);historyButtons();historyRename.close('save')}catch(error){$('history-name').setCustomValidity(error.message);$('history-name').reportValidity()}})
+$('history-name').addEventListener('input',()=>$('history-name').setCustomValidity(''))
 function historyButtons(){
-  $('undo-settings').disabled=state.busy||settingsCursor<=0
-  $('redo-settings').disabled=state.busy||settingsCursor>=settingsHistory.length-1
+  const entries=settingsHistory.entries,cursor=settingsHistory.cursor
+  $('undo-settings').disabled=state.busy||cursor<=0
+  $('redo-settings').disabled=state.busy||cursor>=entries.length-1
+  $('history-current').textContent=entries.length?`当前：${entries[cursor].label} · ${cursor+1} / ${entries.length}。仅恢复本次打开建筑的候选参数。`:'打开建筑后开始记录；保存调整设置可留存方案。'
+  const host=$('settings-history-list');host.replaceChildren()
+  for(const entry of entries){const row=document.createElement('li'),button=document.createElement('button'),time=document.createElement('time'),rename=document.createElement('button');button.type=rename.type='button';button.textContent=entry.label;button.title=entry.label;button.dataset.historyIndex=entry.index;button.setAttribute('aria-current',String(entry.current));button.disabled=state.busy;button.onclick=()=>restoreHistory(entry.index);time.textContent=new Date(entry.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});rename.className='history-rename';rename.textContent='✎';rename.setAttribute('aria-label','重命名历史：'+entry.label);rename.disabled=state.busy;rename.onclick=()=>{renamingHistory=entry.index;$('history-name').value=entry.label;historyRename.returnValue='';historyRename.showModal()};row.append(button,time,rename);host.append(row)}
 }
-function resetSettingsHistory(){settingsHistory=[JSON.stringify(gather())];settingsCursor=0;historyButtons()}
-function recordSettings(){
-  try{const next=JSON.stringify(gather());if(settingsHistory[settingsCursor]===next)return
-    settingsHistory=settingsHistory.slice(0,settingsCursor+1);settingsHistory.push(next)
-    if(settingsHistory.length>60)settingsHistory.shift();settingsCursor=settingsHistory.length-1;historyButtons()
+function resetSettingsHistory(){settingsHistory.reset(gather());historyButtons()}
+function recordSettings(label='调整参数',options={}){
+  try{if(settingsHistory.record(gather(),label,options))historyButtons()
   }catch{} // Keep incomplete numeric edits out of the history.
 }
-function travelSettings(direction){
-  const next=settingsCursor+direction;if(next<0||next>=settingsHistory.length)return
-  settingsCursor=next;restore(JSON.parse(settingsHistory[next]));state.configChanged=true;state.bundle='';historyButtons();schedulePreview()
+function restoreHistory(index){
+  if(state.busy)return;const next=settingsHistory.jump(index);if(!next)return
+  restore(next);state.lastAIGroup=null;state.configChanged=true;state.bundle='';historyButtons();schedulePreview()
 }
+function travelSettings(direction){restoreHistory(settingsHistory.cursor+direction)}
 $('undo-settings').addEventListener('click',()=>travelSettings(-1));$('redo-settings').addEventListener('click',()=>travelSettings(1))
+operationEditor=initOperationHistory({onChange:label=>{state.lastAIGroup=null;state.configChanged=true;state.bundle='';updateCount();recordSettings(label);schedulePreview()},onError:message=>status(message,'error')})
 function renderMaterials(){
   const query=$('materials-search').value.toLocaleLowerCase();$('model-materials').replaceChildren()
   const materials=(state.info?.materials ?? []).filter(item=>{
@@ -675,24 +770,25 @@ $('edit-structure-region').addEventListener('click',()=>{selectTool(4);$('whole-
 function syncSelectionRange(){
   const viewer=$('viewer').contentWindow?.nbtModeler
   if(viewer?.status!=='ready'||!state.info)return
+  if(state.versionComparing||state.transforming){viewer.setSelectionRange(null);return}
   const lo=$('whole-region').checked?[0,0,0]:['lo-x','lo-y','lo-z'].map(id=>Number($(id).value))
   const hi=$('whole-region').checked?state.info.size.map(v=>v-1):['hi-x','hi-y','hi-z'].map(id=>Number($(id).value))
-  viewer.setSelectionRange($('show-selection').checked?{lo,hi}:null)
+  viewer.setSelectionRange($('show-selection').checked?{lo,hi}:null);protectionView?.sync()
 }
 $('show-selection').addEventListener('change',syncSelectionRange)
 function syncPicking(){
   $('pick-material').setAttribute('aria-pressed',String(Boolean(state.picking)))
-  $('pick-material').textContent=state.picking?'结束取材':'3D 取材'
+  const materialCaption=$('pick-material').querySelector('.toolbar-caption');if(materialCaption)materialCaption.textContent=state.picking?'结束取材':'取材'
   $('pick-coordinate').setAttribute('aria-pressed',String(Boolean(state.coordinatePicking)))
-  $('pick-coordinate').textContent=state.coordinatePicking?'结束选点':'3D 选点评论'
-  $('viewer').contentWindow?.nbtModeler?.setPicking(Boolean(state.aiPlacing||state.picking||state.coordinatePicking),state.coordinatePicking?'comment':'material')
+  const commentCaption=$('pick-coordinate').querySelector('.toolbar-caption');if(commentCaption)commentCaption.textContent=state.coordinatePicking?'结束标注':'标注'
+  $('viewer').contentWindow?.nbtModeler?.setPicking(Boolean(state.assetPicking||state.aiPlacing||state.picking||state.coordinatePicking),state.coordinatePicking?'comment':'material')
 }
 $('pick-coordinate').addEventListener('click',()=>{
-  state.aiPlacing=null;state.coordinatePicking=!state.coordinatePicking;state.picking=false;syncPicking()
-  $('view-hint').textContent=state.coordinatePicking?'连续点击表面添加 #编号，下面按编号写意见；中键平移，滚轮缩放。':'左键旋转，中键平移，滚轮缩放'
+  state.assetPicking=null;state.aiPlacing=null;state.coordinatePicking=!state.coordinatePicking;state.picking=false;syncPicking()
+  $('view-hint').textContent=state.coordinatePicking?'连续点击表面添加 #编号，下面按编号写意见；中键平移，滚轮前进／后退。':'左键原地转向，中键平移，滚轮前进／后退'
 })
 $('pick-material').addEventListener('click',()=>{
-  state.aiPlacing=null;state.picking=!state.picking;state.coordinatePicking=false;syncPicking()
+  state.assetPicking=null;state.aiPlacing=null;state.picking=!state.picking;state.coordinatePicking=false;syncPicking()
   if(state.picking)$('view-hint').textContent='点击可见方块取材；中键可平移。取材后在左侧选择用途。'
 })
 window.addEventListener('message',event=>{
@@ -703,11 +799,15 @@ window.addEventListener('message',event=>{
   if(!picked){$('view-hint').textContent='此处没有选到可见方块，请点击建筑表面。';return}
   if(typeof picked.state!=='string'||!Array.isArray(picked.position)||picked.position.length!==3)return
   if(picked.geometry_sha256!==$('viewer').contentWindow.nbtModeler.metadata().geometry_sha256)return
+  if(componentEditor?.consumePick(picked))return
+  if(state.assetPicking){const callback=state.assetPicking;state.assetPicking=null;syncPicking();Promise.resolve(callback(picked.position.map((v,i)=>v+(picked.normal?.[i]||0)))).catch(error=>status(error.message,'error'));return}
   if(state.aiPlacing){
-    const size=state.aiPlacing,normal=picked.normal||[0,1,0],anchor=picked.position.map((v,i)=>v+normal[i]);
-    const lo=anchor.map((v,i)=>Math.max(0,Math.min(state.info.size[i]-size[i],v-(i===1?0:Math.floor(size[i]/2))))),hi=lo.map((v,i)=>v+size[i]-1)
-    $('whole-region').checked=false;['x','y','z'].forEach((axis,i)=>{setValue('lo-'+axis,lo[i]);setValue('hi-'+axis,hi[i])});state.aiPlacing=null;state.bundle='';syncPicking();updateCount();recordSettings();selectTool(9)
-    $('ai-placement-status').textContent='放置表面 '+picked.position.join(', ')+'；选区 '+lo.join(', ')+' → '+hi.join(', ');return
+    const placing=state.aiPlacing;state.aiPlacing=null;syncPicking()
+    if(placing.move){window.dispatchEvent(new CustomEvent('nbt-ai-placement-start'));Promise.resolve().then(()=>{const group=currentAIGroup();if(!group)throw Error('最近构件已改变，请重新载入');return moveRecentAI(aiSurfaceOffset(group,picked,state.info.size))}).then(()=>{const text='最近AI构件已放置到所选表面，3D预览已更新';$('ai-placement-status').textContent=text;window.dispatchEvent(new CustomEvent('nbt-ai-placement-result',{detail:{text}}))}).catch(error=>{status(error.message,'error');window.dispatchEvent(new CustomEvent('nbt-ai-placement-result',{detail:{text:error.message,error:true}}))});return}
+    try{const size=placing.size,lo=aiSurfaceOffset({base:[{lo:[0,0,0],hi:size.map(n=>n-1)}]},picked,state.info.size),hi=lo.map((v,i)=>v+size[i]-1)
+     $('whole-region').checked=false;['x','y','z'].forEach((axis,i)=>{setValue('lo-'+axis,lo[i]);setValue('hi-'+axis,hi[i])});state.bundle='';updateCount();recordSettings();schedulePreview();selectTool(9)
+     $('ai-placement-status').textContent='放置表面 '+picked.position.join(', ')+'；选区 '+lo.join(', ')+' → '+hi.join(', ')
+    }catch(error){$('ai-placement-status').textContent=error.message;status(error.message,'error')}return
   }
   if(event.data.type==='nbt-coordinate-picked'){
     if(state.coordinatePicking&&state.feedbackTarget?.kind==='3d'&&state.feedbackTarget.geometry===picked.geometry_sha256)addDraftMarker({kind:'voxel',...picked})
@@ -729,42 +829,145 @@ $('add-picked-material').addEventListener('click',()=>{
 })
 createOrthographic({getInfo:()=>state.info,getRange:()=>($('whole-region').checked&&state.info?{lo:[0,0,0],hi:state.info.size.map(v=>v-1)}:{lo:['lo-x','lo-y','lo-z'].map(id=>Number($(id).value)),hi:['hi-x','hi-y','hi-z'].map(id=>Number($(id).value))}),setRange:range=>{$('whole-region').checked=false;['x','y','z'].forEach((axis,i)=>{setValue('lo-'+axis,range.lo[i]);setValue('hi-'+axis,range.hi[i])});syncSelectionRange()}})
 window.detailControl={gather,request,restore,loadModel,runJob,state,selectImage,imageMode}
-initDesktop(async source=>{$('source').value=source;$('context').value='';$('cameras').value='';await loadModel()})
-initApiAssistant({
- captureViewport,
- context:()=>{const s=gather(),info=state.info;if(!info)return null;return {size:info.size,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?info.size.map(v=>v-1):s.hi,materials:info.materials}},
- binding:()=>JSON.stringify({source:state.info?.source_sha256,settings:gather()}),
- localSelection:()=>!!state.info&&!gather().whole_region,
- pickPlacement:async size=>{
-   if(!state.info||state.busy||state.previewBusy)throw Error('请先打开建筑并等待当前任务完成')
-   if(size.some((v,i)=>v>state.info.size[i]))throw Error('放置范围大于当前建筑尺寸')
-   if(state.mode!=='3d')await runJob('snapshot')
-   state.aiPlacing=size;state.picking=false;state.coordinatePicking=false;syncPicking();$('view-hint').textContent='点击表面确定 AI 构件放置位置；随后点击“生成并立即预览”。'
- },
- apply:async patch=>{
-  if(state.busy||state.previewBusy)throw Error('请等待当前任务完成')
-  const next=gather();next.whole_region=false;next.lo=patch.lo;next.hi=patch.hi
-  if(patch.operations)next.operations=[...(next.operations||[]),...patch.operations]
-  else {next.structure={...next.structure,enabled:false,...patch.structure};next.replace={...next.replace,enabled:false,...patch.replace}}
-  await api('prompt-export',{...request(),settings:next})
-  restore(next);state.configChanged=true;state.bundle='';updateCount();recordSettings();state.previewRevision++;clearTimeout(previewTimer)
-  await updatePreview()
-  if(patch.operations)state.lastAIGroup={source:state.info.source_sha256,start:next.operations.length-patch.operations.length,base:structuredClone(patch.operations),applied:JSON.stringify(patch.operations)}
- },
- moveComponent:async offset=>{
-  if(state.busy||state.previewBusy)throw Error('请等待当前任务完成')
-  const group=state.lastAIGroup;if(!group||group.source!==state.info?.source_sha256)throw Error('请先载入或生成一组AI构件')
-  const before=gather(),current=before.operations.slice(group.start,group.start+group.base.length)
-  if(JSON.stringify(current)!==group.applied)throw Error('这组工具步骤已经手动改变，请重新生成构件后再整体移动')
-  const moved=translateComponent(group.base,offset,state.info.size),next=structuredClone(before);next.operations.splice(group.start,group.base.length,...moved)
-  await api('prompt-export',{...request(),settings:next})
-  restore(next);state.configChanged=true;state.bundle='';updateCount();state.previewRevision++;clearTimeout(previewTimer)
-  try{await updatePreview();group.applied=JSON.stringify(moved);recordSettings()}catch(e){restore(before);throw e}
+async function openProjectModel(item){
+ if(state.busy||state.previewBusy||state.sessionRestoring)throw Error('请等待当前任务完成')
+ if(state.info?.source!==item.source){
+  stashDraft()
+  const index=state.models.findIndex(model=>model.source===item.source)
+  if(index>=0)selectModel(index)
+  else{$('source').value=item.source;$('context').value='';$('cameras').value=''}
+  state.openingProjectModel=true
+  try{window.creatorWorkspace.select('model');await loadModel()}finally{state.openingProjectModel=false}
  }
+ window.creatorWorkspace.select('model')
+ return state.info
+}
+const projectManager=initProjectManager({api,openModel:openProjectModel,isBusy:()=>state.busy||state.previewBusy||state.sessionRestoring,setBusy:busy,refresh:initialize})
+initDesktop(source=>openProjectModel({source}))
+initModelPicker()
+function notifyAIComponent(restored=false){window.dispatchEvent(new CustomEvent('nbt-ai-component-state',{detail:{restored}}))}
+function currentAIGroup(){try{const group=state.lastAIGroup;return group&&group.source===state.info?.source&&group.source_sha256===state.info?.source_sha256&&aiGroupMatches(group,gather())?group:null}catch{return null}}
+async function commitPreviewSettings(next,label){
+ const before=gather(),source=state.info?.source,sha=state.info?.source_sha256
+ const oldViewer=$('viewer').contentWindow?.nbtModeler,old={preview:state.preview,settings:state.previewSettings,side:state.comparisonSide,id:state.viewerFeedbackId,source:state.viewerSource,snapshot:state.mode==='3d'&&oldViewer?.status==='ready'?oldViewer.snapshot:null,meta:state.mode==='3d'&&oldViewer?.status==='ready'?oldViewer.metadata():null}
+ await api('prompt-export',{...request(),settings:next})
+ if(source!==state.info?.source||sha!==state.info?.source_sha256||JSON.stringify(gather())!==JSON.stringify(before))throw Error('建筑或参数已改变，本次未应用')
+ restore(next);state.configChanged=true;state.bundle='';state.previewRevision++;clearTimeout(previewTimer);updateCount()
+ try{await updatePreview(true);if(JSON.stringify(gather())!==JSON.stringify(next))throw Error('参数已改变，需重新更新预览');recordSettings(label)}
+ catch(error){
+  if(source===state.info?.source&&sha===state.info?.source_sha256&&JSON.stringify(gather())===JSON.stringify(next)){
+   restore(before);state.preview=old.preview;state.previewSettings=old.settings;state.comparisonSide=old.side;state.candidateValidation=null
+   const viewer=$('viewer').contentWindow?.nbtModeler
+   if(old.snapshot&&viewer?.status==='ready'){await viewer.replaceSnapshot(old.snapshot);await viewer.renderView({...old.meta.camera,cuts:old.meta.cuts,layer:old.meta.layer,lighting:old.meta.lighting});state.viewerSource=old.source;state.viewerFeedbackId=old.id;await activateViewerFeedback(old.id)}
+   updateCount();$('preview-state').textContent='本次预览未应用，已保留原参数：'+error.message
+  }
+  throw error
+ }
+}
+async function withPreviewCommit(action){
+ if(!state.info||state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring)throw Error('请等待当前建模任务完成')
+ state.commitBusy=true;clearTimeout(previewTimer);window.dispatchEvent(new Event('creator-editor-state'))
+ try{return await action()}finally{state.commitBusy=false;window.dispatchEvent(new Event('creator-editor-state'))}
+}
+function updateComponentRange(settings,bounds){
+ if(!['structure','replace','pattern','weathering','floor'].some(key=>settings[key]?.enabled)){settings.whole_region=false;settings.lo=bounds.lo;settings.hi=bounds.hi}
+}
+async function moveRecentAI(offset,overwrite=$('ai-allow-overwrite')?.checked??false){return withPreviewCommit(async()=>{
+ const group=currentAIGroup();if(!group)throw Error('请先载入一组AI构件；若已手动更改几何步骤，请撤销该更改或重新载入')
+ const before=gather(),moved=moveAIGroup(group,before,offset,state.info.size,overwrite),next=structuredClone(before);next.operations.splice(group.start,group.base.length,...moved.operations);updateComponentRange(next,moved)
+ await commitPreviewSettings(next,'移动 AI 构件：'+offset.join(', '));group.applied=structuredClone(moved.operations);group.offset=[...offset];group.overwrite=!!overwrite;notifyAIComponent()
+})}
+apiAssistant=initApiAssistant({
+ captureViewport,isBusy:()=>state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring||state.transforming||state.versionComparing,
+ context:()=>{const s=gather(),info=state.info;if(!info)return null;return {size:info.size,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?info.size.map(v=>v-1):s.hi,materials:info.materials,allow_overwrite:$('ai-allow-overwrite')?.checked??false}},
+ binding:()=>JSON.stringify({source:state.info?.source,source_sha256:state.info?.source_sha256,settings:gather()}),
+ componentState:()=>{const group=currentAIGroup();return group?{offset:group.offset??[0,0,0],bounds:aiBounds(group.applied),overwrite:group.overwrite}:null},
+ operationChoices:()=>{try{return gather().operations.map((op,index)=>({index,label:op.label,kind:op.kind}))}catch{return[]}},
+ adoptComponent:(start,end)=>{if(state.busy||state.previewBusy||state.commitBusy)throw Error('请等待当前建模任务完成');const settings=gather(),operations=settings.operations.slice(start,end+1),write_group=crypto.randomUUID();if(!Number.isInteger(start)||!Number.isInteger(end)||start<0||end<start||end>=settings.operations.length||operations.some(op=>!['box','beam','frame'].includes(op.kind)))throw Error('请选择一组连续的AI方块、梁或边框步骤');state.lastAIGroup={source:state.info.source,source_sha256:state.info.source_sha256,start,base:operations.map(op=>({...structuredClone(op),write_group})),applied:structuredClone(operations),offset:[0,0,0],overwrite:$('ai-allow-overwrite').checked};notifyAIComponent();editSession?.schedule()},
+ localSelection:()=>!!state.info&&!gather().whole_region,
+ pickPlacement:async(size,existing=true)=>{
+  if(!state.info||state.busy||state.previewBusy||state.commitBusy)throw Error('请先打开建筑并等待当前任务完成')
+  if(size.some((v,i)=>v>state.info.size[i]))throw Error('放置范围大于当前建筑尺寸')
+  if(state.mode!=='3d')await runJob('snapshot')
+  state.aiPlacing={size,move:existing&&!!currentAIGroup()};state.picking=false;state.coordinatePicking=false;syncPicking();$('view-hint').textContent=state.aiPlacing.move?'点击表面放置最近一组AI构件，随后立即更新3D预览。':'点击表面选择新构件的生成范围，随后生成并预览。'
+ },
+ apply:async(patch,options={})=>withPreviewCommit(async()=>{
+  const before=gather(),next=structuredClone(before)
+  if(patch.operations){const write_group=crypto.randomUUID(),operations=patch.operations.map(op=>({...structuredClone(op),overwrite:!!options.overwrite,write_group}));next.operations.push(...operations);updateComponentRange(next,patch)
+   await commitPreviewSettings(next,'AI：'+(operations[0]?.label||'局部结构调整'))
+   state.lastAIGroup={source:state.info.source,source_sha256:state.info.source_sha256,start:next.operations.length-operations.length,base:structuredClone(operations),applied:structuredClone(operations),offset:[0,0,0],overwrite:!!options.overwrite};notifyAIComponent()
+  }else{next.whole_region=false;next.lo=patch.lo;next.hi=patch.hi;next.structure={...next.structure,enabled:false,...patch.structure};next.replace={...next.replace,enabled:false,...patch.replace};await commitPreviewSettings(next,'AI：局部结构调整')}
+ }),
+ moveComponent:moveRecentAI
+})
+async function applyComponentPatch(patch,expected){return withPreviewCommit(async()=>{
+ const before=gather();if(expected&&expected!==JSON.stringify(before))throw Error('模型参数已改变，请重新开始放置')
+ const next=structuredClone(before);next.operations.push(...patch.operations);updateComponentRange(next,patch)
+ await commitPreviewSettings(next,(patch.mode==='move'?'移动选区：':'放置构件：')+(patch.name||patch.operations[0]?.label||'构件'))
+})}
+function reusableContext(){if(!state.info)return null;const s=gather();return {name:state.info.source.split(/[\\/]/).slice(-3).join('/'),source:state.info.source,source_sha256:state.info.source_sha256,size:state.info.size,whole:s.whole_region,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?state.info.size.map(v=>v-1):s.hi,operations:s.operations,settings:JSON.stringify(s),target_id:state.mode==='3d'&&state.feedbackTarget?.kind==='3d'?state.feedbackTarget.id:null}}
+async function applyReusable(patch,expected){
+ if(state.versionComparing||state.transforming)throw Error('请先结束版本对比或手柄调整')
+ const previous=window.creatorWorkspace.current(),dialogs=['asset-inspector-dialog','reusable-dialog'].map(id=>$(id)).filter(d=>d?.open)
+ window.creatorWorkspace.select('model')
+ try{await applyComponentPatch(patch,expected)}catch(error){window.creatorWorkspace.select(previous);for(const dialog of dialogs)if(!dialog.open)dialog.showModal();throw error}
+}
+const reusableLibrary=initReusableLibrary({api,context:reusableContext,apply:applyReusable})
+initAssetWorkspace({
+ api,context:reusableContext,decorateTree:reusableLibrary.decorateTree,
+ pickPosition:async callback=>{if(!state.info||state.busy||state.previewBusy)throw Error('请先打开建筑并等待任务完成');window.creatorWorkspace.select('model');if(state.mode!=='3d')await runJob('snapshot');state.aiPlacing=null;state.picking=false;state.coordinatePicking=false;state.assetPicking=callback;syncPicking();$('view-hint').textContent='点击建筑表面设置构件锚点并生成预览；左键拖动仍可转向'},
+ interactive:(component,options)=>options.selection?componentEditor.startSelection(options.move):componentEditor.startAsset(component,options),
+ apply:applyReusable
+})
+previewToolbar=initPreviewToolbar()
+protectionView=initProtectionView({api,context:()=>state.info?{source:state.info.source,source_sha256:state.info.source_sha256,context:$('context').value.trim()}:null,viewer:()=>$('viewer').contentWindow?.nbtModeler,ensure3D:async()=>{if(state.mode!=='3d')await runJob('snapshot')},viewChanged:()=>{const v=$('viewer').contentWindow?.nbtModeler;if(v?.status==='ready')syncComparisonViewControls(v.snapshot,v.metadata())}})
+function syncComparisonViewControls(snapshot,view){
+ const maximum=snapshot.size[1]-1,cut=view.cuts.find(c=>c.axis==='y'&&c.removed_side==='above')
+ $('view-cut').max=maximum;$('view-cut').value=cut?Math.max(0,Math.min(maximum,cut.position-1)):maximum;$('view-layer').value=view.layer;$('cut-value').textContent=cut?$('view-cut').value:'完整'
+}
+versionComparison=initVersionCompare({
+ context:()=>({info:state.info,models:state.models,preview:state.preview,busy:state.busy||state.previewBusy||state.sessionRestoring||state.transforming||state.commitBusy}),api,busy,message:status,
+ prepare:()=>editSession?.flush(),viewer:()=>$('viewer').contentWindow?.nbtModeler,
+ enter:async()=>{
+  stashDraft();const viewer=$('viewer').contentWindow?.nbtModeler
+  const previous={mode:state.mode,snapshot:viewer?.status==='ready'?viewer.snapshot:null,view:viewer?.status==='ready'?viewer.metadata():null,viewerSource:state.viewerSource,feedbackId:state.viewerFeedbackId,comparisonSide:state.comparisonSide,currentViews:state.currentViews,picking:state.picking,coordinatePicking:state.coordinatePicking,hashLabel:$('model-hash').textContent}
+  state.versionComparing=true;state.picking=false;state.coordinatePicking=false;clearTimeout(previewTimer);await activateFeedback(null);syncVersionReadonly();return previous
+ },
+ show:async(result,side,snapshot)=>{
+  const viewer=$('viewer').contentWindow?.nbtModeler
+  if(state.mode==='3d'&&viewer?.status==='ready')await viewer.replaceSnapshot(snapshot)
+  else await loadViewer({...result,source:side==='before'?(result.reference_source??result.source):result.source,model_key:side==='before'?result.baseline_key:result.model_key,feedback_id:side==='before'?result.baseline_feedback_id:result.feedback_id},false)
+  state.viewerSource=snapshot.source;state.viewerFeedbackId=side==='before'?result.baseline_feedback_id:result.feedback_id;state.comparisonSide=null
+  await activateFeedback(null);const active=$('viewer').contentWindow.nbtModeler
+  syncComparisonViewControls(snapshot,active.metadata())
+  $('model-hash').textContent=(side==='before'?'对比基准 · ':'对比当前 · ')+snapshot.geometry_sha256.slice(0,16)
+  $('view-hint').textContent='只读版本对比 · 左键转向、中键平移、滚轮前后移动；结束对比后继续编辑'
+  previewToolbar?.sync(state.mode,state.busy,!!state.info);syncVersionReadonly()
+ },
+ leave:async previous=>{
+  if(previous.mode==='3d'&&previous.snapshot){const viewer=$('viewer').contentWindow.nbtModeler;await viewer.replaceSnapshot(previous.snapshot);await viewer.renderView({...previous.view.camera,cuts:previous.view.cuts,layer:previous.view.layer,lighting:previous.view.lighting});state.viewerSource=previous.viewerSource;state.viewerFeedbackId=previous.feedbackId;state.comparisonSide=previous.comparisonSide;state.currentViews=previous.currentViews;state.picking=previous.picking;state.coordinatePicking=previous.coordinatePicking;syncComparisonViewControls(previous.snapshot,previous.view);state.versionComparing=false;await activateViewerFeedback(previous.feedbackId);syncPicking()}
+  else{state.versionComparing=false;imageMode()}
+  $('model-hash').textContent=previous.hashLabel;busy(false);document.querySelector('.action-bar').inert=window.creatorWorkspace?.current()!=='model';$('three-quality').disabled=false;$('auto-preview').disabled=false;$('view-select').disabled=false;$('view-hint').textContent=state.mode==='3d'?'材质 3D · 左键原地转向，中键平移，滚轮前进／后退':$('view-hint').textContent
+ },viewChanged:()=>syncComparisonViewControls($('viewer').contentWindow.nbtModeler.snapshot,$('viewer').contentWindow.nbtModeler.metadata())
+})
+componentEditor=initComponentEditor({
+ api,message:status,viewer:()=>$('viewer').contentWindow?.nbtModeler,
+ context:()=>{if(!state.info)return{};const settings=gather();return {source:state.info.source,source_sha256:state.info.source_sha256,size:state.info.size,whole:settings.whole_region,lo:settings.whole_region?[0,0,0]:settings.lo,hi:settings.whole_region?state.info.size.map(n=>n-1):settings.hi,settings:JSON.stringify(settings),target_id:state.viewerFeedbackId}},
+ prepare:async()=>{
+  if(!state.info||state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring)throw Error('请先打开建筑并等待当前任务完成')
+  await versionComparison.close();window.creatorWorkspace.select('model');clearTimeout(previewTimer)
+  const settings=gather(),hasTools=settings.operations.some(op=>op.enabled!==false)||['structure','replace','pattern','weathering','floor'].some(key=>settings[key]?.enabled)
+  if(hasTools){if(state.preview&&state.previewSettings===JSON.stringify(settings))await showComparison('after');else await updatePreview(true)}
+  else if(state.mode!=='3d'||$('viewer').contentWindow?.nbtModeler?.metadata().geometry_sha256!==state.info.geometry_sha256)await runJob('snapshot')
+  await editSession.flush();const s=gather();return {source:state.info.source,source_sha256:state.info.source_sha256,size:state.info.size,whole:s.whole_region,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?state.info.size.map(n=>n-1):s.hi,settings:JSON.stringify(s),target_id:state.viewerFeedbackId}
+ },
+ lock:value=>{state.transforming=value;clearTimeout(previewTimer);state.picking=false;state.coordinatePicking=false;state.assetPicking=null;state.aiPlacing=null;syncPicking();busy(false);for(const id of ['three-quality','view-select','auto-preview','show-selection'])$(id).disabled=value;if(!value){document.querySelector('.action-bar').inert=window.creatorWorkspace?.current()!=='model';$('feedback-card').hidden=!state.feedbackTarget;syncMessageContext();editSession.schedule()}syncSelectionRange();$('view-hint').textContent=value?'临时构件：拖动箭头移动、绿色圆环旋转；应用后生成真实候选。':'左键转向，中键平移，滚轮前进／后退'},
+ apply:applyComponentPatch,
+ committed:async()=>{state.transformCommittedSafe=true;try{await editSession.flush()}finally{state.transformCommittedSafe=false}}
 })
 initWorkspaceShell()
 initTaskRecords()
-initAppSettings()
+const settingsReady=initAppSettings()
 initHelpDialogs()
 const commentComposer=document.createElement('div');commentComposer.className='comment-composer'
 for(const element of [$('feedback-text'),document.querySelector('.comment-compose-meta'),$('draft-markers'),$('reference-chips'),document.querySelector('#feedback-card>.note-actions')])commentComposer.append(element)
@@ -776,10 +979,78 @@ $('review-help-open').onclick=()=>$('review-help-dialog').showModal();$('review-
 for(const id of ['comment-search','comment-filter'])$(id).addEventListener(id==='comment-search'?'input':'change',()=>{if(state.noteRecord)renderNotes(state.noteRecord)})
 $('feedback-text').addEventListener('input',()=>$('comment-length').textContent=$('feedback-text').value.length+' / 4000')
 $('feedback-text').addEventListener('keydown',event=>{if(!event.isComposing&&(event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();$('save-feedback').click()}})
+window.addEventListener('creator-workspace-change',event=>{if(event.detail!=='model')clearTimeout(previewTimer);if(event.detail==='model'&&state.catalogReady&&!state.info&&!state.busy&&!state.openingProjectModel&&$('source').value)loadModel().catch(error=>status(error.message,'error'))})
+const resumeEdit=document.createElement('button');resumeEdit.id='resume-edit';resumeEdit.type='button';resumeEdit.textContent='继续上次编辑';resumeEdit.hidden=true;document.getElementById('project-native-actions').append(resumeEdit)
+function setResumeSource(source){resumeEdit.hidden=false;resumeEdit.title=source;resumeEdit.onclick=()=>openProjectModel({source}).catch(error=>status(error.message,'error'))}
+const sessionStatus=document.createElement('p');sessionStatus.id='session-status';sessionStatus.setAttribute('role','status');sessionStatus.textContent='编辑草稿将自动保存到当前工作区';$('history-current').after(sessionStatus)
+const sessionActions=document.createElement('details');sessionActions.id='session-actions';sessionActions.innerHTML='<summary>编辑草稿</summary><p class="muted">自动保存参数、视口与未保存评论；刷新或重启后按源文件哈希恢复。草稿不进入正式评论索引，不构成批准。关闭自动保存可在设置 → 常规中调整。</p><button id="session-save-now" type="button">立即保存草稿</button><button id="session-reload" type="button">重新读取草稿</button><button id="session-valid-inputs" type="button">放弃未完成的参数输入</button>';$('save-preset').closest('.preset-card').append(sessionActions)
+const preset=$('save-preset').closest('.preset-card'),presetToolbar=document.createElement('div'),presetSecondary=document.createElement('div');presetToolbar.className='preset-toolbar';presetSecondary.className='preset-secondary'
+const oldPresetRow=$('save-preset').parentElement;presetToolbar.append(preset.querySelector('.history-actions'),$('open-settings-history'),$('save-preset'),$('load-preset'));oldPresetRow.remove();preset.prepend(presetToolbar);presetSecondary.append(sessionStatus,preset.querySelector('.review-advanced-shell'),sessionActions);preset.append(presetSecondary)
+for(const [id,label]of [['undo-settings','撤销'],['redo-settings','重做'],['open-settings-history','历史'],['save-preset','保存配置'],['load-preset','读取配置']]){const b=$(id);b.setAttribute('aria-label',b.textContent);b.title=b.title||b.textContent;b.textContent=label}
+for(const [id,label]of [['advanced-review','Agent 精修'],['session-actions','草稿']]){const details=$(id),summary=details.querySelector(':scope>summary'),panel=document.createElement('div');panel.className='preset-flyout';summary.title=summary.textContent;summary.textContent=label;for(const child of [...details.childNodes])if(child!==summary)panel.append(child);details.append(panel);floatingDetails(details,panel,{minimum:360})}
+const reviewShell=presetSecondary.querySelector('.review-advanced-shell'),reviewPanel=$('advanced-review').querySelector('.preset-flyout'),reviewHelp=$('review-help-open'),reviewHeading=document.createElement('div');reviewHeading.className='preset-review-heading';const reviewCaption=document.createElement('strong');reviewCaption.textContent='Agent 精修审阅与执行';reviewHeading.append(reviewCaption,reviewHelp);reviewPanel.prepend(reviewHeading);reviewShell.append($('advanced-review'));for(const details of [$('advanced-review'),sessionActions]){const summary=details.querySelector(':scope>summary');summary.insertAdjacentHTML('beforeend',chevron);summary.classList.add('preset-menu-trigger')}
+initDisclosureIcons()
+function captureEditSession(){
+ if(state.transforming&&!state.transformCommittedSafe)return null
+ if(state.versionComparing)return null
+ if(!state.info||state.busy||state.savingNote)return null
+ try{lastValidSessionSettings=gather()}catch{}
+ if(!lastValidSessionSettings)return null
+ stashDraft()
+ const viewer=$('viewer').contentWindow?.nbtModeler,meta=state.mode==='3d'&&viewer?.status==='ready'?viewer.metadata():null
+ const controls=Object.fromEntries([...$('settings').querySelectorAll('input[id],select[id],textarea[id]')].filter(e=>!e.readOnly&&!e.closest('#operation-list')&&!e.id.endsWith('-range')&&e.id!=='operation-sequence'&&e.id!=='materials-search'&&e.id!=='operation-kind').map(e=>[e.id,e.type==='checkbox'?e.checked:e.value]))
+ const drafts=[...state.noteDrafts].filter(([key,draft])=>key.startsWith(state.info.source_sha256+':')&&(draft.text?.trim()||draft.points?.length)).slice(-50).map(([key,d])=>[key,{text:d.text,points:d.points}])
+ const comparison=state.mode==='3d'?(state.comparisonSide==='after'&&meta?.geometry_sha256===state.preview?.geometry_sha256?'after':'before'):null
+ const preview=comparison==='after'&&state.previewSettings&&state.previewSettings!==JSON.stringify(lastValidSessionSettings)?JSON.parse(state.previewSettings):undefined
+ let raw=$('operation-sequence').value;try{if(JSON.stringify(JSON.parse(raw))===JSON.stringify(lastValidSessionSettings.operations))raw=null}catch{}
+ const group=currentAIGroup(),ai_component=group?Object.fromEntries(['start','base','applied','offset','overwrite'].map(key=>[key,structuredClone(group[key])])):null
+ return {source:state.info.source,source_sha256:state.info.source_sha256,state:{settings:lastValidSessionSettings,operations_text:raw,controls,view:{mode:state.mode,quality:$('three-quality').value,camera:meta?.camera,cuts:meta?.cuts??[],layer:meta?.layer??$('view-layer').value,cut:Number($('view-cut').value),show_selection:$('show-selection').checked,image_hash:state.selectedImage?.image_sha256??null,image_name:state.selectedImage?.name??null,comparison,preview_settings:preview},drafts,ai_component,ai_candidate:apiAssistant?.capture()??null}}
+}
+async function restoreEditSession(saved,recovered={}){
+ lockEditorRecovery();sessionStatus.textContent='正在恢复编辑草稿与上次画面…'
+ try{return await restoreEditSessionCore(saved,recovered)}finally{unlockEditorRecovery()}
+}
+function lockEditorRecovery(){state.recoveryLocks=(state.recoveryLocks??0)+1;state.sessionRestoring=true;document.querySelector('.workspace').inert=true;document.querySelector('.action-bar').inert=true}
+function unlockEditorRecovery(){state.recoveryLocks=Math.max(0,(state.recoveryLocks??0)-1);if(state.recoveryLocks)return;state.sessionRestoring=false;const workspace=window.creatorWorkspace?.current();document.querySelector('.workspace').inert=workspace!=='model';document.querySelector('.action-bar').inert=state.versionComparing||['project','assets','prompt','ai'].includes(workspace);versionComparison?.sync();window.dispatchEvent(new Event('creator-editor-state'))}
+async function restoreEditSessionCore(saved,recovered){
+ const source=state.info?.source_sha256,pending=saved.settings
+ restore(pending);lastValidSessionSettings=structuredClone(pending);resetSettingsHistory();settingsHistory.rename(0,'恢复的编辑草稿');historyButtons()
+ state.lastAIGroup=saved.ai_component?{...structuredClone(saved.ai_component),source:state.info.source,source_sha256:state.info.source_sha256}:null
+ for(const [key,draft]of saved.drafts)state.noteDrafts.set(key,structuredClone(draft))
+ const view=saved.view
+ try{
+ if(view.mode==='3d'){
+  $('three-quality').value=view.quality
+  if(view.comparison==='after'){const candidate=view.preview_settings??pending;restore(candidate);state.previewRevision++;await updatePreview();if(state.previewSettings!==JSON.stringify(candidate))throw Error('候选效果未能重新计算；已保留参数草稿')}
+  else if(state.mode!=='3d')await runJob('snapshot')
+  if(source!==state.info?.source_sha256)throw Error('恢复期间建筑已切换')
+  const viewer=$('viewer').contentWindow?.nbtModeler
+  if(viewer?.status==='ready'&&view.camera)await viewer.renderView({...view.camera,layer:view.layer,cuts:view.cuts,lighting:viewer.metadata().lighting})
+  $('view-layer').value=view.layer;$('view-cut').value=view.cut;$('cut-value').textContent=view.cut===Number($('view-cut').max)?'完整':view.cut
+  if(state.viewerFeedbackId)await activateViewerFeedback(state.viewerFeedbackId)
+ }else{imageMode();let index=state.images.findIndex(image=>image.image_sha256===view.image_hash&&(!view.image_name||image.name===view.image_name));if(index<0&&recovered.image){gallery([...state.images,recovered.image]);index=state.images.length-1}if(index>=0)await selectImage(index)}
+ }finally{
+ restore(pending)
+ for(const [id,value]of Object.entries(saved.controls)){const element=$(id);if(!element?.closest('#settings')||element.closest('#operation-list')||!['INPUT','SELECT','TEXTAREA'].includes(element.tagName)||element.readOnly)continue;if(element.type==='checkbox')element.checked=value===true;else element.value=String(value)}
+ $('operation-sequence').value=saved.operations_text??JSON.stringify(pending.operations,null,2);operationEditor.sync();$('show-selection').checked=view.show_selection;state.configChanged=true;state.bundle='';syncSelectionRange();updateCount()
+ if(state.previewSettings&&state.previewSettings!==JSON.stringify(pending))$('preview-state').textContent='已恢复上次画面；参数还有未预览的修改，请更新效果'
+ apiAssistant?.restore(saved.ai_candidate,saved.controls?.['ai-result']??'');syncMessageContext();syncMarkers()
+ }
+}
+editSession=createEditSessionController({api,capture:captureEditSession,restore:restoreEditSession,enabled:()=>state.restoreSession!==false,message:(text,error=false)=>{sessionStatus.textContent=text;sessionStatus.title=text;sessionStatus.classList.toggle('session-error',error)}})
+window.addEventListener('creator-ai-candidate-change',()=>editSession?.schedule())
+window.nbtEditSession=Object.freeze({flush:()=>editSession.flush(),get ready(){return !state.sessionRestoring&&!editSession.loading&&editSession.source===state.info?.source},get loading(){return editSession.loading||state.sessionRestoring}})
+$('session-save-now').onclick=handle(async()=>{editSession.checkpoint(true);await editSession.flush()})
+$('session-reload').onclick=handle(async()=>{if(!state.info)return;lockEditorRecovery();try{await editSession.beforeOpen();await editSession.opened(state.info,true)}finally{unlockEditorRecovery()}})
+$('session-valid-inputs').onclick=()=>{if(lastValidSessionSettings){restore(lastValidSessionSettings);recordSettings('放弃未完成输入');schedulePreview();editSession.schedule()}}
+document.addEventListener('input',event=>{if(event.target.closest('#settings,#feedback-text'))editSession.schedule()})
+document.addEventListener('change',event=>{if(event.target.closest('#settings,.review-toolbar'))editSession.schedule()})
+window.addEventListener('creator-session-preference',event=>{for(const id of ['session-save-now','session-reload','session-valid-inputs'])$(id).disabled=state.busy||!event.detail;if(!event.detail){sessionStatus.textContent='编辑草稿自动保存与恢复已关闭';sessionStatus.classList.remove('session-error')}else editSession.schedule()})
+initCommandCenter({api,state:()=>state,selectTool,message:status})
 initialize().then(()=>{
   const source=new URLSearchParams(location.search).get('source')
   if(source){const index=state.models.findIndex(model=>model.source===source);if(index<0)throw new Error('所选结构不在当前建筑目录中，请刷新现有结构选择器。');selectModel(index);renderModels()}
-  if($('source').value)return loadModel()
+  if($('source').value&&!state.info&&!state.busy&&window.creatorWorkspace.current()==='model')return loadModel()
 }).catch(error=>status(error.message,'error'))
 
 $('review-image').addEventListener('click',event=>{

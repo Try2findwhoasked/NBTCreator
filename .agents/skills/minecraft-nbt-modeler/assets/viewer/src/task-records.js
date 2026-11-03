@@ -1,32 +1,35 @@
 export function initTaskRecords(){
- const $=id=>document.getElementById(id),labels={ai:'AI 构建 / 方案',plan:'生成修改方案',preview:'效果预览',snapshot:'载入3D模型',render:'纹理出图',revision:'导出建筑新版本',prepare:'生成审阅图',apply:'已确认精修',preset:'保存参数',validate:'检查候选效果'},statuses={running:'运行中',complete:'已完成',failed:'失败',cancelled:'已取消'}
- const effectiveStatus=job=>job.kind==='validate'&&job.result?.passed===false?'failed':job.status
- let records=[],timer=null,loading=false
+ const $=id=>document.getElementById(id),labels={batch:'批量预览与检查',ai:'AI 构建 / 方案',plan:'生成修改方案',preview:'效果预览',snapshot:'载入3D模型',render:'纹理出图',revision:'导出建筑新版本',prepare:'生成审阅图',apply:'已确认精修',preset:'保存参数',validate:'检查候选效果',compare:'只读版本对比'},statuses={running:'运行中',complete:'已完成',failed:'失败',cancelled:'已取消'}
+ const effectiveStatus=job=>(job.kind==='validate'&&job.result?.passed===false||job.kind==='batch'&&job.result?.progress?.failed>0)?'failed':job.status
+ const phaseName=job=>({capture:'视口截图',api:'API 生成',preview:'本地预览'}[job.phase]??(job.kind==='ai'?'AI 请求':'本地任务'))
  const text=(tag,value,cls)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=value;if(cls)e.className=cls;return e}
+ let records=[],timer=null,loading=false,selected=null,detailSignature='';const cards=new Map()
+ const dialog=document.createElement('dialog');dialog.id='task-detail-dialog';dialog.className='task-detail-dialog';dialog.innerHTML='<header><h2>任务详情</h2><button type="button" id="task-detail-close">关闭</button></header><div id="task-detail-body"></div>';document.body.append(dialog);$('task-detail-close').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{selected=null;detailSignature=''})
+ function description(job){const r=job.result??{},parts=[];if(Number.isFinite(r.changed_blocks))parts.push(`${r.changed_blocks} 个方块变化`);if(r.operations!==undefined)parts.push(`${Array.isArray(r.operations)?r.operations.length:r.operations} 项操作`);if(r.wall_membership_changes)parts.push(`${r.wall_membership_changes} 个墙层归属变化`);if(r.runtime_files?.length)parts.push(`${r.runtime_files.length} 份 NBT`);if(job.kind==='ai')parts.push(job.screenshot?'已附视口截图':'仅文字');if(r.preview_only)parts.push('仅预览');return (job.kind==='ai'?[r.summary,job.events?.at(-1)?.message].filter(Boolean).join(' · '):r.summary)||parts.join(' · ')||'查看详情了解执行过程与输出。'}
+ function timing(job){const start=new Date(job.created_at),end=job.completed_at?new Date(job.completed_at):null;return `${start.toLocaleString('zh-CN')} · ${end?((end-start)/1000).toFixed(1)+' 秒':'正在处理'}`}
+ function downloads(job){const r=job.result??{},files=[...(r.nbt_downloads??[])];for(const [key,name,file]of [['plan_download','操作计划','plan.json'],['validation_download','候选检查报告','validation.json'],['difference_download','差异报告','difference.json']])if(r[key])files.push({name,url:r[key],file});return files}
+ function fillDetail(){
+  const job=records.find(job=>job.id===selected);if(!job)return;const signature=JSON.stringify(job);if(signature===detailSignature)return;detailSignature=signature
+  const body=$('task-detail-body'),scroll=body.scrollTop,technicalOpen=body.querySelector('details')?.open??false;body.replaceChildren();dialog.querySelector('h2').textContent=job.label??labels[job.kind]??job.kind
+  body.append(text('p',timing(job),'task-time'),text('p',description(job),'task-entry-summary'));if(job.kind==='ai'){const m=job.api_metrics;body.append(text('h3','请求信息'),text('p',`${phaseName(job)} · ${statuses[effectiveStatus(job)]??job.status}${job.model?' · '+job.model:''}`));if(m)body.append(text('p',`${m.attempts??1} 次 API 请求${m.retried_compact?'（包含一次精简重试）':''}${Number.isFinite(m.completion_tokens)?' · 返回 '+m.completion_tokens+' tokens':''}${Number.isFinite(m.total_tokens)?' · 合计 '+m.total_tokens+' tokens':''}`));body.append(text('p','API 返回候选后，还要经过本地校验和预览。此处完成不代表正式建筑已导出。','muted'))}if(job.instruction)body.append(text('h3','本次要求'),text('p',job.instruction,'task-instruction'));if(job.error)body.append(text('p',phaseName(job)+'未完成：'+job.error,'task-entry-error'))
+  if(job.events?.length){body.append(text('h3','执行过程'));const trail=text('ol',undefined,'ai-task-events');for(const event of job.events)trail.append(text('li',new Date(event.time).toLocaleTimeString('zh-CN')+' · '+event.message));body.append(trail)}
+  const location=job.result?.output??job.directory;if(location)body.append(text('h3','输出位置'),text('p',location,'task-location'))
+  const links=text('div',undefined,'task-file-links');for(const file of downloads(job)){const a=text('a',file.name);a.href=file.url;a.download=file.file??file.name;links.append(a)}if(links.children.length)body.append(text('h3','下载产物'),links)
+  const technical=text('details');technical.open=technicalOpen;technical.append(text('summary','技术记录（JSON）'),text('pre',JSON.stringify(job,null,2)));body.append(technical);body.scrollTop=scroll
+ }
  function render(){
-  const query=$('task-search').value.toLowerCase(),filter=$('task-filter').value
-  const shown=records.filter(job=>(filter==='all'||effectiveStatus(job)===filter)&&(!query||JSON.stringify([job.kind,job.label,job.instruction,labels[job.kind],effectiveStatus(job),job.directory,job.result?.output,job.error]).toLowerCase().includes(query))).slice(0,100)
-  $('task-list-summary').textContent=`当前会话 ${records.length} 项 · 显示 ${shown.length} 项`;$('task-list').replaceChildren()
-  if(!shown.length){$('task-list').append(text('p','暂无匹配任务。生成预览、方案或导出后，记录会显示在这里。','muted'));return}
+  const query=$('task-search').value.toLowerCase(),filter=$('task-filter').value,shown=records.filter(job=>(filter==='all'||effectiveStatus(job)===filter)&&(!query||JSON.stringify([job.kind,job.label,job.instruction,labels[job.kind],effectiveStatus(job),job.directory,job.result?.output,job.error]).toLowerCase().includes(query))).slice(0,100),list=$('task-list'),wanted=new Set(shown.map(job=>job.id))
+  $('task-list-summary').textContent=`当前会话 ${records.length} 项 · 显示 ${shown.length} 项`;list.querySelector('.task-empty')?.remove()
+  for(const [id,entry]of cards)if(!wanted.has(id)){entry.card.remove();cards.delete(id)}
+  let previous=null
   for(const job of shown){
-   const card=text('article',undefined,'task-entry'),header=text('div',undefined,'task-entry-header')
-   header.append(text('strong',job.label??labels[job.kind]??job.kind),text('span',job.kind==='validate'&&job.result?.passed===false?'检查未通过':statuses[effectiveStatus(job)]??job.status,'task-state '+effectiveStatus(job)));card.append(header)
-   const start=new Date(job.created_at),end=job.completed_at?new Date(job.completed_at):null
-   card.append(text('p',`${start.toLocaleString('zh-CN')} · ${end?((end-start)/1000).toFixed(1)+' 秒':'正在处理'}`,'task-time'))
-   const r=job.result??{},summary=[];if(Number.isFinite(r.changed_blocks))summary.push(`${r.changed_blocks} 个方块变化`);if(r.operations!==undefined)summary.push(`${Array.isArray(r.operations)?r.operations.length:r.operations} 项操作`);if(r.wall_membership_changes)summary.push(`${r.wall_membership_changes} 个墙层归属变化`);if(r.preview_only)summary.push('仅预览');if(r.runtime_files?.length)summary.push(`${r.runtime_files.length} 份 NBT`)
-   if(job.kind==='ai'){summary.push(job.screenshot?'已附视口截图':'仅文字');const trail=text('ol',undefined,'ai-task-events');for(const event of job.events??[])trail.append(text('li',new Date(event.time).toLocaleTimeString('zh-CN')+' · '+event.message));card.append(trail);if(job.result?.summary)card.append(text('p',job.result.summary,'task-entry-summary'))}
-   if(summary.length)card.append(text('p',summary.join(' · '),'task-entry-summary'))
-   if(job.error)card.append(text('p',job.error,'task-entry-error'))
-   const path=r.output??job.directory;const location=text('p',path,'task-location');location.title=path;card.append(location)
-   const links=text('div',undefined,'task-file-links')
-   for(const file of r.nbt_downloads??[]){const a=text('a',file.name);a.href=file.url;a.download=file.name;links.append(a)}
-   if(r.plan_download){const a=text('a','下载操作计划');a.href=r.plan_download;a.download='plan.json';links.append(a)}
-   if(r.validation_download){const a=text('a','下载候选检查报告');a.href=r.validation_download;a.download='validation.json';links.append(a)}
-   card.append(links)
-   const more=text('details');more.append(text('summary','技术记录（JSON）'),text('pre',JSON.stringify(job,null,2)));card.append(more);$('task-list').append(card)
+   let entry=cards.get(job.id);if(!entry){const card=text('article',undefined,'task-entry');card.dataset.taskId=job.id;card.innerHTML='<div class="task-entry-header"><strong></strong><span></span></div><p class="task-time"></p><p class="task-entry-summary"></p><p class="task-entry-error" hidden></p><p class="task-location"></p><button type="button" class="task-details-button">查看详情与产物</button>';card.querySelector('button').onclick=()=>{selected=job.id;detailSignature='';fillDetail();dialog.showModal()};entry={card,signature:''};cards.set(job.id,entry)}
+   const signature=JSON.stringify(job);if(signature!==entry.signature){entry.signature=signature;const card=entry.card,title=job.label??labels[job.kind]??job.kind;card.querySelector('strong').textContent=title;card.querySelector('strong').title=title;const state=card.querySelector('.task-entry-header span');state.className='task-state '+effectiveStatus(job);state.textContent=job.kind==='ai'&&job.status==='failed'?phaseName(job)+'未完成':job.kind==='validate'&&job.result?.passed===false?'检查未通过':statuses[effectiveStatus(job)]??job.status;card.querySelector('.task-time').textContent=timing(job);card.querySelector('.task-entry-summary').textContent=description(job);const error=card.querySelector('.task-entry-error');error.hidden=!job.error;error.textContent=job.error??'';error.title=job.error??'';const location=job.result?.output??job.directory??'';card.querySelector('.task-location').textContent=location;card.querySelector('.task-location').title=location;const count=downloads(job).length;card.querySelector('button').textContent=count?`查看详情 · ${count} 份产物`:'查看详情与日志'}
+   const expected=previous?previous.nextElementSibling:list.firstElementChild;if(expected!==entry.card)list.insertBefore(entry.card,expected);previous=entry.card
   }
+  if(!shown.length)list.append(text('p','暂无匹配任务。生成预览、方案或导出后，记录会显示在这里。','muted task-empty'));if(dialog.open)fillDetail()
  }
  async function refresh(){if(loading)return;loading=true;try{const response=await fetch('/__detail__/jobs');if(!response.ok)throw Error('任务记录加载失败');records=(await response.json()).reverse();render()}catch(e){$('task-list-summary').textContent=e.message}finally{loading=false}}
  $('task-search').oninput=render;$('task-filter').onchange=render;$('refresh-task-list').onclick=refresh
- window.addEventListener('creator-workspace-change',event=>{clearInterval(timer);if(event.detail==='tasks'){refresh();timer=setInterval(refresh,1500)}})
+ window.addEventListener('creator-workspace-change',event=>{clearInterval(timer);dialog.close();if(event.detail==='tasks'){refresh();timer=setInterval(refresh,1500)}})
 }

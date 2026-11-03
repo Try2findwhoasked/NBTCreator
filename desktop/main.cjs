@@ -9,7 +9,14 @@ const {spawn}=require('node:child_process')
 const path=require('node:path')
 const fs=require('node:fs/promises')
 const root=path.resolve(__dirname,'..')
+const automationMinimized=process.env.NBTCREATOR_AUTOMATION==='1'&&process.env.NBTCREATOR_AUTOMATION_VISIBLE!=='1'
 let window,worker,serverUrl,closing=false,workspace,frontend
+async function flushEditor(){
+ if(!window||window.isDestroyed()||window.webContents.isDestroyed())return
+ let timer
+ try{await Promise.race([window.webContents.executeJavaScript('window.nbtEditSession?.flush()'),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('编辑草稿保存超时')),3500)})])}
+ catch(error){console.error('Editor draft flush: '+error.message)}finally{clearTimeout(timer)}
+}
 const {resolvePython,configureRenderRuntime}=require('./python-runtime.cjs')
 const python=resolvePython(root)
 configureRenderRuntime(root,app.isPackaged?process.execPath:null)
@@ -82,7 +89,9 @@ async function boot(){
  ipcMain.handle('nbt:internal-ai-save',(event,input)=>{allowed(event);return internalAI.save(input)})
  ipcMain.handle('nbt:internal-ai-import',async event=>{allowed(event);const selected=await dialog.showOpenDialog(window,{title:'添加内部AI资料（选中后会在生成时发送到API）',properties:['openFile','multiSelections'],filters:[{name:'Markdown / TXT',extensions:['md','txt']}]});return selected.canceled?null:internalAI.importDocuments(selected.filePaths)})
  await startBackend()
- window=new BrowserWindow({width:initialPreferences.rememberWindow?initialPreferences.windowWidth:1500,height:initialPreferences.rememberWindow?initialPreferences.windowHeight:1000,minWidth:900,minHeight:650,frame:true,show:false,title:'NBTCreator',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}})
+ window=new BrowserWindow({width:initialPreferences.rememberWindow?initialPreferences.windowWidth:1500,height:initialPreferences.rememberWindow?initialPreferences.windowHeight:1000,minWidth:900,minHeight:650,frame:true,show:false,title:'NBTCreator',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:!automationMinimized}})
+ if(automationMinimized){window.on('restore',()=>window.minimize());window.minimize()}
+ window.on('close',event=>{if(!closing){event.preventDefault();app.quit()}})
  ipcMain.handle('nbt:app-settings',async event=>{allowed(event);return {...await preferences.load(),version:app.getVersion(),workspace,python,electron:process.versions.electron,node:process.versions.node,platform:process.platform,arch:process.arch,packaged:app.isPackaged,configDirectory:path.join(workspace,'.nbtcreator'),userDirectory:app.getPath('userData'),applicationDirectory:root,assetsDirectory:path.join(workspace,'nbt_models'),skillEntry:path.join(workspace,'.agents/skills/nbtcreator-workspace/SKILL.md')}})
  let resizeTimer
  window.on('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(async()=>{try{const p=await preferences.load(),b=window.getBounds();if(p.rememberWindow&&!window.isMaximized()&&b.width>=900&&b.height>=650)await preferences.save({windowWidth:b.width,windowHeight:b.height})}catch(e){console.error(e.message)}},400)})
@@ -113,6 +122,7 @@ async function boot(){
   switchingWorkspace=true
   let suspended=false
   try{
+   await flushEditor()
    await workspaceApi.suspend();suspended=true
    const currentExposure=await exposure('show')
    await stopBackend();workspace=next
@@ -133,8 +143,8 @@ async function boot(){
   if(index<0)throw Error('Unknown system menu')
   systemMenus.items[index].submenu.popup({window})
  })
- await window.loadURL(serverUrl);window.webContents.setZoomFactor(initialPreferences.zoom/100);window.setTitle('NBTCreator · NBT 建筑工作台');window.show()
+ await window.loadURL(serverUrl);window.webContents.setZoomFactor(initialPreferences.zoom/100);window.setTitle('NBTCreator · NBT 建筑工作台');if(automationMinimized)window.minimize();else window.show()
 }
-app.on('before-quit',event=>{if(!closing){event.preventDefault();closing=true;stopBackend().finally(()=>app.quit())}})
+app.on('before-quit',event=>{if(!closing){event.preventDefault();closing=true;flushEditor().finally(()=>stopBackend()).finally(()=>app.quit())}})
 app.on('window-all-closed',()=>app.quit())
 app.whenReady().then(boot).catch(error=>{console.error(error.stack||error.message);if(!process.env.NBTCREATOR_AUTOMATION)dialog.showErrorBox('NBTCreator 启动失败',error.stack||error.message);app.quit()})

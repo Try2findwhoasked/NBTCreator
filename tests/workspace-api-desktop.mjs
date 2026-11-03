@@ -1,3 +1,4 @@
+import {minimizedScreenshots} from './minimized-screenshots.mjs'
 // Real IPC/workspace transition against a deliberately hanging local mock API.
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -25,12 +26,13 @@ const server=http.createServer(async(req,res)=>{
 })
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
 try{
+ await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'model'}))
  const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE
  app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000})
- const page=await app.firstWindow();page.setDefaultTimeout(30000)
+ const page=await app.firstWindow();minimizedScreenshots(app,page);page.setDefaultTimeout(30000)
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy,undefined,{timeout:60000})
  await page.evaluate(baseUrl=>window.nbtDesktop.apiSave({enabled:true,provider:'compatible',baseUrl,model:'mock-model',jsonMode:true}),`http://127.0.0.1:${server.address().port}/v1`)
- await page.locator('#tool-tabs button').nth(9).click()
+ await page.getByRole('button',{name:'AI建模',exact:true}).click()
  await page.locator('#ai-mode').selectOption('prompt');await page.locator('#ai-instruction').fill('old workspace pending candidate')
  await page.locator('#ai-generate').click();await entered
  await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});dialog.showMessageBox=async()=>({response:0})},next)

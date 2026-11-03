@@ -10,7 +10,7 @@ from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 GROUPS={
- 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback']),
+ 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','ai-creative-preferences']),
  'architecture':('建筑风格与场所',['architecture-knowledge-base','structure-atlas','design-grammar']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
@@ -20,7 +20,7 @@ GROUPS={
  'rendering':('纹理预览与图像评审',['rendering']),
  'saodg':('可选：SAODG接入',['saodg-constraints','mod-structures']),
  'desktop':('桌面、提示词与网页转换',['nbtcreator','detail-control','prompt-console','web-revision']),
- 'library':('建筑库与选择器',['library-archive','structure-selector']),
+ 'library':('建筑库与选择器',['library-archive','structure-selector','component-assets','reusable-recipes','project-batch']),
  'handoff':('委派阅读记录',['delegation-and-review']),
 }
 
@@ -93,6 +93,8 @@ def show(workspace):
 
 def apply(workspace,config=None):
     workspace=Path(workspace).resolve();folder=workspace/'.nbtcreator';folder.mkdir(parents=True,exist_ok=True)
+    from nbt_ai_style import load as load_style
+    load_style(workspace,create=True)
     file=folder/'skill-exposure.json'
     if config is not None:
         if set(config)-{'schema_version','enabled_groups','custom_knowledge'}:raise ValueError('未知暴露配置字段')
@@ -112,6 +114,8 @@ def apply(workspace,config=None):
       '无界面调用：`python .agents/skills/nbtcreator-workspace/nbt.py capabilities`；各命令用 --help 查询。Electron无需启动。',
       '`python .agents/skills/nbtcreator-workspace/nbt.py paths` 返回当前冻结引擎、scripts、references 和 Python 的实际路径。任务脚本据此导入 API，无需读包装器猜目录，不硬编码应用安装路径。',
       '工具能力与应用保持一致，AI结构建议只覆盖其中的受限子集。已有批准/预览均绑定源哈希；不要并发写出同一建筑。',
+      '', '## 各区域 AI 创作偏好', '先读工作区共用配置 [ai-style.json](../../../.nbtcreator/ai-style.json)，按当前任务选择 draft（完整初稿）、workbench（控件配置）、prompt（文字）、structure（局部编辑）或 small_structure（小型构件）。',
+      '可调用 `python .agents/skills/nbtcreator-workspace/nbt.py ai-style prompt --workflow small_structure` 获取本区域参数与通俗提示词。偏好控制创意、详略、装饰与变化，用户本次明确要求优先；不得改变选区、保护、预算、返回格式或真实看图确认规则。',
       '', '## 按任务进入', '',
       '已启用表示资料可用，不要求每次把全部目录读完。完整阅读下面当前阶段所列文件；专题按用途选适用完整章节，长建筑原型库无需遍读。', '',
       '| 当前任务 | 先读与下一步 |','| --- | --- |',

@@ -1,0 +1,56 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import {spawnSync} from 'node:child_process'
+import {createHash} from 'node:crypto'
+import {createRequire} from 'node:module'
+import {root,skill,python} from '../scripts/paths.mjs'
+import {minimizedScreenshots} from './minimized-screenshots.mjs'
+const require=createRequire(path.join(skill,'assets/viewer/package.json')),{_electron}=require('playwright')
+const output=path.join(root,'build','version-compare-'+Date.now()),workspace=path.join(output,'workspace'),v1=path.join(workspace,'nbt_models/single/比较厅/v1'),v2=path.join(workspace,'nbt_models/single/比较厅/v2')
+for(const folder of [v1,v2]){const run=spawnSync(python,[path.join(root,'tests/make_fixture.py'),folder],{encoding:'utf8',windowsHide:true});assert.equal(run.status,0,run.stderr)}
+const before=path.join(v1,'synthetic.master.json.gz'),after=path.join(v2,'synthetic.master.json.gz')
+const mutate=spawnSync(python,['-c',`import sys
+sys.path.insert(0,sys.argv[1])
+from nbt_refine import read_master,save_master
+from nbt_assembly import Volume
+m,w=read_master(sys.argv[2]);n=Volume((64,18,48));n.blocks.update(m.blocks)
+n.put((10,5,10),'gold_block');n.put((4,3,4),'air');n.put((0,3,3),'andesite');w.discard((0,5,4));n.put((60,4,20),'stone')
+save_master(sys.argv[3],n,w)`,path.join(skill,'scripts'),before,after],{encoding:'utf8',windowsHide:true});assert.equal(mutate.status,0,mutate.stderr)
+const hash=bytes=>createHash('sha256').update(bytes).digest('hex'),original=[hash(await fs.readFile(before)),hash(await fs.readFile(after))]
+await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'model',autoPreview:false}))
+let app;const checks={}
+try{
+ const env={...process.env,NBTCREATOR_AUTOMATION:'1',OPENBLAS_NUM_THREADS:'1',OMP_NUM_THREADS:'1'};delete env.ELECTRON_RUN_AS_NODE
+ app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000})
+ const page=await app.firstWindow();minimizedScreenshots(app,page);page.setDefaultTimeout(60000);const errors=[];page.on('pageerror',e=>errors.push(e.message));const click=selector=>page.locator(selector).evaluate(el=>el.click())
+ await page.waitForFunction(()=>window.nbtEditSession?.ready&&!window.detailControl.state.busy)
+ const index=await page.evaluate(source=>window.detailControl.state.models.findIndex(m=>m.source.toLowerCase()===source.toLowerCase()),after);assert.ok(index>=0)
+ await page.locator('#models').selectOption(String(index));await page.waitForFunction(source=>window.detailControl.state.info?.source.toLowerCase()===source.toLowerCase()&&!window.detailControl.state.sessionRestoring&&!window.detailControl.state.busy,after)
+ const pose={eye:[20,12,-10],target:[13,4,13],up:[0,1,0],fov:55};await page.evaluate(pose=>document.querySelector('#viewer').contentWindow.nbtModeler.renderView({...pose,cuts:[{axis:'y',position:8,removed_side:'above'}],layer:'all',lighting:'day'}),pose)
+ await page.locator('#feedback-text').fill('版本对比前未保存的草稿');await page.evaluate(()=>window.nbtEditSession.flush())
+ const originalMeta=await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.metadata())
+ const originalSettings=await page.evaluate(()=>window.detailControl.gather())
+ await page.waitForFunction(()=>!document.querySelector('#open-version-compare').disabled);await click('#open-version-compare');await page.locator('#version-same-object').uncheck();await page.locator('#version-reference').selectOption(before);await click('#start-version-compare');await page.waitForFunction(()=>window.detailControl.state.versionComparing&&!document.querySelector('#version-after').disabled&&document.querySelector('#viewer').contentWindow.nbtModeler.differenceStatus().enabled)
+ assert.equal(await page.locator('.sidebar').evaluate(e=>e.inert),true);assert.equal(await page.locator('.action-bar').evaluate(e=>e.inert),true);assert.equal(await page.locator('#pick-coordinate').isDisabled(),true);checks.read_only_compare_locks_model_mutations=true
+ const reportUrl=await page.locator('#download-difference').getAttribute('href'),diff=await page.evaluate(url=>fetch(url).then(r=>r.json()),reportUrl);assert.equal(diff.before_source_sha256,original[0]);assert.equal(diff.after_source_sha256,original[1]);assert.ok(diff.counts.added>=2);assert.ok(diff.counts.removed>=1);assert.ok(diff.counts.replaced>=1);assert.ok(diff.counts.wall>=1);checks.actual_bound_diff_counts_and_report=true
+ const meta=()=>page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.metadata())
+ let m=await meta();assert.deepEqual(m.camera,originalMeta.camera);assert.deepEqual(m.cuts,originalMeta.cuts)
+ await click('#version-before');await page.waitForFunction(()=>document.querySelector('#viewer').contentWindow.nbtModeler.differenceStatus().side==='before'&&!document.querySelector('#version-before').disabled);m=await meta();assert.equal(m.source_sha256,original[0]);assert.deepEqual(m.camera,originalMeta.camera);assert.deepEqual(m.cuts,originalMeta.cuts)
+ await click('#version-after');await page.waitForFunction(()=>document.querySelector('#viewer').contentWindow.nbtModeler.differenceStatus().side==='after'&&!document.querySelector('#version-after').disabled);assert.deepEqual(await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.snapshot.size),[64,18,48]);checks.same_pose_cut_and_different_size_switch=true
+ const allVisible=(await meta()).visible_blocks;await page.locator('#difference-only').check();await page.waitForFunction(()=>document.querySelector('#viewer').contentWindow.nbtModeler.differenceStatus().only);assert.ok((await meta()).visible_blocks<allVisible);assert.ok(await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.differenceStatus().draw_calls)>0);checks.changed_only_mesh_and_colored_overlay=true
+ await click('#difference-focus-all');await page.waitForFunction(()=>document.querySelector('#viewer').contentWindow.nbtModeler.metadata().cuts.length===0);assert.equal(await page.locator('#cut-value').textContent(),'完整');assert.equal((await meta()).layer,'all');await click('#difference-next');await page.waitForFunction(()=>document.querySelector('#difference-region-count').textContent.includes('/'));checks.focus_all_and_region_navigation=true
+ const highlighted=await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.captureCurrent());await page.locator('#difference-highlight').uncheck();await page.waitForFunction(()=>!document.querySelector('#viewer').contentWindow.nbtModeler.differenceStatus().enabled);const plain=await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.captureCurrent());assert.notEqual(highlighted.dataUrl,plain.dataUrl);await page.locator('#difference-highlight').check();await page.waitForFunction(()=>document.querySelector('#viewer').contentWindow.nbtModeler.differenceStatus().enabled);checks.overlay_changes_actual_gpu_pixels=true
+ await page.evaluate(()=>window.nbtEditSession.flush());const draft=await page.evaluate(async()=>{const response=await fetch('/__detail__/edit-sessions/load',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:window.detailControl.state.info.source})});return response.json()});assert.deepEqual(draft.state.view.camera,originalMeta.camera);assert.deepEqual(draft.state.view.cuts,originalMeta.cuts);assert.deepEqual(await page.evaluate(()=>window.detailControl.gather()),originalSettings);checks.compare_view_does_not_replace_saved_editor_draft=true
+ await page.screenshot();await page.waitForTimeout(180);await page.screenshot({path:path.join(output,'version-difference.png')})
+ await click('#end-version-compare');await page.waitForFunction(()=>!window.detailControl.state.versionComparing&&!document.querySelector('.sidebar').inert);m=await meta();assert.equal(m.geometry_sha256,originalMeta.geometry_sha256);assert.deepEqual(m.camera,originalMeta.camera);assert.deepEqual(m.cuts,originalMeta.cuts);assert.equal(await page.locator('#feedback-text').inputValue(),'版本对比前未保存的草稿');assert.equal(await page.locator('#three-quality').isDisabled(),false);checks.exit_restores_editor_camera_cut_and_unsaved_notes=true
+ // Candidate comparison uses the same deterministic diff and leaves the candidate unexported.
+ await click('#close-version-panel');await page.evaluate(source=>{document.querySelector('#source').value=source;return window.detailControl.loadModel()},before);await page.waitForFunction(source=>window.detailControl.state.info?.source.toLowerCase()===source.toLowerCase()&&!window.detailControl.state.sessionRestoring&&!window.detailControl.state.busy,before)
+ await page.evaluate(()=>{const s=window.detailControl.gather();s.whole_region=false;s.lo=[9,4,9];s.hi=[14,8,14];s.operations=[{kind:'box',label:'候选石柱',classification:'body',lo:[11,4,11],hi:[11,5,11],state:'stone_bricks'}];window.detailControl.restore(s)})
+ await click('#update-preview');await page.waitForFunction(()=>window.detailControl.state.preview&&!window.detailControl.state.previewBusy)
+ await click('#open-version-compare');await page.locator('#version-compare-kind').selectOption('candidate');await click('#start-version-compare');await page.waitForFunction(()=>window.detailControl.state.versionComparing&&!document.querySelector('#version-after').disabled&&document.querySelector('#viewer').contentWindow.nbtModeler.differenceStatus().enabled)
+ assert.equal(await page.locator('#version-after').textContent(),'看调整效果');assert.equal(await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.metadata().geometry_sha256===window.detailControl.state.preview.geometry_sha256),true);checks.candidate_diff_uses_current_preview=true
+ await page.locator('button[data-workspace=tasks]').evaluate(el=>el.click());await page.waitForFunction(()=>!window.detailControl.state.versionComparing);await page.locator('button[data-workspace=model]').evaluate(el=>el.click());checks.workspace_navigation_restores_editor=true
+ assert.deepEqual([hash(await fs.readFile(before)),hash(await fs.readFile(after))],original);assert.deepEqual(errors,[]);assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized()),true);checks.sources_unchanged_minimized_no_renderer_errors=true
+ await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks},null,2));console.log(JSON.stringify({passed:true,checks:Object.keys(checks).length,output}))
+}catch(error){console.error(JSON.stringify({output,checks}));try{const diagnostic=await (await app.firstWindow()).evaluate(()=>({message:document.querySelector('#difference-message')?.textContent,status:document.querySelector('#status')?.textContent,comparing:window.detailControl?.state.versionComparing}));console.error(JSON.stringify(diagnostic))}catch{}throw error}finally{await app?.close()}

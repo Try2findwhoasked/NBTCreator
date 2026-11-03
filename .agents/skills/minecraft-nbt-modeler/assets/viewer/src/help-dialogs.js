@@ -1,6 +1,8 @@
+import {decorateHelpButtons} from './help-icon.js'
 // Move the original content, including live statistics and advanced path inputs,
 // into a native dialog so sidebar scrolling cannot clip long explanations.
 export function initHelpDialogs() {
+    decorateHelpButtons()
     const dialog = document.createElement('dialog')
     dialog.id = 'inline-help-dialog'
     dialog.className = 'review-help-dialog'

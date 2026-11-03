@@ -1,7 +1,7 @@
 {
   "name": "nbtcreator",
   "productName": "NBTCreator",
-  "version": "1.11.0",
+  "version": "1.18.0",
   "private": true,
   "description": "Minecraft Java 1.20.1 NBT authoring workbench with portable tools and Agent collaboration",
   "type": "module",
@@ -21,9 +21,19 @@
     "check:tools": "node scripts/sync-capabilities.mjs --check",
     "test:workspace": "python tests/workspace-contracts.py && node --test tests/workspace-resolution.cjs",
     "test:catalog": "python tests/catalog-nbt.py && node tests/catalog-desktop.mjs",
+    "test:projects": "python tests/section-cover.py && node --test tests/project-catalog.test.mjs tests/catalog-store.test.mjs tests/project-stages.test.mjs tests/camera-controls.test.mjs && node tests/project-manager-desktop.mjs && node tests/project-performance.mjs",
     "build:web": "node scripts/build-web.mjs",
     "start:dev": "node scripts/start.mjs --frontend development",
-    "test:production": "node tests/production-server.mjs"
+    "test:production": "node tests/production-server.mjs",
+    "test:assets": "python tests/components.py && node tests/asset-workspace-desktop.mjs",
+    "test:project-batch": "npm run build:web && python tests/project-batch.py && node tests/project-batch-desktop.mjs",
+    "test:protection": "npm run build:web && python tests/protection-mask.py && node tests/protection-desktop.mjs",
+    "test:workbench-ui": "npm run build:web && node tests/workbench-ui-desktop.mjs",
+    "test:recipes": "npm run build:web && python tests/reusable-recipes.py && node tests/reusable-desktop.mjs",
+    "test:ai-style": "node --test tests/ai-style.test.cjs tests/internal-ai.test.cjs && node tests/ai-style-desktop.mjs",
+    "test:editing": "npm run build:web && node --test tests/settings-history.test.mjs && python tests/operation-history.py && node tests/operation-history-desktop.mjs && node tests/preview-toolbar-desktop.mjs",
+    "test:recovery": "npm run build:web && node --test tests/edit-session-store.test.mjs tests/edit-session-controller.test.mjs tests/app-settings.test.cjs && node tests/edit-session-desktop.mjs && node tests/edit-session-images-desktop.mjs",
+    "test:compare": "npm run build:web && python tests/model-difference.py && node --test tests/difference-index.test.mjs && node tests/version-compare-desktop.mjs"
   },
   "devDependencies": {
     "electron": "45.2.1",
