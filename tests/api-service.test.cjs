@@ -94,4 +94,16 @@ test('HTTP failures, cancellation and repeated truncation retain individual atte
  try{await retry.api.save({enabled:true});const r=await retry.api.generate({mode:'small_structure',instruction:'柱',context});assert.equal(r.api_metrics.prompt_tokens,20);assert.equal(r.api_metrics.completion_tokens,15);assert.equal(r.api_metrics.total_tokens,35);assert.equal(r.api_metrics.calls.length,2);assert.ok(r.api_metrics.calls[1].input_text_chars>r.api_metrics.calls[0].input_text_chars)}finally{await retry.close()}
 })
 
+test('workbench API sends base references and merges a compact response locally',async()=>{
+ const input={mode:'workbench',instruction:'第12步改安山岩',context:{project:{size:[48,24,48]},baseline_binding:'a'.repeat(64),operations:Array.from({length:60},()=>({kind:'box',label:'墙段',classification:'wall',lo:[2,1,2],hi:[20,8,2],state:'stone_bricks'}))}}
+ let responseChars=0
+ const s=await service(async(_url,opts)=>{
+  const sent=JSON.parse(JSON.parse(opts.body).messages[1].content),base=sent.context.operation_base
+  assert.equal(sent.context.operations.length,60);assert.equal(base.steps.length,60);assert.equal(sent.context.baseline_binding,input.context.baseline_binding)
+  const content=JSON.stringify({summary:'改墙面',operation_patch:{baseline:base.baseline,changes:[{step:12,expected:base.steps[11].expected,set:{state:'andesite'}}]}});responseChars=content.length
+  return new Response(JSON.stringify({choices:[{message:{content},finish_reason:'stop'}]}))
+ })
+ try{await s.api.save({enabled:true});const r=await s.api.generate(input);assert.equal(r.operations.length,60);assert.equal(r.operations[11].state,'andesite');assert.equal(input.context.operations[11].state,'stone_bricks');assert.equal(r.api_metrics.operation_changes,1);assert.equal(r.api_metrics.output_chars,responseChars);assert.ok(responseChars<JSON.stringify(r.operations).length/10)}finally{await s.close()}
+})
+
 test('advanced API options reach actual request while protocol and secrets remain application-owned',async()=>{let payload;const s=await service(async(_url,options)=>{payload=JSON.parse(options.body);return new Response(JSON.stringify({choices:[{message:{content:'ok'},finish_reason:'stop'}]}))});try{await s.api.save({enabled:true,timeoutMs:120000,tokenParameter:'max_completion_tokens',requestOptions:{temperature:.4,top_p:.85,max_tokens:2048,presence_penalty:.2,frequency_penalty:-.1,seed:123,stop:['END'],reasoning_effort:'low',thinking:{type:'disabled'}}});await s.api.generate({mode:'prompt',instruction:'test'});assert.equal(payload.max_completion_tokens,2048);assert.equal(payload.max_tokens,undefined);assert.equal(payload.temperature,.4);assert.deepEqual(payload.stop,['END']);assert.equal(payload.stream,false);assert.equal(payload.messages.length,2);assert.equal(payload.thinking.type,'disabled');await s.api.save({enabled:false});assert.equal((await s.api.load()).requestOptions.max_tokens,2048);assert.equal(s.api.publicConfig().timeoutMs,120000);for(const requestOptions of [{messages:[]},{Authorization:'secret'},{response_format:{type:'text'}},{max_tokens:1.5},{temperature:3},{stop:['']},{seed:NaN},{thinking:{type:'enabled',code:'bad'}}])await assert.rejects(s.api.save({requestOptions}));await assert.rejects(s.api.save({timeoutMs:1}));assert.equal((await s.api.load()).requestOptions.temperature,.4)}finally{await s.close()}})

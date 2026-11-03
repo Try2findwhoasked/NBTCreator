@@ -21,6 +21,7 @@ export function initTaskRecords(){
    }
    if(m.calls?.length){const counted=m.calls.filter(call=>Number.isFinite(call.total_tokens)).length;body.append(text('p','接口提供了 '+counted+'/'+m.calls.length+' 次请求的合计 token 用量；缺失用量不按零消耗计算。','muted'))}
    if(Number.isFinite(m.validation_ms))body.append(text('p','返回格式与参数检查 '+seconds(m.validation_ms),'muted'))
+   if(Number.isFinite(m.operation_changes))body.append(text('p','AI增量修改 '+m.operation_changes+' 个工具步骤，其余步骤由本地保留。'))
   }
  let records=[],timer=null,loading=false,selected=null,detailSignature='';const cards=new Map()
  const dialog=document.createElement('dialog');dialog.id='task-detail-dialog';dialog.className='task-detail-dialog';dialog.innerHTML='<header><h2>任务详情</h2><button type="button" id="task-detail-close">关闭</button></header><div id="task-detail-body"></div>';document.body.append(dialog);$('task-detail-close').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{selected=null;detailSignature=''})

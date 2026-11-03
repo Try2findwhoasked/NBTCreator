@@ -3,7 +3,7 @@ let inFlight=false,cancelled=false
 export function cancelAI(){cancelled=true;return window.nbtDesktop.apiCancel()}
 export async function requestAI(input,capture){
  if(inFlight)throw Error('已有AI请求进行中，请等待或取消')
- inFlight=true;cancelled=false;let log
+ inFlight=true;cancelled=false;let log,apiMetrics
  const started=performance.now(),timings={setup_ms:0,capture_ms:0,api_roundtrip_ms:0}
  const measure=async(key,operation)=>{const at=performance.now();try{return await operation()}finally{timings[key]=Math.round(performance.now()-at)}}
  try{
@@ -19,12 +19,13 @@ export async function requestAI(input,capture){
   await activity({action:'stage',id:log.id,phase:'api',message:viewport?'发送要求与视口截图，等待API返回':'发送文字要求，等待API返回'})
   if(cancelled)throw Error('API请求已取消')
   const result=await measure('api_roundtrip_ms',()=>window.nbtDesktop.apiGenerate({...input,...(viewport?{viewport}:{})}))
+  apiMetrics=result?.api_metrics??result?.api_error?.api_metrics
   if(result?.api_error){const error=new Error(result.api_error.message);error.api_metrics=result.api_error.api_metrics;throw error}
   if(cancelled)throw Error('API请求已取消')
   timings.request_total_ms=Math.round(performance.now()-started)
   await activity({action:'finish',id:log.id,status:'complete',api_metrics:result.api_metrics,timings,message:(result.api_metrics?.retried_compact?'输出达到上限后已精简重试成功；':'')+'API候选已返回并通过格式校验，尚未执行建筑导出',summary:result.summary||result.text?.slice(0,1200)||'',operations:result.settings_patch?.operations?.length??result.operations?.length??0})
   return {...result,activity_id:log.id}
- }catch(e){timings.request_total_ms=Math.round(performance.now()-started);if(log)try{await activity({action:'finish',id:log.id,status:/取消/.test(e.message)?'cancelled':'failed',api_metrics:e.api_metrics,timings,message:e.message})}catch{}throw e}finally{inFlight=false}
+ }catch(e){timings.request_total_ms=Math.round(performance.now()-started);if(log)try{await activity({action:'finish',id:log.id,status:/取消/.test(e.message)?'cancelled':'failed',api_metrics:e.api_metrics??apiMetrics,timings,message:e.message})}catch{}throw e}finally{inFlight=false}
 }
 export async function previewAI(result,apply){
  if(!result?.activity_id)return apply()

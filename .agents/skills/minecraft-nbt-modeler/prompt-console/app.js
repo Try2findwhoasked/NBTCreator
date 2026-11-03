@@ -110,8 +110,10 @@
      aiLock(true);aiMessage('正在根据当前设计要求生成建议…');
      candidateMode=mode;
      if(candidateMode==='draft'&&(state.project.stage!=='draft'||state.project.source))throw Error('请先点击“新建初稿”，再生成完整初稿方案');
-     const result=input.mode==='workbench'?await aiBridge.generateWorkbench(input.instruction,input.context):await aiBridge.generate(input.instruction);
+     if(input.mode==='workbench'){input.context.baseline_binding=await NbtPromptAIInput.bindingToken(before);if(binding()!==before)throw Error('方案已改变，请重新生成候选')}
+     let result=input.mode==='workbench'?await aiBridge.generateWorkbench(input.instruction,input.context):await aiBridge.generate(input.instruction);
      if(binding()!==before)throw Error('生成期间方案已改变，请基于当前方案重新生成');
+     if(result.operation_patch)result={...result,operations:NbtPromptAIInput.mergeOperations(state.operations,result.operation_patch)};
      if(candidateMode==='text'&&(result.mode!=='prompt'||typeof result.text!=='string'||!result.text.trim()))throw Error('AI 返回内容无效');
      $('prompt-ai-candidate').value=candidateMode!=='text'?JSON.stringify({summary:result.summary,project_patch:result.project_patch,operations:result.operations},null,2):result.text;candidateBinding=before;$('prompt-ai-apply').disabled=false;aiMessage(candidateMode!=='text'?'完整候选方案已生成，审阅JSON后点击采用，即可回填左侧。':'建议已生成，可编辑后采用；当前导出内容尚未改变。');
    }catch(e){aiMessage(e.message,true);}finally{aiLock(false);}

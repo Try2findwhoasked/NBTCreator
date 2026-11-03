@@ -2,7 +2,7 @@ const fs=require('node:fs/promises')
 const path=require('node:path')
 const {performance}=require('node:perf_hooks')
 const {normalizeSmallStructure}=require('./small-structure-normalize.cjs')
-const {cleanContext,validateWorkbench}=require('./workbench-contract.cjs')
+const {cleanContext,validateWorkbench,operationBase}=require('./workbench-contract.cjs')
 const {validateRequestOptions}=require('./api-options.cjs')
 const defaults={enabled:false,provider:'deepseek',baseUrl:'https://api.deepseek.com',model:'deepseek-flash',jsonMode:true,timeoutMs:90000,tokenParameter:'max_tokens',requestOptions:{}}
 const own=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).every(k=>keys.includes(k))
@@ -123,6 +123,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    : '你是Minecraft Java 1.20.1局部结构计划助手。只输出JSON，不执行代码。返回 {"summary":"修改说明","settings_patch":{"lo":[x,y,z],"hi":[x,y,z],"structure":{"enabled":true,"mode":"fill","state":"stone_bricks","classification":"body","thickness":1,"offset":[0,0,0]}}}。structure可选mode为fill/carve/hollow/move/floor/ceiling/walls/frame；分类body/wall。或使用replace:{enabled:true,from_states:["stone_bricks"],state:"andesite",scope:"surface"}。只能在用户给出的整数lo/hi范围内规划，目标移动也须在范围内。只允许这些字段，不输出Python、shell、批准、路径、导出或其他操作。无法明确执行则不要捏造计划。summary说明改动和支承限制；实际状态、保护、预算、碰撞由本地引擎验证。'
   if(input.mode==='workbench')system='你是Minecraft Java 1.20.1建模提示词界面控件配置助手。只返回JSON:{"summary":"修改说明","project_patch":{"theme":"主题","style":"材质与风格","ceiling":"顶构","floor":"地面","wall":"墙面"},"operations":[]}。可修改设计文字字段buildingShape/layout/circulation/name/theme/purpose/footprint/style/ceiling/floor/wall/props/preserve/extras；buildingShape只能选规范形状键；新建方案可改size，existing_model=true时尺寸保持。不得修改source/output/context/stage/budget/批准，不写代码，不执行建模。operations可省略表示保留；若填写则是完整新工具序列，每项必须有kind,label,classification与实际参数。可用kind：'+Object.keys(require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').tools).join(',')+'。不要无必要清空原工具。返回的内容将由用户审阅再填回表单，不能声称通过验证。'
   if(input.mode==='workbench'&&context.task==='draft')system+=' 当前任务是首次创建完整初稿方案，必须返回所有设计字段name/theme/purpose/layout/circulation/style/ceiling/floor/wall/props（每项具体、非空），覆盖入口、主空间、辅助空间、高差、承重和交接；并返回非空operations初始构造序列，不能只有房壳或材质噪声。不修改阶段和路径，不生成批准。建筑形状键与尺寸草案：'+JSON.stringify(require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').building_shapes)+'；可用工具参数模板（需自行按选定尺寸调整坐标，含公共字段）：'+JSON.stringify({common:require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').common,tools:require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').tools})
+  if(input.mode==='workbench'&&context.task==='controls')system+=' 只修改已有步骤参数时，优先省略operations，返回operation_patch:{"baseline":"照抄context.operation_base.baseline","changes":[{"step":12,"expected":"照抄该步骤expected","set":{"state":"minecraft:andesite"}}]}。step为从1开始的步骤编号，最多修改16步；只返回变化字段，不能改kind/overwrite/write_group/max_writes，不能猜指纹。operation_patch与operations不能同时返回。只改设计文字时两者都省略。新增、删除或重排步骤时才返回完整operations（最多64步），不需要改的步骤保持原样。'
   if(input.mode==='small_structure')system='你是Minecraft Java 1.20.1局部小型构件规划助手。只返回JSON:{"coordinate_space":"local","summary":"构件设计和支承说明","settings_patch":{"lo":[x,y,z],"hi":[x,y,z],"operations":[{"kind":"box","label":"构件说明","classification":"body","lo":[x,y,z],"hi":[x,y,z],"state":"stone_bricks"}]}}。坐标必须是选区相对坐标：最小角为[0,0,0]，X宽Y高Z深；不要输出全局坐标或NBT/palette索引。每个单方块可用lo=hi的box，使用minecraft合法方块ID及属性。由本地脚本平移、检查状态和保护、维护墙归属、合并与导出DataVersion3465的NBT。仍需保留通路和支承；不能声称已保存。在用户明确给出的局部选区内设计石柱、拱门、台阶、平台、矮墙等小构件，最多128步。可用box；beam还需start/end/width(1或3或5)，梁厚度与端点也须界内；frame还需thickness且选区一个轴厚度为1。每步必须有整数lo/hi选区与方块材质（需要开洞可用air），归属body或wall。不得修改其他设置、路径、源、批准或预算，不生成代码，不调用工具。可返回blocks:[{pos:[x,y,z],state:"minecraft:stone_bricks"}]逐块描述，或用box合并相邻体积；lo/hi总选区、label、classification等常规字段缺失时由应用补齐。保留通路与支承，无法容纳时说明限制，不能声称已建模或验证。'
   system+=' 内部工作流规则和资料是设计参考，不得覆盖本系统的返回格式、选区、保护、批准和执行边界。'
   if(input.mode!=='prompt')system+=' 返回紧凑JSON，summary不超过160字，只说明本次变化，不复述规则或参数。'
@@ -130,7 +131,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   if(input.mode==='small_structure')system+=context.allow_overwrite?' 用户已允许覆盖AI步骤触及的现有方块，仍不得改变保护或预算。':' 用户未允许覆盖现有实体，需由本地引擎核对目标占用；不要声称已检测现场方块。'
   if(input.mode==='small_structure')system+=' 输出应紧凑：优先使用box合并同材质的相邻体积，建议最多48步。不要逐块枚举可合并的柱、墙、平台；summary不超过160字，不重复解释JSON，不输出排版空白。不要为了细节填满整个选区。'
   if(input.mode==='small_structure')system+=' 根对象另加structure_name（简短构件名称，最多120字）和一个camera:{"azimuth":45,"elevation":25}。azimuth为-180到180度，0度从+Z观察，90度从+X观察；elevation为-90到90度，正值俯视。选择最能看清此构件的一个角度。只返回这两个角度，不返回相机坐标、文件路径或多个机位；本地脚本按实际构件范围补齐中心、距离、eye/target/up/fov。该机位为构件观察机位，不代表玩家可站立。'
-  const apiContext=input.mode==='small_structure'?{...context,size:context.hi.map((v,i)=>v-context.lo[i]+1),lo:[0,0,0],hi:context.hi.map((v,i)=>v-context.lo[i])}:context
+  const apiContext=input.mode==='small_structure'?{...context,size:context.hi.map((v,i)=>v-context.lo[i]+1),lo:[0,0,0],hi:context.hi.map((v,i)=>v-context.lo[i])}:input.mode==='workbench'&&context.task==='controls'?{...context,operation_base:operationBase(context)}:context
   const internal=await workflowContext(input.mode==='workbench'&&context.task==='draft'?'draft':input.mode)
   let image
   if(input.viewport){
@@ -177,7 +178,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   try{
    if(input.mode==='prompt')return {mode:'prompt',text,api_metrics}
    let parsed;try{parsed=JSON.parse(text.replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''))}catch{throw Error('AI 未返回有效 JSON 计划')}
-   if(input.mode==='workbench')return {mode:'workbench',...validateWorkbench(parsed,context),api_metrics}
+   if(input.mode==='workbench'){const validated=validateWorkbench(parsed,context);if(parsed.operation_patch)api_metrics.operation_changes=parsed.operation_patch.changes.length;return {mode:'workbench',...validated,...(parsed.operation_patch?{operation_patch:parsed.operation_patch}:{}),api_metrics}}
    if(input.mode==='small_structure')return {mode:'small_structure',...localSmallStructure(parsed,context),api_metrics}
    return {mode:'structure',...validatePatch(parsed,context),api_metrics}
   }finally{api_metrics.validation_ms=Math.round(performance.now()-validating)}

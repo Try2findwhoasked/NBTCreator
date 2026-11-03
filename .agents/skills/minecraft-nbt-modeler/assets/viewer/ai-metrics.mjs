@@ -4,7 +4,7 @@ function copyNumbers(value,keys,max){return Object.fromEntries(keys.filter(key=>
 export function cleanTimings(value){return copyNumbers(value,['setup_ms','capture_ms','api_roundtrip_ms','request_total_ms','preview_ms'],86400000)}
 export function cleanApiMetrics(value){
  if(!value||typeof value!=='object'||Array.isArray(value))return undefined
- const clean=copyNumbers(value,['attempts','prompt_tokens','completion_tokens','total_tokens','input_text_chars','output_chars'])
+ const clean=copyNumbers(value,['attempts','prompt_tokens','completion_tokens','total_tokens','input_text_chars','output_chars','operation_changes'])
  Object.assign(clean,copyNumbers(value,['prepare_ms','validation_ms','service_total_ms'],86400000))
  clean.retried_compact=value.retried_compact===true
  if(['stop','length','content_filter','tool_calls','function_call','unknown'].includes(value.finish_reason))clean.finish_reason=value.finish_reason
