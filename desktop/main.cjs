@@ -3,6 +3,7 @@ const {createAppSettings}=require('./app-settings.cjs')
 const {createUpdater}=require('./updater.cjs')
 const {createInternalAI}=require('./internal-ai.cjs')
 const {createApiService}=require('./api-service.cjs')
+const {createWorkspaceApi}=require('./workspace-api.cjs')
 const {selectWorkspace,normalizeWorkspace}=require('./workspace.cjs')
 const {spawn}=require('node:child_process')
 const path=require('node:path')
@@ -51,9 +52,11 @@ async function boot(){
  const preferences=createAppSettings(()=>path.join(workspace,'.nbtcreator')),updater=createUpdater({directory:app.getPath('userData'),version:app.getVersion(),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
  let initialPreferences
  const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler')})
- const api=createApiService({workflowContext:key=>internalAI.context(key),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
+ let api
+ const workspaceApi=createWorkspaceApi({cancel:()=>api?.cancel()})
+ api=createApiService({workflowContext:key=>workspaceApi.guardContext(()=>internalAI.context(key)),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
  await api.load()
- for(const [channel,handler]of Object.entries({'api-config':()=>api.publicConfig(),'api-save':input=>api.save(input),'api-models':()=>api.models(),'api-generate':input=>api.generate(input),'api-cancel':()=>api.cancel()}))ipcMain.handle('nbt:'+channel,(event,input)=>{allowed(event);return handler(input)})
+ for(const [channel,handler]of Object.entries({'api-config':()=>api.publicConfig(),'api-save':input=>api.save(input),'api-models':()=>api.models(),'api-generate':input=>api.generate(input),'api-cancel':()=>api.cancel()}))ipcMain.handle('nbt:'+channel,(event,input)=>{allowed(event);return workspaceApi.run(()=>handler(input))})
  let config={};try{config=JSON.parse(await fs.readFile(path.join(app.getPath('userData'),'settings.json'),'utf8'))}catch{}
  workspace=selectWorkspace({explicit:arg('--workspace'),environment:process.env.NBTCREATOR_WORKSPACE,agentCwd:process.env.NBTCREATOR_AGENT_CWD,cwd:process.cwd(),root,packaged:app.isPackaged,executable:app.getPath('exe'),config,settingsDirectory:app.getPath('userData'),systemDirectory:process.env.WINDIR})
  if(!workspace){const choice=await dialog.showOpenDialog({title:'选择项目根目录或nbt_models（自动识别）',properties:['openDirectory','createDirectory']});if(choice.canceled){app.quit();return}workspace=normalizeWorkspace(choice.filePaths[0]);await recordConfig()}
@@ -98,22 +101,28 @@ async function boot(){
  })
  ipcMain.handle('nbt:info',event=>{allowed(event);return {version:app.getVersion(),workspace,python,frontend,skill:'.agents/skills/nbtcreator-workspace/SKILL.md',migration:'shared-engine'}})
  ipcMain.handle('nbt:source',async event=>{allowed(event);const result=await dialog.showOpenDialog(window,{title:'选择完整 NBT 或主模型',properties:['openFile'],filters:[{name:'NBT / Master',extensions:['nbt','gz']}]});return result.canceled?null:result.filePaths[0]})
+ let switchingWorkspace=false
  ipcMain.handle('nbt:workspace',async event=>{
   allowed(event);const selection=await dialog.showOpenDialog(window,{title:'选择项目根目录或nbt_models（自动识别）',defaultPath:workspace,properties:['openDirectory','createDirectory']})
   if(selection.canceled)return null
   const next=normalizeWorkspace(selection.filePaths[0])
   const response=await dialog.showMessageBox(window,{type:'question',buttons:['切换工作区','取消'],defaultId:1,cancelId:1,message:'切换将结束当前服务及未完成任务。请先保存参数和意见。',detail:'实际项目目录：'+next+'\n建筑目录：'+path.join(next,'nbt_models')+'\n同时同步Skill脚本、数据和知识库。已有目标知识配置保留；新工作区携带当前知识组。'})
   if(response.response!==0)return null
-  const currentExposure=await exposure('show')
+  if(switchingWorkspace)throw Error('正在切换工作区，请稍后重试')
   const previous=workspace
-  await stopBackend();workspace=next
+  switchingWorkspace=true
+  let suspended=false
   try{
+   await workspaceApi.suspend();suspended=true
+   const currentExposure=await exposure('show')
+   await stopBackend();workspace=next
    await fs.mkdir(path.join(workspace,'nbt_models'),{recursive:true})
    let targetHasConfig=false;try{await fs.access(path.join(workspace,'.nbtcreator/skill-exposure.json'));targetHasConfig=true}catch{}
    if(!targetHasConfig)for(const item of currentExposure.custom_knowledge??[]){const from=path.resolve(previous,'.nbtcreator',item.path),to=path.resolve(workspace,'.nbtcreator',item.path);const bytes=await fs.readFile(from);await fs.mkdir(path.dirname(to),{recursive:true});try{const existing=await fs.readFile(to);if(!bytes.equals(existing))throw Error('目标自定义知识文件已有不同内容，未覆盖')}catch(e){if(e.code!=='ENOENT')throw e;await fs.writeFile(to,bytes)}}
    await exposure('apply',targetHasConfig?undefined:{schema_version:1,enabled_groups:currentExposure.enabled_groups,custom_knowledge:currentExposure.custom_knowledge??[]})
-   await recordConfig();await startBackend();await window.loadURL(serverUrl);window.webContents.setZoomFactor((await preferences.load()).zoom/100);return workspace
-  }catch(error){workspace=previous;await startBackend();await window.loadURL(serverUrl);throw error}
+   await recordConfig();await startBackend();workspaceApi.resume();await window.loadURL(serverUrl);window.webContents.setZoomFactor((await preferences.load()).zoom/100);return workspace
+  }catch(error){if(suspended){await workspaceApi.suspend();await stopBackend();workspace=previous;await recordConfig();await startBackend();workspaceApi.resume();await window.loadURL(serverUrl)}throw error}
+  finally{workspaceApi.resume();switchingWorkspace=false}
  })
  const systemMenus=Menu.buildFromTemplate([{label:'项目',submenu:[{label:'选择工作区…',click:()=>window.webContents.executeJavaScript('window.nbtDesktop.chooseWorkspace()')},{label:'打开 NBT / 主模型…',click:()=>window.webContents.executeJavaScript('document.getElementById("desktop-source").click()')},{type:'separator'},{role:'quit'}]},{label:'视图',submenu:[{role:'reload'},{role:'toggleDevTools'},{type:'separator'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]}])
  Menu.setApplicationMenu(systemMenus)

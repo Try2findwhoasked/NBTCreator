@@ -61,7 +61,9 @@ config JSON字段：
 - `max_changed_blocks`：本次局部精修变化上限，默认4096；按尺度选择。它限制变更范围，不是审美分数，也不能用扩大上限绕过已认可的布局。
 - `cameras`：至少whole与entry，最多六组；eye/target为XYZ，cuts按nbt_preview格式。entry必须无剖切且相机在真实脚位+1.62，whole可剖切；detail可用明确的浮动QA机位，不能冒充玩家视角。
 
-工具目前依赖已有碰撞器的完整块、楼梯与半砖支持。未知形状无法认证时明确拒绝，先扩展有依据的碰撞能力或做适当运行时检查，不能删除原细节来制造通过。此工具不模拟游戏光照、透明材质、实体或红石机关。
+上述 cells/door_y/ports 是默认SAODG模式。独立建筑明确写 `mode: "standalone"`、`openings`（可空）、实际start/targets/interior_probes，沿用路径/节点保护和真实看图确认。此时不推断SAODG cells或标准门宽，源尺寸可以不是48倍数；写出按真实XYZ偏移和边块尺寸机械分割。整件显式墙mask为空时必须额外声明 `allow_empty_wall_mask: true`。上下文与验证边界见 [独立建筑验证](validation-workflow.md#独立建筑的显式上下文)，不从目录名或漏口猜模式。
+
+工具精确支持已有碰撞器的完整块、楼梯与半砖；有限的已核实细件可用[保守障碍上包络](collision-envelopes.md)验证返回路径，代理不提供支撑，报告保留exact_geometry_supported=false。其他未知形状仍明确拒绝，不能删除原细节来制造通过。此工具不模拟游戏光照、透明材质、实体或红石机关。
 
 ## 三步命令
 

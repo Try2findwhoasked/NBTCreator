@@ -13,5 +13,8 @@ try{await fs.access(path.join(root,'build/downloads/electron-v45.2.1-win32-x64.z
 const paths=await packager({dir:root,out:output,name:'NBTCreator',platform:'win32',arch:'x64',asar:false,overwrite:false,
   electronZipDir,
   ignore:[/^\/\.github(?:\/|$)/,/^\/\.git(?:\/|$)/,/(?:^|\/)(?:\.env(?:\.[^\/]*)?|api-settings\.json)(?:$|\/)/,/^\/references(?:\/|$)/,/^\/build(?:\/|$)/,/^\/dist(?:\/|$)/,/^\/workspace(?:\/|$)/,/^\/nbt_models(?:\/|$)/,/^\/\.nbtcreator(?:\/|$)/,/^\/\.agents\/skills\/nbtcreator-workspace(?:\/|$)/,/^\/tests(?:\/|$)/,/\/assets\/viewer\/node_modules\/vite(?:\/|$)/,/__pycache__/,/\.pyc$/,/\/\.vite(?:\/|$)/],
-  prune:true,appVersion:JSON.parse(await fs.readFile(path.join(root,'package.json'),'utf8')).version,executableName:'NBTCreator',win32metadata:{CompanyName:'NBTCreator',FileDescription:'NBT Creator migration prototype'}})
-console.log(JSON.stringify({outputs:paths,python_bundled:false,stage:'migration-prototype'}))
+  prune:true,appVersion:JSON.parse(await fs.readFile(path.join(root,'package.json'),'utf8')).version,executableName:'NBTCreator',win32metadata:{CompanyName:'NBTCreator',FileDescription:'Minecraft NBT authoring workbench'}})
+// Electron Packager omits lockfiles by default. The exported standalone Skill
+// needs this particular lock to offer a reproducible fallback dependency install.
+for(const app of paths)await fs.copyFile(path.join(root,'.agents/skills/minecraft-nbt-modeler/assets/viewer/package-lock.json'),path.join(app,'resources/app/.agents/skills/minecraft-nbt-modeler/assets/viewer/package-lock.json'))
+console.log(JSON.stringify({outputs:paths,python_bundled:false,stage:'application-directory'}))

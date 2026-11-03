@@ -588,7 +588,10 @@ globalThis.NbtToolCatalog = {
     "check": "check_skill.py",
     "capabilities": "nbt_capabilities.py",
     "migrate-workspace": "nbt_workspace.py",
-    "exposure": "nbt_exposure.py"
+    "exposure": "nbt_exposure.py",
+    "feedback": "nbt_feedback.py",
+    "paths": "nbt_paths.py",
+    "validate": "nbt_candidate.py"
   },
   "building_shapes": {
     "single": {

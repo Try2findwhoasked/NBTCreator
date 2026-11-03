@@ -6,6 +6,10 @@
 
 CI先运行工具一致性、冻结资料库、API/工作区/交接/提示词契约检查，再构建ZIP；逐文件验证解压内容，并在移除系统Node/Python搜索路径后检查私有Python、CLI、Skill生成和包内浏览器，之后运行打包版桌面和模拟API回归。失败不会发布。
 
+源码门禁还先构建 web-dist，并用 viewer 锁定的 Playwright 显式安装完整 Chromium；`PLAYWRIGHT_BROWSERS_PATH` 固定到本次 `build/portable-browser`，供源码回归和后续 portable 打包共用，不依赖 runner 偶然预装的 Edge或额外 headless-shell。随后运行共享渲染/快照校验、评论索引迁移与证据、独立开口、独立尺寸/非48网格交付、候选校验、工作区API取消、碰撞反例、整体精修及网页回导回归。核心夹具只写全新的 `build/ci-model-pipelines`，既有目录或任何检查失败直接使CI失败，不静默跳过，也不把模拟确认用于真实作者模型。打包后另用挂起的本机模拟API检查实际工作区切换会中止旧连接、允许新请求，并且不把旧结果/活动写到新工作区。
+
+`tests/task-cancel.mjs`另用超过50万格的真实合成主稿启动Python，确认PID仍存活后分别取消前置inspect和实际preview任务，检查cancelled状态、诊断保留和后续任务可继续；服务关闭也须结束自己创建的非job inspect子进程。该测试不使用sleep伪造工作，不扫描杀死用户其他进程。
+
 发布产物为 `NBTCreator-<版本>-windows-x64-portable.zip`、`.zip.sha256` 和逐文件 `.manifest.json`。用自有ZIP脚本确保`.agents`隐藏目录被保留，拒绝用户资产、环境文件和API配置。普通CI产物保留14天，Release资产长期保留。
 
 本地构建与检查：

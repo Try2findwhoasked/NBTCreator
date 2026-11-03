@@ -37,6 +37,8 @@ export async function writeHandoff({workspace,info,request,result,requestFile}) 
     `- 操作计划：${relative(result.plan)}\n- 计划校验包：${relative(result.bundle)}\n`+
     `- 共用交接文件夹：${relative(shared)}\n- 已关联审阅目录：${relative(request.review)}\n`+
     `- 已保存的修改意见：${relative(path.join(info.workdir,'修改意见'))}（若存在，读取与当前源版本匹配的意见）\n\n`+
+    `- 当前版本评论索引：${relative(path.join(info.version_dir??info.workdir,'修改意见/评论索引.json'))}\n`+
+    `可先运行 python .agents/skills/nbtcreator-workspace/nbt.py feedback scan --workspace . 查找评论，再用 feedback collect --source "${relative(info.source)}" --output <全新意见报告目录> 校验和收集证据。\n\n`+
     `请先读取源、参数和计划，解释实际要改的内容。文字备注与评论是需求，参数 JSON 是可执行工具设置。核对真实坐标、保护范围、变化预算和对应看图确认。\n`+
     `已有真实确认且对应源/配置一致时沿用；否则先提供审阅图并等待用户确认。本交接文件及“生成方案”操作本身不构成批准。不要伪造确认，也不要把候选统计写成已执行结果。\n\n`+
     `由你调用工具完成修改后，在源建筑所属工作文件夹内另建下一版本目录，保留原文件；交付完整主模型、NBT、验证记录和预览图。不要只覆盖旧文件，也不要把聊天方案当成已经完成的建筑。应用刷新建筑列表后应能选择新版本。\n\n`+

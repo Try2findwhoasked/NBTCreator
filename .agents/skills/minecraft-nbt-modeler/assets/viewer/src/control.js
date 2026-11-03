@@ -67,7 +67,7 @@ function status(message, kind = '') {
   if(kind==='error')document.querySelector('.result-panel').open=true
   $('status').textContent = message.length > 550 ? message.slice(0,550)+'…（完整信息见下方记录）' : message
   $('status-badge').className = 'badge '+kind
-  $('status-badge').textContent = kind === 'error' ? '需处理' : kind === 'warn' ? '待复核' : state.busy ? '进行中' : '就绪'
+  $('status-badge').textContent = kind === 'error' ? '需处理' : kind === 'warn' ? '待复核' : kind==='cancelled'?'已取消':state.busy ? '进行中' : '就绪'
 }
 function number(id) {
   const value = Number($(id).value)
@@ -211,6 +211,8 @@ function updateCount() {
   syncWorkspace();syncSelectionRange()
   $('copy-agent-plan').disabled = state.busy || !state.bundle || !state.agentText
   $('apply').disabled = state.busy || !state.bundle || !$('review').value.trim()
+  let currentPreview=false;try{currentPreview=!!state.preview&&state.previewSettings===JSON.stringify(gather())}catch{}
+  $('validate-preview').disabled=state.busy||state.previewBusy||!currentPreview
 }
 function busy(value) {
   state.busy = value
@@ -219,7 +221,7 @@ function busy(value) {
   $('compare-before').disabled=value||!state.preview;$('compare-after').disabled=value||!state.preview
   $('pick-material').disabled=value||state.mode!=='3d';$('pick-coordinate').disabled=value||state.mode!=='3d';
   $('export-revision').disabled=value||!state.info;
-  $('cancel').disabled = !value; $('pause-3d').disabled=state.mode!=='3d'; $('enable-3d').disabled=value||!state.info; $('save-feedback').disabled=value||!state.feedbackTarget||state.feedbackLoading||state.savingNote; updateCount()
+  $('cancel').disabled = !(value||state.previewBusy); $('pause-3d').disabled=state.mode!=='3d'; $('enable-3d').disabled=value||!state.info; $('save-feedback').disabled=value||!state.feedbackTarget||state.feedbackLoading||state.savingNote; updateCount()
   historyButtons()
   if (!$('status-badge').classList.contains('warn') && !$('status-badge').classList.contains('error')) $('status-badge').textContent=value?'进行中':'就绪'
 }
@@ -349,25 +351,33 @@ function gallery(images = []) {
 }
 
 async function runJob(kind, overrides = {}) {
+  const cancelEpoch=state.cancelEpoch??0
   const payload = { kind, request: request(), bundle: state.bundle, review: $('review').value.trim() }
   Object.assign(payload.request, overrides)
-  busy(true); status('正在执行：'+({plan:'生成计划',snapshot:'载入三维模型',prepare:'准备建筑审阅图',render:'批量保存源视图',apply:'应用已批准计划',revision:'导出建筑下一版'}[kind] ?? kind))
+  if(kind==='validate')payload.snapshot_key=state.preview?.model_key
+  busy(true); status('正在执行：'+({plan:'生成计划',snapshot:'载入三维模型',prepare:'准备建筑审阅图',render:'批量保存源视图',apply:'应用已批准计划',revision:'导出建筑下一版',validate:'检查当前候选效果'}[kind] ?? kind))
   try {
     while(state.previewBusy)await new Promise(resolve=>setTimeout(resolve,100))
+    if(cancelEpoch!==(state.cancelEpoch??0))throw new DOMException('任务已取消','AbortError')
     const submitted = await api('jobs', payload)
+    if(cancelEpoch!==(state.cancelEpoch??0)){await api('cancel',{});throw new DOMException('任务已取消','AbortError')}
     let job
     do { await new Promise(resolve => setTimeout(resolve, 350)); job = await api('jobs/'+submitted.id) } while(job.status === 'running')
     $('jobs').textContent = `${job.kind} · ${job.status} · ${job.directory}`
+    if(job.status==='cancelled')throw new DOMException(job.error||'任务已取消，诊断文件保留','AbortError')
     if (job.status !== 'complete') throw new Error(job.error ?? '任务失败')
     const result = job.result
     if(kind==='plan')state.configChanged=false
     await refreshEffects()
-    $('result-log').textContent = kind === 'snapshot'
-      ? `已载入 ${result.size.join(' × ')} 建筑，共 ${result.cameras.length} 个观察角度。\n`+(result.read_only_view?'当前仅作几何查看，尚无任务坐标/保护配置；没有执行通路或导出验收。':'当前显示为所选模型；调整左侧设置不会直接改动建筑。')
+    $('result-log').textContent = kind==='validate'
+      ? Object.entries(result.checks).map(([key,value])=>`${value.passed?'通过':'未通过'} · ${key}${value.error?'：'+value.error:''}`).join('\n')+'\n只检查当前候选，未写出正式建筑。'
+      : kind === 'snapshot'
+      ? `已载入 ${result.size.join(' × ')} 建筑，共 ${result.cameras.length} 个观察角度。\n`+(result.read_only_view?(result.context_warning||'当前仅作几何查看，尚无完整坐标/保护配置；没有执行通路或导出验收。'):'当前显示为所选模型；调整左侧设置不会直接改动建筑。')
       : kind === 'plan' ? `${result.operations} 项操作已编译。\n`+(result.estimates ?? []).map(e=>`${e.kind}：${e.writes} 个候选写入`).join('\n')+(result.warning?'\n估算未完成，完整原因见高级记录。':'\n这些是候选统计，不是已执行结果。')
-      : result.changed_blocks !== undefined ? `新版本修改了 ${result.changed_blocks} 个方块，原建筑保留。` : '结果已保存至本次独立任务目录。'
+      : result.changed_blocks !== undefined ? `新版本修改了 ${result.changed_blocks} 个方块${result.wall_membership_changes?'，另有 '+result.wall_membership_changes+' 个墙层归属变化':''}，原建筑保留。` : '结果已保存至本次独立任务目录。'
     $('advanced-log').textContent=JSON.stringify(result,null,2)
     $('result-links').replaceChildren()
+    if(result.validation_download){const link=document.createElement('a');link.href=result.validation_download;link.download='validation.json';link.textContent='下载候选检查报告';$('result-links').append(link)}
     if(result.runtime_files){const label=document.createElement('span');label.textContent='已保存下一版：'+result.output;$('result-links').append(label);for(const file of result.nbt_downloads ?? []){const link=document.createElement('a');link.href=file.url;link.download=file.name;link.textContent=file.name;$('result-links').append(link)}}
     if (result.plan_download) {
       const link=document.createElement('a');link.href=result.plan_download;link.download='plan.json';link.textContent='下载修改方案（工具用）';$('result-links').append(link)
@@ -381,9 +391,13 @@ async function runJob(kind, overrides = {}) {
     if (result.review) $('review').value=result.review
     if (result.images?.length) { imageMode(); gallery(result.images) }
     if (result.model_key) await loadViewer(result, Boolean(overrides.source))
-    status(result.warning ? '方案已保存，建筑检查未通过：'+result.warning : ({plan:`Agent 交接方案已生成：${result.operations} 项操作。点击“复制给 Agent”继续，原建筑未改变。`,prepare:'建筑审阅图已保存到本建筑的 Agent交接 文件夹，目录已自动关联。请看图后，在 Agent 对话中明确是否同意继续精修。',render:'原建筑的多角度预览图已保存。',apply:'新建筑已另存，原建筑保留。',revision:'下一版建筑已保存到原工作文件夹；包含主模型、NBT切片和分层交付。',snapshot:state.mode==='3d'?'三维已按需载入；可关闭 3D 返回看图模式。':'已返回看图模式。'}[kind] ?? '完成'), result.warning ? 'warn' : '')
+    if(kind==='validate'){
+      state.candidateValidation=result
+      $('candidate-check-state').textContent=result.passed?'当前候选检查通过 · 仍需看图确认':'候选检查未通过 · 查看下方报告'
+      status(result.passed?'当前候选的参数绑定、保护和整体检查通过；未生成正式建筑，仍需看图。':'候选检查未通过，请查看检查报告并调整。',result.passed?'':'error')
+    }else status(result.warning ? '方案已保存，建筑检查未通过：'+result.warning : ({plan:`Agent 交接方案已生成：${result.operations} 项操作。点击“复制给 Agent”继续，原建筑未改变。`,prepare:'建筑审阅图已保存到本建筑的 Agent交接 文件夹，目录已自动关联。请看图后，在 Agent 对话中明确是否同意继续精修。',render:'原建筑的多角度预览图已保存。',apply:'新建筑已另存，原建筑保留。',revision:'下一版建筑已保存到原工作文件夹；包含主模型、NBT切片和分层交付。',snapshot:state.mode==='3d'?'三维已按需载入；可关闭 3D 返回看图模式。':'已返回看图模式。'}[kind] ?? '完成'), result.warning ? 'warn' : '')
     return result
-  } catch(error) { if(['prepare','apply'].includes(kind))$('advanced-review').open=true;throw error } finally { busy(false) }
+  } catch(error) { if(error.name!=='AbortError'&&['prepare','apply'].includes(kind))$('advanced-review').open=true;throw error } finally { busy(false) }
 }
 async function loadViewer(result, isNewVersion = false) {
   result={...result,cameras:(result.cameras??[]).map(camera=>({...camera,cuts:(camera.cuts??[]).map(c=>Array.isArray(c)?{axis:c[0],position:c[1],removed_side:c[2]}:c)}))}
@@ -424,7 +438,8 @@ async function loadModel(preserve = false) {
     if (!$('context').value.trim()) $('context').value=info.context
     if (!$('cameras').value.trim()) $('cameras').value=info.cameras
     if(!preserve){['hi-x','hi-y','hi-z'].forEach((id,i)=>setValue(id,info.size[i]-1));setValue('budget',info.suggested_budget);setValue('floor-excludes',JSON.stringify(info.suggested_floor.exclude_boxes ?? [],null,2))}
-    $('model-summary').textContent=`${info.size.join(' × ')} · ${info.solid_blocks.toLocaleString()} 个实体方块 · ${info.wall_blocks.toLocaleString()} 个单独记录的墙体方块`+(info.unknown_shapes.length?`。${info.unknown_shapes.length} 类方块暂时无法自动检查能否通行。可以先生成方案，生成新建筑前仍需通过检查。`:'')
+    $('model-summary').textContent=`${info.size.join(' × ')} · ${info.solid_blocks.toLocaleString()} 个实体方块 · ${info.wall_blocks.toLocaleString()} 个单独记录的墙体方块`+(info.unknown_shapes.length?`。${info.unknown_shapes.length} 类方块暂时无法自动检查能否通行。可以先生成方案，生成新建筑前仍需通过检查。`:'')+(info.conservative_obstacles?.length?`。${info.conservative_obstacles.length} 类细件仅按保守障碍检查通路，不作为可站立地面，不代表精确碰撞或游戏验收。`:'')
+    if(info.editing_ready===false)$('model-summary').textContent+='。当前可查看和标注；修改前需补齐坐标配置：'+[...(info.context_readiness?.missing??[]),...(info.context_readiness?.errors??[])].join('、')
     renderMaterials();if(!preserve||previousHash!==info.source_sha256)resetSettingsHistory();gallery(info.images);if(!preserve||previousHash!==info.source_sha256)state.bundle=''
   } finally { busy(false) }
   status(state.images.length?'图片已打开。点击上方缩略图切换视角，点击大图标位置、写修改意见。':'这座建筑还没有对应的图片。可点击“为原建筑生成预览图”，或打开 3D 查看。')
@@ -449,11 +464,11 @@ function selectModel(index) {
   const item=state.models[index];if(!item)return
   $('source').value=item.source;$('context').value=item.context;$('cameras').value=item.cameras;state.bundle='';state.info=null;state.pickedMaterial=null;$('picked-material').hidden=true;$('orthographic-dialog').hidden=true
   $('viewer').hidden=true;$('viewer').src='about:blank';$('empty-view').hidden=false;$('view-select').disabled=true
-  state.imageLimit=state.defaultImageLimit??8;state.configChanged=false;state.activeNote=null;state.preview=null;state.previewRevision++;clearTimeout(previewTimer);$('compare-before').disabled=true;$('compare-after').disabled=true;$('preview-state').textContent='效果预览不会保存为正式建筑'
+  state.imageLimit=state.defaultImageLimit??8;state.configChanged=false;state.activeNote=null;state.preview=null;state.candidateValidation=null;$('candidate-check-state').textContent='候选尚未检查';state.previewRevision++;clearTimeout(previewTimer);$('compare-before').disabled=true;$('compare-after').disabled=true;$('preview-state').textContent='效果预览不会保存为正式建筑'
   $('model-summary').textContent='正在切换建筑…';$('result-links').replaceChildren();$('result-log').textContent='';$('status').textContent='请选择效果设置，右侧将载入对应图片。'
   imageMode();gallery([]);updateCount()
 }
-function handle(fn) { return async event => { try { await fn(event) } catch(error) { status(error.message,'error') } } }
+function handle(fn) { return async event => { try { await fn(event) } catch(error) { status(error.message,error.name==='AbortError'?'cancelled':'error') } } }
 $('refresh').addEventListener('click',handle(initialize))
 $('models').addEventListener('change',handle(async()=>{selectModel(Number($('models').value));await loadModel()}))
 $('load').addEventListener('click',handle(()=>loadModel()))
@@ -475,7 +490,7 @@ $('copy-agent-plan').addEventListener('click',handle(async()=>{
 $('prepare').addEventListener('click',handle(()=>runJob('prepare')))
 $('render').addEventListener('click',handle(()=>runJob('render')))
 $('apply').addEventListener('click',handle(()=>runJob('apply')))
-$('cancel').addEventListener('click',handle(()=>api('cancel',{})))
+$('cancel').addEventListener('click',handle(async()=>{state.cancelEpoch=(state.cancelEpoch??0)+1;state.previewRevision++;clearTimeout(previewTimer);await api('cancel',{});status('任务取消已处理；已产生的诊断文件保留。','cancelled')}))
 $('add-material').addEventListener('click',()=>{addMaterial();$('settings').dispatchEvent(new Event('input',{bubbles:true}))})
 $('settings').addEventListener('input',event=>{if(event.target.id==='materials-search')return;if(/^(lo|hi)-[xyz]$/.test(event.target.id))$('whole-region').checked=false;state.configChanged=true;state.bundle='';updateCount();recordSettings();if(event.target.id!=='style-note')schedulePreview()});$('review').addEventListener('input',updateCount)
 $('settings').addEventListener('submit',event=>event.preventDefault())
@@ -505,25 +520,30 @@ $('preset-file').addEventListener('change',handle(async()=>{
 let previewTimer
 function schedulePreview(){
   state.previewRevision++;clearTimeout(previewTimer)
+  state.candidateValidation=null;$('candidate-check-state').textContent='参数已改变，需重新检查';$('validate-preview').disabled=true
   $('preview-state').textContent='设置已改变，等待更新预览…'
   if($('auto-preview').checked&&state.info)previewTimer=setTimeout(()=>updatePreview().catch(error=>{$('preview-state').textContent='预览失败：'+error.message}),(state.previewDelay??1400))
 }
 async function updatePreview(){
   if(!state.info)return
   if(state.previewBusy||state.busy){if($('auto-preview').checked)previewTimer=setTimeout(()=>updatePreview().catch(error=>$('preview-state').textContent='预览失败：'+error.message),700);return}
-  const revision=state.previewRevision,source=state.info.source,payload=request()
+  const revision=state.previewRevision,source=state.info.source,payload=request(),cancelEpoch=state.cancelEpoch??0
   state.previewBusy=true;$('update-preview').disabled=true;$('preview-state').textContent='正在计算效果，仍可继续调参…'
+  $('cancel').disabled=false
+  state.candidateValidation=null;$('candidate-check-state').textContent='候选尚未检查';$('validate-preview').disabled=true
   try{
     const submitted=await api('jobs',{kind:'preview',request:payload})
+    if(cancelEpoch!==(state.cancelEpoch??0)){await api('cancel',{});throw new DOMException('预览已取消','AbortError')}
     let job;do{await new Promise(resolve=>setTimeout(resolve,300));job=await api('jobs/'+submitted.id)}while(job.status==='running')
+    if(job.status==='cancelled'||cancelEpoch!==(state.cancelEpoch??0))throw new DOMException('预览已取消，原稿保留','AbortError')
     if(job.status!=='complete')throw new Error(job.error ?? '计算失败')
     if(revision!==state.previewRevision||source!==state.info?.source)return
     state.preview=job.result;state.previewSettings=JSON.stringify(payload.settings)
     await showComparison('after')
     $('compare-before').disabled=false;$('compare-after').disabled=false
-    $('preview-state').textContent=`调整效果 · ${job.result.changed_blocks} 个方块变化 · 仅预览，未生成正式建筑`
+    $('preview-state').textContent=`调整效果 · ${job.result.changed_blocks} 个方块变化${job.result.wall_membership_changes?' · '+job.result.wall_membership_changes+' 个墙层归属变化':''} · 仅预览，未生成正式建筑`
     status('参数效果预览已更新。用“看原建筑 / 看调整效果”在同一视角对比；保存调整设置可留存当前配方。')
-  }finally{state.previewBusy=false;$('update-preview').disabled=false}
+  }finally{state.previewBusy=false;$('update-preview').disabled=false;$('cancel').disabled=!state.busy;updateCount()}
 }
 async function showComparison(side){
   const result=state.preview;if(!result)return
@@ -547,6 +567,10 @@ async function showComparison(side){
 }
 $('auto-preview').addEventListener('change',()=>{if($('auto-preview').checked)schedulePreview();else clearTimeout(previewTimer)})
 $('update-preview').addEventListener('click',handle(updatePreview))
+$('validate-preview').addEventListener('click',handle(()=>{
+  if(!state.preview||state.previewSettings!==JSON.stringify(gather()))throw Error('请先更新当前参数的效果预览')
+  return runJob('validate')
+}))
 $('compare-before').addEventListener('click',handle(()=>showComparison('before')))
 $('compare-after').addEventListener('click',handle(()=>showComparison('after')))
 function modelName(source=state.info?.source){return state.models.find(model=>model.source===source)?.name ?? source?.split(/[\\/]/).slice(-3).join(' / ') ?? '尚未选择建筑'}

@@ -20,6 +20,8 @@ const caps=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'capabilities']));as
 const workspace=path.join(output,'workspace');await fs.mkdir(workspace)
 run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'exposure','apply'])
 assert.ok((await fs.readFile(path.join(workspace,'.agents/skills/nbtcreator-workspace/SKILL.md'),'utf8')).includes('.nbtcreator/runtimes'))
+const exportedRuntime=(await fs.readdir(path.join(workspace,'.nbtcreator/runtimes')))[0]
+assert.ok(JSON.parse(await fs.readFile(path.join(workspace,'.nbtcreator/runtimes',exportedRuntime,'assets/viewer/package-lock.json'),'utf8')).lockfileVersion)
 const browserScript=path.join(output,'browser-probe.mjs')
 await fs.writeFile(browserScript,`import {createRequire} from 'node:module';const r=createRequire(${JSON.stringify(path.join(app,'.agents/skills/minecraft-nbt-modeler/assets/viewer/package.json'))});const b=await r('playwright').chromium.launch({executablePath:${JSON.stringify(path.join(app,'runtime/browser/chrome.exe'))},headless:true});const p=await b.newPage();await p.setContent('<title>portable</title>');if(await p.title()!=='portable')throw Error('browser');await b.close();console.log('browser-ok')`)
 assert.ok(run([browserScript]).includes('browser-ok'))
@@ -28,5 +30,31 @@ execFileSync(path.join(app,'runtime/python/python.exe'),['-c',`import sys;sys.pa
 await fs.writeFile(cameras,JSON.stringify([{id:'whole',eye:[15,13,15],target:[4,1,4]}]))
 run([path.join(app,'scripts/cli.mjs'),'render','--source',fixture,'--cameras',cameras,'--output',rendered,'--width','320','--height','240','--quality','balanced'])
 assert.ok((await fs.readdir(rendered)).some(f=>f.endsWith('.png')))
-await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks:{zip_manifest_and_hidden_skill:true,private_python_dependencies:true,electron_node_cli:true,workspace_skill_generation:true,bundled_chromium:true,python_node_batch_render:true}},null,2))
-console.log(JSON.stringify({passed:true,checks:6,output}))
+const facadeRendered=path.join(output,'workspace-rendered')
+execFileSync(path.join(app,'runtime/python/python.exe'),[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'render','--source',fixture,'--cameras',cameras,'--output',facadeRendered,'--width','320','--height','240'],{env,cwd:workspace,windowsHide:true,timeout:180000})
+assert.equal(JSON.parse(await fs.readFile(path.join(facadeRendered,'render_manifest.json'),'utf8')).status,'complete')
+const candidate=path.join(workspace,'candidate-fixture'),scripts=path.join(workspace,'.nbtcreator/runtimes',exportedRuntime,'scripts')
+await fs.mkdir(candidate)
+const code=`import sys,json
+from pathlib import Path
+sys.path.insert(0,${JSON.stringify(scripts)})
+from nbt_assembly import Volume
+from nbt_refine import save_master
+from nbt_detail_control import default_settings,preview_effect,digest
+folder=Path(${JSON.stringify(candidate)})
+m=Volume((24,12,28));m.box((0,0,0),(23,11,27),'stone_bricks');m.box((1,1,1),(22,10,26),'air')
+walls={p for p in m.blocks if p[0] in (0,23) or p[2] in (0,27)}
+source=folder/'source.master.json.gz';save_master(source,m,walls)
+context=dict(mode='standalone',openings=[],start=[2.5,1,2.5],targets={'end':[20.5,1,24.5]},interior_probes=[[10,2,10]],cameras=[dict(role='whole',id='overview',eye=[40,25,40],target=[12,3,14]),dict(role='entry',id='entry',eye=[2.5,2.62,2.5],target=[10,3,10])])
+(folder/'context.json').write_text(json.dumps(context),encoding='utf8')
+settings=default_settings();settings['operations']=[dict(kind='box',label='portable candidate',lo=[5,1,5],hi=[5,3,5],state='stone_bricks',classification='body')]
+request=dict(source=str(source),source_sha256=digest(source),context=str(folder/'context.json'),settings=settings)
+(folder/'request.json').write_text(json.dumps(request),encoding='utf8')
+preview_effect(request,folder/'preview')
+`
+execFileSync(path.join(app,'runtime/python/python.exe'),['-B','-c',code],{env,windowsHide:true,timeout:180000})
+execFileSync(path.join(app,'runtime/python/python.exe'),[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'validate','--request',path.join(candidate,'request.json'),'--snapshot',path.join(candidate,'preview/after.json'),'--output',path.join(candidate,'checked')],{env,cwd:workspace,windowsHide:true,timeout:180000})
+const verified=JSON.parse(await fs.readFile(path.join(candidate,'checked/validation.json'),'utf8'))
+assert.equal(verified.passed,true);assert.equal(verified.asset_written,false)
+await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks:{zip_manifest_and_hidden_skill:true,private_python_dependencies:true,electron_node_cli:true,workspace_skill_generation:true,bundled_chromium:true,python_node_batch_render:true,workspace_facade_private_render_runtime:true,standalone_candidate_checked_in_private_runtime:true}},null,2))
+console.log(JSON.stringify({passed:true,checks:8,output}))

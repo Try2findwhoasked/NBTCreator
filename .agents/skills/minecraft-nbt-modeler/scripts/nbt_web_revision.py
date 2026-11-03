@@ -11,12 +11,13 @@ import re
 import tempfile
 from datetime import datetime,timezone,timedelta
 from nbt_detail_control import read_json,write_json,digest,canonical,preview_effect,normalize_context
-from nbt_refine import read_master,save_master,validate,layout
+from nbt_refine import read_master,save_master,validate,layout,protections,point
 from nbt_model import Model,load
 from nbt_assembly import Volume
 from nbt_delivery import export_delivery,verify_delivery
 from nbt_web_paths import project_paths,reserve_version
 from nbt_request_paths import read_request,portable_request
+from nbt_whole_validation import validation_mode
 
 def resolve_request(file):
     file=Path(file).resolve()
@@ -39,6 +40,11 @@ def convert_web_json(input_file,workdir=None):
     if request.get('source_sha256') and request['source_sha256']!=source_hash:raise ValueError('原建筑已变化，请重新打开原版本并保存设置')
     baseline,base_walls=read_master(source)
     settings=request['settings'];config=normalize_context(baseline,request['context'],request.get('cameras',''),settings)
+    if 'wall_positions' in config:
+        base_walls={point(p) for p in config['wall_positions']}
+        if any(not baseline.in_bounds(p) for p in base_walls):raise ValueError('显式墙mask超出原模型边界')
+    base_walls={p for p in base_walls if p in baseline.blocks}
+    standalone=validation_mode(config)=='standalone'
     original_config=read_json(request['context']);baseline_checks=validate(baseline,config)
     root=Path(workdir).resolve() if workdir else project_paths(source)['workdir']
     skill=Path(__file__).resolve().parents[1]
@@ -57,16 +63,20 @@ def convert_web_json(input_file,workdir=None):
             model.put(p,value)
         if model.fingerprint()!=after['geometry_sha256']:raise ValueError('修改后几何哈希不符')
         walls={tuple(p) for p in after['wall_positions'] if model.get(tuple(p)) not in {'minecraft:air','minecraft:cave_air','minecraft:void_air'}};cells=layout(model,config)
-        if any(not any((p[0]//48,p[2]//48)==tuple(cell) for p in walls) for cell in cells):raise ValueError('每个有效分片都需要原稿中明确记录的墙体归属，不能按方块材质猜测')
-        changed=sum(baseline.get(p)!=model.get(p) for p in set(baseline.blocks)|set(model.blocks))
-        if changed>settings.get('max_changed_blocks',4096):raise ValueError(f'改动{changed}个方块超过当前数量上限，请核对设置后再导出')
+        if standalone:
+            if not walls and config.get('allow_empty_wall_mask') is not True:raise ValueError('独立素材的空墙mask须显式设置allow_empty_wall_mask=true')
+        elif any(not any((p[0]//48,p[2]//48)==tuple(cell) for p in walls) for cell in cells):raise ValueError('每个有效分片都需要原稿中明确记录的墙体归属，不能按方块材质猜测')
+        from nbt_change_policy import enforce_changes,change_sets
+        difference=enforce_changes(baseline.blocks,model.blocks,base_walls,walls,
+            protected=protections(baseline,config),maximum=settings.get('max_changed_blocks',4096))
+        geometry_changed,layers_changed=change_sets(baseline.blocks,model.blocks,base_walls,walls)
         checks=validate(model,config)
         if digest(source)!=source_hash:raise ValueError('转换期间原建筑变化，请重新导出')
         work,target=reserve_version(source,workdir)
         input_hash=digest(input_file) if Path(input_file).is_file() else digest(request_file)
         receipt=dict(schema_version=1,status='writing',source=str(source),source_sha256=source_hash,
             input=str(Path(input_file).resolve()),input_sha256=input_hash,settings_sha256=canonical(settings),
-            source_version=str(project_paths(source)['version']),output=str(target),changed_blocks=changed,
+            source_version=str(project_paths(source)['version']),output=str(target),**difference,
             intent='Explicit saved-effect conversion; not an approval receipt or game deployment',runtime_verified=False)
         write_json(target/'conversion.json',receipt)
         try:
@@ -90,27 +100,35 @@ def convert_web_json(input_file,workdir=None):
             date=datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d')
             room=next((part.lower() for part in source.parts if re.fullmatch(r'[rRsSlL]\d{2,3}',part.split('_')[0])), 'building').split('_')[0]
             prefix=date+'_'+room+'_'
-            delivery=export_delivery(model,cells,walls,target/'delivery','Explicit inherited global wall ownership',file_prefix=prefix)
-            runtime=target/'runtime/parts';runtime.mkdir(parents=True)
-            parts=[];recovered={}
-            for cx,cz in sorted(map(tuple,cells)):
-                part=Model((48,model.size[1],48))
-                for (x,y,z),value in model.blocks.items():
-                    if (x//48,z//48)==(cx,cz):part.put((x-cx*48,y,z-cz*48),value)
-                part.seal_record=model.seal_record;part.stage='opened';part.final_fingerprint=part.fingerprint()
-                file=runtime/(prefix+f'p{cx}{cz}.nbt');part.save(file);readback=load(file)
-                for (x,y,z),value in readback.blocks.items():recovered[(x+cx*48,y,z+cz*48)]=value
-                parts.append(dict(file=str(file.resolve()),offset=[cx*48,0,cz*48],sha256=digest(file)))
-            if recovered!=model.blocks:raise ValueError('48连续切片回读不能完整重组主模型')
-            verify_delivery(target/'delivery')
-            write_json(target/'runtime/parts.json',dict(stride=48,parts=parts,exact_reassembly=True,geometry_sha256=model.fingerprint(),game_verified=False,saodg49_verified=False))
-            write_json(target/'changes.json',dict(changes=[dict(pos=list(p),before=baseline.get(p),after=model.get(p)) for p in sorted(set(baseline.blocks)|set(model.blocks)) if baseline.get(p)!=model.get(p)]))
+            if standalone:
+                from nbt_standalone_delivery import export_standalone
+                standalone_export=export_standalone(model,walls,target,file_prefix=prefix,allow_empty_wall_mask=config.get('allow_empty_wall_mask',False),active_cells=config.get('cells'))
+                delivery=standalone_export['delivery']
+                parts=[dict(file=file) for file in standalone_export['runtime_files']]
+            else:
+                delivery=export_delivery(model,cells,walls,target/'delivery','Explicit inherited global wall ownership',file_prefix=prefix)
+                runtime=target/'runtime/parts';runtime.mkdir(parents=True)
+                parts=[];recovered={}
+                for cx,cz in sorted(map(tuple,cells)):
+                    part=Model((48,model.size[1],48))
+                    for (x,y,z),value in model.blocks.items():
+                        if (x//48,z//48)==(cx,cz):part.put((x-cx*48,y,z-cz*48),value)
+                    part.seal_record=model.seal_record;part.stage='opened';part.final_fingerprint=part.fingerprint()
+                    file=runtime/(prefix+f'p{cx}{cz}.nbt');part.save(file);readback=load(file)
+                    for (x,y,z),value in readback.blocks.items():recovered[(x+cx*48,y,z+cz*48)]=value
+                    parts.append(dict(file=str(file.resolve()),offset=[cx*48,0,cz*48],sha256=digest(file)))
+                if recovered!=model.blocks:raise ValueError('48连续切片回读不能完整重组主模型')
+                verify_delivery(target/'delivery')
+                write_json(target/'runtime/parts.json',dict(stride=48,parts=parts,exact_reassembly=True,geometry_sha256=model.fingerprint(),game_verified=False,saodg49_verified=False))
+            write_json(target/'changes.json',dict(changes=[dict(pos=list(p),before=baseline.get(p),after=model.get(p)) for p in sorted(geometry_changed)],
+                wall_membership_changed=[list(p) for p in sorted(layers_changed)],
+                wall_changes=[dict(pos=list(p),before_wall=p in base_walls,after_wall=p in walls) for p in sorted(layers_changed)],**difference))
             (target/'previews').mkdir();write_json(target/'previews/README.json',dict(status='not_rendered',reason='Generate new previews from this master; original-version images are not copied'))
             if digest(source)!=source_hash:raise ValueError('导出期间原稿变化，当前版本不能标为完成')
             from nbt_library import register_building
             description=next((p/'room_description.json' for p in [source.parent,*list(source.parents)[:4]] if (p/'room_description.json').is_file()),None)
             if description:
-                register_building(master/'master_geometry.json.gz',read_json(description)['name_zh'],cells)
+                register_building(master/'master_geometry.json.gz',read_json(description)['name_zh'],cells,mode='standalone' if standalone else None)
             receipt.update(status='complete',master=str(master/'master_geometry.json.gz'),runtime_parts=len(parts),runtime_files=[entry['file'] for entry in parts],delivery_nbt=delivery['actual_nbt_files'],geometry_sha256=model.fingerprint(),source_unchanged=True)
             write_json(target/'conversion.json',receipt)
             return receipt

@@ -79,6 +79,7 @@ def chinese_name(unit):
  return None,None
 
 def adapt_coordinates(data):
+ if not isinstance(data,dict):raise ValueError('坐标配置JSON需要对象，不能是列表或文字')
  data=dict(data,**data.get('floor_context',{}))
  if 'start' not in data and isinstance(data.get('arrival'),list):data['start']=data['arrival']
  if 'interior_probes' not in data and isinstance(data.get('probes'),list):data['interior_probes']=data['probes']
@@ -152,16 +153,28 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
    geometry_cache[digest]=dict(valid=False,error=str(error))
  if selected is None:result['reasons'].append('没有可读取且哈希一致的完整主模型');return result
  result['valid']=False
+ standalone_config=None
+ for candidate in [unit/'coordinates.json',unit/'config.json',unit/'context.json']:
+  if not candidate.is_file():continue
+  try:
+   value=canonical_context(candidate)
+   if value.get('mode')=='standalone':standalone_config=value;break
+  except (ValueError,OSError):pass
+ standalone=standalone_config is not None
  footprint={tuple(c) for c in result['cells']};reached=set();pending=[next(iter(footprint))] if footprint else []
  while pending:
   cell=pending.pop()
   if cell in reached:continue
   reached.add(cell);x,z=cell
   pending.extend((x+dx,z+dz) for dx,dz in [(1,0),(-1,0),(0,1),(0,-1)] if (x+dx,z+dz) in footprint and (x+dx,z+dz) not in reached)
- if reached!=footprint:result['reasons'].append('有效cells不连通')
- if not result['walls']:result['reasons'].append('缺少显式全局墙mask')
- if not 8<=result['size'][1]<=48:result['reasons'].append('当前切片高度不在8至48')
+ if not standalone and reached!=footprint:result['reasons'].append('有效cells不连通')
+ if not result['walls'] and not (standalone and standalone_config.get('allow_empty_wall_mask') is True):result['reasons'].append('缺少显式全局墙mask')
+ if not standalone and not 8<=result['size'][1]<=48:result['reasons'].append('当前切片高度不在8至48')
  result['shape']=shape_of(result['size'],result['cells']);result['shape_zh']=LABELS[result['shape']]
+ if standalone:
+  descriptor=unit/'room_description.json'
+  if descriptor.is_file() and read_json(descriptor).get('shape')=='standalone':result.update(shape='standalone',shape_zh=LABELS['standalone'])
+  result['mode']='standalone'
  configs=[p for p in [unit/'coordinates.json',unit/'config.json',unit/'context.json'] if p.is_file()]
  if not configs:result['reasons'].append('缺少坐标/保护配置')
  else:
@@ -173,7 +186,7 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
    if choice is None:result['reasons'].append('坐标配置缺少路线或密闭探针')
    else:
     selected_config,config=choice
-    if config.get('cells') and {tuple(c) for c in config['cells']}!={tuple(c) for c in result['cells']}:result['reasons'].append('声明cells与实际占地不一致')
+    if not standalone and config.get('cells') and {tuple(c) for c in config['cells']}!={tuple(c) for c in result['cells']}:result['reasons'].append('声明cells与实际占地不一致')
     result['context']=str(selected_config)
   except Exception as error:result['reasons'].append('坐标JSON无法读取：'+str(error))
  proof,proof_files=report_evidence(unit);result.update(evidence=proof,evidence_files=proof_files)
@@ -187,6 +200,10 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
   try:
    d=read_json(manifest)
    if d.get('source_geometry_sha256')!=result['geometry_sha256']:continue
+   if standalone and d.get('kind')=='standalone_xyz_tiles':
+    from nbt_standalone_delivery import verify_standalone
+    verified=verify_standalone(manifest.parent.parent)
+    matched=manifest;result['delivery']=str(manifest.parent);result['delivery_nbt']=verified['actual_nbt_files'];break
    key=sha(manifest)
    # file paths in the digest differ across copies; verify each packet's actual bytes.
    expected_files=[entry[layer] for entry in d['parts'] for layer in ('body','walls')]
@@ -204,6 +221,11 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
  # Runtime comparison: inspect actual full-volume parts and match geometry by cell.
  if matched:
   try:
+   if standalone and read_json(matched).get('kind')=='standalone_xyz_tiles':
+    part_manifest=read_json(matched.parent.parent/'runtime/parts.json')
+    result['runtime']=[str(matched.parent.parent/'runtime'/entry['file']) for entry in part_manifest['parts']]
+    result['valid']=not result['reasons']
+    return result
    model,_,_=read_geometry(selected)
    candidates=[p for folder in (unit/'runtime',unit/'parts',selected.parent) if folder.is_dir() for p in folder.rglob('*.nbt') if 'delivery' not in p.parts and 'layers' not in p.parts]
    candidates=list(dict.fromkeys(candidates));expected=defaultdict(dict)
@@ -241,15 +263,22 @@ def new_project(workspace,name_zh,shape):
  write_json(target/'room_description.json',dict(schema_version=1,name_zh=name_zh,shape=shape,shape_zh=LABELS[shape],display_name=name_zh+'-'+LABELS[shape],description_zh=name_zh+'-'+LABELS[shape],master=None,status='authoring',audit=dict(compliant=None)))
  return target
 
-def register_building(master,name_zh,cells=None):
+def register_building(master,name_zh,cells=None,mode=None):
  if not isinstance(name_zh,str) or not re.search('[\u4e00-\u9fff]',name_zh):raise ValueError('房间描述必须提供中文名')
  model,walls,inferred=read_geometry(master);shape=shape_of(model.size,cells or inferred)
+ if mode not in (None,'standalone','saodg'):raise ValueError('未知建筑模式')
+ if mode=='standalone':
+  from nbt_whole_validation import standalone_cells
+  cells=standalone_cells(model,dict(cells=cells)) or []
+  shape=shape_of(model.size,cells or inferred)
  parts=Path(master).resolve().parts
  if 'nbt_models' in parts:
   index=parts.index('nbt_models')
+  if mode=='standalone' and index+1<len(parts) and parts[index+1]=='standalone':shape='standalone'
   if index+1<len(parts) and parts[index+1] in LABELS and parts[index+1]!=shape:raise ValueError('保存目录形状与实际完整模型不一致，请使用正确形状目录')
  unit=version_root(master);existing=unit/'room_description.json';data=read_json(existing) if existing.is_file() else {}
  data.update(schema_version=1,name_zh=name_zh,shape=shape,shape_zh=LABELS[shape],display_name=name_zh+'-'+LABELS[shape],description_zh=name_zh+'-'+LABELS[shape],master=os.path.relpath(Path(master).resolve(),unit).replace('\\','/'),master_file_sha256=sha(master),geometry_sha256=model.fingerprint(),size=list(model.size),cells=cells or inferred)
+ if mode=='standalone':data.update(mode='standalone',cells=cells or [],parts_layout='xyz_tiles_max48')
  write_json(existing,data);return data
 
 if __name__=='__main__':

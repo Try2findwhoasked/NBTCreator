@@ -28,3 +28,25 @@
 GUI的“建模工具”支持同样的有序operations。Agent使用control plan/preview或原refine流程调用，旧的专用API保持兼容。计划、预览、应用、导出和精修确认是不同阶段；能力清单不授予任何批准。
 
 统一入口：`node scripts/cli.mjs capabilities`；独立复制skill后使用 `python <skill>/scripts/nbt_capabilities.py`。各命令参数请用 --help 查询。
+
+## 无界面命令
+
+- inspect → scripts/nbt_task.py
+- snapshot → scripts/nbt_task.py
+- render → scripts/nbt_task.py
+- regress → scripts/nbt_task.py
+- control → scripts/nbt_detail_control.py
+- refine → scripts/nbt_refine.py
+- model → scripts/nbt_tools.py
+- convert → scripts/nbt_web_revision.py
+- registry → scripts/nbt_registry.py
+- library → scripts/nbt_library.py
+- check → scripts/check_skill.py
+- capabilities → scripts/nbt_capabilities.py
+- migrate-workspace → scripts/nbt_workspace.py
+- exposure → scripts/nbt_exposure.py
+- feedback → scripts/nbt_feedback.py
+- paths → scripts/nbt_paths.py
+- validate → scripts/nbt_candidate.py
+
+工作区入口为 `python .agents/skills/nbtcreator-workspace/nbt.py <命令>`。`feedback scan` 扫描结构版本的评论索引，`feedback collect/archive` 校验或归档意见证据，详见 [Agent读取意见](agent-feedback.md)。

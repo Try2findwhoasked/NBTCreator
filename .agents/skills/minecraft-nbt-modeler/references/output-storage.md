@@ -20,6 +20,7 @@
 - `scripts/`：按日期命名的任务专用生成脚本及参数；通用脚本仍在skill/scripts，SAODG仓库共享工具放`tools/`。
 - `master/`：完整未切割主模型、全局墙mask和冻结版本。
 - `coordinates.json`：整体尺寸、原点、地板/平台Y、适用的door_y/端口及关键目标。
+
 - `runtime/parts/`：完整含空气的运行模板和原始分片偏移。
 - `delivery/`：每有效分片恰好body/walls两份稀疏NBT及交付清单，不混入完整模板。
 - `previews/`、`validation/`：图像、审阅依据及分项检查结果。
@@ -27,6 +28,12 @@
 - `exports/YYYY-MM-DD_HHmmss/`：从离线编辑存档回导的全新输出，含runtime/parts、适用的delivery、坐标、布局与验证记录。
 
 任务生成物、世界、任务脚本及Python缓存不提交源码。`build/`含制作资产，执行Gradle clean前先备份需要保留的任务。输出根目录可由用户指定；以上分区不改变整体建模、密闭后开洞、看图授权精修和机械切片的顺序。
+
+## 可继续编辑的坐标上下文
+
+coordinates.json 也是应用继续编辑与 Agent 换人接手的正式上下文，不能只写设计说明而把可执行字段分散到旧验证报告。必须包含真实 `start`（玩家脚位XYZ）、非空 `targets`、非空 `interior_probes`、适用的 `protected_paths/protected_boxes/route_legs`。SAODG 使用 `mode: "saodg"`、`cells/door_y/ports`；独立建筑使用 `mode: "standalone"`、显式 `openings`（无开口填[]），不套用SAODG门洞。墙mask在主模型或显式配置中保存，不按材质补造。相机可放独立 cameras.json。
+
+交付前运行 `nbt.py control inspect --source <主模型>` 核对 `editing_ready` 和 `context_readiness`，再做实际整体验证。editing_ready 只表示上下文字段可用，不证明通路或设计合格；缺少配置时应用允许只读看图/3D和评论，不能宣称已经可修改或导出。
 
 SAODG工作区提供可选的独立工具`tools/structures/structure_world.py`（依赖`tools/requirements.txt`）：`create --layout <布局JSON> --output <新世界目录>`创建Java 1.20.1超平坦存档；`export --world <离线存档> --output <新回导目录>`按映射恢复NBT。详细布局与命令见工作区`docs/NBT_AUTHORING.md`。该仓库工具不是本skill分发依赖；迁移skill到其他工作区后先确认是否有此工具，不能虚报命令存在。
 

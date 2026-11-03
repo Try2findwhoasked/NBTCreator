@@ -25,5 +25,5 @@ export async function previewAI(result,apply){
  if(!result?.activity_id)return apply()
  await activity({action:'stage',id:result.activity_id,message:'本地校验、合并候选并生成3D预览'})
  try{const value=await apply();await activity({action:'finish',id:result.activity_id,status:'complete',message:'本地预览完成；原稿保留，尚未导出正式建筑'});return value}
- catch(e){await activity({action:'finish',id:result.activity_id,status:'failed',message:'预览失败：'+e.message});throw e}
+ catch(e){const cancelled=e.name==='AbortError'||/取消/.test(e.message);await activity({action:'finish',id:result.activity_id,status:cancelled?'cancelled':'failed',message:(cancelled?'预览取消：':'预览失败：')+e.message});throw e}
 }

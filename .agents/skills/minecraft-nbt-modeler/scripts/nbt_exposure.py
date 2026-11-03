@@ -10,7 +10,7 @@ from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 GROUPS={
- 'core':('必需：工作流与验收',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools']),
+ 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback']),
  'architecture':('建筑风格与场所',['architecture-knowledge-base','structure-atlas','design-grammar']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
@@ -26,6 +26,8 @@ GROUPS={
 
 def sync_runtime(workspace):
     """Copy a verified local runtime, preserving any previous or edited snapshot."""
+    from nbt_render_runtime import write_render_binding
+    write_render_binding(workspace, ENGINE)
     files=[]
     for directory,dirs,names in os.walk(ENGINE):
         dirs[:]=[d for d in dirs if d not in {'node_modules','__pycache__','.git','.vite'}]
@@ -107,8 +109,19 @@ def apply(workspace,config=None):
       '本入口暴露给在当前项目中读取SKILL.md的Codex或其他支持文件式skill的Agent；不是Minecraft游戏或API供应商的服务器插件。',
       '本入口仅按配置暴露知识路由，不删除资料库，也不是文件访问权限控制。未选择的专题不默认读取；需要额外专题时由用户调整配置。','',
       f'完整工具清单与接口：[共用接口]({relative}/references/exposed-tools.md)。',
-      '无界面调用：`python .agents/skills/nbtcreator-workspace/nbt.py capabilities`；`control --help`、`refine --help`。Electron无需启动。',
-      '工具能力与应用保持一致，AI结构建议只覆盖其中的受限子集。已有批准/预览均绑定源哈希；不要并发写出同一建筑。','','## 已启用知识库']
+      '无界面调用：`python .agents/skills/nbtcreator-workspace/nbt.py capabilities`；各命令用 --help 查询。Electron无需启动。',
+      '`python .agents/skills/nbtcreator-workspace/nbt.py paths` 返回当前冻结引擎、scripts、references 和 Python 的实际路径。任务脚本据此导入 API，无需读包装器猜目录，不硬编码应用安装路径。',
+      '工具能力与应用保持一致，AI结构建议只覆盖其中的受限子集。已有批准/预览均绑定源哈希；不要并发写出同一建筑。',
+      '', '## 按任务进入', '',
+      '已启用表示资料可用，不要求每次把全部目录读完。完整阅读下面当前阶段所列文件；专题按用途选适用完整章节，长建筑原型库无需遍读。', '',
+      '| 当前任务 | 先读与下一步 |','| --- | --- |',
+      f'| 首次创建或重设计 | 完整读 [整体流程]({relative}/references/whole-model-workflow.md)、[玩家尺度]({relative}/references/player-scale.md)、[创作原则]({relative}/references/design-principles.md)、[空间细节]({relative}/references/spatial-detail-design.md)。写本任务生成器；自定义独立入口使用 toolkit 的 open_declared_openings，不套用 SAODG 端口。 |',
+      f'| 已有模型的标注/候选 | 读 [意见与证据]({relative}/references/agent-feedback.md)，先 feedback scan/collect，再结合原图/坐标解释构件，按需读空间细节和实际使用的工具。plan/preview 后运行 validate --request <参数JSON> --snapshot <after.json> --output <新目录> 并实际看图，不能把 planned 当候选路线已通过。 |',
+      f'| 用户已看图批准精修 | 完整读 [精修流程]({relative}/references/refinement.md) 和实际修改的专题，核对源/保护/图像确认后操作。 |',
+      f'| 写出或交付 | 读 [验证]({relative}/references/validation-workflow.md)、[交付]({relative}/references/delivery-workflow.md)、[存放]({relative}/references/output-storage.md) 和相关 toolkit 章节；coordinates.json必须含可接手的起点/目标/探针及适用开口，control inspect 的 editing_ready 为字段检查，实际整体通过后纯切片回读。 |',
+      '| 只读检查或维护工具 | 读当前接口和相关工具章节，不要求重读建筑设计、原型、SAODG接入或精修章节。 |',
+      '', '采用已获准的subagent委派时再读delegation-and-review，并记录真实阅读；未批准的初稿不能调用精修approve/apply。',
+      '', '## 已启用知识库']
     for group in config['enabled_groups']:
         label,files=GROUPS[group];lines.extend(['',f'### {label}',''])
         for name in files:
@@ -127,7 +140,7 @@ import sys,subprocess,json
 engine=(Path(__file__).resolve().parent/ENGINE_RELATIVE).resolve()
 if not engine.is_dir():raise SystemExit('引擎路径变化，请在应用AI设置重新同步Skill暴露配置')
 catalog=json.loads((engine/'tool-catalog.json').read_text(encoding='utf8'))
-if len(sys.argv)==1:raise SystemExit('调用方式：nbt.py capabilities | control --help | refine --help')
+if len(sys.argv)==1:raise SystemExit('调用方式：nbt.py paths | capabilities | feedback --help | control --help | refine --help')
 command,*args=sys.argv[1:]
 script=catalog['commands'].get(command)
 if script is None:raise SystemExit('未知工具，请先调用capabilities')

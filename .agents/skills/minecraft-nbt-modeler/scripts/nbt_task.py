@@ -46,6 +46,44 @@ def write_snapshot(source, output, provenance=None, cameras=None):
     return result
 
 
+def checked_preview_snapshot(file):
+    """Validate a data-only control preview before rendering it, never as an NBT source."""
+    from nbt_assembly import Volume
+    from nbt_refine import read_master
+    from nbt_registry import effective, normalize
+    file = Path(file).resolve()
+    raw = file.read_bytes()
+    data = json.loads(raw)
+    source = Path(data['source']).resolve()
+    if hashlib.sha256(source.read_bytes()).hexdigest() != data['source_sha256']:
+        raise ValueError('Preview source has changed; calculate a new preview')
+    if not data.get('preview_only') or not isinstance(data.get('master_blocks'), list):
+        raise ValueError('--snapshot requires a control preview with preview_only and master_blocks')
+    baseline, _ = read_master(source)
+    if list(baseline.size) != data['size']:
+        raise ValueError('Preview dimensions do not match source')
+    model = Volume(data['size'])
+    seen = set()
+    for p, value in data['master_blocks']:
+        p = tuple(p)
+        if len(p)!=3 or any(type(n) is not int for n in p) or not model.in_bounds(p) or p in seen:
+            raise ValueError('Invalid or duplicate preview voxel')
+        seen.add(p)
+        model.put(p, value)
+    if model.fingerprint() != data['geometry_sha256']:
+        raise ValueError('Preview geometry fingerprint mismatch')
+    expected = []
+    for p, value in sorted(model.blocks.items()):
+        name, props = effective(value)
+        expected.append([list(p), normalize(dict(Name=name, Properties=props))])
+    if data['blocks'] != expected:
+        raise ValueError('Preview display states do not match raw geometry')
+    for p in data.get('wall_positions', []):
+        if len(p)!=3 or any(type(n) is not int for n in p) or not model.in_bounds(p):
+            raise ValueError('Invalid preview wall mask')
+    return source, raw
+
+
 def regress(output):
     output = Path(output).resolve()
     if output.exists():
@@ -73,7 +111,12 @@ def main():
     preview = sub.add_parser('preview')
     render = sub.add_parser('render', help='Batch texture PNGs and metadata, without computer use or download dialogs')
     for command in (inspect, snapshot, preview, render):
-        command.add_argument('--source', required=True, type=Path)
+        if command is render:
+            input_group = command.add_mutually_exclusive_group(required=True)
+            input_group.add_argument('--source', type=Path)
+            input_group.add_argument('--snapshot', type=Path, help='Verified control preview before/after JSON; rendering only')
+        else:
+            command.add_argument('--source', required=True, type=Path)
         command.add_argument('--provenance', type=Path)
         command.add_argument('--cameras', type=Path, required=command is render,
                              help='View JSON array: role/eye/target with optional fov, cuts, layer and lighting')
@@ -99,16 +142,22 @@ def main():
         raise RuntimeError(f'Optional viewer dependencies missing. Run npm ci --prefix "{viewer}"')
     cameras = json.loads(args.cameras.read_text(encoding='utf8')) if args.cameras else None
     if args.command == 'render':
-        if not (viewer / 'node_modules/playwright').exists():
-            raise RuntimeError(f'Batch renderer dependencies missing. Run npm ci --prefix "{viewer}"')
+        from nbt_render_runtime import render_environment
+        render_env = render_environment(ROOT)
+        if args.snapshot and args.provenance:
+            raise ValueError('Preview already binds its geometry; do not attach source provenance')
         if not cameras:
             raise ValueError('render requires --cameras with a non-empty view array')
         if args.output.exists():
             raise FileExistsError('Batch output must be a new directory; preserve reviewed images')
         with tempfile.TemporaryDirectory(prefix='nbt-render-') as temporary:
             source_snapshot = Path(temporary) / 'snapshot.json'
-            write_snapshot(args.source, source_snapshot, args.provenance, cameras)
-            cmd = [os.environ.get('NBTCREATOR_NODE','node'), str(viewer / 'render-batch.mjs'), '--model', str(source_snapshot),
+            preview_source, preview_bytes = (checked_preview_snapshot(args.snapshot) if args.snapshot else (None, None))
+            if preview_bytes is not None:
+                source_snapshot.write_bytes(preview_bytes)
+            else:
+                write_snapshot(args.source, source_snapshot, args.provenance, cameras)
+            cmd = [render_env.get('NBTCREATOR_NODE','node'), str(viewer / 'render-batch.mjs'), '--model', str(source_snapshot),
                    '--cameras', str(args.cameras.resolve()), '--output', str(args.output.resolve()),
                    '--width', str(args.width), '--height', str(args.height), '--quality', args.quality,
                    '--timeout', str(args.timeout_ms)]
@@ -116,7 +165,10 @@ def main():
                 cmd.extend(['--file-prefix', args.file_prefix])
             if args.browser_executable:
                 cmd.extend(['--browser-executable', str(args.browser_executable.resolve())])
-            return subprocess.call(cmd,env=dict(os.environ,**({'ELECTRON_RUN_AS_NODE':'1'} if os.environ.get('NBTCREATOR_NODE_IS_ELECTRON')=='1' else {})))
+            code = subprocess.call(cmd,env=render_env)
+            if preview_bytes is not None and (args.snapshot.read_bytes()!=preview_bytes or hashlib.sha256(preview_source.read_bytes()).hexdigest()!=json.loads(preview_bytes)['source_sha256']):
+                raise ValueError('Preview/source changed while rendering; output cannot be accepted')
+            return code
     if args.command == 'inspect':
         result = inspect_source(args.source, args.provenance, cameras)
     else:

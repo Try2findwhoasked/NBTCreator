@@ -48,19 +48,32 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   outputRoot=await effects.init()
   const jobs = new Map(), snapshots = new Map(), assets = new Map()
   const bindings = new Map(), modelInfo = new Map()
+  const ownedChildren=new Set(),stoppingChildren=new WeakMap(),childStopped=Symbol('childStopped')
+  let closing=false,closePromise
   const feedback = createFeedbackStore(binding=>{if(!binding.workdir)throw new Error('请重新打开建筑以识别修改意见目录');return path.join(binding.workdir,'修改意见')},path.join(workspace,'build/nbt_feedback'))
-  async function registerSnapshot(file,source){
+  const jobFinished=Symbol('jobFinished')
+  const cancelledError=()=>Object.assign(new Error('任务已取消；已生成的诊断文件保留'),{code:'NBTCREATOR_CANCELLED'})
+  function checkpoint(job){if(job?.cancel_requested)throw cancelledError()}
+  async function registerSnapshot(file,source,job){
+    checkpoint(job)
     const bytes=await fs.readFile(file),snapshot=JSON.parse(bytes),id=randomUUID()
-    const info=modelInfo.get(source) ?? await invoke(['inspect','--source',source])
+    checkpoint(job)
+    const info=modelInfo.get(source) ?? await invoke(['inspect','--source',source],undefined,undefined,job)
+    checkpoint(job)
     modelInfo.set(source,info)
-    bindings.set(id,{kind:'3d',workdir:info.workdir,source,source_sha256:snapshot.source_sha256,geometry_sha256:snapshot.geometry_sha256,
+    bindings.set(id,{kind:'3d',workdir:info.workdir,version_dir:info.version_dir,source,source_sha256:snapshot.source_sha256,geometry_sha256:snapshot.geometry_sha256,
       size:snapshot.size,snapshot:file,snapshot_sha256:createHash('sha256').update(bytes).digest('hex')})
     return id
   }
   let activeJob = null
-  async function invoke(args, logPath, onSpawn) {
+  async function invoke(args, logPath, onSpawn, job) {
+    if(closing)throw new Error('建模服务正在关闭')
+    checkpoint(job)
     return new Promise((resolve, reject) => {
       const child = spawn(python, ['-B', backend, ...args], { cwd: workspace, windowsHide: true, shell: false })
+      ownedChildren.add(child)
+      child[childStopped]=new Promise(done=>child.once('close',()=>{ownedChildren.delete(child);done()}))
+      if(job){job.child=child;job.phase=args[0];job.backend_pid=child.pid}
       onSpawn?.(child)
       let stdout = '', stderr = ''
       child.stdout.setEncoding('utf8'); child.stderr.setEncoding('utf8')
@@ -68,9 +81,12 @@ export async function startDetailServer({ workspace, output, python = 'python', 
       child.stderr.on('data', chunk => { stderr += chunk.toString('utf8') })
       child.on('error', reject)
       child.on('close', async code => {
+        if(job?.child===child){delete job.child;delete job.backend_pid}
         try {
           if (logPath) await fs.writeFile(logPath, stdout+'\n'+stderr)
+          checkpoint(job)
           const data = JSON.parse(stdout)
+          if(args[0]==='validate' && code===1 && data.ok && data.result?.status==='candidate_failed')return resolve(data.result)
           if (code !== 0 || !data.ok) throw new Error(data.error ?? stderr ?? 'Backend failed')
           resolve(data.result)
         } catch (error) { reject(new Error(error.message + (stderr ? '\n'+stderr : ''))) }
@@ -80,82 +96,102 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   function asset(file) {
     const id = randomUUID(); assets.set(id, path.resolve(file)); return `/__detail__/asset/${id}`
   }
-  async function registerImages(files, info) {
+  async function registerImages(files, info, job) {
+    checkpoint(job)
     if (!files.length) return []
     const system = path.join(outputRoot,'system'); await fs.mkdir(system,{recursive:true})
     const requestFile = path.join(system,'thumbs-'+randomUUID()+'.json')
     await fs.writeFile(requestFile,JSON.stringify(files))
-    const result = await invoke(['thumbnails','--request',requestFile,'--cache',path.join(workspace,'nbt_models/_workspaces/cache/thumbs')])
+    checkpoint(job)
+    const result = await invoke(['thumbnails','--request',requestFile,'--cache',path.join(workspace,'nbt_models/_workspaces/cache/thumbs')],undefined,undefined,job)
     const images=[]
     for (const image of result.images) {
+      checkpoint(job)
       const url=asset(image.image), id=url.split('/').at(-1)
       let camera=null, cuts=[]
       try { const meta=JSON.parse(await fs.readFile(image.image.replace(/\.png$/i,'.json'),'utf8')); camera=meta.camera ?? null; cuts=meta.cuts ?? [] } catch {}
-      bindings.set(id,{workdir:info.workdir,source:info.source,source_sha256:info.source_sha256,geometry_sha256:info.geometry_sha256,
+      bindings.set(id,{workdir:info.workdir,version_dir:info.version_dir,source:info.source,source_sha256:info.source_sha256,geometry_sha256:info.geometry_sha256,
         image:image.image,image_sha256:image.image_sha256,camera,cuts})
       images.push({id,source:info.source,geometry_sha256:info.geometry_sha256,path:image.image,name:path.basename(image.image),url,thumbnail:asset(image.thumbnail),thumbnail_bytes:image.thumbnail_bytes,image_sha256:image.image_sha256,source_sha256:info.source_sha256})
     }
     return images
   }
   async function launchJob(input) {
+    if(closing)throw new Error('建模服务正在关闭')
     if (activeJob) throw new Error('A job is already running; wait or cancel it first')
     const kind = input.kind
-    if (!['plan', 'prepare', 'render', 'snapshot', 'apply', 'preset', 'preview', 'revision'].includes(kind)) throw new Error('Unknown job kind')
+    if (!['plan', 'prepare', 'render', 'snapshot', 'apply', 'preset', 'preview', 'revision', 'validate'].includes(kind)) throw new Error('Unknown job kind')
     const request = input.request
     request.source = localPath(request.source)
     if(request.context)request.context=localPath(request.context)
     else if(kind!=='snapshot')throw new Error('修改、验证或导出需要门口/路线等坐标保护配置；缺少配置时可先打开3D只读查看')
     if (request.cameras) request.cameras = localPath(request.cameras)
+    const checkedSnapshot=kind==='validate'?snapshots.get(input.snapshot_key):null
+    if(kind==='validate'&&!checkedSnapshot)throw new Error('请先计算当前效果预览，再检查该候选')
     const id = randomUUID()
     const directory = path.join(outputRoot, 'jobs', id)
-    await fs.mkdir(directory, { recursive: true })
     const requestPath = path.join(directory, 'request.json')
-    await fs.writeFile(requestPath, JSON.stringify(portableRequest(request,workspace), null, 2))
     const job = { id, kind, status: 'running', created_at: new Date().toISOString(), directory }
     jobs.set(id, job); activeJob = job
-    ;(async () => {
+    job[jobFinished]=(async () => {
       try {
+        await fs.mkdir(directory, { recursive: true })
+        checkpoint(job)
+        await fs.writeFile(requestPath, JSON.stringify(portableRequest(request,workspace), null, 2))
+        checkpoint(job)
         let result
         if (kind === 'preset') result = { status: 'preset_saved', download: asset(requestPath) }
         else {
           let resultDirectory = path.join(directory, 'result')
           let info
           if (['plan','prepare','apply'].includes(kind)) {
-            info = await invoke(['inspect','--source',request.source])
+            info = await invoke(['inspect','--source',request.source],path.join(directory,'inspect.log'),undefined,job)
+            checkpoint(job)
             modelInfo.set(request.source,info)
             const handoff = await handoffInfo(info)
+            checkpoint(job)
             if (kind === 'apply') resultDirectory = path.join(info.workdir, 'refined_'+Date.now()+parseInt(id.slice(0,8),16))
             else {
               await fs.mkdir(handoff.directory,{recursive:true})
+              checkpoint(job)
               resultDirectory = path.join(handoff.directory, (kind === 'prepare' ? 'review-' : 'plan-')+id)
             }
           }
           const args = [kind, '--request', requestPath, '--output', resultDirectory]
+          if(kind==='validate')args.push('--snapshot',checkedSnapshot)
           if (kind === 'apply') args.push('--bundle', localPath(input.bundle), '--review', localPath(input.review))
-          result = await invoke(args, path.join(directory, 'backend.log'), child => { job.child = child })
+          result = await invoke(args, path.join(directory, 'backend.log'), undefined,job)
+          checkpoint(job)
           if (kind === 'plan') Object.assign(result,await writeHandoff({workspace,info,request,result,requestFile:requestPath}))
         }
+        checkpoint(job)
         result.source=request.source
-        if(result.baseline_snapshot){const key=randomUUID();snapshots.set(key,result.baseline_snapshot);result.baseline_key=key;result.baseline_feedback_id=await registerSnapshot(result.baseline_snapshot,request.source)}
+        if(result.baseline_snapshot){const key=randomUUID();snapshots.set(key,result.baseline_snapshot);result.baseline_key=key;result.baseline_feedback_id=await registerSnapshot(result.baseline_snapshot,request.source,job)}
         if (result.snapshot) {
+          checkpoint(job)
           const key = randomUUID(); snapshots.set(key, result.snapshot); result.model_key = key
-          result.feedback_id=await registerSnapshot(result.snapshot,request.source)
+          result.feedback_id=await registerSnapshot(result.snapshot,request.source,job)
         }
+        checkpoint(job)
         if (result.images?.length) {
           const source=result.preview_source ?? request.source
-          const info=modelInfo.get(source) ?? await invoke(['inspect','--source',source])
+          const info=modelInfo.get(source) ?? await invoke(['inspect','--source',source],undefined,undefined,job)
+          checkpoint(job)
           modelInfo.set(source,info)
-          result.images=await registerImages(result.images,info)
+          result.images=await registerImages(result.images,info,job)
         } else result.images=[]
+        checkpoint(job)
         if (result.plan) result.plan_download = asset(result.plan)
+        if (result.validation) result.validation_download = asset(result.validation)
         if (result.handoff_file) result.handoff_download = asset(result.handoff_file)
         if(result.runtime_files)result.nbt_downloads=result.runtime_files.map(file=>({name:path.basename(file),url:asset(file)}))
         job.result = result; job.status = 'complete'
-      } catch (error) { job.error = error.message; job.status = 'failed' }
+      } catch (error) { job.error = job.cancel_requested?cancelledError().message:error.message; job.status = job.cancel_requested||error.code==='NBTCREATOR_CANCELLED'?'cancelled':'failed' }
       finally {
-        job.completed_at = new Date().toISOString(); delete job.child
-        activeJob = null
-        await fs.writeFile(path.join(directory, 'job.json'), JSON.stringify(job, null, 2))
+        job.completed_at = new Date().toISOString(); delete job.child;delete job.backend_pid
+        try{await fs.writeFile(path.join(directory, 'job.json'), JSON.stringify(job, null, 2))}
+        catch(error){job.persistence_error=error.message}
+        if(activeJob===job)activeJob=null
       }
     })()
     return { id }
@@ -164,15 +200,29 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     const { child, ...rest } = job
     return rest
   }
+  function terminate(child){
+    if(stoppingChildren.has(child))return stoppingChildren.get(child)
+    const stopped=(async()=>{
+      if(ownedChildren.has(child)&&child.exitCode===null&&child.signalCode===null&&child.pid){
+        if(process.platform==='win32')await new Promise(resolve=>{
+          const kill=spawn('taskkill.exe',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,shell:false})
+          kill.on('close',code=>{if(code!==0&&child.exitCode===null)child.kill('SIGTERM');resolve()})
+          kill.on('error',()=>{if(child.exitCode===null)child.kill('SIGTERM');resolve()})
+        })
+        else child.kill('SIGTERM')
+      }
+      await child[childStopped]
+    })()
+    stoppingChildren.set(child,stopped);return stopped
+  }
   async function cancel() {
-    const child = activeJob?.child
-    if (!child || child.exitCode !== null) return
-    if (process.platform === 'win32') {
-      await new Promise(resolve => {
-        const kill = spawn('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true, shell: false })
-        kill.on('close', resolve); kill.on('error', resolve)
-      })
-    } else child.kill('SIGTERM')
+    const job=activeJob
+    if(!job)return
+    if(job.status!=='running'){await job[jobFinished];return}
+    job.cancel_requested=true;job.cancel_requested_at??=new Date().toISOString()
+    const child = job.child
+    if(child)await terminate(child)
+    await job[jobFinished]
   }
   const viewer = await createViewerServer({ port, frontendMode, modelResolver: key => snapshots.get(key), apiHandler: async (req, res, url) => {
     if (!url.pathname.startsWith('/__detail__/')) return false
@@ -270,7 +320,10 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     } catch (error) { json(res, { error: error.message }, 400) }
     return true
   } })
-  return { url: viewer.url+'control.html', frontend:viewer.frontend, output: outputRoot, close: async () => { await cancel(); await viewer.close() } }
+  return { url: viewer.url+'control.html', frontend:viewer.frontend, output: outputRoot, close: () => {
+    if(!closePromise){closing=true;closePromise=(async()=>{await Promise.all([cancel(),...Array.from(ownedChildren,terminate)]);await viewer.close()})()}
+    return closePromise
+  } }
 }
 
 async function main() {

@@ -1,9 +1,9 @@
 {
   "name": "nbtcreator",
   "productName": "NBTCreator",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "private": true,
-  "description": "Minecraft NBT authoring desktop migration prototype with portable skill and Python CLI",
+  "description": "Minecraft Java 1.20.1 NBT authoring workbench with portable tools and Agent collaboration",
   "type": "module",
   "main": "desktop/main.cjs",
   "scripts": {

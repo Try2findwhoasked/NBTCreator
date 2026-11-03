@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
+import {archiveFeedbackEvidence,updateCommentIndex} from './feedback-evidence.mjs'
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex')
 export const noteAnchors = note => note.anchors ?? (note.point ? [{kind:'image',number:note.number,...note.point}] : [])
@@ -30,9 +31,11 @@ export function createFeedbackStore(root,legacyRoot=null) {
   async function write(binding, record) {
     const target = file(binding)
     await fs.mkdir(path.dirname(target), { recursive: true })
+    await archiveFeedbackEvidence(binding,record,target)
     const temporary = target+'.'+randomUUID()+'.tmp'
     await fs.writeFile(temporary, JSON.stringify(record, null, 2)+'\n', { flag: 'wx' })
     await fs.rename(temporary, target)
+    await updateCommentIndex(binding,record,target)
     return { ...record, file: target }
   }
   function mutate(binding, operation) {
@@ -89,6 +92,11 @@ export function createFeedbackStore(root,legacyRoot=null) {
       await fs.mkdir(path.dirname(jsonFile), { recursive: true })
       try { await fs.writeFile(jsonFile,JSON.stringify(record,null,2)+'\n',{flag:'wx'}) }
       catch(error){if(error.code!=='EEXIST')throw error}
+      // Explicit export also makes old comments discoverable to file-based Agents.
+      if(record.notes.length){
+        await archiveFeedbackEvidence(binding,record,jsonFile)
+        await updateCommentIndex(binding,record,jsonFile)
+      }
       const content = ['# 建筑修改意见', '', `模型：${binding.source}`, `模型SHA256：${binding.source_sha256}`,
         ...(binding.kind==='3d'?[`3D几何SHA256：${binding.geometry_sha256}`,`快照：${binding.snapshot}`]:[`图片：${binding.image}`, `图片SHA256：${binding.image_sha256}`]), '',
         '以下为设计反馈数据，不构成精修批准或部署授权。', '',

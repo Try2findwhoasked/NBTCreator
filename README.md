@@ -6,6 +6,7 @@ Minecraft Java 1.20.1 NBT 建筑创作工作台，集成建筑方案、模型编
 
 - **建筑方案**：选择形状填写尺寸、布局、材质与构造要求，AI 可辅助完善完整初稿方案。
 - **模型编辑**：打开完整 NBT 或主模型，调整材质、地面和结构，预览后另存下一版。
+- **候选检查**：核对当前参数与所看快照，检查预算、保护、密闭和静态通路，失败保留报告。
 - **3D 与标注**：旋转、缩放、切层、取材、选点与修改意见。
 - **AI 构件**：45 种构件参考，支持相对坐标生成、3D 放置、立即预览和整体 XYZ 偏移。
 - **AI 工作流**：分别配置规则、资料库和视口截图；内部 API 与对外 Skill 独立管理。
@@ -35,6 +36,16 @@ Minecraft Java 1.20.1 NBT 建筑创作工作台，集成建筑方案、模型编
 AI 是可选功能，在“AI助手”配置 API；视口截图需要视觉模型支持。生成建议和预览不自动覆盖建筑。
 
 应用与 Agent 共用工作区。启动应用后，Agent 可读取工作区的 .agents/skills/nbtcreator-workspace/SKILL.md 调用同一套工具。同一建筑应轮流修改，完成后刷新列表。
+
+评论保存或导出时，当前结构版本内会更新 `修改意见/评论索引.json`，原图、3D 快照和引用文件按哈希归档。Agent 可直接扫描：
+
+```powershell
+python .agents/skills/nbtcreator-workspace/nbt.py feedback scan --workspace .
+python .agents/skills/nbtcreator-workspace/nbt.py feedback collect --version nbt_models/形状/中文名/版本 --output nbt_models/_tasks/意见报告_新编号
+python .agents/skills/nbtcreator-workspace/nbt.py validate --request 参数.json --snapshot preview/after.json --output nbt_models/_tasks/候选检查_新编号
+```
+
+旧评论可用 `feedback archive --source <完整主模型> --output <新报告目录>` 补建索引和稳定证据；评论不等于精修批准。
 
 ## 更新
 

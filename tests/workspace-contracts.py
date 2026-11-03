@@ -11,6 +11,18 @@ from nbt_refine import save_master
 from nbt_assembly import Volume
 
 class Contracts(unittest.TestCase):
+ def test_exposed_paths_are_callable_after_relocation_and_locate_importable_api(self):
+  with tempfile.TemporaryDirectory() as temp:
+   old=Path(temp)/'old';new=Path(temp)/'new';expose(old)
+   shutil.copytree(old,new);shutil.rmtree(old)
+   command=[sys.executable,str(new/'.agents/skills/nbtcreator-workspace/nbt.py'),'paths']
+   run=subprocess.run(command,cwd=new,capture_output=True,text=True,encoding='utf8')
+   self.assertEqual(run.returncode,0,run.stderr);data=json.loads(run.stdout)
+   self.assertTrue(Path(data['engine']).is_relative_to(new.resolve()))
+   self.assertTrue((Path(data['scripts'])/'nbt_openings.py').is_file())
+   self.assertEqual(Path(data['workspace']),new.resolve());self.assertEqual(len(data['runtime_bundle_sha256']),64)
+   imported=subprocess.run([sys.executable,'-c','import sys;sys.path.insert(0,sys.argv[1]);from nbt_openings import open_declared_openings;print(callable(open_declared_openings))',data['scripts']],capture_output=True,text=True)
+   self.assertEqual(imported.returncode,0,imported.stderr);self.assertEqual(imported.stdout.strip(),'True')
  def test_catalogue_and_generic_gui_operations(self):
   c=capabilities();self.assertEqual(len(c['tools']),18)
   s=default_settings();s['operations']=[dict(kind='box',label='same engine',classification='body',lo=[4,4,4],hi=[4,5,4],state='stone')]

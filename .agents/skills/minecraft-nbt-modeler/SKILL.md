@@ -32,6 +32,7 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 | 新建/重设计房间的地面风格、半砖凹陷或坑洞 | [自动地面与适量破损](references/floors.md)；主动评估适用性，不等用户逐项指定 |
 | 网页保存JSON转下一版NBT、原工作文件夹归档修改意见 | [网页修改回导](references/web-revision.md) |
 | 用户手动控制细节比例、材质权重、参数方案、图片修改意见或按需3D查看 | [本地细节控制台](references/detail-control.md)；默认轻量图片评审，agent常规处理仍使用API和批量出图 |
+| 用户已在图片或3D上标注、需要收集意见或迁移证据 | [Agent读取意见](references/agent-feedback.md)；使用 feedback collect/archive，检查源/图/快照哈希 |
 | 完整可修改提示词、工具参数组合与提示词网页 | [建模提示词工作台](references/prompt-console.md)；离线生成文本、计划和可复用方案 |
 | 已有授权的委派或换 agent 接手 | [委派与阅读落实](references/delegation-and-review.md)；本文不要求新增 subagent |
 | 用户已看图并同意精修 | [精修流程](references/refinement.md)；风化另读 [连片风化](references/weathering.md) |
@@ -65,6 +66,8 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 - 技术、空间设计、构造细节、主题表达分别记录。技术通过不能推出设计合格；必要节点不足写“初稿设计未达标”并补改，不能以“等待精修”掩盖。纹理预览、截图、哈希或报告字段不等于美术完成；未执行项目明确标记。
 
 ## 工具入口与输出
+
+生成工作区先用 `python .agents/skills/nbtcreator-workspace/nbt.py paths` 查询实际 scripts 路径再导入 API，无需读取包装器猜路径。独立建筑自定义入口使用 toolkit 中的 open_declared_openings；开洞前密闭与开洞后路线仍分别检查。
 
 新作品写任务专用生成器，使用通用工具；不运行历史示例批量换皮。自由形用 nbt_fields，截面用 nbt_sections，顶壳诊断用 nbt_roof_preview；这些均不代替真实玩家视角。受控混材优先使用nbt_patterns的pattern操作：带权随机、全局种子、区域/源状态筛选、连片噪声与兼容属性保留；在完整主模型验证前调用，详见 [通用方块模式](references/patterns.md)。格式互转默认原样保留，已有作品应用仍走真实看图确认后的精修流程。状态邻接仅在有依据的支持范围内处理，不模拟完整游戏。
 
