@@ -1,4 +1,5 @@
 import {initProtectionView} from './protection-view.js'
+import {initWalkView} from './walk-view.js'
 import {initDisclosureIcons} from './ui-icons.js'
 import {floatingDetails,chevron} from './floating-panel.js'
 import {initAssetWorkspace} from './asset-workspace.js'
@@ -72,7 +73,7 @@ for(const id of ['pattern-from','weather-from','moss-state','crack-state','repla
 
 const $ = id => document.getElementById(id)
 const state = { models: [], settings: null, info: null, bundle: '', busy: false, currentViews: [], images: [], selectedImage: null, notes: [], noteDrafts: new Map(), draftPoint: null, imageGeneration: 0, viewerGeneration: 0, mode: 'images', savingNote: false, imageLimit: 8, effectFiles: [], output: '', references: [], workspace: '', configChanged: false, previewRevision: 0, previewBusy: false, preview: null }
-let operationEditor,previewToolbar,editSession,lastValidSessionSettings,versionComparison,componentEditor,apiAssistant,protectionView
+let operationEditor,previewToolbar,editSession,lastValidSessionSettings,versionComparison,componentEditor,apiAssistant,protectionView,walkView
 async function api(route, data) {
   const response = await fetch('/__detail__/'+route, data === undefined ? {} : {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
@@ -448,6 +449,7 @@ async function runJob(kind, overrides = {}) {
   } catch(error) { if(error.name!=='AbortError'&&['prepare','apply'].includes(kind))$('advanced-review').open=true;throw error } finally { busy(false) }
 }
 async function loadViewer(result, isNewVersion = false) {
+  state.viewerModelKey=result.model_key
   result={...result,cameras:(result.cameras??[]).map(camera=>({...camera,cuts:(camera.cuts??[]).map(c=>Array.isArray(c)?{axis:c[0],position:c[1],removed_side:c[2]}:c)}))}
   stashDraft()
   state.comparisonSide=result.preview_only?(result.model_key===result.baseline_key?'before':'after'):null
@@ -466,7 +468,7 @@ async function loadViewer(result, isNewVersion = false) {
     frame.onload=async()=>{try{if(generation!==state.viewerGeneration){clearTimeout(timer);resolve();return};await frame.contentWindow.nbtModeler.ready;if(generation!==state.viewerGeneration){clearTimeout(timer);resolve();return};if(result.cameras.length)await frame.contentWindow.nbtModeler.renderView(result.cameras[0]);clearTimeout(timer);resolve()}catch(error){clearTimeout(timer);reject(error)}}
     frame.src=`/?model_key=${encodeURIComponent(result.model_key)}&embedded=1&quality=${$('three-quality').value}&pixelRatio=0.75&maxFps=24`
   })
-  protectionView?.refresh();syncSelectionRange();$('pick-material').disabled=false;$('pick-coordinate').disabled=false;syncPicking()
+  protectionView?.refresh();walkView?.sync();syncSelectionRange();$('pick-material').disabled=false;$('pick-coordinate').disabled=false;syncPicking()
   state.viewerFeedbackId=result.feedback_id;await activateViewerFeedback(result.feedback_id)
   $('model-hash').textContent=(isNewVersion?'新版本预览 ':'原建筑版本 ')+result.geometry_sha256.slice(0,16)
   syncVersionReadonly()
@@ -485,7 +487,7 @@ async function loadModel(preserve=false){
   }finally{unlockEditorRecovery();protectionView?.refresh()}
 }
 async function loadModelCore(preserve = false) {
-  state.aiPlacing=null;state.assetPicking=null;state.lastAIGroup=null
+  state.walkPicking=false;state.aiPlacing=null;state.assetPicking=null;state.lastAIGroup=null
   stashDraft();imageMode();busy(true)
   try {
     status('正在打开建筑及门口、通路等保护设置…')
@@ -650,7 +652,7 @@ async function showComparison(side){
     await $('viewer').contentWindow.nbtModeler.replaceSnapshot(snapshot)
   }
   if(generation!==state.comparisonGeneration)return
-  protectionView?.sync();state.comparisonSide=side
+  state.viewerModelKey=key;protectionView?.sync();walkView?.sync();state.comparisonSide=side
   state.viewerFeedbackId=side==='before'?result.baseline_feedback_id:result.feedback_id;await activateViewerFeedback(state.viewerFeedbackId)
   $('workspace-context').textContent=`${modelName()} · ${side==='before'?'原建筑':'参数调整效果'} · 同一视角对比，仅预览`
   $('model-hash').textContent=side==='before'?'原建筑':'效果预览（未保存为正式建筑）'
@@ -777,18 +779,19 @@ function syncSelectionRange(){
 }
 $('show-selection').addEventListener('change',syncSelectionRange)
 function syncPicking(){
+  if(state.assetPicking||state.aiPlacing||state.picking||state.coordinatePicking||state.transforming)state.walkPicking=false
   $('pick-material').setAttribute('aria-pressed',String(Boolean(state.picking)))
   const materialCaption=$('pick-material').querySelector('.toolbar-caption');if(materialCaption)materialCaption.textContent=state.picking?'结束取材':'取材'
   $('pick-coordinate').setAttribute('aria-pressed',String(Boolean(state.coordinatePicking)))
   const commentCaption=$('pick-coordinate').querySelector('.toolbar-caption');if(commentCaption)commentCaption.textContent=state.coordinatePicking?'结束标注':'标注'
-  $('viewer').contentWindow?.nbtModeler?.setPicking(Boolean(state.assetPicking||state.aiPlacing||state.picking||state.coordinatePicking),state.coordinatePicking?'comment':'material')
+  $('viewer').contentWindow?.nbtModeler?.setPicking(Boolean(state.walkPicking||state.assetPicking||state.aiPlacing||state.picking||state.coordinatePicking),state.coordinatePicking?'comment':'material')
 }
 $('pick-coordinate').addEventListener('click',()=>{
-  state.assetPicking=null;state.aiPlacing=null;state.coordinatePicking=!state.coordinatePicking;state.picking=false;syncPicking()
+  state.walkPicking=false;state.assetPicking=null;state.aiPlacing=null;state.coordinatePicking=!state.coordinatePicking;state.picking=false;syncPicking()
   $('view-hint').textContent=state.coordinatePicking?'连续点击表面添加 #编号，下面按编号写意见；中键平移，滚轮前进／后退。':'左键原地转向，中键平移，滚轮前进／后退'
 })
 $('pick-material').addEventListener('click',()=>{
-  state.assetPicking=null;state.aiPlacing=null;state.picking=!state.picking;state.coordinatePicking=false;syncPicking()
+  state.walkPicking=false;state.assetPicking=null;state.aiPlacing=null;state.picking=!state.picking;state.coordinatePicking=false;syncPicking()
   if(state.picking)$('view-hint').textContent='点击可见方块取材；中键可平移。取材后在左侧选择用途。'
 })
 window.addEventListener('message',event=>{
@@ -799,6 +802,7 @@ window.addEventListener('message',event=>{
   if(!picked){$('view-hint').textContent='此处没有选到可见方块，请点击建筑表面。';return}
   if(typeof picked.state!=='string'||!Array.isArray(picked.position)||picked.position.length!==3)return
   if(picked.geometry_sha256!==$('viewer').contentWindow.nbtModeler.metadata().geometry_sha256)return
+  if(state.walkPicking&&walkView?.consumePick(picked))return
   if(componentEditor?.consumePick(picked))return
   if(state.assetPicking){const callback=state.assetPicking;state.assetPicking=null;syncPicking();Promise.resolve(callback(picked.position.map((v,i)=>v+(picked.normal?.[i]||0)))).catch(error=>status(error.message,'error'));return}
   if(state.aiPlacing){
@@ -891,7 +895,7 @@ apiAssistant=initApiAssistant({
   if(!state.info||state.busy||state.previewBusy||state.commitBusy)throw Error('请先打开建筑并等待当前任务完成')
   if(size.some((v,i)=>v>state.info.size[i]))throw Error('放置范围大于当前建筑尺寸')
   if(state.mode!=='3d')await runJob('snapshot')
-  state.aiPlacing={size,move:existing&&!!currentAIGroup()};state.picking=false;state.coordinatePicking=false;syncPicking();$('view-hint').textContent=state.aiPlacing.move?'点击表面放置最近一组AI构件，随后立即更新3D预览。':'点击表面选择新构件的生成范围，随后生成并预览。'
+  state.walkPicking=false;state.aiPlacing={size,move:existing&&!!currentAIGroup()};state.picking=false;state.coordinatePicking=false;syncPicking();$('view-hint').textContent=state.aiPlacing.move?'点击表面放置最近一组AI构件，随后立即更新3D预览。':'点击表面选择新构件的生成范围，随后生成并预览。'
  },
  apply:async(patch,options={})=>withPreviewCommit(async()=>{
   const before=gather(),next=structuredClone(before)
@@ -924,6 +928,7 @@ initAssetWorkspace({
 })
 previewToolbar=initPreviewToolbar()
 protectionView=initProtectionView({api,context:()=>state.info?{source:state.info.source,source_sha256:state.info.source_sha256,context:$('context').value.trim()}:null,viewer:()=>$('viewer').contentWindow?.nbtModeler,ensure3D:async()=>{if(state.mode!=='3d')await runJob('snapshot')},viewChanged:()=>{const v=$('viewer').contentWindow?.nbtModeler;if(v?.status==='ready')syncComparisonViewControls(v.snapshot,v.metadata())}})
+walkView=initWalkView({api,context:()=>state.info&&!state.versionComparing?{source:state.info.source,source_sha256:state.info.source_sha256,context:$('context').value.trim(),snapshot_key:state.viewerModelKey,busy:state.busy||state.previewBusy||state.transforming}:null,viewer:()=>$('viewer').contentWindow?.nbtModeler,ensure3D:async()=>{if(state.versionComparing)throw Error('请先结束版本对比，再检查当前建筑');if(state.mode!=='3d')await runJob('snapshot')},busy,picking:value=>{state.walkPicking=value;if(value){state.aiPlacing=null;state.assetPicking=null;state.picking=false;state.coordinatePicking=false}syncPicking()},viewChanged:()=>{const v=$('viewer').contentWindow?.nbtModeler;syncComparisonViewControls(v.snapshot,v.metadata())}})
 function syncComparisonViewControls(snapshot,view){
  const maximum=snapshot.size[1]-1,cut=view.cuts.find(c=>c.axis==='y'&&c.removed_side==='above')
  $('view-cut').max=maximum;$('view-cut').value=cut?Math.max(0,Math.min(maximum,cut.position-1)):maximum;$('view-layer').value=view.layer;$('cut-value').textContent=cut?$('view-cut').value:'完整'

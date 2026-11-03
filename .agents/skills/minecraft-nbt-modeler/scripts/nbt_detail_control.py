@@ -729,6 +729,7 @@ def main():
     cmd = sub.add_parser('recipes');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','get','save','capture','archive','compile'],required=True);cmd.add_argument('--request',type=Path)
     cmd = sub.add_parser('project-batch');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','create','get','run','retry','cancel'],required=True);cmd.add_argument('--request',type=Path)
     cmd = sub.add_parser('protection-mask');cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('walk-inspect');cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
     cmd = sub.add_parser('thumbnails'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--cache',type=Path,required=True)
     sub.add_parser('defaults')
     cmd = sub.add_parser('prompt'); cmd.add_argument('--request', type=Path, required=True)
@@ -753,6 +754,12 @@ def main():
         elif args.command == 'protection-mask':
             from nbt_protection_view import mask
             result=mask(read_request(args.request))
+        elif args.command == 'walk-inspect':
+            from nbt_walk_view import inspect_walk
+            result=inspect_walk(read_request(args.request),args.snapshot)
+            output=reserve_output(args.output)
+            write_json(output/'walk-inspection.json',result)
+            result['report_file']=str(output/'walk-inspection.json')
         elif args.command == 'components':
             import nbt_components as components
             data=read_request(args.request) if args.request else {}

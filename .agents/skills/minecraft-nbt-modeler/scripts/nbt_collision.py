@@ -293,7 +293,7 @@ def _position(value):
     return p
 
 
-def check_routes(model, start, targets, *, conservative_obstacles=True):
+def check_routes(model, start, targets, *, conservative_obstacles=True, max_poses=None):
     """Return a JSON-serializable report; failed routes do not raise assertions.
 
     Half-block graph sampling is conservative and can miss narrow/off-grid
@@ -303,6 +303,8 @@ def check_routes(model, start, targets, *, conservative_obstacles=True):
     strict exact-shape-only report; unknown shapes always prevent certification.
     Targets may be a list of positions or a name -> position dictionary.
     """
+    if max_poses is not None and (type(max_poses) is not int or max_poses < 1):
+        raise ValueError('max_poses must be a positive integer')
     start = _position(start)
     named = list(targets.items()) if isinstance(targets, dict) else [(str(i), p) for i, p in enumerate(targets)]
     named = [(str(name), _position(p)) for name, p in named]
@@ -355,11 +357,12 @@ def check_routes(model, start, targets, *, conservative_obstacles=True):
     source = {node: node for node in starts}
     queue = deque(starts)
     found = {}
+    search_limit_reached = False
     desired = {}
     for i, candidates in enumerate(target_anchors):
         for node in candidates:
             desired.setdefault(node, []).append(i)
-    while queue:
+    while queue and not search_limit_reached:
         node = queue.popleft()
         for i in desired.get(node, ()):
             found.setdefault(i, node)
@@ -374,9 +377,14 @@ def check_routes(model, start, targets, *, conservative_obstacles=True):
                     continue
                 b = tuple(v*.5 for v in next_node)
                 if space.move(a, b):
+                    if max_poses is not None and len(parent) >= max_poses:
+                        search_limit_reached = True
+                        break
                     parent[next_node] = node
                     source[next_node] = source[node]
                     queue.append(next_node)
+            if search_limit_reached:
+                break
     target_reports = []
     for i, (name, p) in enumerate(named):
         item = dict(name=name, feet=list(p), standing=space.standing(p), reachable=i in found)
@@ -393,9 +401,10 @@ def check_routes(model, start, targets, *, conservative_obstacles=True):
         else:
             item['reason'] = ('invalid_or_obstructed_feet_pose' if not item['standing'] else
                               'no_safe_half_grid_connector' if not target_anchors[i] else
+                              'search_limit_reached' if search_limit_reached else
                               'unreachable_with_walking_and_half_block_steps')
         target_reports.append(item)
-    report.update(targets=target_reports, reachable_poses=len(parent),
+    report.update(targets=target_reports, reachable_poses=len(parent), search_limit_reached=search_limit_reached,
                   passed=bool(start_ok and starts and len(found) == len(named) and not space.unknown))
     if not start_ok:
         report['failure'] = 'Start has collision, no support, or extends outside model bounds.'

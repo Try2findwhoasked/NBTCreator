@@ -134,15 +134,16 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     if (activeJob) throw new Error('A job is already running; wait or cancel it first')
     const kind = input.kind
     if(kind==='batch')return launchProjectBatch(input)
-    if (!['plan', 'prepare', 'render', 'snapshot', 'apply', 'preset', 'preview', 'revision', 'validate', 'compare'].includes(kind)) throw new Error('Unknown job kind')
+    if (!['plan', 'prepare', 'render', 'snapshot', 'apply', 'preset', 'preview', 'revision', 'validate', 'compare', 'walk-inspect'].includes(kind)) throw new Error('Unknown job kind')
     const request = input.request
     request.source = localPath(request.source)
     if(request.context)request.context=localPath(request.context)
-    else if(!['snapshot','compare'].includes(kind))throw new Error('修改、验证或导出需要门口/路线等坐标保护配置；缺少配置时可先打开3D只读查看')
+    else if(!['snapshot','compare','walk-inspect'].includes(kind))throw new Error('修改、验证或导出需要门口/路线等坐标保护配置；缺少配置时可先打开3D只读查看')
     if(kind==='compare'){if(typeof request.reference_source!=='string'||!request.reference_source)throw new Error('请选择要比较的已有版本');request.reference_source=localPath(request.reference_source)}
     if (request.cameras) request.cameras = localPath(request.cameras)
-    const checkedSnapshot=kind==='validate'?snapshots.get(input.snapshot_key):null
+    const checkedSnapshot=['validate','walk-inspect'].includes(kind)?snapshots.get(input.snapshot_key):null
     if(kind==='validate'&&!checkedSnapshot)throw new Error('请先计算当前效果预览，再检查该候选')
+    if(kind==='walk-inspect'&&input.snapshot_key&&!checkedSnapshot)throw new Error('画面快照已失效，请重新打开3D后检查通路')
     const id = randomUUID()
     const directory = path.join(outputRoot, 'jobs', id)
     const requestPath = path.join(directory, 'request.json')
@@ -173,7 +174,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
             }
           }
           const args = [kind, '--request', requestPath, '--output', resultDirectory]
-          if(kind==='validate')args.push('--snapshot',checkedSnapshot)
+          if(checkedSnapshot)args.push('--snapshot',checkedSnapshot)
           if (kind === 'apply') args.push('--bundle', localPath(input.bundle), '--review', localPath(input.review))
           result = await invoke(args, path.join(directory, 'backend.log'), undefined,job)
           checkpoint(job)
@@ -199,6 +200,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         if (result.plan) result.plan_download = asset(result.plan)
         if (result.validation) result.validation_download = asset(result.validation)
         if (result.difference) result.difference_download = asset(result.difference)
+        if (result.report_file) result.report_download = asset(result.report_file)
         if (result.handoff_file) result.handoff_download = asset(result.handoff_file)
         if(result.runtime_files)result.nbt_downloads=result.runtime_files.map(file=>({name:path.basename(file),url:asset(file)}))
         job.result = result; job.status = 'complete'

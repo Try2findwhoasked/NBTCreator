@@ -8,6 +8,7 @@ import { RangeBox } from './range-box.mjs'
 import {differenceIndex,focusDifference} from './difference-index.mjs'
 import {differenceOverlay} from './difference-overlay.js'
 import {protectionOverlay} from './protection-overlay.js'
+import {walkOverlay} from './walk-overlay.js'
 import {createComponentGizmo} from './component-gizmo.js'
 import { cameraView, normalizeView, includesBlock } from './view-contract.mjs'
 
@@ -175,6 +176,7 @@ async function main() {
   const selectionScene=new Scene()
   const differences=differenceOverlay()
   const protection=protectionOverlay();let protectionData=null,protectionConflicts=[],protectionEnabled=false
+  const walk=walkOverlay();let walkData=null,walkOptions={enabled:false,target:0}
   let differenceData=null,differenceLookup=null,differenceSide='after',differenceEnabled=false,differenceOnly=false
   function updateDifferenceOverlay(){differences.update(differenceData,{cuts:activeCuts,layer:activeLayer,side:differenceSide,enabled:differenceEnabled})}
   const selectionBox=new RangeBox(new Box3(new Vector3(),new Vector3(1,1,1)),0x77e7b2)
@@ -223,7 +225,7 @@ async function main() {
       marker.label.style.left=rect.left+(p.x+1)*rect.width/2+'px';marker.label.style.top=rect.top+(1-p.y)*rect.height/2+'px'
     }
     const autoClear=renderer.renderer.autoClear
-    renderer.renderer.autoClear=false;renderer.renderer.render(differences.scene,renderer.camera);renderer.renderer.render(protection.scene,renderer.camera);if(componentGizmo)renderer.renderer.render(componentGizmo.scene,renderer.camera);renderer.renderer.clearDepth();renderer.renderer.render(selectionScene,renderer.camera);if(componentGizmo)renderer.renderer.render(componentGizmo.handlesScene,renderer.camera);renderer.renderer.autoClear=autoClear
+    renderer.renderer.autoClear=false;renderer.renderer.render(differences.scene,renderer.camera);renderer.renderer.render(protection.scene,renderer.camera);renderer.renderer.render(walk.scene,renderer.camera);if(componentGizmo)renderer.renderer.render(componentGizmo.scene,renderer.camera);renderer.renderer.clearDepth();renderer.renderer.render(selectionScene,renderer.camera);if(componentGizmo)renderer.renderer.render(componentGizmo.handlesScene,renderer.camera);renderer.renderer.autoClear=autoClear
     lastDraw = performance.now()
     renderedFrames += 1
     canvas.dataset.frameSerial = String(renderedFrames)
@@ -267,7 +269,7 @@ async function main() {
     activeLayer = nextLayer
     activeCuts = cuts
     filterKey = key
-    updateDifferenceOverlay();protection.update(protectionData,protectionConflicts,activeCuts,protectionEnabled)
+    updateDifferenceOverlay();protection.update(protectionData,protectionConflicts,activeCuts,protectionEnabled);walk.update(walkData,walkOptions,activeCuts)
     canvas.dataset.meshBuilds = String(meshBuilds)
     cutValue.textContent = `${cuts.length ? JSON.stringify(cuts) : '完整模型'} · ${nextLayer}`
   }
@@ -371,6 +373,7 @@ async function main() {
     clearCommentMarkers();markerLayer.remove()
     differences.clear()
     protection.clear()
+    walk.clear()
     componentGizmo?.dispose()
     renderer.dispose()
   }, { once: true })
@@ -391,7 +394,7 @@ async function main() {
       const position=hit.point.clone().addScaledVector(normal,-.001).floor().toArray(),key=position.join(','),value=lookup.get(key)
       if(!value||!visible.has(key)||['minecraft:air','minecraft:cave_air','minecraft:void_air'].includes(value.split('[')[0]))continue
       pickedBox.box.min.fromArray(position);pickedBox.box.max.fromArray(position.map(v=>v+1));pickedBox.visible=true;requestRender()
-      return {position,normal:normal.toArray().map(v=>Math.round(v)),state:value,source_sha256:snapshot.source_sha256,geometry_sha256:snapshot.geometry_sha256,view:metadata()}
+      return {position,surface:hit.point.toArray(),normal:normal.toArray().map(v=>Math.round(v)),state:value,source_sha256:snapshot.source_sha256,geometry_sha256:snapshot.geometry_sha256,view:metadata()}
     }
     pickedBox.visible=false;requestRender();return null
   }
@@ -417,6 +420,7 @@ async function main() {
     selectionStatus:()=>({visible:selectionBox.visible,range:selectionRange}),
     setPicking:(enabled,purpose='material')=>{canvas.dataset.pickMode=String(Boolean(enabled));canvas.dataset.pickPurpose=purpose;canvas.style.cursor=enabled?'crosshair':''},
     replaceSnapshot: next => enqueue(async()=>{
+      if(walkData&&(walkData.source_sha256!==next.source_sha256||walkData.geometry_sha256!==next.geometry_sha256)){walkData=null;walk.clear()}
       if(protectionData&&protectionData.source_sha256!==next.source_sha256){protectionData=null;protectionConflicts=[];protectionEnabled=false;protection.clear()}
       size=next.size;cut.max=String(size[1]-1);cut.value=String(Math.min(Number(cut.value),size[1]-1))
       const nextPalette=[],ids=new Map()
@@ -428,7 +432,7 @@ async function main() {
       document.getElementById('build-name').textContent=next.name;document.getElementById('build-stats').textContent=`${size.join(' x ')} | ${indexed.length.toLocaleString()} blocks`;document.getElementById('source-hash').textContent=`源 SHA256: ${next.source_sha256}`
       const blocks=indexed.filter(({pos})=>includesBlock(pos,activeCuts)&&(activeLayer==='all'||(activeLayer==='walls')===walls.has(pos.join(',')))&&(!differenceOnly||differenceLookup?.has(pos)))
       renderer.setStructure(new Structure(size,palette,blocks));meshBuilds+=1;await renderer.whenReady();activeBlocks=blocks
-      updateDifferenceOverlay();protection.update(protectionData,protectionConflicts,activeCuts,protectionEnabled)
+      updateDifferenceOverlay();protection.update(protectionData,protectionConflicts,activeCuts,protectionEnabled);walk.update(walkData,walkOptions,activeCuts)
       draw();return metadata()
     }),
     setDifference: (data,options={}) => enqueue(async()=>{
@@ -445,6 +449,12 @@ async function main() {
       protectionData=data;protectionConflicts=conflicts;protectionEnabled=!!data&&options.enabled!==false;protection.update(data,conflicts,activeCuts,protectionEnabled);requestRender();return api.protectionStatus()
     },
     protectionStatus:()=>({enabled:protectionEnabled,count:protectionData?.count??0,conflicts:protectionConflicts.length,...protection.status()}),
+    setWalkInspection:(data,options={})=>{
+      if(data&&(data.schema_version!==1||data.source_sha256!==snapshot.source_sha256||data.geometry_sha256!==snapshot.geometry_sha256||JSON.stringify(data.size)!==JSON.stringify(size)||!Array.isArray(data.poses)||data.poses.length>33||!Array.isArray(data.report?.targets)||data.report.targets.length>32))throw Error('通路检查数据不属于当前画面')
+      if(!Number.isInteger(options.target??0)||(options.target??0)<0||(data&&(options.target??0)>=data.report.targets.length))throw Error('通路终点无效')
+      walkData=data;walkOptions={enabled:!!data&&options.enabled!==false,target:options.target??0};walk.update(walkData,walkOptions,activeCuts);requestRender();return api.walkStatus()
+    },
+    walkStatus:()=>({enabled:!!walkData&&walkOptions.enabled,geometry_sha256:walkData?.geometry_sha256??null,...walk.status()}),
     focusDifference: bounds => enqueue(async()=>{
       await applyFilter('all',[]);layer.value='all';cut.value=cut.max
       setCamera(focusDifference(bounds,currentCamera(),canvas.clientWidth/Math.max(1,canvas.clientHeight)));draw();return metadata()

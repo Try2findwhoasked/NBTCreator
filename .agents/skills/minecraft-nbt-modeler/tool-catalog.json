@@ -603,6 +603,15 @@
     "end": "终点 XYZ",
     "enabled": "启用本步骤"
   },
+  "inspection_tools": {
+    "walk-inspect": {
+      "description": "只读检查玩家0.6×1.8格占位、支撑和普通步行路径；以实际源或绑定候选快照为准，不批准、不修改建筑。",
+      "cli": "control walk-inspect --request <json> --output <new-directory> [--snapshot <registered-preview-json>]",
+      "request": {"required": ["source", "source_sha256"], "optional": ["context", "geometry_sha256", "start", "targets"], "coordinates": "finite player-feet XYZ; start/targets may come from context; at most 32 targets"},
+      "result": "poses, exact half-cell intersections, engine routes/paths, shape limitations and search_limit_reached; JSON report only",
+      "max_search_poses": 250000
+    }
+  },
   "commands": {
     "inspect": "nbt_task.py",
     "snapshot": "nbt_task.py",
