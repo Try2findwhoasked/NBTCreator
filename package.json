@@ -11,7 +11,7 @@
     "cli": "node scripts/cli.mjs",
     "doctor": "node scripts/cli.mjs doctor",
     "test:desktop": "node tests/desktop-smoke.mjs",
-    "test:api": "node --test tests/api-service.test.cjs tests/workbench-contract.test.cjs",
+    "test:api": "node --test tests/api-service.test.cjs tests/workbench-contract.test.cjs tests/ai-input.test.cjs tests/ai-metrics.test.mjs tests/internal-ai.test.cjs tests/ai-component.test.mjs",
     "test:api-desktop": "node tests/api-desktop.mjs",
     "package": "node scripts/package.mjs",
     "package:portable": "node scripts/portable-build.mjs",

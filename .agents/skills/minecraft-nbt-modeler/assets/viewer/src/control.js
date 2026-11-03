@@ -14,7 +14,7 @@ import {createSettingsHistory} from './settings-history.mjs'
 import {createEditSessionController} from './edit-session.js'
 import {initAppSettings} from './app-settings.js'
 import {translateComponent} from './component-move.js'
-import {aiBounds,aiGroupMatches,moveAIGroup,aiSurfaceOffset} from './ai-component.mjs'
+import {aiBounds,aiGroupMatches,moveAIGroup,aiSurfaceOffset,aiComponentCamera} from './ai-component.mjs'
 import {requestAI,cancelAI} from './ai-request.js'
 import '../../../prompt-console/catalog.js'
 import './control.css'
@@ -847,6 +847,7 @@ initDesktop(source=>openProjectModel({source}))
 initModelPicker()
 function notifyAIComponent(restored=false){window.dispatchEvent(new CustomEvent('nbt-ai-component-state',{detail:{restored}}))}
 function currentAIGroup(){try{const group=state.lastAIGroup;return group&&group.source===state.info?.source&&group.source_sha256===state.info?.source_sha256&&aiGroupMatches(group,gather())?group:null}catch{return null}}
+function componentView(group){const frame=$('viewer');return aiComponentCamera(group.applied,group.camera,Math.max(1,frame.clientWidth)/Math.max(1,frame.clientHeight))}
 async function commitPreviewSettings(next,label){
  const before=gather(),source=state.info?.source,sha=state.info?.source_sha256
  const oldViewer=$('viewer').contentWindow?.nbtModeler,old={preview:state.preview,settings:state.previewSettings,side:state.comparisonSide,id:state.viewerFeedbackId,source:state.viewerSource,snapshot:state.mode==='3d'&&oldViewer?.status==='ready'?oldViewer.snapshot:null,meta:state.mode==='3d'&&oldViewer?.status==='ready'?oldViewer.metadata():null}
@@ -881,7 +882,8 @@ apiAssistant=initApiAssistant({
  captureViewport,isBusy:()=>state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring||state.transforming||state.versionComparing,
  context:()=>{const s=gather(),info=state.info;if(!info)return null;return {size:info.size,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?info.size.map(v=>v-1):s.hi,materials:info.materials,allow_overwrite:$('ai-allow-overwrite')?.checked??false}},
  binding:()=>JSON.stringify({source:state.info?.source,source_sha256:state.info?.source_sha256,settings:gather()}),
- componentState:()=>{const group=currentAIGroup();return group?{offset:group.offset??[0,0,0],bounds:aiBounds(group.applied),overwrite:group.overwrite}:null},
+ componentState:()=>{const group=currentAIGroup();return group?{offset:group.offset??[0,0,0],bounds:aiBounds(group.applied),overwrite:group.overwrite,structure_name:group.structure_name??group.base[0].label,camera_details:componentView(group)}:null},
+ focusComponent:async()=>{const group=currentAIGroup(),viewer=$('viewer').contentWindow?.nbtModeler;if(!group||state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring||state.mode!=='3d'||viewer?.status!=='ready')throw Error('请先完成构件预览并打开3D');await viewer.setCamera(componentView(group));$('view-hint').textContent=(group.structure_name??group.base[0].label)+' · 构件观察视角';editSession?.schedule()},
  operationChoices:()=>{try{return gather().operations.map((op,index)=>({index,label:op.label,kind:op.kind}))}catch{return[]}},
  adoptComponent:(start,end)=>{if(state.busy||state.previewBusy||state.commitBusy)throw Error('请等待当前建模任务完成');const settings=gather(),operations=settings.operations.slice(start,end+1),write_group=crypto.randomUUID();if(!Number.isInteger(start)||!Number.isInteger(end)||start<0||end<start||end>=settings.operations.length||operations.some(op=>!['box','beam','frame'].includes(op.kind)))throw Error('请选择一组连续的AI方块、梁或边框步骤');state.lastAIGroup={source:state.info.source,source_sha256:state.info.source_sha256,start,base:operations.map(op=>({...structuredClone(op),write_group})),applied:structuredClone(operations),offset:[0,0,0],overwrite:$('ai-allow-overwrite').checked};notifyAIComponent();editSession?.schedule()},
  localSelection:()=>!!state.info&&!gather().whole_region,
@@ -894,8 +896,9 @@ apiAssistant=initApiAssistant({
  apply:async(patch,options={})=>withPreviewCommit(async()=>{
   const before=gather(),next=structuredClone(before)
   if(patch.operations){const write_group=crypto.randomUUID(),operations=patch.operations.map(op=>({...structuredClone(op),overwrite:!!options.overwrite,write_group}));next.operations.push(...operations);updateComponentRange(next,patch)
-   await commitPreviewSettings(next,'AI：'+(operations[0]?.label||'局部结构调整'))
-   state.lastAIGroup={source:state.info.source,source_sha256:state.info.source_sha256,start:next.operations.length-operations.length,base:structuredClone(operations),applied:structuredClone(operations),offset:[0,0,0],overwrite:!!options.overwrite};notifyAIComponent()
+   const presentation=options.presentation??{}
+   await commitPreviewSettings(next,'AI：'+(presentation.structure_name||operations[0]?.label||'局部结构调整'))
+   state.lastAIGroup={source:state.info.source,source_sha256:state.info.source_sha256,start:next.operations.length-operations.length,base:structuredClone(operations),applied:structuredClone(operations),offset:[0,0,0],overwrite:!!options.overwrite,...(presentation.structure_name?{structure_name:presentation.structure_name}:{}),...(presentation.camera?{camera:structuredClone(presentation.camera)}:{})};notifyAIComponent();editSession?.schedule()
   }else{next.whole_region=false;next.lo=patch.lo;next.hi=patch.hi;next.structure={...next.structure,enabled:false,...patch.structure};next.replace={...next.replace,enabled:false,...patch.replace};await commitPreviewSettings(next,'AI：局部结构调整')}
  }),
  moveComponent:moveRecentAI
@@ -1003,7 +1006,7 @@ function captureEditSession(){
  const comparison=state.mode==='3d'?(state.comparisonSide==='after'&&meta?.geometry_sha256===state.preview?.geometry_sha256?'after':'before'):null
  const preview=comparison==='after'&&state.previewSettings&&state.previewSettings!==JSON.stringify(lastValidSessionSettings)?JSON.parse(state.previewSettings):undefined
  let raw=$('operation-sequence').value;try{if(JSON.stringify(JSON.parse(raw))===JSON.stringify(lastValidSessionSettings.operations))raw=null}catch{}
- const group=currentAIGroup(),ai_component=group?Object.fromEntries(['start','base','applied','offset','overwrite'].map(key=>[key,structuredClone(group[key])])):null
+ const group=currentAIGroup(),ai_component=group?Object.fromEntries(['start','base','applied','offset','overwrite','structure_name','camera'].filter(key=>group[key]!==undefined).map(key=>[key,structuredClone(group[key])])):null
  return {source:state.info.source,source_sha256:state.info.source_sha256,state:{settings:lastValidSessionSettings,operations_text:raw,controls,view:{mode:state.mode,quality:$('three-quality').value,camera:meta?.camera,cuts:meta?.cuts??[],layer:meta?.layer??$('view-layer').value,cut:Number($('view-cut').value),show_selection:$('show-selection').checked,image_hash:state.selectedImage?.image_sha256??null,image_name:state.selectedImage?.name??null,comparison,preview_settings:preview},drafts,ai_component,ai_candidate:apiAssistant?.capture()??null}}
 }
 async function restoreEditSession(saved,recovered={}){

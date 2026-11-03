@@ -15,6 +15,7 @@ import {createCatalogStore} from './catalog-store.mjs'
 import {createProjectStages} from './project-stages.mjs'
 import {createEditSessionStore} from './edit-session-store.mjs'
 import {createCommandStore} from './command-store.mjs'
+import {cleanApiMetrics,cleanTimings} from './ai-metrics.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const backend = path.resolve(here, '../../scripts/nbt_detail_control.py')
@@ -315,7 +316,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         json(res,{project_catalog:projectCatalog,catalog:{...projectCatalog,models:projectCatalog.models.filter(item=>!item.bugged&&!item.unreadable)}})
       } else if (req.method === 'GET' && url.pathname.startsWith('/__detail__/prompt/')) {
         const name=url.pathname.slice('/__detail__/prompt/'.length)
-        if(!['index.html','core.js','app.js','style.css','design-tokens.css','theme.css','catalog.js'].includes(name))throw new Error('Unknown prompt asset')
+        if(!['index.html','core.js','ai-input.js','app.js','style.css','design-tokens.css','theme.css','catalog.js'].includes(name))throw new Error('Unknown prompt asset')
         res.setHeader('Content-Type',name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.js')?'text/javascript; charset=utf-8':'text/css; charset=utf-8')
         res.setHeader('Cache-Control','no-store')
         res.end(await fs.readFile(path.join(skillRoot,'prompt-console',name)))
@@ -444,7 +445,8 @@ export async function startDetailServer({ workspace, output, python = 'python', 
           else if(input.action==='finish'){
             if(!['complete','failed','cancelled'].includes(input.status))throw Error('Invalid AI activity status')
             job.status=input.status;job.completed_at=new Date().toISOString();job.result={...job.result,summary:String(input.summary??job.result?.summary??'').slice(0,4000),operations:Number(input.operations??job.result?.operations??0),preview_only:true};if(job.status!=='complete')job.error=message;else delete job.error
-            if(input.api_metrics){const metrics={};for(const key of ['attempts','prompt_tokens','completion_tokens','total_tokens'])if(Number.isSafeInteger(input.api_metrics[key])&&input.api_metrics[key]>=0)metrics[key]=input.api_metrics[key];metrics.retried_compact=input.api_metrics.retried_compact===true;metrics.finish_reason=String(input.api_metrics.finish_reason??'').slice(0,40);job.api_metrics=metrics}
+            if(input.api_metrics)job.api_metrics=cleanApiMetrics(input.api_metrics)
+            if(input.timings)job.timings={...job.timings,...cleanTimings(input.timings)}
           }else throw Error('Unknown AI activity action')
           await fs.writeFile(path.join(job.directory,'job.json'),JSON.stringify(job,null,2));json(res,{id:job.id})
         }
