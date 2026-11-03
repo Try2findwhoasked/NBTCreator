@@ -94,6 +94,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/edit-session-store.test.mjs tests/app-settings.test.cjs tests/command-preferences.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/mesh-scheduling.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/mesh-scheduling-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/structure-agent-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/render-runtime.py
@@ -133,6 +137,8 @@ jobs:
           npm run test:api-desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/protection-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/mesh-scheduling-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/workspace-api-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
