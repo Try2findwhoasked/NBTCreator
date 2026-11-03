@@ -73,7 +73,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify native Electron launch
+        env:
+          ELECTRON_ENABLE_LOGGING: '1'
+        run: node tests/electron-launch.mjs
       - name: Verify Agent evidence and whole-model pipelines
+        env:
+          DEBUG: 'pw:browser'
         run: |
           $probeRoot = Join-Path $PWD 'build/ci-model-pipelines'
           if (Test-Path -LiteralPath $probeRoot) { throw 'Keep prior regression evidence; expected a fresh CI directory' }
