@@ -31,6 +31,7 @@
 | array_region | 环形 / 沿路径阵列 | lo/hi为源；source_anchor默认lo。path按折线弧长布置；radial用centre/radius/count/start_angle/sweep_angle。cardinal朝向取最近90°，不支持任意角度状态旋转；位置量化碰撞和预算均预检。 |
 | auto_stairs | 半格楼梯 / 坡道 / 平台 | start/end为整数玩家脚位（XZ取方块格，Y为脚底高度）；以半砖和完整块形成每次半格爬升。支持straight/switchback/spiral，转弯处平平台；逐段碰撞检查通过才返回候选。 |
 | terrain_road | 地形道路 / 避障 / 有限填挖 | A*按真实地表绕开非地形障碍；端点Y为真实地表格。高度差最多1，自动楼梯并逐段通行检查；仅允许列出的地形材质填挖。桥段需显式max_bridge_span，不认证承重。 |
+| auto_roof | 屋顶 / 屋脊 / 屋檐 | roof=gable/hip/gambrel/dome；lo.y为檐口底层，footprint可指定两个XZ角点，eaves向外扩展但不得超选区。finish=blocks/slabs/stairs；生成顶皮不自动补墙、梁柱或认证密闭。 |
 
 GUI的“建模工具”支持同样的有序operations。每步 enabled 为可选布尔开关，省略等于 true；false 保留在设置/计划中，但编译与执行跳过，不写任何方块。名称由 label 保存，数组顺序决定执行顺序。Agent使用control plan/preview或原refine流程调用，旧的专用API保持兼容。计划、预览、应用、导出和精修确认是不同阶段；能力清单不授予任何批准。
 

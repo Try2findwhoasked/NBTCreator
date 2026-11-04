@@ -110,3 +110,7 @@ CLI只输出源指纹、候选变化与统计，不落盘NBT、不批准精修�
 ## 截面成形
 
 geometry 新增三个 shape，仍经过相同布尔、裁剪、保护和预算路径。`section_sweep` 用 vertices（局部UV简单多边形）、points（全局XYZ折线）及 up（默认Y）生成各段定截面棱柱的并集。U=normalize(up×tangent)，V=tangent×U；平行 up 的路径段拒绝。转角使用平帽棱柱并集，不自动斜接，急弯可能缺角，须看图检查。`loft` 用严格递增 y 的 sections，每项 vertices 为全局XZ简单多边形；各截面顶点数和顺序对应，逐体素高度线性插值，拒绝采样到的自交截面。`revolve` 将 profile 的半径/相对高度多边形绕 centre 的Y轴旋转，可用 start_angle/sweep_angle 做部分圆周；半径不得负。三者只生成体素几何，不自动安排楼梯、壳厚或承重。
+
+## 参数化屋顶
+
+`auto_roof` 的 roof=gable/hip/gambrel/dome 分别人字、四坡、折线与椭圆穹顶；ridge_axis 指定人字或折线屋脊沿X/Z。lo.y 为檐口底层，rise 为正高度，footprint 为两个全局XZ角点（默认选区投影）；eaves=0..8 向外扩展且须完整容纳于选区。thickness=1..8 指每列垂直厚度，不是法向壳厚。finish=slabs 将表面向上量化到半格，以底半砖与完整块组合；blocks 使用完整块；stairs 在向高处的坡面放置朝内底楼梯，双向坡角为 outer_left/right，脊线使用完整块。屋脊和转角基于离散高度，是体素近似。gambrel 的 break_fraction/break_height 默认 .5/.75 控制折点。它只生成顶皮，不自动补山墙、檐下梁柱、承重和密闭检查。

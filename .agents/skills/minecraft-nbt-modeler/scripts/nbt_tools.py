@@ -14,7 +14,7 @@ from nbt_model import AIR, AIR_NAMES, state
 
 
 KINDS = {'geometry', 'morphology', 'diffusion', 'explosion', 'scatter',
-         'copy_region', 'repeat_region', 'transform_region', 'replace', 'paste_component', 'auto_road', 'selection_replace', 'align_region', 'array_region', 'auto_stairs', 'terrain_road'}
+         'copy_region', 'repeat_region', 'transform_region', 'replace', 'paste_component', 'auto_road', 'selection_replace', 'align_region', 'array_region', 'auto_stairs', 'terrain_road', 'auto_roof'}
 NEIGHBOURS = ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))
 
 
@@ -142,6 +142,9 @@ def modelling_plan(model, operation, protected=()):
     size = tuple(hi[i]-lo[i]+1 for i in range(3))
     if math.prod(size) > 2_000_000:
         raise ValueError('Operation exceeds 2 million voxel planning limit')
+    if kind == 'auto_roof':
+        from nbt_roofs import roof_plan
+        return roof_plan(model, operation, protected)
     if kind == 'terrain_road':
         from nbt_terrain_roads import terrain_road_plan
         return terrain_road_plan(model, operation, protected)

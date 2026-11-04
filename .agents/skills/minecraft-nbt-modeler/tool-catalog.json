@@ -835,6 +835,23 @@
         "max_writes": 4096
       },
       "A*按真实地表绕开非地形障碍；端点Y为真实地表格。高度差最多1，自动楼梯并逐段通行检查；仅允许列出的地形材质填挖。桥段需显式max_bridge_span，不认证承重。"
+    ],
+    "auto_roof": [
+      "屋顶 / 屋脊 / 屋檐",
+      {
+        "roof": "gable",
+        "ridge_axis": "z",
+        "rise": 4,
+        "eaves": 0,
+        "thickness": 1,
+        "finish": "slabs",
+        "state": "stone_bricks",
+        "slab_state": "stone_brick_slab[type=bottom,waterlogged=false]",
+        "stair_state": "stone_brick_stairs",
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "roof=gable/hip/gambrel/dome；lo.y为檐口底层，footprint可指定两个XZ角点，eaves向外扩展但不得超选区。finish=blocks/slabs/stairs；生成顶皮不自动补墙、梁柱或认证密闭。"
     ]
   },
   "labels": {
