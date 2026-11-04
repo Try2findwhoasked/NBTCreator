@@ -13,3 +13,11 @@ test('section geometry nested contract checks required fields and unknown keys',
  validateOperation({...base,geometry})
  for(const patch of [{points:[[1,2],[3,4]]},{vertices:[[0,0],[1,1]]},{script:'x'}])assert.throws(()=>validateOperation({...base,geometry:{...geometry,...patch}}))
 })
+
+test('workbench delta can add mode-specific array fields absent from defaults',()=>{
+ const {validateWorkbench,operationBase}=require('../desktop/workbench-contract.cjs')
+ const context={task:'controls',project:{size:[32,24,32]},operations:[{kind:'align_region',label:'align',classification:'body',lo:[2,2,2],hi:[3,3,3],mode:'align',target_lo:[10,2,10],target_hi:[11,3,11]}]}
+ const base=operationBase(context)
+ const result=validateWorkbench({summary:'anchor',operation_patch:{baseline:base.baseline,changes:[{step:1,expected:base.steps[0].expected,set:{mode:'anchor',source_anchor:[2,2,2],target_anchor:[20,2,20]}}]}},context)
+ assert.deepEqual(result.operations[0].target_anchor,[20,2,20])
+})
