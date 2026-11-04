@@ -24,7 +24,7 @@ class Contracts(unittest.TestCase):
    imported=subprocess.run([sys.executable,'-c','import sys;sys.path.insert(0,sys.argv[1]);from nbt_openings import open_declared_openings;print(callable(open_declared_openings))',data['scripts']],capture_output=True,text=True)
    self.assertEqual(imported.returncode,0,imported.stderr);self.assertEqual(imported.stdout.strip(),'True')
  def test_catalogue_and_generic_gui_operations(self):
-  c=capabilities();self.assertEqual(len(c['tools']),19)
+  c=capabilities();self.assertEqual(set(c['tools']),set(json.loads((ENGINE/'tool-catalog.json').read_text(encoding='utf8'))['tools']))
   s=default_settings();s['operations']=[dict(kind='box',label='same engine',classification='body',lo=[4,4,4],hi=[4,5,4],state='stone')]
   self.assertEqual(compile_plan(s,(48,16,48))['operations'],s['operations'])
   s['operations'][0]['kind']='run_python'
@@ -68,7 +68,7 @@ class Contracts(unittest.TestCase):
    old=Path(temp)/'old';new=Path(temp)/'new';expose(old,dict(schema_version=1,enabled_groups=['props']))
    shutil.copytree(old,new);shutil.rmtree(old)
    run=subprocess.run([sys.executable,str(new/'.agents/skills/nbtcreator-workspace/nbt.py'),'capabilities'],cwd=new,capture_output=True,text=True,encoding='utf8')
-   self.assertEqual(run.returncode,0,run.stderr);self.assertEqual(len(json.loads(run.stdout)['tools']),19)
+   self.assertEqual(run.returncode,0,run.stderr);self.assertEqual(set(json.loads(run.stdout)['tools']),set(capabilities()['tools']))
    text=(new/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8');self.assertIn('.nbtcreator/runtimes',text);self.assertNotIn(str(ROOT),text)
  def test_custom_knowledge_copied_selected_and_portable(self):
   with tempfile.TemporaryDirectory() as temp:
