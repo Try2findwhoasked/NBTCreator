@@ -86,3 +86,7 @@ CLI只输出源指纹、候选变化与统计，不落盘NBT、不批准精修�
 ## 自动道路铺设
 
 `auto_road` 用 `start/end` 整数 XYZ 指定同一高度的路面方块中心。`route` 为 `straight`（连续阶梯状斜线）、`x_first` 或 `z_first`（直角折线）；`width` 1～16、`depth` 1～8。偶数宽度向正轴多延伸一格；厚度向下延伸。`lo/hi` 必须容纳完整路面，不裁剪。`state` 须为实体方块，默认不覆盖已有不同材质；`overwrite=true` 才允许替换。保护、单步 `max_writes` 与总预算继续生效。首版为平面铺设，不自动避障、清空头顶或适应地形；使用后实际预览和检查通行，再显式导出新版本。UI入口在建筑模型下方的“自动道路”分类，CLI使用共用 `tools` 映射的单项操作 JSON。
+
+## 连通与表面选区
+
+`selection_replace` 的 `selection=connected/surface/connected_surface`、`seed_position`、`match=state/solid` 控制六邻接选区。surface 无需种子；其他模式从种子开始，默认精确同状态。`from_states` 进一步过滤，`faces` 指定暴露于真实空气或模型外部的方向（选区边缘不视为空气）。`thickness=1..16` 在表面模式向合格实体内部扩展，不跨空气。使用 `state=air` 可挖除。`nbt_selection.select_voxels` 是只读坐标查询 API，编辑仍通过共用预览与显式导出流程。

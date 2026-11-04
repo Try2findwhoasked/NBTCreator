@@ -578,6 +578,30 @@ globalThis.NbtToolCatalog = {
         "max_writes": 4096
       },
       "起终点Y为路面高度且须相同；straight / x_first / z_first自动生成连续道路，宽1～16、厚1～8，完整路面须在选区内；覆盖已有路面须显式开启，不自动避障。"
+    ],
+    "selection_replace": [
+      "连通 / 表面选区换材",
+      {
+        "selection": "connected",
+        "seed_position": [
+          8,
+          8,
+          8
+        ],
+        "match": "state",
+        "faces": [
+          "up",
+          "north",
+          "south",
+          "east",
+          "west",
+          "down"
+        ],
+        "thickness": 1,
+        "state": "andesite",
+        "max_writes": 4096
+      },
+      "从seed_position六邻接选取同状态或实体；surface按暴露朝向选面，thickness仅向实体内扩展。保护及预算继续生效。"
     ]
   },
   "labels": {
