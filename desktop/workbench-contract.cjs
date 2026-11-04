@@ -1,3 +1,4 @@
+const {validateOperation}=require('./operation-parameters.cjs')
 const catalog=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json')
 const {createHash}=require('node:crypto')
 const fields=['buildingShape','layout','circulation','name','theme','purpose','footprint','style','ceiling','floor','wall','props','preserve','extras']
@@ -59,6 +60,7 @@ function validateWorkbench(result,context){
   for(const op of result.operations){if(!op||!catalog.tools[op.kind]||typeof op.label!=='string'||!op.label.trim()||!['body','wall','inherit'].includes(op.classification))throw Error('AI返回未支持的工具或归属')
    if(op.enabled!==undefined&&typeof op.enabled!=='boolean')throw Error('工具 enabled 开关须为布尔值')
    if(op.enabled===false)continue
+   validateOperation(op)
    if(op.kind==='geometry'&&(!op.geometry||!catalog.shapes[op.geometry.shape]))throw Error('几何工具需要支持的形状定义')
    if(op.kind!=='auto_floor'&&op.kind!=='beam'){for(const key of ['lo','hi'])if(!Array.isArray(op[key])||op[key].length!==3||!op[key].every(Number.isInteger))throw Error('工具需要整数XYZ选区');if(op.lo.some((v,i)=>v<0||v>op.hi[i]||op.hi[i]>=size[i]))throw Error('AI工具超出方案尺寸')}
   }
