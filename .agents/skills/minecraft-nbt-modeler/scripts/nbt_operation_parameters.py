@@ -8,6 +8,9 @@ def validate_operation(op):
         kind=s.get('type')
         valid={'integer':type(value) is int,'number':type(value) in (int,float) and math.isfinite(value),'boolean':type(value) is bool,'string':isinstance(value,str),'array':isinstance(value,list),'object':isinstance(value,dict)}
         if kind and not valid.get(kind,True):raise ValueError('Invalid operation parameter type')
+        if 'enum' in s and value not in s['enum']:raise ValueError('Invalid operation parameter choice')
+        if kind in ('integer','number'):
+            if value<s.get('minimum',-math.inf) or value>s.get('maximum',math.inf) or 'exclusiveMinimum' in s and value<=s['exclusiveMinimum']:raise ValueError('Operation parameter outside limits')
         if kind=='array':
             if not s.get('minItems',0)<=len(value)<=s.get('maxItems',1000000):raise ValueError('Invalid operation parameter length')
             for item in value:check(item,s.get('items',{}))
