@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('nbtDesktop',Object.freeze({
   internalAISave:input=>ipcRenderer.invoke('nbt:internal-ai-save',input),
   internalAIImport:()=>ipcRenderer.invoke('nbt:internal-ai-import'),
   knowledgePreview:input=>ipcRenderer.invoke('nbt:knowledge-preview',input),
+  batchOpen:input=>ipcRenderer.invoke('nbt:batch-open',input),
   settingsOpenFolder:kind=>ipcRenderer.invoke('nbt:settings-open-folder',kind),
   appSettings:()=>ipcRenderer.invoke('nbt:app-settings'),
   appSettingsSave:input=>ipcRenderer.invoke('nbt:app-settings-save',input),

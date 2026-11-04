@@ -1,4 +1,5 @@
 import './project-manager.css'
+import {initBatchWorkspaces} from './batch-workspaces.js'
 import {filterProjects,latestSources,projectStage,DEFAULT_PROJECT_STAGES,includesDiscarded} from './project-catalog.js'
 import {createProjectTree} from './project-tree.js'
 import {checkboxFilter} from './project-filters.js'
@@ -17,7 +18,7 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh}){
  dialog.innerHTML='<header><div><h2 id="project-preview-title">建筑预览</h2><p id="project-preview-meta"></p></div><button id="project-preview-close" type="button" aria-label="关闭建筑预览">关闭</button></header><div class="project-preview-stage"><img id="project-preview-image" alt="建筑预览" hidden><iframe id="project-preview-3d" title="项目建筑只读3D预览" src="about:blank" hidden></iframe><p id="project-preview-status" role="status"></p></div><footer><span>只读预览，进入模型编辑后可标注和调整。</span><button id="project-preview-render" type="button">打开 3D 预览</button><button id="project-preview-edit" class="primary" type="button">进入模型编辑</button></footer>'
  document.body.append(dialog)
  const $=id=>document.getElementById(id),covers=new Map()
- let treeModels=null,treeShowDiscarded=false,batch=null,visibleModels=[]
+ let treeModels=null,treeShowDiscarded=false,batch=null,workspaces=null,visibleModels=[]
  let models=[],workspace='',limit=24,generation=0,selected=null,previewGeneration=0,previewBusy=false,object='',catalogLoading=true,latest=new Set(),coverQueue=[],activeCovers=0,searchTimer
  const message=text=>$('project-status').textContent=text
  const coverTargets=new WeakMap()
@@ -32,10 +33,11 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh}){
  $('project-refresh').textContent='刷新';floatingDetails(workspaceMenu,$('project-workspace-menu-content'),{minimum:360})
  const treeView=createProjectTree({container:$('project-tree'),api,onStatus:message,onOrderChange:render,onOpen:edit,onSelect:value=>{filters.project.set(value.project==='*'?['all']:[value.project]);filters.shape.set(value.shape==='*'?['all']:[value.shape]);object=value.object;$('project-search').value='';limit=24;render()}})
  batch=initProjectBatch({host,api,library,getVisible:()=>visibleModels,getModels:()=>models,render,isBusy,setBusy,refresh,message})
+ workspaces=initBatchWorkspaces({host,api,getModels:()=>models,openModel:edit,previewModel:showPreview,render})
  async function edit(item){
   let opening=false
-  try{if(isBusy()||previewBusy)throw Error('请等待当前任务完成');if(item.unreadable)throw Error(item.error||'此模型文件无法读取');opening=true;if(dialog.open)dialog.close();const info=await openModel(item);if(info){item.unverified=false;item.geometry_sha256=info.geometry_sha256;item.size=info.size}if(dialog.open)dialog.close()}
-  catch(e){if(opening&&item.unverified&&!(e instanceof TypeError)){item.unverified=false;item.unreadable=true;item.error=e.message;latest=latestSources(models);render()}if(dialog.open)$('project-preview-status').textContent=e.message;else message(e.message)}
+  try{if(isBusy()||previewBusy)throw Error('请等待当前任务完成');if(item.unreadable)throw Error(item.error||'此模型文件无法读取');opening=true;if(dialog.open)dialog.close();const info=await openModel(item);if(info){item.unverified=false;item.geometry_sha256=info.geometry_sha256;item.size=info.size}if(dialog.open)dialog.close();await workspaces?.seen(item.source).catch(error=>message('模型已打开；批次标记未更新：'+error.message));return true}
+  catch(e){if(opening&&item.unverified&&!(e instanceof TypeError)){item.unverified=false;item.unreadable=true;item.error=e.message;latest=latestSources(models);render()}if(dialog.open)$('project-preview-status').textContent=e.message;else message(e.message);return false}
  }
  function cover(item,generate=false){
   const key=JSON.stringify([item.source,item.geometry_sha256,item.modified_ns,item.file_size,generate])
@@ -85,26 +87,27 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh}){
    const preview=document.createElement('button');preview.type='button';preview.className='project-card-preview';preview.textContent=item.unreadable?'查看原因':'预览';preview.onclick=()=>item.unreadable?message(item.relative_path+'：'+item.error):showPreview(item)
    if(item.unreadable){main.setAttribute('aria-disabled','true');thumb.textContent='文件无法读取';location.textContent=item.error;location.title=item.error;card.classList.add('project-unreadable')}
    const stage=document.createElement('select');stage.className='project-card-stage';stage.setAttribute('aria-label','创作状态：'+(item.object_name||item.name_zh||item.name));stage.add(new Option('自动判断：'+stageLabels[projectStage({...item,stage:item.stage_manual?item.stage_auto:item.stage})],'auto'));for(const [key,label]of Object.entries(stageLabels))stage.add(new Option(label,key));stage.value=item.stage_manual?item.stage:'auto';stage.title='仅标记此文件的创作进度，不代表精修授权或验收通过';stage.onchange=async()=>{const value=stage.value;stage.disabled=true;try{await api('project-stage',{source:item.source,stage:value});if(value==='auto'){item.stage=item.stage_auto;delete item.stage_manual}else{if(!item.stage_manual)item.stage_auto=item.stage;item.stage=value;item.stage_manual=true}treeModels=null;render();message('创作状态已保存；文件变化后需重新确认')}catch(error){message(error.message);stage.disabled=false}}
-   card.append(main,stage,preview);batch?.decorate(card,item);$('project-grid').append(card);entries.push({item,node:thumb,card,token})
+   card.append(main,stage,preview);batch?.decorate(card,item);workspaces?.decorate(card,item);$('project-grid').append(card);entries.push({item,node:thumb,card,token})
   }
   if(!visible.length){const empty=document.createElement('p');empty.className='project-empty';empty.textContent=catalogLoading&&!models.length?'正在扫描建筑库，可先切换到其他工作区。':models.length?'没有匹配的建筑，试试清空搜索或重置筛选。':`当前工作区还没有建筑。可打开 NBT，或前往“提示词方案”为首次建模编写方案。建筑库按 Skill 规范保存在工作区的 nbt_models 中。`;if(!models.length&&!catalogLoading){const create=document.createElement('button');create.type='button';create.textContent='编写首次建模方案';create.onclick=()=>window.creatorWorkspace?.select('prompt');empty.append(document.createElement('br'),create)}$('project-grid').append(empty)}
   for(const task of entries){if(task.item.unreadable){task.node.textContent='文件无法读取';continue}coverTargets.set(task.card,task);if(document.body.dataset.workspace==='project')coverObserver.observe(task.card)}
   library.main.scrollTop=scrollTop
  }
  async function showPreview(item){
-  if(isBusy()||previewBusy){message('请等待当前任务完成');return}
+  if(isBusy()||previewBusy){message('请等待当前任务完成');return false}
   selected=item;const token=++previewGeneration
+  let taskLink=dialog.querySelector('#project-preview-task-link');if(!taskLink){taskLink=document.createElement('div');taskLink.id='project-preview-task-link';dialog.querySelector('footer').prepend(taskLink)}taskLink.replaceChildren();const batchLink=workspaces?.previewLink(item.source);if(batchLink)taskLink.append(batchLink)
   $('project-preview-title').textContent=item.object_name||item.name_zh||item.name||item.label;$('project-preview-meta').textContent=[item.size?.join(' × '),item.version,item.relative_path].filter(Boolean).join(' · ')
   $('project-preview-image').hidden=true;$('project-preview-3d').hidden=true;$('project-preview-3d').src='about:blank';$('project-preview-status').textContent='正在读取截面预览；首次缺图时会生成并缓存…';dialog.showModal()
-  try{const result=await cover(item,true);if(token!==previewGeneration||!dialog.open)return
+  try{const result=await cover(item,true);if(token!==previewGeneration||!dialog.open)return false
    if(result.image){$('project-preview-image').src=result.image;$('project-preview-image').hidden=false;$('project-preview-status').textContent=result.generated?'当前版本截面示意图 · 已缓存（简化材质）':result.section?'整体截面预览 · 已缓存':'当前版本尚无截面渲染图，显示已有渲染图'}
-   else await render3D()
+   else if(await render3D()===false)return false
    for(const card of $('project-grid').querySelectorAll('.project-card'))if(card.dataset.source===item.source)displayCover(card.querySelector('.project-cover'),result,item)
-   covers.clear()
-  }catch(e){if(token===previewGeneration&&dialog.open)$('project-preview-status').textContent=e.message+'；可尝试打开 3D 预览。'}
+   covers.clear();await workspaces?.seen(item.source).catch(error=>message(error.message));return true
+  }catch(e){if(token===previewGeneration&&dialog.open)$('project-preview-status').textContent=e.message+'；可尝试打开 3D 预览。';return false}
  }
  async function render3D(){
-  if(!selected||previewBusy||isBusy())return
+  if(!selected||previewBusy||isBusy())return false
   const token=previewGeneration,item=selected;previewBusy=true;setBusy(true);$('project-preview-close').disabled=false
   $('project-preview-status').textContent='正在读取 NBT 并准备 3D 预览…'
   try{
@@ -113,8 +116,8 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh}){
    do{await new Promise(resolve=>setTimeout(resolve,400));job=await api('jobs/'+id)}while(job.status==='running')
    if(job.status!=='complete')throw Error(job.error||'3D 预览未完成')
    if(token!==previewGeneration||!dialog.open)return
-   const frame=$('project-preview-3d');frame.src=`/?model_key=${encodeURIComponent(job.result.model_key)}&embedded=1&quality=fast&pixelRatio=0.75&maxFps=24`;frame.hidden=false;$('project-preview-image').hidden=true;$('project-preview-status').textContent='左键原地转向，中键平移，滚轮沿视线前进／后退。此处仅预览，不修改建筑。'
-  }catch(e){if(token===previewGeneration&&dialog.open)$('project-preview-status').textContent=e.message}
+   const frame=$('project-preview-3d');frame.src=`/?model_key=${encodeURIComponent(job.result.model_key)}&embedded=1&quality=fast&pixelRatio=0.75&maxFps=24`;frame.hidden=false;$('project-preview-image').hidden=true;$('project-preview-status').textContent='左键原地转向，中键平移，滚轮沿视线前进／后退。此处仅预览，不修改建筑。';return true
+  }catch(e){if(token===previewGeneration&&dialog.open)$('project-preview-status').textContent=e.message;return false}
   finally{previewBusy=false;setBusy(false)}
  }
  function populateFilters(){
@@ -124,9 +127,9 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh}){
  $('project-search').oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{limit=24;render()},120)}
  $('project-clear').onclick=()=>{for(const filter of Object.values(filters))filter.reset();$('project-search').value='';object='';limit=24;render()}
  $('project-more').onclick=()=>{limit+=24;render(true)}
- $('project-refresh').onclick=async()=>{try{message('正在刷新建筑库…');covers.clear();await refresh();message('建筑库已刷新')}catch(e){message(e.message)}}
+ $('project-refresh').onclick=async()=>{try{message('正在刷新建筑库…');covers.clear();await refresh();await workspaces?.refresh();message('建筑库已刷新')}catch(e){message(e.message)}}
  $('project-preview-close').onclick=()=>dialog.close();$('project-preview-render').onclick=render3D;$('project-preview-edit').onclick=()=>edit(selected)
  dialog.addEventListener('close',()=>{previewGeneration++;$('project-preview-3d').src='about:blank';$('project-preview-3d').hidden=true;$('project-preview-image').removeAttribute('src')})
  window.addEventListener('creator-workspace-change',event=>{if(event.detail==='project')render();else{generation++;coverObserver.disconnect();coverQueue=[];if(dialog.open)dialog.close()}})
- return {checked(info){for(const item of models)if(item.source===info.source){item.unverified=false;item.unreadable=false;item.geometry_sha256=info.geometry_sha256;item.size=info.size}latest=latestSources(models);if(document.body.dataset.workspace==='project')render()},setLoading(text){catalogLoading=!!text;$('project-loading').textContent=text;$('project-refresh').disabled=catalogLoading;host.setAttribute('aria-busy',String(catalogLoading&&!models.length))},update(items,root){models=items;batch?.update();latest=latestSources(models);workspace=root;host.dataset.workspaceRoot=workspace;populateFilters();render()}}
+ return {checked(info){for(const item of models)if(item.source===info.source){item.unverified=false;item.unreadable=false;item.geometry_sha256=info.geometry_sha256;item.size=info.size}latest=latestSources(models);if(document.body.dataset.workspace==='project')render()},setLoading(text){catalogLoading=!!text;$('project-loading').textContent=text;$('project-refresh').disabled=catalogLoading;host.setAttribute('aria-busy',String(catalogLoading&&!models.length))},update(items,root){models=items;batch?.update();latest=latestSources(models);workspace=root;workspaces?.update(workspace);host.dataset.workspaceRoot=workspace;populateFilters();render()}}
 }

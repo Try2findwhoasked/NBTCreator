@@ -43,6 +43,7 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 | 保存选区为构件、搜索构件库、3D复制/移动/旋转/吸附、AI局部放置 | [构件资产库](references/component-assets.md)；应用与 CLI 共用工作区库，extract/transform仅返回候选，先预览再导出下一版 |
 | 保存参数化工具序列、复用材质主题、XYZ构件批量阵列 | [配方与主题](references/reusable-recipes.md)；recipes compile / components batch返回原工具候选，不直接写建筑 |
 | 图形化浏览已有结构、收藏、版本筛选与批量选择清单 | [现有结构选择器](references/structure-selector.md) |
+| 批量创作的过程目录、关联模型与汇总图册 | [制作批次](references/batch-workspaces.md)；batches create/record/list/get/locate 共用应用登记，过程文件放 `_workspaces/batches`，正式作者模型仍按形状／名称／版本归档 |
 | 项目多选、批量截面预览、文件/路线检查、进度与失败重试 | [项目批量任务](references/project-batch.md)；只读队列，阶段标记不等于精修批准或验收 |
 | 管理SAODG模组已接入结构、房间池与选择优先级 | [模组结构管理器](references/mod-structures.md) |
 | 输出、分层交付、世界转换 | [交付流程](references/delivery-workflow.md)、[文件与世界转换](references/output-storage.md) |
