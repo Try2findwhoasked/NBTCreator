@@ -144,7 +144,7 @@ def scan(workspace, source=None):
     workspace=Path(workspace).resolve();models=workspace/'nbt_models';items=[];errors=[]
     selected=relative(workspace,inside(workspace,source)) if source else None
     for directory,dirs,names in os.walk(models,followlinks=False):
-        dirs[:]=[name for name in dirs if name not in {'_workspaces','_migration','修订'} and not (Path(directory)/name).is_symlink()]
+        dirs[:]=[name for name in dirs if name not in {'_workspaces','_migration','修订','修改意见'} and not (Path(directory)/name).is_symlink()]
         if '交给Agent.md' in names and 'Agent交接' in Path(directory).parts:
             file=Path(directory)/'交给Agent.md'
             try:

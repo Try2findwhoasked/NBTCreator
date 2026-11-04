@@ -94,6 +94,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/prompt-archive.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/feedback-tasks.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/feedback-tasks-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/prompt-archive-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/walk-desktop.mjs
@@ -153,6 +157,8 @@ jobs:
           node tests/mesh-scheduling-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/workspace-api-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/feedback-tasks-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:

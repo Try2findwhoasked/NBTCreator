@@ -647,7 +647,8 @@ globalThis.NbtToolCatalog = {
     "ai-style": "nbt_ai_style.py",
     "recipes": "nbt_recipes.py",
     "project-batch": "nbt_project_batch.py",
-    "prompts": "nbt_prompts.py"
+    "prompts": "nbt_prompts.py",
+    "feedback-tasks": "nbt_feedback_tasks.py"
   },
   "building_shapes": {
     "single": {

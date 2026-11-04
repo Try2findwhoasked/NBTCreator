@@ -10,7 +10,7 @@ from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 GROUPS={
- 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','prompt-archive','ai-creative-preferences']),
+ 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','ai-creative-preferences']),
  'architecture':('建筑风格与场所',['architecture-knowledge-base','structure-atlas','design-grammar']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
@@ -121,6 +121,7 @@ def apply(workspace,config=None):
       '已启用表示资料可用，不要求每次把全部目录读完。完整阅读下面当前阶段所列文件；专题按用途选适用完整章节，长建筑原型库无需遍读。', '',
       '| 当前任务 | 先读与下一步 |','| --- | --- |',
       f'| 接手工作台提示词 | 读 [提示词归档]({relative}/references/prompt-archive.md)；先 prompts scan，再 prompts read --index <index> --id <id> 读取完整正文与方案。核对source_matches，归档不构成批准。 |',
+      f'| 整理标注与跟进任务 | 读 [意见任务]({relative}/references/comment-tasks.md)，使用feedback-tasks list/create/update/merge/evidence；分组、任务状态与原评论证据分别保留，任务完成不表示模型验收或新增批准。 |',
       (f'| 独立构件创建、读写与放置 | 读 [构件资产]({relative}/references/component-assets.md) 和共用接口中的结构Agent协议；使用component偏好，先实际预览再保存新资产。结构放置产生候选，NBT仍须显式导出。 |' if 'library' in config['enabled_groups'] else '| 独立构件创建、读写与放置 | 读共用接口中的结构Agent协议及components agent --help；使用component偏好，先实际预览再保存新资产。 |'),
       f'| 首次创建或重设计 | 完整读 [整体流程]({relative}/references/whole-model-workflow.md)、[玩家尺度]({relative}/references/player-scale.md)、[创作原则]({relative}/references/design-principles.md)、[空间细节]({relative}/references/spatial-detail-design.md)。写本任务生成器；自定义独立入口使用 toolkit 的 open_declared_openings，不套用 SAODG 端口。 |',
       f'| 已有模型的标注/候选 | 读 [意见与证据]({relative}/references/agent-feedback.md)，先 feedback scan/collect，再结合原图/坐标解释构件，按需读空间细节和实际使用的工具。plan/preview 后运行 validate --request <参数JSON> --snapshot <after.json> --output <新目录> 并实际看图，不能把 planned 当候选路线已通过。 |',

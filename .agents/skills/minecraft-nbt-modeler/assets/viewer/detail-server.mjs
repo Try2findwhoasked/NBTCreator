@@ -409,6 +409,8 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         // including after the library is filtered or refreshed.
         if(input.generate===true)for(const saved of covers.keys())if(saved!==key&&JSON.parse(saved)[0]===source)covers.delete(saved)
         json(res,result)
+      } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/feedback-tasks/')){
+        const action=url.pathname.split('/').at(-1);if(!['list','create','update','merge','evidence'].includes(action))throw Error('未知意见整理操作');const input=await body(req),source=localPath(input.source),info=openedSource(source);if(!info||info.source_sha256!==input.source_sha256)throw Error('请先打开当前建筑再整理意见');input.source=source;const directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'feedback-tasks-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(portableRequest(input,workspace)));try{json(res,await invoke(['feedback-tasks','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if (req.method === 'POST' && url.pathname.startsWith('/__detail__/feedback/')) {
         const input=await body(req), binding=bindings.get(input.target_id ?? input.image_id)
         if(!binding)throw new Error('请先打开对应图片或3D建筑')

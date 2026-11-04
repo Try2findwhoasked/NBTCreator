@@ -113,7 +113,7 @@ def scan(workspace, version=None):
     indexes, visited = [], 0
     root = Path(version).resolve() if version else workspace/'nbt_models'
     for directory, dirs, names in os.walk(root, followlinks=False):
-        dirs[:] = [name for name in dirs if name not in {'_workspaces','_tests','_migration','.git','node_modules'}
+        dirs[:] = [name for name in dirs if name not in {'_workspaces','_tests','_migration','.git','node_modules','任务证据','任务历史','提示词方案'}
                    and not (Path(directory)/name).is_symlink()]
         visited += len(names)+len(dirs)
         if visited > 100000:

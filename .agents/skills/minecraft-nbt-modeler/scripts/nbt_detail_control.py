@@ -734,6 +734,7 @@ def main():
     sub.add_parser('defaults')
     cmd = sub.add_parser('prompt'); cmd.add_argument('--request', type=Path, required=True)
     cmd = sub.add_parser('prompt-save');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('feedback-tasks');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','create','update','merge','evidence'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('validate'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True)
     for name in ('plan', 'prepare', 'render', 'snapshot', 'preview', 'revision', 'compare'):
         cmd = sub.add_parser(name); cmd.add_argument('--request', type=Path, required=True); cmd.add_argument('--output', type=Path, required=True)
@@ -752,6 +753,9 @@ def main():
         elif args.command == 'prompt-save':
             from nbt_prompts import save
             result=save(args.workspace,read_json(args.request))
+        elif args.command == 'feedback-tasks':
+            from nbt_feedback_tasks import dispatch
+            result=dispatch(args.workspace,args.action,read_request(args.request))
         elif args.command == 'project-batch':
             from nbt_project_batch import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request) if args.request else {})
