@@ -10,7 +10,7 @@ from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 GROUPS={
- 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','ai-creative-preferences']),
+ 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','ai-creative-preferences']),
  'architecture':('建筑风格与场所',['architecture-knowledge-base','structure-atlas','design-grammar']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
@@ -122,6 +122,7 @@ def apply(workspace,config=None):
       '| 当前任务 | 先读与下一步 |','| --- | --- |',
       f'| 接手工作台提示词 | 读 [提示词归档]({relative}/references/prompt-archive.md)；先 prompts scan，再 prompts read --index <index> --id <id> 读取完整正文与方案。核对source_matches，归档不构成批准。 |',
       f'| 批量创作与任务交付 | 读 [制作批次]({relative}/references/batch-workspaces.md)，先 batches create 在 nbt_models/_workspaces/batches 分配过程目录；用 record 关联正式模型和图册，list/get/locate 扫描接手。批次目录不是新的项目根，登记不授予批准。 |',
+      f'| Agent完成修改后的版本回传 | 读 [任务回传]({relative}/references/agent-task-return.md)，agent-tasks get/record 登记同一建筑新版本与逐条处理声明，应用同镜头对比并单独保存人工核对；不改原评论或制造批准。 |',
       f'| 检查失败解释与定位 | 读 [检查说明]({relative}/references/diagnostic-guidance.md)，原检查附带 diagnostics；diagnostics --kind walk/candidate/protection --report 解释已保存证据，不重新验证或自动修复。 |',
       f'| 按任务检索资料或复用构件 | 读 [本地参考检索]({relative}/references/reference-retrieval.md)，retrieve search/bundle/read 共用应用的工作流资料选择与哈希校验；结构复用使用 placements 和可选 material_map，先真实预览再保存新资产。 |',
       f'| 选区自然语言工具编辑 | 读 [选区编辑]({relative}/references/selection-edit.md)，selection-edit context 读取真实局部方块，compile 转换相对坐标；实际写入边界、保护与预算由预览／导出引擎检查，先审阅再采用。 |',

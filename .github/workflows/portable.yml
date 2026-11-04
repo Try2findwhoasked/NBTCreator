@@ -104,6 +104,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/diagnostic-guidance.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/agent-task-return.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/retrieval.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/selection-edit.test.cjs
@@ -125,6 +127,8 @@ jobs:
           node tests/selection-edit-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/retrieval-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/agent-task-return-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/prompt-archive-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -193,6 +197,8 @@ jobs:
           node tests/selection-edit-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/retrieval-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/agent-task-return-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:

@@ -1,3 +1,4 @@
+import {initAgentTaskReturns} from './agent-task-return.js'
 import {renderDiagnostics} from './diagnostic-guidance.js'
 import {linkRange} from './range-control.js'
 
@@ -1001,6 +1002,7 @@ versionComparison=initVersionCompare({
   $('model-hash').textContent=previous.hashLabel;busy(false);document.querySelector('.action-bar').inert=window.creatorWorkspace?.current()!=='model';$('three-quality').disabled=false;$('auto-preview').disabled=false;$('view-select').disabled=false;$('view-hint').textContent=state.mode==='3d'?'材质 3D · 左键原地转向，中键平移，滚轮前进／后退':$('view-hint').textContent
  },viewChanged:()=>syncComparisonViewControls($('viewer').contentWindow.nbtModeler.snapshot,$('viewer').contentWindow.nbtModeler.metadata())
 })
+initAgentTaskReturns({api,context:()=>({info:state.info,busy:state.busy||state.previewBusy||state.commitBusy||state.versionComparing,camera:$('viewer').contentWindow?.nbtModeler?.metadata?.().camera}),compare:(pair,camera)=>versionComparison.compare(pair,camera),message:text=>status(text)})
 componentEditor=initComponentEditor({
  api,message:status,viewer:()=>$('viewer').contentWindow?.nbtModeler,
  context:()=>{if(!state.info)return{};const settings=gather();return {source:state.info.source,source_sha256:state.info.source_sha256,size:state.info.size,whole:settings.whole_region,lo:settings.whole_region?[0,0,0]:settings.lo,hi:settings.whole_region?state.info.size.map(n=>n-1):settings.hi,settings:JSON.stringify(settings),target_id:state.viewerFeedbackId}},

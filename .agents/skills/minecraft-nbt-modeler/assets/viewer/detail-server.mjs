@@ -180,7 +180,10 @@ export async function startDetailServer({ workspace, output, python = 'python', 
           if (kind === 'apply') args.push('--bundle', localPath(input.bundle), '--review', localPath(input.review))
           result = await invoke(args, path.join(directory, 'backend.log'), undefined,job)
           checkpoint(job)
-          if (kind === 'plan') Object.assign(result,await writeHandoff({workspace,info,request,result,requestFile:requestPath}))
+          if (kind === 'plan') {
+            const file=path.join(directory,'task-registration.json');await fs.writeFile(file,JSON.stringify({source:info.source,source_sha256:info.source_sha256,name:'修改 '+path.basename(info.workdir),origins:[{role:'plan',path:result.plan},{role:'bundle',path:result.bundle}]}));try{result.agent_task=await invoke(['agent-tasks','--workspace',workspace,'--action','create','--request',file])}catch(error){result.task_registration_warning='Agent任务登记未完成：'+error.message}
+            Object.assign(result,await writeHandoff({workspace,info,request,result,requestFile:requestPath}))
+          }
         }
         checkpoint(job)
         result.source=request.source
@@ -414,6 +417,8 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         json(res,result)
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/batches/')){
         const action=url.pathname.split('/').at(-1);if(!['list','get','create','import','ack','locate'].includes(action))throw Error('未知批次操作');const input=await body(req,256*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'batches-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['batches','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
+      } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/agent-tasks/')){
+        const action=url.pathname.split('/').at(-1);if(!['create','list','get','discover','record','review'].includes(action))throw Error('未知Agent任务操作');const input=await body(req,4*1024*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'agent-task-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['agent-tasks','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/retrieve/')){
         const action=url.pathname.split('/').at(-1);if(!['search','source','bundle','read'].includes(action))throw Error('未知参考检索操作');const input=await body(req,256*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'retrieve-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{const result=await invoke(['retrieve','--workspace',workspace,'--action',action,'--request',file]);if(action==='search')for(const item of result.assets)item.thumbnail=item.thumbnail?asset(item.thumbnail):null;json(res,result)}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/selection-edit/')){

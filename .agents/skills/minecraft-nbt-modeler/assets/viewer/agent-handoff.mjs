@@ -30,7 +30,8 @@ export async function writeHandoff({workspace,info,request,result,requestFile}) 
   const shared = path.join(info.version_dir??info.workdir,'Agent交接')
   const sharedRequest = path.join(directory,'request.json')
   await fs.writeFile(sharedRequest,await fs.readFile(requestFile),{flag:'wx'})
-  const text = `请使用当前工作区的 .agents/skills/nbtcreator-workspace/SKILL.md 处理以下建筑修改任务。\n\n`+
+  const returnGuide=result.agent_task?`\n任务回传编号：${result.agent_task.id}。使用 agent-tasks get 读取原评论与当前revision，生成同一建筑新版本后调用 agent-tasks record 登记 new_source/new_source_sha256、summary 及逐条评论处理说明。原评论引用key/content_sha256；status为addressed/deferred/not_applicable，note说明实际修改或未处理原因。不把登记或声明当作人工验收，不覆盖原版本或自动解决原评论。\n`:result.task_registration_warning??''
+  const text = returnGuide+`请使用当前工作区的 .agents/skills/nbtcreator-workspace/SKILL.md 处理以下建筑修改任务。\n\n`+
     `项目内路径相对于当前工作区根目录；外部文件保留原路径。\n`+
     `- 源建筑：${relative(info.source)}\n- 源 SHA256：${request.source_sha256}\n`+
     `- 保护配置：${relative(request.context)}\n- 参数请求：${relative(sharedRequest)}\n`+
