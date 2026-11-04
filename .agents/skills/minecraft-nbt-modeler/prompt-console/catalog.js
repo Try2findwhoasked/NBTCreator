@@ -628,6 +628,34 @@ globalThis.NbtToolCatalog = {
         "max_writes": 4096
       },
       "lo/hi是源包围盒；align按轴min/center/max/keep对齐；anchor指定源和目标全局锚点；ground按destination的XZ和最高搜索Y落地，拒绝不平整或未知支承。归属请显式设置。"
+    ],
+    "array_region": [
+      "环形 / 沿路径阵列",
+      {
+        "mode": "path",
+        "points": [
+          [
+            24,
+            4,
+            4
+          ],
+          [
+            24,
+            4,
+            36
+          ]
+        ],
+        "spacing": 8,
+        "end_margins": [
+          0,
+          0
+        ],
+        "orientation": "fixed",
+        "include_air": false,
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "lo/hi为源；source_anchor默认lo。path按折线弧长布置；radial用centre/radius/count/start_angle/sweep_angle。cardinal朝向取最近90°，不支持任意角度状态旋转；位置量化碰撞和预算均预检。"
     ]
   },
   "labels": {

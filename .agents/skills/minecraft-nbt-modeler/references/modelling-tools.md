@@ -94,3 +94,7 @@ CLI只输出源指纹、候选变化与统计，不落盘NBT、不批准精修�
 ## 对齐与吸附
 
 `align_region` 使用源 `lo/hi` 的快照平移，不旋转状态。`mode=align` 的 `target_lo/target_hi` 和三个 `axes=min/center/max/keep` 定义各轴对齐；半格中心偏移明确拒绝。`mode=anchor` 使用全局 `source_anchor/target_anchor`。`mode=ground` 以 `destination` 的 XZ 为目标包围盒最小位置，Y 为向下搜索起点；只接受已知完整方块支承，逐源实体列的最低格需要一致的落地偏移，不自动挖地或悬空。move/include_air/overwrite 均为显式布尔。墙和主体请分开操作并明确 classification，inherit 仍表示保留目标原归属。
+
+## 环形与沿路径阵列
+
+`array_region` 从原快照复制，`source_anchor` 为源内的全局锚点，默认 lo。`mode=path` 的 points 是连续全局 XYZ 折线，spacing 为弧长间距，end_margins 为起止留白；最多 128 次放置。`mode=radial` 使用 centre/radius/count，start_angle=0 指向北，正角顺时针，sweep_angle 默认360度，完整圆不重复末端。位置四舍五入到整数网格，重复锚点及不同状态冲突拒绝。orientation=fixed 保持源朝向；cardinal 按路径切线或径向朝外取最近90度，仍使用现有保守状态变换，不提供任意角旋转。报告包含每个实际锚点及 quarter_turns，须看图检查体素近似。
