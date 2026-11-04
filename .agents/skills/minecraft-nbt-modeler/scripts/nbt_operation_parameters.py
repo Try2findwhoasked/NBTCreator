@@ -5,6 +5,11 @@ CATALOG=json.loads((Path(__file__).resolve().parents[1]/'tool-catalog.json').rea
 def validate_operation(op):
     schema=CATALOG['operation_parameters'][op['kind']]
     def check(value,s):
+        if 'anyOf' in s:
+            for branch in s['anyOf']:
+                try:check(value,branch);return
+                except ValueError:pass
+            raise ValueError('Invalid operation parameter alternatives')
         kind=s.get('type')
         valid={'integer':type(value) is int,'number':type(value) in (int,float) and math.isfinite(value),'boolean':type(value) is bool,'string':isinstance(value,str),'array':isinstance(value,list),'object':isinstance(value,dict)}
         if kind and not valid.get(kind,True):raise ValueError('Invalid operation parameter type')

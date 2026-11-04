@@ -729,6 +729,7 @@ def main():
     sub = parser.add_subparsers(dest='command', required=True)
     cmd = sub.add_parser('catalog'); cmd.add_argument('--workspace', type=Path, required=True);cmd.add_argument('--include-bugged',action='store_true');cmd.add_argument('--index-only',action='store_true')
     cmd = sub.add_parser('inspect'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--image-limit',type=int,default=8)
+    cmd = sub.add_parser('effect-assets');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','save','get','preview','compile','archive','organize'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('room-score');cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path);cmd.add_argument('--output',type=Path,required=True)
     cmd = sub.add_parser('asset-batches');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','import','generate','read','save','organize'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('project-repair');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--source',required=True);cmd.add_argument('--category',default='auto');cmd.add_argument('--source-sha256')
@@ -756,6 +757,9 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == 'catalog': result = catalog(args.workspace,include_bugged=args.include_bugged,index_only=args.index_only)
+        elif args.command == 'effect-assets':
+            from nbt_effect_assets import dispatch
+            result=dispatch(args.workspace,args.action,read_json(args.request))
         elif args.command == 'room-score':
             from nbt_room_score import score_room
             result=score_room(read_request(args.request),args.snapshot);output=reserve_output(args.output);write_json(output/'room-score.json',result);result['report_file']=str(output/'room-score.json')

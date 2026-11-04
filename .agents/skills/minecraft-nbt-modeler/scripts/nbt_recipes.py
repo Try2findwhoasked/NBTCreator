@@ -206,6 +206,7 @@ def translate_operation(operation, offset):
         if 'children' in result:result['children']=[geometry(child) for child in result['children']]
         return result
     if 'geometry' in op:op['geometry']=geometry(op['geometry'])
+    if op.get('kind')=='weathering' and isinstance(op.get('floor'),dict) and 'levels' in op['floor']:op['floor']['levels']=[level+offset[1] for level in op['floor']['levels']]
     return op
 
 

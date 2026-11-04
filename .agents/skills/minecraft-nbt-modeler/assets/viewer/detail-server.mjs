@@ -404,6 +404,10 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         const input=await body(req),info=openedSource(localPath(input.source));if(!info||info.source_sha256!==input.source_sha256)throw Error('请先打开当前版本再查看保护区')
         const system=path.join(outputRoot,'system');await fs.mkdir(system,{recursive:true});const file=path.join(system,'protection-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify({source:info.source,source_sha256:info.source_sha256,context:input.context?localPath(input.context):''}))
         try{json(res,await invoke(['protection-mask','--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
+      } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/effect-assets/')){
+        const action=url.pathname.split('/').at(-1);if(!['list','save','get','preview','compile','archive','organize'].includes(action))throw Error('未知效果资产操作');const input=await body(req,9*1024*1024),folder=path.join(outputRoot,'system');await fs.mkdir(folder,{recursive:true});const file=path.join(folder,'effect-asset-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));let result
+        try{result=await invoke(['effect-assets','--workspace',workspace,'--action',action,'--request',file])}finally{await fs.unlink(file).catch(()=>{})}
+        if(action==='preview'){for(const side of ['before','after']){const key=randomUUID();snapshots.set(key,result[side+'_snapshot']);result[side+'_model_key']=key}if(result.thumbnail)result.thumbnail=asset(result.thumbnail)}json(res,result)
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/asset-batches/')){
         const action=url.pathname.split('/').at(-1)
         if(!['list','import','generate','read','save','organize'].includes(action))throw Error('未知资产批量操作')

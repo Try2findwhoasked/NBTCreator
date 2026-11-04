@@ -19,6 +19,7 @@ import {initCommandCenter} from './command-center.js'
 import {toolPanels as commandPanels} from './command-contract.mjs'
 import {createSettingsHistory} from './settings-history.mjs'
 import {createEditSessionController} from './edit-session.js'
+import {initToolEffects} from './tool-effects.js'
 import {initRoomScore} from './room-score.js'
 import {initAppSettings} from './app-settings.js'
 import {translateComponent} from './component-move.js'
@@ -606,9 +607,7 @@ async function manualFilter() {
 }
 $('view-layer').addEventListener('change',handle(manualFilter));$('view-cut').addEventListener('change',handle(manualFilter))
 $('save-preset').addEventListener('click',handle(async()=>{
-  const result=await api('effects/save',{request:request(),name:$('effect-name').value})
-  await refreshEffects();status('效果设置已保存：'+result.path+'；可在右侧用 @ 引用。')
-  const link=document.createElement('a');link.textContent='另下载一份设置';const url=URL.createObjectURL(new Blob([JSON.stringify(request(),null,2)],{type:'application/json'}));link.href=url;link.download='detail_settings.json';$('result-links').replaceChildren(link);setTimeout(()=>URL.revokeObjectURL(url),60000)
+  await toolEffects.captureCurrent()
 }))
 $('load-preset').addEventListener('click',()=>$('preset-file').click())
 $('preset-file').addEventListener('change',handle(async()=>{
@@ -963,6 +962,14 @@ async function applyReusable(patch,expected){
  window.creatorWorkspace.select('model')
  try{await applyComponentPatch(patch,expected)}catch(error){window.creatorWorkspace.select(previous);for(const dialog of dialogs)if(!dialog.open)dialog.showModal();throw error}
 }
+function captureToolEffect(){
+ const settings=structuredClone(gather());for(const key of ['lo','hi','whole_region','max_changed_blocks'])delete settings[key]
+ const active=Number(document.querySelector('#tool-tabs button[aria-pressed=true]')?.dataset.toolIndex??0),panel={1:'pattern',2:'weathering',3:'floor',5:'replace',7:'structure'}[active];if(panel)settings[panel].enabled=true
+ if(active===10){const s=gather();settings.operations=[{kind:'auto_road',label:'自动道路',classification:'body',lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?(state.info?.size??[48,16,48]).map(n=>n-1):s.hi,start:['x','y','z'].map(a=>Number($('road-start-'+a).value)),end:['x','y','z'].map(a=>Number($('road-end-'+a).value)),width:Number($('road-width').value),depth:Number($('road-depth').value),route:$('road-route').value,state:$('road-state').value.trim()}]}
+ settings.operations=settings.operations.map(op=>Object.fromEntries(Object.entries(op).filter(([key])=>!['write_group','write_bounds','max_writes','overwrite','skip_protected'].includes(key))))
+ return {name:toolLabels[active]??'我的工具效果',settings,tags:[]}
+}
+const toolEffects=initToolEffects({api,capture:captureToolEffect,context:reusableContext,apply:(patch,expected)=>withPreviewCommit(async()=>{if(expected!==JSON.stringify(gather()))throw Error('模型参数已变化');const next=structuredClone(gather()),settings=structuredClone(patch.settings),operations=settings.operations??[];delete settings.operations;Object.assign(next,settings);next.operations.push(...operations);window.creatorWorkspace.select('model');await commitPreviewSettings(next,'载入工具效果：'+patch.name)})})
 const reusableLibrary=initReusableLibrary({api,context:reusableContext,apply:applyReusable})
 initAssetWorkspace({
  api,context:reusableContext,decorateTree:reusableLibrary.decorateTree,
@@ -970,6 +977,7 @@ initAssetWorkspace({
  interactive:(component,options)=>options.selection?componentEditor.startSelection(options.move):componentEditor.startAsset(component,options),
  apply:applyReusable
 })
+toolEffects.attach()
 previewToolbar=initPreviewToolbar()
 protectionView=initProtectionView({api,context:()=>state.info?{source:state.info.source,source_sha256:state.info.source_sha256,context:$('context').value.trim()}:null,viewer:()=>$('viewer').contentWindow?.nbtModeler,ensure3D:async()=>{if(state.mode!=='3d')await runJob('snapshot')},viewChanged:()=>{const v=$('viewer').contentWindow?.nbtModeler;if(v?.status==='ready')syncComparisonViewControls(v.snapshot,v.metadata())}})
 initCommentTasks({api,context:()=>state.info&&!state.busy&&!state.previewBusy?{source:state.info.source,source_sha256:state.info.source_sha256}:null})

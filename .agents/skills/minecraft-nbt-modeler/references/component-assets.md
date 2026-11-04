@@ -127,3 +127,24 @@ python .agents/skills/nbtcreator-workspace/nbt.py asset-batches organize
 内置独立结构新增“生成并入库”，复用实际显示的预览后直接入库；“AI生成并预览”和手动保存仍保留。资产卡片标记“待审阅”，返回资产工作区会重新读取库，外部脚本保存结果无需手动导入。
 
 “批量资产 / JSON 清单”也可粘贴上述生成参数直接保存，并提供“整理现有资产到规范目录”。organize为已入库资产生成可读取的规范副本和清单，保留原ID、回收状态、缩略图及来源配方；同内容重复整理复用上次结果。它不把预览草稿自动提升为正式资产，不删除原文件。整理索引为 `nbt_models/asset_batches/organization.json`。
+
+## 原生工具效果配置资产
+
+除构件、可调配方和材质主题外，资产管理提供“工具效果”。保存当前面板配置时捕获整体参数、混材、风化、自动地面、精确换块、结构编辑及建模operations；自动道路面板尚未执行的输入也可直接捕获。源文件、全局选区、保护资料、预算、write_group/write_bounds和覆盖权限不进入效果资产。载入效果时保留当前目标的源、选区、预算及已有工具步骤，合并新增步骤，真实预览失败回退原候选。结构填充仍须先指定目标局部选区。
+
+```powershell
+python .agents/skills/nbtcreator-workspace/nbt.py effect-assets save --request effect.json
+python .agents/skills/nbtcreator-workspace/nbt.py effect-assets list
+python .agents/skills/nbtcreator-workspace/nbt.py effect-assets get --request id.json
+python .agents/skills/nbtcreator-workspace/nbt.py effect-assets preview --request id.json
+python .agents/skills/nbtcreator-workspace/nbt.py effect-assets compile --request id.json
+python .agents/skills/nbtcreator-workspace/nbt.py effect-assets organize
+```
+
+`effect.json`使用 `{asset:{name:"石砖步道",settings:{operations:[{kind:"auto_road",label:"步道",classification:"body",lo:[0,0,0],hi:[47,15,47],start:[6,3,6],end:[20,3,20],width:3,depth:1,route:"straight",state:"stone_bricks"}]},tags:[]}}`（文件须为合法JSON）。`id.json`为 `{id:资产ID,content_sha256:可选内容哈希}`。调用不需要Electron，应用HTTP对应 `/__detail__/effect-assets/<action>`，能力目录的effect_asset_contract记录开放动作。save总是写新ID，archive可移入回收站或恢复。
+
+原生效果文件为 `nbt_models/asset_library/tool_effects/<id>/effect.json`，同步生成assets.json批次清单。独立预览在封闭样例中运行真实引擎，生成前/后主模型、快照、缩略图和变化数量；样例包含不同地板材质和墙柱，默认剖切屋顶查看内部。返回sample_only，不声明适用于用户建筑。没有变化时明确显示0，配置不适用样例时保留错误，不伪造图像。预览过程存放在 `nbt_models/_workspaces/effect_previews/`，不会被当成正式建筑。compile只返回settings候选，不直接写建筑或导出NBT。
+
+organize保留构件ID和内容哈希，备份改动前的标签资料到asset_library/_migration；去掉01/02等序号标签及无用途的批次标签，按共享asset-taxonomy.json进行用途分组。前端也会隐藏旧工作区的数字标签，原SAODG无需被本任务改动。整理会导入工作区效果保存目录顶层的有效旧配置，以及现有recipe的默认值（原可调配方保留，并将来源保存在source-recipe.json），重复配置不会反复入库。原文件保留；无法迁移的项记录错误。统一整理索引为 `nbt_models/asset_library/catalog.json`，记录构件、工具效果、可调配方和材质主题；整理报告记录所有实际变化。
+
+来自原配方的效果带source_recipe_id，样例按局部原点展示；compile时需提供position整数XYZ，应用中先选择放置范围。保存为新效果会保留原配方来源。风化floor.levels与配方高度一起平移，不再错用原高度。原配方仍可在“可调配方”中调整参数。

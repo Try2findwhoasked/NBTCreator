@@ -3,6 +3,7 @@ function validateOperation(op){
  const schema=catalog.operation_parameters[op.kind]
  if(!schema)throw Error('Unknown operation')
  function check(value,s){
+  if(s.anyOf){for(const branch of s.anyOf){try{check(value,branch);return}catch{}}throw Error('Invalid operation parameter alternatives')}
   const type=s.type,valid={integer:Number.isSafeInteger(value),number:typeof value==='number'&&Number.isFinite(value),boolean:typeof value==='boolean',string:typeof value==='string',array:Array.isArray(value),object:!!value&&typeof value==='object'&&!Array.isArray(value)}
   if(type&&valid[type]===false)throw Error('Invalid operation parameter type')
   if(s.enum&&!s.enum.includes(value))throw Error('Invalid operation parameter choice')

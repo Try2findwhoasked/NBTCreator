@@ -1,4 +1,5 @@
 import './asset-workspace.css'
+import {semanticTags} from './asset-categories.js'
 import {initAssetBatches} from './asset-batches.js'
 import {initLibraryBrowser} from './library-browser.js'
 import {createAssetTree} from './asset-tree.js'
@@ -24,6 +25,7 @@ export function initAssetWorkspace({api,context,apply,pickPosition,interactive,d
  const $=id=>document.getElementById(id),message=text=>$('asset-status').textContent=text
  let items=[],selected=null,limit=24,pending=false,saveContext=null,loaded=false,category='all'
  const treeView=createAssetTree({container:tree,onCategory:value=>{category=value;limit=24;render()},onOpen:item=>{selected=item;details();try{useRange()}catch{}render()},onRender:decorateTree})
+ window.addEventListener('creator-assets-organized',()=>refresh().catch(error=>message(error.message)))
  const tags=text=>text.split(/[,，]/).map(v=>v.trim()).filter(Boolean)
  function target(){const c=context();$('asset-target').textContent=c?.name?`当前建筑：${c.name} · ${c.size.join(' × ')}`:'请先从项目管理打开一座建筑';return c}
  function coordinates(position){for(const [i,axis]of ['x','y','z'].entries())$('asset-position-'+axis).value=position[i]}
@@ -39,12 +41,12 @@ export function initAssetWorkspace({api,context,apply,pickPosition,interactive,d
  function render(){
   const query=$('asset-search').value.toLocaleLowerCase(),trash=$('asset-trash').checked,scroll=browser.main.scrollTop,browsing=items.filter(item=>!!item.archived===trash)
   treeView.render(browsing,category,selected);$('asset-breadcrumb').textContent=category==='all'?'全部构件':category==='untagged'?'未分类':category.slice(4)
-  const visible=browsing.filter(item=>(category==='all'||category==='untagged'&&!item.tags.length||category.startsWith('tag:')&&item.tags.includes(category.slice(4)))&&(!query||[item.name,...item.tags,item.size.join('x')].join(' ').toLocaleLowerCase().includes(query)))
+  const visible=browsing.filter(item=>(category==='all'||category==='untagged'&&!item.tags.length||category.startsWith('tag:')&&semanticTags(item).includes(category.slice(4)))&&(!query||[item.name,...item.tags,item.size.join('x')].join(' ').toLocaleLowerCase().includes(query)))
   $('asset-count').textContent=`${visible.length} 个${trash?'已回收':'可用'}构件`;$('asset-grid').replaceChildren();$('asset-more').hidden=visible.length<=limit
   for(const item of visible.slice(0,limit)){
    const card=document.createElement('button');card.type='button';card.className='asset-card';card.dataset.assetId=item.id;card.setAttribute('aria-pressed',String(selected?.id===item.id))
    const cover=document.createElement('span');cover.className='project-cover';if(item.thumbnail){const image=document.createElement('img');image.src=item.thumbnail;image.loading='lazy';image.decoding='async';image.alt=item.name;cover.append(image)}else cover.textContent='构件预览'
-   const name=document.createElement('strong'),meta=document.createElement('span'),labels=document.createElement('small');name.textContent=item.name;meta.className='project-card-meta';meta.textContent=`${item.size.join(' × ')} · ${item.block_count} 格`;labels.textContent=[item.tags.join(' · '),item.review_status==='pending_visual_review'?'待审阅':''].filter(Boolean).join(' · ');labels.hidden=!labels.textContent;card.append(cover,name,meta,labels)
+   const name=document.createElement('strong'),meta=document.createElement('span'),labels=document.createElement('small');name.textContent=item.name;meta.className='project-card-meta';meta.textContent=`${item.size.join(' × ')} · ${item.block_count} 格`;labels.textContent=[semanticTags(item).join(' · '),item.review_status==='pending_visual_review'?'待审阅':''].filter(Boolean).join(' · ');labels.hidden=!labels.textContent;card.append(cover,name,meta,labels)
    const wrapper=document.createElement('article');wrapper.className='project-card';wrapper.append(card);card.onclick=()=>{selected=item;details();try{useRange()}catch{}render()};$('asset-grid').append(wrapper)
   }
   if(!visible.length){const empty=document.createElement('p');empty.className='asset-empty';empty.textContent=trash?'回收站为空。':query?'没有匹配构件，试试其他名称或标签。':'构件库还没有内容。打开建筑、选择局部范围后，保存当前选区；也可导入构件 JSON。';$('asset-grid').append(empty)}

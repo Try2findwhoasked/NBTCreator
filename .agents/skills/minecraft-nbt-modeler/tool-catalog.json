@@ -994,7 +994,8 @@
     "agent-tasks": "nbt_agent_tasks.py",
     "project-repair": "nbt_project_repair.py",
     "asset-batches": "nbt_asset_batches.py",
-    "room-score": "nbt_room_score.py"
+    "room-score": "nbt_room_score.py",
+    "effect-assets": "nbt_effect_assets.py"
   },
   "building_shapes": {
     "single": {
@@ -2398,7 +2399,21 @@
           "type": "string"
         },
         "scale": {
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 1
+            },
+            {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number",
+                "minimum": 1
+              }
+            }
+          ]
         },
         "fraction": {
           "type": "number"
@@ -3450,5 +3465,34 @@
       ],
       "additionalProperties": false
     }
+  },
+  "effect_asset_contract": {
+    "cli": "effect-assets --workspace <project> <action> --request <json>",
+    "http": "POST /__detail__/effect-assets/<action>",
+    "actions": [
+      "list",
+      "save",
+      "get",
+      "preview",
+      "compile",
+      "archive",
+      "organize"
+    ],
+    "asset_type": "tool_effect",
+    "save_request": {
+      "asset": {
+        "name": "1-80 characters",
+        "settings": "Tool panel settings and/or operations from this catalog; source/region/budget permissions forbidden",
+        "tags": "optional semantic tags",
+        "source_recipe_id": "optional existing local recipe ID for local-coordinate effects"
+      }
+    },
+    "bound_read_request": {
+      "id": "32 hex characters",
+      "content_sha256": "optional hash binding",
+      "position": "integer XYZ; required for compiling a local recipe effect"
+    },
+    "storage": "nbt_models/asset_library/tool_effects/<id>/effect.json",
+    "safety": "preview uses an isolated sample; compile returns settings only; application preserves target source/selection/protection/budget; NBT requires explicit export"
   }
 }

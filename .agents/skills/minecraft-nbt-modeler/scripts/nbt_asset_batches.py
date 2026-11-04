@@ -34,7 +34,7 @@ def manifest(workspace,data):
     if not isinstance(data,dict) or data.get('schema_version')!=1 or data.get('kind')!=KIND or not isinstance(data.get('entries'),list) or not 1<=len(data['entries'])<=LIMIT:raise ValueError('资产清单须为nbtcreator.asset-list，包含1～100项')
     results=[];total=0;seen=set()
     for entry in data['entries']:
-        if not isinstance(entry,dict) or entry.get('type') not in ('component','model') or not isinstance(entry.get('sha256'),str) or not re.fullmatch('[a-f0-9]{64}',entry['sha256']):raise ValueError('清单条目类型或哈希无效')
+        if not isinstance(entry,dict) or entry.get('type') not in ('component','model','effect') or not isinstance(entry.get('sha256'),str) or not re.fullmatch('[a-f0-9]{64}',entry['sha256']):raise ValueError('清单条目类型或哈希无效')
         file=local(workspace,entry.get('path'));key=str(file).casefold()
         if key in seen:raise ValueError('清单重复引用同一文件')
         seen.add(key);total+=file.stat().st_size
@@ -42,6 +42,9 @@ def manifest(workspace,data):
         if sha(file)!=entry['sha256']:raise ValueError('资产内容已变化：'+entry['path'])
         if entry['type']=='component':
             component=components.validate(bounded_json(file));summary=dict(name=component['name'],size=component['size'],content_sha256=component['content_sha256'],data=component)
+        elif entry['type']=='effect':
+            from nbt_effect_assets import validate
+            effect=validate(bounded_json(file));summary=dict(name=effect['name'],content_sha256=effect['content_sha256'],data=effect)
         else:
             with gzip.open(file,'rb') as stream:payload=stream.read(256*1024*1024+1)
             if len(payload)>256*1024*1024:raise ValueError('解压后超过256MiB')
@@ -118,7 +121,7 @@ def dispatch(workspace,action,request):
         return dict(name=data.get('name','资产清单'),manifest=data,count=len(results),items=[item if request.get('include_data') is True else {k:v for k,v in item.items() if k!='data'} for item in results],nbt_exported=False)
     if action=='generate':
         scope=request.get('scope','components')
-        if scope not in ('components','models','all'):raise ValueError('未知清单范围')
+        if scope not in ('components','models','effects','all'):raise ValueError('未知清单范围')
         entries=[]
         if scope in ('components','all'):
             for item in components.listing(workspace)['items']:
@@ -127,6 +130,11 @@ def dispatch(workspace,action,request):
             from nbt_detail_control import catalog
             for item in catalog(workspace,index_only=True)['models']:
                 file=Path(item['source']);entries.append(dict(type='model',name=item.get('name_zh') or item['name'],path=relative(workspace,file),sha256=sha(file)))
+        if scope in ('effects','all'):
+            from nbt_effect_assets import dispatch as effects,file_for
+            for item in effects(workspace,'list',{})['items']:
+                if not item.get('archived'):
+                    file=file_for(workspace,item['id']);entries.append(dict(type='effect',name=item['name'],effect_id=item['id'],path=relative(workspace,file),sha256=sha(file)))
         if not 1<=len(entries)<=LIMIT:raise ValueError('此范围须包含1～100项；更多资产请拆分导入批次')
         manifest(workspace,dict(schema_version=1,kind=KIND,entries=entries))
         return new_list(workspace,request.get('name','资产清单'),entries)
@@ -153,8 +161,12 @@ def dispatch(workspace,action,request):
         try:
             if not name or len(name)>250:raise ValueError('文件名无效')
             if name.lower().endswith('.json'):
-                data=components.validate(json.loads(raw.decode('utf-8-sig')));stored=components.store(workspace,data);file=item_folder/'asset.component.json';write(file,data)
-                entry=dict(type='component',name=data['name'],component_id=stored['id'])
+                decoded=json.loads(raw.decode('utf-8-sig'))
+                if isinstance(decoded,dict) and decoded.get('asset_type')=='tool_effect':
+                    from nbt_effect_assets import save,validate
+                    data=validate(decoded);stored=save(workspace,data);file=item_folder/'asset.effect.json';write(file,data);entry=dict(type='effect',name=data['name'],effect_id=stored['id'])
+                else:
+                    data=components.validate(decoded);stored=components.store(workspace,data);file=item_folder/'asset.component.json';write(file,data);entry=dict(type='component',name=data['name'],component_id=stored['id'])
             elif name.lower().endswith(('.nbt','.json.gz')):
                 temporary=item_folder/('input.nbt' if name.lower().endswith('.nbt') else 'input.master.json.gz');temporary.write_bytes(raw)
                 try:

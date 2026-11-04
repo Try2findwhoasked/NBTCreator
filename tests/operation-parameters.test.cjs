@@ -21,3 +21,5 @@ test('workbench delta can add mode-specific array fields absent from defaults',(
  const result=validateWorkbench({summary:'anchor',operation_patch:{baseline:base.baseline,changes:[{step:1,expected:base.steps[0].expected,set:{mode:'anchor',source_anchor:[2,2,2],target_anchor:[20,2,20]}}]}},context)
  assert.deepEqual(result.operations[0].target_anchor,[20,2,20])
 })
+
+test("pattern scale accepts supported three-axis values and rejects invalid alternatives",()=>{const {validateOperation}=require("../desktop/operation-parameters.cjs");const op={kind:"pattern",lo:[0,0,0],hi:[5,5,5],scale:[7,2,5]};assert.doesNotThrow(()=>validateOperation(op));assert.throws(()=>validateOperation({...op,scale:[7,0,5]}));assert.throws(()=>validateOperation({...op,scale:[7,2]}))})
