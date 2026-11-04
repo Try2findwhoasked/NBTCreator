@@ -1,5 +1,6 @@
 """Portable data-only operation recipes and material themes. Compile, never write models."""
 import argparse
+import hashlib
 from copy import deepcopy
 import json
 import math
@@ -69,7 +70,8 @@ def resolve(value, specs, values):
 
 def validate(data):
     json_data(data)
-    plain(data,['schema_version','asset_type','name','tags','archived','parameters','operations','mapping','preserve_shape','id'],'可复用资产')
+    plain(data,['schema_version','asset_type','name','tags','archived','parameters','operations','mapping','preserve_shape','id','revision_sha256'],'可复用资产')
+    if 'revision_sha256' in data and (not isinstance(data['revision_sha256'],str) or not re.fullmatch('[a-f0-9]{64}',data['revision_sha256'])):raise ValueError('配方版本哈希无效')
     if 'id' in data and (not isinstance(data['id'],str) or not re.fullmatch(r'[a-f0-9]{32}',data['id'])):raise ValueError('资产编号无效')
     if data.get('schema_version')!=1 or type(data.get('schema_version')) is not int or data.get('asset_type') not in ('recipe','theme'):raise ValueError('配方或主题版本无效')
     if not isinstance(data.get('name'),str) or not data['name'].strip() or len(data['name'])>80:raise ValueError('名称须为1～80字')
@@ -121,9 +123,13 @@ def read_json(file):
     return json.loads(file.read_text(encoding='utf-8-sig'))
 
 
+def revision(data,validated=False):
+    return hashlib.sha256(json.dumps(data if validated else validate(data),sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
+
+
 def load(workspace, identifier):
-    file=asset_file(workspace,identifier)
-    return dict(validate(read_json(file)),id=identifier)
+    file=asset_file(workspace,identifier);value=validate(read_json(file))
+    return dict(value,id=identifier,revision_sha256=revision(value,True))
 
 
 def store(workspace, data, identifier=None):
@@ -133,7 +139,7 @@ def store(workspace, data, identifier=None):
     temporary=file.with_name(uuid.uuid4().hex+'.tmp')
     try:temporary.write_text(text,encoding='utf8');os.replace(temporary,file)
     finally:temporary.unlink(missing_ok=True)
-    return dict(value,id=identifier,file=str(file))
+    return dict(value,id=identifier,file=str(file),revision_sha256=revision(value,True))
 
 
 def listing(workspace):
@@ -145,7 +151,7 @@ def listing(workspace):
     for file in sorted(folder.glob('*.json'),key=lambda p:p.stat().st_mtime_ns,reverse=True):
         try:
             asset_file(workspace,file.stem);stat=file.stat();stamp=[stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns];cached=previous.get(file.stem)
-            if isinstance(cached,dict) and cached.get('stamp')==stamp:summary=cached['summary']
+            if isinstance(cached,dict) and cached.get('stamp')==stamp and isinstance(cached.get('summary'),dict) and 'revision_sha256' in cached['summary']:summary=cached['summary']
             else:
                 value=load(workspace,file.stem)
                 summary={k:v for k,v in value.items() if k not in ('operations','mapping','parameters')}|dict(operation_count=len(value.get('operations',[])),parameter_count=len(value.get('parameters',{})),material_count=len(value.get('mapping',{})))
@@ -282,7 +288,7 @@ def instantiate(data,values,position,size,overwrite=False,theme=None):
     compile_plan(dict(operations=operations),size)
     lo,hi=operation_bounds(operations)
     if any(lo[i]<0 or hi[i]>=size[i] for i in range(3)):raise ValueError('配方超出模型边界')
-    return dict(name=data['name'],operations=operations,lo=lo,hi=hi,parameters=values,model_modified=False)
+    return dict(name=data['name'],operations=operations,lo=lo,hi=hi,parameters=values,model_modified=False,recipe_revision_sha256=revision(data,True),theme_revision_sha256=revision(theme) if theme is not None else None)
 
 
 def dispatch(workspace, action, data):
@@ -292,7 +298,11 @@ def dispatch(workspace, action, data):
     if action=='capture':return capture(data['operations'],data['name'],data.get('tags',[]),data.get('bindings',[]))
     if action=='archive':
         value=load(workspace,data['id']);value['archived']=data['archived'];return store(workspace,value,data['id'])
-    if action=='compile':return instantiate(load(workspace,data['id']),data.get('values',{}),data['position'],data['size'],data.get('overwrite',False),load(workspace,data['theme']) if data.get('theme') else None)
+    if action=='compile':
+        asset=load(workspace,data['id']);theme=load(workspace,data['theme']) if data.get('theme') else None
+        if data.get('revision_sha256') is not None and data['revision_sha256']!=asset['revision_sha256']:raise ValueError('配方已被其他操作修改，请重新读取后再预览')
+        if data.get('theme_revision_sha256') is not None and (theme is None or data['theme_revision_sha256']!=theme['revision_sha256']):raise ValueError('材质主题已被其他操作修改，请重新读取后再预览')
+        return instantiate(asset,data.get('values',{}),data['position'],data['size'],data.get('overwrite',False),theme)
     raise ValueError('未知配方动作')
 
 
@@ -302,7 +312,7 @@ def main():
     save=sub.add_parser('save');save.add_argument('--file',type=Path,required=True);save.add_argument('--id')
     update=sub.add_parser('archive');update.add_argument('--id',required=True);update.add_argument('--archived',choices=['true','false'],required=True)
     cap=sub.add_parser('capture');cap.add_argument('--file',type=Path,required=True);cap.add_argument('--name',required=True);cap.add_argument('--bindings',type=Path)
-    use=sub.add_parser('compile');use.add_argument('--id',required=True);use.add_argument('--values',type=Path);use.add_argument('--position',required=True);use.add_argument('--size',required=True);use.add_argument('--overwrite',action='store_true');use.add_argument('--theme')
+    use=sub.add_parser('compile');use.add_argument('--id',required=True);use.add_argument('--values',type=Path);use.add_argument('--position',required=True);use.add_argument('--size',required=True);use.add_argument('--overwrite',action='store_true');use.add_argument('--theme');use.add_argument('--revision-sha256');use.add_argument('--theme-revision-sha256')
     args=parser.parse_args()
     try:
         if args.action=='list':result=listing(args.workspace)
@@ -311,7 +321,7 @@ def main():
         elif args.action=='archive':
             data=load(args.workspace,args.id);data.pop('id');data['archived']=args.archived=='true';result=store(args.workspace,data,args.id)
         elif args.action=='capture':result=capture(read_json(args.file),args.name,bindings=read_json(args.bindings) if args.bindings else [])
-        else:result=instantiate(load(args.workspace,args.id),read_json(args.values) if args.values else {},[int(n) for n in args.position.split(',')],[int(n) for n in args.size.split(',')],args.overwrite,load(args.workspace,args.theme) if args.theme else None)
+        else:result=dispatch(args.workspace,'compile',dict(id=args.id,values=read_json(args.values) if args.values else {},position=[int(n) for n in args.position.split(',')],size=[int(n) for n in args.size.split(',')],overwrite=args.overwrite,theme=args.theme,revision_sha256=args.revision_sha256,theme_revision_sha256=args.theme_revision_sha256))
         print(json.dumps(dict(ok=True,result=result),ensure_ascii=False))
     except Exception as error:print(json.dumps(dict(ok=False,error=str(error)),ensure_ascii=False));raise SystemExit(1)
 

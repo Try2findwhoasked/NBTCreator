@@ -29,6 +29,14 @@ def theme(mapping=None,preserve=True):return dict(schema_version=1,asset_type='t
 class Reusable(unittest.TestCase):
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.workspace=Path(self.temp.name)
+ def test_compile_rejects_changed_recipe_or_theme_and_reports_bound_revisions(self):
+  saved=recipes.store(self.workspace,recipe());t=recipes.store(self.workspace,theme());request=dict(id=saved['id'],revision_sha256=saved['revision_sha256'],theme=t['id'],theme_revision_sha256=t['revision_sha256'],values={},position=[4,2,4],size=[24,16,24]);result=recipes.dispatch(self.workspace,'compile',request);self.assertEqual(result['recipe_revision_sha256'],saved['revision_sha256']);self.assertEqual(result['theme_revision_sha256'],t['revision_sha256'])
+  changed=recipe();changed['operations'][0]['state']='gold_block';updated=recipes.store(self.workspace,changed,saved['id']);self.assertNotEqual(updated['revision_sha256'],saved['revision_sha256'])
+  with self.assertRaisesRegex(ValueError,'配方已被'):recipes.dispatch(self.workspace,'compile',request)
+  request['revision_sha256']=updated['revision_sha256'];recipes.store(self.workspace,theme({'stone_bricks':'andesite'}),t['id'])
+  with self.assertRaisesRegex(ValueError,'材质主题已被'):recipes.dispatch(self.workspace,'compile',request)
+  self.assertEqual(recipes.load(self.workspace,saved['id'])['revision_sha256'],updated['revision_sha256'])
+  cli=subprocess.run([sys.executable,str(SCRIPTS/'nbt_recipes.py'),'--workspace',str(self.workspace),'compile','--id',saved['id'],'--position','4,2,4','--size','24,16,24','--revision-sha256',saved['revision_sha256']],capture_output=True,text=True,encoding='utf8');self.assertNotEqual(cli.returncode,0);self.assertIn('配方已被',cli.stdout)
  def test_parameters_expand_at_position_and_shared_engine_keeps_collision_protection_budget(self):
   data=recipe();before=copy.deepcopy(data);patch=recipes.instantiate(data,{'height':6,'material':'gold_block'},[4,2,4],[24,16,24]);self.assertEqual(patch['hi'],[4,7,4]);self.assertEqual(data,before)
   model=Volume((24,16,24));op=patch['operations'][0];edits=operation_candidates(model,op,set());self.assertEqual(len(edits),6);owners={};enforce_overwrite(model,set(),op,edits,owners)
@@ -70,7 +78,7 @@ class Reusable(unittest.TestCase):
   saved=recipes.store(self.workspace,recipe());theme_saved=recipes.store(self.workspace,theme());self.assertEqual(len(recipes.listing(self.workspace)['items']),2)
   archived=recipes.dispatch(self.workspace,'archive',dict(id=saved['id'],archived=True));self.assertTrue(archived['archived'])
   with self.assertRaises(ValueError):recipes.instantiate(recipes.load(self.workspace,saved['id']),{},[0,0,0],[24,16,24])
-  recipes.dispatch(self.workspace,'archive',dict(id=saved['id'],archived=False));moved=self.workspace/'moved';shutil.copytree(self.workspace/'.nbtcreator',moved/'.nbtcreator')
+  recipes.dispatch(self.workspace,'archive',dict(id=saved['id'],archived=False));moved=self.workspace/'moved';shutil.copytree(self.workspace/'.nbtcreator',moved/'.nbtcreator');self.assertEqual(recipes.load(moved,saved['id'])['revision_sha256'],saved['revision_sha256'])
   run=subprocess.run([sys.executable,str(SCRIPTS/'nbt_recipes.py'),'compile','--id',saved['id'],'--position','5,2,5','--size','24,16,24','--theme',theme_saved['id']],cwd=moved,capture_output=True,text=True,encoding='utf8');self.assertEqual(run.returncode,0,run.stdout+run.stderr);result=json.loads(run.stdout)['result'];self.assertEqual(result['operations'][0]['state'],'minecraft:deepslate_bricks');self.assertEqual(result['lo'],[5,2,5])
   source=components.store(moved,self.component());run=subprocess.run([sys.executable,str(SCRIPTS/'nbt_components.py'),'batch','--id',source['id'],'--position','5,2,5','--size','24,16,24','--counts','2,1,1','--spacing','4,0,0'],cwd=moved,capture_output=True,text=True,encoding='utf8');self.assertEqual(run.returncode,0,run.stdout+run.stderr);self.assertEqual(json.loads(run.stdout)['result']['copies'],2)
  def test_warm_listing_reads_index_instead_of_operation_voxels_and_refreshes_changes(self):

@@ -135,6 +135,9 @@ toolOrder.forEach(index=>{
 })
 selectTool(0)
 for(const [kind,[label]]of Object.entries(globalThis.NbtToolCatalog.tools)){const option=document.createElement('option');option.value=kind;option.textContent=label;$('operation-kind').append(option)}
+function syncToolAvailability(){$('operation-add').disabled=state.busy||!$('operation-kind').value||!!window.nbtDisabledTools?.has($('operation-kind').value)}
+window.addEventListener('creator-tool-preferences',()=>queueMicrotask(syncToolAvailability))
+$('operation-kind').addEventListener('change',syncToolAvailability)
 $('operation-add').onclick=()=>{try{const kind=$('operation-kind').value;if(window.nbtDisabledTools?.has(kind))throw Error('该工具已在设置中停用');if(!kind)throw Error('请先在设置中启用工具');const [label,defaults]=globalThis.NbtToolCatalog.tools[kind];const op={kind,...structuredClone(globalThis.NbtToolCatalog.common),...structuredClone(defaults),label};if(kind==='auto_floor'){delete op.lo;delete op.hi;op.include_boxes=[]}const list=JSON.parse($('operation-sequence').value);if(!Array.isArray(list))throw Error('序列须为数组');list.push(op);operationEditor.replace(list,'添加：'+label)}catch(e){status(e.message,'error')}}
 $('operation-clear').onclick=()=>operationEditor.replace([],'清空工具序列')
 
@@ -268,15 +271,20 @@ function syncVersionReadonly(){
   if(state.transforming&&$('open-version-compare'))$('open-version-compare').disabled=true
  }
 }
+const taskControlStates=new Map()
 function busy(value) {
   state.busy = value
-  for (const button of document.querySelectorAll('button')) if (button.id !== 'cancel'&&button.id!=='open-command-center'&&!button.closest('#command-dialog,#project-batch-dialog,#component-author')) button.disabled = value
-  for (const input of document.querySelectorAll('.sidebar input, .sidebar select, .sidebar textarea')) input.disabled = value
+  // A task temporarily locks controls; it does not grant unavailable actions.
+  if(value){
+   const controls=[...document.querySelectorAll('button')].filter(button=>button.id!=='cancel'&&button.id!=='open-command-center'&&!button.closest('#command-dialog,#project-batch-dialog,#component-author'))
+   controls.push(...document.querySelectorAll('.sidebar input, .sidebar select, .sidebar textarea'))
+   for(const control of controls){if(!taskControlStates.has(control))taskControlStates.set(control,control.disabled);control.disabled=true}
+  }else{for(const [control,disabled]of taskControlStates)if(control.isConnected)control.disabled=disabled;taskControlStates.clear()}
   $('compare-before').disabled=value||!state.preview;$('compare-after').disabled=value||!state.preview
   $('pick-material').disabled=value||state.mode!=='3d';$('pick-coordinate').disabled=value||state.mode!=='3d';
   $('export-revision').disabled=value||!state.info;
   $('cancel').disabled = !(value||state.previewBusy); $('pause-3d').disabled=state.mode!=='3d'; $('enable-3d').disabled=value||!state.info; $('save-feedback').disabled=value||!state.feedbackTarget||state.feedbackLoading||state.savingNote; updateCount()
-  historyButtons()
+  historyButtons();syncToolAvailability()
   operationEditor?.setBusy(value)
   previewToolbar?.sync(state.mode,value,!!state.info)
   syncVersionReadonly()

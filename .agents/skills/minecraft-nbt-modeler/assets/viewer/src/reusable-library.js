@@ -2,7 +2,7 @@ import './reusable-library.css'
 
 const axes=['X','Y','Z'],vectorInputs=(prefix,values)=>`<span class="asset-vector">${axes.map((axis,i)=>`<input id="${prefix}-${i}" type="number" step="1" value="${values[i]}" aria-label="${prefix==='reusable-position'?'配方放置':prefix} ${axis}">`).join('')}</span>`
 const tags=text=>text.split(/[,，]/).map(v=>v.trim()).filter(Boolean)
-const clean=data=>{const copy=structuredClone(data);delete copy.id;delete copy.file;return copy}
+const clean=data=>{const copy=structuredClone(data);delete copy.id;delete copy.file;delete copy.revision_sha256;return copy}
 const integerInputs=(root,prefix)=>axes.map((_,i)=>{const input=root.querySelector('#'+prefix+'-'+i),n=Number(input.value);if(!input.value.trim()||!Number.isInteger(n))throw Error('XYZ 坐标须为整数');return n})
 
 export function initReusableLibrary({api,context,apply}){
@@ -12,10 +12,12 @@ export function initReusableLibrary({api,context,apply}){
  const $=id=>dialog.querySelector('#'+id),message=text=>$('reusable-status').textContent=text
  let type='recipe',items=[],selected=null,pending=false,selection=0,captured=null
  const notify=()=>window.dispatchEvent(new CustomEvent('creator-reusable-change'))
- async function perform(action){if(pending)return;pending=true;const buttons=[...dialog.querySelectorAll('button:not(#reusable-close)')].map(b=>[b,b.disabled]);for(const [b]of buttons)b.disabled=true;try{await action()}catch(e){message(e.message)}finally{pending=false;for(const [b,disabled]of buttons)if(b.isConnected)b.disabled=disabled}}
+ async function perform(action){if(pending)return;pending=true;const buttons=[...dialog.querySelectorAll('button:not(#reusable-close),input,textarea,select')].map(b=>[b,b.disabled]);for(const [b]of buttons)b.disabled=true;try{await action()}catch(e){message(e.message)}finally{pending=false;for(const [b,disabled]of buttons)if(b.isConnected)b.disabled=disabled;controls()}}
+ function controls(){let target=null;try{target=context()}catch{}const apply=$('reusable-apply');if(apply)apply.disabled=pending||!selected?.id||!!selected.archived||!target||!!target.busy;$('reusable-close').disabled=false}
+ window.addEventListener('creator-editor-state',controls)
  function drawList(){
   const q=$('reusable-search').value.toLocaleLowerCase(),trash=$('reusable-trash').checked,list=$('reusable-list');list.replaceChildren()
-  for(const item of items.filter(v=>v.asset_type===type&&v.archived===trash&&[v.name,...v.tags].join(' ').toLocaleLowerCase().includes(q))){const button=document.createElement('button');button.type='button';button.dataset.reusableId=item.id;button.setAttribute('aria-pressed',String(selected?.id===item.id));const name=document.createElement('strong'),meta=document.createElement('small');name.textContent=item.name;meta.textContent=type==='recipe'?`${item.operation_count} 步 · ${item.parameter_count} 个参数`:`${item.material_count} 条材质映射`;button.append(name,meta);button.onclick=()=>perform(()=>choose(item.id));list.append(button)}
+  for(const item of items.filter(v=>v.asset_type===type&&v.archived===trash&&[v.name,...v.tags].join(' ').toLocaleLowerCase().includes(q))){const button=document.createElement('button');button.type='button';button.dataset.reusableId=item.id;button.title='点击读取最新配置';button.setAttribute('aria-pressed',String(selected?.id===item.id));const name=document.createElement('strong'),meta=document.createElement('small');name.textContent=item.name;meta.textContent=type==='recipe'?`${item.operation_count} 步 · ${item.parameter_count} 个参数`:`${item.material_count} 条材质映射`;button.append(name,meta);button.onclick=()=>perform(()=>choose(item.id));list.append(button)}
   if(!list.children.length){const p=document.createElement('p');p.textContent=trash?'回收站为空':'暂无内容，可新建、导入或保存工具序列';list.append(p)}
  }
  async function refresh(){const result=await api('recipes');items=result.items;drawList();if(result.errors.length)message(`${result.errors.length} 份文件无法读取，其余已载入`)}
@@ -35,7 +37,7 @@ export function initReusableLibrary({api,context,apply}){
  function mappingRow(before='',after=''){
   const row=document.createElement('div');row.className='reusable-mapping';const a=document.createElement('input'),arrow=document.createElement('span'),b=document.createElement('input'),remove=document.createElement('button');a.value=before;b.value=after;a.placeholder='原方块，如 stone_bricks';b.placeholder='目标方块，如 deepslate_bricks';a.setAttribute('aria-label','原方块状态');b.setAttribute('aria-label','目标方块状态');arrow.textContent='→';remove.type='button';remove.textContent='×';remove.setAttribute('aria-label','删除材质映射');remove.onclick=()=>row.remove();row.append(a,arrow,b,remove);$('reusable-mappings').append(row)
  }
- async function choose(id){const token=++selection,data=await api('recipes/get',{id});if(token!==selection)return;show(data)}
+ async function choose(id){const token=++selection,data=await api('recipes/get',{id});if(token!==selection)return;show(data);message('')}
  function show(data){
   type=data.asset_type;$('reusable-title').textContent=type==='recipe'?'操作配方':'材质主题';$('reusable-capture').hidden=type!=='recipe';base(data)
   const form=$('reusable-form')
@@ -48,12 +50,12 @@ export function initReusableLibrary({api,context,apply}){
    for(const item of items.filter(v=>v.asset_type==='theme'&&!v.archived)){const option=document.createElement('option');option.value=item.id;option.textContent=item.name;$('reusable-theme').append(option)}
    for(const [key,spec]of Object.entries(data.parameters)){const label=document.createElement('label'),input=document.createElement('input');label.textContent=spec.label||key;input.dataset.recipeParam=key;input.type=spec.type==='boolean'?'checkbox':spec.type==='block'?'text':'number';if(spec.type==='boolean')input.checked=spec.default;else{input.value=spec.default;if(spec.type!=='block'){input.step=spec.type==='integer'?'1':'any';if(spec.min!==undefined)input.min=spec.min;if(spec.max!==undefined)input.max=spec.max}}label.append(input);$('reusable-values').append(label)}
    if(!Object.keys(data.parameters).length)$('reusable-values').textContent='固定工具序列，可在高级 JSON 中定义参数。'
-   $('reusable-apply').disabled=!data.id||data.archived
+   controls()
    $('reusable-apply').onclick=()=>perform(async()=>{
     if($('reusable-json').value!==JSON.stringify(clean(data),null,2))throw Error('JSON 已修改，请先保存配方')
     const start=context();if(!start)throw Error('请先从项目管理打开建筑')
     const values={};for(const input of dialog.querySelectorAll('[data-recipe-param]')){const key=input.dataset.recipeParam,spec=data.parameters[key];if(input.type!=='checkbox'&&!input.value.trim())throw Error('请填写全部参数');values[key]=spec.type==='boolean'?input.checked:spec.type==='block'?input.value:Number(input.value)}
-    const result=await api('recipes/compile',{id:data.id,values,position:integerInputs(dialog,'reusable-position'),theme:$('reusable-theme').value||null,overwrite:$('reusable-overwrite').checked,source:start.source,source_sha256:start.source_sha256})
+    const result=await api('recipes/compile',{id:data.id,revision_sha256:data.revision_sha256,theme_revision_sha256:items.find(item=>item.id===$('reusable-theme').value)?.revision_sha256,values,position:integerInputs(dialog,'reusable-position'),theme:$('reusable-theme').value||null,overwrite:$('reusable-overwrite').checked,source:start.source,source_sha256:start.source_sha256})
     const now=context();if(!now||now.source!==start.source||now.source_sha256!==start.source_sha256||now.settings!==start.settings)throw Error('当前建筑或参数已改变，请重新载入配方')
     await apply(result,start.settings);dialog.close()
    })
