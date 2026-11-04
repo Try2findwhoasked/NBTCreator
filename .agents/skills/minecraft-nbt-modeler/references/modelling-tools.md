@@ -114,3 +114,11 @@ geometry 新增三个 shape，仍经过相同布尔、裁剪、保护和预算�
 ## 参数化屋顶
 
 `auto_roof` 的 roof=gable/hip/gambrel/dome 分别人字、四坡、折线与椭圆穹顶；ridge_axis 指定人字或折线屋脊沿X/Z。lo.y 为檐口底层，rise 为正高度，footprint 为两个全局XZ角点（默认选区投影）；eaves=0..8 向外扩展且须完整容纳于选区。thickness=1..8 指每列垂直厚度，不是法向壳厚。finish=slabs 将表面向上量化到半格，以底半砖与完整块组合；blocks 使用完整块；stairs 在向高处的坡面放置朝内底楼梯，双向坡角为 outer_left/right，脊线使用完整块。屋脊和转角基于离散高度，是体素近似。gambrel 的 break_fraction/break_height 默认 .5/.75 控制折点。它只生成顶皮，不自动补山墙、檐下梁柱、承重和密闭检查。
+
+## 外部模型参数协议
+
+`tool-catalog.json` 的 tools 第二项仅为起始示例，不再充当字段白名单。`operation_parameters[kind].properties` 定义可提交字段、类型、嵌套数组及范围；required 和 mode_requirements 定义必填条件。`geometry_parameters` 定义新增截面形状的嵌套对象。capabilities 原样提供这些定义；结构 Agent、选区编译和桌面 AI 合约读取同一清单。几何合法性、保护、冲突、实际变化预算与碰撞仍由规划引擎进一步检查，参数校验不构成批准。
+
+选区编辑全部点坐标以选区最小角为原点：种子、源/目标锚点、目标包围盒、阵列路径、屋顶 footprint、loft 的全局XZ顶点和高度由编译器平移。offset、半径、尺寸、up 向量、扫掠的局部UV截面和 revolve 的相对半径/高度 profile 不平移。应用保留 overwrite、write_bounds、write_group 和 max_writes 控制权，模型不能通过额外字段改变这些权限。
+
+运行 `npm run test:modelling` 检查工具和参数回归；桌面验证前运行 `npm run build:web`。复杂方块旋转继续受现有保守规则限制；本组工具不扩展旋转状态家族。

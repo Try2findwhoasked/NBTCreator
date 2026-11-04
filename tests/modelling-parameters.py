@@ -38,4 +38,16 @@ class Parameters(unittest.TestCase):
   validate_operation(dict(base,geometry=valid))
   for shape in [dict(valid,points=[[1,2],[3,4]]),dict(valid,vertices=[[0,0],[1,1]]),dict(valid,script='x'),dict(shape='loft',sections=[dict(y=2,vertices=[[0,0],[1,0],[1,1]])]),dict(shape='revolve',profile=[[0,0],[4,0],[4,4]],sweep_angle=0)]:
    with self.assertRaises(ValueError):validate_operation(dict(base,geometry=shape))
+ def test_external_agent_stair_roof_and_section_modes(self):
+  import tempfile
+  from nbt_structure_agent import build
+  cases=[dict(kind='auto_stairs',mode='straight',start=[4,2,4],end=[24,6,4]),dict(kind='auto_stairs',mode='switchback',start=[4,2,4],end=[4,6,7],flight_length=12),dict(kind='auto_stairs',mode='spiral',start=[4,2,4],end=[4,8,4],centre=[10,2,10],radius=6)]
+  cases += [dict(kind='auto_roof',roof=roof,rise=4,footprint=[[4,4],[20,20]],break_fraction=.4,break_height=.7) for roof in ('gable','hip','gambrel','dome')]
+  cases += [dict(kind='geometry',geometry=dict(shape='section_sweep',vertices=[[-1,-1],[1,-1],[1,1],[-1,1]],points=[[4,8,4],[20,8,4]])),dict(kind='geometry',geometry=dict(shape='loft',sections=[dict(y=4,vertices=[[4,4],[16,4],[16,16],[4,16]]),dict(y=12,vertices=[[7,7],[13,7],[13,13],[7,13]])])),dict(kind='geometry',geometry=dict(shape='revolve',centre=[16,4,16],profile=[[2,0],[4,0],[4,8],[2,8]]))]
+  with tempfile.TemporaryDirectory() as workspace:
+   for case in cases:
+    with self.subTest(case=case):
+     op=dict(label='integration',classification='body',lo=[0,0,0],hi=[31,23,31],**case)
+     result=build(workspace,dict(name='integration',size=[32,24,32],operations=[op]))
+     self.assertTrue(result['blocks'])
 if __name__=='__main__':unittest.main()
