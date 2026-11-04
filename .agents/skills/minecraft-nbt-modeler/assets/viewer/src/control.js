@@ -495,7 +495,7 @@ async function loadModel(preserve=false){
   }finally{unlockEditorRecovery();protectionView?.refresh()}
 }
 async function loadModelCore(preserve = false) {
-  state.walkPicking=false;state.aiPlacing=null;state.assetPicking=null;state.lastAIGroup=null
+  state.selectionEditPicking=null;state.walkPicking=false;state.aiPlacing=null;state.assetPicking=null;state.lastAIGroup=null
   stashDraft();imageMode();busy(true)
   try {
     status('正在打开建筑及门口、通路等保护设置…')
@@ -787,13 +787,15 @@ function syncSelectionRange(){
 }
 $('show-selection').addEventListener('change',syncSelectionRange)
 function syncPicking(){
+  if(state.assetPicking||state.aiPlacing||state.picking||state.coordinatePicking||state.transforming)state.selectionEditPicking=null
   if(state.assetPicking||state.aiPlacing||state.picking||state.coordinatePicking||state.transforming)state.walkPicking=false
   $('pick-material').setAttribute('aria-pressed',String(Boolean(state.picking)))
   const materialCaption=$('pick-material').querySelector('.toolbar-caption');if(materialCaption)materialCaption.textContent=state.picking?'结束取材':'取材'
   $('pick-coordinate').setAttribute('aria-pressed',String(Boolean(state.coordinatePicking)))
   const commentCaption=$('pick-coordinate').querySelector('.toolbar-caption');if(commentCaption)commentCaption.textContent=state.coordinatePicking?'结束标注':'标注'
-  $('viewer').contentWindow?.nbtModeler?.setPicking(Boolean(state.walkPicking||state.assetPicking||state.aiPlacing||state.picking||state.coordinatePicking),state.coordinatePicking?'comment':'material')
+  $('viewer').contentWindow?.nbtModeler?.setPicking(Boolean(state.selectionEditPicking||state.walkPicking||state.assetPicking||state.aiPlacing||state.picking||state.coordinatePicking),state.selectionEditPicking?'selection-edit':state.coordinatePicking?'comment':'material')
 }
+window.addEventListener('keydown',event=>{if(event.key==='Escape'&&state.selectionEditPicking){state.selectionEditPicking=null;syncPicking();$('view-hint').textContent='已取消编辑选区选择。'}})
 $('pick-coordinate').addEventListener('click',()=>{
   state.walkPicking=false;state.assetPicking=null;state.aiPlacing=null;state.coordinatePicking=!state.coordinatePicking;state.picking=false;syncPicking()
   $('view-hint').textContent=state.coordinatePicking?'连续点击表面添加 #编号，下面按编号写意见；中键平移，滚轮前进／后退。':'左键原地转向，中键平移，滚轮前进／后退'
@@ -804,12 +806,22 @@ $('pick-material').addEventListener('click',()=>{
 })
 window.addEventListener('message',event=>{
   if(event.origin!==location.origin||event.source!==$('viewer').contentWindow)return
+  if(event.data?.type==='nbt-pick-cancelled'){state.selectionEditPicking=null;syncPicking();return}
   if(event.data?.type==='nbt-annotation-focused'){focusMarker(event.data.number);return}
   if(!['nbt-material-picked','nbt-coordinate-picked'].includes(event.data?.type))return
   const picked=event.data.result
   if(!picked){$('view-hint').textContent='此处没有选到可见方块，请点击建筑表面。';return}
   if(typeof picked.state!=='string'||!Array.isArray(picked.position)||picked.position.length!==3)return
   if(picked.geometry_sha256!==$('viewer').contentWindow.nbtModeler.metadata().geometry_sha256)return
+  if(state.selectionEditPicking){
+    const pick=state.selectionEditPicking
+    if(pick.geometry!==picked.geometry_sha256||pick.source!==state.info?.source){state.selectionEditPicking=null;syncPicking();status('选点期间画面已变化，请重新选择。','warn');return}
+    pick.points.push(picked.position)
+    if(pick.points.length===1){$('view-hint').textContent='已选第一个角点 '+picked.position.join(', ')+'；再选一个已有方块作为另一个角点。';return}
+    const lo=[0,1,2].map(i=>Math.min(pick.points[0][i],pick.points[1][i])),hi=[0,1,2].map(i=>Math.max(pick.points[0][i],pick.points[1][i]));state.selectionEditPicking=null;syncPicking()
+    if(lo.reduce((v,n,i)=>v*(hi[i]-n+1),1)>65536){status('选区超过65536格，请重新选择更小范围。','warn');return}
+    $('whole-region').checked=false;['x','y','z'].forEach((axis,i)=>{setValue('lo-'+axis,lo[i]);setValue('hi-'+axis,hi[i])});state.bundle='';updateCount();recordSettings('AI编辑选区');schedulePreview();syncSelectionRange();$('view-hint').textContent='编辑范围 '+lo.join(', ')+' → '+hi.join(', ')+'；可调整XYZ后描述修改要求。';return
+  }
   if(state.walkPicking&&walkView?.consumePick(picked))return
   if(componentEditor?.consumePick(picked))return
   if(state.assetPicking){const callback=state.assetPicking;state.assetPicking=null;syncPicking();Promise.resolve(callback(picked.position.map((v,i)=>v+(picked.normal?.[i]||0)))).catch(error=>status(error.message,'error'));return}
@@ -892,6 +904,17 @@ async function moveRecentAI(offset,overwrite=$('ai-allow-overwrite')?.checked??f
 })}
 const aiPromptArchiveId=crypto.randomUUID().replaceAll('-','')
 apiAssistant=initApiAssistant({
+ selectionContext:async allow_overwrite=>{
+  if(state.selectionEditPicking)throw Error('请先完成两点选区或按Esc取消，再生成');if(!state.info||gather().whole_region)throw Error('请先选择局部编辑范围');const source=state.info.source,settings=JSON.stringify(gather())
+  if(!state.preview||state.previewSettings!==settings)await updatePreview(true)
+  if(source!==state.info?.source||JSON.stringify(gather())!==settings||state.previewSettings!==settings)throw Error('参数或选区已变化，请重新生成')
+  await showComparison('after');const s=gather(),geometry_sha256=state.preview.geometry_sha256
+  const selection=await api('selection-edit/context',{snapshot_key:state.preview.model_key,request:{source,source_sha256:state.info.source_sha256,geometry_sha256,lo:s.lo,hi:s.hi}})
+  if(source!==state.info?.source||JSON.stringify(gather())!==settings)throw Error('读取期间选区已变化，请重新生成')
+  return {size:state.info.size,lo:s.lo,hi:s.hi,allow_overwrite,selection}
+ },
+ pickEditRegion:async()=>{if(!state.info||state.busy||state.previewBusy||state.commitBusy)throw Error('请先打开建筑并等待当前任务完成');if(state.mode!=='3d')await runJob('snapshot');state.walkPicking=false;state.assetPicking=null;state.aiPlacing=null;state.picking=false;state.coordinatePicking=false;state.selectionEditPicking={source:state.info.source,geometry:$('viewer').contentWindow.nbtModeler.metadata().geometry_sha256,points:[]};syncPicking();$('view-hint').textContent='依次点击两个已有方块，取包围盒作为编辑范围；Esc取消，左键拖动仍可转向。'},
+ cancelEditPick:()=>{state.selectionEditPicking=null;syncPicking()},
  archivePrompt:async(text,token)=>{const bound=JSON.parse(token);if(!bound.source)return null;if(bound.source!==state.info?.source||bound.source_sha256!==state.info?.source_sha256)throw Error('源建筑已切换，未把建议写入其他建筑');return api('prompt-save',{session_id:aiPromptArchiveId,text,document:{origin:'model_ai',source_sha256:bound.source_sha256,project:{name:modelName(),stage:'plan',source:bound.source,contextPath:$('context').value.trim(),size:state.info.size},operations:bound.settings.operations??[]},plan:{operations:bound.settings.operations??[]},context:{contextPath:$('context').value.trim()}})},
  captureViewport,isBusy:()=>state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring||state.transforming||state.versionComparing,
  context:()=>{const s=gather(),info=state.info;if(!info)return null;return {size:info.size,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?info.size.map(v=>v-1):s.hi,materials:info.materials,allow_overwrite:$('ai-allow-overwrite')?.checked??false}},
@@ -909,6 +932,11 @@ apiAssistant=initApiAssistant({
  },
  apply:async(patch,options={})=>withPreviewCommit(async()=>{
   const before=gather(),next=structuredClone(before)
+  if(options.mode==='selection_edit'){
+   if(state.previewSettings!==JSON.stringify(before)||state.preview?.geometry_sha256!==patch.baseline_geometry_sha256)throw Error('本次编辑参考的候选已变化，请重新生成')
+   const compiled=await api('selection-edit/compile',{snapshot_key:state.preview.model_key,request:{source:state.info.source,source_sha256:state.info.source_sha256,geometry_sha256:patch.baseline_geometry_sha256,lo:patch.lo,hi:patch.hi,operations:patch.operations.filter(op=>op.enabled!==false),allow_overwrite:!!options.overwrite}})
+   next.operations.push(...compiled.operations);await commitPreviewSettings(next,'AI选区编辑：'+(options.summary??'自然语言工具步骤'));state.lastAIGroup=null;notifyAIComponent();return
+  }
   if(patch.operations){const write_group=crypto.randomUUID(),operations=patch.operations.map(op=>({...structuredClone(op),overwrite:!!options.overwrite,write_group}));next.operations.push(...operations);updateComponentRange(next,patch)
    const presentation=options.presentation??{}
    await commitPreviewSettings(next,'AI：'+(presentation.structure_name||operations[0]?.label||'局部结构调整'))

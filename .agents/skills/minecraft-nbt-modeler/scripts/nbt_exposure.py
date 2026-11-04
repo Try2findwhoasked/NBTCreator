@@ -10,7 +10,7 @@ from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 GROUPS={
- 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','ai-creative-preferences']),
+ 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','ai-creative-preferences']),
  'architecture':('建筑风格与场所',['architecture-knowledge-base','structure-atlas','design-grammar']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
@@ -115,13 +115,14 @@ def apply(workspace,config=None):
       '`python .agents/skills/nbtcreator-workspace/nbt.py paths` 返回当前冻结引擎、scripts、references 和 Python 的实际路径。任务脚本据此导入 API，无需读包装器猜目录，不硬编码应用安装路径。',
       '工具能力与应用保持一致，AI结构建议按工作流开放相应子集。已有批准/预览均绑定源哈希；不要并发写出同一建筑。',
       '独立构件使用 capabilities.agent_tools 与 components agent 共用协议：list/read/view/preview/write/place；不需要打开Electron，写入仅保存新资产，放置只产生候选，NBT仍须显式导出。',
-      '', '## 各区域 AI 创作偏好', '先读工作区共用配置 [ai-style.json](../../../.nbtcreator/ai-style.json)，按当前任务选择 draft（完整初稿）、workbench（控件配置）、prompt（文字）、structure（局部编辑）、small_structure（小型构件）或 component（资产管理独立结构）。',
+      '', '## 各区域 AI 创作偏好', '先读工作区共用配置 [ai-style.json](../../../.nbtcreator/ai-style.json)，按当前任务选择 draft（完整初稿）、workbench（控件配置）、prompt（文字）、structure（局部编辑）、small_structure（小型构件）、component（资产管理独立结构）或 selection_edit（选区自然语言工具编辑）。',
       '可调用 `python .agents/skills/nbtcreator-workspace/nbt.py ai-style prompt --workflow small_structure` 获取本区域参数与通俗提示词。偏好控制创意、详略、装饰与变化，用户本次明确要求优先；不得改变选区、保护、预算、返回格式或真实看图确认规则。',
       '', '## 按任务进入', '',
       '已启用表示资料可用，不要求每次把全部目录读完。完整阅读下面当前阶段所列文件；专题按用途选适用完整章节，长建筑原型库无需遍读。', '',
       '| 当前任务 | 先读与下一步 |','| --- | --- |',
       f'| 接手工作台提示词 | 读 [提示词归档]({relative}/references/prompt-archive.md)；先 prompts scan，再 prompts read --index <index> --id <id> 读取完整正文与方案。核对source_matches，归档不构成批准。 |',
       f'| 批量创作与任务交付 | 读 [制作批次]({relative}/references/batch-workspaces.md)，先 batches create 在 nbt_models/_workspaces/batches 分配过程目录；用 record 关联正式模型和图册，list/get/locate 扫描接手。批次目录不是新的项目根，登记不授予批准。 |',
+      f'| 选区自然语言工具编辑 | 读 [选区编辑]({relative}/references/selection-edit.md)，selection-edit context 读取真实局部方块，compile 转换相对坐标；实际写入边界、保护与预算由预览／导出引擎检查，先审阅再采用。 |',
       f'| 整理标注与跟进任务 | 读 [意见任务]({relative}/references/comment-tasks.md)，使用feedback-tasks list/create/update/merge/evidence；分组、任务状态与原评论证据分别保留，任务完成不表示模型验收或新增批准。 |',
       (f'| 独立构件创建、读写与放置 | 读 [构件资产]({relative}/references/component-assets.md) 和共用接口中的结构Agent协议；使用component偏好，先实际预览再保存新资产。结构放置产生候选，NBT仍须显式导出。 |' if 'library' in config['enabled_groups'] else '| 独立构件创建、读写与放置 | 读共用接口中的结构Agent协议及components agent --help；使用component偏好，先实际预览再保存新资产。 |'),
       f'| 首次创建或重设计 | 完整读 [整体流程]({relative}/references/whole-model-workflow.md)、[玩家尺度]({relative}/references/player-scale.md)、[创作原则]({relative}/references/design-principles.md)、[空间细节]({relative}/references/spatial-detail-design.md)。写本任务生成器；自定义独立入口使用 toolkit 的 open_declared_openings，不套用 SAODG 端口。 |',

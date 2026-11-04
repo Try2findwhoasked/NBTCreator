@@ -23,9 +23,16 @@ def load(workspace, create=False):
     file=Path(workspace).resolve()/'.nbtcreator/ai-style.json'
     try:
         data=json.loads(file.read_text(encoding='utf-8-sig'))
+        previous=set(data.get('workflows',{}))
         if data.get('schema_version')==1 and isinstance(data.get('workflows'),dict) and set(data['workflows'])==set(SCHEMA['workflows'])-{'component'}:
             data['workflows']['component']=dict(data['workflows']['small_structure'])
-        return validate(data)
+        if data.get('schema_version')==1 and isinstance(data.get('workflows'),dict) and set(data['workflows'])==set(SCHEMA['workflows'])-{'component','selection_edit'}:
+            data['workflows']['component']=dict(data['workflows']['small_structure'])
+        if data.get('schema_version')==1 and isinstance(data.get('workflows'),dict) and set(data['workflows'])==set(SCHEMA['workflows'])-{'selection_edit'}:
+            data['workflows']['selection_edit']=dict(data['workflows']['structure'])
+        data=validate(data)
+        if create and previous!=set(data['workflows']):save(workspace,data)
+        return data
     except FileNotFoundError:
         data=defaults()
         if create:save(workspace,data)

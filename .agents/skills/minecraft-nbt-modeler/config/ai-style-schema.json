@@ -6,7 +6,8 @@
     "prompt": "文字提示词",
     "structure": "局部编辑",
     "small_structure": "小型结构 / 3D 放置",
-    "component": "资产管理 / 独立结构"
+    "component": "资产管理 / 独立结构",
+    "selection_edit": "选区自然语言工具编辑"
   },
   "dimensions": {
     "creativity": {

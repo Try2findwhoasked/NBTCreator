@@ -37,6 +37,7 @@
     "test:editing": "npm run build:web && node --test tests/settings-history.test.mjs && python tests/operation-history.py && node tests/operation-history-desktop.mjs && node tests/preview-toolbar-desktop.mjs",
     "test:recovery": "npm run build:web && node --test tests/edit-session-store.test.mjs tests/edit-session-controller.test.mjs tests/app-settings.test.cjs && node tests/edit-session-desktop.mjs && node tests/edit-session-images-desktop.mjs",
     "test:compare": "npm run build:web && python tests/model-difference.py && node --test tests/difference-index.test.mjs && node tests/version-compare-desktop.mjs",
+    "test:selection-edit": "npm run build:web && python tests/selection-edit.py && node --test tests/selection-edit.test.cjs && node tests/selection-edit-desktop.mjs",
     "test:batches": "npm run build:web && python tests/batches.py && node --test tests/batch-links.test.cjs && node tests/batch-workspaces-desktop.mjs",
     "test:roads": "npm run build:web && python tests/auto-roads.py && node tests/auto-roads-desktop.mjs",
     "test:transforms": "npm run build:web && node --test tests/ai-component.test.mjs tests/edit-session-store.test.mjs && python tests/components.py && node tests/transform-sliders-desktop.mjs"

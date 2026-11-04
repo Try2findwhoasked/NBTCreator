@@ -54,7 +54,7 @@ try{
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy,undefined,{timeout:15000}).catch(async error=>{const diagnostic=await page.evaluate(()=>({workspace:window.creatorWorkspace?.current(),state:window.detailControl?.state,status:document.querySelector('#status')?.textContent,project:document.querySelector('#project-status')?.textContent}));await fs.writeFile(path.join(output,'startup-error.json'),JSON.stringify({diagnostic,errors},null,2));console.error(JSON.stringify({status:diagnostic.status,project:diagnostic.project,errors}));throw error})
  assert.deepEqual(await page.locator('.creator-workspaces button').evaluateAll(nodes=>nodes.map(n=>n.dataset.workspace)),['project','assets','prompt','model','ai','tasks'])
  assert.equal(await page.getByRole('button',{name:'项目',exact:true}).count(),0)
- assert.deepEqual(await page.locator('#tool-tabs button').allTextContents(),['整体效果','修改范围','建筑取材','结构编辑','建模工具','AI建模','精确换块','方块混搭','自动地面','长苔与裂纹']);checks.navigation_and_tool_order=true
+ assert.deepEqual(await page.locator('#tool-tabs button').allTextContents(),['整体效果','修改范围','建筑取材','结构编辑','建模工具','AI建模','自动道路','精确换块','方块混搭','自动地面','长苔与裂纹']);checks.navigation_and_tool_order=true
  await page.locator('button[data-workspace=project]').evaluate(el=>el.click());assert.equal(await page.locator('.workspace').isVisible(),false);assert.equal(await page.locator('#desktop-source').isVisible(),true)
  assert.equal(await page.locator('.project-card').count(),2)
  await page.waitForFunction(()=>document.querySelector('.project-cover img')?.complete)

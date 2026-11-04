@@ -330,6 +330,8 @@ def refine(review_dir,plan,output_dir):
         if not operation.get('enabled',True):
             summary.append(dict(label=operation['label'],kind=operation['kind'],skipped=True,reason='disabled',candidate_writes=0))
             continue
+        from nbt_operation_scope import scoped_operation,enforce_scope
+        operation,bounds=scoped_operation(operation,model.size)
         classification=operation.get('classification','body' if operation['kind']=='auto_floor' else 'inherit')
         if classification not in ('inherit','wall','body'):raise ValueError('Invalid detail classification')
         weathering_report=None
@@ -351,7 +353,7 @@ def refine(review_dir,plan,output_dir):
         else:
             edits=operation_candidates(model,operation)
         from nbt_change_policy import enforce_overwrite
-        enforce_overwrite(model,walls,operation,edits,write_owners)
+        enforce_overwrite(model,walls,enforce_scope(bounds,operation,edits),edits,write_owners)
         moved_walls={tuple(p[i]+operation['offset'][i] for i in range(3)) for p in walls if all(operation['lo'][i]<=p[i]<=operation['hi'][i] for i in range(3))} if operation['kind']=='move_region' else set()
         for p,value in edits:
             if not model.in_bounds(p) or (not standalone and (p[0]//48,p[2]//48) not in cells):raise ValueError('Detail exceeds approved footprint')

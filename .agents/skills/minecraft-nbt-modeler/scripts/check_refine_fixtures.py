@@ -50,6 +50,7 @@ def main():
                     dict(label='Localized reproducible weathering of the same west wall',kind='surface_palette',lo=[0,4,1],hi=[0,12,142],from_states=['stone_bricks'],palette=['cracked_stone_bricks','mossy_stone_bricks'],fraction=.1,seed=17,classification='inherit'),
                     dict(label='Explicit weighted-pattern integration on the whole approved wall',kind='pattern',lo=[1,9,68],hi=[1,11,74],from_states=['stone_bricks'],palette=[dict(state='granite',weight=1)],seed=74,classification='inherit'),
                     dict(label='Automatically recognized floors with protected original routes',kind='auto_floor',profile='worn',style_note='Synthetic older maintenance corridor; sparse shallow depressions.',fraction=.01,seed=91)])
+    for i in (0,5):plan['operations'][i]['write_bounds']=dict(lo=plan['operations'][i]['lo'],hi=plan['operations'][i]['hi'],allow_overwrite=True)
     review=out/'review';p=prepare(source,config,review)
     checks['draft_stops_awaiting_user']=p['stage']=='awaiting_user_review' and not (review/'approval.json').exists()
     checks['unapproved_apply_rejected']=rejected(lambda:refine(review,plan,out/'unapproved'))
@@ -74,6 +75,9 @@ def main():
     checks['budget_overrun_rejected']=rejected(lambda:refine(review,small('too much',[1,6,1],[18,12,18]),out/'budget'))
     checks['seal_breach_rejected']=rejected(lambda:refine(review,small('breach',[0,6,80],[1,6,80],'air'),out/'leak'))
     checks['missing_shared_style_rejected']=rejected(lambda:refine(review,{'operations':plan['operations']},out/'nostyle'))
+    escape=small('outside explicit selection',[5,4,10],[5,4,10]);escape['operations'][0]['write_bounds']=dict(lo=[6,4,10],hi=[8,6,13],allow_overwrite=True)
+    checks['final_writer_rejects_selection_escape']=rejected(lambda:refine(review,escape,out/'scope_escape'))
+    checks['selection_escape_writes_no_nbt']=not list((out/'scope_escape').rglob('*.nbt')) and source.read_bytes()==source_bytes
     final=refine(review,plan,out/'revision_01')
     checks['whole_master_revision_succeeded']=final['validation_passed'] and final['workflow'].startswith('whole_uncut')
     revised,revised_walls=read_master(out/'revision_01/refined.master.json.gz')

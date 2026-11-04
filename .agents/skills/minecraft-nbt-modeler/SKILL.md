@@ -38,6 +38,7 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 | 完整可修改提示词、工具参数组合与提示词网页 | [建模提示词工作台](references/prompt-console.md)；离线生成文本、计划和可复用方案 |
 | 已有授权的委派或换 agent 接手 | [委派与阅读落实](references/delegation-and-review.md)；本文不要求新增 subagent |
 | 用户已看图并同意精修 | [精修流程](references/refinement.md)；风化另读 [连片风化](references/weathering.md) |
+| 依据局部方块用自然语言规划工具步骤 | [选区编辑](references/selection-edit.md)；context/compile 共用应用引擎，选区内实际写入、保护与预算由候选和最终导出共同检查 |
 | 几何布尔、拉伸、复制阵列、旋转镜像、膨胀侵蚀、扩散或爆炸破坏 | [建模与效果工具](references/modelling-tools.md)；已有资产仍按精修流程 |
 | 资产迁移、形状归档、中文名称索引 | [建筑库归档](references/library-archive.md) |
 | 保存选区为构件、搜索构件库、3D复制/移动/旋转/吸附、AI局部放置 | [构件资产库](references/component-assets.md)；应用与 CLI 共用工作区库，extract/transform仅返回候选，先预览再导出下一版 |

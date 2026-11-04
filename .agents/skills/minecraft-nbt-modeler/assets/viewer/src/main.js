@@ -401,6 +401,7 @@ async function main() {
     }
     pickedBox.visible=false;requestRender();return null
   }
+  window.addEventListener('keydown',event=>{if(event.key==='Escape'&&window.parent!==window&&canvas.dataset.pickMode==='true'&&canvas.dataset.pickPurpose==='selection-edit')window.parent.postMessage({type:'nbt-pick-cancelled'},location.origin)})
   let pickStart=null,pickMoved=false
   canvas.addEventListener('pointerdown',event=>{if(canvas.dataset.transformDragging==='true')return;if(canvas.dataset.pickMode==='true'&&event.button===0){event.preventDefault();pickStart=[event.clientX,event.clientY];pickMoved=false}})
   canvas.addEventListener('pointermove',event=>{if(pickStart&&Math.hypot(event.clientX-pickStart[0],event.clientY-pickStart[1])>5)pickMoved=true})

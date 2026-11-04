@@ -563,12 +563,14 @@ def simulate_plan(model, walls, plan, config):
     virtual=Volume(model.size);virtual.blocks=dict(model.blocks);protected=protections(virtual,config)
     write_owners={}
     for operation in plan['operations']:
+        from nbt_operation_scope import scoped_operation,enforce_scope
+        operation,bounds=scoped_operation(operation,model.size)
         if operation['kind']=='pattern': edits,_=pattern_plan(virtual,operation,protected)
         elif operation['kind']=='weathering': edits,_=weathering_plan(virtual,operation,protected)
         elif operation['kind']=='auto_floor': edits,_=auto_floor_plan(virtual,operation,config,protected)
         else: edits=operation_candidates(virtual,operation,protected)
         from nbt_change_policy import enforce_overwrite
-        enforce_overwrite(virtual,walls,operation,edits,write_owners)
+        enforce_overwrite(virtual,walls,enforce_scope(bounds,operation,edits),edits,write_owners)
         outside=[p for p,value in edits if not virtual.in_bounds(p)]
         if outside:raise ValueError(f'步骤“{operation.get("label",operation["kind"])}”超出建筑边界：{outside[:8]}，建筑尺寸为{virtual.size}。请调整构件位置。')
         conflicts=[p for p,value in edits if p in protected and virtual.get(p)!=value]
@@ -730,6 +732,7 @@ def main():
     cmd = sub.add_parser('project-batch');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','create','get','run','retry','cancel'],required=True);cmd.add_argument('--request',type=Path)
     cmd = sub.add_parser('protection-mask');cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('walk-inspect');cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
+    cmd = sub.add_parser('selection-edit');cmd.add_argument('--action',choices=['context','compile'],required=True);cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
     cmd = sub.add_parser('thumbnails'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--cache',type=Path,required=True)
     sub.add_parser('defaults')
     cmd = sub.add_parser('prompt'); cmd.add_argument('--request', type=Path, required=True)
@@ -772,6 +775,9 @@ def main():
             output=reserve_output(args.output)
             write_json(output/'walk-inspection.json',result)
             result['report_file']=str(output/'walk-inspection.json')
+        elif args.command == 'selection-edit':
+            from nbt_selection_edit import dispatch
+            result=dispatch(args.action,read_request(args.request),args.snapshot)
         elif args.command == 'components':
             import nbt_components as components
             data=read_request(args.request) if args.request else {}

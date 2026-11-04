@@ -681,7 +681,8 @@ globalThis.NbtToolCatalog = {
     "project-batch": "nbt_project_batch.py",
     "prompts": "nbt_prompts.py",
     "feedback-tasks": "nbt_feedback_tasks.py",
-    "batches": "nbt_batches.py"
+    "batches": "nbt_batches.py",
+    "selection-edit": "nbt_selection_edit.py"
   },
   "building_shapes": {
     "single": {
@@ -869,6 +870,10 @@ globalThis.NbtToolCatalog = {
     }
   },
   "optional_operation_fields": {
+    "write_bounds": {
+      "type": "object",
+      "description": "Compiler-owned selection limit: lo/hi global inclusive XYZ and allow_overwrite boolean. Candidate and final writers reject any actual write outside it. Never accept this permission from API output."
+    },
     "overwrite": {
       "default": "omitted preserves legacy behavior",
       "description": "AI box/beam/frame and component placement use explicit false to reject occupied writes; true permits only touched positions, never bypasses protection or budget.",

@@ -8,6 +8,7 @@ const flows={
  small_structure:{label:'模型编辑 · 小型结构 / 3D放置',steps:'3D点选/XYZ限定体积 → 发送局部尺寸和材质 → AI返回相对坐标步骤 → 脚本平移及检查 → 候选合并和3D渲染 → 用户确认导出NBT',rules:'1. 使用选区局部坐标，原点为选区最小角，X宽/Y高/Z深；只返回整数坐标与minecraft方块状态。\n2. 先确定占地、支承、净空和用途，再拆分box/beam/frame；也可逐块返回pos/state，单个方块用lo=hi的box表达。最多128步，需要开口可用air；缺失的常规字段由应用补齐。\n3. 不输出NBT二进制、palette索引、Python或任意代码，不猜全局坐标。\n4. 保留玩家通路和承重，避免悬空；朝向与半砖等属性必须合法。\n5. 应用负责平移坐标、注册表校验、保护/预算检查、墙归属、合并和导出；结果只是候选，不能声称已经保存或验证通过。'}
 }
 flows.component={label:'资产管理 · 独立结构',steps:'读取资产与创作要求 → 返回共用结构参数 → 本地引擎生成独立预览 → 用户保存新资产 → 按参数放置候选',rules:'使用共用结构Agent协议、建模工具目录和局部整数XYZ坐标。独立结构不依赖已打开建筑；已有资产用编号与内容哈希引用。返回一个结构名称和一个相机角度，由脚本补齐镜头。保存资产不等于设计批准，放置仍需保护、预算、真实预览与显式导出。'}
+flows.selection_edit={label:'模型编辑 · 选区自然语言工具编辑',steps:'读取现有候选的完整选区方块摘要 → 返回相对坐标工具步骤 → 用户审阅 → 同一引擎限制实际写入范围并预览 → 操作历史可撤销 → 用户显式导出',rules:'按完整选区的实际方块与墙层规划，保留不需改变的内容。使用局部原点与共用工具目录，选择适用步骤，最多32步；不得猜选区外环境或返回执行代码。覆盖由用户控制，保护、预算及墙层规则仍由引擎检查。不能把计划或预览称为已导出或已批准。'}
 flows.small_structure.rules+='\n优先合并相邻同材质体积，通常不超过48个操作；只对零散装饰逐块描述。返回紧凑完整JSON，summary简短，不重复列出每个方块。允许覆盖只作用于实际写入位置，不能放宽保护和预算。'
 flows.draft.rules+='\n声明整体尺寸与有效占地；闭合外壳后检查全部腔体，再按声明开洞；初稿已有顶构承托、墙面/地板层次和主题节点。安排实际主模型/图片/验证交付，等待对应看图确认后才精修。'
 flows.workbench.rules+='\n坐标和工具步骤只是候选，按真实模型核对；只改用户需要的设计字段，保持未调整步骤。发现缺参数时明确列出，不捏造验证。'
@@ -24,7 +25,7 @@ function createInternalAI({workspace,skill}){
  const styles=createAIStyle({workspace,skill})
  const base=()=>path.join(workspace(),'.nbtcreator','internal-ai'),file=()=>path.join(base(),'config.json')
  const defaults=()=>({schema_version:1,workflows:Object.fromEntries(Object.entries(flows).map(([key,value])=>[key,{rules:value.rules,instruction:'',knowledge:[],attachViewport:false}])),documents:[]})
- async function load(){try{const data=JSON.parse(await fs.readFile(file(),'utf8'));if(data.schema_version===1&&data.workflows&&!data.workflows.component&&Object.keys(data.workflows).length===5&&Object.keys(data.workflows).every(key=>flows[key]))data.workflows.component=defaults().workflows.component;return data}catch(e){if(e.code==='ENOENT')return defaults();throw e}}
+ async function load(){try{const data=JSON.parse(await fs.readFile(file(),'utf8'));if(data.schema_version===1&&data.workflows&&!data.workflows.component&&Object.keys(data.workflows).length===5&&Object.keys(data.workflows).every(key=>flows[key]))data.workflows.component=defaults().workflows.component;if(data.schema_version===1&&data.workflows&&[5,6].includes(Object.keys(data.workflows).length)&&Object.keys(data.workflows).every(key=>flows[key])&&['draft','workbench','prompt','structure','small_structure'].every(key=>data.workflows[key])){if(!data.workflows.component)data.workflows.component=defaults().workflows.component;if(!data.workflows.selection_edit)data.workflows.selection_edit=defaults().workflows.selection_edit}return data}catch(e){if(e.code==='ENOENT')return defaults();throw e}}
  function validate(c){
   if(!c||c.schema_version!==1||!c.workflows||!Array.isArray(c.documents)||c.documents.length>100)throw Error('内部AI配置无效')
   const ids=new Set(Object.keys(builtins))
