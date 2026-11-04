@@ -687,6 +687,44 @@
         "max_writes": 4096
       },
       "start/end为整数玩家脚位（XZ取方块格，Y为脚底高度）；以半砖和完整块形成每次半格爬升。支持straight/switchback/spiral，转弯处平平台；逐段碰撞检查通过才返回候选。"
+    ],
+    "terrain_road": [
+      "地形道路 / 避障 / 有限填挖",
+      {
+        "lo": [
+          0,
+          0,
+          0
+        ],
+        "hi": [
+          31,
+          15,
+          31
+        ],
+        "start": [
+          4,
+          2,
+          4
+        ],
+        "end": [
+          24,
+          2,
+          24
+        ],
+        "width": 1,
+        "terrain_states": [
+          "grass_block",
+          "dirt",
+          "stone"
+        ],
+        "state": "stone_bricks",
+        "stair_state": "stone_brick_stairs",
+        "max_cut": 0,
+        "max_fill": 0,
+        "max_bridge_span": 0,
+        "max_writes": 4096
+      },
+      "A*按真实地表绕开非地形障碍；端点Y为真实地表格。高度差最多1，自动楼梯并逐段通行检查；仅允许列出的地形材质填挖。桥段需显式max_bridge_span，不认证承重。"
     ]
   },
   "labels": {
