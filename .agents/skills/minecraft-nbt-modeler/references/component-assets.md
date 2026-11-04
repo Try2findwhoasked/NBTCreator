@@ -43,7 +43,7 @@ python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool struct
 
 已有资产可用 `spec.placements` 组合，每项包括 `id/content_sha256/position` 及可选 `quarter_turns/mirror/overwrite`；不必重新发送体素。position表示目标空间中的资产锚点，不能猜测ID或哈希。需要复制、阵列或曲面时使用工具目录支持的参数，减少逐块输出。`include_air=true` 明确保留空气，整个体积也必须不超过65536格。
 
-预览返回 `preview_id/preview_sha256`、真实缩略图、主模型草稿、快照、相机文件、几何内容哈希与未完成的设计/通行验证状态。查看真实图像后，按当前用户授权显式调用structure_write；不能把保存资产当作看图批准。生成的诊断草稿位于 `nbt_models/_workspaces/structure_agent/`，正式复用资产仍在 `.nbtcreator/components/`。应用新入口“Agent创建独立结构”支持内置API生成、外部参数JSON预览及复制外部Agent任务；它不要求先打开建筑。创作偏好使用 `component` 区域，旧五区域配置会保留并补齐新区域。
+预览返回 `preview_id/preview_sha256`、真实缩略图、主模型草稿、快照、相机文件、几何内容哈希与未完成的设计/通行验证状态。查看真实图像后，按当前用户授权显式调用structure_write；不能把保存资产当作看图批准。生成的诊断草稿位于 `nbt_models/_workspaces/structure_agent/`，正式复用资产仍在 `.nbtcreator/components/`。应用新入口“让Agent生成资产”支持内置API生成、外部参数JSON预览及复制外部Agent任务；它不要求先打开建筑。创作偏好使用 `component` 区域，旧五区域配置会保留并补齐新区域。
 
 保存资产后按structure_place返回的operations走现有模型preview/validate/新版本手动导出流程；落地位置仍需真实源哈希、保护、占用和预算检查。观察机位由脚本补齐，不声明玩家站立或无遮挡。独立资产预览与保存不自动写出NBT，也不授予精修批准。
 
@@ -124,6 +124,6 @@ python .agents/skills/nbtcreator-workspace/nbt.py asset-batches organize
 
 `generated-batch.json`为 `{ "name":"批量生成","assets":[{"spec":结构方案},{"component":构件数据}] }`，最多100项，各项复用同一structure_save实现，失败条目记录errors，成功项生成合并清单。
 
-内置独立结构新增“AI 生成并保存资产”，复用实际显示的预览后直接入库；“AI生成并预览”和手动保存仍保留。资产卡片标记“待审阅”，返回资产工作区会重新读取库，外部脚本保存结果无需手动导入。
+内置独立结构新增“生成并入库”，复用实际显示的预览后直接入库；“AI生成并预览”和手动保存仍保留。资产卡片标记“待审阅”，返回资产工作区会重新读取库，外部脚本保存结果无需手动导入。
 
 “批量资产 / JSON 清单”也可粘贴上述生成参数直接保存，并提供“整理现有资产到规范目录”。organize为已入库资产生成可读取的规范副本和清单，保留原ID、回收状态、缩略图及来源配方；同内容重复整理复用上次结果。它不把预览草稿自动提升为正式资产，不删除原文件。整理索引为 `nbt_models/asset_batches/organization.json`。

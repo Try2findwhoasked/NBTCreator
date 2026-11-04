@@ -19,3 +19,7 @@ body[data-workspace=assets]>.workspace,body[data-workspace=assets]>.action-bar{d
 .component-author[data-mode=view] .component-author-form,.component-author[data-mode=view] #component-write{display:none}.component-author[data-mode=view] .component-author-body{grid-template-columns:1fr}
 @media(max-width:760px){.component-author{height:90dvh;max-height:90dvh}.component-author-body{grid-template-columns:minmax(230px,42%) minmax(0,1fr)}.component-author-form{padding:12px;gap:12px}.component-author-preview{padding:12px}.component-author-actions{flex-direction:column}.component-author>footer>span{max-width:65%}}
 @media(max-width:560px){.component-author{height:92dvh;max-height:92dvh}.component-author-body{display:flex;flex-direction:column;overflow:auto}.component-author-form{overflow:visible;border-right:0;border-bottom:1px solid var(--ui-line)}.component-author-preview{min-height:340px;flex:none}.component-author iframe{height:260px}.component-author>footer{padding:10px 12px;gap:10px}}
+
+.component-author-actions{flex-wrap:wrap}.component-author-actions button{flex:1 1 135px;white-space:normal}.component-author-actions #component-copy-agent{flex-basis:100%}
+
+.library-browser .asset-card small[hidden]{display:none}

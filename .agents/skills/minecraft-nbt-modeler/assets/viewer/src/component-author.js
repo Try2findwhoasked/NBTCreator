@@ -1,15 +1,15 @@
 import {requestAI,previewAI,cancelAI} from './ai-request.js'
 
 export function initComponentAuthor({actions,api,created}){
- const open=document.createElement('button');open.id='asset-create-agent';open.type='button';open.textContent='Agent 创建独立结构';actions.append(open)
+ const open=document.createElement('button');open.id='asset-create-agent';open.type='button';open.textContent='让 Agent 生成资产';actions.append(open)
  const dialog=document.createElement('dialog');dialog.id='component-author';dialog.className='component-author'
- dialog.innerHTML=`<header><div><h2 id="component-title">创建独立结构</h2><p>内置 AI 与外部 Agent 共用构件规范</p></div><button id="component-close" class="quiet" type="button">关闭</button></header>
+ dialog.innerHTML=`<header><div><h2 id="component-title">生成资产</h2><p>内置 AI 与外部 Agent 共用构件规范</p></div><button id="component-close" class="quiet" type="button">关闭</button></header>
  <div class="component-author-body"><section class="component-author-form" aria-label="结构创作参数">
  <label>结构名称<input id="component-name" maxlength="80" value="独立石构件"></label>
  <div class="component-size-field"><span>尺寸 · 每轴 1～64 格</span><div class="component-size-vector">${['x','y','z'].map((axis,i)=>`<label>${axis.toUpperCase()}<input id="component-size-${axis}" type="number" min="1" max="64" step="1" value="${[7,8,7][i]}" aria-label="独立结构尺寸${axis.toUpperCase()}"></label>`).join('')}</div></div>
  <label>参考资产<select id="component-reference"><option value="">不引用已有资产</option></select></label>
  <label>创作要求<textarea id="component-instruction" rows="5" maxlength="12000" placeholder="描述构件的用途、形状、材质和细节，例如带基座与柱帽的石砖柱。"></textarea></label>
- <div class="component-author-actions"><button id="component-generate" class="primary" type="button">AI 生成并预览</button><button id="component-generate-save" class="primary" type="button">AI 生成并保存资产</button><button id="component-copy-agent" type="button">复制给外部 Agent</button></div>
+ <div class="component-author-actions"><button id="component-generate" type="button">生成预览</button><button id="component-generate-save" class="primary" type="button">生成并入库</button><button id="component-copy-agent" type="button">复制给外部 Agent</button></div>
  <details id="component-advanced"><summary>高级 · 结构参数</summary><label>可粘贴外部 Agent 的 JSON 方案<textarea id="component-spec" rows="8" spellcheck="false"></textarea></label><button id="component-preview" type="button">校验参数并预览</button></details>
  </section><section class="component-author-preview" aria-label="结构预览">
  <div class="component-preview-heading"><strong id="component-preview-name">结构预览</strong><span>材质 3D</span></div>
@@ -47,7 +47,7 @@ export function initComponentAuthor({actions,api,created}){
  }
  const safe=action=>async()=>{if(phase)return;const token=++epoch;try{lock(true,'preview');await action(token)}catch(error){if(token===epoch)status(error.message,true)}finally{if(token===epoch)lock(false);else if(!dialog.open)phase=null}}
  open.onclick=async()=>{
-  if(dialog.open)return;const token=++epoch;invalidate();status('');dialog.dataset.mode='create';$('component-title').textContent='创建独立结构';$('component-footer-hint').textContent='查看预览后保存到构件库，可在建筑中放置复用。';dialog.showModal();lock(true,'load')
+  if(dialog.open)return;const token=++epoch;invalidate();status('');dialog.dataset.mode='create';$('component-title').textContent='生成资产';$('component-footer-hint').textContent='查看预览后保存到构件库，可在建筑中放置复用。';dialog.showModal();lock(true,'load')
   try{const result=await call('structure_list',{});if(token!==epoch||!dialog.open)return;$('component-reference').replaceChildren(new Option('不引用已有资产',''),...result.items.filter(item=>!item.archived).map(item=>new Option(item.name+' · '+item.size.join('×'),item.id)))}catch(error){if(token===epoch)status(error.message,true)}finally{if(token===epoch)lock(false);else if(!dialog.open)phase=null}
  }
  for(const element of dialog.querySelectorAll('input,textarea,select'))element.addEventListener('input',invalidate)
@@ -76,7 +76,7 @@ export function initComponentAuthor({actions,api,created}){
   try{if(!candidate||binding!==fingerprint())throw Error('参数已变化，请重新预览');lock(true,'write');const item=await call('structure_save',{preview_id:candidate.preview_id,preview_sha256:candidate.preview_sha256});dialog.close();await created(item)}catch(error){status(error.message,true)}finally{lock(false)}
  }
  $('component-copy-agent').onclick=()=>{
-  try{const c=context(),text=`请在当前Agent项目中读取 .agents/skills/nbtcreator-workspace/SKILL.md 和构件资产规范，使用共用 structure_* 工具创建独立结构。\n名称：${c.name}\n尺寸：${c.size.join(',')}\n要求：${$('component-instruction').value}\n参考资产编号：${$('component-reference').value||'未指定'}\n先调用 capabilities 查看 agent_tools。入口：python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool <工具名> --request <参数JSON>。如已选本地参考集合，先 retrieve read 核对集合及出处，结构预览时传入 reference_bundle；集合：${JSON.stringify(window.nbtReferencePicker?.receipt('component')??null)}。可直接用 structure_save({spec}) 保存生成资产并生成批次清单，或用 asset-batches save 批量保存，资产标记为待审阅。也可先 structure_list/read；用 structure_preview 生成真实候选和图片，实际查看后再按授权 structure_write 保存新资产。structure_place 只返回参数化候选，按保护/预算、preview/validate 和显式新版本导出流程应用。不要生成代码、伪造看图批准或覆盖源。创作偏好使用 ai-style prompt --workflow component。`;if(window.nbtDesktop?.copyAgentPlan)window.nbtDesktop.copyAgentPlan(text).then(()=>status('外部 Agent 任务已复制')).catch(error=>status(error.message,true));else navigator.clipboard.writeText(text).then(()=>status('外部 Agent 任务已复制'))}catch(error){status(error.message,true)}
+  try{const c=context(),text=`请在当前Agent项目中读取 .agents/skills/nbtcreator-workspace/SKILL.md 和构件资产规范，使用共用 structure_* 工具生成资产。\n名称：${c.name}\n尺寸：${c.size.join(',')}\n要求：${$('component-instruction').value}\n参考资产编号：${$('component-reference').value||'未指定'}\n先调用 capabilities 查看 agent_tools。入口：python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool <工具名> --request <参数JSON>。如已选本地参考集合，先 retrieve read 核对集合及出处，结构预览时传入 reference_bundle；集合：${JSON.stringify(window.nbtReferencePicker?.receipt('component')??null)}。可直接用 structure_save({spec}) 保存生成资产并生成批次清单，或用 asset-batches save 批量保存，资产标记为待审阅。也可先 structure_list/read；用 structure_preview 生成真实候选和图片，实际查看后再按授权 structure_write 保存新资产。structure_place 只返回参数化候选，按保护/预算、preview/validate 和显式新版本导出流程应用。不要生成代码、伪造看图批准或覆盖源。创作偏好使用 ai-style prompt --workflow component。`;if(window.nbtDesktop?.copyAgentPlan)window.nbtDesktop.copyAgentPlan(text).then(()=>status('外部 Agent 任务已复制')).catch(error=>status(error.message,true));else navigator.clipboard.writeText(text).then(()=>status('外部 Agent 任务已复制'))}catch(error){status(error.message,true)}
  }
  return {open:()=>open.click(),view:async id=>{
   if(phase)throw Error('请等待当前结构任务完成')

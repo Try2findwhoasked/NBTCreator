@@ -6,3 +6,11 @@
 
 /* Reserve the same trailing action area in both workspaces at narrow widths. */
 .library-search{flex:0 0 clamp(160px,calc(100vw - 430px),460px)}
+
+/* Shared toolbar actions wrap instead of escaping the viewport at high zoom. */
+.library-heading{height:auto;min-height:36px;flex:0 0 auto;flex-wrap:wrap}
+.library-actions,.library-actions>div{flex-wrap:wrap;max-width:100%}
+.library-toolbar{height:auto;min-height:36px;flex:0 0 auto;flex-wrap:wrap;row-gap:8px}
+.library-toolbar .library-search{flex:1 1 240px;max-width:460px;min-width:min(160px,100%)}
+.library-toolbar>button,.library-toolbar>details{flex:none;max-width:100%}
+.library-toolbar>label{min-width:0;max-width:100%;margin:0;white-space:normal}
