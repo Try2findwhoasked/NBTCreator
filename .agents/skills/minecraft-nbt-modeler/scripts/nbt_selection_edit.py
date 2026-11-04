@@ -57,8 +57,10 @@ def dispatch(action,request,snapshot=None):
         if type(overwrite) is not bool:raise ValueError('覆盖开关须为布尔值')
         for index,raw in enumerate(operations):
             if not isinstance(raw,dict) or raw.get('kind') not in CATALOG['tools']:raise ValueError('选区编辑工具种类无效')
-            kind=raw['kind'];fields=(allowed|set(CATALOG['tools'][kind][1])|{'kind','include_boxes'})-{'overwrite','write_group','write_bounds','max_writes'}
+            kind=raw['kind'];fields=(allowed|set(CATALOG['operation_parameters'][kind]['properties'])|{'kind','include_boxes'})-{'overwrite','write_group','write_bounds','max_writes'}
             if set(raw)-fields:raise ValueError('AI步骤含未开放字段，不能改变覆盖、保护或预算')
+            from nbt_operation_parameters import validate_operation
+            validate_operation(raw)
             operation=dict(raw);operation.setdefault('label','选区编辑 '+str(index+1));operation.setdefault('classification','inherit')
             if kind not in ('beam','auto_floor'):
                 a,b=operation.get('lo'),operation.get('hi')

@@ -187,12 +187,13 @@ def translate_operation(operation, offset):
     def shifted(v):
         if not isinstance(v,list) or len(v)!=3 or any(type(n) not in (int,float) or not math.isfinite(n) for n in v):raise ValueError('配方坐标无效')
         return [v[i]+offset[i] for i in range(3)]
-    for key in ('lo','hi','start','end','centre','destination'):
+    for key in ('lo','hi','start','end','centre','destination','seed_position','source_anchor','target_anchor','target_lo','target_hi'):
         if key in op:op[key]=shifted(op[key])
-    for key in ('seeds','mask_positions'):
+    for key in ('seeds','mask_positions','points'):
         if key in op:op[key]=[shifted(v) for v in op[key]]
     for key in ('include_boxes','exclude_boxes'):
         if key in op:op[key]=[dict(box,lo=shifted(box['lo']),hi=shifted(box['hi'])) for box in op[key]]
+    if 'footprint' in op:op['footprint']=[[x+offset[0],z+offset[2]] for x,z in op['footprint']]
     def geometry(spec):
         result=deepcopy(spec)
         for key in ('min','max','centre'):
@@ -200,6 +201,8 @@ def translate_operation(operation, offset):
         if 'points' in result:result['points']=[shifted(p) for p in result['points']]
         if result.get('shape')=='extrude':
             result['vertices']=[[x+offset[0],z+offset[2]] for x,z in result['vertices']];result['bottom']+=offset[1];result['top']+=offset[1]
+        if result.get('shape')=='loft':
+            result['sections']=[dict(section,y=section['y']+offset[1],vertices=[[x+offset[0],z+offset[2]] for x,z in section['vertices']]) for section in result['sections']]
         if 'children' in result:result['children']=[geometry(child) for child in result['children']]
         return result
     if 'geometry' in op:op['geometry']=geometry(op['geometry'])

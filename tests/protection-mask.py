@@ -32,6 +32,11 @@ class Protection(unittest.TestCase):
   result,walls,diff=simulate_plan(model,{(3,3,3),(4,3,3)},dict(operations=[op]),config)
   self.assertEqual(result.get((3,3,3)),'minecraft:stone');self.assertIn((3,3,3),walls);self.assertNotIn((4,3,3),walls)
   self.assertNotIn((5,3,3),result.blocks);self.assertEqual(result.get((6,3,3)),'minecraft:gold_block');self.assertEqual(diff['changed_blocks'],2)
+  op['write_bounds']=dict(lo=[3,3,3],hi=[6,3,3],allow_overwrite=False)
+  with self.assertRaisesRegex(ValueError,'已有方块'):simulate_plan(model,set(),dict(operations=[op]),config)
+  op['write_bounds']=dict(lo=[4,3,3],hi=[6,3,3],allow_overwrite=True)
+  with self.assertRaisesRegex(ValueError,'限定选区'):simulate_plan(model,set(),dict(operations=[op]),config)
+  del op['write_bounds']
   op['skip_protected']='yes'
   with self.assertRaises(ValueError):simulate_plan(model,set(),dict(operations=[op]),config)
 

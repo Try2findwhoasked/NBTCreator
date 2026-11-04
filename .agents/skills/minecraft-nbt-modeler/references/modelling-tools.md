@@ -86,3 +86,39 @@ CLI只输出源指纹、候选变化与统计，不落盘NBT、不批准精修�
 ## 自动道路铺设
 
 `auto_road` 用 `start/end` 整数 XYZ 指定同一高度的路面方块中心。`route` 为 `straight`（连续阶梯状斜线）、`x_first` 或 `z_first`（直角折线）；`width` 1～16、`depth` 1～8。偶数宽度向正轴多延伸一格；厚度向下延伸。`lo/hi` 必须容纳完整路面，不裁剪。`state` 须为实体方块，默认不覆盖已有不同材质；`overwrite=true` 才允许替换。保护、单步 `max_writes` 与总预算继续生效。首版为平面铺设，不自动避障、清空头顶或适应地形；使用后实际预览和检查通行，再显式导出新版本。UI入口在建筑模型下方的“自动道路”分类，CLI使用共用 `tools` 映射的单项操作 JSON。
+
+## 连通与表面选区
+
+`selection_replace` 的 `selection=connected/surface/connected_surface`、`seed_position`、`match=state/solid` 控制六邻接选区。surface 无需种子；其他模式从种子开始，默认精确同状态。`from_states` 进一步过滤，`faces` 指定暴露于真实空气或模型外部的方向（选区边缘不视为空气）。`thickness=1..16` 在表面模式向合格实体内部扩展，不跨空气。使用 `state=air` 可挖除。`nbt_selection.select_voxels` 是只读坐标查询 API，编辑仍通过共用预览与显式导出流程。
+
+## 对齐与吸附
+
+`align_region` 使用源 `lo/hi` 的快照平移，不旋转状态。`mode=align` 的 `target_lo/target_hi` 和三个 `axes=min/center/max/keep` 定义各轴对齐；半格中心偏移明确拒绝。`mode=anchor` 使用全局 `source_anchor/target_anchor`。`mode=ground` 以 `destination` 的 XZ 为目标包围盒最小位置，Y 为向下搜索起点；只接受已知完整方块支承，逐源实体列的最低格需要一致的落地偏移，不自动挖地或悬空。move/include_air/overwrite 均为显式布尔。墙和主体请分开操作并明确 classification，inherit 仍表示保留目标原归属。
+
+## 环形与沿路径阵列
+
+`array_region` 从原快照复制，`source_anchor` 为源内的全局锚点，默认 lo。`mode=path` 的 points 是连续全局 XYZ 折线，spacing 为弧长间距，end_margins 为起止留白；最多 128 次放置。`mode=radial` 使用 centre/radius/count，start_angle=0 指向北，正角顺时针，sweep_angle 默认360度，完整圆不重复末端。位置四舍五入到整数网格，重复锚点及不同状态冲突拒绝。orientation=fixed 保持源朝向；cardinal 按路径切线或径向朝外取最近90度，仍使用现有保守状态变换，不提供任意角旋转。报告包含每个实际锚点及 quarter_turns，须看图检查体素近似。
+
+## 半格楼梯、坡道与平台
+
+`auto_stairs` 用整数 start/end（XZ 为行走格，Y 为玩家脚位高度）生成完整块与底半砖交替的半格台阶坡道。width=1..7；straight 要求同轴。switchback 用 flight_length，回程 end XZ 必须为 (start.x,start.z+width+2)。spiral 是方形环绕阶梯，centre/radius/turns 定义路径；起终点 XZ 为中心西北 radius 处。转角和两端保留平平台，空间不足明确拒绝。state 必须已知完整碰撞块，slab_state 必须底半砖。不会自动挖空头顶、添加栏杆或底部柱撑；逐对相邻脚位用实际碰撞检查，防止绕路误认证。结果是待看图候选，不代表游戏动态验证。
+
+## 地形道路与避障
+
+`terrain_road` 保留旧 auto_road 的平面语义。start/end 的 Y 必须匹配真实最高地表格。terrain_states 为允许替换/挖除的精确状态，只接受已知完整块；非地形最高实体视为障碍。A* 在 lo/hi 内按最高地表搜索，逐列检查完整宽度、两格头顶净空及保护区；最多10万搜索节点。相邻地表高度差最多1，较高行自动铺朝上的底楼梯，最终逐段验证真实通行。max_cut/max_fill=0..16 限定横断面整平，不提供任意地形开山路线；默认均0。max_bridge_span 默认0，显式1..16时允许以起点高度跨越空列，报告 bridge_cells；没有桥墩或结构承重认证。复杂尖峰、转角或宽路冲突可拒绝，需先整地或分段设计，不会静默生成不可走道路。
+
+## 截面成形
+
+geometry 新增三个 shape，仍经过相同布尔、裁剪、保护和预算路径。`section_sweep` 用 vertices（局部UV简单多边形）、points（全局XYZ折线）及 up（默认Y）生成各段定截面棱柱的并集。U=normalize(up×tangent)，V=tangent×U；平行 up 的路径段拒绝。转角使用平帽棱柱并集，不自动斜接，急弯可能缺角，须看图检查。`loft` 用严格递增 y 的 sections，每项 vertices 为全局XZ简单多边形；各截面顶点数和顺序对应，逐体素高度线性插值，拒绝采样到的自交截面。`revolve` 将 profile 的半径/相对高度多边形绕 centre 的Y轴旋转，可用 start_angle/sweep_angle 做部分圆周；半径不得负。三者只生成体素几何，不自动安排楼梯、壳厚或承重。
+
+## 参数化屋顶
+
+`auto_roof` 的 roof=gable/hip/gambrel/dome 分别人字、四坡、折线与椭圆穹顶；ridge_axis 指定人字或折线屋脊沿X/Z。lo.y 为檐口底层，rise 为正高度，footprint 为两个全局XZ角点（默认选区投影）；eaves=0..8 向外扩展且须完整容纳于选区。thickness=1..8 指每列垂直厚度，不是法向壳厚。finish=slabs 将表面向上量化到半格，以底半砖与完整块组合；blocks 使用完整块；stairs 在向高处的坡面放置朝内底楼梯，双向坡角为 outer_left/right，脊线使用完整块。屋脊和转角基于离散高度，是体素近似。gambrel 的 break_fraction/break_height 默认 .5/.75 控制折点。它只生成顶皮，不自动补山墙、檐下梁柱、承重和密闭检查。
+
+## 外部模型参数协议
+
+`tool-catalog.json` 的 tools 第二项仅为起始示例，不再充当字段白名单。`operation_parameters[kind].properties` 定义可提交字段、类型、嵌套数组及范围；required 和 mode_requirements 定义必填条件。`geometry_parameters` 定义新增截面形状的嵌套对象。capabilities 原样提供这些定义；结构 Agent、选区编译和桌面 AI 合约读取同一清单。几何合法性、保护、冲突、实际变化预算与碰撞仍由规划引擎进一步检查，参数校验不构成批准。
+
+选区编辑全部点坐标以选区最小角为原点：种子、源/目标锚点、目标包围盒、阵列路径、屋顶 footprint、loft 的全局XZ顶点和高度由编译器平移。offset、半径、尺寸、up 向量、扫掠的局部UV截面和 revolve 的相对半径/高度 profile 不平移。应用保留 overwrite、write_bounds、write_group 和 max_writes 控制权，模型不能通过额外字段改变这些权限。
+
+运行 `npm run test:modelling` 检查工具和参数回归；桌面验证前运行 `npm run build:web`。复杂方块旋转继续受现有保守规则限制；本组工具不扩展旋转状态家族。

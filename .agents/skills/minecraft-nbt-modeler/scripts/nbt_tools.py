@@ -14,7 +14,7 @@ from nbt_model import AIR, AIR_NAMES, state
 
 
 KINDS = {'geometry', 'morphology', 'diffusion', 'explosion', 'scatter',
-         'copy_region', 'repeat_region', 'transform_region', 'replace', 'paste_component', 'auto_road'}
+         'copy_region', 'repeat_region', 'transform_region', 'replace', 'paste_component', 'auto_road', 'selection_replace', 'align_region', 'array_region', 'auto_stairs', 'terrain_road', 'auto_roof'}
 NEIGHBOURS = ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))
 
 
@@ -74,6 +74,9 @@ def shape_mask(grid, spec, depth=0):
         if kind == 'difference':
             return masks[0] & ~masks[1]
         return (np.logical_or if kind == 'union' else np.logical_and).reduce(masks)
+    if kind in ('section_sweep', 'loft', 'revolve'):
+        from nbt_section_geometry import section_mask
+        return section_mask(grid, spec)
     if kind == 'box':
         field = grid.box(xyz(spec['min']), xyz(spec['max']))
     elif kind in ('sphere', 'ellipsoid'):
@@ -139,6 +142,24 @@ def modelling_plan(model, operation, protected=()):
     size = tuple(hi[i]-lo[i]+1 for i in range(3))
     if math.prod(size) > 2_000_000:
         raise ValueError('Operation exceeds 2 million voxel planning limit')
+    if kind == 'auto_roof':
+        from nbt_roofs import roof_plan
+        return roof_plan(model, operation, protected)
+    if kind == 'terrain_road':
+        from nbt_terrain_roads import terrain_road_plan
+        return terrain_road_plan(model, operation, protected)
+    if kind == 'auto_stairs':
+        from nbt_stairs import stair_plan
+        return stair_plan(model, operation, protected)
+    if kind == 'array_region':
+        from nbt_arrays import array_plan
+        return array_plan(model, operation, protected)
+    if kind == 'align_region':
+        from nbt_alignment import alignment_plan
+        return alignment_plan(model, operation, protected)
+    if kind == 'selection_replace':
+        from nbt_selection import selection_plan
+        return selection_plan(model, operation, protected)
     if kind == 'paste_component':
         from nbt_components import paste_plan
         return paste_plan(model, operation, protected)

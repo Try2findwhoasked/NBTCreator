@@ -43,7 +43,8 @@
     "test:selection-edit": "npm run build:web && python tests/selection-edit.py && node --test tests/selection-edit.test.cjs && node tests/selection-edit-desktop.mjs",
     "test:batches": "npm run build:web && python tests/batches.py && node --test tests/batch-links.test.cjs && node tests/batch-workspaces-desktop.mjs",
     "test:roads": "npm run build:web && python tests/auto-roads.py && node tests/auto-roads-desktop.mjs",
-    "test:transforms": "npm run build:web && node --test tests/ai-component.test.mjs tests/edit-session-store.test.mjs && python tests/components.py && node tests/transform-sliders-desktop.mjs"
+    "test:transforms": "npm run build:web && node --test tests/ai-component.test.mjs tests/edit-session-store.test.mjs && python tests/components.py && node tests/transform-sliders-desktop.mjs",
+    "test:modelling": "python tests/modelling-suite.py && node --test tests/operation-parameters.test.cjs"
   },
   "devDependencies": {
     "electron": "45.2.1",

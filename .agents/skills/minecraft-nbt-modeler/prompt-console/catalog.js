@@ -207,6 +207,116 @@ globalThis.NbtToolCatalog = {
           "radius": 3
         }
       ]
+    },
+    "section_sweep": {
+      "vertices": [
+        [
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          -1,
+          1
+        ]
+      ],
+      "points": [
+        [
+          6,
+          8,
+          6
+        ],
+        [
+          16,
+          8,
+          16
+        ]
+      ],
+      "up": [
+        0,
+        1,
+        0
+      ]
+    },
+    "loft": {
+      "sections": [
+        {
+          "y": 4,
+          "vertices": [
+            [
+              6,
+              6
+            ],
+            [
+              18,
+              6
+            ],
+            [
+              18,
+              18
+            ],
+            [
+              6,
+              18
+            ]
+          ]
+        },
+        {
+          "y": 14,
+          "vertices": [
+            [
+              9,
+              9
+            ],
+            [
+              15,
+              9
+            ],
+            [
+              15,
+              15
+            ],
+            [
+              9,
+              15
+            ]
+          ]
+        }
+      ]
+    },
+    "revolve": {
+      "centre": [
+        12,
+        4,
+        12
+      ],
+      "profile": [
+        [
+          2,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          1,
+          10
+        ]
+      ],
+      "start_angle": 0,
+      "sweep_angle": 360
     }
   },
   "tools": {
@@ -578,6 +688,171 @@ globalThis.NbtToolCatalog = {
         "max_writes": 4096
       },
       "起终点Y为路面高度且须相同；straight / x_first / z_first自动生成连续道路，宽1～16、厚1～8，完整路面须在选区内；覆盖已有路面须显式开启，不自动避障。"
+    ],
+    "selection_replace": [
+      "连通 / 表面选区换材",
+      {
+        "selection": "connected",
+        "seed_position": [
+          8,
+          8,
+          8
+        ],
+        "match": "state",
+        "faces": [
+          "up",
+          "north",
+          "south",
+          "east",
+          "west",
+          "down"
+        ],
+        "thickness": 1,
+        "state": "andesite",
+        "max_writes": 4096
+      },
+      "从seed_position六邻接选取同状态或实体；surface按暴露朝向选面，thickness仅向实体内扩展。保护及预算继续生效。"
+    ],
+    "align_region": [
+      "对齐 / 锚点 / 落地吸附",
+      {
+        "mode": "align",
+        "target_lo": [
+          24,
+          4,
+          4
+        ],
+        "target_hi": [
+          39,
+          15,
+          19
+        ],
+        "axes": [
+          "center",
+          "min",
+          "center"
+        ],
+        "move": false,
+        "include_air": false,
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "lo/hi是源包围盒；align按轴min/center/max/keep对齐；anchor指定源和目标全局锚点；ground按destination的XZ和最高搜索Y落地，拒绝不平整或未知支承。归属请显式设置。"
+    ],
+    "array_region": [
+      "环形 / 沿路径阵列",
+      {
+        "mode": "path",
+        "points": [
+          [
+            24,
+            4,
+            4
+          ],
+          [
+            24,
+            4,
+            36
+          ]
+        ],
+        "spacing": 8,
+        "end_margins": [
+          0,
+          0
+        ],
+        "orientation": "fixed",
+        "include_air": false,
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "lo/hi为源；source_anchor默认lo。path按折线弧长布置；radial用centre/radius/count/start_angle/sweep_angle。cardinal朝向取最近90°，不支持任意角度状态旋转；位置量化碰撞和预算均预检。"
+    ],
+    "auto_stairs": [
+      "半格楼梯 / 坡道 / 平台",
+      {
+        "lo": [
+          0,
+          0,
+          0
+        ],
+        "hi": [
+          31,
+          15,
+          31
+        ],
+        "mode": "straight",
+        "start": [
+          4,
+          2,
+          4
+        ],
+        "end": [
+          20,
+          6,
+          4
+        ],
+        "width": 1,
+        "state": "stone_bricks",
+        "slab_state": "stone_brick_slab[type=bottom,waterlogged=false]",
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "start/end为整数玩家脚位（XZ取方块格，Y为脚底高度）；以半砖和完整块形成每次半格爬升。支持straight/switchback/spiral，转弯处平平台；逐段碰撞检查通过才返回候选。"
+    ],
+    "terrain_road": [
+      "地形道路 / 避障 / 有限填挖",
+      {
+        "lo": [
+          0,
+          0,
+          0
+        ],
+        "hi": [
+          31,
+          15,
+          31
+        ],
+        "start": [
+          4,
+          2,
+          4
+        ],
+        "end": [
+          24,
+          2,
+          24
+        ],
+        "width": 1,
+        "terrain_states": [
+          "grass_block",
+          "dirt",
+          "stone"
+        ],
+        "state": "stone_bricks",
+        "stair_state": "stone_brick_stairs",
+        "max_cut": 0,
+        "max_fill": 0,
+        "max_bridge_span": 0,
+        "max_writes": 4096
+      },
+      "A*按真实地表绕开非地形障碍；端点Y为真实地表格。高度差最多1，自动楼梯并逐段通行检查；仅允许列出的地形材质填挖。桥段需显式max_bridge_span，不认证承重。"
+    ],
+    "auto_roof": [
+      "屋顶 / 屋脊 / 屋檐",
+      {
+        "roof": "gable",
+        "ridge_axis": "z",
+        "rise": 4,
+        "eaves": 0,
+        "thickness": 1,
+        "finish": "slabs",
+        "state": "stone_bricks",
+        "slab_state": "stone_brick_slab[type=bottom,waterlogged=false]",
+        "stair_state": "stone_brick_stairs",
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "roof=gable/hip/gambrel/dome；lo.y为檐口底层，footprint可指定两个XZ角点，eaves向外扩展但不得超选区。finish=blocks/slabs/stairs；生成顶皮不自动补墙、梁柱或认证密闭。"
     ]
   },
   "labels": {
@@ -1226,5 +1501,1770 @@ globalThis.NbtToolCatalog = {
     },
     "writes": "new component assets only; model changes remain candidate operations until explicit export",
     "knowledge": "component-assets; modelling-tools; shared creative preferences small_structure"
+  },
+  "operation_parameters": {
+    "geometry": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "geometry": {
+          "type": "object"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "box": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "hollow_box": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "thickness": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "frame": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "thickness": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "beam": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "end": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "state": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": []
+    },
+    "replace": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "state": {
+          "type": "string"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "move_region": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "offset": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "copy_region": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "offset": {
+          "type": "array"
+        },
+        "include_air": {
+          "type": "boolean"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "repeat_region": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "offset": {
+          "type": "array"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "include_air": {
+          "type": "boolean"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "transform_region": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "destination": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "quarter_turns": {
+          "type": "integer"
+        },
+        "mirror": {
+          "type": "string"
+        },
+        "move": {
+          "type": "boolean"
+        },
+        "include_air": {
+          "type": "boolean"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "morphology": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "iterations": {
+          "type": "integer"
+        },
+        "state": {
+          "type": "string"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "diffusion": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "seeds": {
+          "type": "array"
+        },
+        "steps": {
+          "type": "integer"
+        },
+        "decay": {
+          "type": "number"
+        },
+        "surface_only": {
+          "type": "boolean"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "state": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "explosion": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "centre": {
+          "type": "array"
+        },
+        "radius": {
+          "type": "integer"
+        },
+        "roughness": {
+          "type": "number"
+        },
+        "rays": {
+          "type": "integer"
+        },
+        "ray_length": {
+          "type": "integer"
+        },
+        "ray_width": {
+          "type": "number"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "scatter": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "fraction": {
+          "type": "number"
+        },
+        "spacing": {
+          "type": "integer"
+        },
+        "supported": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "pattern": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "action": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "scale": {
+          "type": "integer"
+        },
+        "fraction": {
+          "type": "number"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "palette": {
+          "type": "array"
+        },
+        "preserve_properties": {
+          "type": "boolean"
+        },
+        "shape_policy": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "surface_palette": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "palette": {
+          "type": "array"
+        },
+        "fraction": {
+          "type": "number"
+        },
+        "seed": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "weathering": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "moss": {
+          "type": "object"
+        },
+        "cracks": {
+          "type": "object"
+        },
+        "floor": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "auto_floor": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "profile": {
+          "type": "string"
+        },
+        "style_note": {
+          "type": "string"
+        },
+        "fraction": {
+          "type": "number"
+        },
+        "slab_share": {
+          "type": "number"
+        },
+        "patch_size": {
+          "type": "array"
+        },
+        "pit_depth": {
+          "type": "integer"
+        },
+        "route_margin": {
+          "type": "number"
+        },
+        "exclude_boxes": {
+          "type": "array"
+        },
+        "slab_overrides": {
+          "type": "object"
+        },
+        "seed": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": []
+    },
+    "paste_component": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "palette": {
+          "type": "array"
+        },
+        "voxels": {
+          "type": "array"
+        },
+        "overwrite": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "auto_road": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "end": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "width": {
+          "type": "integer"
+        },
+        "depth": {
+          "type": "integer"
+        },
+        "route": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "selection_replace": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "selection": {
+          "type": "string"
+        },
+        "seed_position": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "match": {
+          "type": "string"
+        },
+        "faces": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down",
+              "north",
+              "south",
+              "east",
+              "west"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 6
+        },
+        "thickness": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "state": {
+          "type": "string"
+        },
+        "max_writes": {
+          "type": "integer"
+        },
+        "from_states": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    },
+    "align_region": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "target_lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "target_hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "axes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "min",
+              "center",
+              "max",
+              "keep"
+            ]
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "move": {
+          "type": "boolean"
+        },
+        "include_air": {
+          "type": "boolean"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        },
+        "source_anchor": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "target_anchor": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "destination": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ],
+      "mode_requirements": {
+        "field": "mode",
+        "default": "align",
+        "choices": {
+          "align": [
+            "target_lo",
+            "target_hi"
+          ],
+          "anchor": [
+            "source_anchor",
+            "target_anchor"
+          ],
+          "ground": [
+            "destination"
+          ]
+        }
+      }
+    },
+    "array_region": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "minItems": 2,
+          "maxItems": 128
+        },
+        "spacing": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "end_margins": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "orientation": {
+          "type": "string"
+        },
+        "include_air": {
+          "type": "boolean"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        },
+        "source_anchor": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "centre": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "radius": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128
+        },
+        "start_angle": {
+          "type": "integer"
+        },
+        "sweep_angle": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ],
+      "mode_requirements": {
+        "field": "mode",
+        "default": "path",
+        "choices": {
+          "path": [
+            "points"
+          ],
+          "radial": [
+            "centre",
+            "radius"
+          ]
+        }
+      }
+    },
+    "auto_stairs": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "start": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "end": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        },
+        "state": {
+          "type": "string"
+        },
+        "slab_state": {
+          "type": "string"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        },
+        "flight_length": {
+          "type": "integer"
+        },
+        "centre": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "radius": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "turns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ],
+      "mode_requirements": {
+        "field": "mode",
+        "default": "straight",
+        "choices": {
+          "straight": [
+            "start",
+            "end"
+          ],
+          "switchback": [
+            "start",
+            "end",
+            "flight_length"
+          ],
+          "spiral": [
+            "start",
+            "end",
+            "centre",
+            "radius"
+          ]
+        }
+      }
+    },
+    "terrain_road": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "end": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        },
+        "terrain_states": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 512
+        },
+        "state": {
+          "type": "string"
+        },
+        "stair_state": {
+          "type": "string"
+        },
+        "max_cut": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "max_fill": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "max_bridge_span": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi",
+        "start",
+        "end"
+      ]
+    },
+    "auto_roof": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hi": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "roof": {
+          "type": "string"
+        },
+        "ridge_axis": {
+          "type": "string"
+        },
+        "rise": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "eaves": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "thickness": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "finish": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "slab_state": {
+          "type": "string"
+        },
+        "stair_state": {
+          "type": "string"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        },
+        "footprint": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "break_fraction": {
+          "type": "number"
+        },
+        "break_height": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
+    }
+  },
+  "geometry_parameters": {
+    "section_sweep": {
+      "type": "object",
+      "properties": {
+        "shape": {
+          "type": "string",
+          "enum": [
+            "section_sweep"
+          ]
+        },
+        "vertices": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "minItems": 3,
+          "maxItems": 64
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "minItems": 2,
+          "maxItems": 128
+        },
+        "up": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "shape",
+        "vertices",
+        "points"
+      ],
+      "additionalProperties": false
+    },
+    "loft": {
+      "type": "object",
+      "properties": {
+        "shape": {
+          "type": "string",
+          "enum": [
+            "loft"
+          ]
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "y": {
+                "type": "number"
+              },
+              "vertices": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "minItems": 3,
+                "maxItems": 64
+              }
+            },
+            "required": [
+              "y",
+              "vertices"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 2,
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "shape",
+        "sections"
+      ],
+      "additionalProperties": false
+    },
+    "revolve": {
+      "type": "object",
+      "properties": {
+        "shape": {
+          "type": "string",
+          "enum": [
+            "revolve"
+          ]
+        },
+        "centre": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "profile": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "minItems": 3,
+          "maxItems": 64
+        },
+        "start_angle": {
+          "type": "number"
+        },
+        "sweep_angle": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 360
+        }
+      },
+      "required": [
+        "shape",
+        "profile"
+      ],
+      "additionalProperties": false
+    }
   }
 };

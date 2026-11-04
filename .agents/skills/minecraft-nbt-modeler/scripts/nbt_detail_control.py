@@ -571,7 +571,7 @@ def simulate_plan(model, walls, plan, config):
         elif operation['kind']=='auto_floor': edits,_=auto_floor_plan(virtual,operation,config,protected)
         else: edits=operation_candidates(virtual,operation,protected)
         from nbt_change_policy import enforce_overwrite, clip_protected
-        enforce_scope(bounds,operation,edits)
+        operation=enforce_scope(bounds,operation,edits)
         edits=clip_protected(operation,edits,protected)
         enforce_overwrite(virtual,walls,operation,edits,write_owners)
         outside=[p for p,value in edits if not virtual.in_bounds(p)]

@@ -238,11 +238,11 @@ def record_user_approval(review,user_message,user_reviewed_thumbnails=False):
 def operation_candidates(model,operation,protected=()):
     candidates=_operation_candidates(model,operation,protected)
     from nbt_change_policy import clip_protected
-    candidates=clip_protected(operation,candidates,protected)
+    writable=clip_protected(operation,candidates,protected)
     if operation.get('kind') in ('box','beam','frame') and 'overwrite' in operation and not operation.get('write_group'):
         if type(operation['overwrite']) is not bool:raise ValueError('覆盖现有方块须为布尔开关')
         if not operation['overwrite']:
-            occupied=[p for p,value in candidates if model.get(p) not in AIR_NAMES and model.get(p)!=value]
+            occupied=[p for p,value in writable if model.get(p) not in AIR_NAMES and model.get(p)!=value]
             if occupied:raise ValueError('目标位置已有方块；移动构件，或勾选“允许AI构件覆盖现有方块”：'+str(occupied[:8]))
     return candidates
 
@@ -355,7 +355,7 @@ def refine(review_dir,plan,output_dir):
         else:
             edits=operation_candidates(model,operation,protected)
         from nbt_change_policy import enforce_overwrite, clip_protected
-        enforce_scope(bounds,operation,edits)
+        operation=enforce_scope(bounds,operation,edits)
         edits=clip_protected(operation,edits,protected)
         enforce_overwrite(model,walls,operation,edits,write_owners)
         moved_walls={tuple(p[i]+operation['offset'][i] for i in range(3)) for p in walls if all(operation['lo'][i]<=p[i]<=operation['hi'][i] for i in range(3))} if operation['kind']=='move_region' else set()

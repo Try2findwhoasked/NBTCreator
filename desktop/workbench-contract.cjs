@@ -1,3 +1,4 @@
+const {validateOperation}=require('./operation-parameters.cjs')
 const catalog=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json')
 const {createHash}=require('node:crypto')
 const fields=['buildingShape','layout','circulation','name','theme','purpose','footprint','style','ceiling','floor','wall','props','preserve','extras']
@@ -29,11 +30,11 @@ function mergeOperationPatch(result,context){
   seen.add(change.step)
   if(change.expected!==base.steps[change.step-1].expected)throw Error('增量原步骤指纹不匹配，请重新生成')
   const op=operations[change.step-1]
-  const allowed=[...Object.keys(catalog.common),...Object.keys(catalog.tools[op.kind]?.[1]??{})].filter(key=>!['overwrite','write_group','max_writes'].includes(key))
+  const allowed=[...Object.keys(catalog.common),...Object.keys(catalog.operation_parameters[op.kind]?.properties??{})].filter(key=>!['overwrite','write_group','max_writes'].includes(key))
   if(!own(change.set,allowed)||!Object.keys(change.set).length)throw Error('增量只能修改工具参数，不能改变工具类型、覆盖权限、预算或执行字段')
   for(const [key,value]of Object.entries(change.set)){
    const sample=op[key]??catalog.common[key]??catalog.tools[op.kind]?.[1]?.[key]
-   const valid=Array.isArray(sample)?Array.isArray(value):sample&&typeof sample==='object'?value&&typeof value==='object'&&!Array.isArray(value):typeof value===typeof sample&&(typeof value!=='number'||Number.isFinite(value))
+   const valid=Array.isArray(sample)?Array.isArray(value):sample&&typeof sample==='object'?value&&typeof value==='object'&&!Array.isArray(value):(sample===undefined?({array:Array.isArray(value),integer:Number.isSafeInteger(value),number:typeof value==='number'&&Number.isFinite(value),object:!!value&&typeof value==='object'&&!Array.isArray(value),string:typeof value==='string',boolean:typeof value==='boolean'}[catalog.operation_parameters[op.kind]?.properties[key]?.type]===true):typeof value===typeof sample)&&(typeof value!=='number'||Number.isFinite(value))
    if(!valid)throw Error('增量工具参数类型无效：'+key)
    if(key==='state'&&!/^(?:minecraft:)?[a-z0-9_]+(?:\[[a-z0-9_=,]+\])?$/.test(value))throw Error('增量需要有效的方块状态')
    if(key==='label'&&(!value.trim()||value.length>250))throw Error('增量步骤名称须为1到250字')
@@ -59,6 +60,7 @@ function validateWorkbench(result,context){
   for(const op of result.operations){if(!op||!catalog.tools[op.kind]||typeof op.label!=='string'||!op.label.trim()||!['body','wall','inherit'].includes(op.classification))throw Error('AI返回未支持的工具或归属')
    if(op.enabled!==undefined&&typeof op.enabled!=='boolean')throw Error('工具 enabled 开关须为布尔值')
    if(op.enabled===false)continue
+   validateOperation(op)
    if(op.kind==='geometry'&&(!op.geometry||!catalog.shapes[op.geometry.shape]))throw Error('几何工具需要支持的形状定义')
    if(op.kind!=='auto_floor'&&op.kind!=='beam'){for(const key of ['lo','hi'])if(!Array.isArray(op[key])||op[key].length!==3||!op[key].every(Number.isInteger))throw Error('工具需要整数XYZ选区');if(op.lo.some((v,i)=>v<0||v>op.hi[i]||op.hi[i]>=size[i]))throw Error('AI工具超出方案尺寸')}
   }
