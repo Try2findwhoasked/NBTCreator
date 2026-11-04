@@ -20,6 +20,12 @@ def road_plan(model, operation, protected=()):
     value = state(operation.get('state', 'stone_bricks'))
     if value in AIR_NAMES:
         raise ValueError('道路材质须为实体方块')
+    lower = (width-1)//2
+    upper = width-1-lower
+    footprint_lo = (min(start[0],end[0])-lower, start[1]-depth+1, min(start[2],end[2])-lower)
+    footprint_hi = (max(start[0],end[0])+upper, start[1], max(start[2],end[2])+upper)
+    if any(footprint_lo[i] < lo[i] or footprint_hi[i] > hi[i] for i in range(3)):
+        raise ValueError('完整道路超出选区或模型边界；请增大选区或减小宽度、厚度')
     vertices = [start, end]
     if route != 'straight':
         corner = (end[0], start[1], start[2]) if route == 'x_first' else (start[0], start[1], end[2])
@@ -32,7 +38,6 @@ def road_plan(model, operation, protected=()):
             p = (round(a[0]+(b[0]-a[0])*k/count), a[1], round(a[2]+(b[2]-a[2])*k/count))
             # Include an elbow when both coordinates change, keeping width=1 connected.
             centers.add((p[0], p[1], previous[2])); centers.add(p); previous = p
-    lower = (width-1)//2
     cells = {(x+dx, y-dy, z+dz) for x,y,z in centers
              for dx in range(-lower, width-lower) for dz in range(-lower, width-lower) for dy in range(depth)}
     if any(not model.in_bounds(p) or any(not lo[i] <= p[i] <= hi[i] for i in range(3)) for p in cells):
