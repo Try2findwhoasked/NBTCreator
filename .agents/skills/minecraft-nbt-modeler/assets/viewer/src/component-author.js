@@ -9,7 +9,7 @@ export function initComponentAuthor({actions,api,created}){
  <div class="component-size-field"><span>尺寸 · 每轴 1～64 格</span><div class="component-size-vector">${['x','y','z'].map((axis,i)=>`<label>${axis.toUpperCase()}<input id="component-size-${axis}" type="number" min="1" max="64" step="1" value="${[7,8,7][i]}" aria-label="独立结构尺寸${axis.toUpperCase()}"></label>`).join('')}</div></div>
  <label>参考资产<select id="component-reference"><option value="">不引用已有资产</option></select></label>
  <label>创作要求<textarea id="component-instruction" rows="5" maxlength="12000" placeholder="描述构件的用途、形状、材质和细节，例如带基座与柱帽的石砖柱。"></textarea></label>
- <div class="component-author-actions"><button id="component-generate" class="primary" type="button">AI 生成并预览</button><button id="component-copy-agent" type="button">复制给外部 Agent</button></div>
+ <div class="component-author-actions"><button id="component-generate" class="primary" type="button">AI 生成并预览</button><button id="component-generate-save" class="primary" type="button">AI 生成并保存资产</button><button id="component-copy-agent" type="button">复制给外部 Agent</button></div>
  <details id="component-advanced"><summary>高级 · 结构参数</summary><label>可粘贴外部 Agent 的 JSON 方案<textarea id="component-spec" rows="8" spellcheck="false"></textarea></label><button id="component-preview" type="button">校验参数并预览</button></details>
  </section><section class="component-author-preview" aria-label="结构预览">
  <div class="component-preview-heading"><strong id="component-preview-name">结构预览</strong><span>材质 3D</span></div>
@@ -24,7 +24,7 @@ export function initComponentAuthor({actions,api,created}){
  const status=(message,error=false)=>{$('component-status').textContent=message;$('component-status').classList.toggle('error',error)}
  const fingerprint=()=>JSON.stringify(['component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec'].map(id=>$(id).value).concat(window.nbtReferencePicker?.receipt('component')??null))
  function invalidate(){candidate=null;binding=null;$('component-write').disabled=true}
- function lock(value,kind=null){phase=value?kind:null;for(const id of ['component-generate','component-copy-agent','component-preview','component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec','component-references'])$(id).disabled=value;$('component-close').disabled=value&&kind==='write';$('component-write').disabled=value||!candidate||binding!==fingerprint()||dialog.dataset.mode==='view'}
+ function lock(value,kind=null){phase=value?kind:null;for(const id of ['component-generate','component-generate-save','component-copy-agent','component-preview','component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec','component-references'])$(id).disabled=value;$('component-close').disabled=value&&kind==='write';$('component-write').disabled=value||!candidate||binding!==fingerprint()||dialog.dataset.mode==='view'}
  function context(){const name=$('component-name').value.trim(),size=['x','y','z'].map(axis=>Number($('component-size-'+axis).value));if(!name||name.length>80||!size.every(n=>Number.isInteger(n)&&n>=1&&n<=64))throw Error('请填写名称和1～64格的整数尺寸');return {name,size,references:[]}}
  async function show(result,token){
   if(token!==epoch||!dialog.open)return
@@ -55,7 +55,9 @@ export function initComponentAuthor({actions,api,created}){
  $('component-close').onclick=()=>dialog.close();dialog.addEventListener('cancel',event=>{if(phase==='write')event.preventDefault()})
  dialog.addEventListener('close',()=>{epoch++;if(phase==='ai')cancelAI();invalidate();$('component-viewer').src='about:blank';$('component-preview-area').hidden=true;$('component-preview-empty').hidden=false;$('component-preview-name').textContent='结构预览'})
  $('component-preview').onclick=safe(async token=>{const spec=JSON.parse($('component-spec').value);await preview(spec,token)})
- $('component-generate').onclick=async()=>{
+ $('component-generate-save').onclick=()=>generate(true)
+ $('component-generate').onclick=()=>generate(false)
+ async function generate(saveAfter=false){
   if(phase)return;const token=++epoch
   try{
    if(!window.nbtDesktop?.apiGenerate)throw Error('内置 AI 生成需要Electron桌面版；仍可粘贴外部Agent参数并预览')
@@ -66,14 +68,15 @@ export function initComponentAuthor({actions,api,created}){
    if(token!==epoch||!dialog.open)return
    window.nbtReferencePicker?.sources(referenceSources,result);$('component-spec').value=JSON.stringify(result.spec,null,2);phase='preview'
    await previewAI(result,()=>preview(result.spec,token))
+   if(saveAfter&&token===epoch&&dialog.open){lock(true,'write');const item=await call('structure_save',{preview_id:candidate.preview_id,preview_sha256:candidate.preview_sha256});dialog.close();await created(item)}
   }catch(error){if(token===epoch)status(error.message,true)}finally{if(token===epoch)lock(false);else if(!dialog.open)phase=null}
  }
  $('component-write').onclick=async()=>{
   if(phase)return
-  try{if(!candidate||binding!==fingerprint())throw Error('参数已变化，请重新预览');lock(true,'write');const item=await call('structure_write',{preview_id:candidate.preview_id,preview_sha256:candidate.preview_sha256});dialog.close();await created(item)}catch(error){status(error.message,true)}finally{lock(false)}
+  try{if(!candidate||binding!==fingerprint())throw Error('参数已变化，请重新预览');lock(true,'write');const item=await call('structure_save',{preview_id:candidate.preview_id,preview_sha256:candidate.preview_sha256});dialog.close();await created(item)}catch(error){status(error.message,true)}finally{lock(false)}
  }
  $('component-copy-agent').onclick=()=>{
-  try{const c=context(),text=`请在当前Agent项目中读取 .agents/skills/nbtcreator-workspace/SKILL.md 和构件资产规范，使用共用 structure_* 工具创建独立结构。\n名称：${c.name}\n尺寸：${c.size.join(',')}\n要求：${$('component-instruction').value}\n参考资产编号：${$('component-reference').value||'未指定'}\n先调用 capabilities 查看 agent_tools。入口：python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool <工具名> --request <参数JSON>。如已选本地参考集合，先 retrieve read 核对集合及出处，结构预览时传入 reference_bundle；集合：${JSON.stringify(window.nbtReferencePicker?.receipt('component')??null)}。先 structure_list/read；用 structure_preview 生成真实候选和图片，实际查看后再按授权 structure_write 保存新资产。structure_place 只返回参数化候选，按保护/预算、preview/validate 和显式新版本导出流程应用。不要生成代码、伪造看图批准或覆盖源。创作偏好使用 ai-style prompt --workflow component。`;if(window.nbtDesktop?.copyAgentPlan)window.nbtDesktop.copyAgentPlan(text).then(()=>status('外部 Agent 任务已复制')).catch(error=>status(error.message,true));else navigator.clipboard.writeText(text).then(()=>status('外部 Agent 任务已复制'))}catch(error){status(error.message,true)}
+  try{const c=context(),text=`请在当前Agent项目中读取 .agents/skills/nbtcreator-workspace/SKILL.md 和构件资产规范，使用共用 structure_* 工具创建独立结构。\n名称：${c.name}\n尺寸：${c.size.join(',')}\n要求：${$('component-instruction').value}\n参考资产编号：${$('component-reference').value||'未指定'}\n先调用 capabilities 查看 agent_tools。入口：python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool <工具名> --request <参数JSON>。如已选本地参考集合，先 retrieve read 核对集合及出处，结构预览时传入 reference_bundle；集合：${JSON.stringify(window.nbtReferencePicker?.receipt('component')??null)}。可直接用 structure_save({spec}) 保存生成资产并生成批次清单，或用 asset-batches save 批量保存，资产标记为待审阅。也可先 structure_list/read；用 structure_preview 生成真实候选和图片，实际查看后再按授权 structure_write 保存新资产。structure_place 只返回参数化候选，按保护/预算、preview/validate 和显式新版本导出流程应用。不要生成代码、伪造看图批准或覆盖源。创作偏好使用 ai-style prompt --workflow component。`;if(window.nbtDesktop?.copyAgentPlan)window.nbtDesktop.copyAgentPlan(text).then(()=>status('外部 Agent 任务已复制')).catch(error=>status(error.message,true));else navigator.clipboard.writeText(text).then(()=>status('外部 Agent 任务已复制'))}catch(error){status(error.message,true)}
  }
  return {open:()=>open.click(),view:async id=>{
   if(phase)throw Error('请等待当前结构任务完成')

@@ -53,7 +53,7 @@ class StructureAgent(unittest.TestCase):
   file=self.root/'request.json';file.write_text(json.dumps({'spec':self.spec}))
   run=subprocess.run([sys.executable,str(SCRIPTS/'nbt_components.py'),'--workspace',str(self.root),'agent','--tool','structure_preview','--request',str(file)],capture_output=True,text=True,encoding='utf8')
   self.assertEqual(run.returncode,0,run.stdout+run.stderr);result=json.loads(run.stdout)['result'];self.assertTrue(Path(result['thumbnail']).is_file())
-  self.assertEqual(set(definitions()),{'structure_list','structure_read','structure_view','structure_preview','structure_write','structure_place'})
+  self.assertEqual(set(definitions()),{'structure_list','structure_read','structure_view','structure_preview','structure_write','structure_place','structure_save'})
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

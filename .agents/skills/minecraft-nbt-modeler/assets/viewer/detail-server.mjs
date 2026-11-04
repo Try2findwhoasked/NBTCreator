@@ -406,7 +406,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         try{json(res,await invoke(['protection-mask','--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/asset-batches/')){
         const action=url.pathname.split('/').at(-1)
-        if(!['list','import','generate','read'].includes(action))throw Error('未知资产批量操作')
+        if(!['list','import','generate','read','save','organize'].includes(action))throw Error('未知资产批量操作')
         const input=await body(req,46*1024*1024)
         if(Object.hasOwn(input,'paths'))throw Error('界面导入须通过文件选择，不接收本机路径')
         const directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'asset-batch-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input))

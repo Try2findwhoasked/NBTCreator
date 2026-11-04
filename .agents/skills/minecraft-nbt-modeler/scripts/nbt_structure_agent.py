@@ -9,7 +9,7 @@ from pathlib import Path
 import nbt_components as library
 
 ROOT=Path(__file__).resolve().parents[1]
-SUPPORTED_AGENT_TOOLS={'structure_list','structure_read','structure_view','structure_preview','structure_write','structure_place'}
+SUPPORTED_AGENT_TOOLS={'structure_list','structure_read','structure_view','structure_preview','structure_write','structure_place','structure_save'}
 
 
 def definitions():
@@ -131,6 +131,34 @@ def dispatch(workspace,tool,arguments):
     definition=definitions().get(tool)
     if not definition:raise ValueError('未开放的结构Agent工具')
     _schema(arguments,definition['parameters'])
+    if tool=='structure_save':
+        if 'batch_name' in arguments and not arguments['batch_name'].strip():raise ValueError('批次名称不能为空')
+        options=sum(key in arguments for key in ('spec','component','preview_id'))
+        if options!=1 or ('preview_sha256' in arguments)!=('preview_id' in arguments):raise ValueError('spec、component或绑定预览三选一，不能混用')
+        if 'spec' in arguments:
+            prepared=dispatch(workspace,'structure_preview',{k:v for k,v in arguments.items() if k in ('spec','reference_bundle')})
+        elif 'component' in arguments:
+            prepared=preview(workspace,library.validate(arguments['component']))
+        else:prepared={k:arguments[k] for k in ('preview_id','preview_sha256')}
+        root=_draft_root(workspace).resolve();directory=(root/prepared['preview_id']).resolve()
+        if not directory.is_relative_to(root) or _preview_fingerprint(directory)!=prepared['preview_sha256']:raise ValueError('预览已改变，请重新生成')
+        from nbt_prompts import index_lock
+        with index_lock(Path(workspace).resolve(),directory):
+            receipt=directory/'saved-asset.json'
+            if receipt.is_file():
+                if receipt.stat().st_size>library.MAX_BYTES:raise ValueError('保存回执过大')
+                previous=json.loads(receipt.read_text(encoding='utf8'));current=library.load(workspace,previous['id'])
+                if current['content_sha256']!=previous['content_sha256']:raise ValueError('已保存资产发生变化')
+                return dict({k:v for k,v in current.items() if k not in ('palette','blocks')},file=str(library.component_file(workspace,current['id'])),thumbnail=str(library.component_file(workspace,current['id']).with_suffix('.jpg')),block_count=len(current['blocks']),preview_id=prepared['preview_id'],preview_sha256=prepared['preview_sha256'],batch_id=previous['batch_id'],batch_manifest=previous['batch_manifest'],nbt_exported=False,approval_created=False)
+            if (directory/'draft.json').stat().st_size>library.MAX_BYTES:raise ValueError('预览资料过大')
+            if _preview_fingerprint(directory)!=prepared['preview_sha256']:raise ValueError('预览在保存期间变化')
+            draft=json.loads((directory/'draft.json').read_text(encoding='utf8'));item=library.store(workspace,dict(draft['component'],review_status='pending_visual_review'))
+            recipes=library.library_root(workspace)/'recipes';recipes.mkdir(exist_ok=True)
+            (recipes/(item['id']+'.json')).write_text(json.dumps(dict(spec=draft.get('spec'),reference_sources=draft.get('reference_sources',[]),preview_sha256=prepared['preview_sha256'],content_sha256=item['content_sha256'],verification=dict(design='pending_visual_review',game='not_checked')),ensure_ascii=False),encoding='utf8')
+            from nbt_asset_batches import register_components
+            batch=register_components(workspace,[item],arguments.get('batch_name',item['name']))
+            result=dict(item,preview_id=prepared['preview_id'],preview_sha256=prepared['preview_sha256'],batch_id=batch['id'],batch_manifest=batch['manifest'],nbt_exported=False,approval_created=False)
+            receipt.write_text(json.dumps(result,ensure_ascii=False),encoding='utf8');return result
     if tool=='structure_list':return library.listing(workspace)
     if tool=='structure_read':return library.load(workspace,arguments['id'])
     if tool=='structure_view':

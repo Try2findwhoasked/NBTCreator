@@ -58,8 +58,48 @@ def new_list(workspace,name,entries,identifier=None,errors=None):
     file=folder/'assets.json';write(file,data)
     return dict(id=identifier,name=name.strip(),manifest=relative(workspace,file),entries=entries,errors=errors or [],count=len(entries),nbt_exported=False)
 
+def register_components(workspace,items,name='生成资产'):
+    workspace=Path(workspace).resolve();identifier=uuid.uuid4().hex;folder=base(workspace)/identifier;folder.mkdir(parents=True,exist_ok=False);entries=[]
+    for number,item in enumerate(items):
+        source=components.component_file(workspace,item['id']);data=components.load(workspace,item['id']);before=sha(source);target=folder/'items'/f'{number:03d}'/'asset.component.json';target.parent.mkdir(parents=True);target.write_bytes(source.read_bytes())
+        if sha(target)!=before or sha(source)!=before:raise ValueError('归档期间源构件变化')
+        entry=dict(type='component',name=data['name'],component_id=item['id'],path=relative(workspace,target),sha256=before,review_status=data.get('review_status','not_recorded'))
+        image=source.with_suffix('.jpg')
+        if image.is_file():
+            preview=target.with_suffix('.jpg');preview.write_bytes(image.read_bytes());entry['thumbnail']=relative(workspace,preview)
+        recipe=components.library_root(workspace)/'recipes'/(item['id']+'.json')
+        if recipe.is_file():
+            if recipe.stat().st_size>components.MAX_BYTES:raise ValueError('来源配方过大')
+            file=target.parent/'recipe.json';file.write_bytes(recipe.read_bytes());entry['recipe']=relative(workspace,file)
+        entries.append(entry)
+    return new_list(workspace,name,entries,identifier)
+
+def organize(workspace):
+    items=components.listing(workspace);valid=items['items'];signature=hashlib.sha256(json.dumps(sorted((item['id'],item['content_sha256'],item['name'],item['tags'],item['archived']) for item in valid),ensure_ascii=False).encode()).hexdigest();file=base(workspace)/'organization.json'
+    if file.is_file():
+        previous=bounded_json(file)
+        if previous.get('signature')==signature:
+            for batch in previous['batches']:manifest(workspace,bounded_json(local(workspace,batch['manifest'])))
+            return dict(previous,reused=True)
+    batches=[register_components(workspace,valid[start:start+LIMIT],'现有资产归档 '+str(start//LIMIT+1)) for start in range(0,len(valid),LIMIT)]
+    result=dict(signature=signature,count=len(valid),batches=batches,errors=items['errors'],original_ids_preserved=True,drafts_promoted=False,nbt_exported=False)
+    write(file,result);return result
+
 def dispatch(workspace,action,request):
     workspace=Path(workspace).resolve()
+    if action=='organize':return organize(workspace)
+    if action=='save':
+        assets=request.get('assets')
+        if not isinstance(assets,list) or not 1<=len(assets)<=LIMIT:raise ValueError('每批保存1～100项生成资产')
+        from nbt_structure_agent import dispatch as agent
+        items=[];errors=[]
+        for number,arguments in enumerate(assets):
+            try:items.append(agent(workspace,'structure_save',arguments))
+            except Exception as error:errors.append(dict(index=number,error=str(error)))
+        entries=[]
+        for item in items:entries.extend(bounded_json(local(workspace,item['batch_manifest']))['entries'])
+        batch=new_list(workspace,request.get('name','生成资产批次'),entries) if entries else None
+        return dict(count=len(items),items=items,errors=errors,nbt_exported=False,batch_id=batch['id'] if batch else None,manifest=batch['manifest'] if batch else None)
     if action=='list':
         items=[]
         for file in sorted(base(workspace).glob('*/assets.json'),key=lambda p:p.stat().st_mtime_ns,reverse=True)[:100]:
@@ -132,7 +172,7 @@ def dispatch(workspace,action,request):
     write(folder/'import-report.json',result);return result
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['list','import','generate','read']);parser.add_argument('--request',type=Path);parser.add_argument('--file',type=Path);parser.add_argument('--include-data',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['list','import','generate','read','save','organize']);parser.add_argument('--request',type=Path);parser.add_argument('--file',type=Path);parser.add_argument('--include-data',action='store_true');args=parser.parse_args()
     try:
         request=bounded_json(args.request) if args.request else {}
         if args.file:request['manifest']=bounded_json(args.file)

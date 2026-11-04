@@ -50,6 +50,9 @@ def validate(data):
         raise ValueError('最多16个标签，每个标签1～32字')
     if type(data.get('archived',False)) is not bool:raise ValueError('回收站状态无效')
     result=dict(schema_version=1,name=name.strip(),tags=list(dict.fromkeys(tags)),size=size,anchor=anchor,palette=palette,blocks=sorted(normalized),archived=data.get('archived',False))
+    if 'review_status' in data:
+        if data['review_status']!='pending_visual_review':raise ValueError('不能通过资产资料声明已经看图验收')
+        result['review_status']=data['review_status']
     result['content_sha256']=content_hash(result)
     if data.get('content_sha256') and data['content_sha256']!=result['content_sha256']:
         raise ValueError('构件内容哈希不匹配')

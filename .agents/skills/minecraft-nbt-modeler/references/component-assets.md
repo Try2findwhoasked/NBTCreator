@@ -109,3 +109,21 @@ node scripts/cli.mjs --workspace D:/MyProject asset-batches read --file nbt_mode
 `import.json`示例：`{"name":"本次批量构件","paths":["D:/Generated/pillar.component.json","D:/Generated/room.master.json.gz"]}`。paths只对显式CLI调用开放；应用通过文件选择上传数据。`scope.json`示例：`{"name":"工作区资产列表","scope":"all"}`，scope可为components、models或all。无界面Agent可通过工作区nbt.py的同名asset-batches命令调用。资产库过大时分批导入并使用各自清单；生成整库清单同样限制100项。
 
 清单schema为 `schema_version=1,kind="nbtcreator.asset-list",path_base="workspace",entries=[{type,path,sha256,name}]`，path是工作区相对路径。read验证所有文件真实存在、路径在工作区内及内容哈希一致，再读取类型与几何；默认返回摘要，--include-data返回完整体素、墙层和材质，总输出限制32MiB。界面可选择JSON清单或已保存批次读取。仅迁移清单而未迁移资产无法读取，不根据清单猜测或重建缺失内容；请迁移完整工作区。读取不产生新构件或模型修改。
+
+## 模型生成后直接脚本保存
+
+对外Skill和内置AI共用 `structure_save`。这条入口在用户授权生成并归档资产时，自动执行本地结构/材质/预算校验，生成真实预览与缩略图，保存为 `review_status=pending_visual_review` 的新资产，并在 `nbt_models/asset_batches/<id>/` 保存构件副本、缩略图、来源配方和 `assets.json`。不需要先手工导出JSON再导入；保存不声明已经实际看图或获得设计批准。正式建筑仍需真实看图和显式NBT导出。
+
+```powershell
+python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool structure_save --request generated.json
+python .agents/skills/nbtcreator-workspace/nbt.py asset-batches save --request generated-batch.json
+python .agents/skills/nbtcreator-workspace/nbt.py asset-batches organize
+```
+
+`generated.json`用 `{ "spec": {"name":"石柱","size":[4,6,4],"operations":[{"kind":"box","label":"柱身","classification":"body","lo":[1,0,1],"hi":[1,4,1],"state":"stone_bricks"}]} }`。也可提交 `{component:完整构件数据}`，或 `{preview_id,preview_sha256}` 复用已生成的绑定预览；三种方式只能选一种。绑定预览重复保存返回同一资产，不重复入库。返回id、content_sha256、preview_id、preview_sha256、batch_manifest和待审阅状态。可用batch_name指定批次名称。原有structure_preview/write和手动导入继续可用。生成结果若已经是建筑主模型或NBT文件，使用 asset-batches import 的 paths 请求即可通过脚本直接归档，无需在界面手动导入。
+
+`generated-batch.json`为 `{ "name":"批量生成","assets":[{"spec":结构方案},{"component":构件数据}] }`，最多100项，各项复用同一structure_save实现，失败条目记录errors，成功项生成合并清单。
+
+内置独立结构新增“AI 生成并保存资产”，复用实际显示的预览后直接入库；“AI生成并预览”和手动保存仍保留。资产卡片标记“待审阅”，返回资产工作区会重新读取库，外部脚本保存结果无需手动导入。
+
+“批量资产 / JSON 清单”也可粘贴上述生成参数直接保存，并提供“整理现有资产到规范目录”。organize为已入库资产生成可读取的规范副本和清单，保留原ID、回收状态、缩略图及来源配方；同内容重复整理复用上次结果。它不把预览草稿自动提升为正式资产，不删除原文件。整理索引为 `nbt_models/asset_batches/organization.json`。

@@ -729,7 +729,7 @@ def main():
     sub = parser.add_subparsers(dest='command', required=True)
     cmd = sub.add_parser('catalog'); cmd.add_argument('--workspace', type=Path, required=True);cmd.add_argument('--include-bugged',action='store_true');cmd.add_argument('--index-only',action='store_true')
     cmd = sub.add_parser('inspect'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--image-limit',type=int,default=8)
-    cmd = sub.add_parser('asset-batches');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','import','generate','read'],required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('asset-batches');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','import','generate','read','save','organize'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('project-repair');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--source',required=True);cmd.add_argument('--category',default='auto');cmd.add_argument('--source-sha256')
     cmd = sub.add_parser('cover'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--geometry', default=''); cmd.add_argument('--cache',type=Path,required=True); cmd.add_argument('--generate-missing',action='store_true')
     cmd = sub.add_parser('components'); cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','save','get','place','batch','import','update','extract','transform','agent'],required=True);cmd.add_argument('--request',type=Path)

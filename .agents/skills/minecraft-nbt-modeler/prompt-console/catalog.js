@@ -1489,6 +1489,188 @@ globalThis.NbtToolCatalog = {
         ],
         "additionalProperties": false
       }
+    },
+    "structure_save": {
+      "description": "直接保存模型生成的资产：spec、component或绑定预览三选一；本地校验和真实预览后入库为待审阅资产，生成资产批次清单。保留手动导入，不产生NBT或设计批准。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "spec": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "size": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                "minItems": 0,
+                "maxItems": 16
+              },
+              "anchor": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": -1000000,
+                  "maximum": 1000000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "operations": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "minItems": 0,
+                "maxItems": 128
+              },
+              "placements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-f0-9]{32}"
+                    },
+                    "content_sha256": {
+                      "type": "string",
+                      "pattern": "[a-f0-9]{64}"
+                    },
+                    "position": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -1000000,
+                        "maximum": 1000000
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "quarter_turns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3
+                    },
+                    "mirror": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "x",
+                        "z",
+                        null
+                      ]
+                    },
+                    "overwrite": {
+                      "type": "boolean"
+                    },
+                    "material_map": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string",
+                        "maxLength": 250
+                      },
+                      "description": "Map up to 32 original canonical block states to replacements before rotation; source asset remains unchanged."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "content_sha256",
+                    "position"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 0,
+                "maxItems": 32
+              },
+              "include_air": {
+                "type": "boolean"
+              },
+              "max_changed_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536
+              },
+              "camera": {
+                "type": "object",
+                "properties": {
+                  "azimuth": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  "elevation": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "name",
+              "size"
+            ],
+            "additionalProperties": false
+          },
+          "component": {
+            "type": "object"
+          },
+          "preview_id": {
+            "type": "string",
+            "pattern": "[a-f0-9]{32}"
+          },
+          "preview_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          },
+          "batch_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "reference_bundle": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "[a-f0-9]{32}"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "[a-f0-9]{64}"
+              }
+            },
+            "required": [
+              "id",
+              "sha256"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "agent_contract": {
