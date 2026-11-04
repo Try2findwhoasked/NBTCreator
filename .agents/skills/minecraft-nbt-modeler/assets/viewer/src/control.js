@@ -629,7 +629,7 @@ async function updatePreview(required=false){
   if(state.commitBusy&&required!==true)return
   if(state.previewBusy||state.busy){if(required===true)throw Error('已有建模任务正在运行，本次未更新预览');if($('auto-preview').checked)previewTimer=setTimeout(()=>updatePreview().catch(error=>$('preview-state').textContent='预览失败：'+error.message),700);return}
   const revision=state.previewRevision,source=state.info.source,payload=request(),cancelEpoch=state.cancelEpoch??0
-  state.previewBusy=true;$('update-preview').disabled=true;$('preview-state').textContent='正在计算效果，仍可继续调参…'
+  state.previewBusy=true;window.dispatchEvent(new Event('creator-editor-state'));$('update-preview').disabled=true;$('preview-state').textContent='正在计算效果，仍可继续调参…'
   syncVersionReadonly()
   $('cancel').disabled=false
   document.querySelector('#candidate-diagnostics')?.replaceChildren();state.candidateValidation=null;$('candidate-check-state').textContent='候选尚未检查';$('validate-preview').disabled=true
@@ -956,7 +956,7 @@ async function applyComponentPatch(patch,expected){return withPreviewCommit(asyn
  const next=structuredClone(before);next.operations.push(...patch.operations);updateComponentRange(next,patch)
  await commitPreviewSettings(next,(patch.mode==='move'?'移动选区：':'放置构件：')+(patch.name||patch.operations[0]?.label||'构件'))
 })}
-function reusableContext(){if(!state.info)return null;const s=gather();return {name:state.info.source.split(/[\\/]/).slice(-3).join('/'),source:state.info.source,source_sha256:state.info.source_sha256,size:state.info.size,whole:s.whole_region,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?state.info.size.map(v=>v-1):s.hi,operations:s.operations,settings:JSON.stringify(s),target_id:state.mode==='3d'&&state.feedbackTarget?.kind==='3d'?state.feedbackTarget.id:null}}
+function reusableContext(){if(!state.info)return null;const s=gather();return {name:state.info.source.split(/[\\/]/).slice(-3).join('/'),source:state.info.source,source_sha256:state.info.source_sha256,size:state.info.size,busy:!!(state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring||state.versionComparing||state.transforming),whole:s.whole_region,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?state.info.size.map(v=>v-1):s.hi,operations:s.operations,settings:JSON.stringify(s),target_id:state.mode==='3d'&&state.feedbackTarget?.kind==='3d'?state.feedbackTarget.id:null}}
 async function applyReusable(patch,expected){
  if(state.versionComparing||state.transforming)throw Error('请先结束版本对比或手柄调整')
  const previous=window.creatorWorkspace.current(),dialogs=['asset-inspector-dialog','reusable-dialog'].map(id=>$(id)).filter(d=>d?.open)

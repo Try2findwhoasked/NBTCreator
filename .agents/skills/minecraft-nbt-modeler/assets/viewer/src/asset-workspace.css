@@ -23,3 +23,5 @@ body[data-workspace=assets]>.workspace,body[data-workspace=assets]>.action-bar{d
 .component-author-actions{flex-wrap:wrap}.component-author-actions button{flex:1 1 135px;white-space:normal}.component-author-actions #component-copy-agent{flex-basis:100%}
 
 .library-browser .asset-card small[hidden]{display:none}
+
+#asset-detail-status{position:sticky;top:0;z-index:1;margin:8px 16px 0;padding:8px 10px;border-radius:6px;background:var(--ui-input);font-size:12px;line-height:1.6;overflow-wrap:anywhere}#asset-detail-status.error,#asset-status.error{color:var(--ui-danger,#b44858)}
