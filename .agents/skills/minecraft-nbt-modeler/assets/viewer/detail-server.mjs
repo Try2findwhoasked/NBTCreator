@@ -400,6 +400,14 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         const input=await body(req),info=openedSource(localPath(input.source));if(!info||info.source_sha256!==input.source_sha256)throw Error('请先打开当前版本再查看保护区')
         const system=path.join(outputRoot,'system');await fs.mkdir(system,{recursive:true});const file=path.join(system,'protection-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify({source:info.source,source_sha256:info.source_sha256,context:input.context?localPath(input.context):''}))
         try{json(res,await invoke(['protection-mask','--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
+      } else if(req.method==='POST'&&url.pathname==='/__detail__/project-repair'){
+        if(activeJob)throw Error('请等待当前任务完成')
+        const input=await body(req)
+        if(typeof input.source!=='string'||typeof(input.category??'auto')!=='string')throw Error('修复参数无效')
+        const source=localPath(input.source),stat=await fs.stat(source,{bigint:true})
+        if(input.file_size!==undefined&&Number(stat.size)!==input.file_size||input.modified_ns!==undefined&&stat.mtimeNs.toString()!==input.modified_ns)throw Error('源文件已变化，请刷新后重试')
+        const result=await invoke(['project-repair','--workspace',workspace,'--source',source,'--category',input.category??'auto',...(input.source_sha256?['--source-sha256',input.source_sha256]:[])])
+        json(res,result)
       } else if (req.method === 'POST' && url.pathname === '/__detail__/project-cover') {
         const input=await body(req),source=localPath(input.source)
         const geometry=input.geometry??''

@@ -188,12 +188,12 @@ def main():
     print(json.dumps(report,indent=2))
 
 
-def read_nbt(path):
+def read_nbt(path, raw=None):
     """Minimal independent reader for the standard tags emitted by this exporter."""
     import gzip
     import io
     import struct
-    f=io.BytesIO(gzip.decompress(path.read_bytes()))
+    f=io.BytesIO(gzip.decompress(path.read_bytes()) if raw is None else raw)
     def number(fmt):
         return struct.unpack(fmt,f.read(struct.calcsize(fmt)))[0]
     def string():

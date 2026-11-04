@@ -991,7 +991,8 @@
     "selection-edit": "nbt_selection_edit.py",
     "retrieve": "nbt_retrieval.py",
     "diagnostics": "nbt_diagnostics.py",
-    "agent-tasks": "nbt_agent_tasks.py"
+    "agent-tasks": "nbt_agent_tasks.py",
+    "project-repair": "nbt_project_repair.py"
   },
   "building_shapes": {
     "single": {
