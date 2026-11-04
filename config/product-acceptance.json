@@ -1,0 +1,815 @@
+{
+  "schema_version": 1,
+  "requirements": [
+    {
+      "id": "workspace",
+      "requirement": "工作区可迁移，UI 与无界面 Agent 使用同一引擎",
+      "suites": [
+        "workspace",
+        "protocols",
+        "ui-workspace-api",
+        "ui-structure-agent"
+      ]
+    },
+    {
+      "id": "planning",
+      "requirement": "整体初稿与提示词方案、自动归档、区域 AI 偏好",
+      "suites": [
+        "ui-api",
+        "ui-workbench-ui",
+        "ui-prompt-archive",
+        "ui-ai-style",
+        "py-prompt-archive"
+      ]
+    },
+    {
+      "id": "preview",
+      "requirement": "默认材质 3D，可选择图片，预览不改原稿",
+      "suites": [
+        "ui-default-preview",
+        "ui-desktop-smoke",
+        "ui-library-layout"
+      ]
+    },
+    {
+      "id": "tools",
+      "requirement": "26 类共用建模工具与参数硬校验、手动入口启停",
+      "suites": [
+        "tools",
+        "modelling",
+        "protocols",
+        "ui-control-availability"
+      ]
+    },
+    {
+      "id": "assets",
+      "requirement": "构件读写、内置及外部 Agent 直接生成入库，保留手动导入",
+      "suites": [
+        "py-components",
+        "py-structure-agent",
+        "py-generated-assets",
+        "ui-asset-workspace",
+        "ui-structure-agent"
+      ]
+    },
+    {
+      "id": "asset-batches",
+      "requirement": "构件 JSON、NBT、主模型批量导入读取及工作区清单",
+      "suites": [
+        "py-asset-batches",
+        "ui-asset-batches",
+        "workspace-library"
+      ]
+    },
+    {
+      "id": "transforms",
+      "requirement": "复制、移动、旋转、镜像、吸附、阵列与 3D 手柄",
+      "suites": [
+        "ui-component-gizmo",
+        "ui-transform-sliders",
+        "ui-ai-placement",
+        "ui-reusable",
+        "py-reusable-recipes"
+      ]
+    },
+    {
+      "id": "effects",
+      "requirement": "原生工具效果管理、真实前后样例、Agent 脚本接入与配方版本绑定",
+      "suites": [
+        "py-effect-assets",
+        "ui-tool-effects",
+        "ui-control-availability",
+        "ui-reusable",
+        "py-reusable-recipes"
+      ]
+    },
+    {
+      "id": "organization",
+      "requirement": "建筑与效果分开，自定义菜单，语义用途取代数字标签，保留资产身份与几何",
+      "suites": [
+        "ui-project-menus",
+        "ui-library-layout",
+        "workspace-library",
+        "py-effect-assets"
+      ]
+    },
+    {
+      "id": "projects",
+      "requirement": "项目及版本筛选、状态、尝试修复归类、缩略图、自动加载与批量队列",
+      "suites": [
+        "ui-project-manager",
+        "ui-project-recovery",
+        "py-project-repair",
+        "ui-project-batch",
+        "py-project-batch",
+        "performance"
+      ]
+    },
+    {
+      "id": "editing",
+      "requirement": "命名步骤启停、重排、撤销重做、保存草稿和重启恢复",
+      "suites": [
+        "py-operation-history",
+        "ui-operation-history",
+        "ui-edit-session",
+        "ui-edit-session-images",
+        "protocols"
+      ]
+    },
+    {
+      "id": "comparison",
+      "requirement": "版本差异、同镜头前后对比与退出恢复原编辑",
+      "suites": [
+        "py-model-difference",
+        "ui-version-compare",
+        "ui-agent-task-return"
+      ]
+    },
+    {
+      "id": "ai",
+      "requirement": "减少重复操作与请求输入，局部 AI、保护冲突裁剪、选区自然语言编辑",
+      "suites": [
+        "ui-api",
+        "ui-ai-placement",
+        "ui-selection-edit",
+        "py-selection-edit",
+        "ui-protection",
+        "py-protection-mask",
+        "protocols"
+      ]
+    },
+    {
+      "id": "quality",
+      "requirement": "通路、净空、支撑、风险及诊断定位，综合质量与可选外观量表",
+      "suites": [
+        "py-walk-inspection",
+        "ui-walk",
+        "py-diagnostic-guidance",
+        "py-room-score",
+        "ui-room-score"
+      ]
+    },
+    {
+      "id": "references",
+      "requirement": "按已启用资料检索，保留出处并适配现有构件",
+      "suites": [
+        "py-retrieval",
+        "ui-retrieval",
+        "protocols"
+      ]
+    },
+    {
+      "id": "collaboration",
+      "requirement": "评论整理和证据、任务回传、人工逐项核对与制作批次",
+      "suites": [
+        "py-feedback-tasks",
+        "ui-feedback-tasks",
+        "py-agent-task-return",
+        "ui-agent-task-return",
+        "py-batches",
+        "ui-batch-workspaces"
+      ]
+    },
+    {
+      "id": "usability",
+      "requirement": "项目与资产卡片简洁、宽度缩放适配、命令搜索快捷键和任务状态反馈",
+      "suites": [
+        "ui-library-layout",
+        "ui-workbench-ui",
+        "ui-commands",
+        "ui-control-availability",
+        "ui-asset-interaction",
+        "performance"
+      ]
+    },
+    {
+      "id": "invariants",
+      "requirement": "源哈希、保护预算、实际看图与明确导出分开、Host/Origin 和上下文隔离",
+      "suites": [
+        "py-candidate-validation",
+        "refinement",
+        "production",
+        "ui-desktop-smoke",
+        "ui-authoring-journey",
+        "archive"
+      ]
+    },
+    {
+      "id": "delivery",
+      "requirement": "显式导出下一版，NBT 与主模型回读一致，完整目录含私有运行环境",
+      "suites": [
+        "delivery",
+        "ui-authoring-journey",
+        "private-runtime"
+      ]
+    },
+    {
+      "id": "maintenance",
+      "requirement": "工具清单、环境及 Skill 文档可检验，原 SAODG 与迁移参考不改动",
+      "suites": [
+        "doctor",
+        "tools",
+        "skill",
+        "archive"
+      ]
+    }
+  ],
+  "suites": [
+    {
+      "id": "doctor",
+      "runtime": "node",
+      "args": [
+        "scripts/cli.mjs",
+        "doctor"
+      ]
+    },
+    {
+      "id": "tools",
+      "runtime": "node",
+      "args": [
+        "scripts/sync-capabilities.mjs",
+        "--check"
+      ]
+    },
+    {
+      "id": "skill",
+      "runtime": "python",
+      "args": [
+        ".agents/skills/minecraft-nbt-modeler/scripts/check_skill.py"
+      ]
+    },
+    {
+      "id": "archive",
+      "runtime": "node",
+      "args": [
+        "scripts/verify-archive.mjs"
+      ]
+    },
+    {
+      "id": "production",
+      "runtime": "node",
+      "args": [
+        "tests/production-server.mjs"
+      ]
+    },
+    {
+      "id": "workspace",
+      "runtime": "python",
+      "args": [
+        "tests/workspace-contracts.py"
+      ]
+    },
+    {
+      "id": "modelling",
+      "runtime": "python",
+      "args": [
+        "tests/modelling-suite.py"
+      ]
+    },
+    {
+      "id": "py-components",
+      "runtime": "python",
+      "args": [
+        "tests/components.py"
+      ]
+    },
+    {
+      "id": "py-structure-agent",
+      "runtime": "python",
+      "args": [
+        "tests/structure-agent.py"
+      ]
+    },
+    {
+      "id": "py-generated-assets",
+      "runtime": "python",
+      "args": [
+        "tests/generated-assets.py"
+      ]
+    },
+    {
+      "id": "py-asset-batches",
+      "runtime": "python",
+      "args": [
+        "tests/asset-batches.py"
+      ]
+    },
+    {
+      "id": "py-project-repair",
+      "runtime": "python",
+      "args": [
+        "tests/project-repair.py"
+      ]
+    },
+    {
+      "id": "py-room-score",
+      "runtime": "python",
+      "args": [
+        "tests/room-score.py"
+      ]
+    },
+    {
+      "id": "py-protection-mask",
+      "runtime": "python",
+      "args": [
+        "tests/protection-mask.py"
+      ]
+    },
+    {
+      "id": "py-selection-edit",
+      "runtime": "python",
+      "args": [
+        "tests/selection-edit.py"
+      ]
+    },
+    {
+      "id": "py-candidate-validation",
+      "runtime": "python",
+      "args": [
+        "tests/candidate-validation.py"
+      ]
+    },
+    {
+      "id": "py-reusable-recipes",
+      "runtime": "python",
+      "args": [
+        "tests/reusable-recipes.py"
+      ]
+    },
+    {
+      "id": "py-effect-assets",
+      "runtime": "python",
+      "args": [
+        "tests/effect-assets.py"
+      ]
+    },
+    {
+      "id": "py-operation-history",
+      "runtime": "python",
+      "args": [
+        "tests/operation-history.py"
+      ]
+    },
+    {
+      "id": "py-model-difference",
+      "runtime": "python",
+      "args": [
+        "tests/model-difference.py"
+      ]
+    },
+    {
+      "id": "py-walk-inspection",
+      "runtime": "python",
+      "args": [
+        "tests/walk-inspection.py"
+      ]
+    },
+    {
+      "id": "py-diagnostic-guidance",
+      "runtime": "python",
+      "args": [
+        "tests/diagnostic-guidance.py"
+      ]
+    },
+    {
+      "id": "py-feedback-tasks",
+      "runtime": "python",
+      "args": [
+        "tests/feedback-tasks.py"
+      ]
+    },
+    {
+      "id": "py-agent-task-return",
+      "runtime": "python",
+      "args": [
+        "tests/agent-task-return.py"
+      ]
+    },
+    {
+      "id": "py-retrieval",
+      "runtime": "python",
+      "args": [
+        "tests/retrieval.py"
+      ]
+    },
+    {
+      "id": "py-batches",
+      "runtime": "python",
+      "args": [
+        "tests/batches.py"
+      ]
+    },
+    {
+      "id": "py-project-batch",
+      "runtime": "python",
+      "args": [
+        "tests/project-batch.py"
+      ]
+    },
+    {
+      "id": "py-prompt-archive",
+      "runtime": "python",
+      "args": [
+        "tests/prompt-archive.py"
+      ]
+    },
+    {
+      "id": "refinement",
+      "runtime": "python",
+      "args": [
+        ".agents/skills/minecraft-nbt-modeler/scripts/check_refine_fixtures.py",
+        "--output",
+        "{output}/refinement"
+      ]
+    },
+    {
+      "id": "delivery",
+      "runtime": "python",
+      "args": [
+        ".agents/skills/minecraft-nbt-modeler/scripts/check_delivery_fixtures.py",
+        "--output",
+        "{output}/delivery"
+      ]
+    },
+    {
+      "id": "protocols",
+      "runtime": "node",
+      "args": [
+        "--test",
+        "--test-concurrency=1",
+        "tests/agent-handoff.test.mjs",
+        "tests/ai-component.test.mjs",
+        "tests/ai-input.test.cjs",
+        "tests/ai-metrics.test.mjs",
+        "tests/ai-style.test.cjs",
+        "tests/api-service.test.cjs",
+        "tests/app-settings.test.cjs",
+        "tests/backend-result.test.mjs",
+        "tests/batch-links.test.cjs",
+        "tests/camera-controls.test.mjs",
+        "tests/catalog-store.test.mjs",
+        "tests/command-preferences.test.mjs",
+        "tests/compact-structure.test.cjs",
+        "tests/difference-index.test.mjs",
+        "tests/edit-session-controller.test.mjs",
+        "tests/edit-session-store.test.mjs",
+        "tests/internal-ai.test.cjs",
+        "tests/mesh-scheduling.test.mjs",
+        "tests/operation-parameters.test.cjs",
+        "tests/project-catalog.test.mjs",
+        "tests/project-organization.test.mjs",
+        "tests/project-stages.test.mjs",
+        "tests/retrieval.test.cjs",
+        "tests/selection-edit.test.cjs",
+        "tests/settings-history.test.mjs",
+        "tests/updater.test.cjs",
+        "tests/workbench-contract.test.cjs",
+        "tests/workspace-api.test.cjs",
+        "tests/workspace-resolution.cjs"
+      ]
+    },
+    {
+      "id": "ui-api",
+      "runtime": "node",
+      "args": [
+        "tests/api-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-desktop-smoke",
+      "runtime": "node",
+      "args": [
+        "tests/desktop-smoke.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-default-preview",
+      "runtime": "node",
+      "args": [
+        "tests/default-preview-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-control-availability",
+      "runtime": "node",
+      "args": [
+        "tests/control-availability-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-project-manager",
+      "runtime": "node",
+      "args": [
+        "tests/project-manager-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-project-recovery",
+      "runtime": "node",
+      "args": [
+        "tests/project-recovery-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-project-menus",
+      "runtime": "node",
+      "args": [
+        "tests/project-menus-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-project-batch",
+      "runtime": "node",
+      "args": [
+        "tests/project-batch-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-asset-batches",
+      "runtime": "node",
+      "args": [
+        "tests/asset-batches-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-asset-workspace",
+      "runtime": "node",
+      "args": [
+        "tests/asset-workspace-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-structure-agent",
+      "runtime": "node",
+      "args": [
+        "tests/structure-agent-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-tool-effects",
+      "runtime": "node",
+      "args": [
+        "tests/tool-effects-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-reusable",
+      "runtime": "node",
+      "args": [
+        "tests/reusable-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-asset-interaction",
+      "runtime": "node",
+      "args": [
+        "tests/asset-interaction-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-authoring-journey",
+      "runtime": "node",
+      "args": [
+        "tests/authoring-journey-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-component-gizmo",
+      "runtime": "node",
+      "args": [
+        "tests/component-gizmo-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-transform-sliders",
+      "runtime": "node",
+      "args": [
+        "tests/transform-sliders-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-ai-placement",
+      "runtime": "node",
+      "args": [
+        "tests/ai-placement-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-operation-history",
+      "runtime": "node",
+      "args": [
+        "tests/operation-history-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-edit-session",
+      "runtime": "node",
+      "args": [
+        "tests/edit-session-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-edit-session-images",
+      "runtime": "node",
+      "args": [
+        "tests/edit-session-images-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-version-compare",
+      "runtime": "node",
+      "args": [
+        "tests/version-compare-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-commands",
+      "runtime": "node",
+      "args": [
+        "tests/commands-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-ai-style",
+      "runtime": "node",
+      "args": [
+        "tests/ai-style-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-workbench-ui",
+      "runtime": "node",
+      "args": [
+        "tests/workbench-ui-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-selection-edit",
+      "runtime": "node",
+      "args": [
+        "tests/selection-edit-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-retrieval",
+      "runtime": "node",
+      "args": [
+        "tests/retrieval-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-feedback-tasks",
+      "runtime": "node",
+      "args": [
+        "tests/feedback-tasks-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-agent-task-return",
+      "runtime": "node",
+      "args": [
+        "tests/agent-task-return-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-walk",
+      "runtime": "node",
+      "args": [
+        "tests/walk-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-protection",
+      "runtime": "node",
+      "args": [
+        "tests/protection-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-batch-workspaces",
+      "runtime": "node",
+      "args": [
+        "tests/batch-workspaces-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-prompt-archive",
+      "runtime": "node",
+      "args": [
+        "tests/prompt-archive-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-room-score",
+      "runtime": "node",
+      "args": [
+        "tests/room-score-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-library-layout",
+      "runtime": "node",
+      "args": [
+        "tests/library-layout-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "ui-workspace-api",
+      "runtime": "node",
+      "args": [
+        "tests/workspace-api-desktop.mjs"
+      ],
+      "desktop": true,
+      "receipt": true
+    },
+    {
+      "id": "performance",
+      "runtime": "node",
+      "args": [
+        "tests/project-performance.mjs"
+      ],
+      "receipt": true
+    },
+    {
+      "id": "workspace-library",
+      "runtime": "python",
+      "args": [
+        "tests/workspace-library-audit.py",
+        "--workspace",
+        "{workspace}",
+        "--output",
+        "{output}/workspace-library.json"
+      ]
+    }
+  ]
+}

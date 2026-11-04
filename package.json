@@ -35,6 +35,7 @@
     "test:authoring-journey": "npm run build:web && node tests/authoring-journey-desktop.mjs",
     "test:asset-interaction": "npm run build:web && node tests/asset-interaction-desktop.mjs",
     "test:control-availability": "npm run build:web && python tests/reusable-recipes.py && node tests/control-availability-desktop.mjs",
+    "test:product": "node scripts/product-acceptance.mjs",
     "test:production": "node tests/production-server.mjs",
     "test:assets": "python tests/components.py && python tests/structure-agent.py && node tests/asset-workspace-desktop.mjs && node tests/structure-agent-desktop.mjs",
     "test:project-batch": "npm run build:web && python tests/project-batch.py && node tests/project-batch-desktop.mjs",
