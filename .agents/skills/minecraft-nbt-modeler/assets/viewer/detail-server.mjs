@@ -11,6 +11,7 @@ import { randomUUID, createHash } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { createViewerServer } from './viewer-server.mjs'
 import { savedEffects } from './saved-effects.mjs'
+import {createProjectOrganization} from './project-organization.mjs'
 import { createFeedbackStore } from './feedback-store.mjs'
 import {createCatalogStore} from './catalog-store.mjs'
 import {createProjectStages} from './project-stages.mjs'
@@ -52,6 +53,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   const skillRoot = path.resolve(here, '../..')
   if (outputRoot === skillRoot || outputRoot.startsWith(skillRoot+path.sep)) throw new Error('Keep jobs outside the skill installation')
   await fs.mkdir(path.join(workspace,'nbt_models/_workspaces/batches'),{recursive:true})
+  const projectOrganization=createProjectOrganization(workspace)
   const effects=savedEffects({workspace,skillRoot,initial:outputRoot})
   outputRoot=await effects.init()
   const jobs = new Map(), snapshots = new Map(), assets = new Map()
@@ -301,6 +303,8 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         const result=action==='get'&&activeJob?.kind==='batch'&&activeJob.queue_id===input.id?JSON.parse(await fs.readFile(path.join(workspace,'.nbtcreator/project-queues',input.id,'queue.json'),'utf8')):await projectBatch(action,input)
         if(action==='get'&&!result.progress){const steps=result.items.flatMap(item=>Object.values(item.steps));result.progress=Object.fromEntries(['pending','running','complete','failed','cancelled'].map(key=>[key,steps.filter(step=>step.status===key).length]));result.progress.total=steps.length}
         json(res,action==='list'?result:exposeProjectQueue(result))
+      } else if(url.pathname==='/__detail__/project-organization'&&['GET','POST'].includes(req.method)){
+        json(res,req.method==='GET'?await projectOrganization.read():await projectOrganization.save(await body(req,3*1024*1024)))
       } else if (url.pathname === '/__detail__/project-layout' && ['GET','POST'].includes(req.method)) {
         const directory=path.join(workspace,'.nbtcreator'),file=path.join(directory,'project-manager.json')
         if(req.method==='GET'){
@@ -470,6 +474,8 @@ export async function startDetailServer({ workspace, output, python = 'python', 
       } else if(req.method==='POST'&&url.pathname==='/__detail__/output'){
         if(activeJob)throw new Error('请等当前任务结束后再更换保存位置')
         outputRoot=await effects.set((await body(req)).output);json(res,await effects.scan())
+      } else if(req.method==='POST'&&url.pathname==='/__detail__/effects/read'){
+        const input=await body(req);json(res,await effects.read(input.id))
       } else if(req.method==='GET'&&url.pathname==='/__detail__/effects')json(res,await effects.scan())
       else if(req.method==='POST'&&url.pathname==='/__detail__/effects/save'){
         const input=await body(req);json(res,await effects.save(input.request,input.name))

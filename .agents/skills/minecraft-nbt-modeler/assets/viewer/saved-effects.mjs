@@ -50,6 +50,13 @@ export function savedEffects({workspace,skillRoot,initial}){
       await walk(root)
       return {root,files:[...files.values()].sort((a,b)=>b.mtime-a.mtime),truncated}
     },
+    async read(id){
+      const item=files.get(id);if(!item||!item.name.toLowerCase().endsWith('.json'))throw Error('请选择已列出的效果JSON文件')
+      const stat=await fs.stat(item.path);if(stat.size>4*1024*1024)throw Error('效果JSON超过4MiB')
+      const text=await fs.readFile(item.path,'utf8'),after=await fs.stat(item.path)
+      if(stat.size!==after.size||stat.mtimeMs!==after.mtimeMs)throw Error('读取期间效果文件发生变化')
+      return {name:item.name,content:JSON.parse(text.replace(/^\uFEFF/,''))}
+    },
     async save(request,name){
       const title=(name||'建筑效果').trim()
       if(!title||title.length>80||/[<>:"/\\|?*\x00-\x1f]/.test(title))throw new Error('效果名称不能包含路径符号，且最多80字')
