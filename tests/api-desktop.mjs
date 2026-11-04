@@ -2,7 +2,7 @@ import {minimizedScreenshots} from './minimized-screenshots.mjs'
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import http from 'node:http'
+import {createFetchServer} from './fetch-server.mjs'
 import {spawnSync} from 'node:child_process'
 import {createRequire} from 'node:module'
 import {createHash} from 'node:crypto'
@@ -13,14 +13,14 @@ const workspace=path.join(output,'workspace'),sample=path.join(workspace,'nbt_mo
 const fixture=spawnSync(python,[path.join(root,'tests/make_fixture.py'),sample],{encoding:'utf8'});assert.equal(fixture.status,0,fixture.stderr)
 const source=path.join(sample,'synthetic.master.json.gz'),original=createHash('sha256').update(await fs.readFile(source)).digest('hex')
 let calls=[],mode='valid'
-const server=http.createServer(async(req,res)=>{let raw='';for await(const c of req)raw+=c;calls.push({url:req.url,body:raw?JSON.parse(raw):null,auth:req.headers.authorization});res.setHeader('content-type','application/json');if(mode==='http_failure'&&req.url!=='/v1/models'){res.statusCode=429;return res.end('private-provider-response-never-log')}if(req.url==='/v1/models')return res.end(JSON.stringify({data:[{id:'mock-model'}]}));const body=JSON.parse(raw);const sent=JSON.parse(typeof body.messages[1].content==='string'?body.messages[1].content:body.messages[1].content[0].text.split('\n附图是当前建模视口')[0]);
+const server=await createFetchServer(async(req,res)=>{let raw='';for await(const c of req)raw+=c;calls.push({url:req.url,body:raw?JSON.parse(raw):null,auth:req.headers.authorization});res.setHeader('content-type','application/json');if(mode==='http_failure'&&req.url!=='/v1/models'){res.statusCode=429;return res.end('private-provider-response-never-log')}if(req.url==='/v1/models')return res.end(JSON.stringify({data:[{id:'mock-model'}]}));const body=JSON.parse(raw);const sent=JSON.parse(typeof body.messages[1].content==='string'?body.messages[1].content:body.messages[1].content[0].text.split('\n附图是当前建模视口')[0]);
  if(sent.instruction.includes('仅改第12步材质')){
   const base=sent.context.operation_base;
   const candidate={summary:'第12步改用安山岩',operation_patch:{baseline:base.baseline,changes:[{step:12,expected:base.steps[11].expected,set:{state:'minecraft:andesite'}}]}};
   return res.end(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify(candidate)}}]}));
  }
  const content=body.messages[0].content.includes('局部小型构件')?JSON.stringify({blocks:[{pos:[2,0,2],state:'stone_bricks'},{pos:[2,1,2],state:'stone_bricks'}]}):body.messages[0].content.includes('当前任务是首次创建完整初稿方案')?JSON.stringify({summary:'完整水渠工坊初稿',project_patch:{name:'水渠工坊',buildingShape:'long',size:[48,24,96],theme:'废弃水渠工坊',purpose:'探索、检修和普通玩家通行',layout:'入口过渡区、主工坊和高处检修平台联合设计，平台有支承。',circulation:'入口沿水渠侧边抵达主厅，楼梯连接检修平台，保留两格净通路。',style:'石砖主材、安山岩辅材；先构造后材质。',ceiling:'拱顶落在侧墙扶壁，平台上方保留净高。',floor:'通行带平整，水渠沿边有厚度和收口。',wall:'墙脚、壁柱和墙顶分层，门洞有过梁。',props:'主工位设主题工具，其他区域留白。'},operations:[{kind:'box',label:'主工位平台基座',classification:'body',lo:[8,2,30],hi:[16,3,38],state:'stone_bricks'}]}):body.messages[0].content.includes('界面控件配置')?JSON.stringify({summary:'回填设计控件',project_patch:{theme:'AI回填主题',ceiling:'AI梁端有承托'},operations:[{kind:'box',label:'AI柱',classification:'body',lo:[6,4,6],hi:[6,7,6],state:'stone_bricks'}]}):body.response_format?JSON.stringify({summary:'选区内添加石柱',settings_patch:{lo:mode==='invalid'?[0,0,0]:[10,4,10],hi:[10,7,10],structure:{enabled:true,mode:'fill',state:'stone_bricks',classification:'body',thickness:1,offset:[0,0,0]}}}):'为石构工坊编写完整提示词：顶构有支承，墙面分层，必要路径保持。';res.end(JSON.stringify({choices:[{message:{content},finish_reason:'stop'}]}))})
-await new Promise(r=>server.listen(0,'127.0.0.1',r));let app
+let app
 const checks=new Proxy({},{set(o,k,v){o[k]=v;console.log('checked:',k);return true}});try{
  await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'model'}))
  const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE

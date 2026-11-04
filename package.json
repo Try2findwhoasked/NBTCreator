@@ -1,7 +1,7 @@
 {
   "name": "nbtcreator",
   "productName": "NBTCreator",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "private": true,
   "description": "Minecraft Java 1.20.1 NBT authoring workbench with portable tools and Agent collaboration",
   "type": "module",
