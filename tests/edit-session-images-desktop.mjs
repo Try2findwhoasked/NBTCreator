@@ -5,6 +5,7 @@ import {spawnSync} from 'node:child_process'
 import {createRequire} from 'node:module'
 import {createHash} from 'node:crypto'
 import {root,skill,python} from '../scripts/paths.mjs'
+import {minimizedScreenshots} from './minimized-screenshots.mjs'
 const require=createRequire(path.join(skill,'assets/viewer/package.json')),{_electron}=require('playwright')
 const output=path.join(root,'build','edit-session-images-'+Date.now()),workspace=path.join(output,'workspace'),sample=path.join(workspace,'nbt_models/sample')
 const made=spawnSync(python,[path.join(root,'tests/make_fixture.py'),sample],{encoding:'utf8',windowsHide:true});assert.equal(made.status,0,made.stderr)
@@ -12,7 +13,7 @@ const image=spawnSync(python,['-c','import sys,json;from pathlib import Path;fro
 const imageHash=createHash('sha256').update(await fs.readFile(path.join(sample,'image-a.png'))).digest('hex')
 await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});const preferences=path.join(workspace,'.nbtcreator/preferences.json');await fs.writeFile(preferences,JSON.stringify({startPage:'model',autoPreview:false}))
 let app,page,count=0;const errors=[],checks={}
-async function launch(){const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE;app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile-'+(++count))],env,timeout:60000});page=await app.firstWindow();page.on('pageerror',e=>errors.push(e.message));await page.waitForFunction(()=>window.nbtEditSession?.ready&&!window.detailControl.state.busy)}
+async function launch(){const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE;app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile-'+(++count))],env,timeout:60000});page=await app.firstWindow();await minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message));await page.waitForFunction(()=>window.nbtEditSession?.ready&&!window.detailControl.state.busy)}
 const click=selector=>page.locator(selector).evaluate(el=>el.click())
 try{
  await launch();assert.equal(await page.evaluate(()=>window.detailControl.state.images.length),8);assert.equal(await page.evaluate(()=>window.detailControl.state.images.some(i=>i.name==='image-a.png')),false);await click('#more-images');await page.waitForFunction(()=>window.detailControl.state.images.length===22&&!window.detailControl.state.busy&&!window.detailControl.state.sessionRestoring);const index=await page.evaluate(()=>window.detailControl.state.images.findIndex(i=>i.name==='image-a.png'));assert.ok(index>=8);await page.evaluate(index=>window.detailControl.selectImage(index),index);await page.waitForFunction(()=>document.querySelector('#review-image').complete&&!window.detailControl.state.feedbackLoading)

@@ -262,16 +262,27 @@ function updateCount() {
   versionComparison?.sync()
   componentEditor?.sync()
 }
+const taskControlStates=new Map(),readonlyControlStates=new Map()
 function syncVersionReadonly(){
  const locked=!!(state.versionComparing||state.transforming)
  document.querySelector('.sidebar').inert=locked
+ const disable=control=>{if(!control)return;if(!readonlyControlStates.has(control))readonlyControlStates.set(control,taskControlStates.has(control)?taskControlStates.get(control):control.disabled);control.disabled=true}
  if(locked){document.querySelector('.action-bar').inert=!!state.versionComparing||!state.previewBusy;$('feedback-card').hidden=true
-  for(const button of document.querySelectorAll('.action-bar button'))if(button.id!=='cancel')button.disabled=true
-  for(const id of ['pick-material','pick-coordinate','viewport-assets','update-preview','validate-preview','compare-before','compare-after','three-quality','view-select','auto-preview','show-selection'])if($(id))$(id).disabled=true
-  if(state.transforming&&$('open-version-compare'))$('open-version-compare').disabled=true
+  for(const button of document.querySelectorAll('.action-bar button'))if(button.id!=='cancel')disable(button)
+  for(const id of ['pick-material','pick-coordinate','viewport-assets','update-preview','validate-preview','compare-before','compare-after','three-quality','view-select','auto-preview','show-selection'])disable($(id))
+  if(state.transforming)disable($('open-version-compare'))
+ }else if(readonlyControlStates.size){
+  // Comparison and handle editing own a temporary lock above the task lock.
+  // Remove that lock without granting actions which were unavailable before it.
+  const restore=(control,disabled)=>{if(state.busy||taskControlStates.has(control))taskControlStates.set(control,disabled);control.disabled=state.busy||disabled}
+  for(const [control,disabled]of readonlyControlStates)if(control.isConnected)restore(control,disabled)
+  readonlyControlStates.clear()
+  restore($('update-preview'),state.previewBusy||!state.info)
+  for(const id of ['compare-before','compare-after'])restore($(id),state.previewBusy||!state.preview)
+  let current=false;try{current=!!state.preview&&state.previewSettings===JSON.stringify(gather())}catch{}
+  restore($('validate-preview'),state.previewBusy||!current)
  }
 }
-const taskControlStates=new Map()
 function busy(value) {
   state.busy = value
   // A task temporarily locks controls; it does not grant unavailable actions.

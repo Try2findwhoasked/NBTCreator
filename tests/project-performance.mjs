@@ -30,6 +30,7 @@ try{
   if(url.pathname.endsWith('/init')){await initGate;value={workspace:output,output,catalog:{models:fixture,scanned:1000,skipped:0},project_catalog:{models:fixture},defaults:JSON.parse(defaults.stdout).result}}
   else if(url.pathname.endsWith('/command-preferences'))value={revision:0,preferences:{favorites:[],shortcuts:{},recent:[]}}
   else if(url.pathname.endsWith('/project-layout'))value={orders:{}}
+  else if(url.pathname.endsWith('/project-organization'))value={schema_version:1,menus:[],assignments:{}}
   else if(url.pathname.endsWith('/effects'))value={files:[],root:output}
   else if(url.pathname.endsWith('/jobs'))value=[]
   else if(url.pathname.endsWith('/inspect')){metrics.inspects++;res.statusCode=400;value={error:'浏览时不应读取模型'}}
