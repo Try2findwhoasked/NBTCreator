@@ -1,7 +1,7 @@
 // UI commands contain only fixed navigation/controls. Modelling tools remain in tool-catalog.json.
 export const toolPanels=[
  ['整体效果',0],['修改范围',4],['建筑取材',6],['结构编辑',7],['建模工具',8],
- ['AI建模',9],['精确换块',5],['方块混搭',1],['自动地面',3],['长苔与裂纹',2]
+ ['AI建模',9],['自动道路',10],['精确换块',5],['方块混搭',1],['自动地面',3],['长苔与裂纹',2]
 ]
 export function commandDefinitions(catalog){
  const workspaces=[['project','项目管理'],['assets','资产管理'],['prompt','提示词方案'],['model','模型编辑'],['ai','AI 助手'],['tasks','任务记录']]

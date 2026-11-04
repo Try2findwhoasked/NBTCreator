@@ -1,4 +1,6 @@
 import {linkRange} from './range-control.js'
+
+import {initRoadPanel} from './road-panel.js'
 import {initProtectionView} from './protection-view.js'
 import {initWalkView} from './walk-view.js'
 import {initCommentTasks} from './comment-tasks.js'
@@ -1099,3 +1101,5 @@ $('export-feedback').addEventListener('click',handle(async()=>{
   }
   $('feedback-file').textContent='意见文件：'+result.file
 }))
+
+initRoadPanel({context:()=>{if(!state.info)return null;const s=gather();return {lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?state.info.size.map(n=>n-1):s.hi,budget:s.max_changed_blocks,settings:JSON.stringify(s)}},apply:async(op,expected)=>withPreviewCommit(async()=>{const next=gather();if(JSON.stringify(next)!==expected)throw Error("建筑参数已变化，请重新铺设");next.operations.push(op);await commitPreviewSettings(next,"自动道路铺设")}),report:text=>status(text,"error")})

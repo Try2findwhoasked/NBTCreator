@@ -14,7 +14,7 @@ from nbt_model import AIR, AIR_NAMES, state
 
 
 KINDS = {'geometry', 'morphology', 'diffusion', 'explosion', 'scatter',
-         'copy_region', 'repeat_region', 'transform_region', 'replace', 'paste_component'}
+         'copy_region', 'repeat_region', 'transform_region', 'replace', 'paste_component', 'auto_road'}
 NEIGHBOURS = ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))
 
 
@@ -142,6 +142,9 @@ def modelling_plan(model, operation, protected=()):
     if kind == 'paste_component':
         from nbt_components import paste_plan
         return paste_plan(model, operation, protected)
+    if kind == 'auto_road':
+        from nbt_roads import road_plan
+        return road_plan(model, operation, protected)
     points = [(x, y, z) for x in range(lo[0], hi[0]+1) for y in range(lo[1], hi[1]+1) for z in range(lo[2], hi[2]+1)]
     domain = set(points); protected = set(map(tuple, protected))
     allowed = {state(v) for v in operation['from_states']} if 'from_states' in operation else None
