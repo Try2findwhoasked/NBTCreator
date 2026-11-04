@@ -527,7 +527,8 @@ def export_plan(request, output):
             elif operation['kind'] == 'weathering': edits, report = weathering_plan(virtual, operation, protected)
             elif operation['kind']=='auto_floor': edits, report = auto_floor_plan(virtual, operation, config, protected)
             else: edits,report=operation_candidates(virtual,operation,protected),{}
-            from nbt_change_policy import enforce_overwrite
+            from nbt_change_policy import enforce_overwrite, clip_protected
+            edits=clip_protected(operation,edits,protected)
             enforce_overwrite(virtual,virtual_walls,operation,edits,write_owners)
             conflicts=[p for p,value in edits if p in protected and virtual.get(p)!=value]
             if conflicts:raise ValueError(f'步骤“{operation.get("label",operation["kind"])}”触及保护区：{conflicts[:8]}。请移动构件或缩小范围；允许覆盖不会取消保护。')
@@ -569,8 +570,10 @@ def simulate_plan(model, walls, plan, config):
         elif operation['kind']=='weathering': edits,_=weathering_plan(virtual,operation,protected)
         elif operation['kind']=='auto_floor': edits,_=auto_floor_plan(virtual,operation,config,protected)
         else: edits=operation_candidates(virtual,operation,protected)
-        from nbt_change_policy import enforce_overwrite
-        enforce_overwrite(virtual,walls,enforce_scope(bounds,operation,edits),edits,write_owners)
+        from nbt_change_policy import enforce_overwrite, clip_protected
+        enforce_scope(bounds,operation,edits)
+        edits=clip_protected(operation,edits,protected)
+        enforce_overwrite(virtual,walls,operation,edits,write_owners)
         outside=[p for p,value in edits if not virtual.in_bounds(p)]
         if outside:raise ValueError(f'步骤“{operation.get("label",operation["kind"])}”超出建筑边界：{outside[:8]}，建筑尺寸为{virtual.size}。请调整构件位置。')
         conflicts=[p for p,value in edits if p in protected and virtual.get(p)!=value]

@@ -9,8 +9,7 @@ export async function requestAI(input,capture){
  try{
  const flow=input.mode==='workbench'&&input.context?.task==='draft'?'draft':input.mode
  const retrieval=window.nbtReferencePicker?.receipt(flow)
- const config=await window.nbtDesktop.internalAIConfig(),settings=config.workflows[flow]
- const connection=await window.nbtDesktop.apiConfig()
+ const [config,connection]=await Promise.all([window.nbtDesktop.internalAIConfig(),window.nbtDesktop.apiConfig()]),settings=config.workflows[flow]
  log=await activity({action:'start',workflow:flow,label:config.flows[flow].label,instruction:input.instruction.slice(0,12000),screenshot:!!settings.attachViewport,model:connection.model,provider:connection.provider})
  timings.setup_ms=Math.round(performance.now()-started)
   if(cancelled)throw Error('API请求已取消')

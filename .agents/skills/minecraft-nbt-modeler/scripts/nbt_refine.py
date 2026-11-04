@@ -237,6 +237,8 @@ def record_user_approval(review,user_message,user_reviewed_thumbnails=False):
 
 def operation_candidates(model,operation,protected=()):
     candidates=_operation_candidates(model,operation,protected)
+    from nbt_change_policy import clip_protected
+    candidates=clip_protected(operation,candidates,protected)
     if operation.get('kind') in ('box','beam','frame') and 'overwrite' in operation and not operation.get('write_group'):
         if type(operation['overwrite']) is not bool:raise ValueError('覆盖现有方块须为布尔开关')
         if not operation['overwrite']:
@@ -351,9 +353,11 @@ def refine(review_dir,plan,output_dir):
             from nbt_floors import auto_floor_plan
             edits,floor_report=auto_floor_plan(model,operation,config,protected)
         else:
-            edits=operation_candidates(model,operation)
-        from nbt_change_policy import enforce_overwrite
-        enforce_overwrite(model,walls,enforce_scope(bounds,operation,edits),edits,write_owners)
+            edits=operation_candidates(model,operation,protected)
+        from nbt_change_policy import enforce_overwrite, clip_protected
+        enforce_scope(bounds,operation,edits)
+        edits=clip_protected(operation,edits,protected)
+        enforce_overwrite(model,walls,operation,edits,write_owners)
         moved_walls={tuple(p[i]+operation['offset'][i] for i in range(3)) for p in walls if all(operation['lo'][i]<=p[i]<=operation['hi'][i] for i in range(3))} if operation['kind']=='move_region' else set()
         for p,value in edits:
             if not model.in_bounds(p) or (not standalone and (p[0]//48,p[2]//48) not in cells):raise ValueError('Detail exceeds approved footprint')

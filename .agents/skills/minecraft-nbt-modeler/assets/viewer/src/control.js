@@ -133,7 +133,7 @@ toolOrder.forEach(index=>{
 })
 selectTool(0)
 for(const [kind,[label]]of Object.entries(globalThis.NbtToolCatalog.tools)){const option=document.createElement('option');option.value=kind;option.textContent=label;$('operation-kind').append(option)}
-$('operation-add').onclick=()=>{try{const kind=$('operation-kind').value,[label,defaults]=globalThis.NbtToolCatalog.tools[kind];const op={kind,...structuredClone(globalThis.NbtToolCatalog.common),...structuredClone(defaults),label};if(kind==='auto_floor'){delete op.lo;delete op.hi;op.include_boxes=[]}const list=JSON.parse($('operation-sequence').value);if(!Array.isArray(list))throw Error('序列须为数组');list.push(op);operationEditor.replace(list,'添加：'+label)}catch(e){status(e.message,'error')}}
+$('operation-add').onclick=()=>{try{const kind=$('operation-kind').value;if(window.nbtDisabledTools?.has(kind))throw Error('该工具已在设置中停用');if(!kind)throw Error('请先在设置中启用工具');const [label,defaults]=globalThis.NbtToolCatalog.tools[kind];const op={kind,...structuredClone(globalThis.NbtToolCatalog.common),...structuredClone(defaults),label};if(kind==='auto_floor'){delete op.lo;delete op.hi;op.include_boxes=[]}const list=JSON.parse($('operation-sequence').value);if(!Array.isArray(list))throw Error('序列须为数组');list.push(op);operationEditor.replace(list,'添加：'+label)}catch(e){status(e.message,'error')}}
 $('operation-clear').onclick=()=>operationEditor.replace([],'清空工具序列')
 
 function addMaterial(material = '', weight = 1) {
@@ -904,7 +904,7 @@ function updateComponentRange(settings,bounds){
 }
 async function moveRecentAI(offset,overwrite=$('ai-allow-overwrite')?.checked??false,turns=currentAIGroup()?.quarter_turns??0){return withPreviewCommit(async()=>{
  const group=currentAIGroup();if(!group)throw Error('请先载入一组AI构件；若已手动更改几何步骤，请撤销该更改或重新载入')
- const before=gather(),moved=moveAIGroup(group,before,offset,state.info.size,overwrite,turns),next=structuredClone(before);next.operations.splice(group.start,group.base.length,...moved.operations);updateComponentRange(next,moved)
+ const before=gather(),moved=moveAIGroup(group,before,offset,state.info.size,overwrite,turns),next=structuredClone(before);for(const op of moved.operations)op.skip_protected=$('ai-skip-protected')?.checked??false;next.operations.splice(group.start,group.base.length,...moved.operations);updateComponentRange(next,moved)
  await commitPreviewSettings(next,'调整 AI 构件：'+offset.join(', ')+' · '+(turns*90)+'°');group.applied=structuredClone(moved.operations);group.offset=[...offset];group.quarter_turns=turns;group.overwrite=!!overwrite;notifyAIComponent()
 })}
 const aiPromptArchiveId=crypto.randomUUID().replaceAll('-','')
@@ -942,7 +942,7 @@ apiAssistant=initApiAssistant({
    const compiled=await api('selection-edit/compile',{snapshot_key:state.preview.model_key,request:{source:state.info.source,source_sha256:state.info.source_sha256,geometry_sha256:patch.baseline_geometry_sha256,lo:patch.lo,hi:patch.hi,operations:patch.operations.filter(op=>op.enabled!==false),allow_overwrite:!!options.overwrite}})
    next.operations.push(...compiled.operations);await commitPreviewSettings(next,'AI选区编辑：'+(options.summary??'自然语言工具步骤'));state.lastAIGroup=null;notifyAIComponent();return
   }
-  if(patch.operations){const write_group=crypto.randomUUID(),operations=patch.operations.map(op=>({...structuredClone(op),overwrite:!!options.overwrite,write_group}));next.operations.push(...operations);updateComponentRange(next,patch)
+  if(patch.operations){const write_group=crypto.randomUUID(),operations=patch.operations.map(op=>({...structuredClone(op),overwrite:!!options.overwrite,skip_protected:options.mode==='small_structure'&&!!options.skipProtected,write_group}));next.operations.push(...operations);updateComponentRange(next,patch)
    const presentation=options.presentation??{}
    await commitPreviewSettings(next,'AI：'+(presentation.structure_name||operations[0]?.label||'局部结构调整'))
    state.lastAIGroup={source:state.info.source,source_sha256:state.info.source_sha256,start:next.operations.length-operations.length,base:structuredClone(operations),applied:structuredClone(operations),offset:[0,0,0],overwrite:!!options.overwrite,...(presentation.structure_name?{structure_name:presentation.structure_name}:{}),...(presentation.camera?{camera:structuredClone(presentation.camera)}:{})};notifyAIComponent();editSession?.schedule()

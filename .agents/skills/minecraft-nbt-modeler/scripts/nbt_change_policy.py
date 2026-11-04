@@ -43,3 +43,12 @@ def enforce_changes(before,after,old_walls,walls,protected=(),maximum=None,requi
         if len(changed)>maximum:raise ValueError(f'几何或层归属共变化{len(changed)}格，超过上限{maximum}')
     if require_change and not changed:raise ValueError('没有实际几何或层归属变化')
     return dict(changed_blocks=len(geometry),wall_membership_changes=len(layers),changed_positions=len(changed))
+
+
+def clip_protected(operation, edits, protected):
+    """Crop candidate writes only; protected geometry and wall ownership stay intact."""
+    flag=operation.get('skip_protected',False)
+    if type(flag) is not bool:raise ValueError('自动裁剪保护冲突须为布尔开关')
+    if flag and operation.get('kind') not in ('box','beam','frame'):
+        raise ValueError('保护裁剪仅支持方块、梁和边框')
+    return [(p,value) for p,value in edits if p not in protected] if flag else edits

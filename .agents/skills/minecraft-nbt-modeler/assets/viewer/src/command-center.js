@@ -10,7 +10,7 @@ export function initCommandCenter({api,state,selectTool,message}){
  const effectiveKey=id=>preferences.shortcuts[id]??byId.get(id)?.shortcut??''
  const modalOpen=()=>[...document.querySelectorAll('dialog[open]')].some(d=>d!==dialog&&!['prompt-dialog','api-dialog'].includes(d.id))
  function reason(command){
-  const s=state();if(command.id==='commands.open')return ''
+  const s=state();if(command.id==='commands.open')return '';if(command.kind&&window.nbtDisabledTools?.has(command.kind))return '该工具已在设置中停用'
   if(s.sessionRestoring)return '正在恢复建筑草稿，请稍候'
   if(command.workspace){const tab=document.querySelector(`button[data-workspace="${command.workspace}"]`);if(tab?.disabled||s.busy)return '当前任务仍在运行'}
   if(command.id==='settings.open'&&(!$('open-settings')||$('open-settings').disabled))return '设置暂不可用'

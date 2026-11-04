@@ -23,6 +23,18 @@ class Protection(unittest.TestCase):
   settings=default_settings();settings['operations']=[dict(kind='box',label='台基底座',classification='body',lo=[17,5,27],hi=[19,5,29],state='gold_block',overwrite=True)]
   with self.assertRaises(ProtectionConflict) as caught:preview_effect(dict(self.request,settings=settings),self.folder/'preview')
   details=caught.exception.details;self.assertEqual(details['total'],9);self.assertEqual(len(details['positions']),9);self.assertIn([17,5,27],details['positions']);self.assertEqual(self.source.read_bytes(),self.original);self.assertFalse((self.folder/'preview').exists())
+ def test_clip_protected_keeps_original_blocks_and_wall_membership(self):
+  from nbt_detail_control import simulate_plan
+  from nbt_assembly import Volume
+  model=Volume((8,8,8));model.put((3,3,3),'minecraft:stone');model.put((4,3,3),'minecraft:stone')
+  protected={(3,3,3),(5,3,3)};config=dict(mode='standalone',openings=[],protected_boxes=[dict(lo=list(p),hi=list(p)) for p in protected])
+  op=dict(kind='box',label='裁剪测试',classification='body',lo=[3,3,3],hi=[6,3,3],state='gold_block',overwrite=True,skip_protected=True)
+  result,walls,diff=simulate_plan(model,{(3,3,3),(4,3,3)},dict(operations=[op]),config)
+  self.assertEqual(result.get((3,3,3)),'minecraft:stone');self.assertIn((3,3,3),walls);self.assertNotIn((4,3,3),walls)
+  self.assertNotIn((5,3,3),result.blocks);self.assertEqual(result.get((6,3,3)),'minecraft:gold_block');self.assertEqual(diff['changed_blocks'],2)
+  op['skip_protected']='yes'
+  with self.assertRaises(ValueError):simulate_plan(model,set(),dict(operations=[op]),config)
+
  def test_backend_json_preserves_error_details_without_traceback_parsing(self):
   settings=default_settings();settings['operations']=[dict(kind='box',label='底座',classification='body',lo=[17,5,27],hi=[17,5,27],state='stone',overwrite=True)];file=self.folder/'request.json';file.write_text(json.dumps(dict(self.request,settings=settings)));run=subprocess.run([sys.executable,str(SCRIPTS/'nbt_detail_control.py'),'preview','--request',str(file),'--output',str(self.folder/'out')],capture_output=True,text=True,encoding='utf8');self.assertEqual(run.returncode,1);error=json.loads(run.stdout);self.assertEqual(error['details']['kind'],'protection_conflict');self.assertEqual(error['details']['positions'],[[17,5,27]])
 

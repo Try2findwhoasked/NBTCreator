@@ -7,6 +7,7 @@ function normalizeSmallStructure(result,context){
  const size=context.hi.map((v,i)=>v-context.lo[i]+1)
  const vector=v=>Array.isArray(v)&&v.length===3?v.map(n=>typeof n==='string'&&/^-?\d+$/.test(n)?Number(n):n):v
  let operations=patch.operations??patch.steps
+ if(!operations&&Array.isArray(patch.boxes))operations=patch.boxes.map(b=>{if(!Array.isArray(b)||b.length!==7)throw Error('紧凑方块区域须为7项数组');return {kind:'box',lo:b.slice(0,3),hi:b.slice(3,6),state:b[6]}})
  if(!operations&&Array.isArray(patch.blocks))operations=patch.blocks.map(b=>({kind:'box',lo:b.pos??b.position,hi:b.pos??b.position,state:b.state??b.block??b.material}))
  if(!Array.isArray(operations)||!operations.length||operations.length>128)throw Error('部件需要1到128步；较多相邻方块可合并为box')
  const fallback=context.materials?.find(m=>!/(?:^|:)air$/.test(m.state))?.state||'stone_bricks'

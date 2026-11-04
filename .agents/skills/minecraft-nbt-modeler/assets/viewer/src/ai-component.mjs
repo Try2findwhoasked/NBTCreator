@@ -1,7 +1,7 @@
 import {translateComponent} from './component-move.js'
 import {rotateAIComponent} from './ai-rotation.mjs'
 import {cameraView} from './view-contract.mjs'
-const ignored=new Set(['label','enabled','overwrite','write_group'])
+const ignored=new Set(['label','enabled','overwrite','write_group','skip_protected'])
 export function aiSignature(operations){return JSON.stringify(operations.map(op=>Object.fromEntries(Object.keys(op).filter(k=>!ignored.has(k)).sort().map(k=>[k,op[k]]))))}
 export function aiBounds(operations){if(!operations?.length)throw Error('AI构件没有工具步骤');return {lo:[0,1,2].map(i=>Math.min(...operations.map(op=>op.lo[i]))),hi:[0,1,2].map(i=>Math.max(...operations.map(op=>op.hi[i])))}}
 export function aiComponentCamera(operations,hint={azimuth:45,elevation:25},aspect=1){
