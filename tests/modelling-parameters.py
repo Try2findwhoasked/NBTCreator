@@ -64,4 +64,31 @@ class Parameters(unittest.TestCase):
     with self.subTest(kind=steps[-1]['kind']):
      steps[-1]=dict(dict(label='integration',classification='body',lo=[0,0,0],hi=[31,23,31]),**steps[-1])
      result=build(workspace,dict(name='integration',size=[32,24,32],operations=steps));self.assertTrue(result['blocks'])
+ def test_nonzero_selection_anchor_and_lathe_actual_candidate(self):
+  import tempfile,hashlib
+  from nbt_assembly import Volume
+  from nbt_refine import save_master
+  from nbt_selection_edit import dispatch
+  from nbt_detail_control import simulate_plan
+  with tempfile.TemporaryDirectory() as folder:
+   source=Path(folder)/'source.master.json.gz';model=Volume((48,32,48));model.put((12,6,12),'stone');save_master(source,model,set())
+   request=dict(source=str(source),source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),lo=[10,4,10],hi=[35,27,35],geometry_sha256=model.fingerprint(),allow_overwrite=True)
+   operations=[dict(kind='align_region',label='anchor',classification='body',lo=[2,2,2],hi=[2,2,2],mode='anchor',source_anchor=[2,2,2],target_anchor=[20,2,20]),dict(kind='geometry',label='lathe',classification='body',lo=[0,0,0],hi=[25,23,25],geometry=dict(shape='revolve',centre=[12,4,12],profile=[[2,0],[4,0],[4,6],[2,6]]),state='andesite')]
+   compiled=dispatch('compile',dict(request,operations=operations))['operations']
+   candidate,_,_=simulate_plan(model,set(),dict(operations=compiled),dict(protected_boxes=[],protected_paths=[],max_changed_blocks=65536))
+   self.assertEqual(candidate.get((30,6,30)),'minecraft:stone');self.assertEqual(model.get((30,6,30)),'minecraft:air')
+   changed=[p for p,v in candidate.blocks.items() if model.get(p)!=v]
+   self.assertTrue(all(10<=x<=35 and 4<=y<=27 and 10<=z<=35 for x,y,z in changed))
+   self.assertEqual(candidate.get((22,8,22)),'minecraft:air')
+ def test_new_engine_fields_are_exposed(self):
+  import ast,json
+  root=Path(__file__).resolve().parents[1]/'.agents/skills/minecraft-nbt-modeler'
+  catalog=json.loads((root/'tool-catalog.json').read_text(encoding='utf8'))
+  files={'selection_replace':'nbt_selection.py','align_region':'nbt_alignment.py','array_region':'nbt_arrays.py','auto_stairs':'nbt_stairs.py','terrain_road':'nbt_terrain_roads.py','auto_roof':'nbt_roofs.py'}
+  for kind,file in files.items():
+   keys=set()
+   for node in ast.walk(ast.parse((root/'scripts'/file).read_text(encoding='utf8'))):
+    if isinstance(node,ast.Subscript) and isinstance(node.value,ast.Name) and node.value.id in ('op','operation') and isinstance(node.slice,ast.Constant):keys.add(node.slice.value)
+    if isinstance(node,ast.Call) and isinstance(node.func,ast.Attribute) and isinstance(node.func.value,ast.Name) and node.func.value.id in ('op','operation') and node.func.attr=='get' and node.args and isinstance(node.args[0],ast.Constant):keys.add(node.args[0].value)
+   self.assertFalse(keys-set(catalog['operation_parameters'][kind]['properties'])-{'kind'},kind)
 if __name__=='__main__':unittest.main()
