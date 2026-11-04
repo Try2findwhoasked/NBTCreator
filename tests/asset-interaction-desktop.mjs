@@ -24,7 +24,7 @@ async function click(id){await page.waitForFunction(id=>{const e=document.getEle
 try{
  const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE
  app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000})
- page=await app.firstWindow();page.setDefaultTimeout(60000);minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message))
+ page=await app.firstWindow();page.setDefaultTimeout(60000);await minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message))
  await page.waitForFunction(()=>window.detailControl?.state.catalogReady)
  assert.equal(await page.evaluate(()=>window.detailControl.state.info),null)
  await page.locator('button[data-workspace=assets]').evaluate(e=>e.click())

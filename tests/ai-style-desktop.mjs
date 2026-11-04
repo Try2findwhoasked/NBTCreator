@@ -12,7 +12,7 @@ let app;const checks={}
 try{
  const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE
  app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000})
- const page=await app.firstWindow();minimizedScreenshots(app,page);const errors=[];page.on('pageerror',error=>errors.push(error.message))
+ const page=await app.firstWindow();await minimizedScreenshots(app,page);const errors=[];page.on('pageerror',error=>errors.push(error.message))
  await page.waitForFunction(()=>window.creatorWorkspace?.current()==='assets');await page.locator('[data-workspace=ai]').click();await page.waitForFunction(()=>document.querySelectorAll('#internal-style-controls input[type=range]').length===4)
  await page.locator('#internal-flow').selectOption('draft');await page.locator('#ai-style-creativity').press('End');await page.locator('#ai-style-detail').press('Home');await page.locator('#internal-flow').selectOption('small_structure');await page.locator('#ai-style-creativity').press('Home');await page.locator('#ai-style-detail').press('End');await page.locator('#internal-flow').selectOption('draft')
  assert.equal(await page.locator('#ai-style-creativity').inputValue(),'100');assert.equal(await page.locator('#ai-style-detail').inputValue(),'0');checks.independent_regions_preserve_edits=true

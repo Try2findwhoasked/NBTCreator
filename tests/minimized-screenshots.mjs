@@ -1,8 +1,15 @@
 import fs from 'node:fs/promises'
+import path from 'node:path'
 // Electron's native capture works while the test window remains minimized.
 // CDP page screenshots can wait indefinitely for a native compositor frame.
 export function minimizedScreenshots(app,page){
+ const verified=process.env.NBTCREATOR_TEST_EXE?app.evaluate(({app})=>app.getPath('exe')).then(actual=>{
+  const normalize=value=>{const resolved=path.resolve(value);return process.platform==='win32'?resolved.toLowerCase():resolved}
+  if(!actual||normalize(actual)!==normalize(process.env.NBTCREATOR_TEST_EXE))throw Error('Desktop acceptance launched a different executable: '+actual)
+  console.log(JSON.stringify({verified_desktop_executable:actual}))
+ }):Promise.resolve()
  page.screenshot=async(options={})=>{
+  await verified
   const data=await app.evaluate(async({BrowserWindow},{clip})=>{
    const win=BrowserWindow.getAllWindows()[0]
    // Wake Chromium's compositor for capture without restoring the native window.
@@ -25,4 +32,5 @@ export function minimizedScreenshots(app,page){
   if(options.path)await fs.writeFile(options.path,bytes)
   return bytes
  }
+ return verified
 }

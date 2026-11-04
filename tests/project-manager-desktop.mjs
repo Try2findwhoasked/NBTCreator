@@ -50,7 +50,7 @@ try{
  app.process().stdout?.on('data',data=>fs.appendFile(path.join(output,'electron.log'),data))
  app.process().stderr?.on('data',data=>fs.appendFile(path.join(output,'electron.log'),data))
  app.process().on('exit',(code,signal)=>fs.writeFile(path.join(output,'process-exit.json'),JSON.stringify({code,signal})))
- const page=await app.firstWindow(),errors=[];minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(30000)
+ const page=await app.firstWindow(),errors=[];await minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(30000)
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy,undefined,{timeout:15000}).catch(async error=>{const diagnostic=await page.evaluate(()=>({workspace:window.creatorWorkspace?.current(),state:window.detailControl?.state,status:document.querySelector('#status')?.textContent,project:document.querySelector('#project-status')?.textContent}));await fs.writeFile(path.join(output,'startup-error.json'),JSON.stringify({diagnostic,errors},null,2));console.error(JSON.stringify({status:diagnostic.status,project:diagnostic.project,errors}));throw error})
  assert.deepEqual(await page.locator('.creator-workspaces button').evaluateAll(nodes=>nodes.map(n=>n.dataset.workspace)),['project','assets','prompt','model','ai','tasks'])
  assert.equal(await page.getByRole('button',{name:'项目',exact:true}).count(),0)

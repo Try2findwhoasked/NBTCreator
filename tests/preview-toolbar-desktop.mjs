@@ -15,7 +15,7 @@ let app;const checks={}
 try{
  const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE
  app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000})
- const page=await app.firstWindow();minimizedScreenshots(app,page);const errors=[];page.on('pageerror',error=>errors.push(error.message))
+ const page=await app.firstWindow();await minimizedScreenshots(app,page);const errors=[];page.on('pageerror',error=>errors.push(error.message))
  await page.waitForFunction(()=>window.detailControl?.state.info&&window.detailControl.state.mode==='3d'&&!window.detailControl.state.busy)
  const click=selector=>page.locator(selector).evaluate(el=>el.click())
  assert.equal(await page.locator('#enable-3d').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#pause-3d').isVisible(),false);checks.single_3d_toggle=true

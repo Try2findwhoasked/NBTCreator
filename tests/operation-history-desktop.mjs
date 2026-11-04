@@ -15,7 +15,7 @@ let app;const checks={}
 try{
  const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE
  app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000})
- const page=await app.firstWindow();minimizedScreenshots(app,page);const errors=[];page.on('pageerror',error=>errors.push(error.message));page.setDefaultTimeout(60000)
+ const page=await app.firstWindow();await minimizedScreenshots(app,page);const errors=[];page.on('pageerror',error=>errors.push(error.message));page.setDefaultTimeout(60000)
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy)
  await page.getByRole('button',{name:'建模工具',exact:true}).evaluate(el=>el.click());await page.locator('#auto-preview').uncheck()
  assert.equal(await page.locator('#operation-sequence').isVisible(),false);assert.equal(await page.locator('.operation-row').count(),0);checks.compact_list_and_advanced_json=true

@@ -18,7 +18,7 @@ const voxel=p=>page.evaluate(p=>document.querySelector('#viewer').contentWindow.
 async function preview(){await click('road-preview');await page.waitForFunction(()=>!document.querySelector('#road-preview').disabled&&!window.detailControl.state.commitBusy&&!window.detailControl.state.previewBusy);return page.locator('#road-status').textContent()}
 try{
  const env={...process.env,NBTCREATOR_AUTOMATION:'1',OPENBLAS_NUM_THREADS:'1',OMP_NUM_THREADS:'1'};delete env.ELECTRON_RUN_AS_NODE
- app=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root,'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000});page=await app.firstWindow();page.setDefaultTimeout(60000);minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message))
+ app=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root,'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000});page=await app.firstWindow();page.setDefaultTimeout(60000);await minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message))
  await page.waitForFunction(()=>window.nbtEditSession?.ready&&!window.detailControl.state.busy&&!window.detailControl.state.sessionRestoring)
  await page.getByRole('button',{name:'自动道路',exact:true}).evaluate(e=>e.click());assert.equal(await page.locator('#road-panel').isVisible(),true);assert.equal(await page.locator('#tool-tabs button[aria-pressed=true]').textContent(),'自动道路');checks.road_panel_is_in_the_catalog_below_building_selector=true
  await page.evaluate(()=>{const s=window.detailControl.gather();s.whole_region=false;s.lo=[4,3,4];s.hi=[25,3,25];window.detailControl.restore(s)})

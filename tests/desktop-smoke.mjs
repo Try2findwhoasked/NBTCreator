@@ -21,7 +21,7 @@ try{
  app=await _electron.launch({executablePath:executable,args,env,timeout:60000})
  app.process().stdout?.on('data',data=>fs.appendFile(path.join(output,'electron.log'),data))
  app.process().stderr?.on('data',data=>fs.appendFile(path.join(output,'electron.log'),data))
- const page=await app.firstWindow({timeout:30000}),errors=[];minimizedScreenshots(app,page);page.on('pageerror',e=>{errors.push(e.message);console.error('renderer:',e.message)})
+ const page=await app.firstWindow({timeout:30000}),errors=[];await minimizedScreenshots(app,page);page.on('pageerror',e=>{errors.push(e.message);console.error('renderer:',e.message)})
  page.on('console',msg=>{if(msg.type()==='error')console.error('console:',msg.text())})
  page.on('response',async response=>{if(response.status()>=400&&response.url().includes('/__detail__/'))console.error('backend error:',response.url(),await response.text().catch(()=>''))})
  const diagnostic=setTimeout(async()=>{

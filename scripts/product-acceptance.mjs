@@ -31,7 +31,8 @@ for(const [name,sha]of Object.entries(before))if(name.startsWith('desktop/')||na
 const sourceManifest=path.join(root,'.agents/skills/minecraft-nbt-modeler/assets/viewer/web-dist/frontend-manifest.json')
 const packagedManifest=path.join(app,'resources/app/.agents/skills/minecraft-nbt-modeler/assets/viewer/web-dist/frontend-manifest.json')
 if(digest(await fs.readFile(sourceManifest))!==digest(await fs.readFile(packagedManifest)))throw Error('Frontend build differs from packaged application')
-const report={schema_version:1,passed:false,commit,started_utc:new Date().toISOString(),directory,workspace,source_sha256:before,packaged_source_sha256:packagedHashes,external_api_used:false,actual_user_visual_approval:false,suites:[],requirements:[]}
+const packagedInfo=JSON.parse(await fs.readFile(path.join(app,'portable-info.json'),'utf8'))
+const report={schema_version:1,passed:false,commit,packaged_commit:packagedInfo.commit,started_utc:new Date().toISOString(),directory,workspace,source_sha256:before,packaged_source_sha256:packagedHashes,external_api_used:false,actual_user_visual_approval:false,suites:[],requirements:[]}
 const records=new Map(),active=new Map();let cursor=0
 async function persist(){const temp=path.join(output,'progress.tmp');await fs.writeFile(temp,JSON.stringify({...report,active:[...active.values()]},null,2));await fs.rename(temp,path.join(output,'progress.json'))}
 let writes=Promise.resolve();function progress(){writes=writes.then(persist);return writes}
@@ -54,8 +55,15 @@ async function run(suite){
  const exit=await completion
  clearTimeout(timeout);await logWrites;await handle.close();active.delete(suite.id)
  Object.assign(record,{status:exit.code===0&&!timedOut&&!spawnError?'passed':'failed',exit_code:exit.code,signal:exit.signal,timed_out:timedOut,elapsed_ms:Date.now()-started,...(spawnError?{error:spawnError}:{})})
+ const messages=buffer.split(/\r?\n/).flatMap(line=>{try{return[JSON.parse(line)]}catch{return[]}})
+ if(suite.desktop&&record.status==='passed'){
+  const actual=messages.filter(message=>message.verified_desktop_executable).map(message=>message.verified_desktop_executable)
+  const normalize=value=>{const resolved=path.resolve(value);return process.platform==='win32'?resolved.toLowerCase():resolved}
+  if(!actual.length||actual.some(value=>normalize(value)!==normalize(executable))){record.status='failed';record.error='Electron main process did not verify the required packaged executable'}
+  else record.verified_desktop_executable=actual
+ }
  if(suite.receipt&&record.status==='passed')try{
-  const found=buffer.split(/\r?\n/).flatMap(line=>{try{const value=JSON.parse(line);return value.passed===true&&value.output?[value]:[]}catch{return[]}}).at(-1)
+  const found=messages.filter(value=>value.passed===true&&value.output).at(-1)
   if(!found)throw Error('No successful evidence receipt in output')
   const receipt=path.join(found.output,'results.json'),data=JSON.parse(await fs.readFile(receipt,'utf8'))
   if(data.passed!==true||Object.values(data.checks??{}).some(value=>value===false))throw Error('Evidence receipt contains a failed check')

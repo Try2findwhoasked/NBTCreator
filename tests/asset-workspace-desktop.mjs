@@ -18,7 +18,7 @@ let app;const checks={}
 try{
  const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE
  app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000})
- const page=await app.firstWindow(),errors=[];minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(60000)
+ const page=await app.firstWindow(),errors=[];await minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(60000)
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy&&window.detailControl.state.mode==='3d')
  assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized()),true);checks.minimized_window=true
  await page.getByRole('button',{name:'修改范围',exact:true}).click();await page.locator('#whole-region').uncheck()

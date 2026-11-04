@@ -23,7 +23,7 @@ let app;const checks={}
 try{
  const env={...process.env,NBTCREATOR_AUTOMATION:'1',OPENBLAS_NUM_THREADS:'1',OMP_NUM_THREADS:'1'};delete env.ELECTRON_RUN_AS_NODE
  app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000})
- const page=await app.firstWindow();minimizedScreenshots(app,page);page.setDefaultTimeout(60000);const errors=[];page.on('pageerror',e=>errors.push(e.message));const click=selector=>page.locator(selector).evaluate(el=>el.click())
+ const page=await app.firstWindow();await minimizedScreenshots(app,page);page.setDefaultTimeout(60000);const errors=[];page.on('pageerror',e=>errors.push(e.message));const click=selector=>page.locator(selector).evaluate(el=>el.click())
  await page.waitForFunction(()=>window.nbtEditSession?.ready&&!window.detailControl.state.busy)
  const index=await page.evaluate(source=>window.detailControl.state.models.findIndex(m=>m.source.toLowerCase()===source.toLowerCase()),after);assert.ok(index>=0)
  await page.locator('#models').selectOption(String(index));await page.waitForFunction(source=>window.detailControl.state.info?.source.toLowerCase()===source.toLowerCase()&&!window.detailControl.state.sessionRestoring&&!window.detailControl.state.busy,after)

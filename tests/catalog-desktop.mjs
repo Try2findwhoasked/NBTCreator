@@ -17,7 +17,7 @@ try{
  await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'model'}))
  const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE
  app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',wronglySelected,'--user-data-dir',path.join(output,'profile')],env,timeout:60000})
- const page=await app.firstWindow(),errors=[];page.setDefaultTimeout(30000);minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message))
+ const page=await app.firstWindow(),errors=[];page.setDefaultTimeout(30000);await minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message))
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy,undefined,{timeout:60000})
  assert.equal((await page.evaluate(()=>window.nbtDesktop.info())).workspace,workspace);assert.equal(await page.evaluate(()=>window.detailControl.state.models.length),2);checks.cached_subfolder_normalized_and_nbt_listed=true
  const index=await page.evaluate(source=>window.detailControl.state.models.findIndex(m=>m.source===source),path.join(standalone,'only.nbt'));assert.ok(index>=0)
