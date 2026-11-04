@@ -43,6 +43,12 @@ class WalkInspection(unittest.TestCase):
  def test_same_cli_contract_writes_only_a_report_and_retains_source(self):
   request=self.folder/'request.json';request.write_text(json.dumps(self.request));output=self.folder/'report'
   run=subprocess.run([sys.executable,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_detail_control.py'),'walk-inspect','--request',str(request),'--output',str(output)],capture_output=True,text=True,encoding='utf8');self.assertEqual(run.returncode,0,run.stdout+run.stderr);self.assertTrue(json.loads(run.stdout)['result']['report']['passed']);self.assertTrue((output/'walk-inspection.json').is_file());self.assertEqual(self.source.read_bytes(),self.original)
+ def test_generated_workspace_skill_exposes_and_executes_the_same_inspector(self):
+  from nbt_exposure import apply
+  apply(self.folder);facade=self.folder/'.agents/skills/nbtcreator-workspace/nbt.py'
+  request=self.folder/'request.json';request.write_text(json.dumps(dict(self.request,source=self.source.name)))
+  run=subprocess.run([sys.executable,str(facade),'control','walk-inspect','--request','request.json','--output','report'],cwd=self.folder,capture_output=True,text=True,encoding='utf8');self.assertEqual(run.returncode,0,run.stdout+run.stderr);self.assertTrue(json.loads(run.stdout)['result']['report']['passed'])
+  cap=subprocess.run([sys.executable,str(facade),'capabilities'],cwd=self.folder,capture_output=True,text=True,encoding='utf8');self.assertEqual(cap.returncode,0,cap.stderr);self.assertIn('walk-inspect',json.loads(cap.stdout)['inspection_tools']);self.assertEqual(self.source.read_bytes(),self.original)
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

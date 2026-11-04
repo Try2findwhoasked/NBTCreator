@@ -4,6 +4,8 @@ import hashlib
 import json
 import math
 
+SUPPORTED_INSPECTION_TOOLS = frozenset({'walk-inspect'})
+
 
 def inspect_walk(request, snapshot=None):
     from nbt_refine import read_master
