@@ -1451,10 +1451,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1472,7 +1482,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "box": {
       "properties": {
@@ -1483,10 +1497,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1495,7 +1519,11 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "hollow_box": {
       "properties": {
@@ -1506,10 +1534,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1521,7 +1559,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "frame": {
       "properties": {
@@ -1532,10 +1574,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1547,7 +1599,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "beam": {
       "properties": {
@@ -1558,19 +1614,39 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
         },
         "start": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "end": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "state": {
           "type": "string"
@@ -1579,7 +1655,8 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": []
     },
     "replace": {
       "properties": {
@@ -1590,10 +1667,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1608,7 +1695,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "move_region": {
       "properties": {
@@ -1619,10 +1710,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1631,7 +1732,11 @@ globalThis.NbtToolCatalog = {
           "type": "array"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "copy_region": {
       "properties": {
@@ -1642,10 +1747,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1663,7 +1778,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "repeat_region": {
       "properties": {
@@ -1674,10 +1793,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1698,7 +1827,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "transform_region": {
       "properties": {
@@ -1709,16 +1842,31 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
         },
         "destination": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "quarter_turns": {
           "type": "integer"
@@ -1739,7 +1887,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "morphology": {
       "properties": {
@@ -1750,10 +1902,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1774,7 +1936,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "diffusion": {
       "properties": {
@@ -1785,10 +1951,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1818,7 +1994,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "explosion": {
       "properties": {
@@ -1829,10 +2009,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1865,7 +2055,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "scatter": {
       "properties": {
@@ -1876,10 +2070,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1906,7 +2110,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "pattern": {
       "properties": {
@@ -1917,10 +2125,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1956,7 +2174,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "surface_palette": {
       "properties": {
@@ -1967,10 +2189,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -1988,7 +2220,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "weathering": {
       "properties": {
@@ -1999,10 +2235,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -2023,7 +2269,11 @@ globalThis.NbtToolCatalog = {
           "type": "object"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "auto_floor": {
       "properties": {
@@ -2034,10 +2284,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -2073,7 +2333,8 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": []
     },
     "paste_component": {
       "properties": {
@@ -2084,10 +2345,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -2102,7 +2373,11 @@ globalThis.NbtToolCatalog = {
           "type": "boolean"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "auto_road": {
       "properties": {
@@ -2113,19 +2388,39 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
         },
         "start": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "end": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "width": {
           "type": "integer"
@@ -2146,7 +2441,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "selection_replace": {
       "properties": {
@@ -2157,10 +2456,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -2169,7 +2478,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "seed_position": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "match": {
           "type": "string"
@@ -2190,7 +2504,11 @@ globalThis.NbtToolCatalog = {
           "type": "array"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     },
     "align_region": {
       "properties": {
@@ -2201,10 +2519,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -2213,10 +2541,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "target_lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "target_hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "axes": {
           "type": "array"
@@ -2234,16 +2572,52 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         },
         "source_anchor": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "target_anchor": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "destination": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ],
+      "mode_requirements": {
+        "field": "mode",
+        "default": "align",
+        "choices": {
+          "align": [
+            "target_lo",
+            "target_hi"
+          ],
+          "anchor": [
+            "source_anchor",
+            "target_anchor"
+          ],
+          "ground": [
+            "destination"
+          ]
+        }
+      }
     },
     "array_region": {
       "properties": {
@@ -2254,10 +2628,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -2287,7 +2671,12 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         },
         "source_anchor": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "centre": {
           "type": "array"
@@ -2305,7 +2694,24 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ],
+      "mode_requirements": {
+        "field": "mode",
+        "default": "path",
+        "choices": {
+          "path": [
+            "points"
+          ],
+          "radial": [
+            "centre",
+            "radius"
+          ]
+        }
+      }
     },
     "auto_stairs": {
       "properties": {
@@ -2316,10 +2722,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -2328,10 +2744,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "start": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "end": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "width": {
           "type": "integer"
@@ -2361,7 +2787,32 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ],
+      "mode_requirements": {
+        "field": "mode",
+        "default": "straight",
+        "choices": {
+          "straight": [
+            "start",
+            "end"
+          ],
+          "switchback": [
+            "start",
+            "end",
+            "flight_length"
+          ],
+          "spiral": [
+            "start",
+            "end",
+            "centre",
+            "radius"
+          ]
+        }
+      }
     },
     "terrain_road": {
       "properties": {
@@ -2372,19 +2823,39 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
         },
         "start": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "end": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "width": {
           "type": "integer"
@@ -2411,7 +2882,13 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi",
+        "start",
+        "end"
+      ]
     },
     "auto_roof": {
       "properties": {
@@ -2422,10 +2899,20 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "lo": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "hi": {
-          "type": "array"
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer"
+          }
         },
         "enabled": {
           "type": "boolean"
@@ -2473,7 +2960,11 @@ globalThis.NbtToolCatalog = {
           "type": "number"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "lo",
+        "hi"
+      ]
     }
   }
 };

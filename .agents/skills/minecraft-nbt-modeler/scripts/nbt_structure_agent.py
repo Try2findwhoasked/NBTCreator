@@ -55,6 +55,8 @@ def build(workspace, spec):
         if not isinstance(op,dict) or op.get('kind') not in catalog['tools']:raise ValueError('未知结构工具')
         allowed=set(catalog['common'])|set(catalog['operation_parameters'][op['kind']]['properties'])|{'kind','overwrite'}
         if set(op)-allowed:raise ValueError('结构步骤含未开放字段（不接收代码、路径或写入组）')
+        from nbt_operation_parameters import validate_operation
+        validate_operation(op)
         operations.append(dict(op,write_group=group) if op['kind'] in ('box','beam','frame','hollow_box','geometry') else dict(op))
     for placed in spec.get('placements',[]):
         data=library.load(workspace,placed['id'])
