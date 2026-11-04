@@ -11,6 +11,12 @@ def validate_operation(op):
         if 'enum' in s and value not in s['enum']:raise ValueError('Invalid operation parameter choice')
         if kind in ('integer','number'):
             if value<s.get('minimum',-math.inf) or value>s.get('maximum',math.inf) or 'exclusiveMinimum' in s and value<=s['exclusiveMinimum']:raise ValueError('Operation parameter outside limits')
+        if kind=='object':
+            props=s.get('properties',{})
+            if any(k not in value for k in s.get('required',[])):raise ValueError('Missing nested operation parameter')
+            if s.get('additionalProperties') is False and set(value)-set(props):raise ValueError('Unknown nested operation parameter')
+            for k,v in value.items():
+                if k in props:check(v,props[k])
         if kind=='array':
             if not s.get('minItems',0)<=len(value)<=s.get('maxItems',1000000):raise ValueError('Invalid operation parameter length')
             for item in value:check(item,s.get('items',{}))
@@ -24,3 +30,11 @@ def validate_operation(op):
         required+=rule['choices'][mode]
     if op['kind']=='selection_replace' and op.get('selection','connected')!='surface':required+=['seed_position']
     if any(key not in op for key in required):raise ValueError('Missing operation parameter: '+','.join(key for key in required if key not in op))
+
+    def geometry(spec,depth=0):
+        if depth>16 or not isinstance(spec,dict):raise ValueError('Invalid geometry nesting')
+        shape=spec.get('shape')
+        if shape not in CATALOG['shapes']:raise ValueError('Unknown geometry shape')
+        if shape in CATALOG.get('geometry_parameters',{}):check(spec,CATALOG['geometry_parameters'][shape])
+        for child in spec.get('children',[]):geometry(child,depth+1)
+    if op['kind']=='geometry':geometry(op.get('geometry'))

@@ -32,4 +32,10 @@ class Parameters(unittest.TestCase):
   validate_operation(base)
   for patch in [dict(points=[[0,0],[1,2]]),dict(spacing=0),dict(end_margins=[0,-1]),dict(points=[[0,False,0],[4,0,0]])]:
    with self.assertRaises(ValueError):validate_operation(dict(base,**patch))
+ def test_geometry_nested_contract(self):
+  base=dict(kind='geometry',lo=[0,0,0],hi=[15,15,15])
+  valid=dict(shape='section_sweep',vertices=[[-1,-1],[1,-1],[1,1]],points=[[2,4,2],[10,4,2]],up=[0,1,0])
+  validate_operation(dict(base,geometry=valid))
+  for shape in [dict(valid,points=[[1,2],[3,4]]),dict(valid,vertices=[[0,0],[1,1]]),dict(valid,script='x'),dict(shape='loft',sections=[dict(y=2,vertices=[[0,0],[1,0],[1,1]])]),dict(shape='revolve',profile=[[0,0],[4,0],[4,4]],sweep_angle=0)]:
+   with self.assertRaises(ValueError):validate_operation(dict(base,geometry=shape))
 if __name__=='__main__':unittest.main()
