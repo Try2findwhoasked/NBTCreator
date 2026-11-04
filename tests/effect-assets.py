@@ -21,6 +21,8 @@ class Effects(unittest.TestCase):
  def test_effect_json_batch_import_and_generated_manifest(self):
   from nbt_effect_assets import file_for
   item=dispatch(self.root,'save',dict(asset=self.asset));result=batches(self.root,'import',dict(paths=[str(file_for(self.root,item['id']))]));self.assertEqual(result['count'],1);self.assertEqual(result['entries'][0]['type'],'effect');listing=batches(self.root,'generate',dict(scope='effects',name='效果清单'));self.assertEqual(batches(self.root,'read',dict(id=listing['id']))['count'],2)
+ def test_partial_panel_settings_preview_and_compile_without_filling_target_values(self):
+  settings=dict(pattern=dict(enabled=True,fraction=.02,palette=[dict(state='andesite',weight=1)]));item=dispatch(self.root,'save',dict(asset=dict(name='局部混材配置',settings=settings)));self.assertEqual(dispatch(self.root,'compile',dict(id=item['id']))['settings'],settings);preview=dispatch(self.root,'preview',dict(id=item['id']));self.assertGreater(preview['changed_blocks'],0);self.assertFalse(preview['nbt_exported'])
  def test_local_floor_level_translates_with_recipe_origin(self):
   from nbt_recipes import translate_operation
   op=dict(kind='weathering',lo=[0,1,0],hi=[15,2,15],floor=dict(levels=[1],fraction=.1));moved=translate_operation(op,[4,3,4]);self.assertEqual(moved['floor']['levels'],[4]);self.assertEqual(op['floor']['levels'],[1]);self.assertEqual(moved['lo'],[4,4,4])

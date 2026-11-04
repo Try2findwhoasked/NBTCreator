@@ -19,6 +19,11 @@ def file_for(workspace,identifier):
 
 def fingerprint(data):return hashlib.sha256(json.dumps(data,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
 
+def merged_settings(base,patch):
+    result=deepcopy(base)
+    for key,value in patch.items():result[key]={**result[key],**deepcopy(value)} if isinstance(value,dict) and isinstance(result.get(key),dict) else deepcopy(value)
+    return result
+
 def validate(data):
     from nbt_detail_control import default_settings,compile_plan
     from nbt_operation_parameters import validate_operation
@@ -44,7 +49,7 @@ def validate(data):
         fields={'kind',*catalog['common'],*catalog['operation_parameters'][op['kind']]['properties'],'include_boxes','mask_positions'}
         if set(op)-fields or set(op)&{'write_group','write_bounds','max_writes','overwrite'}:raise ValueError('效果步骤不能携带源绑定或覆盖权限')
         if op.get('enabled',True):validate_operation(op)
-    defaults.update(settings);defaults.update(whole_region=False,lo=[4,3,4],hi=[28,11,28]);compile_plan(defaults,(294,294,294))
+    defaults=merged_settings(defaults,settings);defaults.update(whole_region=False,lo=[4,3,4],hi=[28,11,28]);compile_plan(defaults,(294,294,294))
     archived=data.get('archived',False)
     if type(archived) is not bool:raise ValueError('回收状态无效')
     result=dict(schema_version=1,asset_type='tool_effect',name=name.strip(),tags=[t for t in dict.fromkeys(tags) if not t.isdecimal()],settings=settings,archived=archived)
@@ -88,7 +93,7 @@ def preview(workspace,data):
     model=Volume((48,16,48));model.box([0,0,0],[47,15,47],'stone_bricks');model.box([1,3,1],[46,14,46],'air');model.box([8,3,36],[39,10,37],'stone_bricks');model.box([30,3,30],[32,8,32],'stone_bricks')
     for lo,hi,material in [([12,2,12],[21,2,23],'stone'),([22,2,12],[31,2,23],'oak_planks'),([32,2,12],[41,2,23],'deepslate_tiles')]:model.box(lo,hi,material)
     model.box([34,3,30],[36,8,32],'oak_log[axis=y]')
-    settings=default_settings();settings.update(deepcopy(data['settings']));
+    settings=merged_settings(default_settings(),data['settings']);
     if data.get('source_recipe_id'):
         from nbt_recipes import translate_operation
         bounds=[op.get('hi',[0,0,0]) for op in settings.get('operations',[])];maximum=[max([v[i] for v in bounds if isinstance(v,list) and len(v)==3 and all(type(n) in (int,float) for n in v)]+[0]) for i in range(3)];offset=[max(0,min([4,3,4][i],model.size[i]-1-maximum[i])) for i in range(3)]

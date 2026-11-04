@@ -143,6 +143,8 @@ python .agents/skills/nbtcreator-workspace/nbt.py effect-assets organize
 
 `effect.json`使用 `{asset:{name:"石砖步道",settings:{operations:[{kind:"auto_road",label:"步道",classification:"body",lo:[0,0,0],hi:[47,15,47],start:[6,3,6],end:[20,3,20],width:3,depth:1,route:"straight",state:"stone_bricks"}]},tags:[]}}`（文件须为合法JSON）。`id.json`为 `{id:资产ID,content_sha256:可选内容哈希}`。调用不需要Electron，应用HTTP对应 `/__detail__/effect-assets/<action>`，能力目录的effect_asset_contract记录开放动作。save总是写新ID，archive可移入回收站或恢复。
 
+面板配置可只提供部分字段，例如 `settings:{pattern:{enabled:true,fraction:0.12}}`；样例预览使用默认值补齐，compile仍返回原始部分配置，应用时保留目标面板未提供的字段。材质名称的命名空间由界面规范化，不应据此判定参数被用户修改。面板配置先于工具序列运行；需要对刚放入的构件继续换材或风化时，使用具名 `operations`，追加在现有步骤之后。候选应用失败时恢复原参数与原画面，不产生正式NBT。
+
 原生效果文件为 `nbt_models/asset_library/tool_effects/<id>/effect.json`，同步生成assets.json批次清单。独立预览在封闭样例中运行真实引擎，生成前/后主模型、快照、缩略图和变化数量；样例包含不同地板材质和墙柱，默认剖切屋顶查看内部。返回sample_only，不声明适用于用户建筑。没有变化时明确显示0，配置不适用样例时保留错误，不伪造图像。预览过程存放在 `nbt_models/_workspaces/effect_previews/`，不会被当成正式建筑。compile只返回settings候选，不直接写建筑或导出NBT。
 
 organize保留构件ID和内容哈希，备份改动前的标签资料到asset_library/_migration；去掉01/02等序号标签及无用途的批次标签，按共享asset-taxonomy.json进行用途分组。前端也会隐藏旧工作区的数字标签，原SAODG无需被本任务改动。整理会导入工作区效果保存目录顶层的有效旧配置，以及现有recipe的默认值（原可调配方保留，并将来源保存在source-recipe.json），重复配置不会反复入库。原文件保留；无法迁移的项记录错误。统一整理索引为 `nbt_models/asset_library/catalog.json`，记录构件、工具效果、可调配方和材质主题；整理报告记录所有实际变化。

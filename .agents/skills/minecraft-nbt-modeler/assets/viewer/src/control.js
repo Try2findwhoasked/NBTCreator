@@ -882,10 +882,11 @@ async function commitPreviewSettings(next,label){
  const oldViewer=$('viewer').contentWindow?.nbtModeler,old={preview:state.preview,settings:state.previewSettings,side:state.comparisonSide,id:state.viewerFeedbackId,source:state.viewerSource,snapshot:state.mode==='3d'&&oldViewer?.status==='ready'?oldViewer.snapshot:null,meta:state.mode==='3d'&&oldViewer?.status==='ready'?oldViewer.metadata():null}
  await api('prompt-export',{...request(),settings:next})
  if(source!==state.info?.source||sha!==state.info?.source_sha256||JSON.stringify(gather())!==JSON.stringify(before))throw Error('建筑或参数已改变，本次未应用')
- restore(next);state.configChanged=true;state.bundle='';state.previewRevision++;clearTimeout(previewTimer);updateCount()
- try{await updatePreview(true);if(JSON.stringify(gather())!==JSON.stringify(next))throw Error('参数已改变，需重新更新预览');recordSettings(label)}
+ let staged=false
+ try{restore(next);next=gather();staged=true;state.configChanged=true;state.bundle='';state.previewRevision++;clearTimeout(previewTimer);updateCount();await updatePreview(true);if(JSON.stringify(gather())!==JSON.stringify(next))throw Error('参数已改变，需重新更新预览');recordSettings(label)}
  catch(error){
-  if(source===state.info?.source&&sha===state.info?.source_sha256&&JSON.stringify(gather())===JSON.stringify(next)){
+  let unchanged=!staged;try{if(staged)unchanged=JSON.stringify(gather())===JSON.stringify(next)}catch{}
+  if(source===state.info?.source&&sha===state.info?.source_sha256&&unchanged){
    restore(before);state.preview=old.preview;state.previewSettings=old.settings;state.comparisonSide=old.side;state.candidateValidation=null
    const viewer=$('viewer').contentWindow?.nbtModeler
    if(old.snapshot&&viewer?.status==='ready'){await viewer.replaceSnapshot(old.snapshot);await viewer.renderView({...old.meta.camera,cuts:old.meta.cuts,layer:old.meta.layer,lighting:old.meta.lighting});state.viewerSource=old.source;state.viewerFeedbackId=old.id;await activateViewerFeedback(old.id)}
@@ -969,7 +970,7 @@ function captureToolEffect(){
  settings.operations=settings.operations.map(op=>Object.fromEntries(Object.entries(op).filter(([key])=>!['write_group','write_bounds','max_writes','overwrite','skip_protected'].includes(key))))
  return {name:toolLabels[active]??'我的工具效果',settings,tags:[]}
 }
-const toolEffects=initToolEffects({api,capture:captureToolEffect,context:reusableContext,apply:(patch,expected)=>withPreviewCommit(async()=>{if(expected!==JSON.stringify(gather()))throw Error('模型参数已变化');const next=structuredClone(gather()),settings=structuredClone(patch.settings),operations=settings.operations??[];delete settings.operations;Object.assign(next,settings);next.operations.push(...operations);window.creatorWorkspace.select('model');await commitPreviewSettings(next,'载入工具效果：'+patch.name)})})
+const toolEffects=initToolEffects({api,capture:captureToolEffect,context:reusableContext,apply:(patch,expected)=>withPreviewCommit(async()=>{if(expected!==JSON.stringify(gather()))throw Error('模型参数已变化');const next=structuredClone(gather()),settings=structuredClone(patch.settings),operations=settings.operations??[];delete settings.operations;for(const [key,value]of Object.entries(settings))next[key]=value&&typeof value==='object'&&!Array.isArray(value)?{...next[key],...value}:value;next.operations.push(...operations);window.creatorWorkspace.select('model');await commitPreviewSettings(next,'载入工具效果：'+patch.name)})})
 const reusableLibrary=initReusableLibrary({api,context:reusableContext,apply:applyReusable})
 initAssetWorkspace({
  api,context:reusableContext,decorateTree:reusableLibrary.decorateTree,
