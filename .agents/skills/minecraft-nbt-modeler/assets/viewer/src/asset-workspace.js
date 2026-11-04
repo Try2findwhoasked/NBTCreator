@@ -1,4 +1,5 @@
 import './asset-workspace.css'
+import {initAssetBatches} from './asset-batches.js'
 import {initLibraryBrowser} from './library-browser.js'
 import {createAssetTree} from './asset-tree.js'
 import {initComponentAuthor} from './component-author.js'
@@ -84,5 +85,6 @@ export function initAssetWorkspace({api,context,apply,pickPosition,interactive,d
  open.onclick=()=>window.creatorWorkspace.select('assets');capture.onclick=()=>{try{openSave()}catch(e){message(e.message);window.creatorWorkspace.select('assets')}}
  document.querySelector('.review-toolbar').append(open,capture)
  for(const [id,label,move]of [['copy-selection-3d','复制选区并调整',false],['move-selection-3d','移动选区并调整',true]]){const button=document.createElement('button');button.id=id;button.type='button';button.textContent=label;button.onclick=()=>interactive(null,{selection:true,move}).catch(error=>{message(error.message);window.creatorWorkspace.select('assets')});document.querySelector('.review-toolbar').append(button)}
+ initAssetBatches({api,host,refresh})
  return {refresh,openSave}
 }

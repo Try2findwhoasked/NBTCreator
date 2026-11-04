@@ -993,7 +993,8 @@ globalThis.NbtToolCatalog = {
     "retrieve": "nbt_retrieval.py",
     "diagnostics": "nbt_diagnostics.py",
     "agent-tasks": "nbt_agent_tasks.py",
-    "project-repair": "nbt_project_repair.py"
+    "project-repair": "nbt_project_repair.py",
+    "asset-batches": "nbt_asset_batches.py"
   },
   "building_shapes": {
     "single": {

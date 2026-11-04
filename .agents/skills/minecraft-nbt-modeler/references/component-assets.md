@@ -94,3 +94,18 @@ AI返回选区内相对坐标的box/beam/frame或少量离散方块，本地引�
 “允许AI构件覆盖现有方块”仅允许替换实际写到的格子，不清空整个选区，也不放宽保护和改动预算。API不能自行授予覆盖权限。write_group由应用生成，使一份构件的柱帽等步骤可以覆盖本组刚添加的柱身，而不能占用旧建筑的方块。
 
 小型结构建议压缩为不超过48步，同材质连续体积优先使用box。如果API明确因长度上限截断，应用最多额外请求一次24步以内的精简完整方案；不续写或应用半截JSON。任务详情记录API阶段、本地预览阶段、重试次数和接口提供的令牌统计；其中任何一次预览失败都不等于正式建筑被修改。
+
+## 混合资产批次与 JSON 清单
+
+资产管理的“批量资产 / JSON 清单”支持多选构件JSON、Java1.20.1结构NBT及完整主模型JSON.GZ。每批最多100项、原始文件合计32MiB；失败条目保留错误，其他条目继续。原文件保留，工作区专用目录为 `nbt_models/asset_batches/<批次ID>/`，`items/`保存经校验的规范副本，`assets.json`保存路径、类型、名称、SHA256和构件ID，`import-report.json`记录导入结果。构件另登记到共用构件库；建筑副本保存主模型与明确的独立结构分类，在项目库可见，不自动导出NBT或生成批准。
+
+```powershell
+node scripts/cli.mjs --workspace D:/MyProject asset-batches import --request import.json
+node scripts/cli.mjs --workspace D:/MyProject asset-batches generate --request scope.json
+node scripts/cli.mjs --workspace D:/MyProject asset-batches list
+node scripts/cli.mjs --workspace D:/MyProject asset-batches read --file nbt_models/asset_batches/批次ID/assets.json --include-data
+```
+
+`import.json`示例：`{"name":"本次批量构件","paths":["D:/Generated/pillar.component.json","D:/Generated/room.master.json.gz"]}`。paths只对显式CLI调用开放；应用通过文件选择上传数据。`scope.json`示例：`{"name":"工作区资产列表","scope":"all"}`，scope可为components、models或all。无界面Agent可通过工作区nbt.py的同名asset-batches命令调用。资产库过大时分批导入并使用各自清单；生成整库清单同样限制100项。
+
+清单schema为 `schema_version=1,kind="nbtcreator.asset-list",path_base="workspace",entries=[{type,path,sha256,name}]`，path是工作区相对路径。read验证所有文件真实存在、路径在工作区内及内容哈希一致，再读取类型与几何；默认返回摘要，--include-data返回完整体素、墙层和材质，总输出限制32MiB。界面可选择JSON清单或已保存批次读取。仅迁移清单而未迁移资产无法读取，不根据清单猜测或重建缺失内容；请迁移完整工作区。读取不产生新构件或模型修改。

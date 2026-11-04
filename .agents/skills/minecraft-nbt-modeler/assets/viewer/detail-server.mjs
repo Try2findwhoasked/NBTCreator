@@ -400,6 +400,13 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         const input=await body(req),info=openedSource(localPath(input.source));if(!info||info.source_sha256!==input.source_sha256)throw Error('请先打开当前版本再查看保护区')
         const system=path.join(outputRoot,'system');await fs.mkdir(system,{recursive:true});const file=path.join(system,'protection-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify({source:info.source,source_sha256:info.source_sha256,context:input.context?localPath(input.context):''}))
         try{json(res,await invoke(['protection-mask','--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
+      } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/asset-batches/')){
+        const action=url.pathname.split('/').at(-1)
+        if(!['list','import','generate','read'].includes(action))throw Error('未知资产批量操作')
+        const input=await body(req,46*1024*1024)
+        if(Object.hasOwn(input,'paths'))throw Error('界面导入须通过文件选择，不接收本机路径')
+        const directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'asset-batch-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input))
+        try{json(res,await invoke(['asset-batches','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname==='/__detail__/project-repair'){
         if(activeJob)throw Error('请等待当前任务完成')
         const input=await body(req)

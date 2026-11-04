@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import {spawnSync} from 'node:child_process'
+import {createRequire} from 'node:module'
+import {root,skill,python} from '../scripts/paths.mjs'
+import {minimizedScreenshots} from './minimized-screenshots.mjs'
+const require=createRequire(path.join(skill,'assets/viewer/package.json')),{_electron}=require('playwright')
+const output=path.join(root,'build','asset-batches-'+Date.now()),workspace=path.join(output,'workspace');await fs.mkdir(workspace,{recursive:true})
+const component=path.join(output,'pillar.component.json'),model=path.join(output,'source.master.json.gz');await fs.writeFile(component,JSON.stringify({schema_version:1,name:'批量石柱',size:[2,3,2],anchor:[0,0,0],palette:['stone'],blocks:[[0,0,0,0,true]]}))
+const made=spawnSync(python,['-c',`import sys;sys.path.insert(0,sys.argv[1]);from nbt_assembly import Volume;from nbt_refine import save_master;m=Volume((8,8,8));m.put((2,1,2),'stone');save_master(sys.argv[2],m,{(2,1,2)})`,path.join(skill,'scripts'),model],{encoding:'utf8',windowsHide:true});assert.equal(made.status,0,made.stderr)
+let app,page;const errors=[],checks={};const click=id=>page.locator('#'+id).evaluate(e=>e.click())
+try{
+ const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE
+ app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000});page=await app.firstWindow();page.setDefaultTimeout(60000);minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message));await page.waitForFunction(()=>window.detailControl?.state.catalogReady)
+ await page.locator('[data-workspace=assets]').evaluate(e=>e.click());await click('asset-batches-open');await page.waitForFunction(()=>!document.querySelector('#asset-batch-import').disabled);await page.locator('#asset-batch-files').setInputFiles([component,model]);await click('asset-batch-import');await page.waitForFunction(()=>document.querySelector('#asset-batch-status').textContent.includes('已导入 2 项'));let result=JSON.parse(await page.locator('#asset-batch-result').inputValue());assert.equal(result.count,2);assert.ok(result.manifest.entries.every(item=>item.path.startsWith('nbt_models/asset_batches/')));checks.mixed_import_and_managed_manifest=true
+ const manifest=path.join(workspace,'nbt_models/asset_batches',result.manifest.id,'assets.json');await fs.access(manifest);await page.locator('#asset-batch-full').check();await page.locator('#asset-batch-manifest').setInputFiles(manifest);await page.waitForFunction(()=>document.querySelector('#asset-batch-status').textContent.includes('已读取 2 项'));result=JSON.parse(await page.locator('#asset-batch-result').inputValue());assert.ok(result.items.every(item=>item.data));checks.json_file_batch_read_includes_geometry=true
+ await page.locator('#asset-batch-full').uncheck();await page.locator('#asset-batch-scope').selectOption('all');await click('asset-batch-generate');await page.waitForFunction(()=>document.querySelectorAll('[data-asset-batch]').length===2&&!document.querySelector('#asset-batch-generate').disabled);assert.equal(await page.locator('#asset-batch-download').isVisible(),true);checks.generate_persist_and_download_json_list=true
+ await click('asset-batches-close');assert.ok((await page.locator('#asset-count').textContent()).includes('1'));const denied=await page.evaluate(async()=>{const r=await fetch('/__detail__/asset-batches/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paths:['C:/private.json']})});return r.status});assert.ok(denied>=400);checks.http_rejects_arbitrary_local_path_import=true
+ assert.deepEqual(errors,[]);await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks},null,2));console.log(JSON.stringify({passed:true,checks,output}))
+}catch(e){console.error(JSON.stringify({output,checks,errors}));if(page)console.error(await page.locator('#asset-batch-status').textContent().catch(()=>''));throw e}finally{await app?.close()}
