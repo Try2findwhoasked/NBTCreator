@@ -90,7 +90,7 @@ try{
  assert.ok((await page.frameLocator('#prompt-frame').locator('#result').inputValue()).includes(source));await page.locator('#close-prompt').click();checks.prompt_console_reused=true
  await page.screenshot({path:path.join(output,'desktop.png')})
  const cli=spawnSync(process.execPath,[path.join(root,'scripts/cli.mjs'),'inspect','--source',source],{encoding:'utf8',windowsHide:true});assert.equal(cli.status,0,cli.stderr);assert.equal(JSON.parse(cli.stdout).source_sha256,original);checks.cli_same_engine_without_ui_automation=true
- assert.equal(await page.locator('#operation-kind option').count(),19)
+ assert.equal(await page.locator('#operation-kind option').count(),Object.keys(JSON.parse(await fs.readFile(path.join(skill,'tool-catalog.json'),'utf8')).tools).length)
  await page.getByRole('button',{name:'建模工具',exact:true}).click();await page.locator('#operation-kind').selectOption('box');await page.locator('#operation-add').click()
  const extra=[{kind:'box',label:'共享序列柱',classification:'body',lo:[10,4,10],hi:[10,7,10],state:'stone_bricks'}]
  await page.locator('#operation-sequence').evaluate(el=>el.closest('details').open=true);await page.locator('#operation-sequence').fill(JSON.stringify(extra));await page.locator('#pattern-enabled').evaluate(e=>{e.checked=false;e.dispatchEvent(new Event('input',{bubbles:true}))})

@@ -1,4 +1,5 @@
 import {translateComponent} from './component-move.js'
+import {rotateAIComponent} from './ai-rotation.mjs'
 import {cameraView} from './view-contract.mjs'
 const ignored=new Set(['label','enabled','overwrite','write_group'])
 export function aiSignature(operations){return JSON.stringify(operations.map(op=>Object.fromEntries(Object.keys(op).filter(k=>!ignored.has(k)).sort().map(k=>[k,op[k]]))))}
@@ -14,14 +15,14 @@ export function aiComponentCamera(operations,hint={azimuth:45,elevation:25},aspe
  return cameraView({eye:target.map((v,i)=>v+direction[i]*distance),target,up:Math.abs(hint.elevation)>89?[0,0,-1]:[0,1,0],fov})
 }
 export function aiGroupMatches(group,settings){return !!group&&Array.isArray(group.base)&&group.base.length>0&&aiSignature(settings.operations.slice(group.start,group.start+group.base.length))===aiSignature(group.applied)}
-export function moveAIGroup(group,settings,offset,size,overwrite=false){
+export function moveAIGroup(group,settings,offset,size,overwrite=false,turns=group.quarter_turns??0){
  if(!aiGroupMatches(group,settings))throw Error('这组构件的几何步骤已手动改变；请撤销修改或重新载入构件')
- const current=settings.operations.slice(group.start,group.start+group.base.length),operations=translateComponent(group.base,offset,size)
+ const current=settings.operations.slice(group.start,group.start+group.base.length),operations=translateComponent(rotateAIComponent(group.base,turns),offset,size)
  for(const [i,op]of operations.entries()){op.label=current[i].label;op.overwrite=!!overwrite;if(current[i].enabled!==undefined)op.enabled=current[i].enabled;else delete op.enabled}
  return {operations,...aiBounds(operations)}
 }
 export function aiSurfaceOffset(group,picked,size){
- const bounds=aiBounds(group.base),shape=bounds.hi.map((n,i)=>n-bounds.lo[i]+1),normal=picked.normal??[0,1,0],axis=normal.findIndex(n=>n!==0)
+ const bounds=aiBounds(rotateAIComponent(group.base,group.quarter_turns??0)),shape=bounds.hi.map((n,i)=>n-bounds.lo[i]+1),normal=picked.normal??[0,1,0],axis=normal.findIndex(n=>n!==0)
  if(axis<0||normal.filter(n=>n!==0).length!==1)throw Error('请选择方块的平整表面')
  const lo=picked.position.map((n,i)=>i===axis?(normal[i]>0?n+1:n-shape[i]):n-Math.floor(shape[i]/2))
  if(lo.some((n,i)=>n<0||n+shape[i]>size[i]))throw Error('这个表面放不下整组构件，请换一个位置或使用 XYZ 偏移')

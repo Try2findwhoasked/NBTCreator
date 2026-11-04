@@ -1,3 +1,6 @@
+import {linkRange} from './range-control.js'
+
+import {initRoadPanel} from './road-panel.js'
 import {initProtectionView} from './protection-view.js'
 import {initWalkView} from './walk-view.js'
 import {initCommentTasks} from './comment-tasks.js'
@@ -110,6 +113,8 @@ percent('weather-fields', 'moss', '表面长苔比例', 12)
 percent('weather-fields', 'cracks', '表面开裂比例', 6)
 percent('floor-fields', 'floor-fraction', '地面破损比例', 4)
 percent('floor-fields', 'slab-share', '破损位置中使用半砖的比例', 85)
+const structureMoveSync=['x','y','z'].map((axis,i)=>{const input=$('move-'+axis),slider=document.createElement('input');slider.type='range';slider.id='move-'+axis+'-range';slider.setAttribute('aria-label','局部结构移动'+axis.toUpperCase()+'滑块');input.after(slider);return linkRange(input,slider,()=>{const size=state.info?.size[i]??65,lo=Number($('lo-'+axis).value),hi=Number($('hi-'+axis).value);return [-lo,size-1-hi]})})
+
 
 // Show one parameter group at a time; values remain mounted when switching.
 const toolPanels=[...document.querySelectorAll('#settings > .card')]
@@ -234,6 +239,7 @@ function restore(s) {
   setValue('floor-excludes',JSON.stringify(s.floor.exclude_boxes,null,2));setValue('slab-overrides',JSON.stringify(s.floor.slab_overrides,null,2)); updateCount()
 }
 function updateCount() {
+  structureMoveSync.forEach(sync=>sync())
   operationEditor?.sync()
   let extra=0;try{const operations=JSON.parse($('operation-sequence').value);if(Array.isArray(operations))extra=operations.filter(op=>op?.enabled!==false).length}catch{}
   const count = ['structure-enabled','replace-enabled','pattern-enabled','weather-enabled','floor-enabled'].filter(id => $(id).checked).length+extra
@@ -879,10 +885,10 @@ async function withPreviewCommit(action){
 function updateComponentRange(settings,bounds){
  if(!['structure','replace','pattern','weathering','floor'].some(key=>settings[key]?.enabled)){settings.whole_region=false;settings.lo=bounds.lo;settings.hi=bounds.hi}
 }
-async function moveRecentAI(offset,overwrite=$('ai-allow-overwrite')?.checked??false){return withPreviewCommit(async()=>{
+async function moveRecentAI(offset,overwrite=$('ai-allow-overwrite')?.checked??false,turns=currentAIGroup()?.quarter_turns??0){return withPreviewCommit(async()=>{
  const group=currentAIGroup();if(!group)throw Error('请先载入一组AI构件；若已手动更改几何步骤，请撤销该更改或重新载入')
- const before=gather(),moved=moveAIGroup(group,before,offset,state.info.size,overwrite),next=structuredClone(before);next.operations.splice(group.start,group.base.length,...moved.operations);updateComponentRange(next,moved)
- await commitPreviewSettings(next,'移动 AI 构件：'+offset.join(', '));group.applied=structuredClone(moved.operations);group.offset=[...offset];group.overwrite=!!overwrite;notifyAIComponent()
+ const before=gather(),moved=moveAIGroup(group,before,offset,state.info.size,overwrite,turns),next=structuredClone(before);next.operations.splice(group.start,group.base.length,...moved.operations);updateComponentRange(next,moved)
+ await commitPreviewSettings(next,'调整 AI 构件：'+offset.join(', ')+' · '+(turns*90)+'°');group.applied=structuredClone(moved.operations);group.offset=[...offset];group.quarter_turns=turns;group.overwrite=!!overwrite;notifyAIComponent()
 })}
 const aiPromptArchiveId=crypto.randomUUID().replaceAll('-','')
 apiAssistant=initApiAssistant({
@@ -890,7 +896,7 @@ apiAssistant=initApiAssistant({
  captureViewport,isBusy:()=>state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring||state.transforming||state.versionComparing,
  context:()=>{const s=gather(),info=state.info;if(!info)return null;return {size:info.size,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?info.size.map(v=>v-1):s.hi,materials:info.materials,allow_overwrite:$('ai-allow-overwrite')?.checked??false}},
  binding:()=>JSON.stringify({source:state.info?.source,source_sha256:state.info?.source_sha256,settings:gather()}),
- componentState:()=>{const group=currentAIGroup();return group?{offset:group.offset??[0,0,0],bounds:aiBounds(group.applied),overwrite:group.overwrite,structure_name:group.structure_name??group.base[0].label,camera_details:componentView(group)}:null},
+ componentState:()=>{const group=currentAIGroup();return group?{offset:group.offset??[0,0,0],quarter_turns:group.quarter_turns??0,size:state.info.size,base_bounds:aiBounds(group.base),bounds:aiBounds(group.applied),overwrite:group.overwrite,structure_name:group.structure_name??group.base[0].label,camera_details:componentView(group)}:null},
  focusComponent:async()=>{const group=currentAIGroup(),viewer=$('viewer').contentWindow?.nbtModeler;if(!group||state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring||state.mode!=='3d'||viewer?.status!=='ready')throw Error('请先完成构件预览并打开3D');await viewer.setCamera(componentView(group));$('view-hint').textContent=(group.structure_name??group.base[0].label)+' · 构件观察视角';editSession?.schedule()},
  operationChoices:()=>{try{return gather().operations.map((op,index)=>({index,label:op.label,kind:op.kind}))}catch{return[]}},
  adoptComponent:(start,end)=>{if(state.busy||state.previewBusy||state.commitBusy)throw Error('请等待当前建模任务完成');const settings=gather(),operations=settings.operations.slice(start,end+1),write_group=crypto.randomUUID();if(!Number.isInteger(start)||!Number.isInteger(end)||start<0||end<start||end>=settings.operations.length||operations.some(op=>!['box','beam','frame'].includes(op.kind)))throw Error('请选择一组连续的AI方块、梁或边框步骤');state.lastAIGroup={source:state.info.source,source_sha256:state.info.source_sha256,start,base:operations.map(op=>({...structuredClone(op),write_group})),applied:structuredClone(operations),offset:[0,0,0],overwrite:$('ai-allow-overwrite').checked};notifyAIComponent();editSession?.schedule()},
@@ -1016,7 +1022,7 @@ function captureEditSession(){
  const comparison=state.mode==='3d'?(state.comparisonSide==='after'&&meta?.geometry_sha256===state.preview?.geometry_sha256?'after':'before'):null
  const preview=comparison==='after'&&state.previewSettings&&state.previewSettings!==JSON.stringify(lastValidSessionSettings)?JSON.parse(state.previewSettings):undefined
  let raw=$('operation-sequence').value;try{if(JSON.stringify(JSON.parse(raw))===JSON.stringify(lastValidSessionSettings.operations))raw=null}catch{}
- const group=currentAIGroup(),ai_component=group?Object.fromEntries(['start','base','applied','offset','overwrite','structure_name','camera'].filter(key=>group[key]!==undefined).map(key=>[key,structuredClone(group[key])])):null
+ const group=currentAIGroup(),ai_component=group?Object.fromEntries(['start','base','applied','offset','overwrite','quarter_turns','structure_name','camera'].filter(key=>group[key]!==undefined).map(key=>[key,structuredClone(group[key])])):null
  return {source:state.info.source,source_sha256:state.info.source_sha256,state:{settings:lastValidSessionSettings,operations_text:raw,controls,view:{mode:state.mode,quality:$('three-quality').value,camera:meta?.camera,cuts:meta?.cuts??[],layer:meta?.layer??$('view-layer').value,cut:Number($('view-cut').value),show_selection:$('show-selection').checked,image_hash:state.selectedImage?.image_sha256??null,image_name:state.selectedImage?.name??null,comparison,preview_settings:preview},drafts,ai_component,ai_candidate:apiAssistant?.capture()??null}}
 }
 async function restoreEditSession(saved,recovered={}){
@@ -1095,3 +1101,5 @@ $('export-feedback').addEventListener('click',handle(async()=>{
   }
   $('feedback-file').textContent='意见文件：'+result.file
 }))
+
+initRoadPanel({context:()=>{if(!state.info)return null;const s=gather();return {lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?state.info.size.map(n=>n-1):s.hi,budget:s.max_changed_blocks,settings:JSON.stringify(s)}},apply:async(op,expected)=>withPreviewCommit(async()=>{const next=gather();if(JSON.stringify(next)!==expected)throw Error("建筑参数已变化，请重新铺设");next.operations.push(op);await commitPreviewSettings(next,"自动道路铺设")}),report:text=>status(text,"error")})

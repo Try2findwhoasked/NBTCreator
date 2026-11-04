@@ -26,7 +26,7 @@ delete env.NBTCREATOR_PYTHON;delete env.PYTHONPATH;delete env.PYTHONHOME
 function run(args){return execFileSync(exe,args,{env,encoding:'utf8',windowsHide:true,timeout:180000,maxBuffer:4*1024*1024})}
 const probe=run(['-e',`const {resolvePython,configureRenderRuntime}=require(${JSON.stringify(path.join(app,'desktop/python-runtime.cjs'))});configureRenderRuntime(${JSON.stringify(app)},process.execPath);const {execFileSync}=require('node:child_process');const p=resolvePython(${JSON.stringify(app)});console.log(execFileSync(p,['-c','import numpy,PIL;print(numpy.__version__,PIL.__version__)'],{encoding:'utf8'}));`])
 assert.ok(probe.includes('2.4.2 12.1.0'))
-const caps=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'capabilities']));assert.equal(Object.keys(caps.tools).length,19)
+const caps=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'capabilities']));assert.equal(Object.keys(caps.tools).length,Object.keys(JSON.parse(await fs.readFile(path.join(app,'.agents/skills/minecraft-nbt-modeler/tool-catalog.json'),'utf8')).tools).length)
 const workspace=path.join(output,'workspace');await fs.mkdir(workspace)
 run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'exposure','apply'])
 assert.ok((await fs.readFile(path.join(workspace,'.agents/skills/nbtcreator-workspace/SKILL.md'),'utf8')).includes('.nbtcreator/runtimes'))

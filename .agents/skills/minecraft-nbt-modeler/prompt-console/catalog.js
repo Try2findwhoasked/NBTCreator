@@ -546,6 +546,38 @@ globalThis.NbtToolCatalog = {
         "overwrite": false
       },
       "palette为完整状态数组；voxels为相对lo的[x,y,z,材质编号]，最多65536格。默认拒绝冲突；墙层与主体拆为不同操作。"
+    ],
+    "auto_road": [
+      "自动道路铺设",
+      {
+        "lo": [
+          4,
+          3,
+          4
+        ],
+        "hi": [
+          25,
+          3,
+          25
+        ],
+        "start": [
+          6,
+          3,
+          6
+        ],
+        "end": [
+          23,
+          3,
+          23
+        ],
+        "width": 3,
+        "depth": 1,
+        "route": "straight",
+        "state": "stone_bricks",
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "起终点Y为路面高度且须相同；straight / x_first / z_first自动生成连续道路，宽1～16、厚1～8，完整路面须在选区内；覆盖已有路面须显式开启，不自动避障。"
     ]
   },
   "labels": {
