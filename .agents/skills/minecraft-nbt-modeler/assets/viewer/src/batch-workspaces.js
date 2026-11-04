@@ -17,8 +17,9 @@ export function initBatchWorkspaces({host,api,getModels,openModel,previewModel,r
  const $=id=>dialog.querySelector('#'+id)
  let tasks=[],candidates=[],links=new Map(),selected='',selectedCandidate='',pending=false,root='',generation=0,loaded=false
  const report=text=>$('batch-workspaces-message').textContent=text
- const safe=action=>async()=>{if(pending)return;pending=true;dialog.setAttribute('aria-busy','true');try{await action()}catch(error){report(error.message)}finally{pending=false;dialog.removeAttribute('aria-busy')}}
- const button=(text,action,props={})=>{const node=element('button',text);node.type='button';Object.assign(node,props);node.onclick=safe(action);return node}
+ const syncLock=()=>{for(const node of dialog.querySelectorAll('button,input'))if(node.id!=='batch-workspaces-close')node.disabled=pending||node.dataset.unavailable==='true'}
+ const safe=action=>async()=>{if(pending)return;pending=true;dialog.setAttribute('aria-busy','true');syncLock();try{await action()}catch(error){report(error.message)}finally{pending=false;dialog.removeAttribute('aria-busy');syncLock()}}
+ const button=(text,action,props={})=>{const node=element('button',text);node.type='button';Object.assign(node,props);node.dataset.unavailable=String(!!props.disabled);node.disabled=pending||!!props.disabled;node.onclick=safe(action);return node}
  const pathRow=path=>{const row=element('p',path,'batch-actual-path');row.title=path;return row}
  function reindex(){links=new Map();for(const task of tasks)for(const item of task.models){const path=key(item.absolute_source);if(!links.has(path))links.set(path,[]);links.get(path).push({task,item})}}
  async function refresh(){
@@ -55,7 +56,7 @@ export function initBatchWorkspaces({host,api,getModels,openModel,previewModel,r
  async function view(task,item,editing){
   await api('batches/locate',{id:task.id,kind:'model',item_id:item.id})
   const model=getModels().find(model=>key(model.source)===key(item.absolute_source))||{source:item.absolute_source,name_zh:item.name,object_name:item.name,size:item.size,geometry_sha256:item.geometry_sha256,relative_path:item.source,unverified:true}
-  if(editing)dialog.close();const result=await (editing?openModel(model):previewModel(model));if(result!==false)await seen(model.source)
+  if(editing)dialog.close();await (editing?openModel(model):previewModel(model))
  }
  async function seen(source){const matches=links.get(key(source))||[];for(const {task,item} of matches)if(item.is_new)await api('batches/ack',{id:task.id,model_ids:[item.id]});if(matches.length)await refresh()}
  async function open(source){if(!dialog.open)dialog.showModal();await refresh();if(source){const match=links.get(key(source))?.[0];if(match){selected=match.task.id;selectedCandidate='';draw()}}}
