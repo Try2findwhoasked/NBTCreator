@@ -98,3 +98,7 @@ CLI只输出源指纹、候选变化与统计，不落盘NBT、不批准精修�
 ## 环形与沿路径阵列
 
 `array_region` 从原快照复制，`source_anchor` 为源内的全局锚点，默认 lo。`mode=path` 的 points 是连续全局 XYZ 折线，spacing 为弧长间距，end_margins 为起止留白；最多 128 次放置。`mode=radial` 使用 centre/radius/count，start_angle=0 指向北，正角顺时针，sweep_angle 默认360度，完整圆不重复末端。位置四舍五入到整数网格，重复锚点及不同状态冲突拒绝。orientation=fixed 保持源朝向；cardinal 按路径切线或径向朝外取最近90度，仍使用现有保守状态变换，不提供任意角旋转。报告包含每个实际锚点及 quarter_turns，须看图检查体素近似。
+
+## 半格楼梯、坡道与平台
+
+`auto_stairs` 用整数 start/end（XZ 为行走格，Y 为玩家脚位高度）生成完整块与底半砖交替的半格台阶坡道。width=1..7；straight 要求同轴。switchback 用 flight_length，回程 end XZ 必须为 (start.x,start.z+width+2)。spiral 是方形环绕阶梯，centre/radius/turns 定义路径；起终点 XZ 为中心西北 radius 处。转角和两端保留平平台，空间不足明确拒绝。state 必须已知完整碰撞块，slab_state 必须底半砖。不会自动挖空头顶、添加栏杆或底部柱撑；逐对相邻脚位用实际碰撞检查，防止绕路误认证。结果是待看图候选，不代表游戏动态验证。

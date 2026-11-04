@@ -655,6 +655,38 @@
         "max_writes": 4096
       },
       "lo/hi为源；source_anchor默认lo。path按折线弧长布置；radial用centre/radius/count/start_angle/sweep_angle。cardinal朝向取最近90°，不支持任意角度状态旋转；位置量化碰撞和预算均预检。"
+    ],
+    "auto_stairs": [
+      "半格楼梯 / 坡道 / 平台",
+      {
+        "lo": [
+          0,
+          0,
+          0
+        ],
+        "hi": [
+          31,
+          15,
+          31
+        ],
+        "mode": "straight",
+        "start": [
+          4,
+          2,
+          4
+        ],
+        "end": [
+          20,
+          6,
+          4
+        ],
+        "width": 1,
+        "state": "stone_bricks",
+        "slab_state": "stone_brick_slab[type=bottom,waterlogged=false]",
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "start/end为整数玩家脚位（XZ取方块格，Y为脚底高度）；以半砖和完整块形成每次半格爬升。支持straight/switchback/spiral，转弯处平平台；逐段碰撞检查通过才返回候选。"
     ]
   },
   "labels": {
