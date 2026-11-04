@@ -1440,5 +1440,1040 @@ globalThis.NbtToolCatalog = {
     },
     "writes": "new component assets only; model changes remain candidate operations until explicit export",
     "knowledge": "component-assets; modelling-tools; shared creative preferences small_structure"
+  },
+  "operation_parameters": {
+    "geometry": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "geometry": {
+          "type": "object"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "box": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "hollow_box": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "thickness": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "frame": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "thickness": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "beam": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "array"
+        },
+        "end": {
+          "type": "array"
+        },
+        "state": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "replace": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "state": {
+          "type": "string"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "move_region": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "offset": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": false
+    },
+    "copy_region": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "offset": {
+          "type": "array"
+        },
+        "include_air": {
+          "type": "boolean"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "repeat_region": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "offset": {
+          "type": "array"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "include_air": {
+          "type": "boolean"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "transform_region": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "destination": {
+          "type": "array"
+        },
+        "quarter_turns": {
+          "type": "integer"
+        },
+        "mirror": {
+          "type": "string"
+        },
+        "move": {
+          "type": "boolean"
+        },
+        "include_air": {
+          "type": "boolean"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "morphology": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "iterations": {
+          "type": "integer"
+        },
+        "state": {
+          "type": "string"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "diffusion": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "seeds": {
+          "type": "array"
+        },
+        "steps": {
+          "type": "integer"
+        },
+        "decay": {
+          "type": "number"
+        },
+        "surface_only": {
+          "type": "boolean"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "state": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "explosion": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "centre": {
+          "type": "array"
+        },
+        "radius": {
+          "type": "integer"
+        },
+        "roughness": {
+          "type": "number"
+        },
+        "rays": {
+          "type": "integer"
+        },
+        "ray_length": {
+          "type": "integer"
+        },
+        "ray_width": {
+          "type": "number"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "scatter": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "fraction": {
+          "type": "number"
+        },
+        "spacing": {
+          "type": "integer"
+        },
+        "supported": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "pattern": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "action": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "scale": {
+          "type": "integer"
+        },
+        "fraction": {
+          "type": "number"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "palette": {
+          "type": "array"
+        },
+        "preserve_properties": {
+          "type": "boolean"
+        },
+        "shape_policy": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "surface_palette": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "palette": {
+          "type": "array"
+        },
+        "fraction": {
+          "type": "number"
+        },
+        "seed": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "weathering": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "from_states": {
+          "type": "array"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "moss": {
+          "type": "object"
+        },
+        "cracks": {
+          "type": "object"
+        },
+        "floor": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "auto_floor": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "profile": {
+          "type": "string"
+        },
+        "style_note": {
+          "type": "string"
+        },
+        "fraction": {
+          "type": "number"
+        },
+        "slab_share": {
+          "type": "number"
+        },
+        "patch_size": {
+          "type": "array"
+        },
+        "pit_depth": {
+          "type": "integer"
+        },
+        "route_margin": {
+          "type": "number"
+        },
+        "exclude_boxes": {
+          "type": "array"
+        },
+        "slab_overrides": {
+          "type": "object"
+        },
+        "seed": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "paste_component": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "palette": {
+          "type": "array"
+        },
+        "voxels": {
+          "type": "array"
+        },
+        "overwrite": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "auto_road": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "array"
+        },
+        "end": {
+          "type": "array"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "depth": {
+          "type": "integer"
+        },
+        "route": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "selection_replace": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "selection": {
+          "type": "string"
+        },
+        "seed_position": {
+          "type": "array"
+        },
+        "match": {
+          "type": "string"
+        },
+        "faces": {
+          "type": "array"
+        },
+        "thickness": {
+          "type": "integer"
+        },
+        "state": {
+          "type": "string"
+        },
+        "max_writes": {
+          "type": "integer"
+        },
+        "from_states": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": false
+    },
+    "align_region": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "target_lo": {
+          "type": "array"
+        },
+        "target_hi": {
+          "type": "array"
+        },
+        "axes": {
+          "type": "array"
+        },
+        "move": {
+          "type": "boolean"
+        },
+        "include_air": {
+          "type": "boolean"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        },
+        "source_anchor": {
+          "type": "array"
+        },
+        "target_anchor": {
+          "type": "array"
+        },
+        "destination": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": false
+    },
+    "array_region": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "points": {
+          "type": "array"
+        },
+        "spacing": {
+          "type": "integer"
+        },
+        "end_margins": {
+          "type": "array"
+        },
+        "orientation": {
+          "type": "string"
+        },
+        "include_air": {
+          "type": "boolean"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        },
+        "source_anchor": {
+          "type": "array"
+        },
+        "centre": {
+          "type": "array"
+        },
+        "radius": {
+          "type": "integer"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "start_angle": {
+          "type": "integer"
+        },
+        "sweep_angle": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "auto_stairs": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "start": {
+          "type": "array"
+        },
+        "end": {
+          "type": "array"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "state": {
+          "type": "string"
+        },
+        "slab_state": {
+          "type": "string"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        },
+        "flight_length": {
+          "type": "integer"
+        },
+        "centre": {
+          "type": "array"
+        },
+        "radius": {
+          "type": "integer"
+        },
+        "turns": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "terrain_road": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "start": {
+          "type": "array"
+        },
+        "end": {
+          "type": "array"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "terrain_states": {
+          "type": "array"
+        },
+        "state": {
+          "type": "string"
+        },
+        "stair_state": {
+          "type": "string"
+        },
+        "max_cut": {
+          "type": "integer"
+        },
+        "max_fill": {
+          "type": "integer"
+        },
+        "max_bridge_span": {
+          "type": "integer"
+        },
+        "max_writes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "auto_roof": {
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "lo": {
+          "type": "array"
+        },
+        "hi": {
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "roof": {
+          "type": "string"
+        },
+        "ridge_axis": {
+          "type": "string"
+        },
+        "rise": {
+          "type": "integer"
+        },
+        "eaves": {
+          "type": "integer"
+        },
+        "thickness": {
+          "type": "integer"
+        },
+        "finish": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "slab_state": {
+          "type": "string"
+        },
+        "stair_state": {
+          "type": "string"
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "max_writes": {
+          "type": "integer"
+        },
+        "footprint": {
+          "type": "array"
+        },
+        "break_fraction": {
+          "type": "number"
+        },
+        "break_height": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    }
   }
 };

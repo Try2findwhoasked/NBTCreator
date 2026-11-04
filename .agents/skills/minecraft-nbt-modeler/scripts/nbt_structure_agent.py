@@ -53,7 +53,7 @@ def build(workspace, spec):
     group=str(uuid.uuid4())
     for op in spec.get('operations',[]):
         if not isinstance(op,dict) or op.get('kind') not in catalog['tools']:raise ValueError('未知结构工具')
-        allowed=set(catalog['common'])|set(catalog['tools'][op['kind']][1])|{'kind','overwrite'}
+        allowed=set(catalog['common'])|set(catalog['operation_parameters'][op['kind']]['properties'])|{'kind','overwrite'}
         if set(op)-allowed:raise ValueError('结构步骤含未开放字段（不接收代码、路径或写入组）')
         operations.append(dict(op,write_group=group) if op['kind'] in ('box','beam','frame','hollow_box','geometry') else dict(op))
     for placed in spec.get('placements',[]):
