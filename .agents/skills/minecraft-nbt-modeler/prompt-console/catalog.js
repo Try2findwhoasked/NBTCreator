@@ -602,6 +602,32 @@ globalThis.NbtToolCatalog = {
         "max_writes": 4096
       },
       "从seed_position六邻接选取同状态或实体；surface按暴露朝向选面，thickness仅向实体内扩展。保护及预算继续生效。"
+    ],
+    "align_region": [
+      "对齐 / 锚点 / 落地吸附",
+      {
+        "mode": "align",
+        "target_lo": [
+          24,
+          4,
+          4
+        ],
+        "target_hi": [
+          39,
+          15,
+          19
+        ],
+        "axes": [
+          "center",
+          "min",
+          "center"
+        ],
+        "move": false,
+        "include_air": false,
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "lo/hi是源包围盒；align按轴min/center/max/keep对齐；anchor指定源和目标全局锚点；ground按destination的XZ和最高搜索Y落地，拒绝不平整或未知支承。归属请显式设置。"
     ]
   },
   "labels": {

@@ -90,3 +90,7 @@ CLI只输出源指纹、候选变化与统计，不落盘NBT、不批准精修�
 ## 连通与表面选区
 
 `selection_replace` 的 `selection=connected/surface/connected_surface`、`seed_position`、`match=state/solid` 控制六邻接选区。surface 无需种子；其他模式从种子开始，默认精确同状态。`from_states` 进一步过滤，`faces` 指定暴露于真实空气或模型外部的方向（选区边缘不视为空气）。`thickness=1..16` 在表面模式向合格实体内部扩展，不跨空气。使用 `state=air` 可挖除。`nbt_selection.select_voxels` 是只读坐标查询 API，编辑仍通过共用预览与显式导出流程。
+
+## 对齐与吸附
+
+`align_region` 使用源 `lo/hi` 的快照平移，不旋转状态。`mode=align` 的 `target_lo/target_hi` 和三个 `axes=min/center/max/keep` 定义各轴对齐；半格中心偏移明确拒绝。`mode=anchor` 使用全局 `source_anchor/target_anchor`。`mode=ground` 以 `destination` 的 XZ 为目标包围盒最小位置，Y 为向下搜索起点；只接受已知完整方块支承，逐源实体列的最低格需要一致的落地偏移，不自动挖地或悬空。move/include_air/overwrite 均为显式布尔。墙和主体请分开操作并明确 classification，inherit 仍表示保留目标原归属。
