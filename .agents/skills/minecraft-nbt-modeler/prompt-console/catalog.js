@@ -657,6 +657,38 @@ globalThis.NbtToolCatalog = {
       "max_search_poses": 250000
     }
   },
+  "knowledge_sources": {
+    "builtin:design": {
+      "label": "整体创作原则",
+      "file": "design-principles.md",
+      "summary": "设计独立空间构想、结构层次、主题节点与留白；避免只换材质或复制同一种房型。",
+      "use": "首次初稿、整体重设计、纠正重复布局"
+    },
+    "builtin:space": {
+      "label": "空间与构造细节",
+      "file": "spatial-detail-design.md",
+      "summary": "天花承托、地板分区、墙面厚度、门窗收口及三者交接，指导细节主次和尺度。",
+      "use": "完整初稿、小型构件、细节方案"
+    },
+    "builtin:scale": {
+      "label": "玩家尺度",
+      "file": "player-scale.md",
+      "summary": "按普通玩家身体与碰撞尺度考虑净高、通路、平台、楼梯和可达性。",
+      "use": "所有涉及玩家通行的空间和构件"
+    },
+    "builtin:tools": {
+      "label": "建模工具说明",
+      "file": "modelling-tools.md",
+      "summary": "几何、复制、旋转、扩散与破坏等完整工具参数；内部小型结构只开放其中的受限子集。",
+      "use": "表单工具规划；不代表AI获得全部工具执行权限"
+    },
+    "builtin:delivery": {
+      "label": "输出与归档规范",
+      "file": "output-storage.md",
+      "summary": "nbt_models形状归档、中文描述、日期版本命名及master/runtime/delivery等分区。",
+      "use": "完整任务交付规划；小型结构的NBT封装由脚本负责"
+    }
+  },
   "commands": {
     "inspect": "nbt_task.py",
     "snapshot": "nbt_task.py",
@@ -682,7 +714,8 @@ globalThis.NbtToolCatalog = {
     "prompts": "nbt_prompts.py",
     "feedback-tasks": "nbt_feedback_tasks.py",
     "batches": "nbt_batches.py",
-    "selection-edit": "nbt_selection_edit.py"
+    "selection-edit": "nbt_selection_edit.py",
+    "retrieve": "nbt_retrieval.py"
   },
   "building_shapes": {
     "single": {
@@ -1018,6 +1051,14 @@ globalThis.NbtToolCatalog = {
                     },
                     "overwrite": {
                       "type": "boolean"
+                    },
+                    "material_map": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string",
+                        "maxLength": 250
+                      },
+                      "description": "Map up to 32 original canonical block states to replacements before rotation; source asset remains unchanged."
                     }
                   },
                   "required": [
@@ -1059,6 +1100,24 @@ globalThis.NbtToolCatalog = {
             "required": [
               "name",
               "size"
+            ],
+            "additionalProperties": false
+          },
+          "reference_bundle": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "[a-f0-9]{32}"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "[a-f0-9]{64}"
+              }
+            },
+            "required": [
+              "id",
+              "sha256"
             ],
             "additionalProperties": false
           }

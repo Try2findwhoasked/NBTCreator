@@ -14,14 +14,8 @@ flows.draft.rules+='\n声明整体尺寸与有效占地；闭合外壳后检查�
 flows.workbench.rules+='\n坐标和工具步骤只是候选，按真实模型核对；只改用户需要的设计字段，保持未调整步骤。发现缺参数时明确列出，不捏造验证。'
 flows.prompt.rules+='\n明确用途、玩家活动、空间关系、构造连接和交付阶段。区分已有事实、设计建议与待验证项，输出可修改的中文说明。'
 flows.structure.rules+='\n局部编辑只允许已开放的结构/换块参数，移动目标也必须界内。候选必须通过源哈希、合法状态、保护和预算检查后预览；保存建筑由用户另行导出。'
-const builtins={
- 'builtin:design':{label:'整体创作原则',file:'design-principles.md'},
- 'builtin:space':{label:'空间与构造细节',file:'spatial-detail-design.md'},
- 'builtin:scale':{label:'玩家尺度',file:'player-scale.md'},
- 'builtin:tools':{label:'建模工具说明',file:'modelling-tools.md'},
- 'builtin:delivery':{label:'输出与归档规范',file:'output-storage.md'}
-}
-function createInternalAI({workspace,skill}){
+const builtins=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').knowledge_sources
+function createInternalAI({workspace,skill,retrieve}){
  const styles=createAIStyle({workspace,skill})
  const base=()=>path.join(workspace(),'.nbtcreator','internal-ai'),file=()=>path.join(base(),'config.json')
  const defaults=()=>({schema_version:1,workflows:Object.fromEntries(Object.entries(flows).map(([key,value])=>[key,{rules:value.rules,instruction:'',knowledge:[],attachViewport:false}])),documents:[]})
@@ -41,17 +35,13 @@ function createInternalAI({workspace,skill}){
   for(const source of files){if(!['.md','.txt'].includes(path.extname(source).toLowerCase()))throw Error('仅支持Markdown和TXT');const bytes=await fs.readFile(source);if(bytes.length>256*1024||bytes.includes(0))throw Error('单个资料须为不超过256KiB的文本');const id=crypto.createHash('sha256').update(bytes).digest('hex');if(c.documents.some(d=>d.id===id))continue;const relative=`knowledge/${id}.md`;await fs.writeFile(path.join(base(),relative),bytes,{flag:'wx'}).catch(e=>{if(e.code!=='EEXIST')throw e});c.documents.push({id,path:relative,label:path.basename(source).slice(0,150)})}
   await persist(c);return show()
  }
- async function context(key){if(!flows[key])throw Error('未知AI工作流');const c=validate(await load()),flow=c.workflows[key],knowledge=[];let total=0
-  for(const id of flow.knowledge){const b=builtins[id],d=c.documents.find(d=>d.id===id);const content=await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8');total+=content.length;if(total>48000)throw Error('本工作流资料总量超过48000字，请减少选中的文档');knowledge.push({label:b?.label??d.label,content})}
+ async function context(key,request={}){if(!flows[key])throw Error('未知AI工作流');const c=validate(await load()),flow=c.workflows[key],knowledge=[];let total=0
+  let bundle;if(request.retrieval){if(!retrieve)throw Error('当前环境无法校验参考集合');bundle=await retrieve({...request.retrieval,workflow:key});if(bundle.workflow!==key||!Array.isArray(bundle.sources)||!Array.isArray(bundle.knowledge)||!Array.isArray(bundle.references))throw Error('参考集合工作流或内容无效');knowledge.push(...bundle.knowledge)}
+  for(const id of request.retrieval?[]:flow.knowledge){const b=builtins[id],d=c.documents.find(d=>d.id===id);const content=await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8');total+=content.length;if(total>48000)throw Error('本工作流资料总量超过48000字，请减少选中的文档');knowledge.push({label:b?.label??d.label,content})}
   const preference=await styles.context(key)
-  return {style:preference.values,style_prompt:preference.prompt,attachViewport:flow.attachViewport===true,workflow:key,workflow_steps:flows[key].steps,base_rules:flows[key].rules,...(flow.rules===flows[key].rules?{}:{rules:flow.rules}),instruction:flow.instruction,knowledge}
+  return {style:preference.values,style_prompt:preference.prompt,attachViewport:flow.attachViewport===true,workflow:key,workflow_steps:flows[key].steps,base_rules:flows[key].rules,...(flow.rules===flows[key].rules?{}:{rules:flow.rules}),instruction:flow.instruction,knowledge,...(bundle?{reference_sources:bundle.sources,retrieved_assets:bundle.references}:{})}
  }
- async function preview(id){const c=validate(await load()),b=builtins[id],d=c.documents.find(d=>d.id===id);if(!b&&!d)throw Error('未知内部资料');return {title:b?.label??d.label,recipient:'仅在勾选并保存后，随对应工作流发送全文给已配置的 API。',text:await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8')}}
+ async function preview(id){const c=validate(await load()),b=builtins[id],d=c.documents.find(d=>d.id===id);if(!b&&!d)throw Error('未知内部资料');return {title:b?.label??d.label,recipient:'仅在勾选并保存后，默认随对应工作流发送全文；使用本地检索集合后只发送所选片段给已配置的 API。',text:await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8')}}
  return {show,save,importDocuments,context,preview}
 }
-Object.assign(builtins['builtin:design'],{summary:'设计独立空间构想、结构层次、主题节点与留白；避免只换材质或复制同一种房型。',use:'首次初稿、整体重设计、纠正重复布局'})
-Object.assign(builtins['builtin:space'],{summary:'天花承托、地板分区、墙面厚度、门窗收口及三者交接，指导细节主次和尺度。',use:'完整初稿、小型构件、细节方案'})
-Object.assign(builtins['builtin:scale'],{summary:'按普通玩家身体与碰撞尺度考虑净高、通路、平台、楼梯和可达性。',use:'所有涉及玩家通行的空间和构件'})
-Object.assign(builtins['builtin:tools'],{summary:'几何、复制、旋转、扩散与破坏等完整工具参数；内部小型结构只开放其中的受限子集。',use:'表单工具规划；不代表AI获得全部工具执行权限'})
-Object.assign(builtins['builtin:delivery'],{summary:'nbt_models形状归档、中文描述、日期版本命名及master/runtime/delivery等分区。',use:'完整任务交付规划；小型结构的NBT封装由脚本负责'})
 module.exports={createInternalAI,flows}

@@ -47,6 +47,10 @@ python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool struct
 
 保存资产后按structure_place返回的operations走现有模型preview/validate/新版本手动导出流程；落地位置仍需真实源哈希、保护、占用和预算检查。观察机位由脚本补齐，不声明玩家站立或无遮挡。独立资产预览与保存不自动写出NBT，也不授予精修批准。
 
+## 检索相关资产与适配
+
+用 [本地参考检索](reference-retrieval.md) 按任务与尺寸推荐资产、挑选工作流已启用的资料片段，并生成带哈希的引用集合。placements 可用 material_map 在旋转前映射至多32个原始状态，保留原资产不变；structure_preview 的可选 reference_bundle 绑定资料与资产出处，显式保存后记录在新资产配方中。
+
 ## 保存与读取
 
 ```powershell

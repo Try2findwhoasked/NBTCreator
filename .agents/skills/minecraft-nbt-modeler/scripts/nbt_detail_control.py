@@ -732,6 +732,7 @@ def main():
     cmd = sub.add_parser('project-batch');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','create','get','run','retry','cancel'],required=True);cmd.add_argument('--request',type=Path)
     cmd = sub.add_parser('protection-mask');cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('walk-inspect');cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
+    cmd = sub.add_parser('retrieve');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['search','source','bundle','read'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('selection-edit');cmd.add_argument('--action',choices=['context','compile'],required=True);cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
     cmd = sub.add_parser('thumbnails'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--cache',type=Path,required=True)
     sub.add_parser('defaults')
@@ -775,6 +776,9 @@ def main():
             output=reserve_output(args.output)
             write_json(output/'walk-inspection.json',result)
             result['report_file']=str(output/'walk-inspection.json')
+        elif args.command == 'retrieve':
+            from nbt_retrieval import dispatch
+            result=dispatch(args.workspace,args.action,read_request(args.request))
         elif args.command == 'selection-edit':
             from nbt_selection_edit import dispatch
             result=dispatch(args.action,read_request(args.request),args.snapshot)

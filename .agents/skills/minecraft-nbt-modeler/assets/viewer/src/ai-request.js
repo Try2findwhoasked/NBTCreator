@@ -8,6 +8,7 @@ export async function requestAI(input,capture){
  const measure=async(key,operation)=>{const at=performance.now();try{return await operation()}finally{timings[key]=Math.round(performance.now()-at)}}
  try{
  const flow=input.mode==='workbench'&&input.context?.task==='draft'?'draft':input.mode
+ const retrieval=window.nbtReferencePicker?.receipt(flow)
  const config=await window.nbtDesktop.internalAIConfig(),settings=config.workflows[flow]
  const connection=await window.nbtDesktop.apiConfig()
  log=await activity({action:'start',workflow:flow,label:config.flows[flow].label,instruction:input.instruction.slice(0,12000),screenshot:!!settings.attachViewport,model:connection.model,provider:connection.provider})
@@ -18,12 +19,12 @@ export async function requestAI(input,capture){
   if(cancelled)throw Error('API请求已取消')
   await activity({action:'stage',id:log.id,phase:'api',message:viewport?'发送要求与视口截图，等待API返回':'发送文字要求，等待API返回'})
   if(cancelled)throw Error('API请求已取消')
-  const result=await measure('api_roundtrip_ms',()=>window.nbtDesktop.apiGenerate({...input,...(viewport?{viewport}:{})}))
+  const result=await measure('api_roundtrip_ms',()=>window.nbtDesktop.apiGenerate({...input,...(retrieval?{retrieval}:{}),...(viewport?{viewport}:{})}))
   apiMetrics=result?.api_metrics??result?.api_error?.api_metrics
   if(result?.api_error){const error=new Error(result.api_error.message);error.api_metrics=result.api_error.api_metrics;throw error}
   if(cancelled)throw Error('API请求已取消')
   timings.request_total_ms=Math.round(performance.now()-started)
-  await activity({action:'finish',id:log.id,status:'complete',api_metrics:result.api_metrics,timings,message:(result.api_metrics?.retried_compact?'输出达到上限后已精简重试成功；':'')+'API候选已返回并通过格式校验，尚未执行建筑导出',summary:result.summary||result.text?.slice(0,1200)||'',operations:result.settings_patch?.operations?.length??result.operations?.length??0})
+  await activity({action:'finish',id:log.id,status:'complete',api_metrics:result.api_metrics,timings,message:(result.api_metrics?.retried_compact?'输出达到上限后已精简重试成功；':'')+'API候选已返回并通过格式校验，尚未执行建筑导出',summary:result.summary||result.text?.slice(0,1200)||'',operations:result.settings_patch?.operations?.length??result.operations?.length??0,reference_sources:result.reference_sources})
   return {...result,activity_id:log.id}
  }catch(e){timings.request_total_ms=Math.round(performance.now()-started);if(log)try{await activity({action:'finish',id:log.id,status:/取消/.test(e.message)?'cancelled':'failed',api_metrics:e.api_metrics??apiMetrics,timings,message:e.message})}catch{}throw e}finally{inFlight=false}
 }

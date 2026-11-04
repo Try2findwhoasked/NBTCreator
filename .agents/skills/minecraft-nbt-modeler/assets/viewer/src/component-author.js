@@ -19,16 +19,18 @@ export function initComponentAuthor({actions,api,created}){
  <footer><span id="component-footer-hint">查看预览后保存到构件库，可在建筑中放置复用。</span><button id="component-write" class="primary" type="button" disabled>保存新资产</button></footer>`
  document.body.append(dialog)
  const $=id=>dialog.querySelector('#'+id),call=(tool,arguments_)=>api('components/agent',{tool,arguments:arguments_})
+ const references=document.createElement('button');references.id='component-references';references.type='button';references.textContent='检索并选择参考';$('component-generate').after(references);const referenceSources=document.createElement('div');referenceSources.id='component-reference-sources';referenceSources.className='ai-reference-sources';$('component-status').before(referenceSources);references.onclick=()=>{try{window.nbtReferencePicker.open({workflow:'component',query:$('component-instruction').value,size:context().size}).catch(error=>status(error.message,true))}catch(error){status(error.message,true)}};window.addEventListener('nbt-reference-change',event=>{if(event.detail==='component'){invalidate();const selected=window.nbtReferencePicker?.summary('component')??[];references.textContent='检索并选择参考'+(selected.length?'（'+selected.length+'）':'');references.title=selected.map(item=>item.label).join('、')}})
  let candidate=null,binding=null,epoch=0,phase=null
  const status=(message,error=false)=>{$('component-status').textContent=message;$('component-status').classList.toggle('error',error)}
- const fingerprint=()=>JSON.stringify(['component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec'].map(id=>$(id).value))
+ const fingerprint=()=>JSON.stringify(['component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec'].map(id=>$(id).value).concat(window.nbtReferencePicker?.receipt('component')??null))
  function invalidate(){candidate=null;binding=null;$('component-write').disabled=true}
- function lock(value,kind=null){phase=value?kind:null;for(const id of ['component-generate','component-copy-agent','component-preview','component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec'])$(id).disabled=value;$('component-close').disabled=value&&kind==='write';$('component-write').disabled=value||!candidate||binding!==fingerprint()||dialog.dataset.mode==='view'}
+ function lock(value,kind=null){phase=value?kind:null;for(const id of ['component-generate','component-copy-agent','component-preview','component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec','component-references'])$(id).disabled=value;$('component-close').disabled=value&&kind==='write';$('component-write').disabled=value||!candidate||binding!==fingerprint()||dialog.dataset.mode==='view'}
  function context(){const name=$('component-name').value.trim(),size=['x','y','z'].map(axis=>Number($('component-size-'+axis).value));if(!name||name.length>80||!size.every(n=>Number.isInteger(n)&&n>=1&&n<=64))throw Error('请填写名称和1～64格的整数尺寸');return {name,size,references:[]}}
  async function show(result,token){
   if(token!==epoch||!dialog.open)return
   candidate=null;binding=null
   $('component-preview-area').hidden=false;$('component-preview-empty').hidden=true;$('component-thumbnail').src=result.thumbnail;$('component-preview-name').textContent=result.name+' · '+result.size.join(' × ')+' · '+result.block_count+' 格'
+  window.nbtReferencePicker?.sources(referenceSources,result)
   $('component-view-info').textContent=JSON.stringify({name:result.name,size:result.size,content_sha256:result.content_sha256,camera:result.cameras[0],verification:result.verification},null,2)
   const frame=$('component-viewer')
   await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('独立结构3D预览加载超时')),60000);frame.onload=()=>Promise.resolve(frame.contentWindow?.nbtModeler?.ready).then(()=>{clearTimeout(timer);resolve()},error=>{clearTimeout(timer);reject(error)});frame.src='/index.html?embedded=1&quality=balanced&model_key='+encodeURIComponent(result.model_key)})
@@ -38,7 +40,7 @@ export function initComponentAuthor({actions,api,created}){
  }
  async function preview(spec,token){
   invalidate();status('正在通过共用引擎检查并生成独立结构…')
-  const result=await call('structure_preview',{spec});await show(result,token)
+  const result=await call('structure_preview',{spec,...(window.nbtReferencePicker?.receipt('component')?{reference_bundle:window.nbtReferencePicker.receipt('component')}:{})});await show(result,token)
   if(token!==epoch||!dialog.open)return
   $('component-name').value=result.name;for(const [i,axis]of ['x','y','z'].entries())$('component-size-'+axis).value=result.size[i]
   candidate=result;binding=fingerprint();status(`“${result.name}”已生成真实候选预览，共 ${result.block_count} 格；查看后可保存新资产`)
@@ -62,7 +64,7 @@ export function initComponentAuthor({actions,api,created}){
    if($('component-reference').value)c.references=[await call('structure_read',{id:$('component-reference').value})]
    const result=await requestAI({mode:'component',instruction,context:c},()=>{const viewer=$('component-viewer').contentWindow?.nbtModeler;if(viewer?.status!=='ready')throw Error('尚无独立结构视口；请先关闭本工作流截图开关或生成一次参数预览');return viewer.captureCurrent()})
    if(token!==epoch||!dialog.open)return
-   $('component-spec').value=JSON.stringify(result.spec,null,2);phase='preview'
+   window.nbtReferencePicker?.sources(referenceSources,result);$('component-spec').value=JSON.stringify(result.spec,null,2);phase='preview'
    await previewAI(result,()=>preview(result.spec,token))
   }catch(error){if(token===epoch)status(error.message,true)}finally{if(token===epoch)lock(false);else if(!dialog.open)phase=null}
  }
@@ -71,7 +73,7 @@ export function initComponentAuthor({actions,api,created}){
   try{if(!candidate||binding!==fingerprint())throw Error('参数已变化，请重新预览');lock(true,'write');const item=await call('structure_write',{preview_id:candidate.preview_id,preview_sha256:candidate.preview_sha256});dialog.close();await created(item)}catch(error){status(error.message,true)}finally{lock(false)}
  }
  $('component-copy-agent').onclick=()=>{
-  try{const c=context(),text=`请在当前Agent项目中读取 .agents/skills/nbtcreator-workspace/SKILL.md 和构件资产规范，使用共用 structure_* 工具创建独立结构。\n名称：${c.name}\n尺寸：${c.size.join(',')}\n要求：${$('component-instruction').value}\n参考资产编号：${$('component-reference').value||'未指定'}\n先调用 capabilities 查看 agent_tools。入口：python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool <工具名> --request <参数JSON>。先 structure_list/read；用 structure_preview 生成真实候选和图片，实际查看后再按授权 structure_write 保存新资产。structure_place 只返回参数化候选，按保护/预算、preview/validate 和显式新版本导出流程应用。不要生成代码、伪造看图批准或覆盖源。创作偏好使用 ai-style prompt --workflow component。`;if(window.nbtDesktop?.copyAgentPlan)window.nbtDesktop.copyAgentPlan(text).then(()=>status('外部 Agent 任务已复制')).catch(error=>status(error.message,true));else navigator.clipboard.writeText(text).then(()=>status('外部 Agent 任务已复制'))}catch(error){status(error.message,true)}
+  try{const c=context(),text=`请在当前Agent项目中读取 .agents/skills/nbtcreator-workspace/SKILL.md 和构件资产规范，使用共用 structure_* 工具创建独立结构。\n名称：${c.name}\n尺寸：${c.size.join(',')}\n要求：${$('component-instruction').value}\n参考资产编号：${$('component-reference').value||'未指定'}\n先调用 capabilities 查看 agent_tools。入口：python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool <工具名> --request <参数JSON>。如已选本地参考集合，先 retrieve read 核对集合及出处，结构预览时传入 reference_bundle；集合：${JSON.stringify(window.nbtReferencePicker?.receipt('component')??null)}。先 structure_list/read；用 structure_preview 生成真实候选和图片，实际查看后再按授权 structure_write 保存新资产。structure_place 只返回参数化候选，按保护/预算、preview/validate 和显式新版本导出流程应用。不要生成代码、伪造看图批准或覆盖源。创作偏好使用 ai-style prompt --workflow component。`;if(window.nbtDesktop?.copyAgentPlan)window.nbtDesktop.copyAgentPlan(text).then(()=>status('外部 Agent 任务已复制')).catch(error=>status(error.message,true));else navigator.clipboard.writeText(text).then(()=>status('外部 Agent 任务已复制'))}catch(error){status(error.message,true)}
  }
  return {open:()=>open.click(),view:async id=>{
   if(phase)throw Error('请等待当前结构任务完成')

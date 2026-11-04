@@ -59,6 +59,11 @@ def build(workspace, spec):
     for placed in spec.get('placements',[]):
         data=library.load(workspace,placed['id'])
         if placed['content_sha256']!=data['content_sha256']:raise ValueError('引用构件已变化，请重新读取')
+        mapping=placed.get('material_map',{})
+        if not isinstance(mapping,dict) or len(mapping)>32 or any(not isinstance(k,str) or not isinstance(v,str) for k,v in mapping.items()):raise ValueError('材质映射须为至多32项的状态名称映射')
+        if mapping:
+            from nbt_model import state
+            replacements={state(k):state(v) for k,v in mapping.items()};data={**data,'palette':[replacements.get(value,value) for value in data['palette']]};data.pop('content_sha256',None);data=library.validate(data)
         compiled=library.placement(data,placed['position'],size,placed.get('quarter_turns',0),placed.get('mirror'),placed.get('overwrite',False))
         operations.extend(compiled['operations'])
     if not operations:raise ValueError('独立结构须包含工具步骤或已有构件放置')
@@ -99,7 +104,7 @@ def _camera(data,hint):
                 up=[0,0,-1] if abs(hint.get('elevation',25))>89 else [0,1,0],fov=55)
 
 
-def preview(workspace,data,spec=None):
+def preview(workspace,data,spec=None,reference_sources=None):
     from nbt_assembly import Volume
     from nbt_refine import save_master
     from nbt_task import write_snapshot
@@ -114,10 +119,10 @@ def preview(workspace,data,spec=None):
     snapshot.write_text(json.dumps(view,ensure_ascii=False,separators=(',',':')),encoding='utf8')
     cameras=directory/'cameras.json';cameras.write_text(json.dumps([camera],ensure_ascii=False),encoding='utf8')
     image=directory/'thumbnail.jpg';library.thumbnail(data,image)
-    draft=directory/'draft.json';raw=json.dumps(dict(component=data,spec=spec),ensure_ascii=False,separators=(',',':')).encode('utf8');draft.write_bytes(raw)
+    draft=directory/'draft.json';raw=json.dumps(dict(component=data,spec=spec,reference_sources=reference_sources or []),ensure_ascii=False,separators=(',',':')).encode('utf8');draft.write_bytes(raw)
     return dict(preview_id=directory.name,preview_sha256=_preview_fingerprint(directory),content_sha256=data['content_sha256'],name=data['name'],size=data['size'],
                 block_count=len(data['blocks']),source=str(source),snapshot=str(snapshot),thumbnail=str(image),cameras=[camera],cameras_file=str(cameras),
-                verification=dict(block_states=True,bounds=True,design='pending_visual_review',routes='not_checked',game='not_checked'),model_modified=False)
+                verification=dict(block_states=True,bounds=True,design='pending_visual_review',routes='not_checked',game='not_checked'),model_modified=False,reference_sources=reference_sources or [])
 
 
 def dispatch(workspace,tool,arguments):
@@ -126,8 +131,22 @@ def dispatch(workspace,tool,arguments):
     _schema(arguments,definition['parameters'])
     if tool=='structure_list':return library.listing(workspace)
     if tool=='structure_read':return library.load(workspace,arguments['id'])
-    if tool=='structure_view':return preview(workspace,library.load(workspace,arguments['id']))
-    if tool=='structure_preview':return preview(workspace,build(workspace,arguments['spec']),arguments['spec'])
+    if tool=='structure_view':
+        data=library.load(workspace,arguments['id']);sources=[]
+        recipe=library.library_root(workspace)/'recipes'/(arguments['id']+'.json')
+        if recipe.is_file():
+            if recipe.stat().st_size>library.MAX_BYTES:raise ValueError('资产来源记录过大')
+            record=json.loads(recipe.read_text(encoding='utf-8-sig'))
+            if record.get('content_sha256')!=data['content_sha256']:raise ValueError('资产来源记录与当前内容不一致')
+            sources=record.get('reference_sources',[])
+            if not isinstance(sources,list) or len(sources)>16:raise ValueError('资产来源记录无效')
+        result=preview(workspace,data,reference_sources=sources);result['reference_history']=True;return result
+    if tool=='structure_preview':
+        sources=[]
+        if arguments.get('reference_bundle'):
+            from nbt_retrieval import dispatch as retrieve
+            sources=retrieve(workspace,'read',dict(arguments['reference_bundle'],workflow='component'))['sources']
+        return preview(workspace,build(workspace,arguments['spec']),arguments['spec'],sources)
     if tool=='structure_write':
         root=_draft_root(workspace).resolve();directory=(root/arguments['preview_id']).resolve();draft=(directory/'draft.json').resolve()
         if not directory.is_relative_to(root) or not draft.is_relative_to(root) or draft.stat().st_size>library.MAX_BYTES:raise ValueError('结构预览路径或大小无效')
@@ -135,7 +154,7 @@ def dispatch(workspace,tool,arguments):
         if _preview_fingerprint(directory)!=arguments['preview_sha256']:raise ValueError('预览已改变，请重新生成并查看')
         data=json.loads(raw);result=library.store(workspace,data['component'])
         recipes=library.library_root(workspace)/'recipes';recipes.mkdir(exist_ok=True)
-        (recipes/(result['id']+'.json')).write_text(json.dumps(dict(spec=data.get('spec'),preview_sha256=arguments['preview_sha256'],content_sha256=result['content_sha256']),ensure_ascii=False),encoding='utf8')
+        (recipes/(result['id']+'.json')).write_text(json.dumps(dict(spec=data.get('spec'),reference_sources=data.get('reference_sources',[]),preview_sha256=arguments['preview_sha256'],content_sha256=result['content_sha256']),ensure_ascii=False),encoding='utf8')
         return result
     data=library.load(workspace,arguments['id'])
     if arguments['content_sha256']!=data['content_sha256']:raise ValueError('构件内容已变化，请重新读取')

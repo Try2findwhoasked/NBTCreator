@@ -21,6 +21,7 @@ import {initAppSettings} from './app-settings.js'
 import {translateComponent} from './component-move.js'
 import {aiBounds,aiGroupMatches,moveAIGroup,aiSurfaceOffset,aiComponentCamera} from './ai-component.mjs'
 import {requestAI,cancelAI} from './ai-request.js'
+import {initReferencePicker} from './reference-picker.js'
 import '../../../prompt-console/catalog.js'
 import './control.css'
 import './prompt-panel.css'
@@ -181,6 +182,7 @@ async function captureViewport(isCancelled=()=>false){
  throw Error('没有可用的建模视口，请先打开3D或建筑图片，或关闭该工作流的截图开关')
 }
 let promptLoaded=false
+initReferencePicker({api})
 window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload)})
 // The iframe gets only prompt generation, never the native API/key management bridge.
 window.nbtPromptAI=Object.freeze({

@@ -58,10 +58,10 @@ async function boot(){
  await fs.mkdir(app.getPath('userData'),{recursive:true})
  const preferences=createAppSettings(()=>path.join(workspace,'.nbtcreator')),updater=createUpdater({directory:app.getPath('userData'),version:app.getVersion(),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
  let initialPreferences
- const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler')})
+ const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler'),retrieve:async input=>{const response=await net.fetch(new URL('/__detail__/retrieve/read',serverUrl).href,{method:'POST',headers:{'content-type':'application/json',origin:new URL(serverUrl).origin},body:JSON.stringify(input),redirect:'error'});const data=await response.json();if(!response.ok)throw Error(data.error||'参考集合无法读取');return data}})
  let api
  const workspaceApi=createWorkspaceApi({cancel:()=>api?.cancel()})
- api=createApiService({workflowContext:key=>workspaceApi.guardContext(()=>internalAI.context(key)),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
+ api=createApiService({workflowContext:(key,request)=>workspaceApi.guardContext(()=>internalAI.context(key,request)),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
  await api.load()
  for(const [channel,handler]of Object.entries({'api-config':()=>api.publicConfig(),'api-save':input=>api.save(input),'api-models':()=>api.models(),'api-cancel':()=>api.cancel()}))ipcMain.handle('nbt:'+channel,(event,input)=>{allowed(event);return workspaceApi.run(()=>handler(input))})
  // Electron serializes thrown errors without custom fields. Return a bounded

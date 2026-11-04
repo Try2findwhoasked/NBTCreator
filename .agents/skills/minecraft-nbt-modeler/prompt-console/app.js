@@ -93,6 +93,7 @@
    try{const c=await aiBridge.config();$('prompt-ai-indicator').textContent=c.enabled?'API 已启用':'API 未启用';if(!c.enabled)aiMessage('请先通过“API 设置”启用并保存连接。');}catch(e){aiMessage(e.message,true);}
  }
  document.querySelector('[data-tab=ai]').addEventListener('click',refreshAI);refreshAI();
+ $('prompt-ai-references').onclick=()=>{const flow=$('prompt-ai-mode').value==='draft'?'draft':$('prompt-ai-mode').value==='text'?'prompt':'workbench';const picker=window.parent?.nbtReferencePicker;if(picker)picker.open({workflow:flow,query:$('prompt-ai-instruction').value}).catch(error=>aiMessage(error.message,true));else aiMessage('本地检索在桌面版工作区提供',true)};
  $('prompt-ai-settings').onclick=()=>{if(aiBridge)aiBridge.settings();else aiMessage('API 设置在 Electron 桌面版主界面右上角提供。',true);};
  function sanitizedDesign(){
    const p=state.project,keys=['name','buildingShape','layout','circulation','stage','size','footprint','theme','purpose','integration','style','ceiling','floor','wall','props','preserve','budget'];
@@ -114,6 +115,7 @@
      if(candidateMode==='draft'&&(state.project.stage!=='draft'||state.project.source))throw Error('请先点击“新建初稿”，再生成完整初稿方案');
      if(input.mode==='workbench'){input.context.baseline_binding=await NbtPromptAIInput.bindingToken(before);if(binding()!==before)throw Error('方案已改变，请重新生成候选')}
      let result=input.mode==='workbench'?await aiBridge.generateWorkbench(input.instruction,input.context):await aiBridge.generate(input.instruction);
+     window.parent?.nbtReferencePicker?.sources($('prompt-ai-sources'),result);
      if(binding()!==before)throw Error('生成期间方案已改变，请基于当前方案重新生成');
      if(result.operation_patch)result={...result,operations:NbtPromptAIInput.mergeOperations(state.operations,result.operation_patch)};
      if(candidateMode==='text'&&(result.mode!=='prompt'||typeof result.text!=='string'||!result.text.trim()))throw Error('AI 返回内容无效');

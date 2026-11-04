@@ -15,6 +15,7 @@ import {createCatalogStore} from './catalog-store.mjs'
 import {createProjectStages} from './project-stages.mjs'
 import {createEditSessionStore} from './edit-session-store.mjs'
 import {createCommandStore} from './command-store.mjs'
+import {referenceSources} from './reference-sources.mjs'
 import {cleanApiMetrics,cleanTimings} from './ai-metrics.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
@@ -371,6 +372,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         await fs.writeFile(file,JSON.stringify(input))
         let result
         try{result=await invoke(['components','--workspace',workspace,'--action',action,'--request',file])}finally{await fs.unlink(file).catch(()=>{})}
+        if(result.reference_sources)result.reference_sources=referenceSources(result.reference_sources)
         const expose=item=>({...item,thumbnail:item.thumbnail?asset(item.thumbnail):null,download:item.file?asset(item.file):null})
         if(action==='list')result={...result,items:result.items.map(expose)}
         if(['save','import'].includes(action))result=expose(result)
@@ -412,6 +414,8 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         json(res,result)
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/batches/')){
         const action=url.pathname.split('/').at(-1);if(!['list','get','create','import','ack','locate'].includes(action))throw Error('未知批次操作');const input=await body(req,256*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'batches-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['batches','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
+      } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/retrieve/')){
+        const action=url.pathname.split('/').at(-1);if(!['search','source','bundle','read'].includes(action))throw Error('未知参考检索操作');const input=await body(req,256*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'retrieve-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{const result=await invoke(['retrieve','--workspace',workspace,'--action',action,'--request',file]);if(action==='search')for(const item of result.assets)item.thumbnail=item.thumbnail?asset(item.thumbnail):null;json(res,result)}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/selection-edit/')){
         const action=url.pathname.split('/').at(-1);if(!['context','compile'].includes(action))throw Error('未知选区工具操作');const input=await body(req),snapshot=snapshots.get(input.snapshot_key);if(!snapshot)throw Error('请先更新当前参数预览，再读取选区');const info=openedSource(localPath(input.request?.source));if(!info||info.source_sha256!==input.request.source_sha256)throw Error('选区源已变化，请重新打开建筑');const request={...input.request,source:info.source},directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'selection-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(portableRequest(request,workspace)));try{json(res,await invoke(['selection-edit','--action',action,'--request',file,'--snapshot',snapshot]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/feedback-tasks/')){
@@ -463,6 +467,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
           else if(input.action==='finish'){
             if(!['complete','failed','cancelled'].includes(input.status))throw Error('Invalid AI activity status')
             job.status=input.status;job.completed_at=new Date().toISOString();job.result={...job.result,summary:String(input.summary??job.result?.summary??'').slice(0,4000),operations:Number(input.operations??job.result?.operations??0),preview_only:true};if(job.status!=='complete')job.error=message;else delete job.error
+            if(input.reference_sources)job.result.reference_sources=referenceSources(input.reference_sources)
             if(input.api_metrics)job.api_metrics=cleanApiMetrics(input.api_metrics)
             if(input.timings)job.timings={...job.timings,...cleanTimings(input.timings)}
           }else throw Error('Unknown AI activity action')

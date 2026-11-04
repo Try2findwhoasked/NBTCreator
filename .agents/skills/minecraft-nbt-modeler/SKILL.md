@@ -41,6 +41,7 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 | 依据局部方块用自然语言规划工具步骤 | [选区编辑](references/selection-edit.md)；context/compile 共用应用引擎，选区内实际写入、保护与预算由候选和最终导出共同检查 |
 | 几何布尔、拉伸、复制阵列、旋转镜像、膨胀侵蚀、扩散或爆炸破坏 | [建模与效果工具](references/modelling-tools.md)；已有资产仍按精修流程 |
 | 资产迁移、形状归档、中文名称索引 | [建筑库归档](references/library-archive.md) |
+| 按任务检索资料片段、引用与适配已有构件 | [本地参考检索](references/reference-retrieval.md)；retrieve search/bundle/read 共用实际工作流选择与哈希，保留出处；不扩大资料暴露、不覆盖旧资产 |
 | 保存选区为构件、搜索构件库、3D复制/移动/旋转/吸附、AI局部放置 | [构件资产库](references/component-assets.md)；应用与 CLI 共用工作区库，extract/transform仅返回候选，先预览再导出下一版 |
 | 保存参数化工具序列、复用材质主题、XYZ构件批量阵列 | [配方与主题](references/reusable-recipes.md)；recipes compile / components batch返回原工具候选，不直接写建筑 |
 | 图形化浏览已有结构、收藏、版本筛选与批量选择清单 | [现有结构选择器](references/structure-selector.md) |

@@ -100,6 +100,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/selection-edit.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/retrieval.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/retrieval.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/selection-edit.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/auto-roads.py
@@ -117,6 +121,8 @@ jobs:
           node tests/batch-workspaces-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/selection-edit-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/retrieval-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/prompt-archive-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -183,6 +189,8 @@ jobs:
           node tests/batch-workspaces-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/selection-edit-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/retrieval-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
