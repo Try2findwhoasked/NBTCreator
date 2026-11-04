@@ -56,6 +56,7 @@ class Candidate(unittest.TestCase):
     def test_changed_settings_and_budget_cannot_reuse_prior_success(self):
         self.preview();self.request['settings']['max_changed_blocks']=2
         result=self.check();self.assertFalse(result['passed']);self.assertFalse(result['checks']['change_budget']['passed'])
+        issue=next(item for item in result['diagnostics']['issues'] if item['code']=='candidate_change_budget');self.assertIsNone(issue['bounds']);self.assertFalse(issue['automatic_repair']);self.assertEqual(result['diagnostics']['source_sha256'],self.hash)
     def test_stale_parameters_reject_exact_snapshot(self):
         self.preview();self.request['settings']['operations'][0]['state']='gold_block'
         result=self.check();self.assertFalse(result['passed']);self.assertFalse(result['checks']['preview_matches_request']['passed'])

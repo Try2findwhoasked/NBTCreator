@@ -90,4 +90,6 @@ def inspect_walk(request, snapshot=None):
                   inspected_snapshot=bool(snapshot))
     if sha(source) != source_hash or (context and sha(context) != context_hash) or (snapshot and sha(snapshot) != snapshot_hash):
         raise ValueError('检查期间建筑或坐标资料已改变，请重新检查')
+    from nbt_diagnostics import explain
+    result['diagnostics']=explain('walk',result)
     return result

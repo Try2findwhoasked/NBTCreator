@@ -106,12 +106,14 @@ def validate_candidate(request, snapshot, output):
     report['passed']=bool(report['checks']) and all(item['passed'] for item in report['checks'].values())
     report['status']='candidate_validated' if report['passed'] else 'candidate_failed'
     report['scope']='Exact candidate/settings binding, changes, protection, wall ownership and static whole-model checks only; no visual/game/approval claim.'
+    from nbt_diagnostics import explain
+    report['diagnostics']=explain('candidate',report)
     write_json(output/'validation.json',report)
     checks={name:{k:value for k,value in item.items() if k!='details'} for name,item in report['checks'].items()}
     return dict(status=report['status'],passed=report['passed'],checks=checks,
                 changed_blocks=report.get('changed_blocks'),wall_membership_changes=report.get('wall_membership_changes'),geometry_sha256=report.get('geometry_sha256'),
                 source_sha256=report.get('source_sha256'),settings_sha256=report.get('settings_sha256'),
-                validation=str(output/'validation.json'),output=str(output),asset_written=False,approval_created=False,
+                diagnostics=report['diagnostics'],validation=str(output/'validation.json'),output=str(output),asset_written=False,approval_created=False,
                 note='候选检查通过仍需看图；检查不生成正式建筑或批准。')
 
 

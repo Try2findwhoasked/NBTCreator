@@ -7,6 +7,8 @@ import json
 class ProtectionConflict(ValueError):
     def __init__(self,label,points):
         points=sorted(set(tuple(p) for p in points));self.details=dict(kind='protection_conflict',label=label,positions=[list(p) for p in points[:4096]],total=len(points),truncated=len(points)>4096)
+        from nbt_diagnostics import explain
+        self.details['diagnostics']=explain('protection',self.details)
         super().__init__(f'步骤“{label}”触及保护区：{points[:8]}。请移动构件或缩小范围；允许覆盖不会取消保护。')
 
 

@@ -28,6 +28,7 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 | 细微道具与原版方块部件 | [细微道具](references/micro-props.md) |
 | SAODG 可拼接房 | [拼接协议](references/saodg-constraints.md)，核对当前加载器；完整定义示例见工作区 docs/ROOM_BUILDING_GUIDE.md |
 | 生成、改模、导出或验收 | [验证流程](references/validation-workflow.md)、[通用工具](references/toolkit.md) 的相关完整章节 |
+| 检查失败的通俗解释、玩家碰撞／支撑与保护冲突定位 | [检查结果解释](references/diagnostic-guidance.md)；保留原始证据与源绑定，未知或搜索上限不当作绝对不通，不自动删块修复 |
 | 状态、邻接、操作来源或工具维护 | [状态与维护](references/state-and-maintenance.md) |
 | 纹理质检出图、批量相机或用户网页查看 | [渲染与交互](references/rendering.md) |
 | 生成或显式转换时带权混材、随机替换、连片噪声 | [通用方块模式](references/patterns.md) |

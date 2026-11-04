@@ -1,3 +1,4 @@
+import {renderDiagnostics} from './diagnostic-guidance.js'
 import {linkRange} from './range-control.js'
 
 import {initRoadPanel} from './road-panel.js'
@@ -451,6 +452,7 @@ async function runJob(kind, overrides = {}) {
     if (result.images?.length) { imageMode(); gallery(result.images) }
     if (result.model_key) await loadViewer(result, Boolean(overrides.source))
     if(kind==='validate'){
+      let host=document.querySelector('#candidate-diagnostics');if(!host){host=document.createElement('section');host.id='candidate-diagnostics';host.className='diagnostic-guidance';$('candidate-check-state').closest('.preview-controls').after(host)}renderDiagnostics(host,result.diagnostics,{isCurrent:()=>state.candidateValidation===result&&state.previewSettings===JSON.stringify(gather()),status:(text,error)=>status(text,error?'error':'')})
       state.candidateValidation=result
       $('candidate-check-state').textContent=result.passed?'当前候选检查通过 · 仍需看图确认':'候选检查未通过 · 查看下方报告'
       status(result.passed?'当前候选的参数绑定、保护和整体检查通过；未生成正式建筑，仍需看图。':'候选检查未通过，请查看检查报告并调整。',result.passed?'':'error')
@@ -560,7 +562,7 @@ function selectModel(index) {
   lastValidSessionSettings=null;state.previewSettings=null;state.comparisonSide=null;state.selectedImage=null
   $('source').value=item.source;$('context').value=item.context;$('cameras').value=item.cameras;state.bundle='';state.info=null;state.pickedMaterial=null;$('picked-material').hidden=true;$('orthographic-dialog').hidden=true
   $('viewer').hidden=true;$('viewer').src='about:blank';$('empty-view').hidden=false;$('view-select').disabled=true
-  state.imageLimit=state.defaultImageLimit??8;state.configChanged=false;state.activeNote=null;state.preview=null;state.candidateValidation=null;$('candidate-check-state').textContent='候选尚未检查';state.previewRevision++;clearTimeout(previewTimer);$('compare-before').disabled=true;$('compare-after').disabled=true;$('preview-state').textContent='效果预览不会保存为正式建筑'
+  state.imageLimit=state.defaultImageLimit??8;state.configChanged=false;state.activeNote=null;state.preview=null;document.querySelector('#candidate-diagnostics')?.replaceChildren();state.candidateValidation=null;$('candidate-check-state').textContent='候选尚未检查';state.previewRevision++;clearTimeout(previewTimer);$('compare-before').disabled=true;$('compare-after').disabled=true;$('preview-state').textContent='效果预览不会保存为正式建筑'
   $('model-summary').textContent='正在切换建筑…';$('result-links').replaceChildren();$('result-log').textContent='';$('status').textContent='请选择效果设置，右侧将载入对应图片。'
   imageMode();gallery([]);updateCount()
 }
@@ -616,7 +618,7 @@ $('preset-file').addEventListener('change',handle(async()=>{
 let previewTimer
 function schedulePreview(){
   state.previewRevision++;clearTimeout(previewTimer)
-  state.candidateValidation=null;$('candidate-check-state').textContent='参数已改变，需重新检查';$('validate-preview').disabled=true
+  document.querySelector('#candidate-diagnostics')?.replaceChildren();state.candidateValidation=null;$('candidate-check-state').textContent='参数已改变，需重新检查';$('validate-preview').disabled=true
   $('preview-state').textContent='设置已改变，等待更新预览…'
   if($('auto-preview').checked&&state.info&&window.creatorWorkspace?.current()==='model')previewTimer=setTimeout(()=>{if(window.creatorWorkspace.current()==='model')updatePreview().catch(error=>{$('preview-state').textContent='预览失败：'+error.message})},(state.previewDelay??1400))
 }
@@ -629,7 +631,7 @@ async function updatePreview(required=false){
   state.previewBusy=true;$('update-preview').disabled=true;$('preview-state').textContent='正在计算效果，仍可继续调参…'
   syncVersionReadonly()
   $('cancel').disabled=false
-  state.candidateValidation=null;$('candidate-check-state').textContent='候选尚未检查';$('validate-preview').disabled=true
+  document.querySelector('#candidate-diagnostics')?.replaceChildren();state.candidateValidation=null;$('candidate-check-state').textContent='候选尚未检查';$('validate-preview').disabled=true
   try{
     const submitted=await api('jobs',{kind:'preview',request:payload})
     if(cancelEpoch!==(state.cancelEpoch??0)){await api('cancel',{});throw new DOMException('预览已取消','AbortError')}
