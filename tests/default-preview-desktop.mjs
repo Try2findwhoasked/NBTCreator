@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import {spawnSync} from 'node:child_process'
+import {createRequire} from 'node:module'
+import {root,skill,python} from '../scripts/paths.mjs'
+import {minimizedScreenshots} from './minimized-screenshots.mjs'
+const require=createRequire(path.join(skill,'assets/viewer/package.json')),{_electron}=require('playwright')
+const output=path.join(root,'build','default-preview-'+Date.now()),workspace=path.join(output,'workspace'),folder=path.join(workspace,'nbt_models/single/preview/v1')
+const fixture=spawnSync(python,[path.join(root,'tests/make_fixture.py'),folder],{encoding:'utf8',windowsHide:true});assert.equal(fixture.status,0,fixture.stderr)
+const source=path.join(folder,'synthetic.master.json.gz'),original=await fs.readFile(source)
+const image=spawnSync(python,['-c',`from PIL import Image;import sys,json;from pathlib import Path;sys.path.insert(0,sys.argv[2]);from nbt_refine import read_master;Image.new('RGB',(320,200),'grey').save(sys.argv[1]);m,_=read_master(sys.argv[3]);Path(sys.argv[1]).with_suffix('.json').write_text(json.dumps(dict(geometry_sha256=m.fingerprint())))`,path.join(folder,'preview.png'),path.join(skill,'scripts'),source],{encoding:'utf8',windowsHide:true});assert.equal(image.status,0,image.stderr)
+await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({autoPreview:false,restoreSession:false}))
+let app,page;const errors=[],checks={}
+const click=id=>page.locator('#'+id).evaluate(e=>e.click())
+async function launch(){const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE;app=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root,'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000});page=await app.firstWindow();page.setDefaultTimeout(60000);minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message));await page.waitForFunction(()=>window.detailControl?.state.catalogReady&&!window.detailControl.state.busy);await page.waitForFunction(()=>document.querySelector('.project-card-preview'))}
+async function openProjectPreview(){await page.locator('.project-card-preview').first().evaluate(e=>e.click())}
+async function saveImages(){await click('open-settings');await page.waitForFunction(()=>!document.querySelector('#settings-save').disabled);await page.locator('[data-settings-tab=preview]').evaluate(e=>e.click());await page.locator('#setting-preview-mode').selectOption('images');await click('settings-save');await page.waitForFunction(()=>window.nbtPreviewPreferences.mode==='images');await click('close-settings')}
+try{
+ await launch();await openProjectPreview();await page.waitForFunction(()=>!document.querySelector('#project-preview-3d').hidden&&document.querySelector('#project-preview-3d').contentWindow.nbtModeler?.status==='ready');assert.ok((await page.locator('#project-preview-3d').getAttribute('src')).includes('quality=balanced'));checks.project_defaults_to_textured_3d=true
+ await click('project-preview-edit');await page.waitForFunction(()=>window.detailControl.state.info&&!window.detailControl.state.busy&&!window.detailControl.state.sessionRestoring);await page.waitForFunction(()=>window.detailControl.state.mode==='3d'&&document.querySelector('#viewer').contentWindow.nbtModeler?.status==='ready');assert.equal(await page.locator('#three-quality').inputValue(),'balanced');assert.ok(await page.evaluate(()=>window.detailControl.state.images.length>0));checks.editor_uses_3d_even_with_existing_images=true
+ await saveImages();await app.close();app=null;await launch();assert.equal(await page.evaluate(()=>window.nbtPreviewPreferences.mode),'images');await openProjectPreview();await page.waitForFunction(()=>!document.querySelector('#project-preview-image').hidden);assert.equal(await page.locator('#project-preview-3d').getAttribute('src'),'about:blank');checks.image_preference_persists_and_changes_project_preview=true
+ await click('project-preview-edit');await page.waitForFunction(()=>window.detailControl.state.info&&!window.detailControl.state.busy&&!window.detailControl.state.sessionRestoring);assert.equal(await page.evaluate(()=>window.detailControl.state.mode),'images');checks.editor_respects_image_preference=true
+ assert.deepEqual(await fs.readFile(source),original);assert.deepEqual(errors,[]);await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks},null,2));console.log(JSON.stringify({passed:true,checks,output}))
+}catch(e){console.error(JSON.stringify({output,checks,errors}));if(page)try{console.error(JSON.stringify(await page.evaluate(()=>({status:document.querySelector('#status')?.textContent,project:document.querySelector('#project-preview-status')?.textContent,mode:window.detailControl?.state.mode,busy:window.detailControl?.state.busy,workspace:window.creatorWorkspace?.current()}))))}catch{}throw e}finally{await app?.close()}

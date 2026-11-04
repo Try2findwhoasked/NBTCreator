@@ -522,7 +522,7 @@ async function loadModelCore(preserve = false) {
     renderMaterials();if(!preserve||previousHash!==info.source_sha256)resetSettingsHistory();gallery(info.images);if(!preserve||previousHash!==info.source_sha256)state.bundle=''
   } finally { busy(false) }
   status(state.images.length?'图片已打开。点击上方缩略图切换视角，点击大图标位置、写修改意见。':'这座建筑还没有对应的图片。可点击“为原建筑生成预览图”，或打开 3D 查看。')
-  if(!preserve&&!state.images.length)await runJob('snapshot')
+  if(!preserve&&(state.defaultPreviewMode!=='images'||!state.images.length))await runJob('snapshot')
 }
 
 let catalogEpoch=0

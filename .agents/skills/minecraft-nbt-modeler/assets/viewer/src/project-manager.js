@@ -99,6 +99,7 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh}){
   let taskLink=dialog.querySelector('#project-preview-task-link');if(!taskLink){taskLink=document.createElement('div');taskLink.id='project-preview-task-link';dialog.querySelector('footer').prepend(taskLink)}taskLink.replaceChildren();const batchLink=workspaces?.previewLink(item.source);if(batchLink)taskLink.append(batchLink)
   $('project-preview-title').textContent=item.object_name||item.name_zh||item.name||item.label;$('project-preview-meta').textContent=[item.size?.join(' × '),item.version,item.relative_path].filter(Boolean).join(' · ')
   $('project-preview-image').hidden=true;$('project-preview-3d').hidden=true;$('project-preview-3d').src='about:blank';$('project-preview-status').textContent='正在读取截面预览；首次缺图时会生成并缓存…';dialog.showModal()
+  if(window.nbtPreviewPreferences?.mode!=='images'){const shown=await render3D();if(shown)await workspaces?.seen(item.source).catch(error=>message(error.message));return shown}
   try{const result=await cover(item,true);if(token!==previewGeneration||!dialog.open)return false
    if(result.image){$('project-preview-image').src=result.image;$('project-preview-image').hidden=false;$('project-preview-status').textContent=result.generated?'当前版本截面示意图 · 已缓存（简化材质）':result.section?'整体截面预览 · 已缓存':'当前版本尚无截面渲染图，显示已有渲染图'}
    else if(await render3D()===false)return false
@@ -116,7 +117,7 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh}){
    do{await new Promise(resolve=>setTimeout(resolve,400));job=await api('jobs/'+id)}while(job.status==='running')
    if(job.status!=='complete')throw Error(job.error||'3D 预览未完成')
    if(token!==previewGeneration||!dialog.open)return
-   const frame=$('project-preview-3d');frame.src=`/?model_key=${encodeURIComponent(job.result.model_key)}&embedded=1&quality=fast&pixelRatio=0.75&maxFps=24`;frame.hidden=false;$('project-preview-image').hidden=true;$('project-preview-status').textContent='左键原地转向，中键平移，滚轮沿视线前进／后退。此处仅预览，不修改建筑。';return true
+   const frame=$('project-preview-3d');frame.src=`/?model_key=${encodeURIComponent(job.result.model_key)}&embedded=1&quality=${encodeURIComponent(window.nbtPreviewPreferences?.quality??'balanced')}&pixelRatio=0.75&maxFps=24`;frame.hidden=false;$('project-preview-image').hidden=true;$('project-preview-status').textContent='左键原地转向，中键平移，滚轮沿视线前进／后退。此处仅预览，不修改建筑。';return true
   }catch(e){if(token===previewGeneration&&dialog.open)$('project-preview-status').textContent=e.message;return false}
   finally{previewBusy=false;setBusy(false)}
  }

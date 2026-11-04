@@ -44,7 +44,7 @@ async function setFilter(page,id,keys){
 }
 let app;const checks={}
 try{
- await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'model',cameraLookSpeed:70,cameraPanSpeed:90,cameraWheelSpeed:60,cameraInvertX:false,cameraInvertY:true}))
+ await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'model',previewMode:'images',cameraLookSpeed:70,cameraPanSpeed:90,cameraWheelSpeed:60,cameraInvertX:false,cameraInvertY:true}))
  const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE
  app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000})
  app.process().stdout?.on('data',data=>fs.appendFile(path.join(output,'electron.log'),data))
