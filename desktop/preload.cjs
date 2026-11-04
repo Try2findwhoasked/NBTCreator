@@ -1,6 +1,22 @@
 const {contextBridge,ipcRenderer}=require('electron')
 contextBridge.exposeInMainWorld('nbtDesktop',Object.freeze({
+  internalAIConfig:()=>ipcRenderer.invoke('nbt:internal-ai-config'),
+  internalAISave:input=>ipcRenderer.invoke('nbt:internal-ai-save',input),
+  internalAIImport:()=>ipcRenderer.invoke('nbt:internal-ai-import'),
+  knowledgePreview:input=>ipcRenderer.invoke('nbt:knowledge-preview',input),
+  batchOpen:input=>ipcRenderer.invoke('nbt:batch-open',input),
+  settingsOpenFolder:kind=>ipcRenderer.invoke('nbt:settings-open-folder',kind),
+  appSettings:()=>ipcRenderer.invoke('nbt:app-settings'),
+  appSettingsSave:input=>ipcRenderer.invoke('nbt:app-settings-save',input),
+  updateAccess:()=>ipcRenderer.invoke('nbt:update-access'),
+  updateAccessSave:input=>ipcRenderer.invoke('nbt:update-access-save',input),
+  updateCheck:()=>ipcRenderer.invoke('nbt:update-check'),
+  updateDownload:kind=>ipcRenderer.invoke('nbt:update-download',kind),
+  updateStatus:()=>ipcRenderer.invoke('nbt:update-status'),
+  updateFolder:()=>ipcRenderer.invoke('nbt:update-folder'),
   info:()=>ipcRenderer.invoke('nbt:info'),
+  systemMenu:name=>ipcRenderer.invoke('nbt:system-menu',name),
+  copyAgentPlan:text=>ipcRenderer.invoke('nbt:copy-agent-plan',text),
   chooseWorkspace:()=>ipcRenderer.invoke('nbt:workspace'),
   chooseSource:()=>ipcRenderer.invoke('nbt:source'),
   apiConfig:()=>ipcRenderer.invoke('nbt:api-config'),
@@ -9,5 +25,6 @@ contextBridge.exposeInMainWorld('nbtDesktop',Object.freeze({
   apiGenerate:input=>ipcRenderer.invoke('nbt:api-generate',input),
   apiCancel:()=>ipcRenderer.invoke('nbt:api-cancel'),
   exposureConfig:()=>ipcRenderer.invoke('nbt:exposure-config'),
-  exposureSave:input=>ipcRenderer.invoke('nbt:exposure-save',input)
+  exposureSave:input=>ipcRenderer.invoke('nbt:exposure-save',input),
+  exposureImport:()=>ipcRenderer.invoke('nbt:exposure-import')
 }))

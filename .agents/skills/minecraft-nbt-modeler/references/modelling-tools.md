@@ -77,3 +77,12 @@ python .agents/skills/minecraft-nbt-modeler/scripts/check_modelling_fixtures.py 
 ```
 
 CLI只输出源指纹、候选变化与统计，不落盘NBT、不批准精修，也不证明密闭、路径、游戏加载或美术合格。精修plan在operations中放相同操作并加label/classification，按原流程approve/apply；实际模型输出仍由精修器统一验证、差异记录、出图和机械切片。
+
+
+## 可复用构件
+
+`paste_component` 使用已验证的 palette 与相对 lo 的 voxels，一项操作可表示复杂构件；分类由 classification 决定，混合主体/墙 mask 的资产拆分为两项。默认拒绝占用冲突，overwrite 只允许覆盖普通目标，不能改变保护约束。保存、导入及放置命令见 [构件资产](component-assets.md)。
+
+## 自动道路铺设
+
+`auto_road` 用 `start/end` 整数 XYZ 指定同一高度的路面方块中心。`route` 为 `straight`（连续阶梯状斜线）、`x_first` 或 `z_first`（直角折线）；`width` 1～16、`depth` 1～8。偶数宽度向正轴多延伸一格；厚度向下延伸。`lo/hi` 必须容纳完整路面，不裁剪。`state` 须为实体方块，默认不覆盖已有不同材质；`overwrite=true` 才允许替换。保护、单步 `max_writes` 与总预算继续生效。首版为平面铺设，不自动避障、清空头顶或适应地形；使用后实际预览和检查通行，再显式导出新版本。UI入口在建筑模型下方的“自动道路”分类，CLI使用共用 `tools` 映射的单项操作 JSON。

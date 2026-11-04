@@ -1,6 +1,17 @@
 # 通用工具：自创几何，复用文件与验证能力
 
-本目录工具只负责通用机制，不提供默认建筑骨架。把所需构想写成当前任务的独立生成器，使用 `sys.path.insert(0, str(skill_dir / 'scripts'))` 导入。`skill_dir` 指向本 SKILL.md 所在目录，使用实际绝对路径而不是依赖当前目录。Python 标准库用于NBT；渲染和碰撞工具需要 numpy，预览另需 Pillow。
+本文 `.agents/skills/minecraft-nbt-modeler/` 示例是活动引擎源码路径。生成的工作区只有 nbtcreator-workspace 入口时，通过 `nbt.py` 调命令；`nbt.py paths` 返回实际冻结运行时的 scripts 等路径，不要假定旧目录存在，也不要修改冻结引擎。
+
+本目录工具只负责通用机制，不提供默认建筑骨架。把所需构想写成当前任务的独立生成器。在工作区根目录执行时可按下面方式导入；记录返回的 runtime_bundle_sha256 以追溯所用工具版本。Python 标准库用于NBT；渲染和碰撞工具需要 numpy，预览另需 Pillow。
+
+```python
+import json, subprocess, sys
+runtime = json.loads(subprocess.check_output(
+    [sys.executable, '.agents/skills/nbtcreator-workspace/nbt.py', 'paths'],
+    text=True, encoding='utf8'))
+sys.path.insert(0, runtime['scripts'])
+from nbt_model import Model
+```
 
 ## nbt_refine.py：用户确认后的整体精修
 
@@ -35,6 +46,18 @@ actual = load(output_dir / 'my_design.nbt')
 `interior_points` 要覆盖所有设计室内腔体，不仅选择一个安全角落。密闭检查使用一层外围空气，允许完整方块、玻璃及不规则封闭形状；它仅把air/cave_air/void_air看成通路，半砖、楼梯间的亚方块空隙不在此检查范围内。因此外边界使用完整闭合方块层，或对这些部位额外按实际碰撞检查，不能用半砖壳声称无缝密闭。
 
 `open_ports` 当前只适用48×48单片，检查完整外边界开口规格以及紧邻门后的空气/地板。厚墙喉道要在设计阶段打通至边界内侧；整个内部喉道和必要目标之间仍需做通路检查。多片房按整体封闭体检查、根据逻辑端口开洞，再写各片；不要把单片工具错误用于多格逻辑空间。
+
+独立建筑的自定义入口使用 `nbt_openings.open_declared_openings`，不为调用 SAODG 专用 API 扩大门洞或将内部围护强行移到48格包围盒边缘。该 API 仅用于新建密闭主模型的声明开洞，不改变已有作品的修改授权。
+
+```python
+from nbt_openings import open_declared_openings
+# closed master 已完成室内、门后/外侧平台并真实 check_sealed；此处只展示参数。
+opening_report = open_declared_openings(model, [
+    {'id':'entry', 'lo':[6,2,2], 'hi':[8,5,2], 'facing':'north'}
+], wall_positions=walls)  # walls 为显式坐标set，可省略但不能按材质猜墙
+```
+
+lo/hi 含边界，可覆盖不在包围盒边缘的厚墙；facing 从室内朝室外。所有声明先校验，再一次性写入：要求未变化的真实密闭记录、唯一名称、范围合法且不重叠、门下有非空气地板格、两侧在模型范围内的相邻喉道已留空气和地板；外侧落在模型外时明确记未检查。返回实际每格前后状态及全局指纹，并移除被挖空气的墙mask归属。函数不自动认证支撑碰撞、净宽或路线；仍须按原状态封回验证副本复验、检查真实脚位路线和回读。已有资产修改继续按精修或明确手动导出流程，不能借新建开口函数绕行。
 
 `save` 要求已通过密闭检查，防止检查后几何被修改却继续导出；先密闭检查后标准开洞是允许的阶段转换。它写出完整gzip NBT并用另一解析器回读对比，包括Properties。设计返工时使用 `begin_redesign()` 使旧检查失效；已经开洞的结构须恢复原有外边界后再重验，不可掩盖无关漏口。
 
@@ -109,7 +132,7 @@ routes = check_routes(actual,
 assert routes['passed'], routes
 ```
 
-这里是玩家脚部实际坐标，不是方块索引；站在方块 `(5,11,24)` 上的居中脚位是 `(5.5,12,24.5)`。工具用半格横向与高度采样、0.6宽1.8高AABB和连续支撑检查，允许半格自动步进，不允许跳跃、攀爬、游泳或长距离落下。它返回报告而不是自动抛异常，调用方要检查passed。未知碰撞形状会列入unknown_shapes并使passed=False，不能把诊断用实心代理当真实支撑；可自行扩展有证据的碰撞几何或另做针对性/游戏检查，不能为了报告变绿删掉设计中的细节。
+这里是玩家脚部实际坐标，不是方块索引；站在方块 `(5,11,24)` 上的居中脚位是 `(5.5,12,24.5)`。工具用半格横向与高度采样、0.6宽1.8高AABB和连续支撑检查，允许半格自动步进，不允许跳跃、攀爬、游泳或长距离落下。它返回报告而不是自动抛异常，调用方要检查passed。对有限的已核实单格内细件，默认可用完整格障碍上包络，但支撑仅来自已支持几何；`conservative_obstacles` 列出这些细件，`exact_geometry_supported=false`，不能称精确形状通过。其他未知形状仍列入unknown_shapes并使passed=False。名单、版本依据和严格模式见[保守碰撞上包络](collision-envelopes.md)。不能把代理当真实支撑，也不能为了报告变绿删掉设计中的细节。
 
 该API只保证start至targets有某条路径，不保证经过作者预期的某段桥或坡道。对回路、双路线与捷径需另做指定连接检查，保存对应路径；必要时在副本阻断替代路线后验证该段，不能把全局可达报告扩展解释成所有设计路径都通畅。
 
@@ -143,6 +166,10 @@ assert actual.blocks == master.blocks
 slice_master保存真正完整的master_geometry.json.gz（含全局尺寸、实体状态、默认空气、墙mask与指纹），然后按48网格只做坐标转换。切割循环没有建筑生成、隔墙或补路逻辑。各片完整NBT回读后，48连续重组须逐块等于源主模型；墙层同步切到layers目录。
 
 当前工具支持完整矩形包围的整体，X/Z为48倍数、高8～48；不存在的稀疏单元不能静默删掉，需要明确的占地排除设计。JSON里仅选择parts清单的template/offset；file和sha256保留在制作清单中。48连续还原通过不代表49运行放置通过，后者另行assemble检查。别为掩盖引擎接缝限制先分建小房间。
+
+独立自由尺寸模型使用 `nbt_standalone_delivery.export_standalone(master, explicit_walls, version_dir, file_prefix=...)`；它沿XYZ各48格分块，边块保留实际尺寸，runtime与body/walls分层均逐状态回读重建，不强制48倍数。master须先经 `nbt_whole_validation.validate_whole` 对显式独立上下文验证并冻结；`verify_standalone(version_dir)` 复查清单和实际文件。整件无墙素材需显式 `allow_empty_wall_mask=True`，不影响SAODG严格交付。
+
+若独立上下文已有非空cells（例如L形三格），export_standalone还须传 `active_cells=config['cells']`；只切这些XZ格的各Y层，缺角不补空片。该占地必须合法、连通并覆盖全部非空气几何，注册建筑时同样传入以保留有效cells。省略/空active_cells才切完整自由尺寸包围盒。
 
 回归：`python .agents/skills/minecraft-nbt-modeler/scripts/check_whole_cut_fixtures.py --output nbt_models/_tests/whole_cut_validation`。检查完整主模型保存、逐块连续重建、跨切面状态保留、切割不自动砌墙、全局墙mask同步拆层及49不兼容反例。
 

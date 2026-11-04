@@ -1,0 +1,18 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path')
+const {createAppSettings}=require('../desktop/app-settings.cjs')
+test('application preferences follow the selected workspace and preserve independent choices',async t=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-prefs-'));t.after(()=>fs.rm(root,{recursive:true,force:true}))
+ let workspace=path.join(root,'one');const p=createAppSettings(()=>path.join(workspace,'.nbtcreator'))
+ await p.save({zoom:125,previewDelay:900,startPage:'prompt'});assert.equal((await p.load()).quality,'fast')
+ workspace=path.join(root,'two');assert.equal((await p.load()).zoom,100);await p.save({quality:'balanced'})
+ workspace=path.join(root,'one');assert.equal((await p.load()).zoom,125);assert.equal((await p.load()).previewDelay,900)
+ await p.save({startPage:'project'});assert.equal((await p.load()).startPage,'project');await assert.rejects(p.save({startPage:'unknown'}));await assert.rejects(p.save({imageLimit:999}));await assert.rejects(p.save({windowWidth:100}));await assert.rejects(p.save({unknown:true}))
+ assert.equal((await p.load()).cameraLookSpeed,100);assert.equal((await p.load()).cameraInvertX,false)
+ await p.save({cameraLookSpeed:50,cameraPanSpeed:80,cameraWheelSpeed:150,cameraInvertX:true,cameraInvertY:false})
+ assert.equal((await createAppSettings(()=>path.join(workspace,'.nbtcreator')).load()).cameraLookSpeed,50)
+ workspace=path.join(root,'two');assert.equal((await p.load()).cameraLookSpeed,100);assert.equal((await p.load()).cameraInvertX,false)
+ workspace=path.join(root,'one');assert.equal((await p.load()).cameraInvertX,true);assert.equal((await p.load()).cameraInvertY,false)
+ for(const input of [{cameraWheelSpeed:0},{cameraPanSpeed:301},{cameraLookSpeed:'100'},{cameraLookSpeed:NaN},{cameraInvertY:1}])await assert.rejects(p.save(input))
+})
+
+test('color schemes persist per workspace and reject arbitrary style values',async t=>{const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-colors-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));const store=createAppSettings(root);for(const colorScheme of ['blue','green','violet','sand','graphite']){await store.save({colorScheme});assert.equal((await createAppSettings(root).load()).colorScheme,colorScheme)}await assert.rejects(store.save({colorScheme:'url(https://example.invalid)'}));await assert.rejects(store.save({colorScheme:{accent:'red'}}));assert.equal((await store.load()).colorScheme,'graphite')})

@@ -1,10 +1,19 @@
 // Adapted from mattzh72/minecraft-builder-skill ce57d48; Apache-2.0. See LICENSE.upstream.
-import { mat4, vec3 } from 'gl-matrix'
+import { vec3 } from 'gl-matrix'
+import { ViewCamera } from './camera-controls.mjs'
 import { MeshNormalMaterial,Scene,Box3,Vector2,Vector3,Raycaster,Matrix3 } from 'three'
-import { BlockState, Structure, ThreeStructureRenderer, loadDefaultPackResources } from '@mattzh72/lodestone'
+import { BlockState, Structure, ThreeStructureRenderer, ChunkBuilder, loadDefaultPackResources } from '@mattzh72/lodestone'
+import {installMeshScheduling} from './mesh-scheduling.mjs'
 import './style.css'
 import { RangeBox } from './range-box.mjs'
+import {differenceIndex,focusDifference} from './difference-index.mjs'
+import {differenceOverlay} from './difference-overlay.js'
+import {protectionOverlay} from './protection-overlay.js'
+import {walkOverlay} from './walk-overlay.js'
+import {createComponentGizmo} from './component-gizmo.js'
 import { cameraView, normalizeView, includesBlock } from './view-contract.mjs'
+
+installMeshScheduling(ThreeStructureRenderer,ChunkBuilder)
 
 const originalWarn = console.warn.bind(console)
 console.warn = (...args) => {
@@ -84,93 +93,6 @@ const LIGHTING_PRESETS = {
   },
 }
 
-class OrbitCamera {
-  constructor(canvas, center, distance, onChange = () => undefined) {
-    this.canvas = canvas
-    this.center = center
-    this.distance = distance
-    this.xRotation = 0.62
-    this.yRotation = 0.82
-    this.dragging = false
-    this.lastPos = null
-    this.onChange = onChange
-
-    canvas.addEventListener('pointerdown', event => {
-      if(event.button===0&&canvas.dataset.pickMode==='true')return
-      if(event.button!==0&&event.button!==1)return
-      event.preventDefault();this.dragMode=event.button===1?'pan':'rotate'
-      if(this.dragMode==='rotate')this.resumeOrbit()
-      this.dragging = true
-      this.lastPos = [event.clientX, event.clientY]
-      canvas.setPointerCapture?.(event.pointerId)
-    })
-    const stopDragging = event => {
-      this.dragging = false
-      this.lastPos = null
-      if (event?.pointerId !== undefined && canvas.hasPointerCapture?.(event.pointerId)) {
-        canvas.releasePointerCapture(event.pointerId)
-      }
-    }
-    canvas.addEventListener('pointerup', stopDragging)
-    canvas.addEventListener('pointercancel', stopDragging)
-    canvas.addEventListener('lostpointercapture', stopDragging)
-    canvas.addEventListener('pointermove', event => {
-      if (!this.dragging || !this.lastPos) return
-      if(this.dragMode==='pan'){
-        const state=this.getCamera(),forward=vec3.normalize(vec3.create(),vec3.subtract(vec3.create(),state.target,state.position))
-        const right=vec3.normalize(vec3.create(),vec3.cross(vec3.create(),forward,state.up ?? [0,1,0]))
-        const up=vec3.cross(vec3.create(),right,forward),scale=2*this.distance*Math.tan((this.fov ?? 60)*Math.PI/360)/Math.max(1,canvas.clientHeight)
-        const shift=vec3.scale(vec3.create(),right,-(event.clientX-this.lastPos[0])*scale)
-        vec3.scaleAndAdd(shift,shift,up,(event.clientY-this.lastPos[1])*scale)
-        if(this.fixed){vec3.add(this.fixed.position,this.fixed.position,shift);vec3.add(this.fixed.target,this.fixed.target,shift)}
-        else vec3.add(this.center,this.center,shift)
-        this.lastPos=[event.clientX,event.clientY];this.onChange();return
-      }
-      this.yRotation += (event.clientX - this.lastPos[0]) / 160
-      this.xRotation += (event.clientY - this.lastPos[1]) / 160
-      this.xRotation = Math.max(-1.05, Math.min(1.35, this.xRotation))
-      this.lastPos = [event.clientX, event.clientY]
-      this.onChange()
-    })
-    canvas.addEventListener('wheel', event => {
-      event.preventDefault()
-      this.resumeOrbit()
-      const distance = Math.max(4, Math.min(500, this.distance + event.deltaY * 0.08))
-      if (distance !== this.distance) {
-        this.distance = distance
-        this.onChange()
-      }
-    }, { passive: false })
-  }
-
-  resumeOrbit() {
-    if (!this.fixed) return
-    const offset=vec3.subtract(vec3.create(),this.fixed.position,this.fixed.target)
-    this.center=vec3.clone(this.fixed.target)
-    this.distance=vec3.length(offset)
-    this.xRotation=Math.asin(Math.max(-1,Math.min(1,offset[1]/this.distance)))
-    this.yRotation=Math.atan2(-offset[0],offset[2])
-    this.fixed=null
-  }
-
-  getView() {
-    const view = mat4.create()
-    mat4.translate(view, view, [0, 0, -this.distance])
-    mat4.rotateX(view, view, this.xRotation)
-    mat4.rotateY(view, view, this.yRotation)
-    mat4.translate(view, view, [-this.center[0], -this.center[1], -this.center[2]])
-    return view
-  }
-
-  getCamera() {
-    const inverse = mat4.create()
-    mat4.invert(inverse, this.getView())
-    return {
-      position: vec3.fromValues(inverse[12], inverse[13], inverse[14]),
-      target: this.center,
-    }
-  }
-}
 
 function getParam(name, fallback) {
   const params = new URLSearchParams(window.location.search)
@@ -210,7 +132,7 @@ async function main() {
   if (!response.ok) throw new Error(`Model load failed: ${response.status}`)
   let snapshot = await response.json()
   const pack = await loadDefaultPackResources({ baseUrl: new URL('/__minecraft_builder__/default-pack/', location.href).toString() })
-  const size = snapshot.size
+  let size = snapshot.size
   const quality = getParam('quality', 'balanced')
   if (!['fast', 'balanced', 'high'].includes(quality)) throw new Error('quality must be fast/balanced/high')
   const maxFps = Number(getParam('maxFps', quality === 'fast' ? '24' : '60'))
@@ -255,6 +177,11 @@ async function main() {
     renderer.renderer.setClearColor(0x263442, 1)
   }
   const selectionScene=new Scene()
+  const differences=differenceOverlay()
+  const protection=protectionOverlay();let protectionData=null,protectionConflicts=[],protectionEnabled=false
+  const walk=walkOverlay();let walkData=null,walkOptions={enabled:false,target:0}
+  let differenceData=null,differenceLookup=null,differenceSide='after',differenceEnabled=false,differenceOnly=false
+  function updateDifferenceOverlay(){differences.update(differenceData,{cuts:activeCuts,layer:activeLayer,side:differenceSide,enabled:differenceEnabled})}
   const selectionBox=new RangeBox(new Box3(new Vector3(),new Vector3(1,1,1)),0x77e7b2)
   const pickedBox=new RangeBox(new Box3(new Vector3(),new Vector3(1,1,1)),0xffd469)
   for(const helper of [selectionBox,pickedBox]){helper.visible=false;helper.material.depthTest=false;helper.material.transparent=true;helper.material.opacity=.95;helper.renderOrder=1000;selectionScene.add(helper)}
@@ -274,9 +201,8 @@ async function main() {
     requestRender()
   }
   const center = vec3.fromValues(size[0] / 2, Math.max(1, size[1] / 2.5), size[2] / 2)
-  const camera = new OrbitCamera(canvas, center, Math.max(18, Math.max(...size) * 1.9), requestRender)
-  const orbitCamera = camera.getCamera.bind(camera)
-  camera.getCamera = () => camera.fixed ?? orbitCamera()
+  const camera = new ViewCamera(canvas, center, Math.max(18, Math.max(...size) * 1.9), requestRender)
+  let componentGizmo=null
   let frameRequest = 0
   let renderTimer = 0, lastDraw = -Infinity, viewportKey = ''
   let queue = Promise.resolve()
@@ -302,7 +228,7 @@ async function main() {
       marker.label.style.left=rect.left+(p.x+1)*rect.width/2+'px';marker.label.style.top=rect.top+(1-p.y)*rect.height/2+'px'
     }
     const autoClear=renderer.renderer.autoClear
-    renderer.renderer.autoClear=false;renderer.renderer.clearDepth();renderer.renderer.render(selectionScene,renderer.camera);renderer.renderer.autoClear=autoClear
+    renderer.renderer.autoClear=false;renderer.renderer.render(differences.scene,renderer.camera);renderer.renderer.render(protection.scene,renderer.camera);renderer.renderer.render(walk.scene,renderer.camera);if(componentGizmo)renderer.renderer.render(componentGizmo.scene,renderer.camera);renderer.renderer.clearDepth();renderer.renderer.render(selectionScene,renderer.camera);if(componentGizmo)renderer.renderer.render(componentGizmo.handlesScene,renderer.camera);renderer.renderer.autoClear=autoClear
     lastDraw = performance.now()
     renderedFrames += 1
     canvas.dataset.frameSerial = String(renderedFrames)
@@ -333,10 +259,10 @@ async function main() {
     setLightingUrl(lightingMode)
   }
   async function applyFilter(nextLayer, cuts) {
-    const key = JSON.stringify([nextLayer, cuts])
+    const key = JSON.stringify([nextLayer, cuts,differenceOnly])
     if (key === filterKey) return
     const blocks = indexed.filter(({ pos }) => includesBlock(pos, cuts) &&
-      (nextLayer === 'all' || (nextLayer === 'walls') === walls.has(pos.join(','))))
+      (nextLayer === 'all' || (nextLayer === 'walls') === walls.has(pos.join(',')))&&(!differenceOnly||differenceLookup?.has(pos)))
     if (blocks.length !== activeBlocks.length || blocks.some((block, index) => block !== activeBlocks[index])) {
       renderer.setStructure(new Structure(size, palette, blocks))
       meshBuilds += 1
@@ -346,6 +272,7 @@ async function main() {
     activeLayer = nextLayer
     activeCuts = cuts
     filterKey = key
+    updateDifferenceOverlay();protection.update(protectionData,protectionConflicts,activeCuts,protectionEnabled);walk.update(walkData,walkOptions,activeCuts)
     canvas.dataset.meshBuilds = String(meshBuilds)
     cutValue.textContent = `${cuts.length ? JSON.stringify(cuts) : '完整模型'} · ${nextLayer}`
   }
@@ -447,6 +374,10 @@ async function main() {
     if (renderTimer) clearTimeout(renderTimer)
     for(const helper of [selectionBox,pickedBox]){helper.geometry.dispose();helper.material.dispose()}
     clearCommentMarkers();markerLayer.remove()
+    differences.clear()
+    protection.clear()
+    walk.clear()
+    componentGizmo?.dispose()
     renderer.dispose()
   }, { once: true })
   function setSelectionRange(range){
@@ -466,38 +397,79 @@ async function main() {
       const position=hit.point.clone().addScaledVector(normal,-.001).floor().toArray(),key=position.join(','),value=lookup.get(key)
       if(!value||!visible.has(key)||['minecraft:air','minecraft:cave_air','minecraft:void_air'].includes(value.split('[')[0]))continue
       pickedBox.box.min.fromArray(position);pickedBox.box.max.fromArray(position.map(v=>v+1));pickedBox.visible=true;requestRender()
-      return {position,state:value,source_sha256:snapshot.source_sha256,geometry_sha256:snapshot.geometry_sha256,view:metadata()}
+      return {position,surface:hit.point.toArray(),normal:normal.toArray().map(v=>Math.round(v)),state:value,source_sha256:snapshot.source_sha256,geometry_sha256:snapshot.geometry_sha256,view:metadata()}
     }
     pickedBox.visible=false;requestRender();return null
   }
-  let pickStart=null
-  canvas.addEventListener('pointerdown',event=>{if(canvas.dataset.pickMode==='true'&&event.button===0){event.preventDefault();pickStart=[event.clientX,event.clientY]}})
+  window.addEventListener('keydown',event=>{if(event.key==='Escape'&&window.parent!==window&&canvas.dataset.pickMode==='true'&&canvas.dataset.pickPurpose==='selection-edit')window.parent.postMessage({type:'nbt-pick-cancelled'},location.origin)})
+  let pickStart=null,pickMoved=false
+  canvas.addEventListener('pointerdown',event=>{if(canvas.dataset.transformDragging==='true')return;if(canvas.dataset.pickMode==='true'&&event.button===0){event.preventDefault();pickStart=[event.clientX,event.clientY];pickMoved=false}})
+  canvas.addEventListener('pointermove',event=>{if(pickStart&&Math.hypot(event.clientX-pickStart[0],event.clientY-pickStart[1])>5)pickMoved=true})
   canvas.addEventListener('pointerup',event=>{
-    if(!pickStart||event.button!==0)return
-    const start=pickStart;pickStart=null;if(Math.hypot(event.clientX-start[0],event.clientY-start[1])>5)return
+    if(!pickStart||event.button!==0||canvas.dataset.transformDragging==='true')return
+    const start=pickStart;pickStart=null;if(pickMoved||Math.hypot(event.clientX-start[0],event.clientY-start[1])>5)return
     const rect=canvas.getBoundingClientRect(),result=pickBlock((event.clientX-rect.left)/rect.width*2-1,1-(event.clientY-rect.top)/rect.height*2)
     if(window.parent!==window)window.parent.postMessage({type:canvas.dataset.pickPurpose==='comment'?'nbt-coordinate-picked':'nbt-material-picked',result},location.origin)
   })
   canvas.addEventListener('pointercancel',()=>pickStart=null)
+  componentGizmo=createComponentGizmo({canvas,camera:renderer.camera,viewCamera:camera,requestRender,notify:value=>{if(window.parent!==window)window.parent.postMessage({type:'nbt-transform-change',value,source_sha256:snapshot.source_sha256,geometry_sha256:snapshot.geometry_sha256},location.origin)}})
+  window.addEventListener('keydown',event=>{if(componentGizmo.state()&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&['Escape','KeyW','KeyE'].includes(event.code)){event.preventDefault();window.parent.postMessage({type:'nbt-transform-key',code:event.code},location.origin)}})
   Object.assign(api, {
     snapshot, renderer, camera, metadata,
+    setControls:value=>camera.setControls(value),
+    configureTransform:value=>enqueue(()=>{const result=componentGizmo.configure(value);draw();return result}),
+    transformStatus:()=>componentGizmo.state(),transformHandles:()=>componentGizmo.screenHandles(),
     setSelectionRange,pickBlock,setCommentMarkers,
     commentMarkerStatus:()=>commentMarkers.map(({number,position,status})=>({number,position,status})),
     selectionStatus:()=>({visible:selectionBox.visible,range:selectionRange}),
     setPicking:(enabled,purpose='material')=>{canvas.dataset.pickMode=String(Boolean(enabled));canvas.dataset.pickPurpose=purpose;canvas.style.cursor=enabled?'crosshair':''},
     replaceSnapshot: next => enqueue(async()=>{
-      if(JSON.stringify(next.size)!==JSON.stringify(size))throw new Error('对比建筑尺寸不同，请重新载入')
+      if(walkData&&(walkData.source_sha256!==next.source_sha256||walkData.geometry_sha256!==next.geometry_sha256)){walkData=null;walk.clear()}
+      if(protectionData&&protectionData.source_sha256!==next.source_sha256){protectionData=null;protectionConflicts=[];protectionEnabled=false;protection.clear()}
+      size=next.size;cut.max=String(size[1]-1);cut.value=String(Math.min(Number(cut.value),size[1]-1))
       const nextPalette=[],ids=new Map()
       const nextIndexed=next.blocks.map(([pos,value])=>{if(!ids.has(value)){ids.set(value,nextPalette.length);nextPalette.push(BlockState.parse(value))}return {pos,state:ids.get(value)}})
       snapshot=next;api.snapshot=next;pickedBox.visible=false;indexed=nextIndexed;palette.splice(0,palette.length,...nextPalette)
       walls.clear();next.wall_positions.forEach(p=>walls.add(p.join(',')))
       lookup.clear();next.blocks.forEach(([p,value])=>lookup.set(p.join(','),value));owners.clear()
-      const blocks=indexed.filter(({pos})=>includesBlock(pos,activeCuts)&&(activeLayer==='all'||(activeLayer==='walls')===walls.has(pos.join(','))))
+      for(const [position,owner] of next.owners??[])owners.set(position,owner)
+      document.getElementById('build-name').textContent=next.name;document.getElementById('build-stats').textContent=`${size.join(' x ')} | ${indexed.length.toLocaleString()} blocks`;document.getElementById('source-hash').textContent=`源 SHA256: ${next.source_sha256}`
+      const blocks=indexed.filter(({pos})=>includesBlock(pos,activeCuts)&&(activeLayer==='all'||(activeLayer==='walls')===walls.has(pos.join(',')))&&(!differenceOnly||differenceLookup?.has(pos)))
       renderer.setStructure(new Structure(size,palette,blocks));meshBuilds+=1;await renderer.whenReady();activeBlocks=blocks
+      updateDifferenceOverlay();protection.update(protectionData,protectionConflicts,activeCuts,protectionEnabled);walk.update(walkData,walkOptions,activeCuts)
       draw();return metadata()
+    }),
+    setDifference: (data,options={}) => enqueue(async()=>{
+      const side=options.side??'after'
+      if(!['before','after'].includes(side))throw Error('差异方向无效')
+      if(data&&(data[side+'_geometry_sha256']!==snapshot.geometry_sha256||data[side+'_source_sha256']!==snapshot.source_sha256))throw Error('差异数据不属于当前画面')
+      differenceLookup=data?differenceIndex(data):null;differenceData=data;differenceSide=side;differenceEnabled=!!data&&options.enabled!==false;differenceOnly=!!data&&options.only===true
+      filterKey='';await applyFilter(activeLayer,activeCuts);draw();return api.differenceStatus()
+    }),
+    differenceStatus:()=>({enabled:differenceEnabled,only:differenceOnly,side:differenceSide,...differences.status()}),
+    setProtection:(data,options={})=>{
+      if(data&&(data.schema_version!==1||data.source_sha256!==snapshot.source_sha256||JSON.stringify(data.size)!==JSON.stringify(size)||!Array.isArray(data.runs)||data.runs.length>200000||data.runs.some(run=>!Array.isArray(run)||run.length!==4||!run.every(Number.isSafeInteger)||Math.min(...run.slice(0,3))<0||run[3]<1||run[0]+run[3]>size[0]||run[1]>=size[1]||run[2]>=size[2])))throw Error('保护区数据不属于当前模型或坐标无效')
+      const conflicts=options.conflicts??[];if(!Array.isArray(conflicts)||conflicts.length>4096||conflicts.some(p=>!Array.isArray(p)||p.length!==3||p.some((n,i)=>!Number.isSafeInteger(n)||n<0||n>=size[i])))throw Error('保护冲突坐标无效')
+      protectionData=data;protectionConflicts=conflicts;protectionEnabled=!!data&&options.enabled!==false;protection.update(data,conflicts,activeCuts,protectionEnabled);requestRender();return api.protectionStatus()
+    },
+    protectionStatus:()=>({enabled:protectionEnabled,count:protectionData?.count??0,conflicts:protectionConflicts.length,...protection.status()}),
+    setWalkInspection:(data,options={})=>{
+      if(data&&(data.schema_version!==1||data.source_sha256!==snapshot.source_sha256||data.geometry_sha256!==snapshot.geometry_sha256||JSON.stringify(data.size)!==JSON.stringify(size)||!Array.isArray(data.poses)||data.poses.length>33||!Array.isArray(data.report?.targets)||data.report.targets.length>32))throw Error('通路检查数据不属于当前画面')
+      if(!Number.isInteger(options.target??0)||(options.target??0)<0||(data&&(options.target??0)>=data.report.targets.length))throw Error('通路终点无效')
+      walkData=data;walkOptions={enabled:!!data&&options.enabled!==false,target:options.target??0};walk.update(walkData,walkOptions,activeCuts);requestRender();return api.walkStatus()
+    },
+    walkStatus:()=>({enabled:!!walkData&&walkOptions.enabled,geometry_sha256:walkData?.geometry_sha256??null,...walk.status()}),
+    focusDifference: bounds => enqueue(async()=>{
+      await applyFilter('all',[]);layer.value='all';cut.value=cut.max
+      setCamera(focusDifference(bounds,currentCamera(),canvas.clientWidth/Math.max(1,canvas.clientHeight)));draw();return metadata()
     }),
     setCamera: view => enqueue(() => { setCamera(view); draw(); return metadata() }),
     renderView: view => enqueue(async () => { await applyView(normalizeView(view, size)); return metadata() }),
+    captureCurrent: () => enqueue(async () => {
+      await renderer.whenReady();draw()
+      const image=document.createElement('canvas'),ratio=Math.min(1,1280/Math.max(canvas.width,canvas.height));image.width=Math.max(1,Math.round(canvas.width*ratio));image.height=Math.max(1,Math.round(canvas.height*ratio));image.getContext('2d').drawImage(canvas,0,0,image.width,image.height)
+      return {dataUrl:image.toDataURL('image/jpeg',.82),width:image.width,height:image.height}
+    }),
     capture: view => enqueue(async () => {
       await applyView(normalizeView(view, size))
       // Encode in the same task as the completed draw: never read a cleared WebGL buffer.

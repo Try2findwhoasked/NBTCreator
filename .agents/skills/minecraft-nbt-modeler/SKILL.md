@@ -9,6 +9,8 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 
 当前副本属于独立 **NBTCreator** 迁移项目，Python引擎与本文仍可在Electron未启动时直接使用。原SAODG归档只作参考，不反向修改；SAODG接入规则仅在用户要求该集成时适用。桌面迁移与统一CLI入口见[NBTCreator调用](references/nbtcreator.md)。
 
+生成建筑方案、提示词或局部构件前，按[各区域 AI 创作偏好](references/ai-creative-preferences.md)读取当前工作区 `.nbtcreator/ai-style.json` 中对应任务区域的参数；无配置时使用默认值。应用和外部 Agent 共用它，创意与详略偏好不改变建模约束或确认流程。
+
 交付来自完整建筑设计的 `.nbt`，SAODG 接入另按当前加载器验收。主题、轮廓、布局、建模方法与高低差自由设计；示例只提供工具，不是建筑模板。用户只要 NBT 时，不强加 OBJ、谜题、刷怪、奖励、世界部署或交互预览。
 
 ## 开工与阅读路由
@@ -26,18 +28,27 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 | 细微道具与原版方块部件 | [细微道具](references/micro-props.md) |
 | SAODG 可拼接房 | [拼接协议](references/saodg-constraints.md)，核对当前加载器；完整定义示例见工作区 docs/ROOM_BUILDING_GUIDE.md |
 | 生成、改模、导出或验收 | [验证流程](references/validation-workflow.md)、[通用工具](references/toolkit.md) 的相关完整章节 |
+| 检查失败的通俗解释、玩家碰撞／支撑与保护冲突定位 | [检查结果解释](references/diagnostic-guidance.md)；保留原始证据与源绑定，未知或搜索上限不当作绝对不通，不自动删块修复 |
 | 状态、邻接、操作来源或工具维护 | [状态与维护](references/state-and-maintenance.md) |
 | 纹理质检出图、批量相机或用户网页查看 | [渲染与交互](references/rendering.md) |
 | 生成或显式转换时带权混材、随机替换、连片噪声 | [通用方块模式](references/patterns.md) |
 | 新建/重设计房间的地面风格、半砖凹陷或坑洞 | [自动地面与适量破损](references/floors.md)；主动评估适用性，不等用户逐项指定 |
 | 网页保存JSON转下一版NBT、原工作文件夹归档修改意见 | [网页修改回导](references/web-revision.md) |
 | 用户手动控制细节比例、材质权重、参数方案、图片修改意见或按需3D查看 | [本地细节控制台](references/detail-control.md)；默认轻量图片评审，agent常规处理仍使用API和批量出图 |
+| 用户已在图片或3D上标注、需要收集意见或迁移证据 | [Agent读取意见](references/agent-feedback.md)；使用 feedback collect/archive，检查源/图/快照哈希 |
 | 完整可修改提示词、工具参数组合与提示词网页 | [建模提示词工作台](references/prompt-console.md)；离线生成文本、计划和可复用方案 |
 | 已有授权的委派或换 agent 接手 | [委派与阅读落实](references/delegation-and-review.md)；本文不要求新增 subagent |
 | 用户已看图并同意精修 | [精修流程](references/refinement.md)；风化另读 [连片风化](references/weathering.md) |
+| 依据局部方块用自然语言规划工具步骤 | [选区编辑](references/selection-edit.md)；context/compile 共用应用引擎，选区内实际写入、保护与预算由候选和最终导出共同检查 |
 | 几何布尔、拉伸、复制阵列、旋转镜像、膨胀侵蚀、扩散或爆炸破坏 | [建模与效果工具](references/modelling-tools.md)；已有资产仍按精修流程 |
 | 资产迁移、形状归档、中文名称索引 | [建筑库归档](references/library-archive.md) |
+| 外部Agent修改任务、下一版登记和评论处理核对 | [任务回传](references/agent-task-return.md)；agent-tasks get/record 保留原版本、原评论和逐条声明，人工核对独立记录，不能自造批准 |
+| 按任务检索资料片段、引用与适配已有构件 | [本地参考检索](references/reference-retrieval.md)；retrieve search/bundle/read 共用实际工作流选择与哈希，保留出处；不扩大资料暴露、不覆盖旧资产 |
+| 保存选区为构件、搜索构件库、3D复制/移动/旋转/吸附、AI局部放置 | [构件资产库](references/component-assets.md)；应用与 CLI 共用工作区库，extract/transform仅返回候选，先预览再导出下一版 |
+| 保存参数化工具序列、复用材质主题、XYZ构件批量阵列 | [配方与主题](references/reusable-recipes.md)；recipes compile / components batch返回原工具候选，不直接写建筑 |
 | 图形化浏览已有结构、收藏、版本筛选与批量选择清单 | [现有结构选择器](references/structure-selector.md) |
+| 批量创作的过程目录、关联模型与汇总图册 | [制作批次](references/batch-workspaces.md)；batches create/record/list/get/locate 共用应用登记，过程文件放 `_workspaces/batches`，正式作者模型仍按形状／名称／版本归档 |
+| 项目多选、批量截面预览、文件/路线检查、进度与失败重试 | [项目批量任务](references/project-batch.md)；只读队列，阶段标记不等于精修批准或验收 |
 | 管理SAODG模组已接入结构、房间池与选择优先级 | [模组结构管理器](references/mod-structures.md) |
 | 输出、分层交付、世界转换 | [交付流程](references/delivery-workflow.md)、[文件与世界转换](references/output-storage.md) |
 
@@ -65,6 +76,8 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 - 技术、空间设计、构造细节、主题表达分别记录。技术通过不能推出设计合格；必要节点不足写“初稿设计未达标”并补改，不能以“等待精修”掩盖。纹理预览、截图、哈希或报告字段不等于美术完成；未执行项目明确标记。
 
 ## 工具入口与输出
+
+生成工作区先用 `python .agents/skills/nbtcreator-workspace/nbt.py paths` 查询实际 scripts 路径再导入 API，无需读取包装器猜路径。独立建筑自定义入口使用 toolkit 中的 open_declared_openings；开洞前密闭与开洞后路线仍分别检查。
 
 新作品写任务专用生成器，使用通用工具；不运行历史示例批量换皮。自由形用 nbt_fields，截面用 nbt_sections，顶壳诊断用 nbt_roof_preview；这些均不代替真实玩家视角。受控混材优先使用nbt_patterns的pattern操作：带权随机、全局种子、区域/源状态筛选、连片噪声与兼容属性保留；在完整主模型验证前调用，详见 [通用方块模式](references/patterns.md)。格式互转默认原样保留，已有作品应用仍走真实看图确认后的精修流程。状态邻接仅在有依据的支持范围内处理，不模拟完整游戏。
 

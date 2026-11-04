@@ -28,7 +28,7 @@ try{
   }
   await pick();await page.locator('#feedback-text').fill('#1 Original building note');await page.locator('#save-feedback').click();await page.waitForFunction(()=>window.detailControl.state.notes.length===1)
   const baseline=await page.evaluate(()=>window.detailControl.state.notes[0].anchors[0]);checks.no_image_required_for_coordinate_comments=true
-  await page.locator('#pause-3d').click();assert.equal(await page.locator('#feedback-card').isVisible(),false)
+  await page.locator('#image-mode').click();assert.equal(await page.locator('#feedback-card').isVisible(),false)
   await page.locator('#enable-3d').click();await page.waitForFunction(()=>!window.detailControl.state.busy&&window.detailControl.state.notes.length===1,undefined,{timeout:60000})
   checks.no_image_comments_restore_on_reopen=true
   await page.locator('#tool-tabs button').nth(1).click();await page.locator('#pattern-enabled').check();await page.locator('#pattern-fraction').fill('25')

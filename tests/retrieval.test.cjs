@@ -1,0 +1,17 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path')
+const {createApiService}=require('../desktop/api-service.cjs'),{createInternalAI}=require('../desktop/internal-ai.cjs')
+const stringValues=value=>typeof value==='string'?[value]:Array.isArray(value)?value.flatMap(stringValues):value&&typeof value==='object'?Object.values(value).flatMap(stringValues):[]
+const skill=path.resolve(__dirname,'../.agents/skills/minecraft-nbt-modeler'),asset={id:'a'.repeat(32),name:'水渠桥',content_sha256:'b'.repeat(64),size:[9,4,3],anchor:[4,0,1],palette:['minecraft:stone_bricks']},receipt={id:'c'.repeat(32),sha256:'d'.repeat(64)}
+
+test('verified bundles replace full documents and allow only explicitly supplied component IDs',async t=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-retrieval-api-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));let received,readCount=0,unknown=false
+ const sources=[{kind:'asset',label:asset.name,id:'asset:'+asset.id,citation:'R1',sha256:asset.content_sha256,asset_id:asset.id,size:asset.size}],internal=createInternalAI({workspace:()=>root,skill,retrieve:async request=>{assert.deepEqual(request,{...receipt,workflow:'component'});readCount++;return {workflow:'component',sources,references:[asset],knowledge:[{citation:'R2',label:'规范',content:'ONLY_SELECTED_EXCERPT'}]}}})
+ const service=createApiService({directory:path.join(root,'user'),safeStorage:{isEncryptionAvailable:()=>true},workflowContext:(key,request)=>internal.context(key,request),fetchImpl:async(_url,options)=>{received=JSON.parse(options.body);return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify({placements:[{id:unknown?'0'.repeat(32):asset.id,content_sha256:asset.content_sha256,position:[1,0,4],quarter_turns:1,material_map:{stone_bricks:'gold_block'}}]})}}]}))}})
+ await service.save({enabled:true});const input={mode:'component',instruction:'复用桥',context:{name:'新桥',size:[4,6,10],references:[]},retrieval:receipt},result=await service.generate(input);assert.equal(readCount,1);assert.equal(result.used_assets[0],asset.id);assert.equal(result.reference_sources[0].citation,'R1');const sent=JSON.parse(received.messages[1].content);assert.equal(sent.context.references[0].id,asset.id);assert.equal(sent.internal_workflow.knowledge[0].content,'ONLY_SELECTED_EXCERPT');assert.equal(sent.internal_workflow.retrieved_assets,undefined);assert.ok(stringValues(sent).every(value=>!value.includes(root)))
+ unknown=true;await assert.rejects(service.generate(input),/未提供/);await assert.rejects(service.generate({...input,retrieval:{id:'../secret',sha256:receipt.sha256}}),/编号/)
+})
+
+test('reference provenance remains bounded data without paths, passage content or executable fields',async()=>{
+ const {referenceSources}=await import('../.agents/skills/minecraft-nbt-modeler/assets/viewer/reference-sources.mjs'),valid={kind:'knowledge',label:'桥梁规范',id:'knowledge:one',citation:'R1',sha256:'a'.repeat(64),heading:'支承',line_start:1,line_end:4,clipped:false}
+ const cleaned=referenceSources([{...valid,content:'private full passage',file:'D:/private/file',code:'run()'}]);assert.equal(cleaned[0].content,undefined);assert.equal(cleaned[0].file,undefined);assert.equal(cleaned[0].code,undefined);assert.throws(()=>referenceSources([{...valid,citation:'R100'}]));assert.throws(()=>referenceSources([{...valid,line_end:-1}]));assert.throws(()=>referenceSources(Array(17).fill(valid)))
+})

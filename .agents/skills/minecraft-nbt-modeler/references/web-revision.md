@@ -31,6 +31,10 @@ python .agents/skills/minecraft-nbt-modeler/scripts/nbt_web_revision.py --input 
 - `conversion.json`：来源及输入哈希、原版本、新版本、改动数、交付数量和complete/failed状态。只有complete表示该次转换完成。
 - `previews/README.json`：明确尚未为新版本重新渲染。原版本图片不冒充新图；需要看图时按render流程对新主模型批量出图。
 
-先在完整模型上重新计算和校验，再纯切割并回读；保留源文件、原墙归属和源哈希。严格执行变化预算，不支持的碰撞、缺墙mask、缺坐标配置或不符合48有效cells的尺寸会报错。校验失败通常不分配版本；写出中失败保留failed诊断目录，后续分配新编号。不会自动放宽检查、删除未知形状或补造墙归属。48连续重建与49运行间距、真实客户端及多人验收仍分别报告。当前版本接入不支持的独立非48素材应使用已有独立模型交付流程，不强套本转换器。
+先在完整模型上重新计算和校验，再纯切割并回读；保留源文件、原墙归属和源哈希。严格执行变化预算，不支持的碰撞、缺墙mask、缺坐标配置会报错。SAODG模式仍要求48有效cells；独立模式必须显式给 `mode: "standalone"`、`openings`、真实路线与探针，可回导非48倍数和高度跨48的完整模型。校验失败通常不分配版本；写出中失败保留failed诊断目录，后续分配新编号。不会自动放宽检查、删除未知形状或补造墙归属。48连续重建与49运行间距、真实客户端及多人验收仍分别报告。
+
+独立回导的 `runtime/parts.json` 和 `delivery/delivery.json` 使用 `kind: standalone_xyz_tiles`，保存每块XYZ索引、实际offset和边块size；每块一份完整含空气NBT、独立两份稀疏body/walls。空墙层在清单明确列出，整件空墙归属需用户上下文 `allow_empty_wall_mask: true`；不能据此把SAODG房间的缺墙mask变成通过。`nbt_standalone_delivery.verify_standalone(<版本目录>)` 会回读完整和分层文件，验证尺寸/偏移/哈希/层互斥、完整重建及墙mask指纹。
+
+非空cells在独立模式仍是有效XZ占地，回导与精修会保留并传给机械切片器。清单的active_cells和建筑描述记录同一占地；L形缺角不产空片。无cells/空cells的自由尺寸模式仍使用完整包围盒XYZ存储。
 
 回归：`check_web_revision_fixtures.py --output <全新目录>` 验证L形三片/六份分层、下一版编号、原稿保留、快照篡改拒绝与预算检查；这些只处理合成模型。

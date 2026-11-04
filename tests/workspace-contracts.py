@@ -3,7 +3,7 @@ import json,sys,tempfile,unittest,shutil,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];ENGINE=ROOT/'.agents/skills/minecraft-nbt-modeler';sys.path.insert(0,str(ENGINE/'scripts'))
 from nbt_capabilities import capabilities
-from nbt_exposure import apply as expose
+from nbt_exposure import apply as expose,import_knowledge
 from nbt_workspace import migrate
 from nbt_request_paths import read_request,metadata_path
 from nbt_detail_control import default_settings,compile_plan,preview_effect
@@ -11,8 +11,20 @@ from nbt_refine import save_master
 from nbt_assembly import Volume
 
 class Contracts(unittest.TestCase):
+ def test_exposed_paths_are_callable_after_relocation_and_locate_importable_api(self):
+  with tempfile.TemporaryDirectory() as temp:
+   old=Path(temp)/'old';new=Path(temp)/'new';expose(old)
+   shutil.copytree(old,new);shutil.rmtree(old)
+   command=[sys.executable,str(new/'.agents/skills/nbtcreator-workspace/nbt.py'),'paths']
+   run=subprocess.run(command,cwd=new,capture_output=True,text=True,encoding='utf8')
+   self.assertEqual(run.returncode,0,run.stderr);data=json.loads(run.stdout)
+   self.assertTrue(Path(data['engine']).is_relative_to(new.resolve()))
+   self.assertTrue((Path(data['scripts'])/'nbt_openings.py').is_file())
+   self.assertEqual(Path(data['workspace']),new.resolve());self.assertEqual(len(data['runtime_bundle_sha256']),64)
+   imported=subprocess.run([sys.executable,'-c','import sys;sys.path.insert(0,sys.argv[1]);from nbt_openings import open_declared_openings;print(callable(open_declared_openings))',data['scripts']],capture_output=True,text=True)
+   self.assertEqual(imported.returncode,0,imported.stderr);self.assertEqual(imported.stdout.strip(),'True')
  def test_catalogue_and_generic_gui_operations(self):
-  c=capabilities();self.assertEqual(len(c['tools']),18)
+  c=capabilities();self.assertEqual(set(c['tools']),set(json.loads((ENGINE/'tool-catalog.json').read_text(encoding='utf8'))['tools']))
   s=default_settings();s['operations']=[dict(kind='box',label='same engine',classification='body',lo=[4,4,4],hi=[4,5,4],state='stone')]
   self.assertEqual(compile_plan(s,(48,16,48))['operations'],s['operations'])
   s['operations'][0]['kind']='run_python'
@@ -56,6 +68,11 @@ class Contracts(unittest.TestCase):
    old=Path(temp)/'old';new=Path(temp)/'new';expose(old,dict(schema_version=1,enabled_groups=['props']))
    shutil.copytree(old,new);shutil.rmtree(old)
    run=subprocess.run([sys.executable,str(new/'.agents/skills/nbtcreator-workspace/nbt.py'),'capabilities'],cwd=new,capture_output=True,text=True,encoding='utf8')
-   self.assertEqual(run.returncode,0,run.stderr);self.assertEqual(len(json.loads(run.stdout)['tools']),18)
+   self.assertEqual(run.returncode,0,run.stderr);self.assertEqual(set(json.loads(run.stdout)['tools']),set(capabilities()['tools']))
    text=(new/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8');self.assertIn('.nbtcreator/runtimes',text);self.assertNotIn(str(ROOT),text)
+ def test_custom_knowledge_copied_selected_and_portable(self):
+  with tempfile.TemporaryDirectory() as temp:
+   root=Path(temp);workspace=root/'project';doc=root/'建筑规范.md';doc.write_text('梁端需要承托。',encoding='utf8')
+   result=import_knowledge(workspace,[doc]);item=result['custom_knowledge'][0];self.assertTrue((workspace/'.nbtcreator'/item['path']).is_file());self.assertIn('建筑规范',(workspace/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8'))
+   item['enabled']=False;expose(workspace,dict(schema_version=1,enabled_groups=['core'],custom_knowledge=[item]));self.assertNotIn('建筑规范',(workspace/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8'));self.assertTrue(doc.is_file());self.assertTrue((workspace/'.nbtcreator'/item['path']).is_file())
 if __name__=='__main__':unittest.main(verbosity=2)

@@ -45,7 +45,7 @@ def nearby(source, names):
     return ''
 
 
-def catalog(workspace, cache_path=None):
+def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
     selected=Path(workspace).resolve();workspace=selected
     for candidate in [selected,*selected.parents]:
         if candidate.name.lower()=='nbt_models':workspace=candidate.parent
@@ -54,35 +54,62 @@ def catalog(workspace, cache_path=None):
     if marker.is_file() and read_json(marker).get('status')!='complete':return dict(models=[],skipped=0,scanned=0,cache_hits=0,migration_in_progress=True)
     files = []
     for directory, dirs, names in os.walk(root):
+        quarantined=include_bugged and 'bugged' in Path(directory).relative_to(root).parts
+        refinement=Path(directory)/'refinement.json'
+        if refinement.is_file():
+            try:
+                state=read_json(refinement).get('state')
+                incomplete=state=='writing' or (not quarantined and state in ('failed','cancelled'))
+            except (OSError,ValueError):incomplete=not quarantined
+            if incomplete:dirs[:]=[];continue
         conversion=Path(directory)/'conversion.json'
         if conversion.is_file():
             try:ready=read_json(conversion).get('status')=='complete'
             except (OSError,ValueError):ready=False
-            if not ready:dirs[:]=[];continue
+            if not ready and not quarantined:dirs[:]=[];continue
         dirs[:] = [name for name in dirs if not (name.startswith(('.', 'synthetic', 'test_')) or
                     any(word in name.lower() for word in ('validation', 'fixture', 'cache', 'control_web', 'regression')) or
-                    name in {'bugged','_migration','_workspaces','_tests','world', 'worlds', 'saves', 'node_modules', 'previews', 'jobs', 'review','delivery','layers'})]
+                    (name=='bugged' and not include_bugged) or name in {'_migration','_workspaces','_tests','world', 'worlds', 'saves', 'node_modules', 'previews', 'jobs', 'review','delivery','layers'})]
         files.extend(Path(directory)/name for name in names if (name.lower().endswith('.json.gz') and 'master' in name.lower()) or name.lower().endswith('.nbt'))
     files.sort(key=lambda p: (p.suffix.lower()=='.nbt',-p.stat().st_mtime_ns,str(p)))
-    cache_path = Path(cache_path) if cache_path else root/'_workspaces/catalog_metadata.json'
+    cache_path = Path(cache_path) if cache_path else root/('_workspaces/catalog_metadata_index.json' if index_only else '_workspaces/catalog_metadata_projects.json' if include_bugged else '_workspaces/catalog_metadata.json')
     try: cache = read_json(cache_path)
-    except (OSError, ValueError): cache = {}
+    except (OSError, ValueError):
+        try:cache=read_json(root/'_workspaces/catalog_metadata.json') if include_bugged else {}
+        except (OSError,ValueError):cache={}
     next_cache = {}; cache_hits = 0
     models, seen, skipped = [], set(), 0
-    descriptions={};errors=[]
+    descriptions={};description_paths={};errors=[]
+    def description_near(source):
+        for parent in list(source.parents)[:4]:
+            if parent not in description_paths:
+                candidate=parent/'room_description.json';description_paths[parent]=candidate if candidate.is_file() else None
+            if description_paths[parent]:return description_paths[parent]
+        return None
     for p in files:
+        bugged='bugged' in p.relative_to(root).parts
         try:
-            descriptor=next((parent/'room_description.json' for parent in [p.parent,*list(p.parents)[:4]] if (parent/'room_description.json').is_file()),None)
+            descriptor=description_near(p)
             if descriptor:
                 if descriptor not in descriptions:descriptions[descriptor]=read_json(descriptor)
                 declaration=descriptions[descriptor]
-                if declaration.get('audit',{}).get('compliant') is False:continue
+                if declaration.get('audit',{}).get('compliant') is False and not bugged:continue
                 declared_master=declaration.get('master')
-                if declared_master and metadata_path(descriptor,declared_master).is_file() and metadata_path(descriptor,declared_master)!=p.resolve():continue
+                if declared_master and not bugged and metadata_path(descriptor,declared_master).is_file() and metadata_path(descriptor,declared_master)!=p.resolve():continue
             stat=p.stat(); stamp=[stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns]
             entry=cache.get(str(p))
             if entry and entry.get('stamp')==stamp:
                 data=entry['metadata'];cache_hits+=1
+            elif bugged:
+                # Quarantine can contain thousands of old NBT exports. Index it
+                # without constructing every volume; inspect on explicit open.
+                with p.open('rb') as stream:
+                    if stream.read(2)!=b'\x1f\x8b':raise ValueError('文件不是有效的 gzip NBT / 主模型，无法读取')
+                data=dict(geometry_sha256=None,size=declaration.get('size') if descriptor else None,unverified=True)
+            elif index_only:
+                with p.open('rb') as stream:
+                    if stream.read(2)!=b'\x1f\x8b':raise ValueError('文件不是有效的 gzip NBT / 主模型，无法读取')
+                data=dict(geometry_sha256=declaration.get('geometry_sha256') if descriptor else None,size=declaration.get('size') if descriptor else None,unverified=True)
             elif descriptor and declaration.get('audit',{}).get('compliant') is True and declaration.get('master_file_sha256') and declaration.get('geometry_sha256') and digest(p)==declaration['master_file_sha256']:
                 data={'geometry_sha256':declaration['geometry_sha256'], 'size':declaration.get('size')};cache_hits+=1
             elif p.suffix.lower()=='.nbt':
@@ -92,7 +119,7 @@ def catalog(workspace, cache_path=None):
                 with gzip.open(p, 'rt', encoding='utf8') as stream: raw = json.load(stream)
                 data = {'geometry_sha256':raw['geometry_sha256'], 'size':raw['size']} if isinstance(raw,dict) and all(key in raw for key in ('size','blocks','geometry_sha256')) else None
             next_cache[str(p)]={'stamp':stamp,'metadata':data}
-            if not data: skipped += 1; continue
+            if not data: raise ValueError('缺少完整主模型的尺寸、方块或几何哈希')
             relative = p.relative_to(root)
             parts = relative.parts
             building_index = next((i for i, part in enumerate(parts[:-1]) if re.match(r'^(?:[rR]\d{2,3}|[sSlL]\d{2}|\d{2}|cross_\d+|t_\d+)(?:_|$)', part)), None)
@@ -107,14 +134,14 @@ def catalog(workspace, cache_path=None):
                     parent_parts.pop()
                 group = '/'.join(parent_parts) or '.'; name = parent_parts[-1] if parent_parts else p.name
                 batch = '/'.join(parent_parts[:-1])
-            description_file=next((parent/'room_description.json' for parent in [p.parent,*list(p.parents)[:4]] if (parent/'room_description.json').is_file()),None)
+            description_file=descriptor
             room_description={}
             if description_file:
-                try:room_description=read_json(description_file)
+                try:room_description=descriptions[description_file]
                 except (ValueError,OSError):room_description={}
-                if room_description.get('audit',{}).get('compliant') is False:continue
+                if room_description.get('audit',{}).get('compliant') is False and not bugged:continue
                 recorded_master=room_description.get('master')
-                if recorded_master and metadata_path(description_file,recorded_master)!=p.resolve() and metadata_path(description_file,recorded_master).is_file():continue
+                if recorded_master and not bugged and metadata_path(description_file,recorded_master)!=p.resolve() and metadata_path(description_file,recorded_master).is_file():continue
                 name=room_description.get('name_zh') or name
                 parts=description_file.parent.relative_to(root).parts
                 if len(parts)>=3 and parts[0] in {'single','long','square','l_shape','t_shape','cross','standalone','irregular'}:
@@ -122,7 +149,10 @@ def catalog(workspace, cache_path=None):
                 elif 'versions' in parts:group='/'.join(parts[:parts.index('versions')])
                 else:group=str(description_file.parent.parent.relative_to(root)) if description_file.parent.name.startswith(('版本_','v_','detail_v','refined_v')) or re.fullmatch(r'v\d+',description_file.parent.name) else str(description_file.parent.relative_to(root))
                 batch=room_description.get('shape_zh') or batch
-            key = (group, data['geometry_sha256'])
+            version_dir=description_file.parent if description_file else p.parent
+            if not description_file:
+                while version_dir!=root and version_dir.name in {'master','masters','runtime','parts'}:version_dir=version_dir.parent
+            key = (group, str(version_dir), data['geometry_sha256'] or str(p))
             if key in seen: continue
             seen.add(key)
             version = ' / '.join(part for part in parts[(building_index+1 if building_index is not None else len(parts)-2):-1]
@@ -136,10 +166,37 @@ def catalog(workspace, cache_path=None):
                                context=str(description_file.parent/room_description['context_file']) if room_description.get('context_file') else nearby(p, ('coordinates.json', 'config.json', 'context.json')),
                                cameras=nearby(p, ('cameras.json',)), size=room_description.get('size') or data.get('size'),
                                cells=room_description.get('cells'), description_zh=room_description.get('description_zh',''),
-                               modified_ns=stat.st_mtime_ns, file_size=stat.st_size, relative_path=str(relative)))
+                               modified_ns=str(stat.st_mtime_ns), file_size=stat.st_size, relative_path=str(relative),bugged=bugged,unreadable=False,unverified=bool(data.get('unverified'))))
         except (OSError, ValueError, TypeError, KeyError,AssertionError,EOFError) as error:
             skipped+=1
             if len(errors)<10:errors.append(dict(file=str(p.relative_to(root)),reason=str(error) or '不满足当前完整结构格式要求（版本、显式空气、实体或尺寸）'))
+            if (bugged and include_bugged) or index_only:
+                relative=p.relative_to(root)
+                models.append(dict(source=str(p.resolve()),label=str(relative),name=p.parent.name,group=str(relative.parent),version=p.name,
+                                   relative_path=str(relative),bugged=bugged,unreadable=True,error=str(error) or '模型格式不完整',size=None,geometry_sha256=None,context='',cameras='',intermediate=False))
+    shapes={'single':'单格','long':'长条','square':'方形','l_shape':'L 形','t_shape':'T 形','cross':'十字','standalone':'独立结构','irregular':'不规则','bugged':'bugged（待修复）'}
+    for item in models:
+        parts=Path(item['relative_path']).parts
+        shape_index=next((i for i,part in enumerate(parts[:-1]) if part in shapes),None)
+        item['project_key']='/'.join(parts[:shape_index]) if shape_index is not None else ''
+        item['project_name']=item['project_key'] or workspace.name
+        declared_shape=item.get('shape')
+        item['shape_group']='bugged' if item['bugged'] else parts[shape_index] if shape_index is not None else declared_shape if isinstance(declared_shape,str) and declared_shape else 'unclassified'
+        item['shape_group_zh']=shapes.get(item['shape_group'],'未分类')
+        if not isinstance(item.get('size'),(list,tuple)) or len(item['size'])!=3 or any(type(v) is not int or v<=0 for v in item['size']):item['size']=None
+        item['object_key']=item['group'].replace('\\','/')
+        item['object_name']=item.get('name_zh') or item['name']
+        if not item.get('unreadable'):
+            declared=descriptions.get(description_near(Path(item['source'])),{})
+            phase=declared.get('workflow_stage',declared.get('status'))
+            if phase in {'unrefined','refined','finalized','discarded'} and declared.get('master') and metadata_path(description_near(Path(item['source'])),declared['master'])==Path(item['source']):item['stage']=phase
+        item['is_delivery']='_deliveries' in parts or 'delivery' in parts
+        if (shape_index is not None and len(parts)==shape_index+2) or len(parts)==1:
+            item['object_key']='/'.join(parts)
+            item['object_name']=item.get('name_zh') or Path(parts[-1]).stem.removesuffix('.json').removesuffix('.master')
+        if isinstance(item.get('name_zh'),str) and item['name_zh'].strip():
+            # A delivery and its authoring version belong to one named object.
+            item['object_key']=json.dumps([item['project_key'],item['shape_group'],item['name_zh'].strip()],ensure_ascii=False,separators=(',',':'))
     cache_path.parent.mkdir(parents=True,exist_ok=True)
     import uuid
     temporary=cache_path.with_name(cache_path.name+'.'+uuid.uuid4().hex+'.tmp')
@@ -173,21 +230,59 @@ def inspect_source(source, image_limit=8):
     source = Path(source).resolve(); model, walls = read_master(source)
     geometry_hash = model.fingerprint()
     counts = Counter(model.blocks.values())
+    from nbt_collision import bounded_obstacle, ENVELOPE_VERSION
     unknown = [dict(state=value, count=count, reason=collision_cells(value)[1])
-               for value, count in sorted(counts.items()) if collision_cells(value)[1]]
+               for value, count in sorted(counts.items()) if collision_cells(value)[1] and not bounded_obstacle(value)]
+    conservative = [dict(state=value,count=count) for value,count in sorted(counts.items()) if bounded_obstacle(value)]
     context = nearby(source, ('coordinates.json', 'config.json', 'context.json'))
     cameras = nearby(source, ('cameras.json',))
     images = preview_images(source, geometry_hash, image_limit)
     sx,sy,sz=model.size
     solid=[p for p,value in model.blocks.items() if value.split('[')[0] not in ('minecraft:air','minecraft:cave_air','minecraft:void_air')]
     projections=dict(top=dict(size=[sx,sz],cells=sorted({x+z*sx for x,y,z in solid})),front=dict(size=[sx,sy],cells=sorted({x+y*sx for x,y,z in solid})),side=dict(size=[sz,sy],cells=sorted({z+y*sz for x,y,z in solid})))
-    data = read_json(context) if context else {}
-    return dict(source=str(source), source_sha256=digest(source), workdir=str(project_paths(source)['workdir']), geometry_sha256=model.fingerprint(),
+    try:
+        data = read_json(context) if context else {}
+        if not isinstance(data,dict):data={}
+    except (OSError,ValueError):data={}
+    readiness=context_readiness(model,context)
+    return dict(source=str(source), source_sha256=digest(source), workdir=str(project_paths(source)['workdir']), version_dir=str(project_paths(source)['version']), geometry_sha256=model.fingerprint(),
                 projections=projections,size=list(model.size), solid_blocks=len(model.blocks), wall_blocks=len(walls),
                 context=context, cameras=cameras, images=images, unknown_shapes=unknown,
+                conservative_obstacles=conservative,obstacle_envelope_version=ENVELOPE_VERSION if conservative else None,
+                editing_ready=readiness['ready'],context_readiness=readiness,
                 materials=[dict(state=value,count=count) for value,count in counts.most_common() if value.split('[')[0] not in ('minecraft:air','minecraft:cave_air','minecraft:void_air')],
                 suggested_floor=data.get('floor_operation', {}), suggested_budget=data.get('max_changed_blocks', 4096),
                 note='Controls describe a new pass from this baseline; existing details cannot be undone without an earlier baseline.')
+
+
+def context_readiness(model, context):
+    """Schema readiness only; never a seal, route or visual acceptance result."""
+    from nbt_library import canonical_context
+    missing=[];errors=[]
+    if not context:return dict(ready=False,missing=['context'],errors=[],scope='schema_only')
+    try:data=canonical_context(context)
+    except (OSError,ValueError,TypeError) as error:return dict(ready=False,missing=[],errors=[str(error)],scope='schema_only')
+    mode=data.get('mode','saodg')
+    if mode not in ('saodg','standalone'):errors.append('mode 必须为 saodg 或 standalone')
+    for key in ('start','targets','interior_probes'):
+        if key not in data or not data[key]:missing.append(key)
+    if 'start' not in missing and (not isinstance(data['start'],list) or len(data['start'])!=3 or any(type(v) not in (int,float) or not math.isfinite(v) for v in data['start'])):
+        errors.append('start 需要实际玩家脚位XYZ')
+    if 'targets' not in missing and not isinstance(data['targets'],(list,dict)):errors.append('targets 需要非空目标列表或命名字典')
+    if 'interior_probes' not in missing and not isinstance(data['interior_probes'],list):errors.append('interior_probes 需要室内空气坐标列表')
+    def xyz(value,voxel=False):
+        return isinstance(value,(list,tuple)) and len(value)==3 and all(type(v) in ((int,) if voxel else (int,float)) and math.isfinite(v) for v in value)
+    if isinstance(data.get('targets'),(list,dict)):
+        values=data['targets'].values() if isinstance(data['targets'],dict) else data['targets']
+        if any(not xyz(p) for p in values):errors.append('targets 每项需要实际玩家脚位XYZ')
+    if isinstance(data.get('interior_probes'),list) and any(not xyz(p,True) or not model.in_bounds(p) for p in data['interior_probes']):
+        errors.append('interior_probes 每项需要模型内的整数XYZ')
+    if mode=='standalone':
+        if 'openings' not in data:missing.append('openings')
+        elif not isinstance(data['openings'],list):errors.append('openings 需要显式开口列表；无开口填空列表')
+        if data.get('ports'):errors.append('独立建筑使用 openings，不混用SAODG ports')
+    elif not data.get('cells') and not(model.size[0]==model.size[2]==48):missing.append('cells 或显式 mode=standalone')
+    return dict(ready=not missing and not errors,mode=mode,missing=missing,errors=errors,scope='schema_only')
 
 
 def thumbnails(request_path, cache):
@@ -351,7 +446,9 @@ def compile_plan(settings, size):
     supported=set(capabilities()['tools'])
     for op in extra:
         if not isinstance(op,dict) or op.get('kind') not in supported or not isinstance(op.get('label'),str) or not op['label'].strip():raise ValueError('建模工具种类或说明无效')
+        if type(op.get('enabled',True)) is not bool:raise ValueError('工具步骤的 enabled 开关须为布尔值')
         if op.get('classification','body') not in ('body','wall','inherit'):raise ValueError('工具归属无效')
+        if not op.get('enabled',True):continue
         if op['kind']=='auto_floor':
             if op.get('classification','body')!='body':raise ValueError('自动地面归主体层')
         elif op['kind']=='beam':
@@ -369,14 +466,15 @@ def normalize_context(model, context_path, camera_path, settings):
     data = read_json(context_path)
     from nbt_library import canonical_context
     data = canonical_context(context_path)
-    keys = ('cells', 'door_y', 'ports', 'start', 'targets', 'interior_probes', 'protected_paths',
+    keys = ('mode', 'openings', 'allow_empty_wall_mask', 'cells', 'door_y', 'ports', 'start', 'targets', 'interior_probes', 'protected_paths',
             'protected_boxes', 'route_legs', 'cameras', 'wall_positions')
     config = {key: data[key] for key in keys if key in data}
-    if 'cells' not in config and model.size[0] == model.size[2] == 48: config['cells'] = [[0, 0]]
-    config.setdefault('ports', []); config.setdefault('door_y', 2)
+    if config.get('mode','saodg')!='standalone':
+        if 'cells' not in config and model.size[0] == model.size[2] == 48: config['cells'] = [[0, 0]]
+        config.setdefault('ports', []); config.setdefault('door_y', 2)
     config['max_changed_blocks'] = settings.get('max_changed_blocks', 4096)
     for key in ('start', 'targets', 'interior_probes'):
-        if key not in config: raise ValueError(f'Context is missing {key}; choose coordinates/config JSON')
+        if key not in config or not config[key]: raise ValueError(f'Context is missing non-empty {key}; choose coordinates/config JSON')
     raw_cameras = read_json(camera_path) if camera_path else config.get('cameras', [])
     if not raw_cameras:
         start = config['start']; targets = config['targets']
@@ -391,7 +489,7 @@ def normalize_context(model, context_path, camera_path, settings):
     selected = [(whole, 'whole'), (entry, 'entry')]
     selected.extend((c, 'detail') for c in raw_cameras if c is not whole and c is not entry)
     config['cameras'] = [{k: c[k] for k in ('eye', 'target', 'cuts', 'fov') if k in c} | {'role': role}
-                         for c, role in selected[:4]]
+                         for c, role in selected[:6]]
     return config
 
 
@@ -423,17 +521,25 @@ def export_plan(request, output):
         from nbt_floors import auto_floor_plan
         virtual = Volume(model.size); virtual.blocks = dict(model.blocks)
         protected = protections(virtual, config)
+        write_owners={};virtual_walls=set(walls)
         for operation in plan['operations']:
             if operation['kind'] == 'pattern': edits, report = pattern_plan(virtual, operation, protected)
             elif operation['kind'] == 'weathering': edits, report = weathering_plan(virtual, operation, protected)
             elif operation['kind']=='auto_floor': edits, report = auto_floor_plan(virtual, operation, config, protected)
             else: edits,report=operation_candidates(virtual,operation,protected),{}
-            if any(p in protected and virtual.get(p)!=value for p,value in edits):raise ValueError('结构编辑触及保护区，请调整范围')
+            from nbt_change_policy import enforce_overwrite
+            enforce_overwrite(virtual,virtual_walls,operation,edits,write_owners)
+            conflicts=[p for p,value in edits if p in protected and virtual.get(p)!=value]
+            if conflicts:raise ValueError(f'步骤“{operation.get("label",operation["kind"])}”触及保护区：{conflicts[:8]}。请移动构件或缩小范围；允许覆盖不会取消保护。')
             estimates.append(dict(kind=operation['kind'], label=operation['label'], writes=len(edits), report=report))
-            for p, value in edits: virtual.put(p, value)
+            for p, value in edits:
+                virtual.put(p, value)
+                if value in ('minecraft:air','minecraft:cave_air','minecraft:void_air') or operation.get('classification')=='body':virtual_walls.discard(p)
+                elif operation.get('classification')=='wall':virtual_walls.add(p)
     except (ValueError, AssertionError, KeyError) as error:
         warning_detail = str(error)
-        unsupported = [value for value in sorted(set(model.blocks.values())) if collision_cells(value)[1]]
+        from nbt_collision import bounded_obstacle
+        unsupported = [value for value in sorted(set(model.blocks.values())) if collision_cells(value)[1] and not bounded_obstacle(value)]
         warning = (f'源模型含 {len(unsupported)} 类未支持的碰撞形状（例如 {unsupported[0]}）。已导出参数计划；几何估算与实际应用仍需通过核验。'
                    if unsupported else warning_detail)
     if digest(source) != baseline_hash: raise ValueError('Source changed while planning')
@@ -447,6 +553,43 @@ def export_plan(request, output):
                 plan=str(output/'plan.json'), bundle=str(output/'bundle.json'), output=str(output))
 
 
+def simulate_plan(model, walls, plan, config):
+    """The shared data-only candidate engine for model edits and new assets."""
+    from nbt_assembly import Volume
+    from nbt_patterns import pattern_plan
+    from nbt_weathering import weathering_plan
+    from nbt_floors import auto_floor_plan
+    walls=set(walls);source_walls=set(walls)
+    virtual=Volume(model.size);virtual.blocks=dict(model.blocks);protected=protections(virtual,config)
+    write_owners={}
+    for operation in plan['operations']:
+        from nbt_operation_scope import scoped_operation,enforce_scope
+        operation,bounds=scoped_operation(operation,model.size)
+        if operation['kind']=='pattern': edits,_=pattern_plan(virtual,operation,protected)
+        elif operation['kind']=='weathering': edits,_=weathering_plan(virtual,operation,protected)
+        elif operation['kind']=='auto_floor': edits,_=auto_floor_plan(virtual,operation,config,protected)
+        else: edits=operation_candidates(virtual,operation,protected)
+        from nbt_change_policy import enforce_overwrite
+        enforce_overwrite(virtual,walls,enforce_scope(bounds,operation,edits),edits,write_owners)
+        outside=[p for p,value in edits if not virtual.in_bounds(p)]
+        if outside:raise ValueError(f'步骤“{operation.get("label",operation["kind"])}”超出建筑边界：{outside[:8]}，建筑尺寸为{virtual.size}。请调整构件位置。')
+        conflicts=[p for p,value in edits if p in protected and virtual.get(p)!=value]
+        if conflicts:
+            from nbt_protection_view import ProtectionConflict
+            raise ProtectionConflict(operation.get('label',operation['kind']),conflicts)
+        moved_walls={tuple(p[i]+operation['offset'][i] for i in range(3)) for p in walls if all(operation['lo'][i]<=p[i]<=operation['hi'][i] for i in range(3))} if operation['kind']=='move_region' else set()
+        for position,value in edits:
+            virtual.put(position,value)
+            if operation['kind']=='move_region':
+                if position in moved_walls and value.split('[')[0] not in ('minecraft:air','minecraft:cave_air','minecraft:void_air'):walls.add(position)
+                else:walls.discard(position)
+            elif value.split('[')[0] in ('minecraft:air','minecraft:cave_air','minecraft:void_air') or operation.get('classification')=='body':walls.discard(position)
+            elif operation.get('classification')=='wall' or position in moved_walls:walls.add(position)
+    from nbt_change_policy import enforce_changes
+    difference=enforce_changes(model.blocks,virtual.blocks,source_walls,walls,protected,maximum=config.get('max_changed_blocks'))
+    return virtual,walls,difference
+
+
 def preview_effect(request, output):
     # User-requested visual experiment only: no master/NBT, approval or delivery.
     from nbt_assembly import Volume
@@ -456,24 +599,15 @@ def preview_effect(request, output):
     from nbt_registry import effective, normalize, registry
     source=Path(request['source']).resolve(); baseline=digest(source)
     if request.get('source_sha256') and request['source_sha256']!=baseline: raise ValueError('原建筑已变化，请重新打开')
-    model,walls=read_master(source);source_walls=set(walls);settings=request['settings'];plan=compile_plan(settings,model.size)
+    model,walls=read_master(source);settings=request['settings'];plan=compile_plan(settings,model.size)
     config=normalize_context(model,request['context'],request.get('cameras',''),settings)
-    virtual=Volume(model.size);virtual.blocks=dict(model.blocks);protected=protections(virtual,config)
-    for operation in plan['operations']:
-        if operation['kind']=='pattern': edits,_=pattern_plan(virtual,operation,protected)
-        elif operation['kind']=='weathering': edits,_=weathering_plan(virtual,operation,protected)
-        elif operation['kind']=='auto_floor': edits,_=auto_floor_plan(virtual,operation,config,protected)
-        else: edits=operation_candidates(virtual,operation,protected)
-        if any(not virtual.in_bounds(p) or p in protected and virtual.get(p)!=value for p,value in edits):raise ValueError('结构编辑超出边界或触及保护区，请调整范围')
-        moved_walls={tuple(p[i]+operation['offset'][i] for i in range(3)) for p in walls if all(operation['lo'][i]<=p[i]<=operation['hi'][i] for i in range(3))} if operation['kind']=='move_region' else set()
-        for position,value in edits:
-            virtual.put(position,value)
-            if operation['kind']=='move_region':
-                if position in moved_walls and value.split('[')[0] not in ('minecraft:air','minecraft:cave_air','minecraft:void_air'):walls.add(position)
-                else:walls.discard(position)
-            elif value.split('[')[0] in ('minecraft:air','minecraft:cave_air','minecraft:void_air') or operation.get('classification')=='body':walls.discard(position)
-            elif operation.get('classification')=='wall' or position in moved_walls:walls.add(position)
-    changed=sum(model.get(p)!=virtual.get(p) for p in set(model.blocks)|set(virtual.blocks))
+    if 'wall_positions' in config:
+        from nbt_refine import point
+        walls={point(p) for p in config['wall_positions']}
+        if any(not model.in_bounds(p) for p in walls):raise ValueError('墙mask超出原建筑范围')
+    walls={p for p in walls if p in model.blocks};source_walls=set(walls)
+    virtual,walls,difference=simulate_plan(model,walls,plan,config)
+    changed=difference['changed_blocks']
     output=reserve_output(output)
     def snapshot(current,mask):
         blocks=[]
@@ -484,10 +618,14 @@ def preview_effect(request, output):
                     registry_sha256=registry()['blocks_sha256'],preview_only=True,
                     verification=dict(routes='not_checked',game='not_checked',design='pending_visual_review'))
     write_json(output/'before.json',snapshot(model,source_walls));write_json(output/'after.json',snapshot(virtual,walls))
+    from nbt_compare import describe
+    diff=describe(model,virtual,source_walls,walls)
+    diff.update(before_source_sha256=baseline,after_source_sha256=baseline,before_geometry_sha256=model.fingerprint(),after_geometry_sha256=virtual.fingerprint())
+    write_json(output/'difference.json',diff)
     if digest(source)!=baseline: raise ValueError('原建筑在计算中变化，请重新打开')
     return dict(status='visual_preview_only',snapshot=str(output/'after.json'),baseline_snapshot=str(output/'before.json'),
                 geometry_sha256=virtual.fingerprint(),source_sha256=baseline,size=list(model.size),
-                cameras=config['cameras'],changed_blocks=changed,settings_sha256=canonical(settings),preview_only=True)
+                cameras=config['cameras'],changed_blocks=changed,wall_membership_changes=difference['wall_membership_changes'],settings_sha256=canonical(settings),preview_only=True,difference=str(output/'difference.json'))
 
 
 def create_review(request, output):
@@ -516,6 +654,7 @@ def apply_approved(request, bundle_path, review, output):
     if canonical(review_config) != canonical(expected): raise ValueError('Reviewed protection/config differs from this plan; use matching context and a new review when needed')
     result = refine(review, plan, output)
     return dict(status=result['state'], output=str(Path(output).resolve()), changed_blocks=result['changed_blocks'],
+                wall_membership_changes=result.get('wall_membership_changes',0),changed_positions=result.get('changed_positions',result['changed_blocks']),
                 preview_source=str(Path(output).resolve()/'refined.master.json.gz'),
                 images=[str(Path(output).resolve()/'comparison.png')])
 
@@ -540,12 +679,20 @@ def render_source(request, output):
 def source_snapshot(request, output):
     from nbt_task import write_snapshot
     source = Path(request['source']).resolve(); model, _ = read_master(source)
-    if request.get('context'):
-        config = normalize_context(model, request['context'], request.get('cameras', ''), request['settings'])
-        raw=read_json(request['cameras']) if request.get('cameras') else config['cameras']
-    else:
+    readiness=context_readiness(model,request.get('context'))
+    context_warning=''
+    if readiness['ready']:
+        try:
+            config = normalize_context(model, request['context'], request.get('cameras', ''), request['settings'])
+            raw=read_json(request['cameras']) if request.get('cameras') else config['cameras']
+        except (ValueError,KeyError,TypeError,OSError) as error:
+            readiness=dict(readiness,ready=False,errors=[str(error)])
+    if not readiness['ready']:
         sx,sy,sz=model.size
-        raw=read_json(request['cameras']) if request.get('cameras') else [dict(id='whole',role='whole',eye=[sx*1.5,sy*1.5,-sz],target=[sx/2,sy/2,sz/2],cuts=[])]
+        try:raw=read_json(request['cameras']) if request.get('cameras') else None
+        except (OSError,ValueError):raw=None
+        raw=raw or [dict(id='whole',role='whole',eye=[sx*1.5,sy*1.5,-sz],target=[sx/2,sy/2,sz/2],cuts=[])]
+        context_warning='当前只读查看：坐标配置还需补齐 '+', '.join(readiness['missing']+readiness['errors'])
     views = []
     for i, camera in enumerate(raw):
         view = {k: camera[k] for k in ('eye', 'target', 'up', 'fov', 'role', 'layer', 'lighting', 'cut_y') if k in camera}
@@ -555,7 +702,7 @@ def source_snapshot(request, output):
     output = reserve_output(output)
     result = write_snapshot(source, output/'snapshot.json', cameras=views)
     return dict(status='baseline_snapshot', snapshot=str(output/'snapshot.json'), source_sha256=result['source_sha256'],
-                geometry_sha256=result['geometry_sha256'], size=result['size'], cameras=views,read_only_view=not bool(request.get('context')))
+                geometry_sha256=result['geometry_sha256'], size=result['size'], cameras=views,read_only_view=not readiness['ready'],context_warning=context_warning)
 
 
 def prompt_export(request):
@@ -577,31 +724,89 @@ def prompt_export(request):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
-    cmd = sub.add_parser('catalog'); cmd.add_argument('--workspace', type=Path, required=True)
+    cmd = sub.add_parser('catalog'); cmd.add_argument('--workspace', type=Path, required=True);cmd.add_argument('--include-bugged',action='store_true');cmd.add_argument('--index-only',action='store_true')
     cmd = sub.add_parser('inspect'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--image-limit',type=int,default=8)
-    cmd = sub.add_parser('cover'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--geometry', required=True); cmd.add_argument('--cache',type=Path,required=True)
+    cmd = sub.add_parser('cover'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--geometry', default=''); cmd.add_argument('--cache',type=Path,required=True); cmd.add_argument('--generate-missing',action='store_true')
+    cmd = sub.add_parser('components'); cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','save','get','place','batch','import','update','extract','transform','agent'],required=True);cmd.add_argument('--request',type=Path)
+    cmd = sub.add_parser('recipes');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','get','save','capture','archive','compile'],required=True);cmd.add_argument('--request',type=Path)
+    cmd = sub.add_parser('project-batch');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','create','get','run','retry','cancel'],required=True);cmd.add_argument('--request',type=Path)
+    cmd = sub.add_parser('protection-mask');cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('walk-inspect');cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
+    cmd = sub.add_parser('agent-tasks');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['create','list','get','discover','record','review'],required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('retrieve');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['search','source','bundle','read'],required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('selection-edit');cmd.add_argument('--action',choices=['context','compile'],required=True);cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
     cmd = sub.add_parser('thumbnails'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--cache',type=Path,required=True)
     sub.add_parser('defaults')
     cmd = sub.add_parser('prompt'); cmd.add_argument('--request', type=Path, required=True)
-    for name in ('plan', 'prepare', 'render', 'snapshot', 'preview', 'revision'):
+    cmd = sub.add_parser('prompt-save');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('batches');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['create','import','list','get','record','run','ack','locate','discover'],required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('feedback-tasks');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','create','update','merge','evidence'],required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('validate'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True)
+    for name in ('plan', 'prepare', 'render', 'snapshot', 'preview', 'revision', 'compare'):
         cmd = sub.add_parser(name); cmd.add_argument('--request', type=Path, required=True); cmd.add_argument('--output', type=Path, required=True)
     cmd = sub.add_parser('apply'); cmd.add_argument('--request', type=Path, required=True)
     cmd.add_argument('--bundle', type=Path, required=True); cmd.add_argument('--review', type=Path, required=True)
     cmd.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     try:
-        if args.command == 'catalog': result = catalog(args.workspace)
+        if args.command == 'catalog': result = catalog(args.workspace,include_bugged=args.include_bugged,index_only=args.index_only)
         elif args.command == 'cover':
-            images = preview_images(args.source,args.geometry,1)
-            if images:
-                from PIL import Image
-                cache=args.cache;cache.mkdir(parents=True,exist_ok=True)
-                image=Path(images[0]);fingerprint=digest(image);target=cache/(fingerprint+'.jpg')
-                if not target.is_file():
-                    with Image.open(image) as original:
-                        thumb=original.convert('RGB');thumb.thumbnail((320,200));thumb.save(target,'JPEG',quality=78)
-                result=dict(image=str(image),thumbnail=str(target))
-            else: result=dict(image=None,thumbnail=None)
+            from nbt_cover import section_cover
+            result = section_cover(args.source,args.geometry,args.cache,generate=args.generate_missing)
+        elif args.command == 'recipes':
+            from nbt_recipes import dispatch
+            result=dispatch(args.workspace,args.action,read_request(args.request) if args.request else {})
+        elif args.command == 'prompt-save':
+            from nbt_prompts import save
+            result=save(args.workspace,read_json(args.request))
+        elif args.command == 'batches':
+            from nbt_batches import dispatch
+            result=dispatch(args.workspace,args.action,read_request(args.request))
+        elif args.command == 'feedback-tasks':
+            from nbt_feedback_tasks import dispatch
+            result=dispatch(args.workspace,args.action,read_request(args.request))
+        elif args.command == 'project-batch':
+            from nbt_project_batch import dispatch
+            result=dispatch(args.workspace,args.action,read_request(args.request) if args.request else {})
+        elif args.command == 'protection-mask':
+            from nbt_protection_view import mask
+            result=mask(read_request(args.request))
+        elif args.command == 'walk-inspect':
+            from nbt_walk_view import inspect_walk
+            result=inspect_walk(read_request(args.request),args.snapshot)
+            output=reserve_output(args.output)
+            write_json(output/'walk-inspection.json',result)
+            result['report_file']=str(output/'walk-inspection.json')
+        elif args.command == 'agent-tasks':
+            from nbt_agent_tasks import dispatch
+            result=dispatch(args.workspace,args.action,read_request(args.request))
+        elif args.command == 'retrieve':
+            from nbt_retrieval import dispatch
+            result=dispatch(args.workspace,args.action,read_request(args.request))
+        elif args.command == 'selection-edit':
+            from nbt_selection_edit import dispatch
+            result=dispatch(args.action,read_request(args.request),args.snapshot)
+        elif args.command == 'components':
+            import nbt_components as components
+            data=read_request(args.request) if args.request else {}
+            if args.action=='agent':
+                from nbt_structure_agent import dispatch
+                if set(data)!={'tool','arguments'}:raise ValueError('结构Agent请求须包含tool和arguments')
+                result=dispatch(args.workspace,data['tool'],data['arguments'])
+            elif args.action=='list':result=components.listing(args.workspace)
+            elif args.action=='get':result=components.load(args.workspace,data['id'])
+            elif args.action=='save':result=components.capture(args.workspace,data['source'],data['name'],data['lo'],data['hi'],tags=data.get('tags',[]),include_air=data.get('include_air',False),snapshot=data['snapshot'],snapshot_sha256=data['snapshot_sha256'])
+            elif args.action=='import':result=components.store(args.workspace,data['component'])
+            elif args.action=='update':result=components.update(args.workspace,data['id'],data.get('name'),data.get('tags'),data.get('archived'))
+            elif args.action=='extract':result=components.extract(data['source'],data.get('name','选区构件'),data['lo'],data['hi'],snapshot=data['snapshot'],snapshot_sha256=data['snapshot_sha256'])
+            elif args.action=='transform':result=components.transform_selection(data['source'],data['lo'],data['hi'],data['position'],snapshot=data['snapshot'],snapshot_sha256=data['snapshot_sha256'],quarter_turns=data.get('quarter_turns',0),mirror=data.get('mirror'),overwrite=data.get('overwrite',False),move=data.get('move',False),name=data.get('name','选区构件'))
+            else:
+                component=components.load(args.workspace,data['id']) if data.get('id') else components.validate(data['component'])
+                if data.get('content_sha256') and data['content_sha256']!=component['content_sha256']:raise ValueError('构件内容已改变，请重新载入')
+                if args.action=='batch':
+                    from nbt_recipes import load as load_theme
+                    result=components.batch_placement(component,data['position'],data['size'],data.get('counts'),data.get('spacing'),data.get('quarter_turns',0),data.get('mirror'),data.get('overwrite',False),load_theme(args.workspace,data['theme']) if data.get('theme') else None)
+                else:result=components.placement(component,data['position'],data['size'],data.get('quarter_turns',0),data.get('mirror'),data.get('overwrite',False))
         elif args.command == 'inspect':
             if not 1 <= args.image_limit <= 64: raise ValueError('image-limit must be 1..64')
             result = inspect_source(args.source,args.image_limit)
@@ -609,6 +814,9 @@ def main():
         elif args.command == 'defaults': result = default_settings()
         elif args.command == 'prompt': result = prompt_export(read_request(args.request))
         elif args.command == 'plan': result = export_plan(read_request(args.request), args.output)
+        elif args.command == 'validate':
+            from nbt_candidate import validate_candidate
+            result=validate_candidate(read_request(args.request),args.snapshot,args.output)
         elif args.command == 'prepare': result = create_review(read_request(args.request), args.output)
         elif args.command == 'render': result = render_source(read_request(args.request), args.output)
         elif args.command == 'revision':
@@ -616,10 +824,14 @@ def main():
             result=convert_web_json(args.request)
         elif args.command == 'preview': result = preview_effect(read_request(args.request), args.output)
         elif args.command == 'snapshot': result = source_snapshot(read_request(args.request), args.output)
+        elif args.command == 'compare':
+            from nbt_compare import compare_sources
+            result=compare_sources(read_request(args.request),args.output)
         else: result = apply_approved(read_request(args.request), args.bundle, args.review, args.output)
         print(json.dumps(dict(ok=True, result=result), ensure_ascii=False))
+        if args.command=='validate' and not result['passed']:return 1
     except Exception as error:
-        print(json.dumps(dict(ok=False, error=str(error)), ensure_ascii=False)); return 1
+        print(json.dumps(dict(ok=False, error=str(error),**(dict(details=error.details) if hasattr(error,'details') else {})), ensure_ascii=False)); return 1
     return 0
 
 

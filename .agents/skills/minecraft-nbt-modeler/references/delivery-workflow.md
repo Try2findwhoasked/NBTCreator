@@ -2,7 +2,7 @@
 
 ## 工作区加载与输出位置
 
-本skill的维护与加载位置统一为工作区 `.agents/skills/minecraft-nbt-modeler/`；SKILL.md、scripts与references都实际存放在该目录，不依赖外部目录联接。
+NBTCreator 的活动源码维护位置为 `.agents/skills/minecraft-nbt-modeler/`。应用同步的工作区使用 `.agents/skills/nbtcreator-workspace/SKILL.md` 和 nbt.py 入口，具体实现/资料冻结在工作区 `.nbtcreator/runtimes/<版本>/`，通过相对链接定位，不依赖目录联接。本文旧路径示例按实际入口映射。
 
 复制或打包整个minecraft-nbt-modeler文件夹即可；在其他工作区解压到其 `.agents/skills/` 下。所有脚本按本skill目录寻找共享模块与参考文件；当前工程tools里的兼容入口不属于分发包，也不是运行依赖。可使用 `$minecraft-nbt-modeler` 调用。
 

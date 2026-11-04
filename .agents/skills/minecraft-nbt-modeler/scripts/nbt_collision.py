@@ -8,8 +8,10 @@ jumping, falling farther, swimming, climbing and special movement are omitted.
 
 Full cubes use an explicit material allowlist; bottom/top/double slabs and all
 five stair shapes are represented exactly as unions of half-block cubes. Other
-blocks become full cubes for diagnostics, and ALWAYS make passed=False: that
-approximation must never invent a supporting floor and certify a false route.
+blocks become full cubes for diagnostics and make passed=False. A small,
+version-verified allowlist may instead use full-block obstacle supersets: these
+proxies never provide floor support, and reports distinguish this conservative
+route witness from exact shape support. All other unknown shapes still fail.
 This is a geometric authoring check, not a substitute for an in-game walk test.
 """
 from collections import Counter, deque
@@ -69,6 +71,32 @@ for _ore in ('coal', 'iron', 'gold', 'copper', 'lapis', 'redstone', 'emerald', '
     FULL_CUBES.update((_ore + '_ore', 'deepslate_' + _ore + '_ore'))
 FULL_CUBES.update(('nether_gold_ore', 'nether_quartz_ore', 'ancient_debris'))
 
+# Verified against the Java 1.20.1 server shape definitions. These classes have
+# static collision contained within their own unit block, including dripstone's
+# <=1/8 horizontal offset. This is NOT a full-cube collision/support allowlist.
+# See references/collision-envelopes.md for the source and proof boundary.
+BOUNDED_OBSTACLES = frozenset(('chain', 'iron_bars', 'iron_trapdoor',
+                              'spruce_trapdoor', 'lever', 'pointed_dripstone',
+                              'stone_button'))
+# FenceBlock's collision is 24/16 blocks high, unlike IronBarsBlock. Never
+# silently classify it as a unit-height obstacle or allow it to support a floor.
+TALL_OBSTACLES = frozenset(('spruce_fence',))
+ENVELOPE_VERSION = 'minecraft-java-1.20.1-bounded-obstacles-v2'
+
+
+@lru_cache(maxsize=4096)
+def bounded_obstacle(value):
+    """Whether the state has an explicitly verified obstacle envelope.
+
+    Registry normalization remains mandatory. A name resembling a supported
+    class, an unknown mod block, or an invalid state must not enter this path.
+    """
+    try:
+        name, _ = effective(value)
+    except ValueError:
+        return False
+    return name.removeprefix('minecraft:') in BOUNDED_OBSTACLES | TALL_OBSTACLES
+
 
 @lru_cache(maxsize=4096)
 def collision_cells(value):
@@ -117,18 +145,37 @@ def collision_cells(value):
 
 
 class _Space:
-    def __init__(self, model):
+    def __init__(self, model, conservative_obstacles=True):
         self.size = tuple(model.size)
         self.sx, self.sy, self.sz = (2*n for n in model.size)
         # Each y,z row is an X bitset; a player query usually touches only 8 rows.
         self.rows = [0] * (self.sy*self.sz)
+        # An upper collision envelope cannot prove any supporting surface.
+        # Keep exact support cells independent from obstacle rasterization.
+        self.support_rows = [0] * (self.sy*self.sz)
         self.unknown = Counter()
+        self.conservative = Counter()
         for (x, y, z), value in model.blocks.items():
             cells, reason = collision_cells(value)
             if reason:
-                self.unknown[(value, reason)] += 1
+                if (conservative_obstacles and reason == 'unsupported_collision_shape'
+                        and bounded_obstacle(value)):
+                    self.conservative[value] += 1
+                    name, _ = effective(value)
+                    height = 3 if name.removeprefix('minecraft:') in TALL_OBSTACLES else 2
+                    cells = tuple((dx,dy,dz) for dx in (0,1) for dy in range(height) for dz in (0,1))
+                else:
+                    self.unknown[(value, reason)] += 1
             for dx, dy, dz in cells:
-                self.rows[(2*y+dy)*self.sz+2*z+dz] |= 1 << (2*x+dx)
+                # Only poses inside model bounds are considered. Tall envelope
+                # cells above the model top cannot affect any accepted pose.
+                if 2*y+dy >= self.sy:
+                    continue
+                row = (2*y+dy)*self.sz+2*z+dz
+                bit = 1 << (2*x+dx)
+                self.rows[row] |= bit
+                if not reason:
+                    self.support_rows[row] |= bit
 
     @staticmethod
     def _span(lo, hi):
@@ -161,7 +208,7 @@ class _Space:
         if x0 < 0 or x1 > self.sx or z0 < 0 or z1 > self.sz:
             return False
         mask = ((1 << (x1-x0))-1) << x0
-        return any(self.rows[below*self.sz+zz] & mask for zz in range(z0, z1))
+        return any(self.support_rows[below*self.sz+zz] & mask for zz in range(z0, z1))
 
     def standing(self, p):
         return self.clear_player_sweep(p, p) and self.supported(p)
@@ -187,7 +234,7 @@ class _Space:
             for along in range(along0, along1):
                 for cross in range(cross0, cross1):
                     xx, zz = (along, cross) if axis == 0 else (cross, along)
-                    if 0 <= zz < self.sz and 0 <= xx < self.sx and self.rows[yy*self.sz+zz] & (1 << xx):
+                    if 0 <= zz < self.sz and 0 <= xx < self.sx and self.support_rows[yy*self.sz+zz] & (1 << xx):
                         intervals.append((along*.5-RADIUS, (along+1)*.5+RADIUS))
                         break
         end = lower
@@ -246,29 +293,40 @@ def _position(value):
     return p
 
 
-def check_routes(model, start, targets):
+def check_routes(model, start, targets, *, conservative_obstacles=True, max_poses=None):
     """Return a JSON-serializable report; failed routes do not raise assertions.
 
     Half-block graph sampling is conservative and can miss narrow/off-grid
     manoeuvres. A successful report certifies only the listed static walking
-    routes within the model bounds under the supported collision shapes.
+    routes within the model bounds under exact shapes or verified enclosing
+    obstacles with exact support only. Set conservative_obstacles=False for a
+    strict exact-shape-only report; unknown shapes always prevent certification.
     Targets may be a list of positions or a name -> position dictionary.
     """
+    if max_poses is not None and (type(max_poses) is not int or max_poses < 1):
+        raise ValueError('max_poses must be a positive integer')
     start = _position(start)
     named = list(targets.items()) if isinstance(targets, dict) else [(str(i), p) for i, p in enumerate(targets)]
     named = [(str(name), _position(p)) for name, p in named]
-    space = _Space(model)
+    space = _Space(model, conservative_obstacles=conservative_obstacles)
     report = dict(passed=False, method='half_block_graph_swept_player_aabb',
                   size=list(model.size), geometry_sha256=model.fingerprint(),
                   player_width=.6, player_height=1.8, horizontal_grid=.5,
                   maximum_step_up=.5, maximum_step_down=.5, jumps_allowed=False,
                   runtime_verified=False, registry_verified=False,
                   unknown_shapes=[dict(state=s, reason=r, count=n) for (s, r), n in sorted(space.unknown.items())],
-                  geometry_supported=not space.unknown, start=list(start),
+                  conservative_obstacles=[dict(state=s, count=n) for s, n in sorted(space.conservative.items())],
+                  obstacle_envelope_version=ENVELOPE_VERSION if space.conservative else None,
+                  collision_mode='bounded_obstacles_exact_support' if space.conservative else 'exact_half_cells',
+                  geometry_supported=not space.unknown and not space.conservative,
+                  exact_geometry_supported=not space.unknown and not space.conservative,
+                  route_geometry_supported=not space.unknown,
+                  support_from_proxies_allowed=False, start=list(start),
                   limitations=['Static collision only; fluids, damage, friction, entities and dynamic block updates are not simulated.',
                                'No jumps, long falls, swimming, climbing, crawling or special movement.',
                                'Half-block sampling may reject a route that requires a finer horizontal manoeuvre.',
-                               'Unknown shapes are solid diagnostic proxies and prevent a passing report.'])
+                               'Unverified shapes are solid diagnostic proxies and prevent a passing report.',
+                               'Verified bounded obstacles use solid supersets for clearance only, never for support; routes through real thin gaps may be missed.'])
 
     @lru_cache(maxsize=None)
     def standing(node):
@@ -299,11 +357,12 @@ def check_routes(model, start, targets):
     source = {node: node for node in starts}
     queue = deque(starts)
     found = {}
+    search_limit_reached = False
     desired = {}
     for i, candidates in enumerate(target_anchors):
         for node in candidates:
             desired.setdefault(node, []).append(i)
-    while queue:
+    while queue and not search_limit_reached:
         node = queue.popleft()
         for i in desired.get(node, ()):
             found.setdefault(i, node)
@@ -318,9 +377,14 @@ def check_routes(model, start, targets):
                     continue
                 b = tuple(v*.5 for v in next_node)
                 if space.move(a, b):
+                    if max_poses is not None and len(parent) >= max_poses:
+                        search_limit_reached = True
+                        break
                     parent[next_node] = node
                     source[next_node] = source[node]
                     queue.append(next_node)
+            if search_limit_reached:
+                break
     target_reports = []
     for i, (name, p) in enumerate(named):
         item = dict(name=name, feet=list(p), standing=space.standing(p), reachable=i in found)
@@ -337,9 +401,10 @@ def check_routes(model, start, targets):
         else:
             item['reason'] = ('invalid_or_obstructed_feet_pose' if not item['standing'] else
                               'no_safe_half_grid_connector' if not target_anchors[i] else
+                              'search_limit_reached' if search_limit_reached else
                               'unreachable_with_walking_and_half_block_steps')
         target_reports.append(item)
-    report.update(targets=target_reports, reachable_poses=len(parent),
+    report.update(targets=target_reports, reachable_poses=len(parent), search_limit_reached=search_limit_reached,
                   passed=bool(start_ok and starts and len(found) == len(named) and not space.unknown))
     if not start_ok:
         report['failure'] = 'Start has collision, no support, or extends outside model bounds.'

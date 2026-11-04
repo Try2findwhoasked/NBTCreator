@@ -12,7 +12,8 @@
       19,
       15,
       19
-    ]
+    ],
+    "enabled": true
   },
   "shapes": {
     "box": {
@@ -516,6 +517,66 @@
         "classification": "body"
       },
       "需要真实start/targets/ports/interior_probes；依赖实际模型，网页不能估算通过。"
+    ],
+    "paste_component": [
+      "构件资产粘贴",
+      {
+        "lo": [
+          4,
+          4,
+          4
+        ],
+        "hi": [
+          4,
+          4,
+          4
+        ],
+        "palette": [
+          "minecraft:stone_bricks"
+        ],
+        "voxels": [
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "overwrite": false
+      },
+      "palette为完整状态数组；voxels为相对lo的[x,y,z,材质编号]，最多65536格。默认拒绝冲突；墙层与主体拆为不同操作。"
+    ],
+    "auto_road": [
+      "自动道路铺设",
+      {
+        "lo": [
+          4,
+          3,
+          4
+        ],
+        "hi": [
+          25,
+          3,
+          25
+        ],
+        "start": [
+          6,
+          3,
+          6
+        ],
+        "end": [
+          23,
+          3,
+          23
+        ],
+        "width": 3,
+        "depth": 1,
+        "route": "straight",
+        "state": "stone_bricks",
+        "overwrite": false,
+        "max_writes": 4096
+      },
+      "起终点Y为路面高度且须相同；straight / x_first / z_first自动生成连续道路，宽1～16、厚1～8，完整路面须在选区内；覆盖已有路面须显式开启，不自动避障。"
     ]
   },
   "labels": {
@@ -571,7 +632,61 @@
     "thickness": "厚度",
     "width": "梁宽",
     "start": "起点 XYZ",
-    "end": "终点 XYZ"
+    "end": "终点 XYZ",
+    "enabled": "启用本步骤"
+  },
+  "inspection_tools": {
+    "walk-inspect": {
+      "description": "只读检查玩家0.6×1.8格占位、支撑和普通步行路径；以实际源或绑定候选快照为准，不批准、不修改建筑。",
+      "cli": "control walk-inspect --request <json> --output <new-directory> [--snapshot <registered-preview-json>]",
+      "request": {
+        "required": [
+          "source",
+          "source_sha256"
+        ],
+        "optional": [
+          "context",
+          "geometry_sha256",
+          "start",
+          "targets"
+        ],
+        "coordinates": "finite player-feet XYZ; start/targets may come from context; at most 32 targets"
+      },
+      "result": "poses, exact half-cell intersections, engine routes/paths, shape limitations and search_limit_reached; JSON report only",
+      "max_search_poses": 250000
+    }
+  },
+  "knowledge_sources": {
+    "builtin:design": {
+      "label": "整体创作原则",
+      "file": "design-principles.md",
+      "summary": "设计独立空间构想、结构层次、主题节点与留白；避免只换材质或复制同一种房型。",
+      "use": "首次初稿、整体重设计、纠正重复布局"
+    },
+    "builtin:space": {
+      "label": "空间与构造细节",
+      "file": "spatial-detail-design.md",
+      "summary": "天花承托、地板分区、墙面厚度、门窗收口及三者交接，指导细节主次和尺度。",
+      "use": "完整初稿、小型构件、细节方案"
+    },
+    "builtin:scale": {
+      "label": "玩家尺度",
+      "file": "player-scale.md",
+      "summary": "按普通玩家身体与碰撞尺度考虑净高、通路、平台、楼梯和可达性。",
+      "use": "所有涉及玩家通行的空间和构件"
+    },
+    "builtin:tools": {
+      "label": "建模工具说明",
+      "file": "modelling-tools.md",
+      "summary": "几何、复制、旋转、扩散与破坏等完整工具参数；内部小型结构只开放其中的受限子集。",
+      "use": "表单工具规划；不代表AI获得全部工具执行权限"
+    },
+    "builtin:delivery": {
+      "label": "输出与归档规范",
+      "file": "output-storage.md",
+      "summary": "nbt_models形状归档、中文描述、日期版本命名及master/runtime/delivery等分区。",
+      "use": "完整任务交付规划；小型结构的NBT封装由脚本负责"
+    }
   },
   "commands": {
     "inspect": "nbt_task.py",
@@ -587,6 +702,528 @@
     "check": "check_skill.py",
     "capabilities": "nbt_capabilities.py",
     "migrate-workspace": "nbt_workspace.py",
-    "exposure": "nbt_exposure.py"
+    "exposure": "nbt_exposure.py",
+    "feedback": "nbt_feedback.py",
+    "paths": "nbt_paths.py",
+    "validate": "nbt_candidate.py",
+    "components": "nbt_components.py",
+    "ai-style": "nbt_ai_style.py",
+    "recipes": "nbt_recipes.py",
+    "project-batch": "nbt_project_batch.py",
+    "prompts": "nbt_prompts.py",
+    "feedback-tasks": "nbt_feedback_tasks.py",
+    "batches": "nbt_batches.py",
+    "selection-edit": "nbt_selection_edit.py",
+    "retrieve": "nbt_retrieval.py",
+    "diagnostics": "nbt_diagnostics.py",
+    "agent-tasks": "nbt_agent_tasks.py"
+  },
+  "building_shapes": {
+    "single": {
+      "label": "单格",
+      "size": [
+        48,
+        24,
+        48
+      ],
+      "cells": [
+        [
+          0,
+          0
+        ]
+      ],
+      "footprint": "单个紧凑空间，统一设计入口、主厅与主题节点。"
+    },
+    "long": {
+      "label": "长条",
+      "size": [
+        48,
+        24,
+        96
+      ],
+      "cells": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "footprint": "纵向连续空间，沿长轴组织入口、过渡和主要活动区。"
+    },
+    "square": {
+      "label": "方形",
+      "size": [
+        96,
+        32,
+        96
+      ],
+      "cells": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "footprint": "方形整体，围绕中心节点布置相互可见、可达的空间分区。"
+    },
+    "l_shape": {
+      "label": "L形",
+      "size": [
+        96,
+        28,
+        96
+      ],
+      "cells": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "footprint": "L形有效占地，转角形成空间转折；右上缺角不建房、不出空片。"
+    },
+    "t_shape": {
+      "label": "T形",
+      "size": [
+        144,
+        28,
+        96
+      ],
+      "cells": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "footprint": "T形有效占地，横向主空间与中央纵向分支共用整体构造和路线。"
+    },
+    "cross": {
+      "label": "十字形",
+      "size": [
+        144,
+        32,
+        144
+      ],
+      "cells": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "footprint": "十字形有效占地，中央枢纽连接四向空间，四角留空。"
+    },
+    "irregular": {
+      "label": "不规则",
+      "size": [
+        96,
+        32,
+        144
+      ],
+      "cells": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "footprint": "不规则整体占地，按统一空间设计连接各区域；有效单元和边界可继续调整。"
+    },
+    "standalone": {
+      "label": "自由尺寸 / 独立建筑",
+      "size": [
+        64,
+        32,
+        64
+      ],
+      "cells": [],
+      "footprint": "独立建筑，尺寸由用途、玩家活动与轮廓决定，不强加48网格或四门。"
+    }
+  },
+  "optional_operation_fields": {
+    "write_bounds": {
+      "type": "object",
+      "description": "Compiler-owned selection limit: lo/hi global inclusive XYZ and allow_overwrite boolean. Candidate and final writers reject any actual write outside it. Never accept this permission from API output."
+    },
+    "overwrite": {
+      "default": "omitted preserves legacy behavior",
+      "description": "AI box/beam/frame and component placement use explicit false to reject occupied writes; true permits only touched positions, never bypasses protection or budget.",
+      "type": "boolean"
+    },
+    "write_group": {
+      "description": "Trusted application group id for AI box/beam/frame operations. The same group may layer its own newly-created blocks; cannot claim existing solids with identity writes. Never accept this permission from API output.",
+      "type": "string"
+    }
+  },
+  "agent_tools": {
+    "structure_list": {
+      "description": "列出当前工作区可复用结构资产；不读取其他工作区。",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    "structure_read": {
+      "description": "读取结构体素、材质、墙归属、锚点与内容哈希。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "[a-f0-9]{32}"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "structure_view": {
+      "description": "为已有结构创建独立只读3D快照、真实缩略图和一个相机；不写NBT。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "[a-f0-9]{32}"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "structure_preview": {
+      "description": "从共用建模工具或已有结构放置参数创建独立候选和预览；不修改建筑、不写入构件库。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "spec": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "size": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                "minItems": 0,
+                "maxItems": 16
+              },
+              "anchor": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": -1000000,
+                  "maximum": 1000000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "operations": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "minItems": 0,
+                "maxItems": 128
+              },
+              "placements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-f0-9]{32}"
+                    },
+                    "content_sha256": {
+                      "type": "string",
+                      "pattern": "[a-f0-9]{64}"
+                    },
+                    "position": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -1000000,
+                        "maximum": 1000000
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "quarter_turns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3
+                    },
+                    "mirror": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "x",
+                        "z",
+                        null
+                      ]
+                    },
+                    "overwrite": {
+                      "type": "boolean"
+                    },
+                    "material_map": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string",
+                        "maxLength": 250
+                      },
+                      "description": "Map up to 32 original canonical block states to replacements before rotation; source asset remains unchanged."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "content_sha256",
+                    "position"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 0,
+                "maxItems": 32
+              },
+              "include_air": {
+                "type": "boolean"
+              },
+              "max_changed_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536
+              },
+              "camera": {
+                "type": "object",
+                "properties": {
+                  "azimuth": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  "elevation": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "name",
+              "size"
+            ],
+            "additionalProperties": false
+          },
+          "reference_bundle": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "[a-f0-9]{32}"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "[a-f0-9]{64}"
+              }
+            },
+            "required": [
+              "id",
+              "sha256"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "spec"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "structure_write": {
+      "description": "显式将绑定预览保存为新的构件资产；不能覆盖已有资产或导出NBT，保存不表示设计批准。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "preview_id": {
+            "type": "string",
+            "pattern": "[a-f0-9]{32}"
+          },
+          "preview_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          }
+        },
+        "required": [
+          "preview_id",
+          "preview_sha256"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "structure_place": {
+      "description": "按锚点、旋转、镜像生成放置操作；不实际写建筑，仍须control preview/validate和显式新版本导出。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "[a-f0-9]{32}"
+          },
+          "content_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          },
+          "position": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -1000000,
+              "maximum": 1000000
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "quarter_turns": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "mirror": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "x",
+              "z",
+              null
+            ]
+          },
+          "overwrite": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 294
+            },
+            "minItems": 3,
+            "maxItems": 3
+          }
+        },
+        "required": [
+          "id",
+          "content_sha256",
+          "position",
+          "size"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "agent_contract": {
+    "schema_version": 1,
+    "cli": "components --workspace <project> agent --tool <name> --request <json>",
+    "http": "POST /__detail__/components/agent {tool,arguments}",
+    "coordinates": "local integer XYZ; inclusive lo/hi; placement position is anchor",
+    "budget": {
+      "max_axis": 64,
+      "max_blocks": 65536,
+      "max_operations": 128
+    },
+    "writes": "new component assets only; model changes remain candidate operations until explicit export",
+    "knowledge": "component-assets; modelling-tools; shared creative preferences small_structure"
   }
 }

@@ -67,6 +67,9 @@ def save_master(path,model,walls):
 
 
 def layout(model,config):
+    from nbt_whole_validation import validation_mode,standalone_cells
+    if validation_mode(config)=='standalone':
+        return standalone_cells(model,config) or []
     cells=[tuple(c) for c in config['cells']]
     if not cells or len(set(cells))!=len(cells) or any(len(c)!=2 or any(type(v) is not int or v<0 for v in c) for c in cells):
         raise ValueError('Declare distinct occupied XZ cells')
@@ -106,7 +109,9 @@ def declared_ports(model,config):
     return positions
 
 
-def validate(model,config):
+def validate_saodg(model,config):
+    if not config.get('targets'):
+        raise ValueError('Declare non-empty required route targets; do not remove them to obtain a passing report')
     port_cells=declared_ports(model,config)
     capped=Volume(model.size);capped.blocks=dict(model.blocks)
     for p in port_cells:capped.put(p,'stone_bricks')
@@ -126,8 +131,15 @@ def validate(model,config):
                 routes=routes,route_legs=legs,runtime_verified=False)
 
 
+def validate(model,config):
+    from nbt_whole_validation import validate_whole
+    return validate_whole(model,config)
+
+
 def protections(model,config):
+    from nbt_whole_validation import protective_openings
     protected=set()
+    protected.update(protective_openings(model,config))
     for bounds in config.get('protected_boxes',[]):protected.update(box_points(bounds['lo'],bounds['hi']))
     # Preserve aperture, adjacent throat, floor and lintel, not just the door air.
     for port in config.get('ports',[]):
@@ -169,8 +181,12 @@ def prepare(source,config,review_dir):
     model,walls=read_master(source);config=json.loads(json.dumps(config))
     cells=layout(model,config)
     if 'wall_positions' in config:walls={point(p) for p in config.pop('wall_positions')}
-    if any(not model.in_bounds(p) or (p[0]//48,p[2]//48) not in cells for p in walls):raise ValueError('Invalid wall mask')
-    if any(not any((p[0]//48,p[2]//48)==cell and model.get(p) not in AIR_NAMES for p in walls) for cell in cells):
+    from nbt_whole_validation import validation_mode
+    standalone=validation_mode(config)=='standalone'
+    if any(not model.in_bounds(p) or (not standalone and (p[0]//48,p[2]//48) not in cells) for p in walls):raise ValueError('Invalid wall mask')
+    if standalone and not walls and config.get('allow_empty_wall_mask') is not True:
+        raise ValueError('An empty standalone wall mask requires an explicit allow_empty_wall_mask=true')
+    if not standalone and any(not any((p[0]//48,p[2]//48)==cell and model.get(p) not in AIR_NAMES for p in walls) for cell in cells):
         raise ValueError('Preserve an authored whole-source wall mask for every occupied cell')
     cameras=config['cameras']
     if not cameras or len(cameras)>6 or not {'whole','entry'}.issubset({c['role'] for c in cameras}):
@@ -220,7 +236,19 @@ def record_user_approval(review,user_message,user_reviewed_thumbnails=False):
 
 
 def operation_candidates(model,operation,protected=()):
+    candidates=_operation_candidates(model,operation,protected)
+    if operation.get('kind') in ('box','beam','frame') and 'overwrite' in operation and not operation.get('write_group'):
+        if type(operation['overwrite']) is not bool:raise ValueError('覆盖现有方块须为布尔开关')
+        if not operation['overwrite']:
+            occupied=[p for p,value in candidates if model.get(p) not in AIR_NAMES and model.get(p)!=value]
+            if occupied:raise ValueError('目标位置已有方块；移动构件，或勾选“允许AI构件覆盖现有方块”：'+str(occupied[:8]))
+    return candidates
+
+
+def _operation_candidates(model,operation,protected=()):
     kind=operation['kind']
+    if type(operation.get('enabled',True)) is not bool:raise ValueError('Operation enabled must be a boolean')
+    if not operation.get('enabled',True):return []
     from nbt_tools import KINDS, modelling_plan
     if kind in KINDS:
         return modelling_plan(model,operation,protected)[0]
@@ -290,12 +318,20 @@ def refine(review_dir,plan,output_dir):
         raise ValueError('Use a separate, new revision directory; source/review cannot be overwritten')
     model,walls=read_master(review/'source.master.json.gz');original=dict(model.blocks);old_walls=set(walls)
     config=json.loads((review/'config.json').read_text(encoding='utf8'));cells=layout(model,config)
+    from nbt_whole_validation import validation_mode
+    standalone=validation_mode(config)=='standalone'
     protected=protections(model,config);operations=plan['operations']
     if not operations or not isinstance(plan.get('style_note'),str) or not plan['style_note'].strip():
         raise ValueError('Detail plan needs operations and a shared whole-building style_note')
-    summary=[]
+    summary=[];write_owners={}
     for operation in operations:
         if not operation.get('label'):raise ValueError('Each operation needs a meaningful node label')
+        if type(operation.get('enabled',True)) is not bool:raise ValueError('Operation enabled must be a boolean')
+        if not operation.get('enabled',True):
+            summary.append(dict(label=operation['label'],kind=operation['kind'],skipped=True,reason='disabled',candidate_writes=0))
+            continue
+        from nbt_operation_scope import scoped_operation,enforce_scope
+        operation,bounds=scoped_operation(operation,model.size)
         classification=operation.get('classification','body' if operation['kind']=='auto_floor' else 'inherit')
         if classification not in ('inherit','wall','body'):raise ValueError('Invalid detail classification')
         weathering_report=None
@@ -316,9 +352,11 @@ def refine(review_dir,plan,output_dir):
             edits,floor_report=auto_floor_plan(model,operation,config,protected)
         else:
             edits=operation_candidates(model,operation)
+        from nbt_change_policy import enforce_overwrite
+        enforce_overwrite(model,walls,enforce_scope(bounds,operation,edits),edits,write_owners)
         moved_walls={tuple(p[i]+operation['offset'][i] for i in range(3)) for p in walls if all(operation['lo'][i]<=p[i]<=operation['hi'][i] for i in range(3))} if operation['kind']=='move_region' else set()
         for p,value in edits:
-            if not model.in_bounds(p) or (p[0]//48,p[2]//48) not in cells:raise ValueError('Detail exceeds approved footprint')
+            if not model.in_bounds(p) or (not standalone and (p[0]//48,p[2]//48) not in cells):raise ValueError('Detail exceeds approved footprint')
             if p in protected and value!=model.get(p):raise ValueError(f'Detail touches protected doorway/route/node: {p}')
             model.put(p,value)
             if operation['kind']=='move_region':
@@ -331,27 +369,35 @@ def refine(review_dir,plan,output_dir):
         if pattern_report is not None:summary[-1]['pattern']=pattern_report
         if floor_report is not None:summary[-1]['auto_floor']=floor_report
         if modelling_report is not None:summary[-1]['modelling']=modelling_report
-    changed=[p for p in original.keys()|model.blocks.keys() if original.get(p,AIR)!=model.get(p)]
+    from nbt_change_policy import enforce_changes,change_sets
     budget=config.get('max_changed_blocks',4096)
-    if type(budget) is not int or not 0<len(changed)<=budget:raise ValueError('No detail change or approved change budget exceeded')
+    difference=enforce_changes(original,model.blocks,old_walls,walls,protected=protected,maximum=budget,require_change=True)
+    geometry_changed,layers_changed=change_sets(original,model.blocks,old_walls,walls)
     checks=validate(model,config)
     _current_review(review)
     # Whole-source checks, followed by mechanical export; never rebuild per cell.
     model.seal_record=dict(checks['recapped_seal'],scope='refined_whole_model_legal_ports_recapped')
     model.stage='opened';model.final_fingerprint=model.fingerprint()
     out.mkdir(parents=True)
+    write_json(out/'refinement.json',dict(state='writing',source=record['source'],source_geometry_sha256=record['source_geometry_sha256'],runtime_verified=False))
     save_master(out/'refined.master.json.gz',model,walls)
-    diff=[dict(pos=list(p),before=original.get(p,AIR),after=model.get(p)) for p in sorted(changed)]
-    write_json(out/'changes.json',dict(changes=diff,wall_membership_changed=[list(p) for p in sorted(old_walls^walls)]))
+    diff=[dict(pos=list(p),before=original.get(p,AIR),after=model.get(p)) for p in sorted(geometry_changed)]
+    write_json(out/'changes.json',dict(changes=diff,wall_membership_changed=[list(p) for p in sorted(layers_changed)],
+               wall_changes=[dict(pos=list(p),before_wall=p in old_walls and p in original,after_wall=p in walls and p in model.blocks) for p in sorted(layers_changed)],**difference))
     write_json(out/'plan.json',plan);write_json(out/'validation.json',checks)
-    delivery=export_delivery(model,cells,walls,out/'delivery','Approved detail revision of explicit whole-source wall mask')
-    runtime=[]
-    for cx,cz in sorted(cells):
-        part=Model((48,model.size[1],48))
-        for (x,y,z),v in model.blocks.items():
-            if (x//48,z//48)==(cx,cz):part.put((x-cx*48,y,z-cz*48),v)
-        part.seal_record=model.seal_record;part.stage='opened';part.final_fingerprint=part.fingerprint()
-        runtime.append(part.save(out/'runtime'/f'p{cx}{cz}.nbt'))
+    if standalone:
+        from nbt_standalone_delivery import export_standalone
+        exported=export_standalone(model,walls,out,allow_empty_wall_mask=config.get('allow_empty_wall_mask',False),active_cells=config.get('cells'))
+        delivery=exported['delivery'];runtime=exported['runtime_templates']
+    else:
+        delivery=export_delivery(model,cells,walls,out/'delivery','Approved detail revision of explicit whole-source wall mask')
+        runtime=[]
+        for cx,cz in sorted(cells):
+            part=Model((48,model.size[1],48))
+            for (x,y,z),v in model.blocks.items():
+                if (x//48,z//48)==(cx,cz):part.put((x-cx*48,y,z-cz*48),v)
+            part.seal_record=model.seal_record;part.stage='opened';part.final_fingerprint=part.fingerprint()
+            runtime.append(part.save(out/'runtime'/f'p{cx}{cz}.nbt'))
     previews=[_render(model,c,out/f'refined_{i:02}.png') for i,c in enumerate(config['cameras'])]
     from PIL import Image,ImageDraw
     comparison=Image.new('RGB',(1280,438*len(previews)),'#14202b');draw=ImageDraw.Draw(comparison)
@@ -363,7 +409,7 @@ def refine(review_dir,plan,output_dir):
     comparison.save(out/'comparison.png')
     _current_review(review)
     final=dict(source_geometry_sha256=record['source_geometry_sha256'],refined_geometry_sha256=model.fingerprint(),
-               approval_receipt_sha256=digest(approval_path),changed_blocks=len(changed),operations=summary,
+               approval_receipt_sha256=digest(approval_path),operations=summary,**difference,
                protected_cells=len(protected),validation_passed=True,delivery_nbt_files=delivery['actual_nbt_files'],
                runtime_templates=runtime,previews=previews,original_source_unchanged=digest(record['source'])==record['source_sha256'],
                state='refined_pending_agent_visual_review',runtime_verified=False,
@@ -383,7 +429,7 @@ def main():
     if args.command=='prepare':result=prepare(args.source,json.loads(args.config.read_text(encoding='utf8')),args.review)
     elif args.command=='approve':result=record_user_approval(args.review,args.user_message,args.user_reviewed_thumbnails)
     else:result=refine(args.review,json.loads(args.plan.read_text(encoding='utf8')),args.output)
-    print(json.dumps({k:v for k,v in result.items() if k in ('stage','state','changed_blocks','delivery_nbt_files','instruction')},ensure_ascii=False))
+    print(json.dumps({k:v for k,v in result.items() if k in ('stage','state','changed_blocks','wall_membership_changes','changed_positions','delivery_nbt_files','instruction')},ensure_ascii=False))
 
 
 if __name__=='__main__':main()

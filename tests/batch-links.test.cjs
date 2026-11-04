@@ -1,0 +1,16 @@
+const {test}=require('node:test')
+const assert=require('node:assert/strict')
+const fs=require('node:fs/promises')
+const os=require('node:os')
+const path=require('node:path')
+const {openBatchLink}=require('../desktop/batch-links.cjs')
+test('registered links allow galleries, reveal scripts and reject path/ID injection',async t=>{
+ const workspace=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-batch-links-'));t.after(()=>fs.rm(workspace,{recursive:true,force:true}))
+ const folder=path.join(workspace,'nbt_models/_workspaces/batches/example');await fs.mkdir(folder,{recursive:true});const gallery=path.join(folder,'gallery.html'),script=path.join(folder,'generator.py');await fs.writeFile(gallery,'<h1>图册</h1>');await fs.writeFile(script,'print(1)')
+ const id='a'.repeat(32),item_id='b'.repeat(32),calls=[],shell={openPath:async file=>{calls.push(['open',file]);return ''},showItemInFolder:file=>calls.push(['reveal',file])}
+ const open=(input,file)=>openBatchLink({workspace,input,shell,locate:async()=>({path:file})})
+ assert.equal((await open({id,item_id,kind:'artifact'},gallery)).action,'open');assert.equal((await open({id,item_id,kind:'artifact'},script)).action,'reveal');assert.equal((await open({id,kind:'workspace'},folder)).action,'open');assert.equal(calls.length,3)
+ await assert.rejects(open({id,item_id,kind:'artifact',path:gallery},gallery),/无效/);await assert.rejects(open({id:'../outside',kind:'workspace'},folder),/无效/)
+ const outside=path.join(workspace,'secret.html');await fs.writeFile(outside,'outside');await assert.rejects(open({id,item_id,kind:'artifact'},outside),/当前建筑库/);await assert.rejects(open({id,item_id,kind:'artifact'},folder),/类型/)
+ await openBatchLink({workspace,input:{id,item_id,kind:'artifact'},shell,simulate:true,locate:async()=>({path:gallery})});assert.equal(calls.length,3)
+})

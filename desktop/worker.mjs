@@ -6,8 +6,8 @@ let server
 process.parentPort.on('message',async({data})=>{
  try{
   if(data.type==='start'){
-   server=await startDetailServer({workspace:data.workspace,output:data.output,python:data.python,port:0})
-   process.parentPort.postMessage({type:'ready',url:server.url})
+   server=await startDetailServer({workspace:data.workspace,output:data.output,python:data.python,port:0,frontendMode:data.frontendMode})
+   process.parentPort.postMessage({type:'ready',url:server.url,frontend:server.frontend})
   }else if(data.type==='stop'){
    await server?.close();process.parentPort.postMessage({type:'stopped'});process.exit(0)
   }

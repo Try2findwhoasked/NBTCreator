@@ -6,7 +6,7 @@
 
 `block-registry-1.20.1.json`由本机原版Java 1.20.1服务端的 `net.minecraft.data.Main --reports` 输出压缩整理而来，包含1003种方块的属性枚举和默认值，并记录服务端、原报告和整理后内容的SHA-256。它不包含游戏JAR或纹理。
 
-`nbt_registry.normalize`校验ID、属性名、枚举和重复属性，`nbt_model.state/put/load`使用同一入口；无效状态抛ValueError。省略属性仍保持原文件写法，避免悄悄改动旧模型指纹。碰撞和预览读取时用 `effective`叠加原版默认值；未知碰撞仍拒绝认证。仅有合法ID的方块也可能被SAODG拒绝或在邻块更新时变化。
+`nbt_registry.normalize`校验ID、属性名、枚举和重复属性，`nbt_model.state/put/load`使用同一入口；无效状态抛ValueError。省略属性仍保持原文件写法，避免悄悄改动旧模型指纹。碰撞和预览读取时用 `effective`叠加原版默认值；未知碰撞仍拒绝认证。部分已核实细件可用[保守障碍上包络](collision-envelopes.md)证明特定步行路线，但不认证精确形状，且代理不提供支撑。仅有合法ID的方块也可能被SAODG拒绝或在邻块更新时变化。
 
 ```powershell
 python .agents/skills/minecraft-nbt-modeler/scripts/nbt_registry.py query "oak_stairs[facing=east]"

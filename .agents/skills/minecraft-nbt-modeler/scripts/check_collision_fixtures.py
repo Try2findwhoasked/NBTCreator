@@ -9,7 +9,7 @@ parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--output',type=Path,default=Path.cwd()/'nbt_models/_tests/toolkit_validation/collision_regression.json')
 args=parser.parse_args()
 from nbt_model import Model
-from nbt_collision import check_routes, collision_cells, _Space
+from nbt_collision import check_routes, collision_cells, bounded_obstacle, _Space
 
 
 def corridor():
@@ -59,6 +59,61 @@ unknown.put((4, 0, 1), 'oak_fence')
 reports['unknown_shape_cannot_certify'] = check_routes(unknown, (1.5, 1, 1.5), [(8.5, 1, 1.5)])
 assert not reports['unknown_shape_cannot_certify']['passed']
 assert reports['unknown_shape_cannot_certify']['unknown_shapes']
+
+# Version-verified thin details may be conservative obstacles, never floors.
+# A remote detail cannot invalidate an otherwise exact supported route.
+bounded = corridor()
+bounded.put((4, 5, 1), 'chain[axis=x]')
+reports['bounded_detail_safe_route'] = check_routes(bounded, (1.5, 1, 1.5), [(8.5, 1, 1.5)])
+assert reports['bounded_detail_safe_route']['passed']
+assert not reports['bounded_detail_safe_route']['exact_geometry_supported']
+assert not reports['bounded_detail_safe_route']['geometry_supported']
+assert reports['bounded_detail_safe_route']['route_geometry_supported']
+assert reports['bounded_detail_safe_route']['conservative_obstacles'][0]['count'] == 1
+assert reports['bounded_detail_safe_route']['support_from_proxies_allowed'] is False
+reports['bounded_detail_strict_mode'] = check_routes(bounded, (1.5, 1, 1.5), [(8.5, 1, 1.5)],
+                                                     conservative_obstacles=False)
+assert not reports['bounded_detail_strict_mode']['passed']
+assert reports['bounded_detail_strict_mode']['unknown_shapes']
+
+# Obstacles are deliberately enlarged, not ignored because they are thin.
+barrier = corridor()
+barrier.put((4, 1, 1), 'iron_bars')
+reports['bounded_detail_blocks_corridor'] = check_routes(barrier, (1.5, 1, 1.5), [(8.5, 1, 1.5)])
+assert not reports['bounded_detail_blocks_corridor']['passed']
+assert not reports['bounded_detail_blocks_corridor']['targets'][0]['reachable']
+
+proxy_floor = corridor()
+proxy_floor.put((4, 0, 1), 'stone_button[face=floor]')
+reports['bounded_proxy_cannot_bridge_gap'] = check_routes(proxy_floor, (1.5, 1, 1.5), [(8.5, 1, 1.5)])
+assert not reports['bounded_proxy_cannot_bridge_gap']['passed']
+assert not _Space(proxy_floor).supported((4.5, 1, 1.5))
+proxy_floor.put((1, 0, 1), 'spruce_trapdoor[open=true]')
+reports['bounded_proxy_cannot_support_start'] = check_routes(proxy_floor, (1.5, 1, 1.5), [(8.5, 1, 1.5)])
+assert not reports['bounded_proxy_cannot_support_start']['start_standing']
+
+# Unsupported out-of-unit shapes and invalid states must not enter the proof.
+assert not bounded_obstacle('oak_fence')
+assert not bounded_obstacle('chain[axis=bad]')
+assert not bounded_obstacle('example:chain')
+
+tall = corridor()
+tall.put((4,1,1),'spruce_fence[north=true,south=true]')
+space = _Space(tall)
+assert not space.clear_box((4.3,2.1,1.3),(4.7,2.4,1.7)), 'Fence envelope must extend half a block above its voxel'
+assert space.clear_box((4.3,2.6,1.3),(4.7,2.8,1.7))
+assert not space.supported((4.5,2.5,1.5)), 'Fence proxy must not become a floor'
+reports['tall_fence_blocks_corridor'] = check_routes(tall,(1.5,1,1.5),[(8.5,1,1.5)])
+assert not reports['tall_fence_blocks_corridor']['passed']
+assert reports['tall_fence_blocks_corridor']['conservative_obstacles']
+
+top = Model((4,4,4));top.put((2,3,2),'spruce_fence')
+assert _Space(top).rows, 'Tall envelopes at model top must not corrupt another row or overflow'
+invalid = corridor()
+invalid.blocks[(4, 5, 1)] = 'minecraft:chain[axis=bad]'  # Simulate a corrupt caller bypassing Model.put.
+reports['invalid_bounded_state_rejected'] = check_routes(invalid, (1.5, 1, 1.5), [(8.5, 1, 1.5)])
+assert not reports['invalid_bounded_state_rejected']['passed']
+assert reports['invalid_bounded_state_rejected']['unknown_shapes'][0]['reason'] == 'invalid_minecraft_1_20_1_state'
 
 # A 1.8 player fits below Y=3 from feet Y=1, but not below Y=2.5.
 ceiling = corridor()

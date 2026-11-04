@@ -1,0 +1,249 @@
+name: Windows Portable
+on:
+  push:
+    branches: [main, 'codex/**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+env:
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+  PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/build/portable-browser
+permissions:
+  contents: read
+concurrency:
+  group: portable-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            .agents/skills/minecraft-nbt-modeler/assets/viewer/package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.14'
+      - name: Check tag version
+        env:
+          BUILD_REF: ${{ github.ref }}
+        run: |
+          if ($env:BUILD_REF.StartsWith('refs/tags/')) {
+            $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+            if ($env:BUILD_REF -ne "refs/tags/v$version") { throw 'Tag must match package.json version' }
+          }
+      - name: Install locked dependencies
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install numpy==2.4.2 Pillow==12.1.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Validate source and contracts
+        run: |
+          npm run check:tools
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run verify:archive
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:api
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/portable-contracts.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:workspace
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/prompt-creation.mjs tests/agent-handoff.test.mjs tests/internal-ai.test.cjs tests/component-move.mjs tests/updater.test.cjs tests/app-settings.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/cli.mjs check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Prepare pinned renderer for source regression
+        run: |
+          npm run build:web
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify native Electron launch
+        env:
+          ELECTRON_ENABLE_LOGGING: '1'
+        run: node tests/electron-launch.mjs
+      - name: Verify Agent evidence and whole-model pipelines
+        env:
+          DEBUG: 'pw:browser'
+        run: |
+          $probeRoot = Join-Path $PWD 'build/ci-model-pipelines'
+          if (Test-Path -LiteralPath $probeRoot) { throw 'Keep prior regression evidence; expected a fresh CI directory' }
+          New-Item -ItemType Directory -Path $probeRoot | Out-Null
+          npm run test:projects
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/structure-agent.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/protection-mask.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/walk-inspection.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/prompt-archive.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/feedback-tasks.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/batches.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/selection-edit.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/retrieval.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/diagnostic-guidance.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/agent-task-return.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/retrieval.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/selection-edit.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/auto-roads.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/ai-component.test.mjs tests/edit-session-store.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/auto-roads-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/transform-sliders-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/batch-links.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/feedback-tasks-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/batch-workspaces-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/selection-edit-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/retrieval-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/agent-task-return-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/prompt-archive-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/walk-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/reusable-recipes.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/edit-session-store.test.mjs tests/app-settings.test.cjs tests/command-preferences.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/backend-result.test.mjs tests/mesh-scheduling.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/mesh-scheduling-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/structure-agent-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/render-runtime.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/feedback-index.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/feedback-evidence.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/standalone-openings.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/standalone-pipeline.py --output (Join-Path $probeRoot 'standalone')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/candidate-validation.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node .agents/skills/minecraft-nbt-modeler/assets/viewer/test-candidate-validation.mjs --output (Join-Path $probeRoot 'candidate-browser')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/workspace-api.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/task-cancel.mjs --output (Join-Path $probeRoot 'task-cancel')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python .agents/skills/minecraft-nbt-modeler/scripts/check_collision_fixtures.py --output (Join-Path $probeRoot 'collision.json')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python .agents/skills/minecraft-nbt-modeler/scripts/check_refine_fixtures.py --output (Join-Path $probeRoot 'refine')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python .agents/skills/minecraft-nbt-modeler/scripts/check_web_revision_fixtures.py --output (Join-Path $probeRoot 'web-revision')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build self-contained portable ZIP
+        run: npm run package:portable -- --out dist/portable
+      - name: Verify extracted package without system Python or Node
+        run: npm run test:portable -- --archive-dir dist/portable
+      - name: Packaged Electron regression
+        run: |
+          $env:NBTCREATOR_TEST_EXE = Join-Path $PWD 'dist/portable/NBTCreator-win32-x64/NBTCreator.exe'
+          Remove-Item Env:NBTCREATOR_PYTHON -ErrorAction SilentlyContinue
+          npm run test:desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:api-desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/protection-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/walk-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/prompt-archive-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/mesh-scheduling-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/workspace-api-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/feedback-tasks-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/batch-workspaces-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/selection-edit-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/retrieval-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/agent-task-return-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: windows-x64-portable
+          path: |
+            dist/portable/*.zip
+            dist/portable/*.sha256
+            dist/portable/*.manifest.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: test-diagnostics
+          path: |
+            build/**/results.json
+            build/**/electron.log
+            build/**/*.png
+          retention-days: 7
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: windows-x64-portable
+          path: assets
+      - name: Publish versioned Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd assets
+          sha256sum --check ./*.sha256
+          args=(--verify-tag --title "NBTCreator $RELEASE_TAG" --generate-notes)
+          if [[ "$RELEASE_TAG" == *-* ]]; then args+=(--prerelease); fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo 'Release already exists; refusing to replace published assets.' >&2
+            exit 1
+          fi
+          gh release create "$RELEASE_TAG" ./*.zip ./*.sha256 ./*.manifest.json "${args[@]}"
