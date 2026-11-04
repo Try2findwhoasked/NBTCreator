@@ -74,6 +74,9 @@ def shape_mask(grid, spec, depth=0):
         if kind == 'difference':
             return masks[0] & ~masks[1]
         return (np.logical_or if kind == 'union' else np.logical_and).reduce(masks)
+    if kind in ('section_sweep', 'loft', 'revolve'):
+        from nbt_section_geometry import section_mask
+        return section_mask(grid, spec)
     if kind == 'box':
         field = grid.box(xyz(spec['min']), xyz(spec['max']))
     elif kind in ('sphere', 'ellipsoid'):
