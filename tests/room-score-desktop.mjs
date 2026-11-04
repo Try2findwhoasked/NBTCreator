@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import {spawnSync} from 'node:child_process'
+import {createRequire} from 'node:module'
+import {root,skill,python} from '../scripts/paths.mjs'
+import {minimizedScreenshots} from './minimized-screenshots.mjs'
+const require=createRequire(path.join(skill,'assets/viewer/package.json')),{_electron}=require('playwright')
+const output=path.join(root,'build','room-score-'+Date.now()),workspace=path.join(output,'workspace'),folder=path.join(workspace,'nbt_models/standalone/room/v1');await fs.mkdir(folder,{recursive:true})
+const source=path.join(folder,'room.master.json.gz'),context=path.join(folder,'coordinates.json');const setup=spawnSync(python,['-c',`import sys,json;sys.path.insert(0,sys.argv[1]);from nbt_assembly import Volume;from nbt_refine import save_master;m=Volume((10,7,10));m.box([0,0,0],[9,6,9],'stone');m.box([1,1,1],[8,5,8],'air');save_master(sys.argv[2],m,set());open(sys.argv[3],'w').write(json.dumps(dict(mode='standalone',openings=[],start=[2.5,1,2.5],targets={'end':[7.5,1,7.5]})))`,path.join(skill,'scripts'),source,context],{encoding:'utf8',windowsHide:true});assert.equal(setup.status,0,setup.stderr)
+await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'model',autoPreview:false}));const original=await fs.readFile(source)
+let app,page;const errors=[],checks={};const click=id=>page.locator('#'+id).evaluate(e=>e.click())
+async function run(){await click('room-score-run');await page.waitForFunction(()=>!document.querySelector('#room-score-run').disabled&&document.querySelector('#room-score-download').hidden===false);return page.evaluate(async()=>JSON.parse(await(await fetch(document.querySelector('#room-score-download').href)).text()))}
+try{
+ const env={...process.env,NBTCREATOR_AUTOMATION:'1'};delete env.ELECTRON_RUN_AS_NODE;app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000});page=await app.firstWindow();page.setDefaultTimeout(60000);minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message));await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy&&!document.querySelector('#room-score-open').disabled)
+ await click('room-score-open');let result=await run();assert.equal(result.total_score,null);assert.equal(result.gate,'evaluated_static');checks.objective_geometry_measured_without_inventing_visual_scores=true
+ for(const input of await page.locator('input[data-visual=interior]').all())await input.fill('75');await page.locator('#room-score-interior-evidence').fill('室内材质一致，地面与通路清楚可辨。');result=await run();assert.ok(result.total_score>0);assert.equal(result.overall_weights.engineering,65);checks.interior_rubric_produces_bound_composite=true
+ await page.locator('#room-score-exterior').check();for(const input of await page.locator('input[data-visual=exterior]').all())await input.fill('60');await page.locator('#room-score-exterior-evidence').fill('外部为简单闭合壳体，立面层次仍待加强。');result=await run();assert.equal(result.include_exterior,true);assert.equal(result.overall_weights.exterior,20);assert.equal(result.visual.exterior.score,60);assert.equal(result.asset_written,false);checks.exterior_optional_weight_and_download_evidence=true
+ assert.deepEqual(await fs.readFile(source),original);assert.deepEqual(errors,[]);await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks},null,2));console.log(JSON.stringify({passed:true,checks,output}))
+}catch(e){console.error(JSON.stringify({output,checks,errors}));if(page)console.error(await page.locator('#room-score-status').textContent().catch(()=>''));throw e}finally{await app?.close()}

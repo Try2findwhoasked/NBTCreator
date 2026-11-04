@@ -19,6 +19,7 @@ import {initCommandCenter} from './command-center.js'
 import {toolPanels as commandPanels} from './command-contract.mjs'
 import {createSettingsHistory} from './settings-history.mjs'
 import {createEditSessionController} from './edit-session.js'
+import {initRoomScore} from './room-score.js'
 import {initAppSettings} from './app-settings.js'
 import {translateComponent} from './component-move.js'
 import {aiBounds,aiGroupMatches,moveAIGroup,aiSurfaceOffset,aiComponentCamera} from './ai-component.mjs'
@@ -972,6 +973,7 @@ initAssetWorkspace({
 previewToolbar=initPreviewToolbar()
 protectionView=initProtectionView({api,context:()=>state.info?{source:state.info.source,source_sha256:state.info.source_sha256,context:$('context').value.trim()}:null,viewer:()=>$('viewer').contentWindow?.nbtModeler,ensure3D:async()=>{if(state.mode!=='3d')await runJob('snapshot')},viewChanged:()=>{const v=$('viewer').contentWindow?.nbtModeler;if(v?.status==='ready')syncComparisonViewControls(v.snapshot,v.metadata())}})
 initCommentTasks({api,context:()=>state.info&&!state.busy&&!state.previewBusy?{source:state.info.source,source_sha256:state.info.source_sha256}:null})
+initRoomScore({api,context:()=>state.info&&!state.versionComparing?{source:state.info.source,source_sha256:state.info.source_sha256,context:$('context').value.trim(),snapshot_key:state.viewerModelKey,busy:state.busy||state.previewBusy||state.transforming}:null,viewer:()=>$('viewer').contentWindow?.nbtModeler,ensure3D:async()=>{if(state.mode!=='3d')await runJob('snapshot')},busy})
 walkView=initWalkView({api,context:()=>state.info&&!state.versionComparing?{source:state.info.source,source_sha256:state.info.source_sha256,context:$('context').value.trim(),snapshot_key:state.viewerModelKey,busy:state.busy||state.previewBusy||state.transforming}:null,viewer:()=>$('viewer').contentWindow?.nbtModeler,ensure3D:async()=>{if(state.versionComparing)throw Error('请先结束版本对比，再检查当前建筑');if(state.mode!=='3d')await runJob('snapshot')},busy,picking:value=>{state.walkPicking=value;if(value){state.aiPlacing=null;state.assetPicking=null;state.picking=false;state.coordinatePicking=false}syncPicking()},viewChanged:()=>{const v=$('viewer').contentWindow?.nbtModeler;syncComparisonViewControls(v.snapshot,v.metadata())}})
 function syncComparisonViewControls(snapshot,view){
  const maximum=snapshot.size[1]-1,cut=view.cuts.find(c=>c.axis==='y'&&c.removed_side==='above')
