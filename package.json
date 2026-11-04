@@ -29,6 +29,7 @@
     "test:project-batch": "npm run build:web && python tests/project-batch.py && node tests/project-batch-desktop.mjs",
     "test:protection": "npm run build:web && python tests/protection-mask.py && node tests/protection-desktop.mjs",
     "test:walk": "npm run build:web && python tests/walk-inspection.py && node tests/walk-desktop.mjs",
+    "test:prompt-archive": "npm run build:web && python tests/prompt-archive.py && node tests/prompt-archive-desktop.mjs",
     "test:workbench-ui": "npm run build:web && node tests/workbench-ui-desktop.mjs",
     "test:recipes": "npm run build:web && python tests/reusable-recipes.py && node tests/reusable-desktop.mjs",
     "test:ai-style": "node --test tests/ai-style.test.cjs tests/internal-ai.test.cjs && node tests/ai-style-desktop.mjs",

@@ -69,7 +69,7 @@ export function initApiAssistant(hooks){
   changed()
   if(immediate){if(mode!=='small_structure')throw Error('立即预览仅用于小型结构');if(!bindingCurrent())throw Error('模型或选区已改变，请重新生成');await previewAI(result,()=>hooks.apply(result.settings_patch,{overwrite:$('ai-allow-overwrite').checked,presentation:{structure_name:result.structure_name,camera:result.camera}}));if(result.settings_patch.operations)componentResult=result;for(const k of ['x','y','z'])$('ai-move-'+k).value='0';message('AI构件已插入候选模型并刷新3D；原稿保留，满意后导出下一版');return}
   $('ai-result').value=mode==='prompt'?result.text:JSON.stringify({structure_name:result.structure_name,camera:result.camera,summary:result.summary,settings_patch:result.settings_patch},null,2)
-  $('ai-copy').disabled=false;$('ai-download').disabled=false;$('ai-apply').disabled=mode==='prompt';message('建议已生成；尚未修改模型')
+  $('ai-copy').disabled=false;$('ai-download').disabled=false;$('ai-apply').disabled=mode==='prompt';let archiveMessage='';if(mode==='prompt'&&hooks.archivePrompt)try{const saved=await hooks.archivePrompt(result.text,binding);if(saved){archiveMessage='；提示词已自动导出';$('ai-status').dataset.promptPath=saved.prompt;$('ai-status').title=saved.prompt}}catch(error){archiveMessage='；自动导出未完成：'+error.message}message('建议已生成；尚未修改模型'+archiveMessage)
  }catch(e){message(e.message,true)}finally{locked(false)}}
  $('ai-cancel').onclick=cancelAI
  $('ai-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('ai-result').value);message('结果已复制')}catch{$('ai-result').select();message(document.execCommand('copy')?'结果已复制':'已选中，请按 Ctrl+C')}}

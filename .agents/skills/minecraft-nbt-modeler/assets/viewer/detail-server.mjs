@@ -319,10 +319,13 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         json(res,{project_catalog:projectCatalog,catalog:{...projectCatalog,models:projectCatalog.models.filter(item=>!item.bugged&&!item.unreadable)}})
       } else if (req.method === 'GET' && url.pathname.startsWith('/__detail__/prompt/')) {
         const name=url.pathname.slice('/__detail__/prompt/'.length)
-        if(!['index.html','core.js','ai-input.js','app.js','style.css','design-tokens.css','theme.css','catalog.js'].includes(name))throw new Error('Unknown prompt asset')
+        if(!['index.html','core.js','ai-input.js','autosave.js','app.js','style.css','design-tokens.css','theme.css','catalog.js'].includes(name))throw new Error('Unknown prompt asset')
         res.setHeader('Content-Type',name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.js')?'text/javascript; charset=utf-8':'text/css; charset=utf-8')
         res.setHeader('Cache-Control','no-store')
         res.end(await fs.readFile(path.join(skillRoot,'prompt-console',name)))
+      } else if(req.method==='POST'&&url.pathname==='/__detail__/prompt-save'){
+        const input=await body(req,3*1024*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'prompt-save-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input))
+        try{json(res,await invoke(['prompt-save','--workspace',workspace,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if (req.method === 'POST' && url.pathname === '/__detail__/prompt-export') {
         const input=await body(req)
         input.source=localPath(input.source)

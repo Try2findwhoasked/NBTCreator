@@ -175,6 +175,7 @@ async function captureViewport(isCancelled=()=>false){
  throw Error('没有可用的建模视口，请先打开3D或建筑图片，或关闭该工作流的截图开关')
 }
 let promptLoaded=false
+window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload)})
 // The iframe gets only prompt generation, never the native API/key management bridge.
 window.nbtPromptAI=Object.freeze({
  config:()=>window.nbtDesktop?.apiConfig?.()??Promise.resolve({enabled:false,available:false}),
@@ -882,7 +883,9 @@ async function moveRecentAI(offset,overwrite=$('ai-allow-overwrite')?.checked??f
  const before=gather(),moved=moveAIGroup(group,before,offset,state.info.size,overwrite),next=structuredClone(before);next.operations.splice(group.start,group.base.length,...moved.operations);updateComponentRange(next,moved)
  await commitPreviewSettings(next,'移动 AI 构件：'+offset.join(', '));group.applied=structuredClone(moved.operations);group.offset=[...offset];group.overwrite=!!overwrite;notifyAIComponent()
 })}
+const aiPromptArchiveId=crypto.randomUUID().replaceAll('-','')
 apiAssistant=initApiAssistant({
+ archivePrompt:async(text,token)=>{const bound=JSON.parse(token);if(!bound.source)return null;if(bound.source!==state.info?.source||bound.source_sha256!==state.info?.source_sha256)throw Error('源建筑已切换，未把建议写入其他建筑');return api('prompt-save',{session_id:aiPromptArchiveId,text,document:{origin:'model_ai',source_sha256:bound.source_sha256,project:{name:modelName(),stage:'plan',source:bound.source,contextPath:$('context').value.trim(),size:state.info.size},operations:bound.settings.operations??[]},plan:{operations:bound.settings.operations??[]},context:{contextPath:$('context').value.trim()}})},
  captureViewport,isBusy:()=>state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring||state.transforming||state.versionComparing,
  context:()=>{const s=gather(),info=state.info;if(!info)return null;return {size:info.size,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?info.size.map(v=>v-1):s.hi,materials:info.materials,allow_overwrite:$('ai-allow-overwrite')?.checked??false}},
  binding:()=>JSON.stringify({source:state.info?.source,source_sha256:state.info?.source_sha256,settings:gather()}),
@@ -1047,7 +1050,7 @@ async function restoreEditSessionCore(saved,recovered){
 }
 editSession=createEditSessionController({api,capture:captureEditSession,restore:restoreEditSession,enabled:()=>state.restoreSession!==false,message:(text,error=false)=>{sessionStatus.textContent=text;sessionStatus.title=text;sessionStatus.classList.toggle('session-error',error)}})
 window.addEventListener('creator-ai-candidate-change',()=>editSession?.schedule())
-window.nbtEditSession=Object.freeze({flush:()=>editSession.flush(),get ready(){return !state.sessionRestoring&&!editSession.loading&&editSession.source===state.info?.source},get loading(){return editSession.loading||state.sessionRestoring}})
+window.nbtEditSession=Object.freeze({flush:()=>Promise.all([editSession.flush(),$('prompt-frame').contentWindow?.NbtPromptUI?.flushExport?.()]),get ready(){return !state.sessionRestoring&&!editSession.loading&&editSession.source===state.info?.source},get loading(){return editSession.loading||state.sessionRestoring}})
 $('session-save-now').onclick=handle(async()=>{editSession.checkpoint(true);await editSession.flush()})
 $('session-reload').onclick=handle(async()=>{if(!state.info)return;lockEditorRecovery();try{await editSession.beforeOpen();await editSession.opened(state.info,true)}finally{unlockEditorRecovery()}})
 $('session-valid-inputs').onclick=()=>{if(lastValidSessionSettings){restore(lastValidSessionSettings);recordSettings('放弃未完成输入');schedulePreview();editSession.schedule()}}

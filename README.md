@@ -72,6 +72,8 @@ AI 是可选功能，在“AI助手”配置 API；展开详细配置可调整�
 
 应用与 Agent 共用工作区。启动应用后，Agent 可读取工作区的 .agents/skills/nbtcreator-workspace/SKILL.md 调用同一套工具。同一建筑应轮流修改，完成后刷新列表。
 
+提示词方案会自动保存到对应建筑的 `提示词方案/`：已有模型放在当前结构版本内，首次创建放在建筑归档根目录。正文、方案、操作计划和上下文按修订保留，关闭应用前补存。Agent 使用 `python .agents/skills/nbtcreator-workspace/nbt.py prompts scan` 查找，再用 `prompts read --index <index> --id <id>` 读取并核对源版本；旧的 Agent 交接提示词也可扫描。
+
 评论保存或导出时，当前结构版本内会更新 `修改意见/评论索引.json`，原图、3D 快照和引用文件按哈希归档。Agent 可直接扫描：
 
 ```powershell

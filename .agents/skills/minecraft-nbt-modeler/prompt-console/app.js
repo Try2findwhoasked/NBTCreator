@@ -1,6 +1,6 @@
 (() => {
  const C=NbtPrompt, $=id=>document.getElementById(id), storage='nbt-prompt-console-v2';
- let state=C.defaults(), pending=new Map();
+ let state=C.defaults(), pending=new Map(),autosave;
  try{const saved=localStorage.getItem(storage);if(saved){const candidate=C.normalize(JSON.parse(saved));if(!C.validate(candidate).length)state=candidate;}}catch{}
  const projectFields={name:'建筑中文名',stage:'任务方式',buildingShape:'建筑形状（选择后自动填尺寸与占地）',source:'完整主模型路径（已有作品）',size:'整体尺寸 XYZ',footprint:'占地与空间关系',layout:'空间分区、楼层与高差',circulation:'玩家动线与空间连接',theme:'主题与氛围',purpose:'用途与玩家活动',integration:'接入方式',output:'新版本输出目录',style:'全局材质角色、构造尺度与留白',ceiling:'天花板 / 顶构要求',floor:'地板 / 平台要求',wall:'墙面 / 开口要求',props:'道具 / 细节密度',preserve:'保留项与保护要求',extras:'其他要求',budget:'精修总变化预算',contextPath:'已有坐标保护配置路径',reviewPath:'已有审阅目录（可留空）'};
  const options={buildingShape:Object.entries(C.buildingShapes).map(([k,v])=>[k,v.label]),stage:[['draft','首次创建完整初稿'],['plan','只读修改规划'],['refine','已有建筑精修']],integration:[['standalone','独立建筑'],['saodg','SAODG 接入']],classification:['body','wall','inherit'],mirror:[['','无'],['x','X 镜像'],['z','Z 镜像']],profile:['maintained','worn','ruined','cavern'],action:['replace','fill'],scope:['surface','volume'],shape_policy:['preserve','any']};
@@ -14,6 +14,8 @@
  function update(){if(state.project.stage==='draft'){state.project.output=C.outputPath(state.project);const output=document.querySelector('[data-field=output]');if(output)output.value=state.project.output;}const errors=[...pending.values(),...C.validate(state)];const invalid=errors.length>0;for(const id of ['copy','markdown','plan','config','save','left-save'])$(id).disabled=invalid;
    $('result').value=invalid?'参数尚未有效，请先修正：\n'+errors.join('\n'):outputText();notify(invalid?errors.join('\n'):`${state.operations.filter(op=>op.enabled!==false).length} 个启用 / ${state.operations.length} 个步骤 · 参数草案有效 · 尚未验证模型`,invalid);$('count').textContent=state.operations.length;
    $('output-mode').textContent=aiDraft()?'当前导出：AI 设计建议 + 本地任务元数据、工具计划与验证要求':state.aiDraft?'方案已变化，当前导出参数生成稿；AI 建议需重新生成或重新审阅':'当前导出：参数生成稿';
+   if(!state.export_id)state.export_id=crypto.randomUUID().replaceAll('-','');
+   autosave?.schedule(!invalid);
    if(!invalid)try{localStorage.setItem(storage,JSON.stringify(state));}catch{notify('当前浏览器无法自动暂存，请使用“保存方案”');}
  }
  function selectOptions(key,kind){if(key==='mode')return {geometry:['set','add','subtract','intersect'],morphology:['dilate','erode','shell','opening','closing'],pattern:['independent','clustered']}[kind];if(key==='width')return ['1','3','5'];return options[key];}
@@ -78,7 +80,7 @@
  $('markdown').onclick=()=>download('NBT建模完整提示词.md',outputText(),'text/markdown;charset=utf-8');
  $('plan').onclick=()=>download('plan.json',C.plan(state));
  $('config').onclick=()=>download('context_draft.json',{...state.project.context,max_changed_blocks:state.project.budget});
- $('copy').onclick=async()=>{try{if(navigator.clipboard?.writeText)await navigator.clipboard.writeText($('result').value);else throw Error('fallback');notify('完整提示词已复制');}catch{$('result').focus();$('result').select();notify(document.execCommand('copy')?'完整提示词已复制':'已选中提示词，请按 Ctrl+C');}};
+ $('copy').onclick=async()=>{try{await autosave?.flush();if(navigator.clipboard?.writeText)await navigator.clipboard.writeText($('result').value);else throw Error('fallback');notify('完整提示词已复制');}catch{$('result').focus();$('result').select();notify(document.execCommand('copy')?'完整提示词已复制':'已选中提示词，请按 Ctrl+C');}};
  $('import').onclick=()=>$('file').click();$('file').onchange=async()=>{const f=$('file').files[0];if(!f)return;try{const v=JSON.parse(await f.text());const candidate=C.normalize(v);const errors=C.validate(candidate);if(errors.length)throw Error(errors.join('；'));state=candidate;pending.clear();renderProject();renderOperations();update();}catch(e){notify('导入失败：'+e.message,true);}finally{$('file').value='';}};
  $('reset').onclick=()=>{if(!confirm('重置当前方案？未导出的修改将清除。'))return;state=C.defaults();pending.clear();renderProject();renderOperations();update();};
  let aiBridge=null,candidateBinding=null,aiRunning=false,candidateMode='text';
@@ -149,10 +151,13 @@
      stage:'plan',contextPath:payload.contextPath||'',reviewPath:payload.reviewPath||'',output:payload.output||'',
      context:payload.context,style:payload.plan.style_note,budget:payload.budget};
    next.project.extras=(same?next.project.extras+'\n':'')+'源文件 SHA256：'+payload.source_sha256+'。本次从细节控制台载入参数，仅作规划，不代表已执行或已批准。';
+   next.source_sha256=payload.source_sha256;
    next.operations=C.clone(payload.plan.operations);
    const errors=C.validate(next);if(errors.length)throw Error(errors.join('；'));
    state=next;pending.clear();renderProject();renderOperations();update();
  }};
  if(window.parent!==window){document.body.classList.add('embedded');}
+ autosave=createPromptAutosave({host:$('output-mode'),read:()=>({session_id:state.export_id,document:C.clone(state),text:outputText(),plan:C.plan(state),context:{...state.project.context,max_changed_blocks:state.project.budget}})});
+ window.NbtPromptUI.flushExport=()=>autosave.flush();
  renderProject();renderOperations();update();
 })();
