@@ -821,5 +821,287 @@
       "description": "Trusted application group id for AI box/beam/frame operations. The same group may layer its own newly-created blocks; cannot claim existing solids with identity writes. Never accept this permission from API output.",
       "type": "string"
     }
+  },
+  "agent_tools": {
+    "structure_list": {
+      "description": "列出当前工作区可复用结构资产；不读取其他工作区。",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    "structure_read": {
+      "description": "读取结构体素、材质、墙归属、锚点与内容哈希。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "[a-f0-9]{32}"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "structure_view": {
+      "description": "为已有结构创建独立只读3D快照、真实缩略图和一个相机；不写NBT。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "[a-f0-9]{32}"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "structure_preview": {
+      "description": "从共用建模工具或已有结构放置参数创建独立候选和预览；不修改建筑、不写入构件库。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "spec": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "size": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                "minItems": 0,
+                "maxItems": 16
+              },
+              "anchor": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": -1000000,
+                  "maximum": 1000000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "operations": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "minItems": 0,
+                "maxItems": 128
+              },
+              "placements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-f0-9]{32}"
+                    },
+                    "content_sha256": {
+                      "type": "string",
+                      "pattern": "[a-f0-9]{64}"
+                    },
+                    "position": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": -1000000,
+                        "maximum": 1000000
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "quarter_turns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3
+                    },
+                    "mirror": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "x",
+                        "z",
+                        null
+                      ]
+                    },
+                    "overwrite": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "content_sha256",
+                    "position"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 0,
+                "maxItems": 32
+              },
+              "include_air": {
+                "type": "boolean"
+              },
+              "max_changed_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536
+              },
+              "camera": {
+                "type": "object",
+                "properties": {
+                  "azimuth": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  "elevation": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "name",
+              "size"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "spec"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "structure_write": {
+      "description": "显式将绑定预览保存为新的构件资产；不能覆盖已有资产或导出NBT，保存不表示设计批准。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "preview_id": {
+            "type": "string",
+            "pattern": "[a-f0-9]{32}"
+          },
+          "preview_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          }
+        },
+        "required": [
+          "preview_id",
+          "preview_sha256"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "structure_place": {
+      "description": "按锚点、旋转、镜像生成放置操作；不实际写建筑，仍须control preview/validate和显式新版本导出。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "[a-f0-9]{32}"
+          },
+          "content_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          },
+          "position": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -1000000,
+              "maximum": 1000000
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "quarter_turns": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "mirror": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "x",
+              "z",
+              null
+            ]
+          },
+          "overwrite": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 294
+            },
+            "minItems": 3,
+            "maxItems": 3
+          }
+        },
+        "required": [
+          "id",
+          "content_sha256",
+          "position",
+          "size"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "agent_contract": {
+    "schema_version": 1,
+    "cli": "components --workspace <project> agent --tool <name> --request <json>",
+    "http": "POST /__detail__/components/agent {tool,arguments}",
+    "coordinates": "local integer XYZ; inclusive lo/hi; placement position is anchor",
+    "budget": {
+      "max_axis": 64,
+      "max_blocks": 65536,
+      "max_operations": 128
+    },
+    "writes": "new component assets only; model changes remain candidate operations until explicit export",
+    "knowledge": "component-assets; modelling-tools; shared creative preferences small_structure"
   }
 }

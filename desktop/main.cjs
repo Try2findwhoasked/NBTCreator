@@ -63,7 +63,10 @@ async function boot(){
  const workspaceApi=createWorkspaceApi({cancel:()=>api?.cancel()})
  api=createApiService({workflowContext:key=>workspaceApi.guardContext(()=>internalAI.context(key)),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
  await api.load()
- for(const [channel,handler]of Object.entries({'api-config':()=>api.publicConfig(),'api-save':input=>api.save(input),'api-models':()=>api.models(),'api-generate':input=>api.generate(input),'api-cancel':()=>api.cancel()}))ipcMain.handle('nbt:'+channel,(event,input)=>{allowed(event);return workspaceApi.run(()=>handler(input))})
+ for(const [channel,handler]of Object.entries({'api-config':()=>api.publicConfig(),'api-save':input=>api.save(input),'api-models':()=>api.models(),'api-cancel':()=>api.cancel()}))ipcMain.handle('nbt:'+channel,(event,input)=>{allowed(event);return workspaceApi.run(()=>handler(input))})
+ // Electron serializes thrown errors without custom fields. Return a bounded
+ // failure envelope so the renderer can preserve this request's measurements.
+ ipcMain.handle('nbt:api-generate',async(event,input)=>{allowed(event);try{return await workspaceApi.run(()=>api.generate(input))}catch(error){return {api_error:{message:error.message,api_metrics:error.api_metrics}}}})
  let config={};try{config=JSON.parse(await fs.readFile(path.join(app.getPath('userData'),'settings.json'),'utf8'))}catch{}
  workspace=selectWorkspace({explicit:arg('--workspace'),environment:process.env.NBTCREATOR_WORKSPACE,agentCwd:process.env.NBTCREATOR_AGENT_CWD,cwd:process.cwd(),root,packaged:app.isPackaged,executable:app.getPath('exe'),config,settingsDirectory:app.getPath('userData'),systemDirectory:process.env.WINDIR})
  if(!workspace){const choice=await dialog.showOpenDialog({title:'选择项目根目录或nbt_models（自动识别）',properties:['openDirectory','createDirectory']});if(choice.canceled){app.quit();return}workspace=normalizeWorkspace(choice.filePaths[0]);await recordConfig()}

@@ -45,6 +45,14 @@ test('camera recovery accepts finite world coordinates beyond the model bounds',
  const draft=state();draft.view.camera.eye=[30000001,-50000000,1];draft.view.camera.target=[30000002,-50000000,1]
  assert.equal(validateSessionState(draft,digest('model-one')),draft)
 })
+
+test('named AI component keeps one angle in its version-bound draft and rejects arbitrary view metadata',async t=>{
+ const {root,source,hash}=await fixture(t),store=createEditSessionStore(root),draft=state()
+ const op={kind:'box',label:'柱身',classification:'body',state:'stone_bricks',lo:[4,2,4],hi:[5,7,5]}
+ draft.settings.operations=[op];draft.ai_component={start:0,base:[structuredClone(op)],applied:[structuredClone(op)],offset:[0,0,0],overwrite:false,structure_name:'带帽石柱',camera:{azimuth:90,elevation:25}}
+ await store.save({source,source_sha256:hash,expected_revision:0,client_id:randomUUID(),sequence:1,state:draft});assert.deepEqual((await store.load(source)).state.ai_component,draft.ai_component)
+ for(const patch of [{structure_name:'x'.repeat(121)},{camera:[{azimuth:0,elevation:0}]},{camera:{azimuth:0,elevation:NaN}},{camera:{azimuth:0,elevation:0,script:'exec'}}])assert.throws(()=>validateSessionState({...draft,ai_component:{...draft.ai_component,...patch}},hash))
+})
 test('image evidence remains bound to its original pixels after the source image changes',async t=>{
  const {root,hash}=await fixture(t),store=createEditSessionStore(root),image=path.join(root,'preview.png'),bytes=Buffer.from('original image evidence'),imageHash=digest(bytes),geometry=digest('geometry')
  await fs.writeFile(image,bytes)

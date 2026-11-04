@@ -2,7 +2,8 @@
 import { vec3 } from 'gl-matrix'
 import { ViewCamera } from './camera-controls.mjs'
 import { MeshNormalMaterial,Scene,Box3,Vector2,Vector3,Raycaster,Matrix3 } from 'three'
-import { BlockState, Structure, ThreeStructureRenderer, loadDefaultPackResources } from '@mattzh72/lodestone'
+import { BlockState, Structure, ThreeStructureRenderer, ChunkBuilder, loadDefaultPackResources } from '@mattzh72/lodestone'
+import {installMeshScheduling} from './mesh-scheduling.mjs'
 import './style.css'
 import { RangeBox } from './range-box.mjs'
 import {differenceIndex,focusDifference} from './difference-index.mjs'
@@ -10,6 +11,8 @@ import {differenceOverlay} from './difference-overlay.js'
 import {protectionOverlay} from './protection-overlay.js'
 import {createComponentGizmo} from './component-gizmo.js'
 import { cameraView, normalizeView, includesBlock } from './view-contract.mjs'
+
+installMeshScheduling(ThreeStructureRenderer,ChunkBuilder)
 
 const originalWarn = console.warn.bind(console)
 console.warn = (...args) => {

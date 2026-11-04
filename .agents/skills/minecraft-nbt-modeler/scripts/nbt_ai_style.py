@@ -21,7 +21,11 @@ def validate(data):
 
 def load(workspace, create=False):
     file=Path(workspace).resolve()/'.nbtcreator/ai-style.json'
-    try:return validate(json.loads(file.read_text(encoding='utf-8-sig')))
+    try:
+        data=json.loads(file.read_text(encoding='utf-8-sig'))
+        if data.get('schema_version')==1 and isinstance(data.get('workflows'),dict) and set(data['workflows'])==set(SCHEMA['workflows'])-{'component'}:
+            data['workflows']['component']=dict(data['workflows']['small_structure'])
+        return validate(data)
     except FileNotFoundError:
         data=defaults()
         if create:save(workspace,data)

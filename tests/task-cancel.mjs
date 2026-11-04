@@ -46,14 +46,11 @@ const settings=JSON.parse(await fs.readFile(path.join(fixture,'settings.json'),'
 let server;const checks={},observations=[]
 const alive=pid=>{try{process.kill(pid,0);return true}catch(error){if(error.code==='ESRCH')return false;throw error}}
 async function until(read,accept,timeout=60000){const deadline=Date.now()+timeout;while(Date.now()<deadline){const value=await read();if(accept(value))return value;await new Promise(resolve=>setTimeout(resolve,20))}throw Error('Timed out observing real task state')}
-function matchingPids(){
- if(process.platform==='win32'){
-  const literal=source.replaceAll("'","''")
-  const code=`Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object { $_.CommandLine -and $_.CommandLine.Contains('${literal}') -and $_.CommandLine.Contains('nbt_detail_control.py') } | ForEach-Object { $_.ProcessId }`
-  return execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-Command',code],{encoding:'utf8',windowsHide:true}).trim().split(/\s+/).map(Number).filter(Number.isSafeInteger).filter(v=>v>0)
- }
- return execFileSync('ps',['-eo','pid=,args='],{encoding:'utf8'}).split('\n').filter(line=>line.includes(source)&&line.includes('nbt_detail_control.py')).map(line=>Number(line.trim().split(/\s+/)[0]))
+async function matchingPids(){
+ const response=await fetch(new URL('/__detail__/workers',server.url));assert.equal(response.status,200)
+ const {items}=await response.json();return items.filter(item=>item.phase==='inspect'&&typeof item.source==='string'&&path.resolve(item.source).toLowerCase()===source.toLowerCase()).map(item=>item.pid)
 }
+
 try{
  server=await startDetailServer({workspace,output:path.join(out,'jobs'),python})
  const api=async(route,body)=>{const response=await fetch(new URL('/__detail__/'+route,server.url),body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});const data=await response.json();if(!response.ok)throw Error(data.error);return data}

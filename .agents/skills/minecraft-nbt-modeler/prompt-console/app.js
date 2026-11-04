@@ -105,13 +105,15 @@
      if(!aiBridge)throw Error('AI 需要在 Electron 桌面版内使用');
      if(pending.size||C.validate(state).length)throw Error('请先修正当前方案参数');
      const before=binding();candidateBinding=null;$('prompt-ai-apply').disabled=true;
-     const instruction='请基于下面的建筑设计草案，生成可供审阅的中文设计要求段落，补足天花承托、地板分区、墙面层次、交接收口与细节主次。保留主题、布局和已给定工具意图，不输出新坐标、不声称已执行或已批准；不必重复技术命令，因为应用将保留本地阶段规则、工具计划、保护配置和交付要求。\n用户补充：'+$('prompt-ai-instruction').value+'\n设计草案 JSON：\n'+JSON.stringify(sanitizedDesign());
-     if($('prompt-ai-mode').value==='text'&&instruction.length>12000)throw Error('方案较大，请减少工具序列或缩短设计要求后再调用 AI');
+     const mode=$('prompt-ai-mode').value;
+     const input=NbtPromptAIInput.request(mode,$('prompt-ai-instruction').value,sanitizedDesign());
      aiLock(true);aiMessage('正在根据当前设计要求生成建议…');
-     candidateMode=$('prompt-ai-mode').value;
+     candidateMode=mode;
      if(candidateMode==='draft'&&(state.project.stage!=='draft'||state.project.source))throw Error('请先点击“新建初稿”，再生成完整初稿方案');
-     const result=candidateMode!=='text'?await aiBridge.generateWorkbench($('prompt-ai-instruction').value||'请完善当前建筑方案，配置合适的设计字段，保留不需要修改的工具',sanitizedDesign()):await aiBridge.generate(instruction);
+     if(input.mode==='workbench'){input.context.baseline_binding=await NbtPromptAIInput.bindingToken(before);if(binding()!==before)throw Error('方案已改变，请重新生成候选')}
+     let result=input.mode==='workbench'?await aiBridge.generateWorkbench(input.instruction,input.context):await aiBridge.generate(input.instruction);
      if(binding()!==before)throw Error('生成期间方案已改变，请基于当前方案重新生成');
+     if(result.operation_patch)result={...result,operations:NbtPromptAIInput.mergeOperations(state.operations,result.operation_patch)};
      if(candidateMode==='text'&&(result.mode!=='prompt'||typeof result.text!=='string'||!result.text.trim()))throw Error('AI 返回内容无效');
      $('prompt-ai-candidate').value=candidateMode!=='text'?JSON.stringify({summary:result.summary,project_patch:result.project_patch,operations:result.operations},null,2):result.text;candidateBinding=before;$('prompt-ai-apply').disabled=false;aiMessage(candidateMode!=='text'?'完整候选方案已生成，审阅JSON后点击采用，即可回填左侧。':'建议已生成，可编辑后采用；当前导出内容尚未改变。');
    }catch(e){aiMessage(e.message,true);}finally{aiLock(false);}

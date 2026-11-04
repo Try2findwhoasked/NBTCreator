@@ -73,12 +73,32 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify native Electron launch
+        env:
+          ELECTRON_ENABLE_LOGGING: '1'
+        run: node tests/electron-launch.mjs
       - name: Verify Agent evidence and whole-model pipelines
+        env:
+          DEBUG: 'pw:browser'
         run: |
           $probeRoot = Join-Path $PWD 'build/ci-model-pipelines'
           if (Test-Path -LiteralPath $probeRoot) { throw 'Keep prior regression evidence; expected a fresh CI directory' }
           New-Item -ItemType Directory -Path $probeRoot | Out-Null
           npm run test:projects
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/structure-agent.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/protection-mask.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/reusable-recipes.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/edit-session-store.test.mjs tests/app-settings.test.cjs tests/command-preferences.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/mesh-scheduling.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/mesh-scheduling-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/structure-agent-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/render-runtime.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -115,6 +135,10 @@ jobs:
           npm run test:desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run test:api-desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/protection-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/mesh-scheduling-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/workspace-api-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

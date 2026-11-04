@@ -1,6 +1,7 @@
 import './asset-workspace.css'
 import {initLibraryBrowser} from './library-browser.js'
 import {createAssetTree} from './asset-tree.js'
+import {initComponentAuthor} from './component-author.js'
 
 export function initAssetWorkspace({api,context,apply,pickPosition,interactive,decorateTree=()=>{}}){
  const host=document.createElement('section');host.id='asset-workspace';host.hidden=true
@@ -52,6 +53,8 @@ export function initAssetWorkspace({api,context,apply,pickPosition,interactive,d
  async function refreshThemes(){const {items}=await api('recipes'),select=$('asset-theme'),value=select.value;select.replaceChildren(new Option('保留原材质',''));for(const item of items.filter(v=>v.asset_type==='theme'&&!v.archived))select.add(new Option(item.name,item.id));if([...select.options].some(o=>o.value===value))select.value=value}
  window.addEventListener('creator-reusable-change',()=>refreshThemes().catch(error=>message(error.message)))
  async function perform(action){if(pending)throw Error('请等待当前构件任务完成');pending=true;try{return await action()}finally{pending=false}}
+ const author=initComponentAuthor({actions,api,created:async item=>{selected=item;await refresh();message('独立结构已保存为新资产，可查看、整理和按参数放置')}})
+ const viewIndependent=document.createElement('button');viewIndependent.id='asset-view-independent';viewIndependent.type='button';viewIndependent.textContent='独立3D查看';$('asset-export').after(viewIndependent);viewIndependent.onclick=async()=>{try{if(!selected)throw Error('请选择构件');await author.view(selected.id)}catch(error){message(error.message)}}
  function openSave(){
   const c=context();if(!c?.target_id)throw Error('请先打开3D，并在修改范围中选择要保存的局部选区')
   if(c.whole)throw Error('请先在“修改范围”关闭整座建筑并指定构件选区')

@@ -2,7 +2,7 @@
 
 应用和外部 Agent 共用工作区 `.nbtcreator/ai-style.json`，它只有创作偏好，不含 API Key、内部资料或批准信息。修改后下一次生成读取最新值，不必复制参数到两个位置。
 
-区域对应：draft=完整初稿，workbench=控件配置，prompt=文字提示词，structure=局部编辑，small_structure=小型构件/3D放置。按当前任务选择区域，不将所有区域的偏好同时套入一次任务。
+区域对应：draft=完整初稿，workbench=控件配置，prompt=文字提示词，structure=局部编辑，small_structure=小型构件/3D放置，component=资产管理独立结构。按当前任务选择区域，不将所有区域的偏好同时套入一次任务。
 
 每项是0～100的整数：creativity=保守↔天马行空，detail=简洁↔详细，ornament=朴素↔丰富，variation=延续现有↔探索变化。缺少配置时使用引擎默认值。
 

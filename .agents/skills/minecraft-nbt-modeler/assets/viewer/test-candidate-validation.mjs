@@ -30,6 +30,7 @@ try{
   assert.equal(await page.locator('#validate-preview').isDisabled(),true)
   checks.no_candidate_cannot_be_checked=true
   async function operations(ops){
+    await page.locator('#operation-sequence').evaluate(input=>input.closest('details').open=true)
     await page.locator('#operation-sequence').fill(JSON.stringify(ops))
     await page.locator('#update-preview').click()
     await page.waitForFunction(()=>window.detailControl.state.preview&&!window.detailControl.state.previewBusy,undefined,{timeout:60000})

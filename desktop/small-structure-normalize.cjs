@@ -25,6 +25,9 @@ function normalizeSmallStructure(result,context){
   }else{op.lo=vector(source.lo??source.pos??source.position);op.hi=vector(source.hi??source.pos??source.position);if(kind==='frame')op.thickness=Number(source.thickness??1)}
   return op
  })
- return {coordinate_space:'local',summary:result.summary||'已整理AI部件，待本地检查与预览',settings_patch:{lo:vector(patch.lo)??[0,0,0],hi:vector(patch.hi)??size.map(v=>v-1),operations}}
+ const structure_name=result.structure_name===undefined?String(operations[0].label).slice(0,120):result.structure_name,camera=result.camera===undefined?{azimuth:45,elevation:25}:result.camera
+ if(typeof structure_name!=='string'||!structure_name.trim()||structure_name.length>120)throw Error('构件名称须为1到120字的文字')
+ if(!camera||typeof camera!=='object'||Array.isArray(camera)||Object.keys(camera).some(key=>!['azimuth','elevation'].includes(key))||!Number.isFinite(camera.azimuth)||camera.azimuth< -180||camera.azimuth>180||!Number.isFinite(camera.elevation)||camera.elevation< -90||camera.elevation>90)throw Error('构件只支持一个建议视角：azimuth为-180～180度，elevation为-90～90度')
+ return {coordinate_space:'local',structure_name:structure_name.trim(),camera:{azimuth:camera.azimuth,elevation:camera.elevation},summary:result.summary||'已整理AI部件，待本地检查与预览',settings_patch:{lo:vector(patch.lo)??[0,0,0],hi:vector(patch.hi)??size.map(v=>v-1),operations}}
 }
 module.exports={normalizeSmallStructure}

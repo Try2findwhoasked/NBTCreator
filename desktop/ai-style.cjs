@@ -8,7 +8,7 @@ function createAIStyle({workspace,skill}){
   return data
  }
  const file=()=>path.join(workspace(),'.nbtcreator/ai-style.json')
- async function load(){try{return validate(JSON.parse((await fs.readFile(file(),'utf8')).replace(/^\uFEFF/,'')))}catch(error){if(error.code==='ENOENT')return defaults();throw error}}
+ async function load(){try{const data=JSON.parse((await fs.readFile(file(),'utf8')).replace(/^\uFEFF/,''));if(data.schema_version===1&&data.workflows&&!data.workflows.component&&Object.keys(data.workflows).length===5&&Object.keys(data.workflows).every(key=>schema.workflows[key]))data.workflows.component={...data.workflows.small_structure};return validate(data)}catch(error){if(error.code==='ENOENT')return defaults();throw error}}
  async function save(data){validate(data);await fs.mkdir(path.dirname(file()),{recursive:true});const temporary=file()+'.'+crypto.randomUUID()+'.tmp';await fs.writeFile(temporary,JSON.stringify(data,null,2)+'\n');await fs.rename(temporary,file());return data}
  async function context(workflow){if(!schema.workflows[workflow])throw Error('未知AI使用区域');const values=(await load()).workflows[workflow],lines=[`使用区域：${schema.workflows[workflow]}。以下为创作偏好；用户本次明确要求优先。`]
   for(const [key,dimension]of Object.entries(schema.dimensions)){const value=values[key],band=value<34?'low':value>66?'high':'middle';lines.push(`${dimension.label} ${value}/100（${dimension.left} ↔ ${dimension.right}）：${dimension[band]}`)}

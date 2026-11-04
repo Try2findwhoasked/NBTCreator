@@ -41,6 +41,15 @@ test('local small structure coordinates translate exactly once and reject out-of
  assert.throws(()=>localSmallStructure({...r,settings_patch:{...r.settings_patch,hi:[7,7,6]}},c),/选区/)
 })
 
+test('small structure presentation accepts one bounded angle and a name, retaining legacy output support',()=>{
+ const {localSmallStructure}=require('../desktop/api-service.cjs')
+ const proposal={structure_name:'带帽石柱',camera:{azimuth:90,elevation:25},operations:[{pos:[1,0,1],state:'stone'}]}
+ const normalized=localSmallStructure(proposal,context);assert.equal(normalized.structure_name,'带帽石柱');assert.deepEqual(normalized.camera,proposal.camera);assert.deepEqual(normalized.settings_patch.operations[0].lo,[9,4,9])
+ const old=localSmallStructure({blocks:[{pos:[0,0,0],state:'stone'}]},context);assert.ok(old.structure_name);assert.deepEqual(old.camera,{azimuth:45,elevation:25})
+ for(const camera of [[],null,{azimuth:181,elevation:0},{azimuth:0,elevation:Infinity},{azimuth:0,elevation:0,eye:[1,2,3]}])assert.throws(()=>localSmallStructure({...proposal,camera},context))
+ for(const structure_name of ['',{},'x'.repeat(121)])assert.throws(()=>localSmallStructure({...proposal,structure_name},context))
+})
+
 test('small components normalize missing fields, relative blocks and beam bounds',()=>{
  const {localSmallStructure}=require('../desktop/api-service.cjs');const c={size:[48,24,48],lo:[10,4,20],hi:[20,15,30],materials:[]}
  const blocks=localSmallStructure({blocks:[{pos:['1','2','3'],block:{Name:'minecraft:oak_stairs',Properties:{facing:'east',half:'bottom'}}}]},c)
@@ -59,11 +68,49 @@ test('viewport attachments use image messages only for explicitly enabled workfl
 })
 
 test('truncated small structure retries once with compact geometry and records bounded usage',async()=>{
- let calls=0;const s=await service(async(_url,opts)=>{const body=JSON.parse(opts.body);calls++;if(calls===1)return new Response(JSON.stringify({choices:[{message:{content:'{"blocks":['},finish_reason:'length'}]}));assert.ok(body.messages[0].content.includes('最多24个'));return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({operations:[{kind:'box',lo:[1,0,1],hi:[1,3,1],state:'stone'}]})},finish_reason:'stop'}],usage:{prompt_tokens:100,completion_tokens:80,total_tokens:180,private_field:'do not persist'}}))});try{await s.api.save({enabled:true});const result=await s.api.generate({mode:'small_structure',instruction:'石柱',context});assert.equal(calls,2);assert.deepEqual(result.settings_patch.operations[0].lo,[9,4,9]);assert.deepEqual(result.api_metrics,{attempts:2,finish_reason:'stop',retried_compact:true,prompt_tokens:100,completion_tokens:80,total_tokens:180})}finally{await s.close()}
+ let calls=0;const s=await service(async(_url,opts)=>{const body=JSON.parse(opts.body);calls++;if(calls===1)return new Response(JSON.stringify({choices:[{message:{content:'{"blocks":['},finish_reason:'length'}]}));assert.ok(body.messages[0].content.includes('最多24个'));return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({operations:[{kind:'box',lo:[1,0,1],hi:[1,3,1],state:'stone'}]})},finish_reason:'stop'}],usage:{prompt_tokens:100,completion_tokens:80,total_tokens:180,private_field:'do not persist'}}))});try{await s.api.save({enabled:true});const result=await s.api.generate({mode:'small_structure',instruction:'石柱',context});assert.equal(calls,2);assert.deepEqual(result.settings_patch.operations[0].lo,[9,4,9]);assert.equal(result.api_metrics.attempts,2);assert.equal(result.api_metrics.retried_compact,true);assert.equal(result.api_metrics.total_tokens,180);assert.equal(result.api_metrics.calls[0].finish_reason,'length');assert.equal(result.api_metrics.calls[1].total_tokens,180);assert.equal(result.api_metrics.calls[0].total_tokens,undefined);assert.equal(JSON.stringify(result.api_metrics).includes('do not persist'),false)}finally{await s.close()}
 })
 test('repeated truncation never applies partial geometry or loops; cancellation covers workflow preparation',async()=>{
- let calls=0;const s=await service(async()=>{calls++;return new Response(JSON.stringify({choices:[{message:{content:'{"blocks":['},finish_reason:'length'}],usage:{completion_tokens:8192}}))});try{await s.api.save({enabled:true});await assert.rejects(s.api.generate({mode:'small_structure',instruction:'石柱',context}),/重试1次.*8192/);assert.equal(calls,2)}finally{await s.close()}
+ let calls=0;const s=await service(async()=>{calls++;return new Response(JSON.stringify({choices:[{message:{content:'{"blocks":['},finish_reason:'length'}],usage:{completion_tokens:8192}}))});try{await s.api.save({enabled:true});await assert.rejects(s.api.generate({mode:'small_structure',instruction:'石柱',context}),/重试1次.*16384/);assert.equal(calls,2)}finally{await s.close()}
  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-api-prepare-'));let release,network=0;const api=createApiService({directory,safeStorage:storage,workflowContext:()=>new Promise(resolve=>release=resolve),fetchImpl:async()=>{network++;return new Response('{}')}});try{await api.save({enabled:true});const pending=api.generate({mode:'prompt',instruction:'task',context:null});await assert.rejects(api.generate({mode:'prompt',instruction:'duplicate',context:null}),/已有/);api.cancel();release(null);await assert.rejects(pending,/取消/);assert.equal(network,0)}finally{await fs.rm(directory,{recursive:true,force:true})}
+})
+
+test('measurements cover response wait, parse and local rejection without persisting API content',async()=>{
+ const s=await service(async()=>{await new Promise(resolve=>setTimeout(resolve,15));return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({...result,settings_patch:{...result.settings_patch,lo:[0,0,0]}})},finish_reason:'stop'}],usage:{prompt_tokens:12,completion_tokens:8,total_tokens:20}}))})
+ try{
+  await s.api.save({enabled:true,key:'private-key'})
+  await assert.rejects(s.api.generate({mode:'structure',instruction:'在选区添加柱子',context}),error=>{
+   const m=error.api_metrics;assert.match(error.message,/超出/);assert.equal(m.attempts,1);assert.ok(m.calls[0].headers_ms>=1);assert.ok(m.calls[0].elapsed_ms>=m.calls[0].headers_ms);assert.ok(m.service_total_ms>=m.calls[0].elapsed_ms);assert.ok(m.validation_ms>=0);assert.equal(m.calls[0].status,'complete');assert.equal(m.total_tokens,20);assert.ok(m.calls[0].response_bytes>0);assert.ok(!JSON.stringify(m).includes('private-key'));assert.ok(!JSON.stringify(m).includes('添加柱子'));return true
+  })
+ }finally{await s.close()}
+})
+
+test('HTTP failures, cancellation and repeated truncation retain individual attempt measurements',async()=>{
+ const s=await service(async()=>new Response('private provider body',{status:429}))
+ try{await s.api.save({enabled:true});await assert.rejects(s.api.generate({mode:'prompt',instruction:'task',context:null}),error=>{assert.equal(error.api_metrics.calls[0].http_status,429);assert.equal(error.api_metrics.calls[0].status,'failed');assert.ok(!JSON.stringify(error.api_metrics).includes('private'));return true})}finally{await s.close()}
+ const cancelled=await service((_url,opts)=>new Promise((_resolve,reject)=>opts.signal.addEventListener('abort',()=>reject(new DOMException('abort','AbortError')))))
+ try{await cancelled.api.save({enabled:true});const pending=cancelled.api.generate({mode:'prompt',instruction:'task',context:null});await new Promise(resolve=>setImmediate(resolve));cancelled.api.cancel();await assert.rejects(pending,error=>{assert.equal(error.api_metrics.calls[0].status,'cancelled');assert.ok(error.api_metrics.service_total_ms>=0);return true})}finally{await cancelled.close()}
+ let attempt=0;const retry=await service(async()=>{attempt++;return new Response(JSON.stringify({choices:[{message:{content:attempt===1?'partial':JSON.stringify({blocks:[{pos:[0,0,0],state:'stone'}]})},finish_reason:attempt===1?'length':'stop'}],usage:{prompt_tokens:10,completion_tokens:attempt*5,total_tokens:10+attempt*5}}))})
+ try{await retry.api.save({enabled:true});const r=await retry.api.generate({mode:'small_structure',instruction:'柱',context});assert.equal(r.api_metrics.prompt_tokens,20);assert.equal(r.api_metrics.completion_tokens,15);assert.equal(r.api_metrics.total_tokens,35);assert.equal(r.api_metrics.calls.length,2);assert.ok(r.api_metrics.calls[1].input_text_chars>r.api_metrics.calls[0].input_text_chars)}finally{await retry.close()}
+})
+
+test('workbench API sends base references and merges a compact response locally',async()=>{
+ const input={mode:'workbench',instruction:'第12步改安山岩',context:{project:{size:[48,24,48]},baseline_binding:'a'.repeat(64),operations:Array.from({length:60},()=>({kind:'box',label:'墙段',classification:'wall',lo:[2,1,2],hi:[20,8,2],state:'stone_bricks'}))}}
+ let responseChars=0
+ const s=await service(async(_url,opts)=>{
+  const sent=JSON.parse(JSON.parse(opts.body).messages[1].content),base=sent.context.operation_base
+  assert.equal(sent.context.operations.length,60);assert.equal(base.steps.length,60);assert.equal(sent.context.baseline_binding,input.context.baseline_binding)
+  const content=JSON.stringify({summary:'改墙面',operation_patch:{baseline:base.baseline,changes:[{step:12,expected:base.steps[11].expected,set:{state:'andesite'}}]}});responseChars=content.length
+  return new Response(JSON.stringify({choices:[{message:{content},finish_reason:'stop'}]}))
+ })
+ try{await s.api.save({enabled:true});const r=await s.api.generate(input);assert.equal(r.operations.length,60);assert.equal(r.operations[11].state,'andesite');assert.equal(input.context.operations[11].state,'stone_bricks');assert.equal(r.api_metrics.operation_changes,1);assert.equal(r.api_metrics.output_chars,responseChars);assert.ok(responseChars<JSON.stringify(r.operations).length/10)}finally{await s.close()}
+})
+
+test('independent asset creation sends a reduced library reference and returns the shared spec without needing a source model',async()=>{
+ let sent,bad=false
+ const s=await service(async(_url,options)=>{sent=JSON.parse(options.body);return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify({name:'AI别名',size:bad?[8,8,8]:[7,8,7],operations:[{kind:'box',label:'柱',classification:'body',lo:[2,0,2],hi:[4,5,4],state:'stone_bricks'}],camera:{azimuth:45,elevation:25}})}}]}))})
+ const input={mode:'component',instruction:'独立石柱',context:{name:'指定名称',size:[7,8,7],source:'private-path',references:[{id:'a'.repeat(32),content_sha256:'b'.repeat(64),name:'参考柱',size:[3,6,3],palette:['stone_bricks'],blocks:['do-not-send'],file:'private-file'}]}}
+ try{await s.api.save({enabled:true});const r=await s.api.generate(input);assert.equal(r.mode,'component');assert.equal(r.spec.name,'指定名称');assert.deepEqual(r.spec.size,[7,8,7]);assert.ok(sent.messages[0].content.includes('"placements"'));assert.ok(!JSON.stringify(sent).includes('private-path'));assert.ok(!JSON.stringify(sent).includes('private-file'));assert.ok(!JSON.stringify(sent).includes('do-not-send'));bad=true;await assert.rejects(s.api.generate(input),/不能更改/)}finally{await s.close()}
 })
 
 test('advanced API options reach actual request while protocol and secrets remain application-owned',async()=>{let payload;const s=await service(async(_url,options)=>{payload=JSON.parse(options.body);return new Response(JSON.stringify({choices:[{message:{content:'ok'},finish_reason:'stop'}]}))});try{await s.api.save({enabled:true,timeoutMs:120000,tokenParameter:'max_completion_tokens',requestOptions:{temperature:.4,top_p:.85,max_tokens:2048,presence_penalty:.2,frequency_penalty:-.1,seed:123,stop:['END'],reasoning_effort:'low',thinking:{type:'disabled'}}});await s.api.generate({mode:'prompt',instruction:'test'});assert.equal(payload.max_completion_tokens,2048);assert.equal(payload.max_tokens,undefined);assert.equal(payload.temperature,.4);assert.deepEqual(payload.stop,['END']);assert.equal(payload.stream,false);assert.equal(payload.messages.length,2);assert.equal(payload.thinking.type,'disabled');await s.api.save({enabled:false});assert.equal((await s.api.load()).requestOptions.max_tokens,2048);assert.equal(s.api.publicConfig().timeoutMs,120000);for(const requestOptions of [{messages:[]},{Authorization:'secret'},{response_format:{type:'text'}},{max_tokens:1.5},{temperature:3},{stop:['']},{seed:NaN},{thinking:{type:'enabled',code:'bad'}}])await assert.rejects(s.api.save({requestOptions}));await assert.rejects(s.api.save({timeoutMs:1}));assert.equal((await s.api.load()).requestOptions.temperature,.4)}finally{await s.close()}})

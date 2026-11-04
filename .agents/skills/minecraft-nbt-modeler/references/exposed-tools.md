@@ -57,3 +57,18 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 工作区入口为 `python .agents/skills/nbtcreator-workspace/nbt.py <命令>`。`feedback scan` 扫描结构版本的评论索引，`feedback collect/archive` 校验或归档意见证据，详见 [Agent读取意见](agent-feedback.md)。
 
 构件的保存、整理、导入及候选放置见 [构件资产](component-assets.md)；参数化工具序列、材质主题和XYZ网格阵列见 [配方与主题](reusable-recipes.md)，recipes compile与components batch仅返回候选步骤；项目多选、只读批量预览与检查、进度及重试见 [项目批量任务](project-batch.md)；内部 API 与外部 Agent 共用的各区域创作参数见 [AI创作偏好](ai-creative-preferences.md)。
+
+## 共用结构 Agent 工具
+
+`components --workspace <project> agent --tool <name> --request <json>`
+
+内部 API 与外部 CLI 调用同一 Python 实现；参数 Schema 见 capabilities.agent_tools。预览、保存新资产、候选放置和显式 NBT 导出保持独立。
+
+| 工具 | 用途 |
+| --- | --- |
+| structure_list | 列出当前工作区可复用结构资产；不读取其他工作区。 |
+| structure_read | 读取结构体素、材质、墙归属、锚点与内容哈希。 |
+| structure_view | 为已有结构创建独立只读3D快照、真实缩略图和一个相机；不写NBT。 |
+| structure_preview | 从共用建模工具或已有结构放置参数创建独立候选和预览；不修改建筑、不写入构件库。 |
+| structure_write | 显式将绑定预览保存为新的构件资产；不能覆盖已有资产或导出NBT，保存不表示设计批准。 |
+| structure_place | 按锚点、旋转、镜像生成放置操作；不实际写建筑，仍须control preview/validate和显式新版本导出。 |
