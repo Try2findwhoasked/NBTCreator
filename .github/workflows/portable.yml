@@ -138,7 +138,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/edit-session-store.test.mjs tests/app-settings.test.cjs tests/command-preferences.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/mesh-scheduling.test.mjs
+          node --test tests/backend-result.test.mjs tests/mesh-scheduling.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/mesh-scheduling-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

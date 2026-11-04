@@ -1,3 +1,4 @@
+import {workerExit,parseWorkerResult} from './backend-result.mjs'
 import {portableRequest,absoluteRequest} from './portable-paths.mjs'
 import {handoffInfo,writeHandoff} from './agent-handoff.mjs'
 // Local detail-control API. All work uses argument arrays and data-only requests.
@@ -95,12 +96,13 @@ export async function startDetailServer({ workspace, output, python = 'python', 
       child.stdout.on('data', chunk => { stdout += chunk.toString('utf8') })
       child.stderr.on('data', chunk => { stderr += chunk.toString('utf8') })
       child.on('error', reject)
-      child.on('close', async code => {
+      child.on('close', async(code,signal) => {
+        const exit=workerExit({phase:args[0],pid:child.pid,code,signal,stdout,stderr});if(job)job.backend_exit=exit
         if(job?.child===child){delete job.child;delete job.backend_pid}
         try {
-          if (logPath) await fs.writeFile(logPath, stdout+'\n'+stderr)
+          if (logPath){await fs.writeFile(logPath, stdout+'\n'+stderr);await fs.writeFile(logPath+'.process.json',JSON.stringify(exit,null,2))}
           checkpoint(job)
-          const data = JSON.parse(stdout)
+          const data = parseWorkerResult(stdout,exit)
           if(args[0]==='validate' && code===1 && data.ok && data.result?.status==='candidate_failed')return resolve(data.result)
           if (code !== 0 || !data.ok) throw Object.assign(new Error(data.error ?? stderr ?? 'Backend failed'),{details:data.details})
           resolve(data.result)
