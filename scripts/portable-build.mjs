@@ -6,6 +6,8 @@ import {createRequire} from 'node:module'
 import {root,skill,python} from './paths.mjs'
 if(process.platform!=='win32'||process.arch!=='x64')throw Error('Build portable on Windows x64')
 const index=process.argv.indexOf('--out'),out=path.resolve(root,index<0?'dist/portable':process.argv[index+1])
+const directoryOnly=process.argv.includes('--directory-only')
+if(directoryOnly&&process.argv.includes('--app-only'))throw Error('--directory-only requires the full runtime; do not combine with --app-only')
 const version=JSON.parse(await fs.readFile(path.join(root,'package.json'),'utf8')).version
 execFileSync(process.execPath,[path.join(root,'scripts/package.mjs'),'--out',out],{stdio:'inherit'})
 const app=path.join(out,'NBTCreator-win32-x64'),appRoot=path.join(app,'resources/app'),appOnly=process.argv.includes('--app-only')
@@ -24,11 +26,15 @@ const runtimeId=createHash('sha256').update(JSON.stringify({lock,electron:JSON.p
 if(!appOnly)await fs.writeFile(path.join(app,'runtime-info.json'),JSON.stringify({runtime_id:runtimeId},null,2))
 await fs.writeFile(path.join(app,'portable-info.json'),JSON.stringify({version,runtime_id:runtimeId,platform:'win32',arch:'x64',python:lock.python.version,packages:lock.wheels.map(({name,version})=>({name,version})),browser:'Playwright pinned Chromium',node:'Electron built-in Node',commit:process.env.GITHUB_SHA??execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()},null,2)+'\n')
 await fs.writeFile(path.join(app,'NBT工具.cmd'),'@echo off\r\nsetlocal\r\nset ELECTRON_RUN_AS_NODE=1\r\n"%~dp0NBTCreator.exe" "%~dp0resources\\app\\scripts\\cli.mjs" %*\r\nexit /b %errorlevel%\r\n')
-await fs.writeFile(path.join(app,'Portable说明.txt'),'NBTCreator '+version+' Windows x64 Portable\r\n\r\n解压完整文件夹后运行 NBTCreator.exe，无需安装 Python、Node 或浏览器。\r\n首次启动选择 Agent 项目根目录，建筑与 Skill 保存在该工作区；API 配置保存在当前 Windows 用户配置目录。\r\n请保留 resources、runtime 和 .agents 文件，勿只复制 exe。\r\n无界面调用可使用 NBT工具.cmd，例如 NBT工具.cmd capabilities。\r\n这是免安装目录包；完整批量渲染使用包内 Chromium。\r\n')
+await fs.writeFile(path.join(app,'Portable说明.txt'),'NBTCreator '+version+' Windows x64 Portable\r\n\r\n打开完整文件夹后运行 NBTCreator.exe，无需安装 Python、Node 或浏览器。\r\n首次启动选择 Agent 项目根目录，建筑与 Skill 保存在该工作区；API 配置保存在当前 Windows 用户配置目录。\r\n请保留 resources、runtime 和 .agents 文件，勿只复制 exe。\r\n无界面调用可使用 NBT工具.cmd，例如 NBT工具.cmd capabilities。\r\n这是免安装目录包；完整批量渲染使用包内 Chromium。\r\n')
+if(directoryOnly){
+ console.log(JSON.stringify({output:app,format:'directory',full_runtime:true,version}))
+}else{
 const archive=path.join(out,`NBTCreator-${version}-windows-x64-portable.zip`)
 if(!appOnly)execFileSync(python,[path.join(root,'scripts/portable-archive.py'),'pack','--source',app,'--output',archive],{stdio:'inherit'})
 
 for(const kind of (appOnly?['application']:['application','runtime'])){
  const suffix=kind==='application'?'app-update':'runtime'
  execFileSync(python,[path.join(root,'scripts/portable-archive.py'),'pack','--source',app,'--kind',kind,'--output',path.join(out,`NBTCreator-${version}-windows-x64-${suffix}.zip`)],{stdio:'inherit'})
+}
 }

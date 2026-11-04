@@ -6,12 +6,19 @@ import assert from 'node:assert/strict'
 import {execFileSync} from 'node:child_process'
 import {root,python} from '../scripts/paths.mjs'
 const i=process.argv.indexOf('--archive-dir'),folder=path.resolve(root,i<0?'dist/portable':process.argv[i+1])
+const output=path.join(root,'build','portable-'+Date.now())
+const directoryIndex=process.argv.indexOf('--directory');let unpacked
+if(directoryIndex>=0){
+ unpacked=path.resolve(root,process.argv[directoryIndex+1]);await fs.mkdir(output)
+ const entries=await fs.readdir(unpacked,{recursive:true,withFileTypes:true})
+ for(const entry of entries){assert.ok(!entry.isSymbolicLink());const parts=path.relative(unpacked,path.join(entry.parentPath,entry.name)).split(path.sep);assert.ok(!parts.some(p=>['.git','.github','.nbtcreator','nbt_models'].includes(p)||p==='api-settings.json'||p==='.env'||p.startsWith('.env.')))}
+ assert.ok(entries.some(entry=>entry.name==='SKILL.md'));console.log(JSON.stringify({verified_full_directory:true,entries:entries.length}))
+}else{
 const zip=(await fs.readdir(folder)).find(f=>f.endsWith('-portable.zip'));if(!zip)throw Error('Missing portable ZIP')
 const manifest=JSON.parse(await fs.readFile(path.join(folder,zip.replace(/\.zip$/,'.manifest.json')),'utf8'))
 const splitFiles=(await fs.readdir(folder)).filter(f=>f.endsWith('-app-update.manifest.json')||f.endsWith('-runtime.manifest.json'))
 if(splitFiles.length===2){const entries=[];for(const file of splitFiles)entries.push(...JSON.parse(await fs.readFile(path.join(folder,file),'utf8')).files);assert.equal(new Set(entries.map(f=>f.path)).size,entries.length);assert.deepEqual(entries.sort((a,b)=>a.path.localeCompare(b.path)),manifest.files.sort((a,b)=>a.path.localeCompare(b.path)))}
-const output=path.join(root,'build','portable-'+Date.now())
-const reused=process.argv.indexOf('--unpacked-dir'),unpacked=reused<0?output:path.resolve(root,process.argv[reused+1])
+const reused=process.argv.indexOf('--unpacked-dir');unpacked=reused<0?output:path.resolve(root,process.argv[reused+1])
 if(reused<0)execFileSync(python,[path.join(root,'scripts/portable-archive.py'),'unpack','--source',path.join(folder,zip),'--output',output],{stdio:'inherit'})
 else{
  await fs.mkdir(output)
@@ -19,6 +26,7 @@ else{
  assert.equal(await digest(path.join(folder,zip)),manifest.sha256)
  for(const item of manifest.files){const file=path.resolve(unpacked,item.path);assert.ok(file.startsWith(unpacked+path.sep));assert.equal((await fs.stat(file)).size,item.bytes,item.path);assert.equal(await digest(file),item.sha256,item.path)}
  console.log(JSON.stringify({verified_existing_extraction:true,files:manifest.files.length}))
+}
 }
 const exe=path.join(unpacked,'NBTCreator-win32-x64/NBTCreator.exe'),app=path.join(path.dirname(exe),'resources/app')
 const env={...process.env,PATH:path.join(process.env.WINDIR||'C:/Windows','System32'),ELECTRON_RUN_AS_NODE:'1',PYTHONNOUSERSITE:'1'}
@@ -69,5 +77,5 @@ execFileSync(path.join(app,'runtime/python/python.exe'),['-B','-c',code],{env,wi
 execFileSync(path.join(app,'runtime/python/python.exe'),[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'validate','--request',path.join(candidate,'request.json'),'--snapshot',path.join(candidate,'preview/after.json'),'--output',path.join(candidate,'checked')],{env,cwd:workspace,windowsHide:true,timeout:180000})
 const verified=JSON.parse(await fs.readFile(path.join(candidate,'checked/validation.json'),'utf8'))
 assert.equal(verified.passed,true);assert.equal(verified.asset_written,false)
-await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks:{zip_manifest_and_hidden_skill:true,private_python_dependencies:true,electron_node_cli:true,workspace_skill_generation:true,shared_regional_ai_preferences:true,component_library_cli:true,bundled_chromium:true,python_node_batch_render:true,workspace_facade_private_render_runtime:true,standalone_candidate_checked_in_private_runtime:true}},null,2))
+await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks:{package_integrity_and_hidden_skill:true,private_python_dependencies:true,electron_node_cli:true,workspace_skill_generation:true,shared_regional_ai_preferences:true,component_library_cli:true,bundled_chromium:true,python_node_batch_render:true,workspace_facade_private_render_runtime:true,standalone_candidate_checked_in_private_runtime:true}},null,2))
 console.log(JSON.stringify({passed:true,checks:10,output}))

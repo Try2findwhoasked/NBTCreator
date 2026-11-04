@@ -23,7 +23,7 @@ npm run test:portable -- --archive-dir dist/portable
 
 发布：更新package.json/package-lock.json版本，提交并推送；为该提交创建同版本的全新注解标签，再推送标签。已发布版本不能复用，应增加版本号。手动workflow_dispatch只生成构建产物，不另行发布未打标签的版本。
 
-Portable表示免安装目录包；工作区仍由用户选择，API密钥仍使用Windows用户级加密配置，不会随ZIP发布。不要仅复制exe。未签名程序与已知全屏问题保持原记录；CI不触发全屏。
+Portable表示免安装目录包；工作区仍由用户选择，API密钥仍使用Windows用户级加密配置，不会随ZIP发布。不要仅复制exe。未签名程序保持原说明。全屏问题 NBTC-001 已按用户于2026-11-04的确认关闭；CI不触发全屏。
 
 运行环境依据Python官方嵌入分发方式打包第三方库：https://docs.python.org/3/using/windows.html#the-embeddable-package 。GitHub触发与权限遵循官方Actions说明：https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow 。
 
@@ -36,3 +36,5 @@ app-update包含应用源码、建模工具、预构建前端和Skill资料，�
 CI验证两份分离包文件互不重复且按路径/字节哈希恰好重组成完整包。完整解压测试仍运行私有Python、CLI、Skill生成、Chromium和批量出图。新版本校验文件随Release附带，不复用旧版本ZIP哈希。
 
 本地仅制作应用更新包可运行 `npm run package:portable -- --app-only --out dist/update-版本`，它不下载/复制Python或Chromium；不能把该临时构建文件夹当完整免安装包。应用更新ZIP需解压覆盖已有兼容runtime，启动时仍验证runtime_id。云端发布继续构建完整与两种分离包并执行全套解压验证。
+
+本地需要完整免安装文件夹而无需ZIP时：`npm run package:portable -- --directory-only --out dist/full-folder`；校验：`npm run test:portable -- --directory dist/full-folder`。目录模式仍打入完整运行环境，不可与 `--app-only` 同用。
