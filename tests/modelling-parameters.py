@@ -50,4 +50,18 @@ class Parameters(unittest.TestCase):
      op=dict(label='integration',classification='body',lo=[0,0,0],hi=[31,23,31],**case)
      result=build(workspace,dict(name='integration',size=[32,24,32],operations=[op]))
      self.assertTrue(result['blocks'])
+ def test_external_agent_selection_ground_path_and_terrain(self):
+  import tempfile
+  from nbt_structure_agent import build
+  def box(lo,hi,state='stone'):return dict(kind='box',label='base',classification='body',lo=lo,hi=hi,state=state)
+  cases=[
+   [box([2,2,2],[3,3,3]),dict(kind='selection_replace',seed_position=[2,2,2],from_states=['stone'],state='andesite')],
+   [box([2,4,2],[3,5,3]),box([12,0,12],[13,0,13]),dict(kind='align_region',mode='ground',lo=[2,4,2],hi=[3,5,3],destination=[12,10,12])],
+   [box([2,2,2],[2,2,2]),dict(kind='array_region',mode='path',lo=[2,2,2],hi=[2,2,2],points=[[10,2,10],[20,2,10]],spacing=4,end_margins=[1,1])],
+   [box([0,0,0],[31,1,31],'dirt'),dict(kind='terrain_road',start=[3,1,3],end=[24,1,24],terrain_states=['dirt'])]]
+  with tempfile.TemporaryDirectory() as workspace:
+   for steps in cases:
+    with self.subTest(kind=steps[-1]['kind']):
+     steps[-1]=dict(dict(label='integration',classification='body',lo=[0,0,0],hi=[31,23,31]),**steps[-1])
+     result=build(workspace,dict(name='integration',size=[32,24,32],operations=steps));self.assertTrue(result['blocks'])
 if __name__=='__main__':unittest.main()
