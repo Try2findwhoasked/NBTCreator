@@ -9,7 +9,7 @@ from nbt_delivery import verify_delivery
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--output',type=Path,required=True);out=parser.parse_args().output.resolve();out.mkdir(parents=True,exist_ok=False)
-    project=out/'r001_test';version=project/'v01';(version/'master').mkdir(parents=True)
+    project=out/'nbt_models/l_shape/r001_test';version=project/'v01';(version/'master').mkdir(parents=True)
     model=Volume((96,16,96));walls=set();cells=[[0,0],[1,0],[0,1]]
     for cx,cz in cells:
         x,z=cx*48,cz*48;model.box((x,0,z),(x+47,15,z+47),'stone_bricks');model.box((x+1,2,z+1),(x+46,13,z+46),'air')
@@ -19,12 +19,12 @@ def main():
     settings=default_settings();settings['pattern'].update(enabled=True,fraction=.01)
     request=dict(schema_version=1,source=str(source),source_sha256=original,context=str(context),cameras='',settings=settings)
     file=out/'settings.json';write_json(file,request)
-    result=convert_web_json(file);target=Path(result['output']);checks={}
+    result=convert_web_json(file);target=Path(result['output']);released=Path(result['release_dir']);checks={}
     checks['sibling_next_version']=target==project/'v02'
     checks['source_not_modified']=digest(source)==original
-    checks['three_runtime_slices_no_missing_cell']=len(list((target/'runtime/parts').glob('*.nbt')))==3 and not list((target/'runtime/parts').glob('*p11.nbt'))
-    delivery=verify_delivery(target/'delivery');checks['exact_layered_delivery']=delivery['actual_nbt_files']==6 and delivery['exact_solid_reconstruction']
-    checks['complete_master_and_metadata']=(target/'master/master_geometry.json.gz').is_file() and all((target/name).is_file() for name in ['coordinates.json','settings.json','cameras.json','changes.json','conversion.json','validation/whole_model.json','runtime/parts.json'])
+    checks['three_runtime_slices_no_missing_cell']=len(list((released/'runtime/parts').glob('*.nbt')))==3 and not list((released/'runtime/parts').glob('*p11.nbt'))
+    delivery=verify_delivery(released/'delivery');checks['exact_layered_delivery']=delivery['actual_nbt_files']==6 and delivery['exact_solid_reconstruction']
+    checks['complete_master_and_metadata']=(target/'master/model.snbt').is_file() and (released/'master/model.nbt').is_file() and all((target/name).is_file() for name in ['coordinates.json','settings.json','cameras.json','changes.json','conversion.json','validation/whole_model.json'])
     job=out/'job';job.mkdir();write_json(job/'request.json',request);preview=preview_effect(request,job/'result')
     next_result=convert_web_json(preview['snapshot']);checks['after_json_goes_to_v03']=Path(next_result['output'])==project/'v03'
     tampered=read_json(preview['snapshot']);tampered['blocks'][0][1]='minecraft:dirt';write_json(job/'result/after.json',tampered)
