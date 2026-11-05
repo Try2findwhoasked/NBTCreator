@@ -108,7 +108,7 @@ export function initStudioWorkspace({state,gather}){
  $('pick-material').addEventListener('click',()=>{if($('pick-material').getAttribute('aria-pressed')==='true'){const b=tools.querySelector('[data-tool-index="6"]');b.click()}})
  $('pick-coordinate').addEventListener('click',()=>{if($('pick-coordinate').getAttribute('aria-pressed')==='true')showPanel('notes')})
  $('validate-preview').addEventListener('click',()=>showPanel('checks'))
- window.addEventListener('creator-status',event=>{statusLink.textContent=event.detail.message;statusLink.title=event.detail.message;if(event.detail.kind==='error')showPanel(state().candidateValidation?'checks':'more')})
+ window.addEventListener('creator-status',event=>{statusLink.textContent=event.detail.message;statusLink.title=event.detail.message})
  const captionObserver=new MutationObserver(()=>{statusLink.textContent=$('status').textContent;statusLink.title=$('status').textContent});captionObserver.observe($('status'),{childList:true,characterData:true,subtree:true})
  function sync(){
   const s=state(),model=s.models?.find(m=>m.source===s.info?.source)
