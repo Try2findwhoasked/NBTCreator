@@ -16,14 +16,14 @@ export function initWorkspaceShell(){
    $('project-workspace').hidden=name!=='project'
    $('asset-workspace').hidden=name!=='assets'
    $('task-workspace').hidden=name!=='tasks'
-   if(name==='tasks'){$('task-workspace-content').append(result)}else if(result.parentElement===$('task-workspace-content'))marker.after(result)
-   document.querySelectorAll('button[data-workspace]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.workspace===name)))
+   if(name==='tasks'&&result.parentElement!==$('task-workspace-content')){result.before(marker);$('task-workspace-content').append(result)}else if(name!=='tasks'&&result.parentElement===$('task-workspace-content'))marker.after(result)
+   document.querySelectorAll('button[data-workspace]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.workspace===name));if(b.dataset.workspace===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')})
    window.dispatchEvent(new CustomEvent('creator-workspace-change',{detail:name}))
   }finally{moving=false}
  }
  for(const button of document.querySelectorAll('button[data-workspace]'))button.onclick=()=>select(button.dataset.workspace)
- $('prompt-dialog').addEventListener('close',()=>{if(!moving&&active==='prompt')select('model')})
- $('api-dialog').addEventListener('close',()=>{if(!moving&&active==='ai')select(returnFromAI)})
+ $('prompt-dialog').addEventListener('close',()=>{if(!moving&&active==='prompt'&&!$('prompt-dialog').open)select('model')})
+ $('api-dialog').addEventListener('close',()=>{if(!moving&&active==='ai'&&!$('api-dialog').open)select(returnFromAI)})
  window.creatorWorkspace=Object.freeze({select,opened:select,current:()=>active})
  select('model')
 }

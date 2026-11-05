@@ -67,7 +67,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   const commandStore=createCommandStore(workspace,JSON.parse(await fs.readFile(path.join(skillRoot,'tool-catalog.json'),'utf8')))
   const ownedChildren=new Set(),workerInfo=new WeakMap(),stoppingChildren=new WeakMap(),childStopped=Symbol('childStopped')
   let closing=false,closePromise
-  const feedback = createFeedbackStore(binding=>{if(!binding.workdir)throw new Error('请重新打开建筑以识别修改意见目录');return path.join(binding.workdir,'修改意见')},path.join(workspace,'build/nbt_feedback'))
+  const feedback = createFeedbackStore(binding=>{if(!binding.version_dir)throw new Error('请重新打开建筑以识别版本目录');return path.join(binding.version_dir,'修改意见')},binding=>[...(binding.workdir?[path.join(binding.workdir,'修改意见')]:[]),path.join(workspace,'build/nbt_feedback')])
   const jobFinished=Symbol('jobFinished')
   const cancelledError=()=>Object.assign(new Error('任务已取消；已生成的诊断文件保留'),{code:'NBTCREATOR_CANCELLED'})
   function checkpoint(job){if(job?.cancel_requested)throw cancelledError()}
@@ -206,6 +206,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
           result.images=await registerImages(result.images,info,job)
         } else result.images=[]
         checkpoint(job)
+        if(result.master)result.master_download=asset(result.master)
         if (result.plan) result.plan_download = asset(result.plan)
         if (result.validation) result.validation_download = asset(result.validation)
         if (result.difference) result.difference_download = asset(result.difference)
@@ -330,13 +331,13 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         json(res,{project_catalog:projectCatalog,catalog:{...projectCatalog,models:projectCatalog.models.filter(item=>!item.bugged&&!item.unreadable)}})
       } else if (req.method === 'GET' && url.pathname.startsWith('/__detail__/prompt/')) {
         const name=url.pathname.slice('/__detail__/prompt/'.length)
-        if(!['index.html','core.js','ai-input.js','autosave.js','app.js','style.css','design-tokens.css','theme.css','catalog.js'].includes(name))throw new Error('Unknown prompt asset')
+        if(!['index.html','core.js','ai-input.js','autosave.js','workspace.js','app.js','style.css','design-tokens.css','theme.css','catalog.js'].includes(name))throw new Error('Unknown prompt asset')
         res.setHeader('Content-Type',name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.js')?'text/javascript; charset=utf-8':'text/css; charset=utf-8')
         res.setHeader('Cache-Control','no-store')
         res.end(await fs.readFile(path.join(skillRoot,'prompt-console',name)))
-      } else if(req.method==='POST'&&['/__detail__/prompt-save','/__detail__/prompt-publish'].includes(url.pathname)){
+      } else if(req.method==='POST'&&['/__detail__/prompt-save','/__detail__/prompt-publish','/__detail__/prompt-library'].includes(url.pathname)){
         const input=await body(req,3*1024*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'prompt-save-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input))
-        try{json(res,await invoke([url.pathname.endsWith('prompt-publish')?'prompt-publish':'prompt-save','--workspace',workspace,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
+        try{json(res,await invoke([url.pathname.split('/').at(-1),'--workspace',workspace,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if (req.method === 'POST' && url.pathname === '/__detail__/prompt-export') {
         const input=await body(req)
         input.source=localPath(input.source)
@@ -443,6 +444,9 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         json(res,result)
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/batches/')){
         const action=url.pathname.split('/').at(-1);if(!['list','get','create','import','ack','locate'].includes(action))throw Error('未知批次操作');const input=await body(req,256*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'batches-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['batches','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
+      } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/history/')){
+        const action=url.pathname.split('/').at(-1);if(!['list','get','record','current','derive','finalize'].includes(action))throw Error('未知版本历史操作')
+        const input=await body(req);const directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'history-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['history','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/agent-tasks/')){
         const action=url.pathname.split('/').at(-1);if(!['create','list','get','discover','record','review'].includes(action))throw Error('未知Agent任务操作');const input=await body(req,4*1024*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'agent-task-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['agent-tasks','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/retrieve/')){
@@ -456,13 +460,14 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         if(!binding)throw new Error('请先打开对应图片或3D建筑')
         const operation=url.pathname.split('/').at(-1)
         if(operation==='list')json(res,await feedback.list(binding))
-        else if(operation==='add'){
+        else if(operation==='add'||operation==='upsert'){
           if(binding.kind==='3d'){
             if(!Array.isArray(input.anchors))throw new Error('3D意见需要明确的位置列表')
             const snapshot=JSON.parse(await fs.readFile(binding.snapshot,'utf8')),blocks=new Map(snapshot.blocks.map(([p,s])=>[p.join(','),s]))
             for(const anchor of input.anchors){if(!Array.isArray(anchor?.position)||blocks.get(anchor.position.join(','))!==anchor.state||['minecraft:air','minecraft:cave_air','minecraft:void_air'].includes(anchor.state?.split('[')[0]))throw new Error('选取的坐标与当前3D快照不符，请重新选点')}
           }
-          json(res,await feedback.add(binding,input.text,input.point ?? null,await effects.references(input.references ?? []),input.anchors ?? null))
+          const references=await effects.references(input.references ?? [])
+          json(res,operation==='upsert'?await feedback.upsert(binding,{...input,references}):await feedback.add(binding,input.text,input.point ?? null,references,input.anchors ?? null))
         }
         else if(operation==='status')json(res,await feedback.update(binding,input.note_id,input.status))
         else if(operation==='export'){
@@ -518,7 +523,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         res.setHeader('Cache-Control', file.endsWith('.jpg') ? 'private, max-age=3600, immutable' : 'no-store')
         createReadStream(file).on('error', () => { res.statusCode = 404; res.end() }).pipe(res)
       } else { json(res, { error: 'Unknown endpoint' }, 404) }
-    } catch (error) { json(res, { error: error.message }, 400) }
+    } catch (error) { json(res, { error: error.message,...(error.code==='feedback_conflict'?{code:error.code}:{}) },error.code==='feedback_conflict'?409:400) }
     return true
   } })
   return { url: viewer.url+'control.html', frontend:viewer.frontend, output: outputRoot, close: () => {

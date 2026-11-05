@@ -12,6 +12,7 @@ import {protectionOverlay} from './protection-overlay.js'
 import {walkOverlay} from './walk-overlay.js'
 import {createComponentGizmo} from './component-gizmo.js'
 import { cameraView, normalizeView, includesBlock } from './view-contract.mjs'
+import {createAxisNavigation,axisCamera} from './axis-navigation.js'
 
 installMeshScheduling(ThreeStructureRenderer,ChunkBuilder)
 
@@ -234,6 +235,7 @@ async function main() {
     canvas.dataset.frameSerial = String(renderedFrames)
     canvas.dataset.meshBuilds = String(meshBuilds)
     canvas.dataset.camera = JSON.stringify(currentCamera())
+    axisNavigation.update(currentCamera())
   }
   function requestRender() {
     if (frameRequest || renderTimer) return
@@ -250,6 +252,7 @@ async function main() {
     camera.fixed = { position: state.eye, target: state.target, up: state.up }
     fov = state.fov;camera.fov=fov
   }
+  const axisNavigation=createAxisNavigation({select:(axis,sign)=>enqueue(()=>{setCamera(axisCamera(currentCamera(),axis,sign));draw();if(window.parent!==window)window.parent.postMessage({type:'nbt-view-changed'},location.origin)}).catch(reportError)})
   function setLighting(mode) {
     if (mode !== lightingMode) {
       lightingMode = mode

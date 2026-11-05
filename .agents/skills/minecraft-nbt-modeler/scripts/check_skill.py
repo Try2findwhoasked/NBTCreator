@@ -27,6 +27,11 @@ def main():
     if len(data['blocks']) != data['block_count']:
         errors.append('Registry count mismatch')
     viewer = root / 'assets/viewer'
+    import hashlib
+    wheel=root/'assets/python/nbtlib-2.0.4-py3-none-any.whl'
+    if not wheel.is_file() or hashlib.sha256(wheel.read_bytes()).hexdigest()!='38d571fbf2f7ebd640639461b47fc79919a8ea8e74633ffcc8aa6b2acfc9c889':errors.append('Pinned SNBT parser wheel is missing or changed')
+    git_pin=root/'assets/git-runtime.json'
+    if not git_pin.is_file() or len(json.loads(git_pin.read_text(encoding='utf8')).get('executable_sha256',''))!=64:errors.append('Pinned Git runtime metadata is invalid')
     package = json.loads((viewer / 'package.json').read_text())
     lock = json.loads((viewer / 'package-lock.json').read_text())
     for name, version in package['dependencies'].items():

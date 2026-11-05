@@ -30,10 +30,11 @@ else{
 }
 const exe=path.join(unpacked,'NBTCreator-win32-x64/NBTCreator.exe'),app=path.join(path.dirname(exe),'resources/app')
 const env={...process.env,PATH:path.join(process.env.WINDIR||'C:/Windows','System32'),ELECTRON_RUN_AS_NODE:'1',PYTHONNOUSERSITE:'1'}
-delete env.NBTCREATOR_PYTHON;delete env.PYTHONPATH;delete env.PYTHONHOME
+delete env.NBTCREATOR_PYTHON;delete env.NBTCREATOR_GIT;delete env.PYTHONPATH;delete env.PYTHONHOME
 function run(args){return execFileSync(exe,args,{env,encoding:'utf8',windowsHide:true,timeout:180000,maxBuffer:4*1024*1024})}
 const probe=run(['-e',`const {resolvePython,configureRenderRuntime}=require(${JSON.stringify(path.join(app,'desktop/python-runtime.cjs'))});configureRenderRuntime(${JSON.stringify(app)},process.execPath);const {execFileSync}=require('node:child_process');const p=resolvePython(${JSON.stringify(app)});console.log(execFileSync(p,['-c','import numpy,PIL;print(numpy.__version__,PIL.__version__)'],{encoding:'utf8'}));`])
 assert.ok(probe.includes('2.4.2 12.1.0'))
+const gitProbe=run(['-e',`const runtime=require(${JSON.stringify(path.join(app,'desktop/python-runtime.cjs'))});runtime.configureRenderRuntime(${JSON.stringify(app)},process.execPath);console.log(require('node:child_process').execFileSync(process.env.NBTCREATOR_GIT,['--version'],{encoding:'utf8'}));`]);assert.ok(gitProbe.includes('2.56.0.windows.4'))
 const caps=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'capabilities']));assert.equal(Object.keys(caps.tools).length,Object.keys(JSON.parse(await fs.readFile(path.join(app,'.agents/skills/minecraft-nbt-modeler/tool-catalog.json'),'utf8')).tools).length)
 const workspace=path.join(output,'workspace');await fs.mkdir(workspace)
 run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'exposure','apply'])
@@ -85,5 +86,10 @@ execFileSync(path.join(app,'runtime/python/python.exe'),['-B','-c',code],{env,wi
 execFileSync(path.join(app,'runtime/python/python.exe'),[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'validate','--request',path.join(candidate,'request.json'),'--snapshot',path.join(candidate,'preview/after.json'),'--output',path.join(candidate,'checked')],{env,cwd:workspace,windowsHide:true,timeout:180000})
 const verified=JSON.parse(await fs.readFile(path.join(candidate,'checked/validation.json'),'utf8'))
 assert.equal(verified.passed,true);assert.equal(verified.asset_written,false)
-await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks:{package_integrity_and_hidden_skill:true,private_python_dependencies:true,electron_node_cli:true,workspace_skill_generation:true,shared_regional_ai_preferences:true,component_library_cli:true,starter_effects_and_cached_previews_available_to_exported_skill:true,bundled_chromium:true,python_node_batch_render:true,workspace_facade_private_render_runtime:true,standalone_candidate_checked_in_private_runtime:true}},null,2))
-console.log(JSON.stringify({passed:true,checks:11,output}))
+const snbt=path.join(output,'portable-source.snbt')
+const converted=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'snbt','--source',path.join(candidate,'source.master.json.gz'),'--output',snbt]));assert.equal(converted.format,'snbt')
+const historySource=path.join(workspace,'nbt_models/standalone/便携历史/v01/master/source.master.json.gz');await fs.mkdir(path.dirname(historySource),{recursive:true});await fs.copyFile(path.join(candidate,'source.master.json.gz'),historySource)
+const history=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'history','record','--source',historySource,'--message','便携版 Git 验证']));assert.ok(history.commit)
+const privateHistory=JSON.parse(execFileSync(path.join(app,'runtime/python/python.exe'),[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'history','--workspace',workspace,'list'],{env,cwd:workspace,encoding:'utf8',windowsHide:true}));assert.ok(privateHistory.versions.length>0)
+await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks:{package_integrity_and_hidden_skill:true,private_python_dependencies:true,electron_node_cli:true,workspace_skill_generation:true,shared_regional_ai_preferences:true,component_library_cli:true,starter_effects_and_cached_previews_available_to_exported_skill:true,bundled_chromium:true,python_node_batch_render:true,workspace_facade_private_render_runtime:true,standalone_candidate_checked_in_private_runtime:true,bundled_git_and_private_history:true,pinned_snbt_roundtrip:true}},null,2))
+console.log(JSON.stringify({passed:true,checks:13,git_bundled:true,snbt_available:true,output}))

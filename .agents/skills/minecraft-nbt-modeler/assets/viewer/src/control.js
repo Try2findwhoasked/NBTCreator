@@ -27,7 +27,6 @@ import {aiBounds,aiGroupMatches,moveAIGroup,aiSurfaceOffset,aiComponentCamera} f
 import {requestAI,cancelAI} from './ai-request.js'
 import {initReferencePicker} from './reference-picker.js'
 import '../../../prompt-console/catalog.js'
-import './control.css'
 import './prompt-panel.css'
 import {initDesktop} from './desktop-adapter.js'
 import {initApiAssistant} from './api-assistant.js'
@@ -36,8 +35,8 @@ import {initProjectManager} from './project-manager.js'
 import {filterProjects} from './project-catalog.js'
 import {initTaskRecords} from './task-records.js'
 import {initHelpDialogs} from './help-dialogs.js'
-import './modern.css'
-import './usability.css'
+import {initStudioWorkspace} from './studio-workspace.js'
+import {createFeedbackAutosave} from './feedback-autosave.js'
 import { createOrthographic } from './orthographic.js'
 import { complete } from './completion.js'
 import blockNames from './block-names.json'
@@ -82,13 +81,13 @@ for(const id of ['pattern-from','weather-from','moss-state','crack-state','repla
 
 const $ = id => document.getElementById(id)
 const state = { models: [], settings: null, info: null, bundle: '', busy: false, currentViews: [], images: [], selectedImage: null, notes: [], noteDrafts: new Map(), draftPoint: null, imageGeneration: 0, viewerGeneration: 0, mode: 'images', savingNote: false, imageLimit: 8, effectFiles: [], output: '', references: [], workspace: '', configChanged: false, previewRevision: 0, previewBusy: false, preview: null }
-let operationEditor,previewToolbar,editSession,lastValidSessionSettings,versionComparison,componentEditor,apiAssistant,protectionView,walkView
+let operationEditor,previewToolbar,editSession,lastValidSessionSettings,versionComparison,componentEditor,apiAssistant,protectionView,walkView,feedbackAutosave
 async function api(route, data) {
   const response = await fetch('/__detail__/'+route, data === undefined ? {} : {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
   })
   const result = await response.json()
-  if (!response.ok) throw new Error(result.error ?? response.statusText)
+  if (!response.ok) throw Object.assign(new Error(result.error ?? response.statusText),{code:result.code})
   return result
 }
 function status(message, kind = '') {
@@ -96,6 +95,7 @@ function status(message, kind = '') {
   $('status').textContent = message.length > 550 ? message.slice(0,550)+'…（完整信息见下方记录）' : message
   $('status-badge').className = 'badge '+kind
   $('status-badge').textContent = kind === 'error' ? '需处理' : kind === 'warn' ? '待复核' : kind==='cancelled'?'已取消':state.busy ? '进行中' : '就绪'
+  window.dispatchEvent(new CustomEvent('creator-status',{detail:{message,kind}}))
 }
 function number(id) {
   const value = Number($(id).value)
@@ -128,6 +128,7 @@ const toolOrder=commandPanels.map(([,index])=>index)
 function selectTool(index){
   toolPanels.forEach((panel,i)=>{panel.hidden=i!==index;if(i===index&&panel.tagName==='DETAILS')panel.open=true})
   ;[...$('tool-tabs').children].forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.toolIndex)===index)))
+  window.dispatchEvent(new CustomEvent('creator-tool-select',{detail:index}))
 }
 toolOrder.forEach(index=>{
   const button=document.createElement('button');button.type='button';button.textContent=toolLabels[index];button.dataset.toolIndex=index
@@ -190,7 +191,7 @@ async function captureViewport(isCancelled=()=>false){
 }
 let promptLoaded=false
 initReferencePicker({api})
-window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload),publish:payload=>api('prompt-publish',payload)})
+window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload),publish:payload=>api('prompt-publish',payload),library:payload=>api('prompt-library',payload)})
 // The iframe gets only prompt generation, never the native API/key management bridge.
 window.nbtPromptAI=Object.freeze({
  config:()=>window.nbtDesktop?.apiConfig?.()??Promise.resolve({enabled:false,available:false}),
@@ -202,11 +203,11 @@ window.nbtPromptAI=Object.freeze({
 async function syncPrompt(){
   const label=$('prompt-sync-status');$('sync-prompt').disabled=true
   try{
-    if(!state.info)throw new Error('请先在细节控制台打开建筑；新建任务可直接编辑提示词')
+    if(!state.info)throw new Error('请先在建筑库打开建筑；新建任务可直接编辑提示词')
     label.textContent='正在读取当前建筑、参数和保护配置…'
     const req=request(),result=await api('prompt-export',req)
     const selected=state.models.find(m=>m.source===result.source)
-    $('prompt-frame').contentWindow.NbtPromptUI.receive({...result,name:selected?.name,buildingShape:selected?.shape,
+    await $('prompt-frame').contentWindow.NbtPromptUI.receive({...result,name:selected?.name,buildingShape:selected?.shape,
       contextPath:req.context,reviewPath:req.review,output:state.info?.workdir??state.output,budget:req.settings.max_changed_blocks})
     label.textContent='已载入当前建筑与参数；面板修改只用于生成提示词'
   }catch(error){label.textContent=error.message}
@@ -216,12 +217,12 @@ $('open-prompt').addEventListener('click',()=>{
   if(!$('prompt-dialog').open)$('prompt-dialog').show()
   window.creatorWorkspace?.opened('prompt')
   if(!promptLoaded){
-    const frame=$('prompt-frame');frame.addEventListener('load',()=>{promptLoaded=true;$('prompt-sync-status').textContent='新建初稿方案；修改已有作品时请主动载入当前建筑'},{once:true})
+    const frame=$('prompt-frame');frame.addEventListener('load',()=>{promptLoaded=true;$('prompt-sync-status').textContent='新建筑可直接编写；修改现有建筑时，先引用当前建筑'},{once:true})
     frame.src='/__detail__/prompt/index.html'
-  }else $('prompt-sync-status').textContent='保留上次编辑。需要更新时点击“载入当前建筑与参数”（替换工具序列）'
+  }else $('prompt-sync-status').textContent='已保留上次编辑的提示词'
 })
 $('sync-prompt').addEventListener('click',syncPrompt)
-$('prompt-new').addEventListener('click',()=>{if(!promptLoaded)return;$('prompt-frame').contentWindow.NbtPromptUI.newDraft();$('prompt-sync-status').textContent='新建初稿方案：形状、尺寸与保存位置按 skill 规范自动填写'})
+$('prompt-new').addEventListener('click',()=>{if(!promptLoaded)return;$('prompt-frame').contentWindow.NbtPromptUI.newDraft();$('prompt-sync-status').textContent='已新增一条提示词，之前的内容已自动保存'})
 $('close-prompt').addEventListener('click',()=>$('prompt-dialog').close())
 for(const [button,target]of [['prompt-import','import'],['prompt-save','save'],['prompt-reset','reset']])$(button).addEventListener('click',()=>$('prompt-frame').contentDocument?.getElementById(target)?.click())
 function setValue(id, value) {
@@ -258,6 +259,7 @@ function updateCount() {
   $('apply').disabled = state.busy || !state.bundle || !$('review').value.trim()
   let currentPreview=false;try{currentPreview=!!state.preview&&state.previewSettings===JSON.stringify(gather())}catch{}
   $('validate-preview').disabled=state.busy||state.previewBusy||!currentPreview
+  if($('save-authoring-version'))$('save-authoring-version').disabled=state.busy||state.previewBusy||state.versionComparing||state.transforming||!currentPreview
   syncVersionReadonly()
   versionComparison?.sync()
   componentEditor?.sync()
@@ -287,7 +289,7 @@ function busy(value) {
   state.busy = value
   // A task temporarily locks controls; it does not grant unavailable actions.
   if(value){
-   const controls=[...document.querySelectorAll('button')].filter(button=>button.id!=='cancel'&&button.id!=='open-command-center'&&!button.closest('#command-dialog,#project-batch-dialog,#component-author'))
+   const controls=[...document.querySelectorAll('button')].filter(button=>button.id!=='cancel'&&button.id!=='open-command-center'&&!button.matches('[data-studio-panel],#studio-inspector-toggle,#studio-show-status')&&!button.closest('#command-dialog,#project-batch-dialog,#component-author'))
    controls.push(...document.querySelectorAll('.sidebar input, .sidebar select, .sidebar textarea'))
    for(const control of controls){if(!taskControlStates.has(control))taskControlStates.set(control,control.disabled);control.disabled=true}
   }else{for(const [control,disabled]of taskControlStates)if(control.isConnected)control.disabled=disabled;taskControlStates.clear()}
@@ -304,10 +306,11 @@ function busy(value) {
   if (!$('status-badge').classList.contains('warn') && !$('status-badge').classList.contains('error')) $('status-badge').textContent=value?'进行中':'就绪'
 }
 function stashDraft() {
-  if (state.noteKey) state.noteDrafts.set(state.noteKey,{text:$('feedback-text').value,points:structuredClone(state.draftPoints ?? []),references:referencedFiles().map(file=>file.id)})
+  if(state.restoringFeedbackDrafts)return
+  if (state.noteKey) state.noteDrafts.set(state.noteKey,{text:$('feedback-text').value,points:structuredClone(state.draftPoints ?? []),references:referencedFiles().map(file=>file.id),note_id:state.feedbackNoteId??null,note_revision:state.feedbackNoteRevision??0})
 }
 const anchorsOf=note=>note.anchors ?? (note.point?[{kind:'image',number:note.number,...note.point}]:[])
-function allMarkers(){return [...state.notes.flatMap(note=>anchorsOf(note).map(p=>({...p,status:note.status,text:note.text,noteNumber:note.number}))),...(state.draftPoints ?? []).map(p=>({...p,status:'draft'}))]}
+function allMarkers(){return [...state.notes.filter(note=>note.id!==state.feedbackNoteId).flatMap(note=>anchorsOf(note).map(p=>({...p,status:note.status,text:note.text,noteNumber:note.number}))),...(state.draftPoints ?? []).map(p=>({...p,status:'draft'}))]}
 function nextMarkerNumber(){return Math.max(0,...state.notes.map(n=>n.number),...allMarkers().map(p=>p.number))+1}
 function syncMarkers(){renderPins();const viewer=$('viewer').contentWindow?.nbtModeler;if(viewer?.status==='ready')viewer.setCommentMarkers(allMarkers().filter(p=>p.kind==='voxel'))}
 function focusMarker(number){
@@ -320,7 +323,7 @@ function focusMarker(number){
 function removeDraftMarker(number){
   state.draftPoints=(state.draftPoints ?? []).filter(p=>p.number!==number)
   $('feedback-text').value=$('feedback-text').value.replace(new RegExp('(^|\\n)#'+number+'(?=\\s|$)[ \\t]*','g'),'$1')
-  state.draftPoint=state.draftPoints.find(p=>p.kind==='image') ?? null;syncMessageContext();stashDraft();syncMarkers()
+  state.draftPoint=state.draftPoints.find(p=>p.kind==='image') ?? null;syncMessageContext();stashDraft();syncMarkers();feedbackAutosave?.schedule()
 }
 function addDraftMarker(point){
   if(state.feedbackLoading||!state.feedbackTarget)return
@@ -328,20 +331,21 @@ function addDraftMarker(point){
   if((state.draftPoints ?? []).some(p=>point.kind==='voxel'?p.position?.join(',')===point.position.join(','):p.kind==='image'&&Math.hypot(p.x-point.x,p.y-point.y)<.005))return
   const number=nextMarkerNumber();state.draftPoints ??=[];state.draftPoints.push({...point,number})
   const input=$('feedback-text');input.value+=(input.value&&!input.value.endsWith('\n')?'\n':'')+'#'+number+' '
-  state.draftPoint=state.draftPoints.find(p=>p.kind==='image') ?? null;state.activeNote=null;syncMessageContext();stashDraft();syncMarkers()
+  state.draftPoint=state.draftPoints.find(p=>p.kind==='image') ?? null;state.activeNote=null;syncMessageContext();stashDraft();syncMarkers();feedbackAutosave?.schedule()
   // Keep focus in the preview for consecutive selections; the comment field stays editable below.
 }
 async function activateFeedback(target){
+  await feedbackAutosave?.flush()
   state.noteRecord=null
   stashDraft();const generation=state.feedbackGeneration=(state.feedbackGeneration ?? 0)+1
-  state.feedbackTarget=target;state.notes=[];state.noteKey=target?.key ?? null;state.draftPoints=[];state.draftPoint=null
+  state.feedbackTarget=target;state.notes=[];state.noteKey=target?.key ?? null;state.draftPoints=[];state.draftPoint=null;state.feedbackNoteId=null;state.feedbackNoteRevision=0
   $('feedback-notes').replaceChildren();$('feedback-links').replaceChildren();$('feedback-text').value='';$('feedback-file').textContent=''
   $('feedback-card').hidden=!target
   if(!target){state.feedbackLoading=false;syncMessageContext();syncMarkers();return}
-  const draft=state.noteDrafts.get(target.key);state.draftPoints=structuredClone(draft?.points ?? []);state.draftPoint=state.draftPoints.find(p=>p.kind==='image') ?? null;$('feedback-text').value=draft?.text ?? ''
+  const draft=state.noteDrafts.get(target.key);state.draftPoints=structuredClone(draft?.points ?? []);state.draftPoint=state.draftPoints.find(p=>p.kind==='image') ?? null;$('feedback-text').value=draft?.text ?? '';state.feedbackNoteId=draft?.note_id??null;state.feedbackNoteRevision=draft?.note_revision??0
   state.feedbackLoading=true;$('save-feedback').disabled=true;syncMessageContext();syncMarkers()
   try{const record=await api('feedback/list',{target_id:target.id});if(generation===state.feedbackGeneration)renderNotes(record)}
-  finally{if(generation===state.feedbackGeneration){state.feedbackLoading=false;$('save-feedback').disabled=state.busy||state.savingNote}}
+  finally{if(generation===state.feedbackGeneration){state.feedbackLoading=false;$('save-feedback').disabled=state.busy||state.savingNote;feedbackAutosave?.schedule()}}
 }
 function activateImageFeedback(){const image=state.selectedImage;return activateFeedback(image?{kind:'image',id:image.id,key:(image.source_sha256 ?? state.info.source_sha256)+':'+image.image_sha256,name:image.name,source:image.source}:null)}
 function activateViewerFeedback(id){const meta=$('viewer').contentWindow.nbtModeler.metadata();return activateFeedback({kind:'3d',id,key:meta.source_sha256+':3d:'+meta.geometry_sha256,name:'3D 方块坐标 · '+(state.comparisonSide==='after'?'调整效果':'当前建筑'),source:state.viewerSource,geometry:meta.geometry_sha256})}
@@ -374,13 +378,14 @@ function renderPins() {
   }
 }
 function renderNotes(record) {
+  const scroll=$('feedback-notes').scrollTop
   state.noteRecord=record
   state.notes=record.notes;$('feedback-file').textContent='意见文件：'+record.file
   $('feedback-notes').replaceChildren()
   const query=$('comment-search').value.toLowerCase(),filter=$('comment-filter').value
   const shown=record.notes.filter(note=>(filter==='all'||note.status===filter)&&(!query||JSON.stringify([note.text,note.number,anchorsOf(note)]).toLowerCase().includes(query)))
   $('comment-count').textContent=`${record.notes.filter(n=>n.status==='open').length} 待修改 / ${record.notes.length} 条`
-  if(!shown.length){const empty=document.createElement('p');empty.className='comment-empty';empty.textContent=record.notes.length?'没有匹配的意见':'暂无已保存意见。点击画面添加位置，写下修改内容。';$('feedback-notes').append(empty)}
+  if(!shown.length){const empty=document.createElement('p');empty.className='comment-empty';empty.textContent=record.notes.length?'没有匹配的意见':'还没有标注。可以在建筑上标记位置，写下需要修改的内容。';$('feedback-notes').append(empty)}
   for(const note of shown){
     const row=document.createElement('div');row.id='note-'+note.number;row.className='feedback-note '+note.status
     const content=document.createElement('div'),title=document.createElement('strong'),text=document.createElement('p')
@@ -390,15 +395,30 @@ function renderNotes(record) {
     text.textContent=note.text;content.append(title,text)
     const positions=document.createElement('div');positions.className='comment-anchor-links';for(const anchor of anchors){const b=document.createElement('button');b.type='button';b.textContent='#'+anchor.number+(anchor.kind==='voxel'?' · '+anchor.position.join(', '):' · 图片位置');b.onclick=()=>focusMarker(anchor.number);positions.append(b)}content.append(positions)
     for(const ref of note.references ?? []){const file=document.createElement('small');file.textContent='引用效果：'+ref.name;file.title=ref.path+' · SHA256 '+ref.sha256;content.append(file)}
+    const edit=document.createElement('button');edit.type='button';edit.textContent='编辑';edit.setAttribute('aria-label','编辑标注 '+note.number)
+    edit.addEventListener('click',handle(async()=>{
+      const target=state.feedbackTarget,generation=state.feedbackEditGeneration=(state.feedbackEditGeneration??0)+1
+      $('feedback-text').disabled=true
+      try{
+        if(feedbackAutosave.error){if(!confirm('本地标注尚未保存。重新读取会替换输入框中的改动，是否继续？'))return;feedbackAutosave.discard(state.feedbackNoteId)}else await feedbackAutosave.flush()
+        if(state.feedbackTarget!==target||generation!==state.feedbackEditGeneration)return
+        const current=(await api('feedback/list',{target_id:target.id})).notes.find(n=>n.id===note.id)
+        if(state.feedbackTarget!==target||generation!==state.feedbackEditGeneration)return
+        if(!current)throw Error('这条标注已不存在，请重新读取')
+        state.feedbackNoteId=current.id;state.feedbackNoteRevision=current.revision??0;state.draftPoints=structuredClone(anchorsOf(current));state.draftPoint=state.draftPoints.find(p=>p.kind==='image')??null;$('feedback-text').value=current.text;syncMessageContext();stashDraft();syncMarkers()
+      }finally{if(generation===state.feedbackEditGeneration){$('feedback-text').disabled=false;$('feedback-text').focus()}}
+    }))
     const toggle=document.createElement('button');toggle.textContent=note.status==='open'?'标为已解决':'重新打开'
     toggle.addEventListener('click',handle(async()=>{
-      const target=state.feedbackTarget,updated=await api('feedback/status',{target_id:target.id,note_id:note.id,status:note.status==='open'?'resolved':'open'})
+      await feedbackAutosave.flush();const target=state.feedbackTarget,updated=await api('feedback/status',{target_id:target.id,note_id:note.id,status:note.status==='open'?'resolved':'open'})
+      if(state.feedbackNoteId===note.id)state.feedbackNoteRevision=updated.notes.find(n=>n.id===note.id)?.revision??0
       if(state.feedbackTarget?.id===target.id)renderNotes(updated)
-    }));row.append(content,toggle);$('feedback-notes').append(row)
+    }));const controls=document.createElement('div');controls.className='feedback-note-actions';controls.append(edit,toggle);row.append(content,controls);$('feedback-notes').append(row)
   }
-  syncMessageContext();syncMarkers()
+  $('feedback-notes').scrollTop=scroll;syncMessageContext();syncMarkers()
 }
 async function selectImage(index) {
+  await feedbackAutosave?.flush()
   stashDraft();const image=state.images[index];state.selectedImage=image ?? null
   const generation=++state.imageGeneration
   $('feedback-links').replaceChildren();$('feedback-notes').replaceChildren();state.notes=[]
@@ -437,7 +457,7 @@ async function runJob(kind, overrides = {}) {
   const payload = { kind, request: request(), bundle: state.bundle, review: $('review').value.trim() }
   Object.assign(payload.request, overrides)
   if(kind==='validate')payload.snapshot_key=state.preview?.model_key
-  busy(true); status('正在执行：'+({plan:'生成计划',snapshot:'载入三维模型',prepare:'准备建筑审阅图',render:'批量保存源视图',apply:'应用已批准计划',revision:'导出建筑下一版',validate:'检查当前候选效果'}[kind] ?? kind))
+  busy(true); status('正在执行：'+(kind==='revision'?(overrides.draft_only?'保存 SNBT 制作版':'定稿并导出 NBT'):({plan:'生成计划',snapshot:'载入三维模型',prepare:'准备建筑审阅图',render:'批量保存源视图',apply:'应用已批准计划',validate:'检查当前修改预览效果'}[kind] ?? kind)))
   try {
     while(state.previewBusy)await new Promise(resolve=>setTimeout(resolve,100))
     if(cancelEpoch!==(state.cancelEpoch??0))throw new DOMException('任务已取消','AbortError')
@@ -452,13 +472,14 @@ async function runJob(kind, overrides = {}) {
     if(kind==='plan')state.configChanged=false
     await refreshEffects()
     $('result-log').textContent = kind==='validate'
-      ? Object.entries(result.checks).map(([key,value])=>`${value.passed?'通过':'未通过'} · ${key}${value.error?'：'+value.error:''}`).join('\n')+'\n只检查当前候选，未写出正式建筑。'
+      ? Object.entries(result.checks).map(([key,value])=>`${value.passed?'通过':'未通过'} · ${key}${value.error?'：'+value.error:''}`).join('\n')+'\n只检查当前修改预览，未写出正式建筑。'
       : kind === 'snapshot'
       ? `已载入 ${result.size.join(' × ')} 建筑，共 ${result.cameras.length} 个观察角度。\n`+(result.read_only_view?(result.context_warning||'当前仅作几何查看，尚无完整坐标/保护配置；没有执行通路或导出验收。'):'当前显示为所选模型；调整左侧设置不会直接改动建筑。')
       : kind === 'plan' ? `${result.operations} 项操作已编译。\n`+(result.estimates ?? []).map(e=>`${e.kind}：${e.writes} 个候选写入`).join('\n')+(result.warning?'\n估算未完成，完整原因见高级记录。':'\n这些是候选统计，不是已执行结果。')
       : result.changed_blocks !== undefined ? `新版本修改了 ${result.changed_blocks} 个方块${result.wall_membership_changes?'，另有 '+result.wall_membership_changes+' 个墙层归属变化':''}，原建筑保留。` : '结果已保存至本次独立任务目录。'
     $('advanced-log').textContent=JSON.stringify(result,null,2)
     $('result-links').replaceChildren()
+    if(result.master_download){const link=document.createElement('a');link.href=result.master_download;link.download='model.snbt';link.textContent='下载 SNBT 制作源';$('result-links').append(link)}
     if(result.validation_download){const link=document.createElement('a');link.href=result.validation_download;link.download='validation.json';link.textContent='下载候选检查报告';$('result-links').append(link)}
     if(result.runtime_files){const label=document.createElement('span');label.textContent='已保存下一版：'+result.output;$('result-links').append(label);for(const file of result.nbt_downloads ?? []){const link=document.createElement('a');link.href=file.url;link.download=file.name;link.textContent=file.name;$('result-links').append(link)}}
     if (result.plan_download) {
@@ -476,13 +497,14 @@ async function runJob(kind, overrides = {}) {
     if(kind==='validate'){
       let host=document.querySelector('#candidate-diagnostics');if(!host){host=document.createElement('section');host.id='candidate-diagnostics';host.className='diagnostic-guidance';$('candidate-check-state').closest('.preview-controls').after(host)}renderDiagnostics(host,result.diagnostics,{isCurrent:()=>state.candidateValidation===result&&state.previewSettings===JSON.stringify(gather()),status:(text,error)=>status(text,error?'error':'')})
       state.candidateValidation=result
-      $('candidate-check-state').textContent=result.passed?'当前候选检查通过 · 仍需看图确认':'候选检查未通过 · 查看下方报告'
-      status(result.passed?'当前候选的参数绑定、保护和整体检查通过；未生成正式建筑，仍需看图。':'候选检查未通过，请查看检查报告并调整。',result.passed?'':'error')
-    }else status(result.warning ? '方案已保存，建筑检查未通过：'+result.warning : ({plan:`Agent 交接方案已生成：${result.operations} 项操作。点击“复制给 Agent”继续，原建筑未改变。`,prepare:'建筑审阅图已保存到本建筑的 Agent交接 文件夹，目录已自动关联。请看图后，在 Agent 对话中明确是否同意继续精修。',render:'原建筑的多角度预览图已保存。',apply:'新建筑已另存，原建筑保留。',revision:'下一版建筑已保存到原工作文件夹；包含主模型、NBT切片和分层交付。',snapshot:state.mode==='3d'?'三维已按需载入；可关闭 3D 返回看图模式。':'已返回看图模式。'}[kind] ?? '完成'), result.warning ? 'warn' : '')
+      $('candidate-check-state').textContent=result.passed?'检查通过；请查看预览后另存新版本。':'发现需要处理的问题，见下方报告。'
+      status(result.passed?'检查通过。预览尚未保存为建筑，请看图确认后另存新版本。':'检查未通过，请根据报告调整参数。原稿保持不变。',result.passed?'':'error')
+    }else status(result.warning ? '方案已保存，建筑检查未通过：'+result.warning : ({plan:`Agent 交接方案已生成：${result.operations} 项操作。点击“复制给 Agent”继续，原建筑未改变。`,prepare:'建筑审阅图已保存到本建筑的 Agent交接 文件夹，目录已自动关联。请看图后，在 Agent 对话中明确是否同意继续精修。',render:'原建筑的多角度预览图已保存。',apply:'新建筑已另存，原建筑保留。',revision:result.draft_only?'SNBT 制作版已保存；原稿与原标注保留。':'下一版建筑已保存，定稿 NBT 位于 _exports 的镜像目录。原稿已保留。',snapshot:state.mode==='3d'?'3D 预览已打开。':'已切换到图片预览。'}[kind] ?? '完成'), result.warning ? 'warn' : '')
     return result
   } catch(error) { if(error.name!=='AbortError'&&['prepare','apply'].includes(kind))$('advanced-review').open=true;throw error } finally { busy(false) }
 }
 async function loadViewer(result, isNewVersion = false) {
+  await feedbackAutosave?.flush()
   state.viewerModelKey=result.model_key
   result={...result,cameras:(result.cameras??[]).map(camera=>({...camera,cuts:(camera.cuts??[]).map(c=>Array.isArray(c)?{axis:c[0],position:c[1],removed_side:c[2]}:c)}))}
   stashDraft()
@@ -490,7 +512,7 @@ async function loadViewer(result, isNewVersion = false) {
   const generation=++state.viewerGeneration
   state.mode='3d';state.viewerSource=result.source ?? state.info?.source;syncWorkspace();$('image-toolbar').hidden=false;$('three-toolbar').hidden=false;$('review-canvas').hidden=true;$('feedback-card').hidden=!state.selectedImage;$('pause-3d').disabled=false
   previewToolbar?.sync(state.mode,state.busy,!!state.info)
-  $('view-hint').textContent=$('three-quality').value==='fast'?'颜色用于区分朝向；看实际方块请切换材质 3D 或看图片':'材质 3D（看方块） · 左键原地转向，中键平移，滚轮前进／后退'
+  $('view-hint').textContent=$('three-quality').value==='fast'?'简易预览：颜色区分朝向；实际材质请在“显示”中切换':'左键拖动转向 · 中键平移 · 滚轮前后移动'
   state.currentViews = result.cameras
   $('view-select').replaceChildren()
   result.cameras.forEach((view, i) => { const option=document.createElement('option');option.value=i;option.textContent=({whole:'整体',entry:'入口'})[view.role ?? view.id] ?? view.role ?? view.id;$('view-select').append(option) })
@@ -508,6 +530,7 @@ async function loadViewer(result, isNewVersion = false) {
   syncVersionReadonly()
 }
 async function loadModel(preserve=false){
+  await feedbackAutosave?.flush()
   await componentEditor?.cancel()
   await versionComparison?.close()
   const previous=state.info?.source_sha256
@@ -664,7 +687,7 @@ async function updatePreview(required=false){
     if(required===true&&(state.previewSettings!==JSON.stringify(gather())||$('viewer').contentWindow?.nbtModeler?.metadata().geometry_sha256!==job.result.geometry_sha256))throw Error('当前3D画面未与本次参数一致，请重新更新预览')
     $('compare-before').disabled=false;$('compare-after').disabled=false
     $('preview-state').textContent=`调整效果 · ${job.result.changed_blocks} 个方块变化${job.result.wall_membership_changes?' · '+job.result.wall_membership_changes+' 个墙层归属变化':''} · 仅预览，未生成正式建筑`
-    status('参数效果预览已更新。用“看原建筑 / 看调整效果”在同一视角对比；保存调整设置可留存当前配方。')
+    status('预览已更新。切换“原始建筑 / 本次修改”进行对比；确认效果后可另存新版本。')
   }finally{state.previewBusy=false;$('update-preview').disabled=false;$('cancel').disabled=!state.busy;updateCount();window.dispatchEvent(new Event('creator-editor-state'))}
 }
 async function showComparison(side){
@@ -708,8 +731,8 @@ function syncMessageContext(){
   const target=state.feedbackTarget,points=state.draftPoints ?? []
   $('feedback-context').textContent=target?`${modelName(target.source)} · ${target.name}`:'请先打开图片或3D'
   $('feedback-context').title=[target?.source,target?.name,target?.geometry].filter(Boolean).join('\n')
-  $('draft-point').textContent=points.length?`${points.length} 个点 · 未保存`:`${target?.kind==='3d'?'整座建筑':'整图'} · 未保存`
-  $('feedback-text').placeholder=`${target?.kind==='3d'?'点“3D选点评论”，连续点击建筑表面。':'连续点击大图选择多个位置。'}每个点自动插入 #1、#2…，在编号后写对应意见；点击未保存的编号可移除该点。输入 @ 引用效果文件；Tab 补全。点“保存这条意见”才会保存文字和全部位置。`
+  $('draft-point').textContent=points.length?`${points.length} 个标记`:`${target?.kind==='3d'?'整座建筑':'整图'}`
+  $('feedback-text').placeholder='例如：1 号位置的梁缺少支撑，请补一根石柱并保留旁边通道。文字和标记会自动保存。'
   $('export-feedback').textContent=target?.kind==='3d'?'下载3D修改意见':'下载这张图的修改意见'
   $('draft-markers').replaceChildren()
   for(const point of points){const chip=document.createElement('button');chip.type='button';chip.textContent='#'+point.number+(point.kind==='voxel'?' ('+point.position.join(', ')+')':'')+' ×';chip.title='移除此标记';chip.addEventListener('click',()=>removeDraftMarker(point.number));$('draft-markers').append(chip)}
@@ -822,7 +845,7 @@ function syncPicking(){
 window.addEventListener('keydown',event=>{if(event.key==='Escape'&&state.selectionEditPicking){state.selectionEditPicking=null;syncPicking();$('view-hint').textContent='已取消编辑选区选择。'}})
 $('pick-coordinate').addEventListener('click',()=>{
   state.walkPicking=false;state.assetPicking=null;state.aiPlacing=null;state.coordinatePicking=!state.coordinatePicking;state.picking=false;syncPicking()
-  $('view-hint').textContent=state.coordinatePicking?'连续点击表面添加 #编号，下面按编号写意见；中键平移，滚轮前进／后退。':'左键原地转向，中键平移，滚轮前进／后退'
+  $('view-hint').textContent=state.coordinatePicking?'点击建筑表面添加位置编号，然后在标注面板填写修改要求。':'左键原地转向，中键平移，滚轮前进／后退'
 })
 $('pick-material').addEventListener('click',()=>{
   state.walkPicking=false;state.assetPicking=null;state.aiPlacing=null;state.picking=!state.picking;state.coordinatePicking=false;syncPicking()
@@ -877,6 +900,7 @@ $('add-picked-material').addEventListener('click',()=>{
 })
 createOrthographic({getInfo:()=>state.info,getRange:()=>($('whole-region').checked&&state.info?{lo:[0,0,0],hi:state.info.size.map(v=>v-1)}:{lo:['lo-x','lo-y','lo-z'].map(id=>Number($(id).value)),hi:['hi-x','hi-y','hi-z'].map(id=>Number($(id).value))}),setRange:range=>{$('whole-region').checked=false;['x','y','z'].forEach((axis,i)=>{setValue('lo-'+axis,range.lo[i]);setValue('hi-'+axis,range.hi[i])});syncSelectionRange()}})
 window.detailControl={gather,request,restore,loadModel,runJob,state,selectImage,imageMode}
+window.detailControl.saveAuthoringVersion=async()=>{if(!state.preview||state.previewSettings!==JSON.stringify(gather()))throw Error('请先更新当前参数的预览，再保存制作版');return runJob('revision',{draft_only:true})}
 async function openProjectModel(item){
  if(state.busy||state.previewBusy||state.sessionRestoring)throw Error('请等待当前任务完成')
  if(state.info?.source!==item.source){
@@ -890,7 +914,7 @@ async function openProjectModel(item){
  window.creatorWorkspace.select('model')
  return state.info
 }
-const projectManager=initProjectManager({api,openModel:openProjectModel,isBusy:()=>state.busy||state.previewBusy||state.sessionRestoring,setBusy:busy,refresh:initialize})
+const projectManager=initProjectManager({api,openModel:openProjectModel,isBusy:()=>state.busy||state.previewBusy||state.sessionRestoring,setBusy:busy,refresh:initialize,historyContext:()=>state.info,historyCompare:pair=>versionComparison.compare(pair)})
 initDesktop(source=>openProjectModel({source}))
 initModelPicker()
 function notifyAIComponent(restored=false){window.dispatchEvent(new CustomEvent('nbt-ai-component-state',{detail:{restored}}))}
@@ -940,7 +964,7 @@ apiAssistant=initApiAssistant({
  },
  pickEditRegion:async()=>{if(!state.info||state.busy||state.previewBusy||state.commitBusy)throw Error('请先打开建筑并等待当前任务完成');if(state.mode!=='3d')await runJob('snapshot');state.walkPicking=false;state.assetPicking=null;state.aiPlacing=null;state.picking=false;state.coordinatePicking=false;state.selectionEditPicking={source:state.info.source,geometry:$('viewer').contentWindow.nbtModeler.metadata().geometry_sha256,points:[]};syncPicking();$('view-hint').textContent='依次点击两个已有方块，取包围盒作为编辑范围；Esc取消，左键拖动仍可转向。'},
  cancelEditPick:()=>{state.selectionEditPicking=null;syncPicking()},
- archivePrompt:async(text,token)=>{const bound=JSON.parse(token);if(!bound.source)return null;if(bound.source!==state.info?.source||bound.source_sha256!==state.info?.source_sha256)throw Error('源建筑已切换，未把建议写入其他建筑');return api('prompt-save',{session_id:aiPromptArchiveId,text,document:{origin:'model_ai',source_sha256:bound.source_sha256,project:{name:modelName(),stage:'plan',source:bound.source,contextPath:$('context').value.trim(),size:state.info.size},operations:bound.settings.operations??[]},plan:{operations:bound.settings.operations??[]},context:{contextPath:$('context').value.trim()}})},
+ archivePrompt:async(text,token)=>{const bound=JSON.parse(token);if(!bound.source)return null;if(bound.source!==state.info?.source||bound.source_sha256!==state.info?.source_sha256)throw Error('原建筑已切换，未把建议写入其他建筑');return api('prompt-save',{session_id:aiPromptArchiveId,text,document:{origin:'model_ai',source_sha256:bound.source_sha256,project:{name:modelName(),stage:'plan',source:bound.source,contextPath:$('context').value.trim(),size:state.info.size},operations:bound.settings.operations??[]},plan:{operations:bound.settings.operations??[]},context:{contextPath:$('context').value.trim()}})},
  captureViewport,isBusy:()=>state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring||state.transforming||state.versionComparing,
  context:()=>{const s=gather(),info=state.info;if(!info)return null;return {size:info.size,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?info.size.map(v=>v-1):s.hi,materials:info.materials,allow_overwrite:$('ai-allow-overwrite')?.checked??false}},
  binding:()=>JSON.stringify({source:state.info?.source,source_sha256:state.info?.source_sha256,settings:gather()}),
@@ -1082,7 +1106,7 @@ function captureEditSession(){
  stashDraft()
  const viewer=$('viewer').contentWindow?.nbtModeler,meta=state.mode==='3d'&&viewer?.status==='ready'?viewer.metadata():null
  const controls=Object.fromEntries([...$('settings').querySelectorAll('input[id],select[id],textarea[id]')].filter(e=>!e.readOnly&&!e.closest('#operation-list')&&!e.id.endsWith('-range')&&e.id!=='operation-sequence'&&e.id!=='materials-search'&&e.id!=='operation-kind').map(e=>[e.id,e.type==='checkbox'?e.checked:e.value]))
- const drafts=[...state.noteDrafts].filter(([key,draft])=>key.startsWith(state.info.source_sha256+':')&&(draft.text?.trim()||draft.points?.length)).slice(-50).map(([key,d])=>[key,{text:d.text,points:d.points}])
+ const drafts=[...state.noteDrafts].filter(([key,draft])=>key.startsWith(state.info.source_sha256+':')&&(draft.text?.trim()||draft.points?.length)).slice(-50).map(([key,d])=>[key,{text:d.text,points:d.points,note_id:d.note_id??null,note_revision:d.note_revision??0}])
  const comparison=state.mode==='3d'?(state.comparisonSide==='after'&&meta?.geometry_sha256===state.preview?.geometry_sha256?'after':'before'):null
  const preview=comparison==='after'&&state.previewSettings&&state.previewSettings!==JSON.stringify(lastValidSessionSettings)?JSON.parse(state.previewSettings):undefined
  let raw=$('operation-sequence').value;try{if(JSON.stringify(JSON.parse(raw))===JSON.stringify(lastValidSessionSettings.operations))raw=null}catch{}
@@ -1090,8 +1114,10 @@ function captureEditSession(){
  return {source:state.info.source,source_sha256:state.info.source_sha256,state:{settings:lastValidSessionSettings,operations_text:raw,controls,view:{mode:state.mode,quality:$('three-quality').value,camera:meta?.camera,cuts:meta?.cuts??[],layer:meta?.layer??$('view-layer').value,cut:Number($('view-cut').value),show_selection:$('show-selection').checked,image_hash:state.selectedImage?.image_sha256??null,image_name:state.selectedImage?.name??null,comparison,preview_settings:preview},drafts,ai_component,ai_candidate:apiAssistant?.capture()??null}}
 }
 async function restoreEditSession(saved,recovered={}){
+ await feedbackAutosave?.flush()
  lockEditorRecovery();sessionStatus.textContent='正在恢复编辑草稿与上次画面…'
- try{return await restoreEditSessionCore(saved,recovered)}finally{unlockEditorRecovery()}
+ state.restoringFeedbackDrafts=true
+ try{return await restoreEditSessionCore(saved,recovered)}finally{state.restoringFeedbackDrafts=false;unlockEditorRecovery();feedbackAutosave?.schedule()}
 }
 function lockEditorRecovery(){state.recoveryLocks=(state.recoveryLocks??0)+1;state.sessionRestoring=true;document.querySelector('.workspace').inert=true;document.querySelector('.action-bar').inert=true}
 function unlockEditorRecovery(){state.recoveryLocks=Math.max(0,(state.recoveryLocks??0)-1);if(state.recoveryLocks)return;state.sessionRestoring=false;const workspace=window.creatorWorkspace?.current();document.querySelector('.workspace').inert=workspace!=='model';document.querySelector('.action-bar').inert=state.versionComparing||['project','assets','prompt','ai'].includes(workspace);versionComparison?.sync();window.dispatchEvent(new Event('creator-editor-state'))}
@@ -1104,7 +1130,7 @@ async function restoreEditSessionCore(saved,recovered){
  try{
  if(view.mode==='3d'){
   $('three-quality').value=view.quality
-  if(view.comparison==='after'){const candidate=view.preview_settings??pending;restore(candidate);state.previewRevision++;await updatePreview();if(state.previewSettings!==JSON.stringify(candidate))throw Error('候选效果未能重新计算；已保留参数草稿')}
+  if(view.comparison==='after'){const candidate=view.preview_settings??pending;restore(candidate);state.previewRevision++;await updatePreview();if(state.previewSettings!==JSON.stringify(candidate))throw Error('修改预览未能重新计算；已保留参数草稿')}
   else if(state.mode!=='3d')await runJob('snapshot')
   if(source!==state.info?.source_sha256)throw Error('恢复期间建筑已切换')
   const viewer=$('viewer').contentWindow?.nbtModeler
@@ -1130,6 +1156,26 @@ document.addEventListener('input',event=>{if(event.target.closest('#settings,#fe
 document.addEventListener('change',event=>{if(event.target.closest('#settings,.review-toolbar'))editSession.schedule()})
 window.addEventListener('creator-session-preference',event=>{for(const id of ['session-save-now','session-reload','session-valid-inputs'])$(id).disabled=state.busy||!event.detail;if(!event.detail){sessionStatus.textContent='编辑草稿自动保存与恢复已关闭';sessionStatus.classList.remove('session-error')}else editSession.schedule()})
 initCommandCenter({api,state:()=>state,selectTool,message:status})
+initStudioWorkspace({state:()=>state,gather})
+const feedbackSaveState=document.createElement('p');feedbackSaveState.id='feedback-save-state';feedbackSaveState.setAttribute('role','status');feedbackSaveState.textContent='标注会自动保存到当前建筑版本';$('feedback-text').after(feedbackSaveState)
+feedbackAutosave=createFeedbackAutosave({
+ capture:()=>{
+  const target=state.feedbackTarget;if(!target||state.feedbackLoading||state.restoringFeedbackDrafts)return null
+  const text=$('feedback-text').value,anchors=structuredClone(state.draftPoints??[])
+  if(!state.feedbackNoteId&&!text.trim()&&!anchors.length)return null
+  const missing=[...text.matchAll(/@\[([^\]]+)\]/g)].map(m=>m[1]).filter(name=>!state.effectFiles.some(file=>file.name===name));if(missing.length)throw Error('引用文件尚未找到：'+missing.join('、'))
+  state.feedbackNoteId??=crypto.randomUUID();stashDraft()
+  return {target_id:target.id,target_key:target.key,note_id:state.feedbackNoteId,expected_revision:state.feedbackNoteRevision??0,text,anchors,references:referencedFiles().map(file=>file.id)}
+ },
+ save:payload=>api('feedback/upsert',payload),
+ saved:(record,value,note)=>{if(state.noteKey===value.target_key&&state.feedbackNoteId===note.id){state.feedbackNoteRevision=note.revision;renderNotes(record);stashDraft();editSession?.flush().catch(()=>{})}},
+ message:(text,error,value)=>{if(!value||value.target_key===state.noteKey){feedbackSaveState.textContent=text;feedbackSaveState.classList.toggle('error',error);feedbackSaveState.title=$('feedback-file').textContent}},
+ beacon:payload=>{const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});return blob.size<60*1024&&navigator.sendBeacon('/__detail__/feedback/upsert',blob)}
+})
+window.nbtFeedbackAutosave=Object.freeze({flush:()=>feedbackAutosave.flush()})
+$('feedback-text').addEventListener('compositionstart',()=>feedbackAutosave.composition(true));$('feedback-text').addEventListener('compositionend',()=>feedbackAutosave.composition(false))
+$('save-feedback').textContent='开始下一条标注';$('save-feedback').title='当前内容会自动保存；点击开始一条新标注。Ctrl+Enter 同样可用。'
+$('comment-compose-hint').textContent='自动保存 · Ctrl+Enter 开始下一条'
 initialize().then(()=>{
   const source=new URLSearchParams(location.search).get('source')
   if(source){const index=state.models.findIndex(model=>model.source===source);if(index<0)throw new Error('所选结构不在当前建筑目录中，请刷新现有结构选择器。');selectModel(index);renderModels()}
@@ -1142,23 +1188,18 @@ $('review-image').addEventListener('click',event=>{
   if(x<0||x>1||y<0||y>1)return
   addDraftMarker({kind:'image',x,y})
 })
-$('feedback-text').addEventListener('input',()=>{stashDraft();syncReferences()})
+$('feedback-text').addEventListener('input',()=>{stashDraft();syncReferences();feedbackAutosave.schedule()})
 $('whole-image-note').addEventListener('click',()=>{for(const point of [...(state.draftPoints ?? [])])removeDraftMarker(point.number)})
 $('save-feedback').addEventListener('click',handle(async()=>{
   if(state.savingNote||state.feedbackLoading||!state.feedbackTarget)return
-  const missing=[...$('feedback-text').value.matchAll(/@\[([^\]]+)\]/g)].map(match=>match[1]).filter(name=>!state.effectFiles.some(file=>file.name===name))
-  if(missing.length)throw new Error('这些引用文件不在当前保存文件夹中，请刷新文件列表或重新选择：'+missing.join('、'))
-  const target=state.feedbackTarget,key=state.noteKey
   state.savingNote=true;$('save-feedback').disabled=true
-  try{
-    const record=await api('feedback/add',{target_id:target.id,text:$('feedback-text').value,anchors:state.draftPoints ?? [],references:referencedFiles().map(file=>file.id)})
-    state.noteDrafts.delete(key)
-    if(state.feedbackTarget?.id===target.id){$('feedback-text').value='';state.draftPoint=null;state.draftPoints=[];syncMessageContext();renderNotes(record)}
-    status((target.kind==='3d'?'3D坐标':'图片位置')+'与评论已一起保存到本地，编号与当前版本绑定。')
+  try{const target=state.feedbackTarget;await feedbackAutosave.flush();if(state.feedbackTarget!==target)return
+   state.noteDrafts.delete(state.noteKey);state.feedbackNoteId=null;state.feedbackNoteRevision=0;$('feedback-text').value='';state.draftPoint=null;state.draftPoints=[];syncMessageContext();syncMarkers();editSession?.schedule();feedbackSaveState.textContent='上一条已保存，可以继续标注'
   }finally{state.savingNote=false;$('save-feedback').disabled=state.busy||state.feedbackLoading||!state.feedbackTarget}
 }))
 $('export-feedback').addEventListener('click',handle(async()=>{
   if(!state.feedbackTarget)return
+  await feedbackAutosave.flush()
   const result=await api('feedback/export',{target_id:state.feedbackTarget.id});$('feedback-links').replaceChildren()
   for(const [key,label,filename] of [['json','下载意见 JSON','feedback.json'],['markdown','下载意见 Markdown','feedback.md']]){
     const a=document.createElement('a');a.href=result[key];a.download=filename;a.textContent=label;$('feedback-links').append(a)

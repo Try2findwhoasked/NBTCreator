@@ -44,7 +44,12 @@ def box_points(lo,hi):
 
 def read_master(path):
     path=Path(path)
-    if path.suffix.lower()=='.nbt':return load(path),set()
+    if path.suffix.lower()=='.snbt':
+        from nbt_snbt import read_snbt
+        return read_snbt(path)
+    if path.suffix.lower()=='.nbt':
+        from nbt_snbt import read_binary
+        return read_binary(path)
     data=json.loads(gzip.decompress(path.read_bytes()))
     model=Volume(data['size'])
     for p,v in data['blocks']:
@@ -58,6 +63,9 @@ def read_master(path):
 
 
 def save_master(path,model,walls):
+    if Path(path).suffix.lower()=='.snbt':
+        from nbt_snbt import save_snbt
+        return save_snbt(path,model,walls)
     data=dict(size=list(model.size),blocks=[[list(p),v] for p,v in sorted(model.blocks.items())],
               wall_positions=[list(p) for p in sorted(walls)],absent_positions=AIR,
               geometry_sha256=model.fingerprint())

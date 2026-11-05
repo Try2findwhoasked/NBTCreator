@@ -21,6 +21,9 @@ def pack(source,output,kind="full"):
         if file.is_symlink():raise ValueError('Symlink in portable package: '+str(file))
         if not file.is_file():continue
         relative=file.relative_to(source).as_posix();valid_name(relative)
+        # Runtime probes can create engine bytecode in a tested directory.
+        # Omit this disposable cache without deleting or changing the input.
+        if relative.startswith('resources/app/.agents/skills/minecraft-nbt-modeler/') and '__pycache__' in PurePosixPath(relative).parts:continue
         is_runtime=not (relative.startswith('resources/app/') and not relative.startswith('resources/app/runtime/') or relative in {'portable-info.json','NBT工具.cmd','Portable说明.txt'})
         if kind=='application' and is_runtime or kind=='runtime' and not is_runtime:continue
         parts=PurePosixPath(relative).parts
@@ -29,6 +32,7 @@ def pack(source,output,kind="full"):
         files.append(dict(path=source.name+'/'+relative,bytes=file.stat().st_size,sha256=digest(file)))
     expected={f['path'] for f in files}
     requirements={'full':['NBTCreator.exe','resources/app/runtime/python/python.exe','resources/app/runtime/browser/chrome.exe','resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md'],'application':['resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md'],'runtime':['NBTCreator.exe','resources/app/runtime/python/python.exe','resources/app/runtime/browser/chrome.exe']}
+    if kind in {'full','runtime'}:requirements[kind].append('resources/app/runtime/git/cmd/git.exe')
     for required in requirements[kind]:
         if source.name+'/'+required not in expected:raise ValueError('Missing portable dependency: '+required)
     output.parent.mkdir(parents=True,exist_ok=True)

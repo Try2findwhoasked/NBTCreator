@@ -1,25 +1,42 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import net from 'node:net'
 import { createHash, randomUUID } from 'node:crypto'
 import {archiveFeedbackEvidence,updateCommentIndex} from './feedback-evidence.mjs'
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex')
+const legacyFile=Symbol('legacyFeedbackFile')
+function sameAnnotationVersion(binding,record){
+  if(!binding.version_dir)return true
+  const version=spec=>{if(spec.version_dir)return spec.version_dir;let directory=path.dirname(spec.source??'');while(['master','masters','runtime','parts','revision','delivery'].includes(path.basename(directory)))directory=path.dirname(directory);return directory}
+  const key=value=>{let result=path.resolve(value).split(path.sep).join('/');if(process.platform==='win32')result=result.toLowerCase();const marker=result.lastIndexOf('/nbt_models/');return marker<0?result:result.slice(marker)}
+  return record.binding?.source&&key(version(binding))===key(version(record.binding))
+}
 export const noteAnchors = note => note.anchors ?? (note.point ? [{kind:'image',number:note.number,...note.point}] : [])
 export const lastAnchorNumber = notes => Math.max(0,...notes.flatMap(note=>[note.number,...noteAnchors(note).map(p=>p.number)]))
+async function withFeedbackLock(file,action){
+  if(process.platform!=='win32')return action()
+  const address='\\\\.\\pipe\\nbtcreator-feedback-'+hash(path.resolve(file).toLowerCase()),deadline=Date.now()+3000
+  let server
+  for(;;){server=net.createServer(socket=>socket.destroy());try{await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(address,resolve)});break}catch(error){if(error.code!=='EADDRINUSE')throw error;if(Date.now()>deadline)throw Error('另一窗口正在保存标注，请稍后重试');await new Promise(resolve=>setTimeout(resolve,20))}}
+  try{return await action()}finally{await new Promise(resolve=>server.close(resolve))}
+}
 export function createFeedbackStore(root,legacyRoot=null) {
   if(typeof root!=='function')root=path.resolve(root)
   let queue = Promise.resolve()
-  function file(binding) {
+  function filename(binding) {
     for (const key of ['source_sha256','geometry_sha256',...(binding.kind==='3d'?[]:['image_sha256'])]) {
       if (!/^[a-f0-9]{64}$/.test(binding[key] ?? '')) throw new Error('Feedback requires version-bound image metadata')
     }
-    return path.join(typeof root==='function'?root(binding):root, binding.source_sha256, (binding.kind==='3d'?'3d_'+binding.geometry_sha256:binding.image_sha256)+'.json')
+    return path.join(binding.source_sha256, (binding.kind==='3d'?'3d_'+binding.geometry_sha256:binding.image_sha256)+'.json')
   }
+  const file=binding=>path.join(typeof root==='function'?root(binding):root,filename(binding))
   async function read(binding) {
     const target = file(binding)
-    try { return JSON.parse(await fs.readFile(target, 'utf8')) }
+    try { const record=JSON.parse(await fs.readFile(target, 'utf8'));if(!sameAnnotationVersion(binding,record))throw Error('此标注文件属于另一建筑版本，未覆盖。请在原版本查看或重新核对。');return record }
     catch (error) { if (error.code !== 'ENOENT') throw error }
-    if(legacyRoot&&binding.kind!=='3d'){try{return JSON.parse(await fs.readFile(path.join(legacyRoot,binding.source_sha256,binding.image_sha256+'.json'),'utf8'))}catch(error){if(error.code!=='ENOENT')throw error}}
+    const fallback=typeof legacyRoot==='function'?legacyRoot(binding):legacyRoot?[legacyRoot]:[]
+    for(const directory of fallback){const previous=path.join(directory,filename(binding));if(previous===target)continue;try{const record=JSON.parse(await fs.readFile(previous,'utf8'));if(!sameAnnotationVersion(binding,record))continue;record[legacyFile]=previous;return record}catch(error){if(error.code!=='ENOENT')throw error}}
     return { schema_version: 1, binding, notes: [], boundary: 'Design feedback only; never approval for refinement, deployment or other actions.' }
   }
   async function verify(binding) {
@@ -31,21 +48,25 @@ export function createFeedbackStore(root,legacyRoot=null) {
   async function write(binding, record) {
     const target = file(binding)
     await fs.mkdir(path.dirname(target), { recursive: true })
+    if(record[legacyFile]){
+      try{const previous=record[legacyFile],sidecar=JSON.parse(await fs.readFile(previous+'.evidence.json','utf8'));for(const item of sidecar.files??[])if(item.path)item.path=path.relative(path.dirname(target),path.resolve(path.dirname(previous),item.path)).split(path.sep).join('/');await fs.writeFile(target+'.evidence.json',JSON.stringify(sidecar)+'\n',{flag:'wx'})}catch(error){if(!['ENOENT','EEXIST'].includes(error.code))throw error}
+    }
     await archiveFeedbackEvidence(binding,record,target)
     const temporary = target+'.'+randomUUID()+'.tmp'
     await fs.writeFile(temporary, JSON.stringify(record, null, 2)+'\n', { flag: 'wx' })
     await fs.rename(temporary, target)
-    await updateCommentIndex(binding,record,target)
+    await updateCommentIndex(binding,record,target,{previousFile:record[legacyFile]})
     return { ...record, file: target }
   }
   function mutate(binding, operation) {
-    const result = queue.then(async () => {
+    const result = queue.then(()=>withFeedbackLock(path.dirname(path.dirname(file(binding))),async () => {
       await verify(binding)
       const record = await read(binding)
       operation(record)
+      if(operation.skipWrite)return { ...record,file:file(binding) }
       record.updated_at = new Date().toISOString()
       return write(binding, record)
-    })
+    }))
     queue = result.catch(() => {})
     return result
   }
@@ -77,12 +98,41 @@ export function createFeedbackStore(root,legacyRoot=null) {
           ...(anchors===null?{}:{anchors}),references, status:'open',created_at:new Date().toISOString() })
       })
     },
+    upsert: (binding,input) => {
+      const {note_id:id,expected_revision:expected,text,anchors=[],references=[],client_id:clientId,sequence}=input
+      if(typeof id!=='string'||!/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(id)||!Number.isSafeInteger(expected)||expected<0)throw Error('标注编号或修订号无效')
+      if((clientId!==undefined||sequence!==undefined)&&(typeof clientId!=='string'||!/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(clientId)||!Number.isSafeInteger(sequence)||sequence<1))throw Error('标注编辑会话或保存顺序无效')
+      if(typeof text!=='string'||text.length>4000||!Array.isArray(anchors)||anchors.length>100||!Array.isArray(references))throw Error('标注内容无效或超出长度限制')
+      const seen=new Set()
+      for(const anchor of anchors){
+        if(!anchor||!Number.isSafeInteger(anchor.number)||anchor.number<1||seen.has(anchor.number))throw Error('标记编号无效或重复');seen.add(anchor.number)
+        if(binding.kind==='3d'){
+          if(anchor.kind!=='voxel'||anchor.geometry_sha256!==binding.geometry_sha256||!Array.isArray(anchor.position)||anchor.position.length!==3||!anchor.position.every((v,i)=>Number.isInteger(v)&&v>=0&&v<binding.size[i])||typeof anchor.state!=='string')throw Error('3D标记必须对应当前版本内的方块坐标')
+          if(!anchor.view||!['eye','target','up'].every(k=>Array.isArray(anchor.view.camera?.[k])&&anchor.view.camera[k].length===3&&anchor.view.camera[k].every(Number.isFinite))||!Number.isFinite(anchor.view.camera.fov))throw Error('3D标记缺少观察角度')
+        }else if(anchor.kind!=='image'||![anchor.x,anchor.y].every(v=>Number.isFinite(v)&&v>=0&&v<=1))throw Error('图片位置须为0～1的相对坐标')
+      }
+      const content={text:text.trim(),anchors,references}
+      const operation=record=>{
+        let note=record.notes.find(item=>item.id===id)
+        const own=clientId&&note?.edit_client_id===clientId
+        if(own&&sequence<=note.edit_sequence){operation.skipWrite=true;return}
+        if(note&&!own&&JSON.stringify({text:note.text,anchors:noteAnchors(note),references:note.references??[]})===JSON.stringify(content)){operation.skipWrite=true;return}
+        if((note?.revision??0)!==expected&&!own){const error=Error('这条标注已在其他窗口更新，未覆盖。请重新读取后再修改。');error.code='feedback_conflict';throw error}
+        if(!note&&!content.text&&!anchors.length)throw Error('空白标注无需保存')
+        const occupied=new Set(record.notes.filter(item=>item.id!==id).flatMap(item=>noteAnchors(item).map(p=>p.number)))
+        if(anchors.some(p=>occupied.has(p.number)))throw Error('标记编号已被其他标注使用，请重新读取当前视图')
+        if(!note){note={id,number:Math.max(0,...record.notes.map(n=>n.number))+1,status:'open',created_at:new Date().toISOString()};record.notes.push(note)}
+        if(!clientId){delete note.edit_client_id;delete note.edit_sequence}
+        Object.assign(note,content,{point:anchors.find(p=>p.kind==='image')?{x:anchors.find(p=>p.kind==='image').x,y:anchors.find(p=>p.kind==='image').y}:null,revision:(note.revision??0)+1,updated_at:new Date().toISOString()},clientId?{edit_client_id:clientId,edit_sequence:sequence}:{});record.schema_version=2
+      }
+      return mutate(binding,operation)
+    },
     update: (binding, id, status) => {
       if (!['open','resolved'].includes(status)) throw new Error('Unknown feedback status')
       return mutate(binding, record => {
         const note = record.notes.find(item => item.id === id)
         if (!note) throw new Error('Unknown feedback note')
-        note.status = status; note.updated_at = new Date().toISOString()
+        note.status = status; note.revision=(note.revision??0)+1; note.updated_at = new Date().toISOString();delete note.edit_client_id;delete note.edit_sequence
       })
     },
     export: async binding => {

@@ -168,6 +168,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python .agents/skills/minecraft-nbt-modeler/scripts/check_web_revision_fixtures.py --output (Join-Path $probeRoot 'web-revision')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify version 2 authoring contracts
+        run: |
+          python tests/snbt-source.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/building-history.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/architect-workspace-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/feedback-autosave-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:NBTCREATOR_TEST_SNBT = '1'
+          node tests/desktop-smoke.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Remove-Item Env:NBTCREATOR_TEST_SNBT
       - name: Build self-contained portable ZIP
         run: npm run package:portable -- --out dist/portable
       - name: Verify extracted package without system Python or Node

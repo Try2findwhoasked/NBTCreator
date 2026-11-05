@@ -100,7 +100,10 @@ def save(workspace, payload):
         record=dict(id=session,name=project.get('name',''),stage=stage,source=relative(workspace,source) if source else None,
                     source_sha256=source_hash,revision=revision,updated_at=datetime.now(timezone.utc).isoformat(),
                     files={name:dict(path=os.path.relpath(folder/name,directory).replace('\\','/'),sha256=hashes[name]) for name in files},
-                    approval='not_granted_by_prompt',model_written=False)
+                    approval='not_granted_by_prompt',model_written=False,
+                    review_state='reviewed' if isinstance(document.get('workbench'),dict) and document['workbench'].get('status')=='reviewed' else 'pending',
+                    generation_state=document.get('workbench',{}).get('generated') if isinstance(document.get('workbench'),dict) else None,
+                    queue_created_at=document.get('workbench',{}).get('created_at') if isinstance(document.get('workbench'),dict) and type(document['workbench'].get('created_at')) is int else None)
         if previous and previous.get('revision')==revision:record=previous
         else:
             index['records']=[item for item in index['records'] if item.get('id')!=session]+[record]
@@ -144,7 +147,7 @@ def scan(workspace, source=None):
     workspace=Path(workspace).resolve();models=workspace/'nbt_models';items=[];errors=[]
     selected=relative(workspace,inside(workspace,source)) if source else None
     for directory,dirs,names in os.walk(models,followlinks=False):
-        dirs[:]=[name for name in dirs if name not in {'_workspaces','_migration','修订','修改意见'} and not (Path(directory)/name).is_symlink()]
+        dirs[:]=[name for name in dirs if name not in {'_workspaces','_migration','_exports','修订','修改意见'} and not (Path(directory)/name).is_symlink()]
         if '交给Agent.md' in names and 'Agent交接' in Path(directory).parts:
             file=Path(directory)/'交给Agent.md'
             try:
@@ -158,7 +161,7 @@ def scan(workspace, source=None):
             _,data=load_index(workspace,file)
             for record in data['records']:
                 if selected and record.get('source')!=selected:continue
-                items.append({key:record.get(key) for key in ('id','name','stage','source','source_sha256','revision','updated_at')}|dict(kind='workbench',index=relative(workspace,file)))
+                items.append({key:record.get(key) for key in ('id','name','stage','source','source_sha256','revision','updated_at','review_state','generation_state','queue_created_at')}|dict(kind='workbench',index=relative(workspace,file)))
         except (ValueError,OSError,KeyError) as error:errors.append(dict(index=relative(workspace,file),error=str(error)))
     return dict(schema_version=1,items=sorted(items,key=lambda item:item.get('updated_at') or '',reverse=True),errors=errors,full_text_loaded=False)
 

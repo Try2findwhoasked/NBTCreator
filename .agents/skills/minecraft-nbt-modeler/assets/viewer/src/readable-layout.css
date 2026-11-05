@@ -1,0 +1,25 @@
+/* Names and instructions are content, so let their rows grow. */
+body[data-shell=studio][data-workspace] .creator-header{height:auto!important;min-height:44px}
+body[data-shell=studio][data-workspace] :is(.library-heading,.library-heading-title,.library-meta){height:auto;min-height:36px;flex-shrink:0;overflow:visible}
+body[data-shell=studio][data-workspace] .library-heading-title{min-width:0;align-items:center}
+body[data-shell=studio][data-workspace] .library-heading h1{line-height:1.6;overflow-wrap:anywhere}
+body[data-shell=studio][data-workspace] .library-meta{flex-wrap:wrap;padding-block:8px;gap:6px 14px}
+body[data-shell=studio][data-workspace] .library-meta p{white-space:normal;overflow-wrap:anywhere;overflow:visible}
+body[data-shell=studio][data-workspace] .library-browser :is(.asset-card strong,.asset-card small,.effect-asset-card strong,.effect-asset-card .project-card-meta,.project-card-open>strong){white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;display:block;-webkit-line-clamp:unset;line-height:1.7}
+body[data-shell=studio][data-workspace] :is(#asset-tree,#project-tree) .project-tree-row{height:auto;min-height:34px;align-items:flex-start;padding-block:4px}
+body[data-shell=studio][data-workspace] :is(#asset-tree,#project-tree) .project-tree-row .project-tree-label{height:auto;min-height:24px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.7;padding-block:2px}
+body[data-shell=studio][data-workspace] .library-browser .project-tree-hint{height:auto;min-height:23px;white-space:normal;overflow:visible;line-height:1.8;padding-bottom:8px}
+body[data-shell=studio][data-workspace] .project-tree-count{padding-top:5px}
+body[data-shell=studio][data-workspace] .library-layout{grid-template-columns:220px minmax(0,1fr)}
+body[data-shell=studio][data-workspace] #studio-notes #feedback-context{white-space:normal;overflow:visible;overflow-wrap:anywhere;line-height:1.8}
+body[data-shell=studio][data-workspace] #studio-notes .comment-tools{display:grid;grid-template-columns:minmax(0,1fr) 120px}
+body[data-shell=studio][data-workspace] #studio-notes .comment-tools select{width:100%;min-height:36px}
+body[data-shell=studio][data-workspace] .studio-menu-panel :is(label,button){white-space:normal;line-height:1.7;overflow-wrap:anywhere}
+body[data-shell=studio][data-workspace] .studio-menu-panel .cut-label{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px}
+body[data-shell=studio][data-workspace] .studio-menu-panel #view-cut{grid-column:1/-1;width:100%}
+body[data-shell=studio][data-workspace] .studio-menu-panel #cut-value{white-space:normal}
+body[data-shell=studio][data-workspace] .asset-type-help{font-size:12px;line-height:1.8;color:var(--ui-muted);margin:0 0 10px;flex:none}
+body[data-shell=studio][data-workspace] .asset-duplicate-note{font-size:11px;color:var(--ui-muted);line-height:1.7;white-space:normal}
+@media(max-width:1000px){body[data-shell=studio][data-workspace] .library-layout{grid-template-columns:180px minmax(0,1fr)}}
+@media(max-width:850px){:root{--studio-actions:84px}body[data-shell=studio][data-workspace] #studio-actions{flex-wrap:wrap;align-content:center;height:84px}body[data-shell=studio][data-workspace] .studio-primary-actions{order:10;flex-basis:100%;justify-content:flex-end}body[data-shell=studio][data-workspace] .studio-primary-actions button{flex:1;white-space:normal}body[data-shell=studio][data-workspace] #studio-model-menu{flex:1;max-width:none}body[data-shell=studio][data-workspace] #studio-inspector-toggle{font-size:0;width:30px}body[data-shell=studio][data-workspace] #studio-inspector-toggle:before{content:'☰';font-size:16px}}
+@media(max-width:850px){body[data-shell=studio][data-workspace] .creator-header{height:auto;min-height:76px;flex-wrap:wrap;gap:4px 12px;padding-block:5px}body[data-shell=studio][data-workspace] .creator-header-actions{margin-left:auto}body[data-shell=studio][data-workspace] .creator-workspaces{order:3;flex-basis:100%;justify-content:space-between;overflow:auto}body[data-shell=studio][data-workspace] .creator-workspaces button{white-space:nowrap;flex:none;padding-inline:9px}}

@@ -1,5 +1,7 @@
 # 建筑库保存位置、描述与世界转换
 
+新制作流程以 `master/model.snbt` 为主源，定稿 NBT 另存到 `nbt_models/_exports/<形状>/<建筑>/<版本>/` 的镜像目录。坐标、墙层、正式标注与预览保留原版本，旧 JSON.GZ 继续兼容，详见 [SNBT 制作与定稿](snbt-authoring.md) 和 [版本历史](version-history.md)。下文旧 NBT/JSON.GZ 命名与导出接口仍供既有工程兼容调用。
+
 当前默认作者资产目录为工作区 `nbt_models/<形状>/<中文房间名>/<版本>/`，SAODG中即 `SAODG/nbt_models/...`。形状目录固定为 `single`、`long`、`square`、`l_shape`、`t_shape`、`cross`、`irregular`、`standalone`；以完整主模型的实际有效cells判定，不能只凭文件夹名猜。测试夹具放 `_tests`，控制台缓存/任务放 `_workspaces`，不合规或待补证据资产保留在 `bugged`，迁移清单和原始JSON证据放 `_migration`。build不再是作者资产默认目录。
 
 先运行 `python <skill>/scripts/nbt_library.py new --workspace <工作区> --shape l_shape --name-zh 冷铸阶地工场` 获取独立版本目录，任务生成器全部写到该目录。完成主模型落盘后调用 `nbt_library.register_building(master_path, name_zh, cells)`，或CLI `register --master <完整主模型JSON.GZ> --name-zh <中文名>`。每版必须有 `room_description.json`：name_zh为房间中文名，shape为标准目录键，shape_zh为中文形状，display_name与description_zh统一为“中文房间名-形状”，master为实际完整主模型路径，geometry_sha256/size/cells绑定实际几何。中文名沿用设计材料；从旧slug翻译时记录name_source，不把译名当作设计验收。

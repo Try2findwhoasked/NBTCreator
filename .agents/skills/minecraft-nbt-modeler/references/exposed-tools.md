@@ -71,6 +71,9 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 - asset-batches → scripts/nbt_asset_batches.py
 - room-score → scripts/nbt_room_score.py
 - effect-assets → scripts/nbt_effect_assets.py
+- history → scripts/nbt_history.py
+- snbt → scripts/nbt_snbt.py
+- finalize → scripts/nbt_finalize.py
 
 工作区入口为 `python .agents/skills/nbtcreator-workspace/nbt.py <命令>`。`feedback scan` 扫描结构版本的评论索引，`feedback collect/archive` 校验或归档意见证据，详见 [Agent读取意见](agent-feedback.md)。
 

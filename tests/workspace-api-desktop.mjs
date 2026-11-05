@@ -32,7 +32,7 @@ try{
  const page=await app.firstWindow();await minimizedScreenshots(app,page);page.setDefaultTimeout(30000)
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy,undefined,{timeout:60000})
  await page.evaluate(baseUrl=>window.nbtDesktop.apiSave({enabled:true,provider:'compatible',baseUrl,model:'mock-model',jsonMode:true}),`http://127.0.0.1:${server.address().port}/v1`)
- await page.getByRole('button',{name:'AI建模',exact:true}).click()
+ await page.locator('#tool-tabs [data-tool-index="9"]').evaluate(e=>e.click())
  await page.locator('#ai-mode').selectOption('prompt');await page.locator('#ai-instruction').fill('old workspace pending candidate')
  await page.locator('#ai-generate').click();await entered
  await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});dialog.showMessageBox=async()=>({response:0})},next)

@@ -5,7 +5,7 @@ import {createHash, randomUUID} from 'node:crypto'
 const digest = bytes => createHash('sha256').update(bytes).digest('hex')
 const relative = (file, directory) => path.relative(directory, file).split(path.sep).join('/')
 
-export async function updateCommentIndex(binding, record, feedbackFile) {
+export async function updateCommentIndex(binding, record, feedbackFile, {previousFile}={}) {
   let version = binding.version_dir || path.dirname(binding.source)
   if (!binding.version_dir) while (['master','masters','runtime','parts','delivery'].includes(path.basename(version))) version=path.dirname(version)
   const directory=path.join(version,'修改意见'), target=path.join(directory,'评论索引.json')
@@ -19,7 +19,7 @@ export async function updateCommentIndex(binding, record, feedbackFile) {
     evidence_index:relative(feedbackFile+'.evidence.json',directory),
     notes:record.notes.map(note=>({id:note.id,status:note.status,text:note.text,anchors:note.anchors??(note.point?[{kind:'image',number:note.number,...note.point}]:[])})),
     updated_at:record.updated_at??null}
-  index.records=index.records.filter(entry=>entry.feedback_file!==item.feedback_file)
+  index.records=index.records.filter(entry=>entry.feedback_file!==item.feedback_file&&(!previousFile||path.resolve(directory,entry.feedback_file)!==path.resolve(previousFile)))
   index.records.push(item)
   const temporary=target+'.'+randomUUID()+'.tmp'
   await fs.writeFile(temporary,JSON.stringify(index,null,2)+'\n',{flag:'wx'});await fs.rename(temporary,target)

@@ -11,6 +11,10 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 
 生成建筑方案、提示词或局部构件前，按[各区域 AI 创作偏好](references/ai-creative-preferences.md)读取当前工作区 `.nbtcreator/ai-style.json` 中对应任务区域的参数；无配置时使用默认值。应用和外部 Agent 共用它，创意与详略偏好不改变建模约束或确认流程。
 
+当前制作源默认保存为建筑版本下 `master/model.snbt`，用共享 `nbt_refine.save_master` / `nbt_snbt.save_snbt` 写出并回读；旧 JSON.GZ 和 NBT 继续可读，原稿保留。只有用户明确要求定稿时，才调用工作区 `finalize`，在 `nbt_models/_exports/` 下生成相同形状／建筑／版本层级的 NBT 交付副本；SNBT 与正式标注留在制作版本。保存制作版不自动定稿，详见 [SNBT 制作源与定稿](references/snbt-authoring.md)。新版本记录真实来源与父子关系，见 [建筑版本历史](references/version-history.md)。
+
+批量提示词在应用中先生成草稿，由建筑师逐条审查修改并决定交接；外部 Agent 仅在人手动触发 Skill 后读取 `prompts tasks --after <cursor>` / `prompts task --id <id>`。建筑标注使用独立的 `feedback` / `feedback-tasks` 接口，不与提示词任务混为一条消息流。提示词已审查、保存标注或任务完成声明都不等于精修看图批准。
+
 交付来自完整建筑设计的 `.nbt`，SAODG 接入另按当前加载器验收。主题、轮廓、布局、建模方法与高低差自由设计；示例只提供工具，不是建筑模板。用户只要 NBT 时，不强加 OBJ、谜题、刷怪、奖励、世界部署或交互预览。
 
 ## 开工与阅读路由
@@ -42,6 +46,8 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 | 依据局部方块用自然语言规划工具步骤 | [选区编辑](references/selection-edit.md)；context/compile 共用应用引擎，选区内实际写入、保护与预算由候选和最终导出共同检查 |
 | 几何布尔、拉伸、复制阵列、旋转镜像、膨胀侵蚀、扩散或爆炸破坏 | [建模与效果工具](references/modelling-tools.md)；已有资产仍按精修流程 |
 | 资产迁移、形状归档、中文名称索引 | [建筑库归档](references/library-archive.md) |
+| SNBT 制作源、格式转换与人工定稿 NBT | [SNBT 制作源与定稿](references/snbt-authoring.md) |
+| 建筑版本、来源版本对比与从历史另存 | [建筑版本历史](references/version-history.md) |
 | 外部Agent修改任务、下一版登记和评论处理核对 | [任务回传](references/agent-task-return.md)；agent-tasks get/record 保留原版本、原评论和逐条声明，人工核对独立记录，不能自造批准 |
 | 按任务检索资料片段、引用与适配已有构件 | [本地参考检索](references/reference-retrieval.md)；retrieve search/bundle/read 共用实际工作流选择与哈希，保留出处；不扩大资料暴露、不覆盖旧资产 |
 | 保存选区为构件、搜索构件库、3D复制/移动/旋转/吸附、AI局部放置 | [构件资产库](references/component-assets.md)；应用与 CLI 共用工作区库，extract/transform仅返回候选，先预览再导出下一版 |
@@ -84,7 +90,7 @@ NBTCreator工作区若存在 `.agents/skills/nbtcreator-workspace/SKILL.md`，�
 统一检查入口（将路径替换为实际文件）：
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_task.py inspect --source <完整NBT或主模型JSON.GZ>
+python .agents/skills/minecraft-nbt-modeler/scripts/nbt_task.py inspect --source <完整SNBT、NBT或旧主模型JSON.GZ>
 python .agents/skills/minecraft-nbt-modeler/scripts/nbt_task.py render --source <完整主模型> --cameras <相机列表JSON> --output <全新出图目录> --file-prefix YYYY-MM-DD_r001_
 python .agents/skills/minecraft-nbt-modeler/scripts/nbt_registry.py query "oak_stairs[facing=east]"
 ```

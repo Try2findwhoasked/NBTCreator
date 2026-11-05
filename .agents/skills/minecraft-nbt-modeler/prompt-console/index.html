@@ -1,8 +1,52 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NBT 建模提示词工作台</title><link rel="stylesheet" href="design-tokens.css"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="theme.css"></head>
-<body><header><div><small>MINECRAFT · JAVA 1.20.1</small><h1>建模提示词工作台</h1><p>从建筑要求到工具参数，组合一份可以直接交给 Agent 的任务。</p></div><div class="actions"><button id="import">导入方案</button><input id="file" type="file" accept=".json" hidden><button id="save">下载方案 JSON</button><button id="reset">重置</button></div></header>
-<main><section class="editor"><nav><button data-tab="ai" class="active">AI 编写</button><button data-tab="project">建筑要求</button><button id="prompt-advanced-toggle" type="button" aria-expanded="false">高级选项</button></nav><nav id="prompt-advanced-tabs" hidden><button data-tab="tools">工具序列 <span id="count">0</span></button><button data-tab="context">验证上下文</button></nav>
-<div id="ai" class="tab"><section id="prompt-ai-panel" class="ai-workbench"><div class="ai-workbench-heading"><h2>编写交接提示词</h2><span id="prompt-ai-indicator">共用桌面 API 配置</span></div><label>AI 操作<select id="prompt-ai-mode"><option value="draft">编写完整设计与交接要求</option><option value="controls" hidden>高级：配置控件与工具序列</option><option value="text">润色文字建议</option></select></label><label>补充要求<textarea id="prompt-ai-instruction" rows="2" maxlength="4000" placeholder="例如：设计一座长条形废弃水渠工坊，包含入口、主厅与高处检修平台，补齐顶构、地板、墙面和通行安排。"></textarea></label><div class="ai-actions"><button id="prompt-ai-generate" type="button" class="primary">生成候选方案</button><button id="prompt-ai-cancel" type="button" disabled>取消</button><button id="prompt-ai-references" type="button">检索本地参考</button><button id="prompt-ai-settings" type="button">API 设置</button></div><p>本页负责整理设计要求和交接文字。采用后保存任务，由下一个 Agent 读取提示词、源模型和标注，再编写脚本制作。普通编写不生成具体工具步骤；已有工具参数保留在高级选项中。</p><div id="prompt-ai-sources" class="muted"></div><p id="prompt-ai-status" role="status"></p><label>AI 候选建议<textarea id="prompt-ai-candidate" rows="4" maxlength="60000" placeholder="建议显示在这里，不会自动覆盖表单。"></textarea></label><div class="ai-actions"><button id="prompt-ai-apply" type="button" disabled>采用 AI 建议</button><button id="prompt-ai-reset" type="button">使用参数生成稿</button></div></section></div><div id="project" class="tab" hidden><h2>先确定空间，再安排细节</h2><p id="project-intro" class="muted">用于首次创建模型，选择形状自动填写尺寸与归档路径。</p><div id="project-fields" class="fields"></div></div>
-<div id="tools" class="tab" hidden><h2>按顺序组合工具</h2><p class="muted">新旧工具均可选。支持逐项参数编辑、排序和高级 JSON；仅生成文本与计划。</p><div class="add"><select id="kind" aria-label="工具类型"></select><button id="add">＋ 添加步骤</button></div><div id="operations"></div></div>
-<div id="context" class="tab" hidden><h2>真实模型的验证依据</h2><p class="muted">保护体积、玩家脚位、必要目标、腔体与相机使用真实坐标。留空会在提示词中标为待补齐。此草案不是已通过的检查。</p><label>上下文 JSON<textarea id="context-json" spellcheck="false" rows="24"></textarea></label><p id="context-error" class="error"></p></div>
-<div class="editor-storage"><span>当前方案</span><button id="left-read" type="button" hidden>读取方案</button><button id="left-save" type="button" class="primary">保存任务到工作区</button></div></section><section class="output"><div class="output-head"><div><small>LIVE OUTPUT</small><h2>完整任务提示词</h2></div><div class="output-buttons"><button id="copy" class="primary">复制提示词</button></div></div><div id="status" role="status"></div><div class="downloads"><button id="markdown">下载 .md</button><button id="plan">下载计划 JSON</button><button id="config">下载上下文草案</button></div><div id="output-mode"></div><div id="prompt-task-handoff" hidden><p id="prompt-task-state" role="status"></p><code id="prompt-task-command"></code><button id="prompt-task-copy" type="button">复制 Agent 读取命令</button></div><textarea id="result" readonly aria-label="生成的完整提示词" spellcheck="false"></textarea><footer>本页不执行建模或精修。AI 为桌面版可选功能，仅显式生成时联网；参数编辑与提示词导出可离线使用。页面参数校验不替代后端、看图确认与游戏验收。有效提示词会自动导出到工作区的对应建筑目录；原稿与历史修订保留。独立网页可手动下载。</footer></section></main><script src="catalog.js"></script><script src="core.js"></script><script src="ai-input.js"></script><script src="autosave.js"></script><script src="app.js"></script></body></html>
+<html lang="zh-CN">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>NBTCreator · 创作方案</title>
+ <link rel="stylesheet" href="design-tokens.css"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="theme.css">
+</head>
+<body>
+ <header><div><h1>创作方案</h1><p>把建筑想法写成提示词，审查后交给建造助手。</p></div><div class="actions"><button id="import">导入方案</button><input id="file" type="file" accept=".json" hidden><button id="save">下载方案</button><button id="reset">另起一份</button></div></header>
+ <div id="planning-heading"><div><strong>创作方案</strong><span>描述想法 <i>›</i> AI 编写 <i>›</i> 审查修改 <i>›</i> 交接制作</span></div><button id="prompt-output-toggle" type="button" aria-expanded="false">查看完整提示词</button></div>
+ <main>
+  <aside id="prompt-queue" aria-label="提示词列表">
+   <div class="queue-heading"><h2>提示词列表</h2><span id="prompt-queue-count">0 条</span></div>
+   <div class="queue-actions"><button id="prompt-add" type="button">＋ 新增一条</button><button id="prompt-batch-open" type="button">批量编写</button></div>
+   <p class="queue-intro">每条提示词对应一座建筑，可以分别修改和交接。</p>
+   <div id="prompt-queue-list" role="list"></div>
+   <footer class="queue-footer"><p id="prompt-queue-progress" role="status"></p><button id="prompt-publish-reviewed" type="button">交接已审查的提示词</button><p>交接后，由你在外部助手中手动触发 Skill，批量读取任务。</p></footer>
+  </aside>
+  <section class="editor">
+   <div class="document-heading"><div><small id="prompt-document-number">当前提示词</small><h2 id="prompt-document-title">编写建筑要求</h2></div><span id="prompt-review-state" class="review-state">待审查</span></div>
+   <nav aria-label="提示词编辑"><button data-tab="ai" class="active">AI 编写</button><button data-tab="project">审查与修改</button><button id="prompt-advanced-toggle" type="button" aria-expanded="false">高级选项</button></nav>
+   <nav id="prompt-advanced-tabs" hidden><button data-tab="tools">建造步骤 <span id="count">0</span></button><button data-tab="context">保护与通行</button></nav>
+   <div id="ai" class="tab">
+    <section id="prompt-ai-panel" class="ai-workbench">
+     <div class="ai-workbench-heading"><h2>先说说你想建什么</h2><span id="prompt-ai-indicator">正在读取 AI 连接</span></div>
+     <p class="muted">描述用途、空间、风格和你在意的细节。AI 编写设计要求，你再审查修改。</p>
+     <label>编写方式<select id="prompt-ai-mode"><option value="draft">编写一座新建筑的设计要求</option><option value="controls" hidden>高级：调整建造步骤</option><option value="text">润色当前建筑的设计说明</option></select></label>
+     <label>建筑想法<textarea id="prompt-ai-instruction" rows="5" maxlength="4000" placeholder="例如：一座依山而建的旧水渠工坊。底层有水轮和加工区，上层有检修平台；入口能看到主工作台，石墙局部长苔，保留顺畅的参观动线。"></textarea></label>
+     <div class="ai-actions"><button id="prompt-ai-generate" type="button" class="primary">生成这条提示词</button><button id="prompt-ai-cancel" type="button" disabled>停止生成</button><button id="prompt-ai-references" type="button">查找参考素材</button><button id="prompt-ai-settings" type="button">设置 AI 连接</button></div>
+     <div id="prompt-ai-sources" class="muted"></div><p id="prompt-ai-status" role="status"></p>
+     <section id="prompt-ai-proposal" hidden><div class="proposal-heading"><h3>AI 写好的设计要求</h3><span>可直接修改下面的文字</span></div><div id="prompt-ai-review" class="fields"></div><details id="prompt-ai-raw"><summary>查看原始数据（高级）</summary><label>AI 返回内容<textarea id="prompt-ai-candidate" rows="8" maxlength="60000" spellcheck="false"></textarea></label></details><div class="ai-actions"><button id="prompt-ai-apply" type="button" disabled>采用并继续审查</button><button id="prompt-ai-reset" type="button">使用手工填写的要求</button></div></section>
+    </section>
+   </div>
+   <div id="project" class="tab" hidden><h2>审查这座建筑的要求</h2><p id="project-intro" class="muted">按你的设计意图修改，改动会自动保存。</p><div id="project-fields" class="fields"></div></div>
+   <div id="tools" class="tab" hidden><h2>建造步骤（可选）</h2><p class="muted">已经确定做法时再填写；也可以交给建造助手根据设计要求安排。</p><div class="add"><select id="kind" aria-label="建造工具"></select><button id="add">＋ 添加步骤</button></div><div id="operations"></div></div>
+   <div id="context" class="tab" hidden><h2>保护区域与通行要求</h2><p class="muted">保留门口、通路和结构支撑。下面的坐标由助手对照实际建筑补齐；新建筑可以暂时留空。</p><label>坐标配置（高级）<textarea id="context-json" spellcheck="false" rows="20"></textarea></label><p id="context-error" class="error"></p></div>
+   <div class="editor-storage"><span id="prompt-editor-save-state">修改后自动保存</span><button id="left-read" type="button" hidden>读取方案</button><button id="prompt-review" type="button">这条已审查</button><button id="prompt-next" type="button" class="primary">生成下一条</button></div>
+  </section>
+  <section class="output" aria-label="完整提示词与交接">
+   <div class="output-head"><div><small>建造助手将收到的内容</small><h2>完整提示词</h2></div><button id="prompt-output-close" type="button" aria-label="关闭完整提示词">返回编辑</button></div>
+   <p class="muted">设计要求与制作规则会一起交接；AI 编写和审查阶段只保存提示词。</p>
+   <div id="status" role="status"></div><div id="output-mode"></div>
+   <textarea id="result" readonly aria-label="生成的完整提示词" spellcheck="false"></textarea>
+   <div class="output-buttons"><button id="copy">复制完整提示词</button><button id="left-save" type="button" class="primary">确认并交接这条</button></div>
+   <div id="prompt-task-handoff" hidden><p id="prompt-task-state" role="status"></p><details><summary>让外部助手读取任务</summary><p>在助手对话中手动调用工作区 Skill；可用下面的命令读取这条任务。</p><code id="prompt-task-command"></code><button id="prompt-task-copy" type="button">复制读取命令</button></details></div>
+   <details class="downloads"><summary>下载文件与配置</summary><div><button id="markdown">提示词 .md</button><button id="plan">建造步骤 JSON</button><button id="config">保护配置草案</button></div></details>
+   <footer>提示词修改会自动保存到项目目录。外部助手完成建造后，回到建筑库查看、标注，再继续修改。</footer>
+  </section>
+ </main>
+ <dialog id="prompt-batch-dialog"><form method="dialog" class="batch-heading"><div><h2>批量编写建筑提示词</h2><p>先生成一组草稿，再逐条审查。每座建筑独立保存。</p></div><button id="prompt-batch-close" aria-label="关闭批量编写">关闭</button></form><label>共同的风格与要求<textarea id="prompt-batch-common" maxlength="4000" rows="3" placeholder="例如：同一座山城的配套建筑，石砖与深色木构，尺度朴素，保留清楚的出入口。"></textarea></label><label>建筑清单（每行一座，最多 20 座）<textarea id="prompt-batch-items" maxlength="20000" rows="7" placeholder="水渠工坊｜底层加工区，上层检修平台&#10;沿街茶馆｜一层大堂，二层雅间，临街有檐廊&#10;山门｜双塔连接门楼，预留商队通行空间"></textarea></label><p class="muted">可写“建筑名｜单独要求”。生成的草稿不会自动交给外部助手。</p><p id="prompt-batch-status" role="status"></p><div class="batch-actions"><button id="prompt-batch-add" type="button">只添加到列表</button><button id="prompt-batch-generate" type="button" class="primary">添加并批量生成</button></div></dialog>
+ <script src="catalog.js"></script><script src="core.js"></script><script src="ai-input.js"></script><script src="autosave.js"></script><script src="workspace.js"></script><script src="app.js"></script>
+</body></html>

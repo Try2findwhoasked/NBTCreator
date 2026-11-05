@@ -112,7 +112,7 @@ async function boot(){
   clipboard.writeText(text);return true
  })
  ipcMain.handle('nbt:info',event=>{allowed(event);return {version:app.getVersion(),workspace,python,frontend,skill:'.agents/skills/nbtcreator-workspace/SKILL.md',migration:'shared-engine'}})
- ipcMain.handle('nbt:source',async event=>{allowed(event);const result=await dialog.showOpenDialog(window,{title:'选择完整 NBT 或主模型',properties:['openFile'],filters:[{name:'NBT / Master',extensions:['nbt','gz']}]});return result.canceled?null:result.filePaths[0]})
+ ipcMain.handle('nbt:source',async event=>{allowed(event);const result=await dialog.showOpenDialog(window,{title:'选择 SNBT、NBT 或旧主模型',properties:['openFile'],filters:[{name:'SNBT / NBT / Master',extensions:['snbt','nbt','gz']}]});return result.canceled?null:result.filePaths[0]})
  let switchingWorkspace=false
  ipcMain.handle('nbt:workspace',async event=>{
   allowed(event);const selection=await dialog.showOpenDialog(window,{title:'选择项目根目录或nbt_models（自动识别）',defaultPath:workspace,properties:['openDirectory','createDirectory']})

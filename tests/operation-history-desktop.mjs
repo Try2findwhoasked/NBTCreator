@@ -17,7 +17,7 @@ try{
  app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000})
  const page=await app.firstWindow();await minimizedScreenshots(app,page);const errors=[];page.on('pageerror',error=>errors.push(error.message));page.setDefaultTimeout(60000)
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy)
- await page.getByRole('button',{name:'建模工具',exact:true}).evaluate(el=>el.click());await page.locator('#auto-preview').uncheck()
+ await page.locator('#tool-tabs [data-tool-index="8"]').evaluate(el=>el.click());await page.locator('#auto-preview').uncheck()
  assert.equal(await page.locator('#operation-sequence').isVisible(),false);assert.equal(await page.locator('.operation-row').count(),0);checks.compact_list_and_advanced_json=true
  const activate=selector=>page.locator(selector).evaluate(el=>el.click())
  async function add(name,state){await page.locator('#operation-kind').selectOption('box');await activate('#operation-add');const row=page.locator('.operation-row').last();await row.locator('details').evaluate(el=>el.open=true);await row.locator('textarea').fill(JSON.stringify({kind:'box',label:name,classification:'body',lo:[10,4,10],hi:[10,6,10],state}));await row.getByRole('button',{name:'应用本步骤参数'}).evaluate(el=>el.click())}

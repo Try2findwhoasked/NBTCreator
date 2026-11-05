@@ -6,7 +6,7 @@ export function initDesktop(loadSource){
  const source=document.createElement('button');source.type='button';source.textContent='打开 NBT / 主模型…';source.id='desktop-source'
  const info=document.createElement('p');info.className='muted';info.id='desktop-workspace-label'
  async function show(){const data=await window.nbtDesktop.info();info.textContent='工作区：'+data.workspace;info.title=data.workspace}
- workspace.onclick=async()=>{try{await window.nbtDesktop.chooseWorkspace();await show()}catch(e){info.textContent=e.message}}
+ workspace.onclick=async()=>{try{await window.nbtFeedbackAutosave?.flush();await window.nbtDesktop.chooseWorkspace();await show()}catch(e){info.textContent=e.message}}
  source.onclick=async()=>{try{const file=await window.nbtDesktop.chooseSource();if(file)await loadSource(file)}catch(e){info.textContent=e.message}}
  const workspaceMenu=document.getElementById('project-workspace-menu-content')
  if(workspaceMenu){host.append(source);document.getElementById('project-native-actions').prepend(host);workspaceMenu.append(workspace,info);source.textContent='打开 NBT…'}

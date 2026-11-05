@@ -1,16 +1,16 @@
 // UI commands contain only fixed navigation/controls. Modelling tools remain in tool-catalog.json.
 export const toolPanels=[
- ['整体效果',0],['修改范围',4],['建筑取材',6],['结构编辑',7],['建模工具',8],
- ['AI建模',9],['自动道路',10],['精确换块',5],['方块混搭',1],['自动地面',3],['长苔与裂纹',2]
+ ['整体效果',0],['作用范围',4],['吸取材质',6],['区域编辑',7],['建造步骤',8],
+ ['AI 构件',9],['铺设道路',10],['替换方块',5],['材质混搭',1],['地面破损',3],['苔藓与裂纹',2]
 ]
 export function commandDefinitions(catalog){
- const workspaces=[['project','项目管理'],['assets','资产管理'],['prompt','提示词方案'],['model','模型编辑'],['ai','AI 助手'],['tasks','任务记录']]
+ const workspaces=[['project','建筑库'],['assets','素材库'],['prompt','创作方案'],['model','建筑编辑'],['ai','AI 助手'],['tasks','运行记录']]
  return [
   {id:'commands.open',label:'搜索命令与工具',group:'应用',shortcut:'Ctrl+KeyK'},
   {id:'settings.open',label:'打开设置',group:'应用',target:'open-settings',shortcut:'Ctrl+Comma'},
   ...workspaces.map(([workspace,label],i)=>({id:'workspace.'+workspace,label,group:'工作区',workspace,shortcut:'Alt+Digit'+(i+1)})),
-  ...toolPanels.map(([label,index])=>({id:'panel.'+index,label,group:'参数面板',panel:index,workspace:'model'})),
-  ...Object.entries(catalog.tools).map(([kind,[label,,hint]])=>({id:'operation.'+kind,label:'添加：'+label,group:'建模工具步骤',kind,description:hint,workspace:'model',model:true})),
+  ...toolPanels.map(([label,index])=>({id:'panel.'+index,label,group:'建造工具',panel:index,workspace:'model'})),
+  ...Object.entries(catalog.tools).map(([kind,[label,,hint]])=>({id:'operation.'+kind,label:'添加：'+label,group:'建造步骤',kind,description:hint,workspace:'model',model:true})),
   ...[
    ['preview.update','更新效果预览','update-preview','Ctrl+Shift+KeyU'],
    ['preview.validate','检查当前效果','validate-preview'],

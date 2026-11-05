@@ -7,18 +7,20 @@ import {checkboxFilter} from './project-filters.js'
 import {initLibraryBrowser} from './library-browser.js'
 import {floatingDetails,chevron} from './floating-panel.js'
 import {initProjectBatch} from './project-batch.js'
+import {initBuildingHistory} from './building-history.js'
 
 // Browsing and read-only previews never change the editor's selected source.
-export function initProjectManager({api,openModel,isBusy,setBusy,refresh}){
+export function initProjectManager({api,openModel,isBusy,setBusy,refresh,historyContext=()=>null,historyCompare=()=>{}}){
  const host=document.createElement('section');host.id='project-workspace';host.hidden=true
  host.innerHTML=`<header class="project-heading"><div><h1>项目管理</h1><p>浏览当前工作区的建筑，预览后进入模型编辑。</p></div><div id="project-native-actions"></div></header>
  <div class="project-toolbar"><label class="project-search">查找建筑<input id="project-search" type="search" placeholder="建筑名、项目、版本或路径"></label><button id="project-refresh" type="button">刷新建筑库</button></div>
  <div class="project-layout"><aside id="project-tree" aria-label="项目、形状与对象"></aside><main class="project-library"><div class="project-filters" id="project-filter-controls"><button id="project-clear" type="button">重置筛选</button></div><p id="project-count" class="muted" role="status"></p><p id="project-loading" role="status">正在读取建筑库…</p><p id="project-breadcrumb"></p><div id="project-grid" class="project-grid"></div><button id="project-more" type="button" hidden>加载更多</button><p id="project-status" role="status"></p></main></div>`
  document.querySelector('.creator-header').after(host)
  const dialog=document.createElement('dialog');dialog.id='project-preview-dialog'
- dialog.innerHTML='<header><div><h2 id="project-preview-title">建筑预览</h2><p id="project-preview-meta"></p></div><button id="project-preview-close" type="button" aria-label="关闭建筑预览">关闭</button></header><div class="project-preview-stage"><img id="project-preview-image" alt="建筑预览" hidden><iframe id="project-preview-3d" title="项目建筑只读3D预览" src="about:blank" hidden></iframe><p id="project-preview-status" role="status"></p></div><footer><span>只读预览，进入模型编辑后可标注和调整。</span><button id="project-preview-render" type="button">打开 3D 预览</button><button id="project-preview-edit" class="primary" type="button">进入模型编辑</button></footer>'
+ dialog.innerHTML='<header><div><h2 id="project-preview-title">建筑预览</h2><p id="project-preview-meta"></p></div><button id="project-preview-close" type="button" aria-label="关闭建筑预览">关闭</button></header><div class="project-preview-stage"><img id="project-preview-image" alt="建筑预览" hidden><iframe id="project-preview-3d" title="项目建筑只读3D预览" src="about:blank" hidden></iframe><p id="project-preview-status" role="status"></p></div><footer><span>这里仅供查看。打开编辑器后可以调参、标注和保存新版本。</span><button id="project-preview-render" type="button">打开 3D 预览</button><button id="project-preview-edit" class="primary" type="button">进入模型编辑</button></footer>'
  document.body.append(dialog)
  const $=id=>document.getElementById(id),covers=new Map()
+ const history=initBuildingHistory({api,openModel,refresh,isBusy,context:historyContext,compare:historyCompare})
  let thumbnailRun=null
  let treeModels=null,treeShowDiscarded=false,batch=null,workspaces=null,visibleModels=[]
  let models=[],workspace='',limit=24,generation=0,selected=null,previewGeneration=0,previewBusy=false,object='',catalogLoading=true,latest=new Set(),coverQueue=[],activeCovers=0,searchTimer
@@ -31,7 +33,7 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh}){
  const filters={project:addFilter('project-filter','项目',[],['all']),shape:addFilter('project-shape','形状',[],['all']),stage:addFilter('project-stage','创作阶段',Object.entries(stageLabels),DEFAULT_PROJECT_STAGES),version:addFilter('project-version','版本范围',[['latest','最新版本'],['older','历史版本'],['intermediate','中间稿']],['latest']),readability:addFilter('project-readability','文件状态',[['readable','已检查可打开'],['unverified','待检查'],['unreadable','无法读取']],['all'])}
  $('project-filter-controls').append($('project-clear'))
  const native=$('project-native-actions'),workspaceMenu=document.createElement('details');workspaceMenu.id='project-workspace-menu';workspaceMenu.className='library-filter-menu';workspaceMenu.innerHTML='<summary>工作区'+chevron+'</summary><div id="project-workspace-menu-content" class="library-workspace-panel"><p>切换整个项目目录。当前目录中的建筑、构件、Skill 与应用配置一起使用。</p></div>';native.append(workspaceMenu)
- const library=initLibraryBrowser({host,prefix:'project',title:'项目管理',description:'按项目、形状与对象浏览建筑。点击卡片进入模型编辑；“预览”先打开只读视图。筛选支持组合选择，废稿默认隐藏。工作区路径和切换入口收在右上的“工作区”中。',search:$('project-search'),refresh:$('project-refresh'),actions:native,filters:$('project-filter-controls'),tree:$('project-tree'),main:host.querySelector('.project-library'),count:$('project-count'),breadcrumb:$('project-breadcrumb'),loading:$('project-loading')})
+ const library=initLibraryBrowser({host,prefix:'project',title:'建筑库',description:'点击建筑卡片开始编辑，或先点“预览”查看。左侧切换项目，顶部可搜索名称和筛选版本；已弃用的草稿默认隐藏。“工作区”用于选择另一整个项目文件夹。',search:$('project-search'),refresh:$('project-refresh'),actions:native,filters:$('project-filter-controls'),tree:$('project-tree'),main:host.querySelector('.project-library'),count:$('project-count'),breadcrumb:$('project-breadcrumb'),loading:$('project-loading')})
  const thumbnails=document.createElement('button');thumbnails.id='project-generate-thumbnails';thumbnails.type='button';thumbnails.textContent='生成缩略图';library.toolbar.append(thumbnails)
  thumbnails.onclick=async()=>{
   if(thumbnailRun){thumbnailRun.cancelled=true;thumbnails.textContent='正在停止…';return}
@@ -116,6 +118,7 @@ batch?.decorate(card,item);workspaces?.decorate(card,item);$('project-grid').app
   library.main.scrollTop=scrollTop
  }
  function showManagement(item,content){
+  if(!content.querySelector('.project-history-open')){const open=document.createElement('button');open.type='button';open.className='project-history-open';open.textContent='查看建筑版本历史';open.onclick=()=>{document.getElementById('project-manage-dialog')?.close();history.open(item.source)};content.append(open)}
   if(isBusy()){message('请等待当前任务完成');return}
   const old=document.getElementById('project-manage-dialog');if(old){old.close();old.remove()}const d=document.createElement('dialog');d.id='project-manage-dialog';d.className='review-help-dialog';const title=document.createElement('h3');title.textContent='管理：'+(item.object_name||item.name_zh||item.name);const hint=document.createElement('p');hint.textContent='选择后自动保存。菜单只影响列表管理，不移动文件。';const details=document.createElement('details'),summary=document.createElement('summary'),path=document.createElement('p');summary.textContent='文件位置与版本';path.className='path';path.textContent=[item.source,item.version].filter(Boolean).join(' · ');details.append(summary,path);const status=document.createElement('p');status.id='project-manage-status';status.setAttribute('role','status');const close=document.createElement('button');close.id='project-manage-close';close.textContent='完成';close.onclick=()=>{d.close();d.remove()};d.append(title,hint,content,details,status,close);d.addEventListener('close',()=>d.remove());document.body.append(d);d.showModal()
  }

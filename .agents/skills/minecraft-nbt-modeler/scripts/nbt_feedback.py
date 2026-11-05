@@ -148,6 +148,8 @@ def version_source(version):
             return Path(candidates.pop())
         if len(candidates) > 1:
             raise ValueError('此版本索引包含多个源，请用 --source 指定')
+    snbt=version/'master/model.snbt'
+    if snbt.is_file():return snbt
     master = version/'master/master_geometry.json.gz'
     if master.is_file():
         return master

@@ -21,7 +21,7 @@ try{
  const page=await app.firstWindow(),errors=[];await minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(60000)
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy&&window.detailControl.state.mode==='3d')
  assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized()),true);checks.minimized_window=true
- await page.getByRole('button',{name:'修改范围',exact:true}).click();await page.locator('#whole-region').uncheck()
+ await page.locator('#tool-tabs [data-tool-index="4"]').evaluate(e=>e.click());await page.locator('#whole-region').uncheck()
  for(const axis of ['x','y','z']){await page.locator('#lo-'+axis).fill(axis==='y'?'4':'10');await page.locator('#hi-'+axis).fill(axis==='y'?'7':'10')}
  await page.locator('#viewport-assets').click();await page.locator('#save-selection-asset').click();await page.locator('#asset-save-name').fill('合成木柱');await page.locator('#asset-save-tags').fill('支承, 木构');await page.locator('#asset-save-confirm').click()
  await page.waitForFunction(()=>document.body.dataset.workspace==='assets'&&document.querySelectorAll('.asset-card').length===1)

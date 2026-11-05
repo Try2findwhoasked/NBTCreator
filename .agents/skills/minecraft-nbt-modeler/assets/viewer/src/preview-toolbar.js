@@ -1,4 +1,3 @@
-import './preview-toolbar.css'
 import {chevron} from './floating-panel.js'
 const paths={image:'M3 4h14v12H3z M4 13l4-4 3 3 2-2 4 4 M13 7h.01',cube:'m10 2 7 4v8l-7 4-7-4V6z M3 6l7 4 7-4 M10 10v8',pick:'m11 3 6 6 M13 2l5 5-9 9-5 1 1-5z M4 17l-2 2',comment:'M3 3h14v11H9l-5 4v-4H3z M6 7h8 M6 10h5',asset:'M3 4h5l2 2h7v10H3z M10 9v5 M7.5 11.5h5'}
 function icon(name){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 20 20');svg.setAttribute('aria-hidden','true');svg.innerHTML=`<path d="${paths[name]}"/>`;return svg}

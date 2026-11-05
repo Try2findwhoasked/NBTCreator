@@ -42,6 +42,9 @@ def version_root(master):
 @lru_cache(maxsize=1024)
 def _state(value):return normalize(value)
 def read_geometry(file):
+ if Path(file).suffix.lower()=='.snbt':
+  from nbt_snbt import read_snbt
+  model,walls=read_snbt(file);return model,walls,sorted({(x//48,z//48) for x,y,z in model.blocks})
  with gzip.open(file,'rt',encoding='utf8') as stream:data=json.load(stream)
  size=data['size'];assert len(size)==3 and all(type(n) is int and n>0 for n in size),'主模型size无效'
  model=Volume(size);blocks={}
@@ -137,7 +140,7 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
  name,name_source=chinese_name(unit);result.update(name_zh=name,name_source=name_source)
  def rank(p):
   n=p.name
-  return (n=='master_geometry.json.gz' or n.endswith('_master_geometry.json.gz'),not n.startswith(('pre_','sealed_','source.')),p.stat().st_mtime_ns)
+  return (p.suffix.lower()=='.snbt',n=='master_geometry.json.gz' or n.endswith('_master_geometry.json.gz'),not n.startswith(('pre_','sealed_','source.')),p.stat().st_mtime_ns)
  candidates=sorted(masters,key=rank,reverse=True)
  selected=None
  for p in candidates:
@@ -287,4 +290,17 @@ if __name__=='__main__':
  new=sub.add_parser('new');new.add_argument('--workspace',type=Path,default=Path.cwd());new.add_argument('--name-zh',required=True);new.add_argument('--shape',required=True,choices=LABELS)
  reg=sub.add_parser('register');reg.add_argument('--master',type=Path,required=True);reg.add_argument('--name-zh',required=True)
  args=parser.parse_args()
- print(json.dumps(dict(output=str(new_project(args.workspace,args.name_zh,args.shape)))) if args.command=='new' else json.dumps(register_building(args.master,args.name_zh),ensure_ascii=False))
+ if args.command=='new':result=dict(output=str(new_project(args.workspace,args.name_zh,args.shape)))
+ else:
+  from nbt_refine import read_master
+  from nbt_snbt import save_snbt
+  source=args.master.resolve()
+  if source.suffix.lower()!='.snbt':
+   model,walls=read_master(source);authored=source.parent/'model.snbt'
+   if authored.exists() and read_master(authored)[0].fingerprint()!=model.fingerprint():raise ValueError('制作源已存在不同内容，请另建版本后再登记')
+   if not authored.exists():save_snbt(authored,model,walls)
+   source=authored
+  result=register_building(source,args.name_zh)
+  from nbt_history import record_produced_version,source_workspace
+  result['history']=record_produced_version(source_workspace(source),source,message='登记 SNBT 制作源',actor='import')
+ print(json.dumps(result,ensure_ascii=False))

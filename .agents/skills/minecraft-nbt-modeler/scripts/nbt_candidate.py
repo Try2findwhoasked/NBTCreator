@@ -79,7 +79,10 @@ def validate_candidate(request, snapshot, output):
 
         def mask():
             declared='wall_positions' in config
-            if source.suffix.lower()!='.nbt':
+            if source.suffix.lower()=='.snbt':
+                from nbt_snbt import explicit_walls
+                declared|=explicit_walls(source)
+            elif source.suffix.lower()!='.nbt':
                 declared|='wall_positions' in json.loads(gzip.decompress(source.read_bytes()))
             if not declared:
                 raise ValueError('缺少显式墙层归属；请提供主模型 wall_positions 或坐标配置，不按材质猜墙')

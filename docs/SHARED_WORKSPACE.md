@@ -1,5 +1,7 @@
 # 桌面与Agent共用工作区
 
+新制作源使用 SNBT，定稿 NBT 位于 `nbt_models/_exports/` 下与建筑／版本一致的镜像目录。专用 Git 历史位于 `.nbtcreator/history/`，与用户项目自己的 Git 独立。完整迁移需同时携带模型目录和历史归档；版本链、当前工作版、任务与批注关联通过 `history` CLI 与界面共用，真实批准和人工核对保持独立。
+
 NBTCreator继续使用原minecraft-nbt-modeler的模型与导出协议。主模型JSON.GZ、显式墙mask、room_description.json、coordinates/cameras、runtime分片、body/walls分层和delivery/validation清单不因Electron或AI接入而改为另一种格式。提示词方案的AI稿是额外文本元数据，不改变模型格式。
 
 ## 对齐目录和工具版本
@@ -42,6 +44,6 @@ Agent自主精修继续要求真实看图确认；用户手动调整的明确导
 
 ## 评论和候选校验
 
-工作台保存/导出评论会更新当前结构版本的 `修改意见/评论索引.json`，证据保存在版本内按哈希归档。Agent 使用 `nbt.py feedback scan/collect` 发现并验证意见，`nbt.py paths` 查询当前工具API位置。
+工作台在输入停顿后自动将文字和选点更新为正式标注，JSON、`修改意见/评论索引.json` 与哈希绑定的证据直接保存在被标注的结构版本目录内。继续输入更新同一条；“下一条标注”或 Ctrl+Enter 开始另一条。旧目录意见继续可读，首次修改时迁入版本目录并保留原文件。Agent 由人工手动触发 `nbt.py feedback scan/collect` 发现并验证意见；任务和批注接口保持分离。`nbt.py paths` 可查询当前工具API位置。
 
 预览后使用应用“检查当前效果”或 `nbt.py validate --request <参数JSON> --snapshot <after.json> --output <新目录>` 检查同一候选。计划planned、预览出图和候选通过是三个不同阶段；校验失败有独立报告，参数改变需重新检查。独立建筑使用显式mode/openings和XYZ真实边块，SAODG仍保留原cells/端口规则。

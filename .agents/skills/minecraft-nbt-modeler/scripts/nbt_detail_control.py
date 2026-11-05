@@ -69,9 +69,9 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
             if not ready and not quarantined:dirs[:]=[];continue
         dirs[:] = [name for name in dirs if not (name.startswith(('.', 'synthetic', 'test_')) or
                     any(word in name.lower() for word in ('validation', 'fixture', 'cache', 'control_web', 'regression')) or
-                    (name=='bugged' and not include_bugged) or name in {'_migration','_workspaces','_tests','world', 'worlds', 'saves', 'node_modules', 'previews', 'jobs', 'review','delivery','layers'})]
-        files.extend(Path(directory)/name for name in names if (name.lower().endswith('.json.gz') and 'master' in name.lower()) or name.lower().endswith('.nbt'))
-    files.sort(key=lambda p: (p.suffix.lower()=='.nbt',-p.stat().st_mtime_ns,str(p)))
+                    (name=='bugged' and not include_bugged) or name in {'_exports','_migration','_workspaces','_tests','world', 'worlds', 'saves', 'node_modules', 'previews', 'jobs', 'review','delivery','layers'})]
+        files.extend(Path(directory)/name for name in names if (name.lower().endswith('.json.gz') and 'master' in name.lower()) or name.lower().endswith(('.nbt','.snbt')))
+    files.sort(key=lambda p: (p.suffix.lower()!='.snbt',p.suffix.lower()=='.nbt',-p.stat().st_mtime_ns,str(p)))
     cache_path = Path(cache_path) if cache_path else root/('_workspaces/catalog_metadata_index.json' if index_only else '_workspaces/catalog_metadata_projects.json' if include_bugged else '_workspaces/catalog_metadata.json')
     try: cache = read_json(cache_path)
     except (OSError, ValueError):
@@ -100,19 +100,18 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
             entry=cache.get(str(p))
             if entry and entry.get('stamp')==stamp:
                 data=entry['metadata'];cache_hits+=1
-            elif bugged:
+            elif bugged or index_only:
                 # Quarantine can contain thousands of old NBT exports. Index it
                 # without constructing every volume; inspect on explicit open.
                 with p.open('rb') as stream:
-                    if stream.read(2)!=b'\x1f\x8b':raise ValueError('文件不是有效的 gzip NBT / 主模型，无法读取')
-                data=dict(geometry_sha256=None,size=declaration.get('size') if descriptor else None,unverified=True)
-            elif index_only:
-                with p.open('rb') as stream:
-                    if stream.read(2)!=b'\x1f\x8b':raise ValueError('文件不是有效的 gzip NBT / 主模型，无法读取')
-                data=dict(geometry_sha256=declaration.get('geometry_sha256') if descriptor else None,size=declaration.get('size') if descriptor else None,unverified=True)
+                    if p.suffix.lower()=='.snbt':
+                        header=stream.read(4096).decode('utf-8-sig')
+                        if not header.lstrip().startswith('{'):raise ValueError('文件不是有效的 SNBT 结构文本，无法读取')
+                    elif stream.read(2)!=b'\x1f\x8b':raise ValueError('文件不是有效的 gzip NBT / 主模型，无法读取')
+                data=dict(geometry_sha256=declaration.get('geometry_sha256') if descriptor and not bugged else None,size=declaration.get('size') if descriptor else None,unverified=True)
             elif descriptor and declaration.get('audit',{}).get('compliant') is True and declaration.get('master_file_sha256') and declaration.get('geometry_sha256') and digest(p)==declaration['master_file_sha256']:
                 data={'geometry_sha256':declaration['geometry_sha256'], 'size':declaration.get('size')};cache_hits+=1
-            elif p.suffix.lower()=='.nbt':
+            elif p.suffix.lower() in {'.nbt','.snbt'}:
                 loaded,_=read_master(p)
                 data={'geometry_sha256':loaded.fingerprint(),'size':list(loaded.size)}
             else:
@@ -740,6 +739,7 @@ def main():
     cmd = sub.add_parser('protection-mask');cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('walk-inspect');cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
     cmd = sub.add_parser('agent-tasks');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['create','list','get','discover','record','review'],required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('history');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','get','record','current','derive','finalize'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('retrieve');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['search','source','bundle','read'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('selection-edit');cmd.add_argument('--action',choices=['context','compile'],required=True);cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
     cmd = sub.add_parser('thumbnails'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--cache',type=Path,required=True)
@@ -747,6 +747,7 @@ def main():
     cmd = sub.add_parser('prompt'); cmd.add_argument('--request', type=Path, required=True)
     cmd = sub.add_parser('prompt-save');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('prompt-publish');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('prompt-library');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('batches');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['create','import','list','get','record','run','ack','locate','discover'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('feedback-tasks');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','create','update','merge','evidence'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('validate'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True)
@@ -782,6 +783,17 @@ def main():
         elif args.command == 'prompt-publish':
             from nbt_prompts import publish
             data=read_json(args.request);result=publish(args.workspace,data['index'],data['id'],data['revision'])
+        elif args.command == 'prompt-library':
+            from nbt_prompts import scan,read_prompt,load_tasks
+            data=read_json(args.request)
+            if data.get('action')=='read':result=read_prompt(args.workspace,data['index'],data['id'])
+            elif data.get('action')=='list':
+                result=scan(args.workspace);seen=set();items=[];published=load_tasks(args.workspace)['records']
+                for item in result['items']:
+                    if item['kind']!='workbench' or item['id'] in seen:continue
+                    seen.add(item['id']);item['published_task']=next((dict(id=task['id'],directory=task['directory']) for task in reversed(published) if task.get('archive_id')==item['id'] and task['revision']==item['revision']),None);items.append(item)
+                result.update(items=items,workspace=str(args.workspace.resolve()))
+            else:raise ValueError('未知提示词列表操作')
         elif args.command == 'batches':
             from nbt_batches import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request))
@@ -802,6 +814,9 @@ def main():
             result['report_file']=str(output/'walk-inspection.json')
         elif args.command == 'agent-tasks':
             from nbt_agent_tasks import dispatch
+            result=dispatch(args.workspace,args.action,read_request(args.request))
+        elif args.command == 'history':
+            from nbt_history import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request))
         elif args.command == 'retrieve':
             from nbt_retrieval import dispatch

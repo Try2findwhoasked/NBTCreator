@@ -61,7 +61,7 @@ def discover(workspace,data):
     for folder,dirs,files in os.walk(root):
         dirs[:]=[name for name in dirs if name not in {'Agent交接','修改意见','delivery','runtime','parts','previews','validation','.git'} and not (Path(folder)/name).is_symlink()]
         for name in files:
-            if not (name.endswith('.master.json.gz') or name in ('master_geometry.json.gz','refined.master.json.gz')):continue
+            if not (name.lower().endswith(('.master.json.gz','.snbt')) or name in ('master_geometry.json.gz','refined.master.json.gz')):continue
             path=inside(workspace,Path(folder)/name)
             if path==source or project_paths(path)['version']==base_version or relative(workspace,path) in known:continue
             stat=path.stat();items.append(dict(source=relative(workspace,path),absolute_source=str(path),modified_ns=str(stat.st_mtime_ns),bytes=stat.st_size,status='unregistered_candidate',verified=False))
@@ -135,7 +135,12 @@ def dispatch(workspace,action,request):
                 if not isinstance(note,str) or len(note)>4000:raise ValueError('核对备注最多4000字')
                 entry['review'][key]=dict(state=request['state'],note=note,updated_at=now())
             else:raise ValueError('未知Agent任务操作')
-        commit(workspace,file,index,data,action);return output(workspace,data)
+        commit(workspace,file,index,data,action)
+        result=output(workspace,data)
+        if action=='record':
+            from nbt_history import record_produced_version
+            result['version_history']=record_produced_version(workspace,target,parent=source,message=summary,actor='external_agent',tasks=['agent:'+data['id']],set_current=False)
+        return result
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['create','list','get','discover','record','review']);parser.add_argument('--request',type=Path,required=True);args=parser.parse_args()

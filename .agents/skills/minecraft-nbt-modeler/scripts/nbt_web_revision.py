@@ -37,6 +37,8 @@ def resolve_request(file):
 def convert_web_json(input_file,workdir=None):
     request_file,request,expected=resolve_request(input_file)
     source=Path(request['source']).resolve();source_hash=digest(source)
+    draft_only=request.get('draft_only',False)
+    if type(draft_only) is not bool:raise ValueError('制作版保存选项无效')
     if request.get('source_sha256') and request['source_sha256']!=source_hash:raise ValueError('原建筑已变化，请重新打开原版本并保存设置')
     baseline,base_walls=read_master(source)
     settings=request['settings'];config=normalize_context(baseline,request['context'],request.get('cameras',''),settings)
@@ -81,9 +83,10 @@ def convert_web_json(input_file,workdir=None):
         write_json(target/'conversion.json',receipt)
         try:
             master=target/'master';master.mkdir()
-            save_master(master/'master_geometry.json.gz',model,walls)
+            from nbt_snbt import save_snbt
+            authored=master/'model.snbt';save_snbt(authored,model,walls,palette=getattr(baseline,'_snbt_palette',None),extras=getattr(baseline,'_snbt_extras',None))
             write_json(master/'wall_mask.json',dict(geometry_sha256=model.fingerprint(),wall_positions=[list(p) for p in sorted(walls)]))
-            disk,disk_walls=read_master(master/'master_geometry.json.gz')
+            disk,disk_walls=read_master(authored)
             if disk.blocks!=model.blocks or disk_walls!=walls:raise ValueError('完整主模型回读不一致')
             archive=work/'修改意见'/'设置'/source_hash;archive.mkdir(parents=True,exist_ok=True)
             archive_file=archive/(canonical(request)+'.json')
@@ -96,30 +99,6 @@ def convert_web_json(input_file,workdir=None):
             write_json(target/'coordinates.json',original_config)
             cameras=read_json(request['cameras']) if request.get('cameras') else config['cameras'];write_json(target/'cameras.json',cameras)
             validation=target/'validation';validation.mkdir();write_json(validation/'baseline.json',baseline_checks);write_json(validation/'whole_model.json',checks)
-            model.seal_record=checks['recapped_seal'];model.stage='opened';model.final_fingerprint=model.fingerprint()
-            date=datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d')
-            room=next((part.lower() for part in source.parts if re.fullmatch(r'[rRsSlL]\d{2,3}',part.split('_')[0])), 'building').split('_')[0]
-            prefix=date+'_'+room+'_'
-            if standalone:
-                from nbt_standalone_delivery import export_standalone
-                standalone_export=export_standalone(model,walls,target,file_prefix=prefix,allow_empty_wall_mask=config.get('allow_empty_wall_mask',False),active_cells=config.get('cells'))
-                delivery=standalone_export['delivery']
-                parts=[dict(file=file) for file in standalone_export['runtime_files']]
-            else:
-                delivery=export_delivery(model,cells,walls,target/'delivery','Explicit inherited global wall ownership',file_prefix=prefix)
-                runtime=target/'runtime/parts';runtime.mkdir(parents=True)
-                parts=[];recovered={}
-                for cx,cz in sorted(map(tuple,cells)):
-                    part=Model((48,model.size[1],48))
-                    for (x,y,z),value in model.blocks.items():
-                        if (x//48,z//48)==(cx,cz):part.put((x-cx*48,y,z-cz*48),value)
-                    part.seal_record=model.seal_record;part.stage='opened';part.final_fingerprint=part.fingerprint()
-                    file=runtime/(prefix+f'p{cx}{cz}.nbt');part.save(file);readback=load(file)
-                    for (x,y,z),value in readback.blocks.items():recovered[(x+cx*48,y,z+cz*48)]=value
-                    parts.append(dict(file=str(file.resolve()),offset=[cx*48,0,cz*48],sha256=digest(file)))
-                if recovered!=model.blocks:raise ValueError('48连续切片回读不能完整重组主模型')
-                verify_delivery(target/'delivery')
-                write_json(target/'runtime/parts.json',dict(stride=48,parts=parts,exact_reassembly=True,geometry_sha256=model.fingerprint(),game_verified=False,saodg49_verified=False))
             write_json(target/'changes.json',dict(changes=[dict(pos=list(p),before=baseline.get(p),after=model.get(p)) for p in sorted(geometry_changed)],
                 wall_membership_changed=[list(p) for p in sorted(layers_changed)],
                 wall_changes=[dict(pos=list(p),before_wall=p in base_walls,after_wall=p in walls) for p in sorted(layers_changed)],**difference))
@@ -128,9 +107,17 @@ def convert_web_json(input_file,workdir=None):
             from nbt_library import register_building
             description=next((p/'room_description.json' for p in [source.parent,*list(source.parents)[:4]] if (p/'room_description.json').is_file()),None)
             if description:
-                register_building(master/'master_geometry.json.gz',read_json(description)['name_zh'],cells,mode='standalone' if standalone else None)
-            receipt.update(status='complete',master=str(master/'master_geometry.json.gz'),runtime_parts=len(parts),runtime_files=[entry['file'] for entry in parts],delivery_nbt=delivery['actual_nbt_files'],geometry_sha256=model.fingerprint(),source_unchanged=True)
+                register_building(authored,read_json(description)['name_zh'],cells,mode='standalone' if standalone else None)
+            receipt.update(status='complete',master=str(authored),runtime_parts=0,runtime_files=[],delivery_nbt=0,geometry_sha256=model.fingerprint(),source_unchanged=True,source_format='snbt',draft_only=draft_only)
             write_json(target/'conversion.json',receipt)
+            from nbt_history import source_workspace,record_produced_version
+            workspace=source_workspace(authored)
+            if not draft_only:
+                from nbt_finalize import finalize
+                released=finalize(workspace,authored,validated=(model,walls,config,checks),register_history=False)
+                receipt.update(runtime_parts=released['runtime_parts'],runtime_files=released['runtime_files'],delivery_nbt=released['delivery_nbt'],nbt_master=released['nbt_master'],release_dir=released['output'],finalized=True)
+                write_json(target/'conversion.json',receipt)
+            receipt['history']=record_produced_version(workspace,authored,parent=source,message='保存 SNBT 制作版' if draft_only else '定稿并导出 NBT',actor='human',set_current=True)
             return receipt
         except Exception as error:
             receipt.update(status='failed',error=str(error));write_json(target/'conversion.json',receipt);raise

@@ -10,7 +10,7 @@ from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 GROUPS={
- 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','ai-creative-preferences']),
+ 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','ai-creative-preferences','version-history','snbt-authoring']),
  'architecture':('建筑风格与场所',['architecture-knowledge-base','structure-atlas','design-grammar']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
@@ -28,6 +28,8 @@ def sync_runtime(workspace):
     """Copy a verified local runtime, preserving any previous or edited snapshot."""
     from nbt_render_runtime import write_render_binding
     write_render_binding(workspace, ENGINE)
+    from nbt_history import write_git_binding
+    write_git_binding(workspace,ENGINE)
     files=[]
     for directory,dirs,names in os.walk(ENGINE):
         dirs[:]=[d for d in dirs if d not in {'node_modules','__pycache__','.git','.vite'}]
@@ -135,6 +137,7 @@ def apply(workspace,config=None):
       f'| 首次创建或重设计 | 完整读 [整体流程]({relative}/references/whole-model-workflow.md)、[玩家尺度]({relative}/references/player-scale.md)、[创作原则]({relative}/references/design-principles.md)、[空间细节]({relative}/references/spatial-detail-design.md)。写本任务生成器；自定义独立入口使用 toolkit 的 open_declared_openings，不套用 SAODG 端口。 |',
       f'| 已有模型的标注/候选 | 读 [意见与证据]({relative}/references/agent-feedback.md)，先 feedback scan/collect，再结合原图/坐标解释构件，按需读空间细节和实际使用的工具。plan/preview 后运行 validate --request <参数JSON> --snapshot <after.json> --output <新目录> 并实际看图，不能把 planned 当候选路线已通过。 |',
       f'| 用户已看图批准精修 | 完整读 [精修流程]({relative}/references/refinement.md) 和实际修改的专题，核对源/保护/图像确认后操作。 |',
+      f'| 制作源、定稿与版本历史 | 读 [SNBT 制作与定稿]({relative}/references/snbt-authoring.md) 和 [版本历史]({relative}/references/version-history.md)；新源保存SNBT，定稿NBT在_exports镜像目录。history与应用共用独立Git，不操作项目.git。 |',
       f'| 写出或交付 | 读 [验证]({relative}/references/validation-workflow.md)、[交付]({relative}/references/delivery-workflow.md)、[存放]({relative}/references/output-storage.md) 和相关 toolkit 章节；coordinates.json必须含可接手的起点/目标/探针及适用开口，control inspect 的 editing_ready 为字段检查，实际整体通过后纯切片回读。 |',
       '| 只读检查或维护工具 | 读当前接口和相关工具章节，不要求重读建筑设计、原型、SAODG接入或精修章节。 |',
       '', '采用已获准的subagent委派时再读delegation-and-review，并记录真实阅读；未批准的初稿不能调用精修approve/apply。',
