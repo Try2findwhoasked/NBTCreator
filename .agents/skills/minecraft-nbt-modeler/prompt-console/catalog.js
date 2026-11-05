@@ -1725,7 +1725,13 @@ globalThis.NbtToolCatalog = {
           "type": "object"
         },
         "mode": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "set",
+            "add",
+            "subtract",
+            "intersect"
+          ]
         },
         "state": {
           "type": "string"
@@ -1924,7 +1930,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "width": {
-          "type": "integer"
+          "type": "integer",
+          "enum": [
+            1,
+            3,
+            5
+          ]
         }
       },
       "additionalProperties": false,
@@ -2169,7 +2180,11 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         },
         "mirror": {
-          "type": "string"
+          "enum": [
+            null,
+            "x",
+            "z"
+          ]
         },
         "move": {
           "type": "boolean"
@@ -2223,10 +2238,19 @@ globalThis.NbtToolCatalog = {
           "type": "boolean"
         },
         "mode": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "dilate",
+            "erode",
+            "shell",
+            "opening",
+            "closing"
+          ]
         },
         "iterations": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 128
         },
         "state": {
           "type": "string"
@@ -2280,10 +2304,14 @@ globalThis.NbtToolCatalog = {
           "type": "array"
         },
         "steps": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 128
         },
         "decay": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         },
         "surface_only": {
           "type": "boolean"
@@ -2406,10 +2434,14 @@ globalThis.NbtToolCatalog = {
           "type": "boolean"
         },
         "fraction": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         },
         "spacing": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 128
         },
         "supported": {
           "type": "boolean"
@@ -2466,7 +2498,11 @@ globalThis.NbtToolCatalog = {
           "type": "boolean"
         },
         "action": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "replace",
+            "fill"
+          ]
         },
         "scope": {
           "type": "string",
@@ -2500,7 +2536,9 @@ globalThis.NbtToolCatalog = {
           ]
         },
         "fraction": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         },
         "from_states": {
           "type": "array"
@@ -2536,7 +2574,11 @@ globalThis.NbtToolCatalog = {
           "type": "boolean"
         },
         "shape_policy": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "preserve",
+            "any"
+          ]
         },
         "seed": {
           "type": "integer"
@@ -2591,7 +2633,9 @@ globalThis.NbtToolCatalog = {
           }
         },
         "fraction": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         },
         "seed": {
           "type": "integer"
@@ -2784,7 +2828,13 @@ globalThis.NbtToolCatalog = {
           "type": "boolean"
         },
         "profile": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "maintained",
+            "worn",
+            "ruined",
+            "cavern"
+          ]
         },
         "style_note": {
           "type": "string"
@@ -2914,13 +2964,22 @@ globalThis.NbtToolCatalog = {
           }
         },
         "width": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
         },
         "depth": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
         },
         "route": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "straight",
+            "x_first",
+            "z_first"
+          ]
         },
         "state": {
           "type": "string"
@@ -2971,7 +3030,12 @@ globalThis.NbtToolCatalog = {
           "type": "boolean"
         },
         "selection": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "connected",
+            "surface",
+            "connected_surface"
+          ]
         },
         "seed_position": {
           "type": "array",
@@ -2982,7 +3046,11 @@ globalThis.NbtToolCatalog = {
           }
         },
         "match": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "state",
+            "solid"
+          ]
         },
         "faces": {
           "type": "array",
@@ -3059,7 +3127,12 @@ globalThis.NbtToolCatalog = {
           "type": "boolean"
         },
         "mode": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "align",
+            "anchor",
+            "ground"
+          ]
         },
         "target_lo": {
           "type": "array",
@@ -3184,7 +3257,11 @@ globalThis.NbtToolCatalog = {
           "type": "boolean"
         },
         "mode": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "path",
+            "radial"
+          ]
         },
         "points": {
           "type": "array",
@@ -3213,7 +3290,11 @@ globalThis.NbtToolCatalog = {
           "maxItems": 2
         },
         "orientation": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "fixed",
+            "cardinal"
+          ]
         },
         "include_air": {
           "type": "boolean"
@@ -3308,7 +3389,12 @@ globalThis.NbtToolCatalog = {
           "type": "boolean"
         },
         "mode": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "straight",
+            "switchback",
+            "spiral"
+          ]
         },
         "start": {
           "type": "array",
@@ -3518,10 +3604,20 @@ globalThis.NbtToolCatalog = {
           "type": "boolean"
         },
         "roof": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "gable",
+            "hip",
+            "gambrel",
+            "dome"
+          ]
         },
         "ridge_axis": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "x",
+            "z"
+          ]
         },
         "rise": {
           "type": "number",
@@ -3538,7 +3634,12 @@ globalThis.NbtToolCatalog = {
           "maximum": 8
         },
         "finish": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "blocks",
+            "slabs",
+            "stairs"
+          ]
         },
         "state": {
           "type": "string"

@@ -190,7 +190,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    const referenceFields=internal?.reference_sources?{reference_sources:internal.reference_sources}:{}
    let parsed=extracted.parsed
    if(['small_structure','component','selection_edit','workbench'].includes(input.mode))parsed=normalizeReply(parsed,input.mode,context)
-   if(input.mode==='selection_edit')return {mode:'selection_edit',...validateSelectionResult(parsed,context),api_metrics,...referenceFields}
+   if(input.mode==='selection_edit'){const result={mode:'selection_edit',...validateSelectionResult(parsed,context),api_metrics,...referenceFields};await validateCandidate({mode:input.mode,result,context,signal:token.controller.signal});return result}
    if(input.mode==='component'){
     const schema=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').agent_tools.structure_preview.parameters.properties.spec
     if(!own(parsed,Object.keys(schema.properties)))throw Error('独立结构方案含未开放字段')
@@ -201,8 +201,8 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     const used=[];for(const item of spec.placements??[]){const reference=context.references.find(ref=>ref.id===item.id&&ref.content_sha256===item.content_sha256);if(!reference)throw Error('AI引用了未提供或哈希不匹配的资产');used.push(item.id)}const result={mode:'component',spec,api_metrics,reference_sources:internal?.reference_sources??[],used_assets:[...new Set(used)]};await validateCandidate({mode:input.mode,result,context,signal:token.controller.signal});return result
    }
    if(input.mode==='workbench'){const validated=validateWorkbench(parsed,context);await validateCandidate({mode:input.mode,result:validated,context,signal:token.controller.signal});if(parsed.operation_patch)api_metrics.operation_changes=parsed.operation_patch.changes.length;return {mode:'workbench',...validated,...(parsed.operation_patch?{operation_patch:parsed.operation_patch}:{}),api_metrics,...referenceFields}}
-   if(input.mode==='small_structure')return {mode:'small_structure',...localSmallStructure(parsed,context),api_metrics,...referenceFields}
-   return {mode:'structure',...validatePatch(parsed,context),api_metrics,...referenceFields}
+   const result=input.mode==='small_structure'?{mode:'small_structure',...localSmallStructure(parsed,context),api_metrics,...referenceFields}:{mode:'structure',...validatePatch(parsed,context),api_metrics,...referenceFields}
+   await validateCandidate({mode:input.mode,result,context,signal:token.controller.signal});return result
   }finally{api_metrics.validation_ms=(api_metrics.validation_ms??0)+Math.round(performance.now()-validating)}
   }
   while(true){
@@ -217,7 +217,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     payload.messages=structuredClone(originalMessages)
     if(reason!=='length'&&typeof text==='string'&&text.length<=48000&&Array.from(text).length<=Math.min(config.outputCharLimit?config.outputCharLimit*2:24000,24000))payload.messages.push({role:'assistant',content:text})
     else payload.messages.push({role:'assistant',content:'（本地已省略上一次不完整或过长的输出，不能视为已完成的候选。）'})
-    payload.messages.push({role:'user',content:feedback+(config.outputCharLimit?` 最终结果限制仍为 ${config.outputCharLimit} 字。`:' 最终结果不设应用字数限制。')+'只返回完整最终结果，不带无关解释。'})
+    payload.messages.push({role:'user',content:feedback+(input.mode==='component'||input.mode==='workbench'&&context.task==='draft'?' 复杂工具难以满足几何条件时，可用box/beam/frame等基础操作组合表达同一构造，保留必要的结构和功能，不以删掉设计需求代替修复。':'')+(config.outputCharLimit?` 最终结果限制仍为 ${config.outputCharLimit} 字。`:' 最终结果不设应用字数限制。')+'只返回完整最终结果，不带无关解释。'})
    }
   }
  }

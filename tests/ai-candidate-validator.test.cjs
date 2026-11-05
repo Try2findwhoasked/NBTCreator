@@ -31,3 +31,8 @@ test('cancelling during local geometry preflight aborts validation without anoth
  const api=createApiService({directory,safeStorage:{},fetchImpl:async()=>{calls++;return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify({project_patch:patch,operations:[box]})}}]}))},validateCandidate:({signal})=>new Promise((_resolve,reject)=>{started();signal.addEventListener('abort',()=>reject(Error('几何预检已取消')),{once:true})})})
  await api.save({enabled:true});const pending=api.generate({mode:'workbench',instruction:'候选',context});await waiting;api.cancel();await assert.rejects(pending,/取消/);assert.equal(calls,1)
 })
+test('version registry reports all invalid materials together before geometry calculation',async t=>{
+ const directory=await setup(t),validator=createCandidateValidator({root,python:process.env.NBTCREATOR_PYTHON||'python',directory,getWorkspace:()=>directory})
+ await assert.rejects(validator({mode:'small_structure',context:{},result:{settings_patch:{operations:[{...box,state:'tuff_bricks'},{...box,state:'stone[bogus=x]'}]}}}),error=>error.message.includes('tuff_bricks')&&error.message.includes('bogus')&&error.message.includes('一次修正所有步骤'))
+ const result=await validator({mode:'small_structure',context:{},result:{settings_patch:{operations:[box]}}});assert.equal(result.block_states,true);assert.equal(result.nbt_exported,false)
+})

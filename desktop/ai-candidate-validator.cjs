@@ -2,7 +2,7 @@ const fs=require('node:fs/promises'),path=require('node:path'),{spawn}=require('
 
 function createCandidateValidator({root,python,directory,getWorkspace}){
  return async({mode,result,context,signal})=>{
-  if(mode!=='component'&&!(mode==='workbench'&&context.task==='draft'))return
+  if(mode==='prompt')return
   const folder=path.join(directory,'ai-validation'),file=path.join(folder,randomUUID()+'.json')
   const fatal=message=>Object.assign(Error(message),{retryable:false})
   await fs.mkdir(folder,{recursive:true})

@@ -9,7 +9,7 @@ test('compact internal contracts retain every tool, parameter limit and geometry
   assert.deepEqual(actual,{...constraints(schema),properties:{...contract.common,...constraints(schema.properties)}},kind)
  }
  assert.deepEqual(contract.geometry_parameters,constraints(catalog.geometry_parameters))
- assert.ok(buildInternalPrompt('component').length<19000)
+ assert.ok(buildInternalPrompt('component').length<20000)
  assert.ok(buildInternalPrompt('workbench',{task:'draft'}).length<20000)
  assert.ok(buildInternalPrompt('small_structure').length<1000)
  assert.ok(buildInternalPrompt('prompt').length<234)

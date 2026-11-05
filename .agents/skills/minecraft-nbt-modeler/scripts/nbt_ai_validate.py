@@ -3,13 +3,37 @@ import argparse,json,math
 from pathlib import Path
 
 
+def check_materials(result):
+    from nbt_registry import normalize
+    errors={}
+    def state(value,location):
+        try:normalize(value)
+        except (ValueError,TypeError) as error:errors.setdefault(str(error),location)
+    def walk(value,location='结果'):
+        if isinstance(value,list):
+            for index,item in enumerate(value):walk(item,location+'['+str(index+1)+']')
+        elif isinstance(value,dict):
+            for key,item in value.items():
+                if key in {'state','slab_state','stair_state','moss_state','crack_state'}:state(item,location+'.'+key)
+                elif key in {'from_states','palette'} and isinstance(item,list):
+                    for entry in item:
+                        if isinstance(entry,str) or isinstance(entry,dict) and 'Name' in entry:state(entry,location+'.'+key)
+                        else:walk(entry,location+'.'+key)
+                elif key in {'material_map','slab_overrides'} and isinstance(item,dict):
+                    for a,b in item.items():state(a,location+'.'+key);state(b,location+'.'+key)
+                else:walk(item,location+'.'+key)
+    walk(result)
+    if errors:raise ValueError('材质须符合Java1.20.1，可用stone_bricks/cobblestone/andesite。请一次修正所有步骤中的无效材质：'+'；'.join(location+' '+error for error,location in list(errors.items())[:12]))
+
+
 def validate(request):
     mode=request['mode'];result=request['result'];context=request['context']
+    check_materials(result)
     if mode=='component':
         from nbt_structure_agent import build
         data=build(request['workspace'],result['spec'])
         return dict(blocks=len(data['blocks']),size=data['size'],nbt_exported=False)
-    if mode!='workbench' or context.get('task')!='draft':return dict(skipped=True,nbt_exported=False)
+    if mode!='workbench' or context.get('task')!='draft':return dict(block_states=True,geometry='requires_target_preview',nbt_exported=False)
     from nbt_assembly import Volume
     from nbt_detail_control import default_settings,compile_plan,simulate_plan
     size=result.get('project_patch',{}).get('size',context['project']['size'])
