@@ -11,7 +11,7 @@ function material(value){
 function materials(value){
  if(Array.isArray(value))return value.map(materials)
  if(!object(value))return value
- return Object.fromEntries(Object.entries(value).map(([key,value])=>[key,['state','slab_state','stair_state'].includes(key)?material(value):key==='from_states'&&Array.isArray(value)?value.map(material):materials(value)]))
+ return Object.fromEntries(Object.entries(value).map(([key,value])=>[key,['state','slab_state','stair_state'].includes(key)?material(value):key==='from_states'&&Array.isArray(value)?value.map(material):key==='palette'&&Array.isArray(value)?value.map(entry=>object(entry)&&Object.hasOwn(entry,'Name')?material(entry):materials(entry)):materials(value)]))
 }
 function operation(value){
  const op=structuredClone(value)
@@ -26,11 +26,12 @@ function operation(value){
 }
 function boxes(rows,palette,defaultClassification){
  if(!Array.isArray(rows)||rows.length>128)throw Error('紧凑区域最多128项')
+ if(Array.isArray(palette))palette=palette.map(material)
  if(palette!==undefined&&(!Array.isArray(palette)||!palette.length||palette.length>64||palette.some(s=>typeof s!=='string'||!s.length||s.length>250)))throw Error('紧凑材质表无效')
  const result=[]
  for(const row of rows){
   if(!Array.isArray(row)||![7,8].includes(row.length)||!row.slice(0,6).every(Number.isSafeInteger))throw Error('紧凑区域须为6个整数坐标、材质和可选归属')
-  const state=Number.isInteger(row[6])&&palette?palette[row[6]]:row[6],classification=row[7]??defaultClassification
+  const state=Number.isInteger(row[6])&&palette?palette[row[6]]:material(row[6]),classification=row[7]??defaultClassification
   if(typeof state!=='string'||!state.length||!['body','wall','inherit'].includes(classification))throw Error('紧凑区域材质或归属无效')
   const next={kind:'box',lo:row.slice(0,3),hi:row.slice(3,6),state,classification}
   if(next.lo.some((v,i)=>v>next.hi[i]))throw Error('紧凑区域最小坐标不能超过最大坐标')
@@ -44,6 +45,7 @@ function boxes(rows,palette,defaultClassification){
 function normalizeReply(value,mode,context){
  if(!object(value))return value
  const result=structuredClone(value),target=mode==='small_structure'?(result.settings_patch??result):result
+ if(mode==='structure'&&object(result.settings_patch))result.settings_patch=materials(result.settings_patch)
  if(object(target)&&target.boxes!==undefined){
   if(target.operations!==undefined||target.steps!==undefined||target.blocks!==undefined)throw Error('紧凑区域不能与其他工具序列同时返回')
   target.operations=boxes(target.boxes,target.palette,mode==='selection_edit'?'inherit':'body');delete target.boxes;delete target.palette
@@ -59,7 +61,7 @@ function normalizeReply(value,mode,context){
  if(mode==='workbench'&&object(result.operation_patch)){
   const base=operationBase(context),patch=result.operation_patch
   if(patch.baseline===undefined)patch.baseline=base.baseline
-  if(Array.isArray(patch.changes))for(const change of patch.changes)if(object(change)&&change.expected===undefined&&Number.isSafeInteger(change.step))change.expected=base.steps[change.step-1]?.expected
+  if(Array.isArray(patch.changes))for(const change of patch.changes)if(object(change)){if(object(change.set))change.set=materials(change.set);if(change.expected===undefined&&Number.isSafeInteger(change.step))change.expected=base.steps[change.step-1]?.expected}
  }
  if(mode==='workbench'&&object(result.project_patch))for(const key of ['layout','circulation','name','theme','purpose','footprint','style','ceiling','floor','wall','props','preserve','extras'])if(Array.isArray(result.project_patch[key])||object(result.project_patch[key]))result.project_patch[key]=JSON.stringify(result.project_patch[key])
  return result

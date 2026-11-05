@@ -17,6 +17,18 @@ test('complete first-draft proposal requires design, circulation and initial con
 })
 
 const step={kind:'box',label:'墙段',classification:'wall',lo:[2,1,2],hi:[20,8,2],state:'stone_bricks'}
+test('model-created steps reject unknown fields while trusted baseline metadata survives a delta',()=>{
+ for(const field of ['script','shell','write_bounds','write_group','max_writes','overwrite'])assert.throws(()=>validateWorkbench({summary:'候选',operations:[{...step,[field]:true}]},context),/未开放字段/)
+ const trusted={...step,local_note:'保留',write_group:'trusted-local'},ctx=cleanContext({project:{size:[48,24,48]},operations:[trusted]}),base=operationBase(ctx)
+ const result=validateWorkbench({summary:'换材',operation_patch:{baseline:base.baseline,changes:[{step:1,expected:base.steps[0].expected,set:{state:'andesite'}}]}},ctx)
+ assert.equal(result.operations[0].write_group,'trusted-local');assert.equal(result.operations[0].local_note,'保留')
+})
+test('deltas use the catalog schema for nullable mirrors and scalar-or-vector scales',()=>{
+ for(const [op,set] of [[{...step,kind:'transform_region',mirror:null,destination:[24,1,24],quarter_turns:0},{mirror:'x'}],[{...step,kind:'transform_region',mirror:'x',destination:[24,1,24],quarter_turns:0},{mirror:null}],[{...step,kind:'pattern',scale:6,palette:['stone']},{scale:[2,3,4]}],[{...step,kind:'pattern',scale:[2,3,4],palette:['stone']},{scale:6}]]){
+  const ctx=cleanContext({project:{size:[48,24,48]},operations:[op]}),base=operationBase(ctx)
+  assert.deepEqual(validateWorkbench({summary:'调整',operation_patch:{baseline:base.baseline,changes:[{step:1,expected:base.steps[0].expected,set}]}},ctx).operations[0],{...op,...set})
+ }
+})
 const controls=binding=>cleanContext({project:{name:'大厅',size:[48,24,48]},operations:Array.from({length:60},()=>structuredClone(step)),baseline_binding:binding,existing_model:true})
 function proposal(ctx,index=12,set={state:'andesite'}){const base=operationBase(ctx);return {summary:'只改墙面材质',operation_patch:{baseline:base.baseline,changes:[{step:index,expected:base.steps[index-1].expected,set}]}}}
 test('one-step deltas preserve the other 59 steps and input objects, and compare original fingerprints',()=>{

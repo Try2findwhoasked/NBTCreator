@@ -1,7 +1,7 @@
 {
   "name": "nbtcreator",
   "productName": "NBTCreator",
-  "version": "1.20.1",
+  "version": "1.20.2",
   "private": true,
   "description": "Minecraft Java 1.20.1 NBT authoring workbench with portable tools and Agent collaboration",
   "type": "module",
@@ -59,7 +59,8 @@
     "test:roads": "npm run build:web && python tests/auto-roads.py && node tests/auto-roads-desktop.mjs",
     "test:transforms": "npm run build:web && node --test tests/ai-component.test.mjs tests/edit-session-store.test.mjs && python tests/components.py && node tests/transform-sliders-desktop.mjs",
     "test:modelling": "python tests/modelling-suite.py && node --test tests/operation-parameters.test.cjs",
-    "test:ai-live": "node tests/ai-live-desktop.mjs"
+    "test:ai-live": "node tests/ai-live-desktop.mjs",
+    "test:agent-simulation": "node scripts/agent-simulation.mjs"
   },
   "devDependencies": {
     "electron": "45.2.1",

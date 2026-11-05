@@ -19,7 +19,8 @@
         "ui-workbench-ui",
         "ui-prompt-archive",
         "ui-ai-style",
-        "py-prompt-archive"
+        "py-prompt-archive",
+        "ui-agent-simulation"
       ]
     },
     {
@@ -828,6 +829,14 @@
       "args": [
         "tests/effect-gallery-desktop.mjs"
       ]
+    },
+    {
+      "id": "ui-agent-simulation",
+      "runtime": "node",
+      "args": [
+        "tests/agent-simulation-desktop.mjs"
+      ],
+      "desktop": true
     }
   ]
 }

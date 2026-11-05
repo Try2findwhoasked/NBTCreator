@@ -1,4 +1,5 @@
-const {validateOperation}=require('./operation-parameters.cjs')
+const {validateOperation,validateParameter}=require('./operation-parameters.cjs')
+const {isDeepStrictEqual}=require('node:util')
 const catalog=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json')
 const {createHash}=require('node:crypto')
 const fields=['buildingShape','layout','circulation','name','theme','purpose','footprint','style','ceiling','floor','wall','props','preserve','extras']
@@ -33,9 +34,9 @@ function mergeOperationPatch(result,context){
   const allowed=[...Object.keys(catalog.common),...Object.keys(catalog.operation_parameters[op.kind]?.properties??{})].filter(key=>!['overwrite','write_group','max_writes'].includes(key))
   if(!own(change.set,allowed)||!Object.keys(change.set).length)throw Error('增量只能修改工具参数，不能改变工具类型、覆盖权限、预算或执行字段')
   for(const [key,value]of Object.entries(change.set)){
-   const sample=op[key]??catalog.common[key]??catalog.tools[op.kind]?.[1]?.[key]
-   const valid=Array.isArray(sample)?Array.isArray(value):sample&&typeof sample==='object'?value&&typeof value==='object'&&!Array.isArray(value):(sample===undefined?({array:Array.isArray(value),integer:Number.isSafeInteger(value),number:typeof value==='number'&&Number.isFinite(value),object:!!value&&typeof value==='object'&&!Array.isArray(value),string:typeof value==='string',boolean:typeof value==='boolean'}[catalog.operation_parameters[op.kind]?.properties[key]?.type]===true):typeof value===typeof sample)&&(typeof value!=='number'||Number.isFinite(value))
-   if(!valid)throw Error('增量工具参数类型无效：'+key)
+   const schema=catalog.operation_parameters[op.kind]?.properties[key]
+   if(!schema)throw Error('增量工具参数字段无效：'+key)
+   try{validateParameter(value,schema,key)}catch(error){throw Error('增量工具参数无效：'+(key==='classification'?'方块归属 classification':key)+'；'+error.message)}
    if(key==='state'&&!/^(?:minecraft:)?[a-z0-9_]+(?:\[[a-z0-9_=,]+\])?$/.test(value))throw Error('增量需要有效的方块状态')
    if(key==='label'&&(!value.trim()||value.length>250))throw Error('增量步骤名称须为1到250字')
   }
@@ -63,6 +64,9 @@ function validateWorkbench(result,context){
    if(!Object.hasOwn(catalog.tools,op.kind))throw Error(step+' kind='+token(op.kind)+' 不支持；只能使用工具清单的规范键，例如box、hollow_box、geometry、pattern；不得自造工具名')
    if(!['body','wall','inherit'].includes(op.classification))throw Error(step+' classification='+token(op.classification)+' 无效；只支持body（主体）、wall（墙层）、inherit（保留归属），可省略由脚本补齐；不要填写structure/decor/opening等用途')
    if(typeof op.label!=='string'||!op.label.trim())throw Error(step+'缺少有效步骤名称label')
+   const fields=new Set(['kind',...Object.keys(catalog.operation_parameters[op.kind].properties)]),baseline=context.operations?.[index]
+   const unknown=Object.keys(op).filter(key=>!fields.has(key)&&!(baseline?.kind===op.kind&&Object.hasOwn(baseline,key)&&isDeepStrictEqual(baseline[key],op[key])))
+   if(unknown.length)throw Error(step+'含未开放字段：'+unknown.join('、')+'；不能注入权限、源绑定或执行字段')
    if(op.enabled!==undefined&&typeof op.enabled!=='boolean')throw Error('工具 enabled 开关须为布尔值')
    if(op.enabled===false)continue
    try{validateOperation(op)}catch(error){throw Error(step+'（'+op.kind+'）参数无效：'+error.message)}

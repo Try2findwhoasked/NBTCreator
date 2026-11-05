@@ -189,7 +189,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    if(input.mode==='prompt')return {mode:'prompt',text,api_metrics,...(internal?.reference_sources?{reference_sources:internal.reference_sources}:{})}
    const referenceFields=internal?.reference_sources?{reference_sources:internal.reference_sources}:{}
    let parsed=extracted.parsed
-   if(['small_structure','component','selection_edit','workbench'].includes(input.mode))parsed=normalizeReply(parsed,input.mode,context)
+   if(['structure','small_structure','component','selection_edit','workbench'].includes(input.mode))parsed=normalizeReply(parsed,input.mode,context)
    if(input.mode==='selection_edit'){const result={mode:'selection_edit',...validateSelectionResult(parsed,context),api_metrics,...referenceFields};await validateCandidate({mode:input.mode,result,context,signal:token.controller.signal});return result}
    if(input.mode==='component'){
     const schema=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').agent_tools.structure_preview.parameters.properties.spec

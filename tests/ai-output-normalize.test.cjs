@@ -15,3 +15,10 @@ test('script fills only structural metadata and binds omitted fingerprints to th
  assert.equal(unsafe.operations[0].classification,'inherit','selection edits must retain the engine wall-ownership default')
  assert.equal(normalizeReply({boxes:[[0,0,0,0,0,0,'stone']]},'selection_edit',{}).operations[0].classification,'inherit')
 })
+test('standard block objects normalize in local edits, compact palettes and incremental patches',()=>{
+ const state={Name:'minecraft:oak_log',Properties:{axis:'y'}}
+ const reply=normalizeReply({settings_patch:{structure:{state}}},'structure',{});assert.equal(reply.settings_patch.structure.state,'minecraft:oak_log[axis=y]')
+ assert.equal(normalizeReply({palette:[state],boxes:[[0,0,0,0,1,0,0]]},'component',{}).operations[0].state,'minecraft:oak_log[axis=y]')
+ const ctx=cleanContext({project:{size:[8,8,8]},operations:[{kind:'box'}]})
+ assert.equal(normalizeReply({operation_patch:{changes:[{step:1,set:{state}}]}},'workbench',ctx).operation_patch.changes[0].set.state,'minecraft:oak_log[axis=y]')
+})
