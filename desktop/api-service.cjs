@@ -2,7 +2,8 @@ const fs=require('node:fs/promises')
 const path=require('node:path')
 const {performance}=require('node:perf_hooks')
 const {normalizeSmallStructure}=require('./small-structure-normalize.cjs')
-const {cleanContext,validateWorkbench,operationBase}=require('./workbench-contract.cjs')
+const {normalizeReply}=require('./ai-output-normalize.cjs')
+const {cleanContext,validateWorkbench}=require('./workbench-contract.cjs')
 const {validateRequestOptions}=require('./api-options.cjs')
 const {cleanSelectionContext,validateSelectionResult}=require('./selection-edit.cjs')
 const defaults={enabled:false,provider:'deepseek',baseUrl:'https://api.deepseek.com',model:'deepseek-flash',jsonMode:true,timeoutMs:90000,tokenParameter:'max_tokens',requestOptions:{}}
@@ -136,7 +137,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   if(internal?.retrieved_assets?.length&&input.mode==='component'){const references=[...context.references];for(const item of internal.retrieved_assets){const old=references.find(ref=>ref.id===item.id);if(old&&old.content_sha256!==item.content_sha256)throw Error('引用资产已变化，请重新选择');if(!old)references.push(item)}context=componentContext({...context,references})}
   const {retrieved_assets,base_rules,workflow_steps,...providerWorkflow}=internal??{}
   if(internal?.reference_sources)system+=' 本次提供了编号参考来源；需要引用时使用其citation编号，不编造来源或声称已验证。引用资产仅可使用context.references里实际提供的id与内容哈希，可按结构协议旋转、镜像和material_map换材质。'
-  const apiContext=input.mode==='selection_edit'?{size:context.selection.size,lo:[0,0,0],hi:context.selection.size.map(n=>n-1),allow_overwrite:context.allow_overwrite,selection:{palette:context.selection.palette,runs:context.selection.runs,air_omitted:true}}:input.mode==='small_structure'?{...context,size:context.hi.map((v,i)=>v-context.lo[i]+1),lo:[0,0,0],hi:context.hi.map((v,i)=>v-context.lo[i])}:input.mode==='workbench'&&context.task==='controls'?{...context,operation_base:operationBase(context)}:context
+  const apiContext=input.mode==='selection_edit'?{size:context.selection.size,lo:[0,0,0],hi:context.selection.size.map(n=>n-1),allow_overwrite:context.allow_overwrite,selection:{palette:context.selection.palette,runs:context.selection.runs,air_omitted:true}}:input.mode==='small_structure'?{...context,size:context.hi.map((v,i)=>v-context.lo[i]+1),lo:[0,0,0],hi:context.hi.map((v,i)=>v-context.lo[i])}:input.mode==='workbench'?Object.fromEntries(Object.entries(context).filter(([key])=>key!=='baseline_binding')):context
   let image
   if(input.viewport){
     if(!internal?.attachViewport)throw Error('该工作流未启用发送视口截图')
@@ -144,7 +145,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     if(!own(v,['dataUrl','width','height'])||typeof v.dataUrl!=='string'||!/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(v.dataUrl)||v.dataUrl.length>3*1024*1024||![v.width,v.height].every(n=>Number.isInteger(n)&&n>0&&n<=1280))throw Error('视口截图格式或尺寸无效')
     image=v.dataUrl
   }else if(internal?.attachViewport)throw Error('该工作流需要视口截图，请先打开建筑画面或关闭截图开关')
-  const payload={model:config.model,messages:[{role:'system',content:system},{role:'user',content:JSON.stringify({instruction:input.instruction,context:apiContext,...(internal?{internal_workflow:providerWorkflow}:{})})}],max_tokens:['workbench','small_structure','component','selection_edit'].includes(input.mode)?8192:4096,stream:false}
+  const payload={model:config.model,messages:[{role:'system',content:system},{role:'user',content:JSON.stringify({instruction:input.instruction,context:apiContext,...(internal?{internal_workflow:providerWorkflow}:{})})}],max_tokens:['workbench','small_structure','component','selection_edit'].includes(input.mode)?12288:6144,stream:false}
   Object.assign(payload,config.requestOptions)
   if(config.tokenParameter==='max_completion_tokens'){payload.max_completion_tokens=payload.max_tokens;delete payload.max_tokens}
   if(image)payload.messages[1].content=[{type:'text',text:payload.messages[1].content+'\n附图是当前建模视口，仅用于理解外观；坐标以本地上下文为准，不能从图片推定已验证或已批准。'},{type:'image_url',image_url:{url:image,detail:'auto'}}]
@@ -183,6 +184,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    if(input.mode==='prompt')return {mode:'prompt',text,api_metrics,...(internal?.reference_sources?{reference_sources:internal.reference_sources}:{})}
    const referenceFields=internal?.reference_sources?{reference_sources:internal.reference_sources}:{}
    let parsed;try{parsed=JSON.parse(text.replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''))}catch{throw Error('AI 未返回有效 JSON 计划')}
+   if(['small_structure','component','selection_edit','workbench'].includes(input.mode))parsed=normalizeReply(parsed,input.mode,context)
    if(input.mode==='selection_edit')return {mode:'selection_edit',...validateSelectionResult(parsed,context),api_metrics,...referenceFields}
    if(input.mode==='component'){
     const schema=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').agent_tools.structure_preview.parameters.properties.spec

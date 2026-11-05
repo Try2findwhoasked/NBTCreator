@@ -15,6 +15,7 @@ function buildInternalPrompt(mode,context={}){
   if(context.task==='draft')parts.push(read('references/draft.md'),'building_shapes：'+JSON.stringify(catalog.building_shapes))
   if(context.task==='controls')parts.push(read('references/controls.md'))
  }
+ if(mode!=='prompt'&&mode!=='structure')parts.push('紧凑格式：boxes:[[x0,y0,z0,x1,y1,z1,材质,可选归属]]；可选palette:[状态]后写材质索引，与operations互斥。脚本补步骤名和归属、合并连续完整长方体；summary可省略，独立资产不返回summary。复杂工具仍用对象，不能省略几何参数。')
  return parts.join('\n')
 }
 module.exports={buildInternalPrompt,toolContract}

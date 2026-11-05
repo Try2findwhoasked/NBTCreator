@@ -76,7 +76,7 @@ test('truncated small structure retries once with compact geometry and records b
  let calls=0;const s=await service(async(_url,opts)=>{const body=JSON.parse(opts.body);calls++;if(calls===1)return new Response(JSON.stringify({choices:[{message:{content:'{"blocks":['},finish_reason:'length'}]}));assert.ok(body.messages[0].content.includes('最多24个'));return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({operations:[{kind:'box',lo:[1,0,1],hi:[1,3,1],state:'stone'}]})},finish_reason:'stop'}],usage:{prompt_tokens:100,completion_tokens:80,total_tokens:180,private_field:'do not persist'}}))});try{await s.api.save({enabled:true});const result=await s.api.generate({mode:'small_structure',instruction:'石柱',context});assert.equal(calls,2);assert.deepEqual(result.settings_patch.operations[0].lo,[9,4,9]);assert.equal(result.api_metrics.attempts,2);assert.equal(result.api_metrics.retried_compact,true);assert.equal(result.api_metrics.total_tokens,180);assert.equal(result.api_metrics.calls[0].finish_reason,'length');assert.equal(result.api_metrics.calls[1].total_tokens,180);assert.equal(result.api_metrics.calls[0].total_tokens,undefined);assert.equal(JSON.stringify(result.api_metrics).includes('do not persist'),false)}finally{await s.close()}
 })
 test('repeated truncation never applies partial geometry or loops; cancellation covers workflow preparation',async()=>{
- let calls=0;const s=await service(async()=>{calls++;return new Response(JSON.stringify({choices:[{message:{content:'{"blocks":['},finish_reason:'length'}],usage:{completion_tokens:8192}}))});try{await s.api.save({enabled:true});await assert.rejects(s.api.generate({mode:'small_structure',instruction:'石柱',context}),/重试1次.*16384/);assert.equal(calls,2)}finally{await s.close()}
+ let calls=0;const s=await service(async()=>{calls++;return new Response(JSON.stringify({choices:[{message:{content:'{"blocks":['},finish_reason:'length'}],usage:{completion_tokens:12288}}))});try{await s.api.save({enabled:true});await assert.rejects(s.api.generate({mode:'small_structure',instruction:'石柱',context}),/重试1次.*24576/);assert.equal(calls,2)}finally{await s.close()}
  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-api-prepare-'));let release,network=0;const api=createApiService({directory,safeStorage:storage,workflowContext:()=>new Promise(resolve=>release=resolve),fetchImpl:async()=>{network++;return new Response('{}')}});try{await api.save({enabled:true});const pending=api.generate({mode:'prompt',instruction:'task',context:null});await assert.rejects(api.generate({mode:'prompt',instruction:'duplicate',context:null}),/已有/);api.cancel();release(null);await assert.rejects(pending,/取消/);assert.equal(network,0)}finally{await fs.rm(directory,{recursive:true,force:true})}
 })
 
@@ -99,16 +99,16 @@ test('HTTP failures, cancellation and repeated truncation retain individual atte
  try{await retry.api.save({enabled:true});const r=await retry.api.generate({mode:'small_structure',instruction:'柱',context});assert.equal(r.api_metrics.prompt_tokens,20);assert.equal(r.api_metrics.completion_tokens,15);assert.equal(r.api_metrics.total_tokens,35);assert.equal(r.api_metrics.calls.length,2);assert.ok(r.api_metrics.calls[1].input_text_chars>r.api_metrics.calls[0].input_text_chars)}finally{await retry.close()}
 })
 
-test('workbench API sends base references and merges a compact response locally',async()=>{
+test('workbench script binds a compact delta without sending or asking AI to copy hashes',async()=>{
  const input={mode:'workbench',instruction:'第12步改安山岩',context:{project:{size:[48,24,48]},baseline_binding:'a'.repeat(64),operations:Array.from({length:60},()=>({kind:'box',label:'墙段',classification:'wall',lo:[2,1,2],hi:[20,8,2],state:'stone_bricks'}))}}
  let responseChars=0
  const s=await service(async(_url,opts)=>{
-  const sent=JSON.parse(JSON.parse(opts.body).messages[1].content),base=sent.context.operation_base
-  assert.equal(sent.context.operations.length,60);assert.equal(base.steps.length,60);assert.equal(sent.context.baseline_binding,input.context.baseline_binding)
-  const content=JSON.stringify({summary:'改墙面',operation_patch:{baseline:base.baseline,changes:[{step:12,expected:base.steps[11].expected,set:{state:'andesite'}}]}});responseChars=content.length
+  const sent=JSON.parse(JSON.parse(opts.body).messages[1].content)
+  assert.equal(sent.context.operations.length,60);assert.equal(sent.context.operation_base,undefined);assert.equal(sent.context.baseline_binding,undefined);assert.equal(JSON.parse(opts.body).max_tokens,12288)
+  const content=JSON.stringify({summary:'改墙面',operation_patch:{changes:[{step:12,set:{state:'andesite'}}]}});responseChars=content.length
   return new Response(JSON.stringify({choices:[{message:{content},finish_reason:'stop'}]}))
  })
- try{await s.api.save({enabled:true});const r=await s.api.generate(input);assert.equal(r.operations.length,60);assert.equal(r.operations[11].state,'andesite');assert.equal(input.context.operations[11].state,'stone_bricks');assert.equal(r.api_metrics.operation_changes,1);assert.equal(r.api_metrics.output_chars,responseChars);assert.ok(responseChars<JSON.stringify(r.operations).length/10)}finally{await s.close()}
+ try{await s.api.save({enabled:true});const r=await s.api.generate(input);assert.equal(r.operations.length,60);assert.match(r.operation_patch.baseline,/^[a-f0-9]{64}$/);assert.match(r.operation_patch.changes[0].expected,/^[a-f0-9]{64}$/);assert.equal(r.operations[11].state,'andesite');assert.equal(input.context.operations[11].state,'stone_bricks');assert.equal(r.api_metrics.operation_changes,1);assert.equal(r.api_metrics.output_chars,responseChars);assert.ok(responseChars<JSON.stringify(r.operations).length/10)}finally{await s.close()}
 })
 
 test('independent asset creation sends a reduced library reference and returns the shared spec without needing a source model',async()=>{
