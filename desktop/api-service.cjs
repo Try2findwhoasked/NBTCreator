@@ -145,7 +145,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     if(!own(v,['dataUrl','width','height'])||typeof v.dataUrl!=='string'||!/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(v.dataUrl)||v.dataUrl.length>3*1024*1024||![v.width,v.height].every(n=>Number.isInteger(n)&&n>0&&n<=1280))throw Error('视口截图格式或尺寸无效')
     image=v.dataUrl
   }else if(internal?.attachViewport)throw Error('该工作流需要视口截图，请先打开建筑画面或关闭截图开关')
-  const payload={model:config.model,messages:[{role:'system',content:system},{role:'user',content:JSON.stringify({instruction:input.instruction,context:apiContext,...(internal?{internal_workflow:providerWorkflow}:{})})}],max_tokens:['workbench','small_structure','component','selection_edit'].includes(input.mode)?12288:6144,stream:false}
+  const payload={model:config.model,messages:[{role:'system',content:system},{role:'user',content:JSON.stringify({instruction:input.instruction,context:apiContext,...(internal?{internal_workflow:providerWorkflow}:{})})}],max_tokens:input.mode==='prompt'?6144:12288,stream:false}
   Object.assign(payload,config.requestOptions)
   if(config.tokenParameter==='max_completion_tokens'){payload.max_completion_tokens=payload.max_tokens;delete payload.max_tokens}
   if(image)payload.messages[1].content=[{type:'text',text:payload.messages[1].content+'\n附图是当前建模视口，仅用于理解外观；坐标以本地上下文为准，不能从图片推定已验证或已批准。'},{type:'image_url',image_url:{url:image,detail:'auto'}}]
