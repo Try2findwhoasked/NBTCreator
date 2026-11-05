@@ -5,7 +5,7 @@ const response=text=>new Response(JSON.stringify({choices:[{finish_reason:'stop'
 test('first request carries the saved character ceiling and oversized text is regenerated, not cut',async t=>{
  const calls=[];const api=await service(t,async(_u,o)=>{const p=JSON.parse(o.body);calls.push(p);return response('😀'.repeat(calls.length===1?101:100))})
  await api.save({enabled:true,outputCharLimit:100});assert.equal((await api.load()).outputCharLimit,100)
- const r=await api.generate({mode:'prompt',instruction:'简短描述'});assert.equal(Array.from(r.text).length,100);assert.equal(r.api_metrics.attempts,2);assert.ok(calls[0].messages[0].content.includes('输出限制为 100 字'));assert.equal(calls[0].messages.length,2);assert.ok(calls[1].messages.at(-1).content.includes('超过 100 字'));assert.equal(calls[1].messages[2].content,'😀'.repeat(101))
+ const r=await api.generate({mode:'prompt',instruction:'简短描述'});assert.equal(Array.from(r.text).length,100);assert.equal(r.api_metrics.attempts,2);assert.ok(calls[0].messages[0].content.includes('最终结果限制为 100 字'));assert.equal(calls[0].messages.length,2);assert.ok(calls[1].messages.at(-1).content.includes('超过 100 字'));assert.equal(calls[1].messages[2].content,'😀'.repeat(101))
  for(const outputCharLimit of [99,60001,1.5,'100',null])await assert.rejects(api.save({outputCharLimit}))
 })
 test('format and geometry feedback repair within three requests against the same original context',async t=>{

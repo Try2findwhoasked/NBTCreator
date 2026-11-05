@@ -8,4 +8,6 @@ test('diagnostic persistence strips payloads, arbitrary strings, invalid timings
  assert.deepEqual(cleanTimings({capture_ms:30,preview_ms:40,request_total_ms:86400001,raw:'private'}),{capture_ms:30,preview_ms:40})
  for(const value of [null,undefined,1,'bad',[]])assert.equal(cleanApiMetrics(value),undefined)
  assert.doesNotThrow(()=>cleanApiMetrics({calls:[null,{},'bad']}))
+ const reasoning=cleanApiMetrics({reasoning_tokens:10,reasoning_content:'private',calls:[{reasoning_tokens:10,reasoning_content:'private'},{reasoning_tokens:-1}]})
+ assert.equal(reasoning.reasoning_tokens,10);assert.equal(reasoning.calls[0].reasoning_tokens,10);assert.equal(reasoning.calls[1].reasoning_tokens,undefined);assert.ok(!JSON.stringify(reasoning).includes('private'))
 })
