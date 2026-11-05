@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "圆柱体取样",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "geometry": {
+          "shape": "cylinder",
+          "centre": [
+            16,
+            7,
+            16
+          ],
+          "radius": 4,
+          "height": 8,
+          "axis": "y"
+        },
+        "mode": "set",
+        "state": "stone_bricks",
+        "kind": "geometry",
+        "label": "圆柱体取样",
+        "lo": [
+          8,
+          3,
+          8
+        ],
+        "hi": [
+          24,
+          12,
+          24
+        ]
+      }
+    ],
+    "style_note": "在局部范围生成竖直圆柱，用于查看体素曲面效果。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "bc36aa397b5420e48d2f8e65fe6e9552cc7d03be3b56a8d4d9f95c3c910ed8fe"
+}

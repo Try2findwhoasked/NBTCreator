@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "石柱按边界对齐",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "mode": "align",
+        "target_lo": [
+          8,
+          3,
+          28
+        ],
+        "target_hi": [
+          18,
+          11,
+          38
+        ],
+        "axes": [
+          "min",
+          "min",
+          "min"
+        ],
+        "move": false,
+        "include_air": false,
+        "kind": "align_region",
+        "label": "石柱按边界对齐",
+        "lo": [
+          30,
+          3,
+          30
+        ],
+        "hi": [
+          32,
+          8,
+          32
+        ]
+      }
+    ],
+    "style_note": "将源选区副本按目标最小边界对齐。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "c5fc906f07c1eafd81970ca6a1ec18c5b9303756a8f5c4cdd832a3ea9adbbe41"
+}

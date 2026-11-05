@@ -130,6 +130,10 @@ python .agents/skills/nbtcreator-workspace/nbt.py asset-batches organize
 
 ## 原生工具效果配置资产
 
+完整版内置32项初始效果。首次 `effect-assets list`（或打开资产管理的“工具效果”）会将配置和预生成前后快照保存到当前工作区的 `nbt_models/asset_library/tool_effects/`，不调用AI；初始资料不包含构件或建筑。重复读取不会复制新ID，不覆盖同编号用户数据，回收或移除后不会自动恢复。可直接 get/preview/compile，编辑请保存为新效果，手动导入继续保留。
+
+初始效果的 preview 可返回 `precomputed: true`，读取与配置哈希和引擎版本绑定的真实样例；缓存损坏或不匹配时重新运行独立预览。样例文件不是正式模型，也不代表用户建筑通过检查。`asset-batches generate` 的 effects 范围可将这些效果纳入标准工作区JSON清单。
+
 除构件、可调配方和材质主题外，资产管理提供“工具效果”。保存当前面板配置时捕获整体参数、混材、风化、自动地面、精确换块、结构编辑及建模operations；自动道路面板尚未执行的输入也可直接捕获。源文件、全局选区、保护资料、预算、write_group/write_bounds和覆盖权限不进入效果资产。载入效果时保留当前目标的源、选区、预算及已有工具步骤，合并新增步骤，真实预览失败回退原候选。结构填充仍须先指定目标局部选区。
 
 ```powershell

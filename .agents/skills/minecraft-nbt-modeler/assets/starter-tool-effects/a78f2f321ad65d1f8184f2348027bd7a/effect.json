@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "水平圆环取样",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "geometry": {
+          "shape": "torus",
+          "centre": [
+            16,
+            7,
+            16
+          ],
+          "major_radius": 6,
+          "minor_radius": 2
+        },
+        "mode": "set",
+        "state": "stone_bricks",
+        "kind": "geometry",
+        "label": "水平圆环取样",
+        "lo": [
+          6,
+          3,
+          6
+        ],
+        "hi": [
+          26,
+          12,
+          26
+        ]
+      }
+    ],
+    "style_note": "生成水平圆环，展示环面体素化。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "83bdd0a8c0c4c72f51ac2cff1931f19a93082dddcb68f59fb53b1199a472fb82"
+}

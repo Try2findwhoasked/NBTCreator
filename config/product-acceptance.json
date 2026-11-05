@@ -74,8 +74,9 @@
     },
     {
       "id": "effects",
-      "requirement": "原生工具效果管理、真实前后样例、Agent 脚本接入与配方版本绑定",
+      "requirement": "原生工具效果管理、32项初始效果自动入库、预生成前后样例、Agent 脚本接入与配方版本绑定",
       "suites": [
+        "py-starter-effects",
         "py-effect-assets",
         "ui-tool-effects",
         "ui-control-availability",
@@ -334,6 +335,13 @@
       "runtime": "python",
       "args": [
         "tests/reusable-recipes.py"
+      ]
+    },
+    {
+      "id": "py-starter-effects",
+      "runtime": "python",
+      "args": [
+        "tests/starter-effects.py"
       ]
     },
     {

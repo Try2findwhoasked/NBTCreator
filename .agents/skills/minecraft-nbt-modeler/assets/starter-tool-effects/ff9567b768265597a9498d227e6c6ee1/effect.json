@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "石柱六邻接膨胀",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "mode": "dilate",
+        "iterations": 1,
+        "state": "stone_bricks",
+        "from_states": [
+          "stone_bricks"
+        ],
+        "kind": "morphology",
+        "label": "石柱六邻接膨胀",
+        "lo": [
+          28,
+          3,
+          28
+        ],
+        "hi": [
+          33,
+          10,
+          33
+        ]
+      }
+    ],
+    "style_note": "将局部石柱向六邻接方向膨胀一层。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "1ed2f4276b5768d03a820c132c2ae901c057e28d0ae038853b18e6bacdfb026c"
+}

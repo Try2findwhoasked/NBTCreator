@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "石砖苔斑混材",
+  "tags": [],
+  "settings": {
+    "pattern": {
+      "enabled": true,
+      "fraction": 0.45,
+      "mode": "clustered",
+      "scale": 7,
+      "palette": [
+        {
+          "state": "mossy_stone_bricks",
+          "weight": 1
+        }
+      ]
+    },
+    "style_note": "连片混入苔石砖，不改变实体轮廓。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "074ab7122039e0f4c1e86fef5fdfd43e3706c1b8a969564364d8dc8c1d95997b"
+}

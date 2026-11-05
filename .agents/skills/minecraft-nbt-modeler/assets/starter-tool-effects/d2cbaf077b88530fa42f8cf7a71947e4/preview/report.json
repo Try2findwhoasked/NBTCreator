@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "content_sha256": "7bcfdd7178752022242c26a25d68fa15ad6ba109448b3269159f0f32d70e66d7",
+  "engine_sha256": "9861c82af2df33b9bcf3e28772918b21f45f89e85b7b4a84723f3e0653b215ca",
+  "cameras": [
+    {
+      "id": "effect",
+      "role": "工具效果样例",
+      "eye": [
+        65,
+        43,
+        -24
+      ],
+      "target": [
+        24,
+        4,
+        24
+      ],
+      "up": [
+        0,
+        1,
+        0
+      ],
+      "fov": 55,
+      "cuts": [
+        {
+          "axis": "y",
+          "position": 13,
+          "removed_side": "above"
+        }
+      ]
+    }
+  ],
+  "changed_blocks": 2824,
+  "files": {
+    "before.json": "f11075770b12ac033148de64b6a7add38fc35c20c9ead473965d0143b15794d8",
+    "after.json": "f8ada1f2bd376a1fdfc29af36a8501ece8f72466eef856751365489f473f738b",
+    "thumbnail.jpg": "7c79f96e7ef90199e44427bc0917f63fec9e3f9bbc9914a0a9bc2d8f2fdd9ad9"
+  }
+}

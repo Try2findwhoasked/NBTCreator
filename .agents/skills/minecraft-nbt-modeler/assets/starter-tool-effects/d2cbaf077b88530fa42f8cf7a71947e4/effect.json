@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "石砖轻度混材",
+  "tags": [],
+  "settings": {
+    "pattern": {
+      "enabled": true,
+      "fraction": 0.3,
+      "mode": "clustered",
+      "scale": 5,
+      "palette": [
+        {
+          "state": "andesite",
+          "weight": 2
+        },
+        {
+          "state": "cracked_stone_bricks",
+          "weight": 1
+        }
+      ]
+    },
+    "style_note": "在原石砖表面加入少量安山岩和裂纹石砖，保留大面积整洁底色。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "7bcfdd7178752022242c26a25d68fa15ad6ba109448b3269159f0f32d70e66d7"
+}

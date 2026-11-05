@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "连通石柱换材",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "selection": "connected",
+        "seed_position": [
+          31,
+          5,
+          31
+        ],
+        "match": "state",
+        "faces": [
+          "up",
+          "north",
+          "south",
+          "east",
+          "west",
+          "down"
+        ],
+        "thickness": 1,
+        "state": "andesite",
+        "kind": "selection_replace",
+        "label": "连通石柱换材",
+        "lo": [
+          30,
+          3,
+          30
+        ],
+        "hi": [
+          32,
+          8,
+          32
+        ]
+      }
+    ],
+    "style_note": "从种子出发选择连通同状态方块，在限定柱体内换材。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "c0479cb2c60a68c84cf46dba9118356fd26285d82ee24f8ffaee0fb794463390"
+}

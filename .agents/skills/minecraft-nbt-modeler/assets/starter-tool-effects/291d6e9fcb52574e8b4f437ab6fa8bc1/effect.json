@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "地表寻路安山岩路",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "lo": [
+          3,
+          0,
+          3
+        ],
+        "hi": [
+          28,
+          12,
+          28
+        ],
+        "start": [
+          6,
+          2,
+          6
+        ],
+        "end": [
+          26,
+          2,
+          26
+        ],
+        "width": 1,
+        "terrain_states": [
+          "stone_bricks",
+          "stone",
+          "oak_planks",
+          "deepslate_tiles"
+        ],
+        "state": "andesite",
+        "stair_state": "stone_brick_stairs",
+        "max_cut": 0,
+        "max_fill": 0,
+        "max_bridge_span": 0,
+        "kind": "terrain_road",
+        "label": "地表寻路安山岩路"
+      }
+    ],
+    "style_note": "在允许的地形材质上寻找有净空的路线，样例使用平坦地表。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "276fb639019faa6d80c08918d0663afb777a96dd067f4246f21a942f41b6969b"
+}

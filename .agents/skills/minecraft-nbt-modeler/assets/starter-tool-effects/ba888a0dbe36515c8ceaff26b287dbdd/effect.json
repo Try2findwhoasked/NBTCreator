@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "墙面放射缺口",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "centre": [
+          22,
+          7,
+          36
+        ],
+        "radius": 3,
+        "roughness": 0.15,
+        "rays": 6,
+        "ray_length": 5,
+        "ray_width": 0.55,
+        "from_states": [
+          "stone_bricks"
+        ],
+        "seed": 2718,
+        "kind": "explosion",
+        "label": "墙面放射缺口",
+        "lo": [
+          8,
+          3,
+          32
+        ],
+        "hi": [
+          39,
+          12,
+          41
+        ]
+      }
+    ],
+    "style_note": "在样例隔墙形成静态缺口和放射裂纹，不模拟TNT物理。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "d961f79c458b6f1cef8f3e86b42270bff20c26aa199e062391ee07cf97923307"
+}

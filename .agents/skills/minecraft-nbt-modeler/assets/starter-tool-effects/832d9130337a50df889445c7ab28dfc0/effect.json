@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "布尔挖空石拱",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "geometry": {
+          "shape": "difference",
+          "children": [
+            {
+              "shape": "box",
+              "min": [
+                8,
+                3,
+                12
+              ],
+              "max": [
+                25,
+                12,
+                16
+              ]
+            },
+            {
+              "shape": "cylinder",
+              "centre": [
+                16.5,
+                3,
+                14
+              ],
+              "radius": 6,
+              "height": 6,
+              "axis": "z"
+            }
+          ]
+        },
+        "mode": "set",
+        "state": "stone_bricks",
+        "kind": "geometry",
+        "label": "布尔挖空石拱",
+        "lo": [
+          8,
+          3,
+          12
+        ],
+        "hi": [
+          24,
+          12,
+          15
+        ]
+      }
+    ],
+    "style_note": "通过两个几何体的差集生成石拱轮廓。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "fb395415409c7bedb014b9463bc2778d31656469bc21f5c2bc3c7d4ea318fd85"
+}

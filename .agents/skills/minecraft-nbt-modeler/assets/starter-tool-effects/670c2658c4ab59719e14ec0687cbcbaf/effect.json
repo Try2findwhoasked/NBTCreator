@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "连续渗水苔痕",
+  "tags": [],
+  "settings": {
+    "weathering": {
+      "enabled": true,
+      "moss_fraction": 0.3,
+      "cracks_fraction": 0.03
+    },
+    "style_note": "以连片苔痕表现潮湿墙面，裂纹比例较低。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "1e4acb268be8149f2890585d4c00f49d394279ef027f420bc39f446e70a15bb2"
+}

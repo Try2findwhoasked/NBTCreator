@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "遗迹地面小片破损",
+  "tags": [],
+  "settings": {
+    "floor": {
+      "enabled": true,
+      "profile": "ruined",
+      "fraction": 0.08,
+      "slab_share": 0.75,
+      "patch_size": [
+        2,
+        5
+      ]
+    },
+    "style_note": "可达地面形成小片凹陷及有底坑洞，保留必要通路。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "9f3f15288f7b7adc1d6edba41aa8b11d8196d57af71a5a1c6f47df0f73010998"
+}

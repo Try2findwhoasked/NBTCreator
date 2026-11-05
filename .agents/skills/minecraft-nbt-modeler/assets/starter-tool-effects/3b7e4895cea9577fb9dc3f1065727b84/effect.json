@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "直角安山岩步道",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "lo": [
+          4,
+          3,
+          4
+        ],
+        "hi": [
+          28,
+          3,
+          28
+        ],
+        "start": [
+          6,
+          3,
+          6
+        ],
+        "end": [
+          26,
+          3,
+          26
+        ],
+        "width": 3,
+        "depth": 1,
+        "route": "x_first",
+        "state": "andesite",
+        "kind": "auto_road",
+        "label": "直角安山岩步道"
+      }
+    ],
+    "style_note": "先沿X轴、再沿Z轴铺设三格宽折线路面。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "4dba1376ffc31f7d18d7344486da08909277d92f2f48a958bc756bec0b2f3892"
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "石柱精确换材",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "from_states": [
+          "stone_bricks"
+        ],
+        "state": "andesite",
+        "kind": "replace",
+        "label": "石柱精确换材",
+        "lo": [
+          30,
+          3,
+          30
+        ],
+        "hi": [
+          32,
+          8,
+          32
+        ]
+      }
+    ],
+    "style_note": "只将指定局部石砖换为安山岩，其他状态不变。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "2b0def054493acc59db6fbd006ae574508782389491a1f1fca2066ec9b780033"
+}

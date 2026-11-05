@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "单层石砖边框",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "lo": [
+          8,
+          3,
+          12
+        ],
+        "hi": [
+          24,
+          11,
+          12
+        ],
+        "state": "stone_bricks",
+        "thickness": 1,
+        "kind": "frame",
+        "label": "单层石砖边框"
+      }
+    ],
+    "style_note": "在竖直平面生成一格宽边框。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "5c042029f64e37ff86887f3638183d0fa82b16b673b3e482939e01dcb8a19fef"
+}

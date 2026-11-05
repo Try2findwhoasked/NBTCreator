@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "地面间距碎石",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "fraction": 0.12,
+        "spacing": 3,
+        "supported": true,
+        "state": "cobblestone",
+        "from_states": [
+          "air"
+        ],
+        "seed": 2718,
+        "kind": "scatter",
+        "label": "地面间距碎石",
+        "lo": [
+          10,
+          3,
+          8
+        ],
+        "hi": [
+          38,
+          3,
+          26
+        ]
+      }
+    ],
+    "style_note": "在有下方支承的空位散落少量碎石，保留间距。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "5d5482b5aeef2663cda54a1fd616165f3188cd7add0461fcf2efbacf7e38bccf"
+}

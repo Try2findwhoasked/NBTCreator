@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "旧石墙连续裂纹",
+  "tags": [],
+  "settings": {
+    "weathering": {
+      "enabled": true,
+      "moss_fraction": 0,
+      "cracks_fraction": 0.25
+    },
+    "style_note": "以连续裂纹表现老化，保留墙体体积。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "75ed014874908bdfd704ef8884fed31f224bc41de0dced5533d7a67b6deaa05f"
+}

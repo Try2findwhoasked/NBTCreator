@@ -82,6 +82,9 @@ def save(workspace,data):
     return dict(value,id=identifier,file=str(file),manifest=batch['manifest'],nbt_exported=False)
 
 def preview(workspace,data):
+    from nbt_starter_effects import cached_preview
+    cached=cached_preview(workspace,data)
+    if cached:return cached
     from nbt_assembly import Volume
     from nbt_refine import save_master
     from nbt_detail_control import default_settings,compile_plan,simulate_plan
@@ -126,6 +129,8 @@ def dispatch(workspace,action,request):
         from nbt_asset_organization import organize
         return organize(workspace)
     if action=='list':
+        from nbt_starter_effects import install
+        install(workspace)
         items=[];errors=[]
         for file in root(workspace).glob('*/effect.json'):
             try:items.append(load(workspace,file.parent.name))

@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "石柱表面苔色扩散",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "seeds": [
+          [
+            31,
+            7,
+            30
+          ]
+        ],
+        "steps": 8,
+        "decay": 0.08,
+        "surface_only": true,
+        "from_states": [
+          "stone_bricks"
+        ],
+        "state": "mossy_stone_bricks",
+        "seed": 2718,
+        "kind": "diffusion",
+        "label": "石柱表面苔色扩散",
+        "lo": [
+          30,
+          3,
+          30
+        ],
+        "hi": [
+          32,
+          8,
+          32
+        ]
+      }
+    ],
+    "style_note": "从指定石柱表面种子扩散苔色，不跨越断开的表面。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "bc4738ca387f152f0fe4c4b16fa429093a4120559f59c690bf39ba47b71970cb"
+}

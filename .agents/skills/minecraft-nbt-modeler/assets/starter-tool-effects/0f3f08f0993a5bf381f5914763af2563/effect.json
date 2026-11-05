@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "三格宽石砖步道",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "lo": [
+          4,
+          3,
+          4
+        ],
+        "hi": [
+          28,
+          3,
+          28
+        ],
+        "start": [
+          6,
+          3,
+          6
+        ],
+        "end": [
+          26,
+          3,
+          26
+        ],
+        "width": 3,
+        "depth": 1,
+        "route": "straight",
+        "state": "stone_bricks",
+        "kind": "auto_road",
+        "label": "三格宽石砖步道"
+      }
+    ],
+    "style_note": "在同一高度铺设连续斜向步道；不会自动清空头顶。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "b2cd0e85e4630b81cfa9054d1facc5a451641f39e859ad512a1e5a4306575d2f"
+}

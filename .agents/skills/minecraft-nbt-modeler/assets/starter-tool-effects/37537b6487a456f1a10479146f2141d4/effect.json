@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "旧石墙表面斑驳",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "from_states": [
+          "stone_bricks"
+        ],
+        "palette": [
+          "cracked_stone_bricks",
+          "mossy_stone_bricks"
+        ],
+        "fraction": 0.4,
+        "seed": 2718,
+        "classification": "inherit",
+        "kind": "surface_palette",
+        "label": "旧石墙表面斑驳",
+        "lo": [
+          8,
+          3,
+          36
+        ],
+        "hi": [
+          39,
+          10,
+          37
+        ]
+      }
+    ],
+    "style_note": "在隔墙表面少量换成裂纹和苔石砖，不挖空。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "be982e30ae54b4abfa4ea2689e4e650bd658a946392897ab28a4c5ed19c8f6f2"
+}

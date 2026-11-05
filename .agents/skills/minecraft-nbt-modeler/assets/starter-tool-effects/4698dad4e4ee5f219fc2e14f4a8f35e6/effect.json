@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "石柱沿路径阵列",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "mode": "path",
+        "points": [
+          [
+            8,
+            3,
+            28
+          ],
+          [
+            24,
+            3,
+            28
+          ]
+        ],
+        "spacing": 8,
+        "end_margins": [
+          0,
+          0
+        ],
+        "orientation": "fixed",
+        "include_air": false,
+        "kind": "array_region",
+        "label": "石柱沿路径阵列",
+        "lo": [
+          30,
+          3,
+          30
+        ],
+        "hi": [
+          32,
+          8,
+          32
+        ],
+        "source_anchor": [
+          30,
+          3,
+          30
+        ]
+      }
+    ],
+    "style_note": "按八格间距沿直线路径放置源选区副本。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "49ebb5307cd90c244c0fdd627bbc1b6b5a9d793fcf94d85a46ee7ce1cc0b7e45"
+}

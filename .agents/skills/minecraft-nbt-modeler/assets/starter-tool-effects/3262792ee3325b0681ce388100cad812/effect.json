@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "地面轻度磨损",
+  "tags": [],
+  "settings": {
+    "floor": {
+      "enabled": true,
+      "profile": "worn",
+      "fraction": 0.04,
+      "slab_share": 1
+    },
+    "style_note": "可达地面形成少量半砖凹陷，保留必要通行路线。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "e69ae13c881d126ea1beac3e73f263c76e2de25c35426ec9866611d62e4d21cf"
+}

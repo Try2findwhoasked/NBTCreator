@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "一格厚空心壳",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "state": "stone_bricks",
+        "thickness": 1,
+        "kind": "hollow_box",
+        "label": "一格厚空心壳",
+        "lo": [
+          8,
+          3,
+          8
+        ],
+        "hi": [
+          22,
+          11,
+          22
+        ]
+      }
+    ],
+    "style_note": "生成一格厚空心壳；内部会挖空，请先检查目标范围。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "0d2ac2a83ba54cd32ce2e5bb08112d05a98027d0c9e0cfe713338d12453bce87"
+}

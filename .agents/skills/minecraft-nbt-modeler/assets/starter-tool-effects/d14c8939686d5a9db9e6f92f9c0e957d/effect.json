@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "石柱镜像旋转复制",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "destination": [
+          8,
+          3,
+          28
+        ],
+        "quarter_turns": 1,
+        "mirror": "x",
+        "move": false,
+        "include_air": false,
+        "kind": "transform_region",
+        "label": "石柱镜像旋转复制",
+        "lo": [
+          30,
+          3,
+          30
+        ],
+        "hi": [
+          32,
+          8,
+          32
+        ]
+      }
+    ],
+    "style_note": "镜像后绕Y轴转90度，复制到空地。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "a6dbdffaa8bfed9548ba76caa386b5e539f5b4df69ccdcb902e73a4126aa3e00"
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "石砖人字顶皮",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "roof": "gable",
+        "ridge_axis": "z",
+        "rise": 5,
+        "eaves": 0,
+        "thickness": 1,
+        "finish": "slabs",
+        "state": "stone_bricks",
+        "slab_state": "stone_brick_slab[type=bottom,waterlogged=false]",
+        "stair_state": "stone_brick_stairs",
+        "kind": "auto_roof",
+        "label": "石砖人字顶皮",
+        "lo": [
+          8,
+          5,
+          8
+        ],
+        "hi": [
+          28,
+          12,
+          24
+        ]
+      }
+    ],
+    "style_note": "生成沿Z轴的人字屋顶皮；不自动补山墙或梁柱。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "4cc53d13a2f64e5cfc78b449bb7702a892114afb1fd4a48ff0a1721ce3ccf24a"
+}

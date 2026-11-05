@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "半格上升石砖坡道",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "lo": [
+          4,
+          0,
+          4
+        ],
+        "hi": [
+          30,
+          12,
+          14
+        ],
+        "mode": "straight",
+        "start": [
+          6,
+          3,
+          8
+        ],
+        "end": [
+          28,
+          7,
+          8
+        ],
+        "width": 3,
+        "state": "stone_bricks",
+        "slab_state": "stone_brick_slab[type=bottom,waterlogged=false]",
+        "kind": "auto_stairs",
+        "label": "半格上升石砖坡道"
+      }
+    ],
+    "style_note": "以完整块和底半砖组合上升四格；栏杆和支撑需另行设计。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "7b4876ab882425ef03e293ff91e9e5eeba36013d3a66ee97b1fe1962a8fa6ed7"
+}

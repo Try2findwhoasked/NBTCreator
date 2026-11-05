@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "两层石砖铺台",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "state": "stone_bricks",
+        "kind": "box",
+        "label": "两层石砖铺台",
+        "lo": [
+          8,
+          3,
+          8
+        ],
+        "hi": [
+          20,
+          4,
+          20
+        ]
+      }
+    ],
+    "style_note": "生成局部两层铺台，使用前按当前建筑调整坐标。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "5b6a7c76fad86259185fe8a3713fb52e3b46c92f8eae2b9d0d26645290798a06"
+}

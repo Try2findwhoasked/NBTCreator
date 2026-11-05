@@ -43,6 +43,14 @@ assert.ok(JSON.parse(await fs.readFile(path.join(workspace,'.nbtcreator/runtimes
 run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'ai-style','set','--workflow','small_structure','--creativity','85'])
 assert.equal(JSON.parse(run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'ai-style','prompt','--workflow','small_structure'])).result.values.creativity,85)
 assert.deepEqual(JSON.parse(run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'components','list'])).result.items,[])
+const initial=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'effect-assets','list'])).result
+const initialManifest=JSON.parse(await fs.readFile(path.join(app,'.agents/skills/minecraft-nbt-modeler/assets/starter-tool-effects/manifest.json'),'utf8'))
+assert.equal(initial.items.length,initialManifest.items.length);assert.equal(initial.errors.length,0)
+const effectRequest=path.join(output,'initial-effect.json');await fs.writeFile(effectRequest,JSON.stringify({id:initial.items[0].id,content_sha256:initial.items[0].content_sha256}))
+const initialPreview=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'effect-assets','preview','--request',effectRequest])).result
+assert.equal(initialPreview.precomputed,true);assert.ok(initialPreview.changed_blocks>0)
+const facadeEffects=JSON.parse(execFileSync(path.join(app,'runtime/python/python.exe'),[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'effect-assets','--workspace',workspace,'list'],{env,cwd:workspace,encoding:'utf8',windowsHide:true})).result
+assert.equal(facadeEffects.items.length,initialManifest.items.length)
 const browserScript=path.join(output,'browser-probe.mjs')
 await fs.writeFile(browserScript,`import {createRequire} from 'node:module';const r=createRequire(${JSON.stringify(path.join(app,'.agents/skills/minecraft-nbt-modeler/assets/viewer/package.json'))});const b=await r('playwright').chromium.launch({executablePath:${JSON.stringify(path.join(app,'runtime/browser/chrome.exe'))},headless:true});const p=await b.newPage();await p.setContent('<title>portable</title>');if(await p.title()!=='portable')throw Error('browser');await b.close();console.log('browser-ok')`)
 assert.ok(run([browserScript]).includes('browser-ok'))
@@ -77,5 +85,5 @@ execFileSync(path.join(app,'runtime/python/python.exe'),['-B','-c',code],{env,wi
 execFileSync(path.join(app,'runtime/python/python.exe'),[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'validate','--request',path.join(candidate,'request.json'),'--snapshot',path.join(candidate,'preview/after.json'),'--output',path.join(candidate,'checked')],{env,cwd:workspace,windowsHide:true,timeout:180000})
 const verified=JSON.parse(await fs.readFile(path.join(candidate,'checked/validation.json'),'utf8'))
 assert.equal(verified.passed,true);assert.equal(verified.asset_written,false)
-await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks:{package_integrity_and_hidden_skill:true,private_python_dependencies:true,electron_node_cli:true,workspace_skill_generation:true,shared_regional_ai_preferences:true,component_library_cli:true,bundled_chromium:true,python_node_batch_render:true,workspace_facade_private_render_runtime:true,standalone_candidate_checked_in_private_runtime:true}},null,2))
-console.log(JSON.stringify({passed:true,checks:10,output}))
+await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks:{package_integrity_and_hidden_skill:true,private_python_dependencies:true,electron_node_cli:true,workspace_skill_generation:true,shared_regional_ai_preferences:true,component_library_cli:true,starter_effects_and_cached_previews_available_to_exported_skill:true,bundled_chromium:true,python_node_batch_render:true,workspace_facade_private_render_runtime:true,standalone_candidate_checked_in_private_runtime:true}},null,2))
+console.log(JSON.stringify({passed:true,checks:11,output}))

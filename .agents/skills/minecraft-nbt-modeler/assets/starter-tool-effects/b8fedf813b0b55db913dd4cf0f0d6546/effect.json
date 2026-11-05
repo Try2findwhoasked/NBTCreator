@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "asset_type": "tool_effect",
+  "name": "石柱等距阵列",
+  "tags": [],
+  "settings": {
+    "operations": [
+      {
+        "offset": [
+          -8,
+          0,
+          0
+        ],
+        "count": 3,
+        "include_air": false,
+        "kind": "repeat_region",
+        "label": "石柱等距阵列",
+        "lo": [
+          30,
+          3,
+          30
+        ],
+        "hi": [
+          32,
+          8,
+          32
+        ]
+      }
+    ],
+    "style_note": "从同一源快照复制三次，不递归复制刚生成的副本。",
+    "seed": 2718
+  },
+  "archived": false,
+  "content_sha256": "edc1e28af8f33c417fa7a5d2a0152f7a57cfde6e46eb69a0716686d4cb5bd187"
+}
