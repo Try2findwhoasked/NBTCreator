@@ -497,7 +497,7 @@ async function runJob(kind, overrides = {}) {
     if(kind==='validate'){
       let host=document.querySelector('#candidate-diagnostics');if(!host){host=document.createElement('section');host.id='candidate-diagnostics';host.className='diagnostic-guidance';$('candidate-check-state').closest('.preview-controls').after(host)}renderDiagnostics(host,result.diagnostics,{isCurrent:()=>state.candidateValidation===result&&state.previewSettings===JSON.stringify(gather()),status:(text,error)=>status(text,error?'error':'')})
       state.candidateValidation=result
-      $('candidate-check-state').textContent=result.passed?'检查通过；请查看预览后另存新版本。':'发现需要处理的问题，见下方报告。'
+      $('candidate-check-state').textContent=result.passed?'检查通过；请查看预览后另存新版本。':'检查未通过，请按下方报告处理后重新预览。'
       status(result.passed?'检查通过。预览尚未保存为建筑，请看图确认后另存新版本。':'检查未通过，请根据报告调整参数。原稿保持不变。',result.passed?'':'error')
     }else status(result.warning ? '方案已保存，建筑检查未通过：'+result.warning : ({plan:`Agent 交接方案已生成：${result.operations} 项操作。点击“复制给 Agent”继续，原建筑未改变。`,prepare:'建筑审阅图已保存到本建筑的 Agent交接 文件夹，目录已自动关联。请看图后，在 Agent 对话中明确是否同意继续精修。',render:'原建筑的多角度预览图已保存。',apply:'新建筑已另存，原建筑保留。',revision:result.draft_only?'SNBT 制作版已保存；原稿与原标注保留。':'下一版建筑已保存，定稿 NBT 位于 _exports 的镜像目录。原稿已保留。',snapshot:state.mode==='3d'?'3D 预览已打开。':'已切换到图片预览。'}[kind] ?? '完成'), result.warning ? 'warn' : '')
     return result

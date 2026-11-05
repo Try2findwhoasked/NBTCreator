@@ -26,12 +26,12 @@ try{
   await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy,undefined,{timeout:60000})
   await page.locator('button[data-workspace=model]').click()
   await page.locator('#auto-preview').uncheck()
-  await page.locator('#tool-tabs').getByRole('button',{name:'建模工具',exact:true}).click()
+  await page.locator('#tool-tabs [data-tool-index="8"]').evaluate(e=>e.click())
   assert.equal(await page.locator('#validate-preview').isDisabled(),true)
   checks.no_candidate_cannot_be_checked=true
   async function operations(ops){
     await page.locator('#operation-sequence').evaluate(input=>input.closest('details').open=true)
-    await page.locator('#operation-sequence').fill(JSON.stringify(ops))
+    await page.locator('#tool-tabs [data-tool-index="8"]').evaluate(e=>e.click());await page.locator('#operation-sequence').fill(JSON.stringify(ops))
     await page.locator('#update-preview').click()
     await page.waitForFunction(()=>window.detailControl.state.preview&&!window.detailControl.state.previewBusy,undefined,{timeout:60000})
   }
@@ -44,7 +44,7 @@ try{
   const response=await fetch(new URL(success.validation_download,server.url));assert.equal(response.status,200)
   const report=await response.json();assert.equal(report.checks.candidate_geometry.details.routes.passed,true)
   checks.actual_candidate_check_and_downloadable_report=true
-  await page.locator('#operation-sequence').fill(JSON.stringify([{kind:'box',label:'changed',lo:[8,2,8],hi:[8,4,8],state:'gold_block',classification:'body'}]))
+  await page.locator('#tool-tabs [data-tool-index="8"]').evaluate(e=>e.click());await page.locator('#operation-sequence').fill(JSON.stringify([{kind:'box',label:'changed',lo:[8,2,8],hi:[8,4,8],state:'gold_block',classification:'body'}]))
   assert.equal(await page.locator('#validate-preview').isDisabled(),true)
   assert.equal(await page.evaluate(()=>window.detailControl.state.candidateValidation),null)
   checks.parameter_change_invalidates_old_pass=true
@@ -63,7 +63,7 @@ try{
   checks.task_filter_and_verdict_are_consistent=true
   await page.locator('button[data-workspace=model]').click()
   await page.locator('.result-panel').evaluate(e=>e.open=false)
-  await page.locator('#operation-sequence').fill(JSON.stringify([{kind:'box',label:'cancel preview',lo:[8,2,8],hi:[8,4,8],state:'stone_bricks',classification:'body'}]))
+  await page.locator('#tool-tabs [data-tool-index="8"]').evaluate(e=>e.click());await page.locator('#operation-sequence').fill(JSON.stringify([{kind:'box',label:'cancel preview',lo:[8,2,8],hi:[8,4,8],state:'stone_bricks',classification:'body'}]))
   await page.locator('#update-preview').click()
   await page.waitForFunction(()=>window.detailControl.state.previewBusy)
   assert.equal(await page.locator('#cancel').isDisabled(),false)
