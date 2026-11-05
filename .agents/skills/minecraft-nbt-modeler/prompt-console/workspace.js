@@ -9,7 +9,8 @@
   function showOutput(open){document.body.classList.toggle('output-open',open);$('prompt-output-toggle').setAttribute('aria-expanded',String(open));$('prompt-output-toggle').textContent=open?'返回编辑提示词':'查看完整提示词'}
   $('prompt-output-toggle').onclick=()=>showOutput(!document.body.classList.contains('output-open'));$('prompt-output-close').onclick=()=>showOutput(false)
   function render(){
-   document.querySelector('.editor').inert=working;document.querySelector('.output').inert=working
+   document.querySelector('.editor').inert=working||loading;document.querySelector('.output').inert=working||loading
+   for(const id of ['prompt-ai-mode','prompt-ai-instruction','prompt-ai-generate'])$(id).disabled=loading||working||hooks.isGenerating()
    $('prompt-queue-count').textContent=items.length+' 条';const reviewed=items.filter(i=>phase(i)==='reviewed').length,published=items.filter(i=>phase(i)==='published').length
    $('prompt-queue-progress').textContent=`${items.length} 条提示词 · ${reviewed} 条已审查 · ${published} 条已交接`
    $('prompt-publish-reviewed').disabled=loading||working||!reviewed||!hooks.bridge?.publish
@@ -81,6 +82,7 @@
    }catch(error){hooks.message('提示词列表读取失败：'+error.message,true);throw error}
    finally{loading=false;document.body.dataset.promptReady='true';hooks.update();render()}
   }
+  render()
   return {load,edited,saved,published,confirmCurrent,addBlank,showOutput,exclusive:guard,refresh:render,get busy(){return working||loading},get loading(){return loading},get pristine(){return pristine}}
  }
 })();
