@@ -33,7 +33,7 @@ async function run(id,args){
 try{
  await run('build',['scripts/build-web.mjs'])
  const pkg=JSON.parse(await fs.readFile(path.join(root,'package.json'),'utf8'));await run('protocols',pkg.scripts['test:api'].split(' ').slice(1))
- for(const [id,file] of [['outputs','agent-simulation-desktop.mjs'],['adoption','api-desktop.mjs'],['selection','selection-edit-desktop.mjs'],['assets','structure-agent-desktop.mjs'],['desktop','desktop-smoke.mjs']])await run(id,['tests/'+file])
+ for(const [id,file] of [['outputs','agent-simulation-desktop.mjs'],['prompt-brief','prompt-brief-desktop.mjs'],['adoption','api-desktop.mjs'],['selection','selection-edit-desktop.mjs'],['assets','structure-agent-desktop.mjs'],['desktop','desktop-smoke.mjs']])await run(id,['tests/'+file])
  if(directory)await run('private-runtime',['tests/portable-smoke.mjs','--directory',directory])
  report.passed=true;report.completed_at=new Date().toISOString();await persist();console.log(JSON.stringify({passed:true,suites:report.suites.length,external_api_used:false,output}))
 }catch(error){report.error=error.message;await persist();throw error}

@@ -1,7 +1,7 @@
 const {createAIStyle}=require('./ai-style.cjs')
 const fs=require('node:fs/promises'),path=require('node:path'),crypto=require('node:crypto')
 const flows={
- draft:{label:'提示词方案 · 完整初稿',steps:'读取设计要求 → 补齐空间与构造 → 返回表单和工具候选 → 用户采用 → 复制给Agent制作',rules:'先整体空间后材质细节；补齐入口、主空间、辅助区、高差、支承及玩家动线。不得把方案说成已生成的NBT。'},
+ draft:{label:'提示词方案 · 交接要求',steps:'整理设计要求 → 用户审阅 → 保存任务与提示词 → 下一个Agent读取后制作',rules:'只编写设计要求和交接文字；补齐入口、主空间、辅助区、高差、支承及玩家动线。具体建模步骤由接收任务的Agent编写，不在提示词编写阶段实施模型。'},
  workbench:{label:'提示词方案 · 配置控件',steps:'读取当前表单 → 提议设计字段和工具序列 → 校验 → 用户采用',rules:'保留不需修改的字段与步骤；已有模型尺寸、路径、阶段和保护保持本地值。'},
  prompt:{label:'提示词方案 / 模型编辑 · 文字编写',steps:'读取本次文字要求 → 补充设计说明 → 返回候选正文 → 用户采用或复制',rules:'使用简体中文和具体构造说明，不声称已执行、已看图或已获批准。'},
  structure:{label:'模型编辑 · 局部编辑',steps:'读取局部选区与材质 → 生成填充/换块候选 → 本地校验 → 预览 → 用户导出',rules:'严格留在选区内；保护必要路线和承重，不能降低验证要求。'},

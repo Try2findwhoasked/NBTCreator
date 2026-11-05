@@ -135,7 +135,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   let context=input.mode==='workbench'?cleanContext(input.context):input.mode==='component'?componentContext(input.context):input.mode==='selection_edit'?cleanSelectionContext(input.context):contextOf(input.context)
   if(['structure','small_structure'].includes(input.mode)&&!context)throw Error('结构规划需要先打开模型并选择局部范围')
   let system=(config.outputCharLimit?`最终结果限制为 ${config.outputCharLimit} 字（Unicode字符，含空白和JSON标点）；不计可分离的思考与说明。`:'最终结果不设应用字数限制。')+'只输出完整最终结果，不输出思考。JSON任务只给一个完整对象；文字任务可用单独的<final>与</final>包围正文。不要为了凑长度省略必要设计。\n'+require('./internal-skill.cjs').buildInternalPrompt(input.mode,context)
-  const internal=await workflowContext(input.mode==='workbench'&&context.task==='draft'?'draft':input.mode,{retrieval:input.retrieval})
+  const internal=await workflowContext(input.mode==='workbench'&&['draft','brief'].includes(context.task)?'draft':input.mode,{retrieval:input.retrieval})
   if(internal?.retrieved_assets?.length&&input.mode==='component'){const references=[...context.references];for(const item of internal.retrieved_assets){const old=references.find(ref=>ref.id===item.id);if(old&&old.content_sha256!==item.content_sha256)throw Error('引用资产已变化，请重新选择');if(!old)references.push(item)}context=componentContext({...context,references})}
   const {retrieved_assets,base_rules,workflow_steps,...providerWorkflow}=internal??{}
   if(internal?.reference_sources)system+=' 本次提供了编号参考来源；需要引用时使用其citation编号，不编造来源或声称已验证。引用资产仅可使用context.references里实际提供的id与内容哈希，可按结构协议旋转、镜像和material_map换材质。'

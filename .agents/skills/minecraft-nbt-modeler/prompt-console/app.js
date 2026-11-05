@@ -12,7 +12,7 @@
  function composeAI(text){const base=C.prompt(state);return base.slice(0,base.indexOf('# 全局设计与细节要求'))+'# 全局设计与细节要求（AI 建议，待审阅）\n'+text+'\n\n'+base.slice(base.indexOf('# 自动存放规则'));}
  function outputText(){return aiDraft()?composeAI(aiDraft().text):C.prompt(state);}
  function update(){if(state.project.stage==='draft'){state.project.output=C.outputPath(state.project);const output=document.querySelector('[data-field=output]');if(output)output.value=state.project.output;}const errors=[...pending.values(),...C.validate(state)];const invalid=errors.length>0;for(const id of ['copy','markdown','plan','config','save','left-save'])$(id).disabled=invalid;
-   $('result').value=invalid?'参数尚未有效，请先修正：\n'+errors.join('\n'):outputText();notify(invalid?errors.join('\n'):`${state.operations.filter(op=>op.enabled!==false).length} 个启用 / ${state.operations.length} 个步骤 · 参数草案有效 · 尚未验证模型`,invalid);$('count').textContent=state.operations.length;
+   $('result').value=invalid?'参数尚未有效，请先修正：\n'+errors.join('\n'):outputText();notify(invalid?errors.join('\n'):state.operations.length?`${state.operations.filter(op=>op.enabled!==false).length} 个启用 / ${state.operations.length} 个高级步骤 · 供接收 Agent 核对`:'提示词草稿有效，可保存任务并交接给 Agent',invalid);$('count').textContent=state.operations.length;
    $('output-mode').textContent=aiDraft()?'当前导出：AI 设计建议 + 本地任务元数据、工具计划与验证要求':state.aiDraft?'方案已变化，当前导出参数生成稿；AI 建议需重新生成或重新审阅':'当前导出：参数生成稿';
    if(!state.export_id)state.export_id=crypto.randomUUID().replaceAll('-','');
    autosave?.schedule(!invalid);
@@ -58,7 +58,7 @@
    }
    $('context-json').value=JSON.stringify(state.project.context,null,2);
    const draftOption=$('prompt-ai-mode').querySelector('[value=draft]');draftOption.disabled=!draft;
-   if(!draft&&$('prompt-ai-mode').value==='draft')$('prompt-ai-mode').value='controls';
+   if(!draft&&$('prompt-ai-mode').value==='draft')$('prompt-ai-mode').value='text';
    $('project-intro').textContent=draft?'用于首次创建模型。选择形状带出尺寸和占地，再完善主题、空间与细节；示例可改，不会强制套用固定房型。':'这是已有建筑的方案。源、保护和确认沿用所选版本；想新做建筑，请点击上方“新建初稿”。';
  }
 
@@ -73,6 +73,7 @@
  }
  for(const [kind,[label]]of Object.entries(C.catalog)){const o=element('option',label);o.value=kind;$('kind').append(o);}
  $('add').onclick=()=>{if(pending.size){notify('请先修复未完成的参数',true);return;}state.operations.push(C.operation($('kind').value));renderOperations();update();};
+ $('prompt-advanced-toggle').onclick=()=>{const open=$('prompt-advanced-tabs').hidden;$('prompt-advanced-tabs').hidden=!open;$('prompt-advanced-toggle').setAttribute('aria-expanded',String(open));$('prompt-ai-mode').querySelector('[value=controls]').hidden=!open;if(!open){if($('prompt-ai-mode').value==='controls')$('prompt-ai-mode').value=state.project.stage==='draft'?'draft':'text';if(['tools','context'].some(id=>!$(id).hidden))document.querySelector('[data-tab=project]').click()}};
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab').forEach(x=>x.hidden=x.id!==b.dataset.tab);});
  $('context-json').oninput=()=>{try{const v=JSON.parse($('context-json').value);if(!v||typeof v!=='object'||Array.isArray(v))throw Error('上下文须为对象');state.project.context=v;pending.delete('context');$('context-error').textContent='';}catch(e){pending.set('context','上下文JSON无效：'+e.message);$('context-error').textContent=e.message;}update();};
  $('save').onclick=()=>download('nbt_prompt_settings.json',state);
@@ -148,7 +149,7 @@
      if(proposal.operations!==undefined)next.operations=proposal.operations;
      if(candidateMode==='draft'){
        for(const key of ['name','theme','purpose','layout','circulation','style','ceiling','floor','wall','props'])if(typeof patch[key]!=='string'||!patch[key].trim())throw Error('完整初稿需补齐：'+(projectFields[key]||key));
-       if(!Array.isArray(proposal.operations)||!proposal.operations.length)throw Error('完整初稿需包含初始构造工具步骤');
+       if(proposal.operations!==undefined&&(!Array.isArray(proposal.operations)||proposal.operations.length))throw Error('提示词编写只采用设计要求；具体工具步骤请使用高级工具模式');
      }
      const errors=C.validate(next);if(errors.length)throw Error(errors.join('；'));delete next.aiDraft;state=next;pending.clear();renderProject();renderOperations();update();candidateBinding=null;$('prompt-ai-apply').disabled=true;document.querySelector('[data-tab=project]').click();aiMessage(candidateMode==='draft'?'完整初稿方案已回填；复制提示词交给 Agent 制作，尚未生成 NBT。':'已回填左侧设计控件和工具序列；未改动源路径、保护配置或批准状态。');return;
    }

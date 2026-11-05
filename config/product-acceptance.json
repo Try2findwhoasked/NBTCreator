@@ -21,7 +21,8 @@
         "ui-ai-style",
         "py-prompt-archive",
         "ui-agent-simulation",
-        "ui-prompt-task"
+        "ui-prompt-task",
+        "ui-prompt-brief"
       ]
     },
     {
@@ -478,7 +479,8 @@
         "tests/workspace-api.test.cjs",
         "tests/workspace-resolution.cjs",
         "tests/ai-candidate-validator.test.cjs",
-        "tests/ai-result-extract.test.cjs"
+        "tests/ai-result-extract.test.cjs",
+        "tests/prompt-brief.test.cjs"
       ]
     },
     {
@@ -844,6 +846,14 @@
       "runtime": "node",
       "args": [
         "tests/prompt-task-desktop.mjs"
+      ],
+      "desktop": true
+    },
+    {
+      "id": "ui-prompt-brief",
+      "runtime": "node",
+      "args": [
+        "tests/prompt-brief-desktop.mjs"
       ],
       "desktop": true
     }

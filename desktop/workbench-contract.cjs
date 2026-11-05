@@ -14,14 +14,14 @@ function cleanContext(input){
  const project={size:[...input.project.size]}
  for(const key of fields)if(typeof input.project[key]==='string')project[key]=input.project[key].slice(0,4000)
  if(!project.size||project.size.length!==3||!project.size.every(v=>Number.isInteger(v)&&v>0&&v<=4096))throw Error('设计尺寸无效');
- if(input.task==='draft'&&input.existing_model)throw Error('完整初稿必须是新建任务');
+ if(['draft','brief'].includes(input.task)&&input.existing_model)throw Error('完整初稿必须是新建任务');
  if(input.baseline_binding!==undefined&&!SHA.test(input.baseline_binding))throw Error('方案绑定指纹无效')
  if(input.operations!==undefined&&(!Array.isArray(input.operations)||input.operations.length>128))throw Error('当前工具序列最多128项，不能静默截断')
- return {project,task:input.task==='draft'?'draft':'controls',existing_model:input.existing_model===true,operations:structuredClone(input.operations??[]),...(input.baseline_binding?{baseline_binding:input.baseline_binding}:{})}
+ return {project,task:['draft','brief'].includes(input.task)?input.task:'controls',existing_model:input.existing_model===true,operations:input.task==='brief'?[]:structuredClone(input.operations??[]),...(input.baseline_binding?{baseline_binding:input.baseline_binding}:{})}
 }
 function operationBase(context){return {baseline:fingerprint(context),steps:context.operations.map((op,i)=>({step:i+1,expected:fingerprint(op)}))}}
 function mergeOperationPatch(result,context){
- if(!own(result,['summary','project_patch','operation_patch'])||context.task==='draft')throw Error('步骤增量仅支持已有方案的控件修改，不能与完整序列同时返回')
+ if(!own(result,['summary','project_patch','operation_patch'])||['draft','brief'].includes(context.task))throw Error('步骤增量仅支持已有方案的控件修改，不能与完整序列同时返回')
  const patch=result.operation_patch,base=operationBase(context)
  if(!own(patch,['baseline','changes'])||patch.baseline!==base.baseline)throw Error('工具增量不属于当前方案基线，请重新生成')
  if(!Array.isArray(patch.changes)||!patch.changes.length||patch.changes.length>16)throw Error('工具增量须包含1到16项修改')
@@ -53,6 +53,10 @@ function validateWorkbench(result,context){
  for(const [key,value]of Object.entries(patch))if(key!=='size'&&(typeof value!=='string'||value.length>4000))throw Error('AI设计文字字段无效')
  if(patch.buildingShape){if(!catalog.building_shapes[patch.buildingShape])throw Error('建筑形状无效');if(context.existing_model&&patch.buildingShape!==context.project.buildingShape)throw Error('已有模型形状不可由AI改写')}
  if(context.task==='draft'){for(const key of ['name','theme','purpose','layout','circulation','style','ceiling','floor','wall','props'])if(typeof patch[key]!=='string'||!patch[key].trim())throw Error('完整初稿缺少设计字段：'+key);if(!Array.isArray(result.operations)||!result.operations.length)throw Error('完整初稿需要初始构造工具步骤')}
+ if(context.task==='brief'){
+  for(const key of ['name','theme','purpose','layout','circulation','style','ceiling','floor','wall','props'])if(typeof patch[key]!=='string'||!patch[key].trim())throw Error('交接要求缺少设计字段：'+key)
+  if(result.operations!==undefined&&(!Array.isArray(result.operations)||result.operations.length))throw Error('当前为提示词编写，仅返回project_patch设计文字，不生成具体工具步骤；工具操作由下一个Agent按真实模型编写')
+ }
  if(patch.size){if(!Array.isArray(patch.size)||patch.size.length!==3||!patch.size.every(v=>Number.isInteger(v)&&v>0&&v<=4096))throw Error('设计尺寸无效');if(context.existing_model&&JSON.stringify(patch.size)!==JSON.stringify(context.project.size))throw Error('已有模型尺寸不可由AI改写')}
  if(result.operations!==undefined){
   const limit=incremental?128:64
@@ -74,6 +78,6 @@ function validateWorkbench(result,context){
    if(op.kind!=='auto_floor'&&op.kind!=='beam'){for(const key of ['lo','hi'])if(!Array.isArray(op[key])||op[key].length!==3||!op[key].every(Number.isInteger))throw Error('工具需要整数XYZ选区');if(op.lo.some((v,i)=>v<0||v>op.hi[i]||op.hi[i]>=size[i]))throw Error('AI工具超出方案尺寸')}
   }
  }
- return result
+ return context.task==='brief'?{summary:result.summary,project_patch:patch}:result
 }
 module.exports={cleanContext,validateWorkbench,operationBase}

@@ -6,13 +6,13 @@ function normalizeWorkspace(folder){
 }
 function selectWorkspace({explicit,environment,agentCwd,cwd,root,packaged,executable,config={},settingsDirectory,systemDirectory}){
  const source=agentCwd||cwd
- const forbidden=[packaged?root:null,packaged?path.dirname(executable):null,systemDirectory].filter(Boolean).map(p=>path.resolve(p).toLowerCase())
+ const forbidden=[root,packaged?path.dirname(executable):null,systemDirectory].filter(Boolean).map(p=>path.resolve(p).toLowerCase())
  const usable=p=>p&&path.isAbsolute(p)&&!forbidden.some(f=>path.resolve(p).toLowerCase()===f||path.resolve(p).toLowerCase().startsWith(f+path.sep))
  if(explicit||environment)return normalizeWorkspace(path.resolve(source||cwd,explicit||environment))
  if(agentCwd&&usable(agentCwd))return normalizeWorkspace(agentCwd)
  const remembered=config.workspace?(config.path_base==='settings'?path.resolve(settingsDirectory,config.workspace):path.resolve(config.workspace)):null
  if(config.workspace_source==='manual'&&usable(remembered))return normalizeWorkspace(remembered)
  if(usable(source))return normalizeWorkspace(source)
- return packaged?null:path.resolve(root)
+ return null
 }
 module.exports={selectWorkspace,normalizeWorkspace}

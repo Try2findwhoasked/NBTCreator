@@ -15,6 +15,7 @@ const draft={mode:'workbench',context:{task:'draft',project:{size},operations:[]
 const validDraft={project_patch:project,operations:[box]},validComponent={operations:[box]},validLocal={settings_patch:{lo:box.lo,hi:box.hi,structure:{enabled:true,mode:'fill',state:{Name:'minecraft:oak_log',Properties:{axis:'y'}},classification:'body',thickness:1,offset:[0,0,0]}}}
 const selection={mode:'selection_edit',context:{...region,selection:{schema_version:1,geometry_sha256:'a'.repeat(64),size,palette:[],runs:[],solid_blocks:0,air_omitted:true}}}
 const cases=[
+ {id:'handoff_brief_without_operations',input:{...draft,context:{...draft.context,task:'brief'}},replies:[{project_patch:project}],verify:r=>assert.equal(r.operations,undefined)},
  {id:'text_final_only',input:{mode:'prompt'},replies:['<think>计划</think>\n<final>保留净空与支承。</final>'],verify:r=>assert.equal(r.text,'保留净空与支承。')},
  {id:'local_standard_state',input:local,replies:[validLocal],verify:r=>assert.equal(r.settings_patch.structure.state,'minecraft:oak_log[axis=y]')},
  {id:'small_compact_and_translation',input:small,replies:[{boxes:[[0,0,0,0,3,0,'stone']]}],verify:r=>assert.deepEqual(r.settings_patch.operations[0].lo,[4,2,4])},

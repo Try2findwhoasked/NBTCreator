@@ -11,6 +11,8 @@ from nbt_refine import save_master
 from nbt_assembly import Volume
 
 class Contracts(unittest.TestCase):
+ def test_software_source_root_does_not_regenerate_an_authoring_facade(self):
+  with self.assertRaisesRegex(ValueError,'软件源码或安装目录'):expose(ROOT)
  def test_exposed_paths_are_callable_after_relocation_and_locate_importable_api(self):
   with tempfile.TemporaryDirectory() as temp:
    old=Path(temp)/'old';new=Path(temp)/'new';expose(old)

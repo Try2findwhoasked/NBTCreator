@@ -92,7 +92,9 @@ def show(workspace):
                 facade='.agents/skills/nbtcreator-workspace/SKILL.md',tool_count=len(caps['tools']),capabilities_sha256=caps['capabilities_sha256'])
 
 def apply(workspace,config=None):
-    workspace=Path(workspace).resolve();folder=workspace/'.nbtcreator';folder.mkdir(parents=True,exist_ok=True)
+    workspace=Path(workspace).resolve()
+    if workspace==ENGINE.parents[2] and (workspace/'desktop/main.cjs').is_file():raise ValueError('软件源码或安装目录不生成创作Skill；请选择实际创作项目根目录')
+    folder=workspace/'.nbtcreator';folder.mkdir(parents=True,exist_ok=True)
     from nbt_ai_style import load as load_style
     load_style(workspace,create=True)
     file=folder/'skill-exposure.json'

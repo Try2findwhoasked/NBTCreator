@@ -11,9 +11,10 @@ test('prose editing summarizes repeated tool intent and never transmits executab
  const summary=JSON.parse(text.split('设计草案摘要 JSON：\n')[1]);assert.equal(summary.operation_count,60);assert.equal(summary.operation_intents.length,1);assert.equal(summary.operation_intents[0].steps,60);assert.equal(summary.operation_intents[0].state,'stone_bricks')
  assert.equal(JSON.stringify(design),before);assert.ok(text.length<JSON.stringify(design).length/3)
 })
-test('controls and draft retain full context and bypass the unrelated prose size guard',()=>{
+test('advanced controls retain tool context while ordinary draft requests only ask for a handoff brief',()=>{
  const large={...design,project:{...design.project,wall:'层次'.repeat(10000)}}
- for(const mode of ['controls','draft']){const input=request(mode,'调整墙面',large);assert.equal(input.mode,'workbench');assert.equal(input.context,large);assert.equal(input.instruction,'调整墙面')}
+ const control=request('controls','调整墙面',large);assert.equal(control.context,large)
+ const brief=request('draft','调整墙面',large);assert.equal(brief.mode,'workbench');assert.equal(brief.context.task,'brief');assert.equal(brief.context.operations.length,0);assert.equal(brief.context.project,large.project);assert.equal(brief.instruction,'调整墙面')
  assert.throws(()=>request('text','润色',large),/摘要较大/)
  assert.throws(()=>request('controls','x'.repeat(12001),design),/12000/)
 })
