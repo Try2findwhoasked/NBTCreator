@@ -122,7 +122,7 @@ class Standalone(unittest.TestCase):
         self.assertEqual(result['runtime_parts'],3);self.assertEqual(result['delivery_nbt'],6)
         descriptor=json.loads((target/'room_description.json').read_text(encoding='utf8'))
         self.assertEqual(descriptor['shape'],'l_shape');self.assertEqual({tuple(p) for p in descriptor['cells']},{tuple(p) for p in cells})
-        self.assertEqual(verify_standalone(target)['actual_nbt_files'],6);self.assertEqual(source.read_bytes(),original)
+        self.assertEqual(verify_standalone(Path(result['release_dir']))['actual_nbt_files'],6);self.assertEqual(source.read_bytes(),original)
 
     def test_unknown_mode_leak_missing_declaration_and_missing_targets_refuse(self):
         model,walls,config=room();before=model.fingerprint()
@@ -173,11 +173,11 @@ class Standalone(unittest.TestCase):
         self.assertEqual(target.name,'v02');self.assertEqual(source.read_bytes(),original)
         self.assertEqual(first['runtime_parts'],1);self.assertEqual(first['delivery_nbt'],2)
         self.assertEqual(json.loads((target/'room_description.json').read_text(encoding='utf8'))['shape'],'standalone')
-        self.assertEqual(verify_standalone(target)['source_geometry_sha256'],first['geometry_sha256'])
+        self.assertEqual(verify_standalone(Path(first['release_dir']))['source_geometry_sha256'],first['geometry_sha256'])
         job=out/'job';job.mkdir();write(job/'request.json',request);preview=preview_effect(request,job/'result')
         second=convert_web_json(preview['snapshot']);self.assertEqual(Path(second['output']).name,'v03')
         self.assertFalse(list(target.rglob('approval.json')))
-        result=audit_unit(target,[target/'master/master_geometry.json.gz'],{},{});self.assertTrue(result['valid'],result)
+        result=audit_unit(target,[target/'master/model.snbt'],{},{});self.assertTrue(result['valid'],result)
 
     def test_synthetic_refine_protects_aperture_and_keeps_whole_revision(self):
         out,model,walls,config,source,request=self.fixture('refine')
@@ -226,11 +226,11 @@ class Standalone(unittest.TestCase):
         request['settings']['operations']=[layer_op([2,6,9])];write(file,request)
         result=convert_web_json(file);target=Path(result['output'])
         self.assertEqual(result['changed_blocks'],0);self.assertEqual(result['wall_membership_changes'],1);self.assertEqual(result['changed_positions'],1)
-        revised,new_walls=read_master(target/'master/master_geometry.json.gz')
+        revised,new_walls=read_master(target/'master/model.snbt')
         self.assertEqual(revised.blocks,model.blocks);self.assertEqual(new_walls,walls-{(2,6,9)})
         changes=json.loads((target/'changes.json').read_text(encoding='utf8'))
         self.assertEqual(changes['wall_membership_changed'],[[2,6,9]])
-        self.assertEqual(source.read_bytes(),original);self.assertTrue(verify_standalone(target)['exact_solid_reconstruction'])
+        self.assertEqual(source.read_bytes(),original);self.assertTrue(verify_standalone(Path(result['release_dir']))['exact_solid_reconstruction'])
 
     def test_nbt_source_explicit_mask_is_baseline_not_a_mass_layer_change(self):
         out,model,walls,config,gzip_source,request=self.fixture('nbt-mask-baseline')
@@ -242,7 +242,7 @@ class Standalone(unittest.TestCase):
         file=out/'settings.json';write(file,request)
         result=convert_web_json(file);target=Path(result['output'])
         self.assertEqual(result['changed_blocks'],0);self.assertEqual(result['wall_membership_changes'],0);self.assertEqual(result['changed_positions'],0)
-        revised,new_walls=read_master(target/'master/master_geometry.json.gz')
+        revised,new_walls=read_master(target/'master/model.snbt')
         self.assertEqual(revised.blocks,model.blocks);self.assertEqual(new_walls,walls);self.assertEqual(source.read_bytes(),original)
 
 

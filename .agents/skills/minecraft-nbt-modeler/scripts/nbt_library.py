@@ -198,6 +198,17 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
  manifests=list(unit.rglob('delivery.json'))
  # Ignore nested versions; their own units will be processed separately.
  manifests=[p for p in manifests if not any(part=='versions' or re.match(r'^(?:v|detail_v|refined_v)\d+$',part) for part in p.relative_to(unit).parts[:-2])]
+ # Final deliveries can live in the approved mirrored _exports tree.
+ # Bind that packet to these exact source bytes before accepting its evidence.
+ try:
+  from nbt_history import source_workspace
+  from nbt_finalize import release_path
+  released=release_path(source_workspace(selected),selected)
+  receipt=read_json(released/'release.json')
+  if receipt.get('status')=='finalized' and receipt.get('source_sha256')==sha(selected) and receipt.get('geometry_sha256')==result['geometry_sha256']:
+   mirror=released/'delivery/delivery.json'
+   if mirror.is_file():manifests.append(mirror)
+ except (OSError,ValueError,KeyError):pass
  matched=None
  for manifest in manifests:
   try:
@@ -230,7 +241,7 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
     result['valid']=not result['reasons']
     return result
    model,_,_=read_geometry(selected)
-   candidates=[p for folder in (unit/'runtime',unit/'parts',selected.parent) if folder.is_dir() for p in folder.rglob('*.nbt') if 'delivery' not in p.parts and 'layers' not in p.parts]
+   candidates=[p for folder in (unit/'runtime',unit/'parts',selected.parent,matched.parent.parent/'runtime') if folder.is_dir() for p in folder.rglob('*.nbt') if 'delivery' not in p.parts and 'layers' not in p.parts]
    candidates=list(dict.fromkeys(candidates));expected=defaultdict(dict)
    for (x,y,z),value in model.blocks.items():expected[(x//48,z//48)][(x%48,y,z%48)]=value
    signatures=defaultdict(list)
