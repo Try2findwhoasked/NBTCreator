@@ -45,12 +45,16 @@
       if(!['wall','body','inherit'].includes(o.classification))errors.push(prefix+'层归属无效');
       if(o.enabled===false)return;
       if(o.kind==='geometry'&&(!o.geometry||!shapes[o.geometry.shape]))errors.push(prefix+'填写有效几何形状');
-      if(o.kind!=='auto_floor')for(const k of ['lo','hi'])if(!Array.isArray(o[k])||o[k].length!==3||!o[k].every(Number.isInteger))errors.push(prefix+k+'须为整数XYZ');
+      if(!['auto_floor','beam'].includes(o.kind))for(const k of ['lo','hi'])if(!Array.isArray(o[k])||o[k].length!==3||!o[k].every(Number.isInteger))errors.push(prefix+k+'须为整数XYZ');
+      if(o.kind==='beam')for(const k of ['start','end']){
+        if(!Array.isArray(o[k])||o[k].length!==3||!o[k].every(Number.isInteger))errors.push(prefix+k+'须为整数XYZ');
+        else if(p.size?.length===3&&o[k].some((v,j)=>v<0||v>=p.size[j]))errors.push(prefix+k+'梁端点超出模型');
+      }
       if(Array.isArray(o.lo)&&Array.isArray(o.hi)&&p.size?.length===3&&o.lo.some((v,j)=>v<0||v>o.hi[j]||o.hi[j]>=p.size[j]))errors.push(prefix+'选区越界或上下界颠倒');
       for(const k of ['fraction','decay','slab_share'])if(k in o&&(!(o[k]>=0&&o[k]<=1)))errors.push(prefix+k+'须在0..1');
       if(o.kind==='explosion'&&(!(o.radius>0)||!(o.roughness>=0&&o.roughness<1)))errors.push(prefix+'爆炸半径/起伏无效');
       if(o.kind==='replace'&&(!Array.isArray(o.from_states)||!o.from_states.length))errors.push(prefix+'替换需原状态列表');
-      if(o.kind==='frame'&&o.lo.filter((v,j)=>v===o.hi[j]).length!==1)errors.push(prefix+'边框需处在一个轴对齐平面');
+      if(o.kind==='frame'&&Array.isArray(o.lo)&&Array.isArray(o.hi)&&o.lo.filter((v,j)=>v===o.hi[j]).length!==1)errors.push(prefix+'边框需处在一个轴对齐平面');
     });
     return errors;
   }
