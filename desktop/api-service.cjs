@@ -6,16 +6,17 @@ const {normalizeReply}=require('./ai-output-normalize.cjs')
 const {cleanContext,validateWorkbench}=require('./workbench-contract.cjs')
 const {validateRequestOptions}=require('./api-options.cjs')
 const {cleanSelectionContext,validateSelectionResult}=require('./selection-edit.cjs')
-const defaults={enabled:false,provider:'deepseek',baseUrl:'https://api.deepseek.com',model:'deepseek-flash',jsonMode:true,timeoutMs:90000,tokenParameter:'max_tokens',requestOptions:{}}
+const defaults={enabled:false,provider:'deepseek',baseUrl:'https://api.deepseek.com',model:'deepseek-flash',jsonMode:true,outputCharLimit:12000,timeoutMs:90000,tokenParameter:'max_tokens',requestOptions:{}}
 const own=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).every(k=>keys.includes(k))
 function configOf(input){
- if(!own(input,['enabled','provider','baseUrl','model','jsonMode','key','clearKey','timeoutMs','tokenParameter','requestOptions']))throw Error('API 配置字段无效')
+ if(!own(input,['enabled','provider','baseUrl','model','jsonMode','key','clearKey','outputCharLimit','timeoutMs','tokenParameter','requestOptions']))throw Error('API 配置字段无效')
  const c={...defaults,...input};delete c.key;delete c.clearKey
  if(typeof c.enabled!=='boolean'||typeof c.jsonMode!=='boolean'||!['deepseek','compatible'].includes(c.provider))throw Error('API 配置无效')
  const u=new URL(c.baseUrl)
  if(u.username||u.password||u.search||u.hash||!['https:','http:'].includes(u.protocol)||u.protocol==='http:'&&!['127.0.0.1','localhost','[::1]'].includes(u.hostname))throw Error('API 地址须为 HTTPS，或本机 HTTP 地址')
  if(typeof c.model!=='string'||!c.model.trim()||c.model.length>150)throw Error('填写模型 ID')
  if(!Number.isInteger(c.timeoutMs)||c.timeoutMs<5000||c.timeoutMs>300000||!['max_tokens','max_completion_tokens'].includes(c.tokenParameter))throw Error('API超时须为5～300秒，令牌参数使用支持的名称')
+ if(!Number.isSafeInteger(c.outputCharLimit)||c.outputCharLimit<100||c.outputCharLimit>60000)throw Error('输出字数上限须为100～60000的整数')
  c.requestOptions=validateRequestOptions(c.requestOptions)
  c.baseUrl=u.href.replace(/\/$/,'');return c
 }
@@ -132,7 +133,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   if(input.retrieval&&(!own(input.retrieval,['id','sha256'])||!/^[a-f0-9]{32}$/.test(input.retrieval.id)||!/^[a-f0-9]{64}$/.test(input.retrieval.sha256)))throw Error('参考集合编号或哈希无效')
   let context=input.mode==='workbench'?cleanContext(input.context):input.mode==='component'?componentContext(input.context):input.mode==='selection_edit'?cleanSelectionContext(input.context):contextOf(input.context)
   if(['structure','small_structure'].includes(input.mode)&&!context)throw Error('结构规划需要先打开模型并选择局部范围')
-  let system=require('./internal-skill.cjs').buildInternalPrompt(input.mode,context)
+  let system=`本次输出限制为 ${config.outputCharLimit} 字（按Unicode字符计，包含空白、JSON键名与标点）。在限额内返回最小但完整的答案，不截断，不省略必要设计或必需字段；优先用紧凑区域、材质索引和步骤增量。不要附加字数说明。\n`+require('./internal-skill.cjs').buildInternalPrompt(input.mode,context)
   const internal=await workflowContext(input.mode==='workbench'&&context.task==='draft'?'draft':input.mode,{retrieval:input.retrieval})
   if(internal?.retrieved_assets?.length&&input.mode==='component'){const references=[...context.references];for(const item of internal.retrieved_assets){const old=references.find(ref=>ref.id===item.id);if(old&&old.content_sha256!==item.content_sha256)throw Error('引用资产已变化，请重新选择');if(!old)references.push(item)}context=componentContext({...context,references})}
   const {retrieved_assets,base_rules,workflow_steps,...providerWorkflow}=internal??{}
@@ -166,19 +167,15 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     return value
    }catch(e){if(image&&/HTTP (400|415|422)/.test(e.message))throw Error(e.message+'；本次附带视口截图，请确认模型支持图像输入，或关闭工作流截图开关');throw e}
   }
-  response=await invoke()
-  // Never parse or apply a partial result. One bounded retry rebuilds from the original request.
-  if(input.mode==='small_structure'&&response.choices?.[0]?.finish_reason==='length'){
-   api_metrics.retried_compact=true
-   payload.messages[0].content+=' 上一次输出达到长度上限。本次重新给出完整、可独立解析的精简JSON：只保留最多24个box/beam/frame操作，summary最多80字，合并重复方块，保留主要轮廓和支承。不得续写上次内容或逐块列举。'
-   response=await invoke()
-  }
-  if(token.cancelled)throw Error('API 请求已取消')
-  const choice=response.choices?.[0]
-  const text=choice?.message?.content
-  if(typeof text==='string')api_metrics.output_chars=text.length
-  if(choice?.finish_reason==='length')throw Error('API 输出达到长度上限'+(api_metrics.attempts>1?'；已自动精简重试1次，仍未返回完整方案':'')+'。请缩小构件或降低细节要求；本次没有应用任何不完整内容。'+(api_metrics.completion_tokens?' 接口已报告的累计返回令牌数：'+api_metrics.completion_tokens:'') )
-  if(typeof text!=='string'||!text.trim()||text.length>60000)throw Error('API 返回了空内容或过长内容')
+  let compactRetries=0
+  const originalMessages=structuredClone(payload.messages)
+  const validateResponse=async()=>{
+   if(token.cancelled)throw Error('API 请求已取消')
+   const choice=response.choices?.[0],text=choice?.message?.content
+   if(typeof text==='string')api_metrics.output_chars=Array.from(text).length
+   if(choice?.finish_reason==='length')throw Error('API 输出达到长度上限'+(compactRetries?'；已自动精简重试1次，仍未返回完整方案':'')+'。本次没有应用任何不完整内容。'+(api_metrics.completion_tokens?' 累计返回令牌数：'+api_metrics.completion_tokens:''))
+   if(typeof text!=='string'||!text.trim()||text.length>120000)throw Error('API 返回了空内容或过长内容')
+   if(Array.from(text).length>config.outputCharLimit)throw Error('输出超过 '+config.outputCharLimit+' 字上限，请压缩为完整答案')
   const validating=performance.now()
   try{
    if(input.mode==='prompt')return {mode:'prompt',text,api_metrics,...(internal?.reference_sources?{reference_sources:internal.reference_sources}:{})}
@@ -198,7 +195,22 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    if(input.mode==='workbench'){const validated=validateWorkbench(parsed,context);if(parsed.operation_patch)api_metrics.operation_changes=parsed.operation_patch.changes.length;return {mode:'workbench',...validated,...(parsed.operation_patch?{operation_patch:parsed.operation_patch}:{}),api_metrics,...referenceFields}}
    if(input.mode==='small_structure')return {mode:'small_structure',...localSmallStructure(parsed,context),api_metrics,...referenceFields}
    return {mode:'structure',...validatePatch(parsed,context),api_metrics,...referenceFields}
-  }finally{api_metrics.validation_ms=Math.round(performance.now()-validating)}
+  }finally{api_metrics.validation_ms=(api_metrics.validation_ms??0)+Math.round(performance.now()-validating)}
+  }
+  while(true){
+   response=await invoke()
+   try{return await validateResponse()}catch(error){
+    if(token.cancelled)throw Error('API 请求已取消')
+    const reason=response.choices?.[0]?.finish_reason,text=response.choices?.[0]?.message?.content
+    if(reason==='content_filter'||api_metrics.attempts>=3||reason==='length'&&compactRetries>=1)throw error
+    if(reason==='length'){compactRetries++;api_metrics.retried_compact=true}
+    const feedback=reason==='length'?'上次输出达到长度上限。重新给出完整精简答案，不续写；小构件只保留最多24个box/beam/frame操作。':('本地校验未通过：'+error.message.replace(/[\r\n]/g,' ').slice(0,300)+'。仅修正格式、长度或错误参数，保持原任务和原上下文，不扩大权限。')
+    payload.messages=structuredClone(originalMessages)
+    if(reason!=='length'&&typeof text==='string'&&text.length<=48000&&Array.from(text).length<=Math.min(config.outputCharLimit*2,24000))payload.messages.push({role:'assistant',content:text})
+    else payload.messages.push({role:'assistant',content:'（本地已省略上一次不完整或过长的输出，不能视为已完成的候选。）'})
+    payload.messages.push({role:'user',content:feedback+` 输出限制仍为 ${config.outputCharLimit} 字；只返回可独立解析的完整结果，不带代码围栏或解释。`})
+   }
+  }
  }
  async function generate(input){
   if(generation||active)throw Error('已有 API 请求进行中')
