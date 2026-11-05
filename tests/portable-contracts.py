@@ -6,7 +6,7 @@ archive=importlib.util.module_from_spec(spec);spec.loader.exec_module(archive)
 class PortableContracts(unittest.TestCase):
     def make_app(self,folder):
         app=folder/'NBTCreator-win32-x64'
-        for name in ['NBTCreator.exe','resources/app/runtime/python/python.exe','resources/app/runtime/browser/chrome.exe','resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md']:
+        for name in ['NBTCreator.exe','resources/app/runtime/python/python.exe','resources/app/runtime/browser/chrome.exe','resources/app/runtime/git/cmd/git.exe','resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md']:
             p=app/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(name.encode())
         return app
     def test_hidden_skill_roundtrip_and_no_overwrite(self):
