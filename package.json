@@ -1,7 +1,7 @@
 {
   "name": "nbtcreator",
   "productName": "NBTCreator",
-  "version": "1.20.0",
+  "version": "1.20.1",
   "private": true,
   "description": "Minecraft Java 1.20.1 NBT authoring workbench with portable tools and Agent collaboration",
   "type": "module",
@@ -11,7 +11,7 @@
     "cli": "node scripts/cli.mjs",
     "doctor": "node scripts/cli.mjs doctor",
     "test:desktop": "node tests/desktop-smoke.mjs",
-    "test:api": "node --test --test-concurrency=1 tests/compact-structure.test.cjs tests/ai-output-normalize.test.cjs tests/ai-character-limit.test.cjs tests/ai-result-extract.test.cjs tests/selection-edit.test.cjs tests/api-service.test.cjs tests/workbench-contract.test.cjs tests/ai-input.test.cjs tests/ai-metrics.test.mjs tests/internal-ai.test.cjs tests/internal-skill.test.cjs tests/ai-component.test.mjs",
+    "test:api": "node --test --test-concurrency=1 tests/compact-structure.test.cjs tests/ai-output-normalize.test.cjs tests/ai-character-limit.test.cjs tests/ai-result-extract.test.cjs tests/ai-candidate-validator.test.cjs tests/selection-edit.test.cjs tests/api-service.test.cjs tests/workbench-contract.test.cjs tests/ai-input.test.cjs tests/ai-metrics.test.mjs tests/internal-ai.test.cjs tests/internal-skill.test.cjs tests/ai-component.test.mjs",
     "test:api-desktop": "node tests/api-desktop.mjs",
     "package": "node scripts/package.mjs",
     "package:portable": "node scripts/portable-build.mjs",
@@ -33,7 +33,7 @@
     "test:library-layout": "npm run build:web && node tests/library-layout-desktop.mjs",
     "build:starter-effects": "python scripts/build-starter-effects.py",
     "check:starter-effects": "python scripts/build-starter-effects.py --check",
-    "test:tool-effects": "npm run build:web && python tests/starter-effects.py && python tests/effect-assets.py && node tests/tool-effects-desktop.mjs",
+    "test:tool-effects": "npm run build:web && python tests/starter-effects.py && python tests/effect-assets.py && node tests/tool-effects-desktop.mjs && node tests/effect-gallery-desktop.mjs",
     "test:authoring-journey": "npm run build:web && node tests/authoring-journey-desktop.mjs",
     "test:asset-interaction": "npm run build:web && node tests/asset-interaction-desktop.mjs",
     "test:control-availability": "npm run build:web && python tests/reusable-recipes.py && node tests/control-availability-desktop.mjs",
@@ -58,7 +58,8 @@
     "test:batches": "npm run build:web && python tests/batches.py && node --test tests/batch-links.test.cjs && node tests/batch-workspaces-desktop.mjs",
     "test:roads": "npm run build:web && python tests/auto-roads.py && node tests/auto-roads-desktop.mjs",
     "test:transforms": "npm run build:web && node --test tests/ai-component.test.mjs tests/edit-session-store.test.mjs && python tests/components.py && node tests/transform-sliders-desktop.mjs",
-    "test:modelling": "python tests/modelling-suite.py && node --test tests/operation-parameters.test.cjs"
+    "test:modelling": "python tests/modelling-suite.py && node --test tests/operation-parameters.test.cjs",
+    "test:ai-live": "node tests/ai-live-desktop.mjs"
   },
   "devDependencies": {
     "electron": "45.2.1",

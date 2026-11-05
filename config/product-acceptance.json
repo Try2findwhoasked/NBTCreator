@@ -81,7 +81,8 @@
         "ui-tool-effects",
         "ui-control-availability",
         "ui-reusable",
-        "py-reusable-recipes"
+        "py-reusable-recipes",
+        "ui-effect-gallery"
       ]
     },
     {
@@ -473,7 +474,9 @@
         "tests/updater.test.cjs",
         "tests/workbench-contract.test.cjs",
         "tests/workspace-api.test.cjs",
-        "tests/workspace-resolution.cjs"
+        "tests/workspace-resolution.cjs",
+        "tests/ai-candidate-validator.test.cjs",
+        "tests/ai-result-extract.test.cjs"
       ]
     },
     {
@@ -817,6 +820,13 @@
         "{workspace}",
         "--output",
         "{output}/workspace-library.json"
+      ]
+    },
+    {
+      "id": "ui-effect-gallery",
+      "runtime": "node",
+      "args": [
+        "tests/effect-gallery-desktop.mjs"
       ]
     }
   ]

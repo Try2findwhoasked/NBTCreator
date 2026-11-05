@@ -10,7 +10,7 @@ const path=require('node:path')
 const fs=require('node:fs/promises')
 const root=path.resolve(__dirname,'..')
 const automationMinimized=process.env.NBTCREATOR_AUTOMATION==='1'&&process.env.NBTCREATOR_AUTOMATION_VISIBLE!=='1'
-let window,worker,serverUrl,closing=false,workspace,frontend
+let window,worker,serverUrl,api,closing=false,workspace,frontend
 async function flushEditor(){
  if(!window||window.isDestroyed()||window.webContents.isDestroyed())return
  let timer
@@ -59,9 +59,8 @@ async function boot(){
  const preferences=createAppSettings(()=>path.join(workspace,'.nbtcreator')),updater=createUpdater({directory:app.getPath('userData'),version:app.getVersion(),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
  let initialPreferences
  const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler'),retrieve:async input=>{const response=await net.fetch(new URL('/__detail__/retrieve/read',serverUrl).href,{method:'POST',headers:{'content-type':'application/json',origin:new URL(serverUrl).origin},body:JSON.stringify(input),redirect:'error'});const data=await response.json();if(!response.ok)throw Error(data.error||'参考集合无法读取');return data}})
- let api
  const workspaceApi=createWorkspaceApi({cancel:()=>api?.cancel()})
- api=createApiService({workflowContext:(key,request)=>workspaceApi.guardContext(()=>internalAI.context(key,request)),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
+ api=createApiService({workflowContext:(key,request)=>workspaceApi.guardContext(()=>internalAI.context(key,request)),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args),validateCandidate:require('./ai-candidate-validator.cjs').createCandidateValidator({root,python,directory:app.getPath('userData'),getWorkspace:()=>workspace})})
  await api.load()
  for(const [channel,handler]of Object.entries({'api-config':()=>api.publicConfig(),'api-save':input=>api.save(input),'api-models':()=>api.models(),'api-cancel':()=>api.cancel()}))ipcMain.handle('nbt:'+channel,(event,input)=>{allowed(event);return workspaceApi.run(()=>handler(input))})
  // Electron serializes thrown errors without custom fields. Return a bounded
@@ -149,6 +148,6 @@ async function boot(){
  })
  await window.loadURL(serverUrl);window.webContents.setZoomFactor(initialPreferences.zoom/100);window.setTitle('NBTCreator · NBT 建筑工作台');if(automationMinimized)window.minimize();else window.show()
 }
-app.on('before-quit',event=>{if(!closing){event.preventDefault();closing=true;flushEditor().finally(()=>stopBackend()).finally(()=>app.quit())}})
+app.on('before-quit',event=>{if(!closing){event.preventDefault();closing=true;api?.cancel();flushEditor().finally(()=>stopBackend()).finally(()=>app.quit())}})
 app.on('window-all-closed',()=>app.quit())
 app.whenReady().then(boot).catch(error=>{console.error(error.stack||error.message);if(!process.env.NBTCREATOR_AUTOMATION)dialog.showErrorBox('NBTCreator 启动失败',error.stack||error.message);app.quit()})

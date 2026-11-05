@@ -57,10 +57,15 @@ function validateWorkbench(result,context){
   const limit=incremental?128:64
   if(!Array.isArray(result.operations)||result.operations.length>limit)throw Error('工具序列最多'+limit+'项')
   const size=patch.size??context.project.size
-  for(const op of result.operations){if(!op||!catalog.tools[op.kind]||typeof op.label!=='string'||!op.label.trim()||!['body','wall','inherit'].includes(op.classification))throw Error('AI返回未支持的工具或归属')
+  for(const [index,op] of result.operations.entries()){
+   const step='第'+(index+1)+'步',token=value=>typeof value==='string'&&/^[a-z_]{1,40}$/i.test(value)?JSON.stringify(value):'（缺失或类型无效）'
+   if(!op||typeof op!=='object'||Array.isArray(op))throw Error(step+'需要工具对象')
+   if(!Object.hasOwn(catalog.tools,op.kind))throw Error(step+' kind='+token(op.kind)+' 不支持；只能使用工具清单的规范键，例如box、hollow_box、geometry、pattern；不得自造工具名')
+   if(!['body','wall','inherit'].includes(op.classification))throw Error(step+' classification='+token(op.classification)+' 无效；只支持body（主体）、wall（墙层）、inherit（保留归属），可省略由脚本补齐；不要填写structure/decor/opening等用途')
+   if(typeof op.label!=='string'||!op.label.trim())throw Error(step+'缺少有效步骤名称label')
    if(op.enabled!==undefined&&typeof op.enabled!=='boolean')throw Error('工具 enabled 开关须为布尔值')
    if(op.enabled===false)continue
-   validateOperation(op)
+   try{validateOperation(op)}catch(error){throw Error(step+'（'+op.kind+'）参数无效：'+error.message)}
    if(op.kind==='geometry'&&(!op.geometry||!catalog.shapes[op.geometry.shape]))throw Error('几何工具需要支持的形状定义')
    if(op.kind!=='auto_floor'&&op.kind!=='beam'){for(const key of ['lo','hi'])if(!Array.isArray(op[key])||op[key].length!==3||!op[key].every(Number.isInteger))throw Error('工具需要整数XYZ选区');if(op.lo.some((v,i)=>v<0||v>op.hi[i]||op.hi[i]>=size[i]))throw Error('AI工具超出方案尺寸')}
   }

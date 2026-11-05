@@ -29,7 +29,7 @@
 | selection_replace | 连通 / 表面选区换材 | 从seed_position六邻接选取同状态或实体；surface按暴露朝向选面，thickness仅向实体内扩展。保护及预算继续生效。 |
 | align_region | 对齐 / 锚点 / 落地吸附 | lo/hi是源包围盒；align按轴min/center/max/keep对齐；anchor指定源和目标全局锚点；ground按destination的XZ和最高搜索Y落地，拒绝不平整或未知支承。归属请显式设置。 |
 | array_region | 环形 / 沿路径阵列 | lo/hi为源；source_anchor默认lo。path按折线弧长布置；radial用centre/radius/count/start_angle/sweep_angle。cardinal朝向取最近90°，不支持任意角度状态旋转；位置量化碰撞和预算均预检。 |
-| auto_stairs | 半格楼梯 / 坡道 / 平台 | start/end为整数玩家脚位（XZ取方块格，Y为脚底高度）；以半砖和完整块形成每次半格爬升。支持straight/switchback/spiral，转弯处平平台；逐段碰撞检查通过才返回候选。 |
+| auto_stairs | 半格楼梯 / 坡道 / 平台 | start/end是玩家脚位，end.y必须高于start.y。straight须沿X或Z轴，水平路程L至少2*(end.y-start.y)+2*width+1，给两端平平台留白；放不下时改为明确box阶梯或另设计折返。不能自动清头顶或补支撑；须实际预览通行。 |
 | terrain_road | 地形道路 / 避障 / 有限填挖 | A*按真实地表绕开非地形障碍；端点Y为真实地表格。高度差最多1，自动楼梯并逐段通行检查；仅允许列出的地形材质填挖。桥段需显式max_bridge_span，不认证承重。 |
 | auto_roof | 屋顶 / 屋脊 / 屋檐 | roof=gable/hip/gambrel/dome；lo.y为檐口底层，footprint可指定两个XZ角点，eaves向外扩展但不得超选区。finish=blocks/slabs/stairs；生成顶皮不自动补墙、梁柱或认证密闭。 |
 

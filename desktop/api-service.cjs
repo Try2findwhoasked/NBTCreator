@@ -89,7 +89,7 @@ function localSmallStructure(result,context){
  for(const op of p.operations)for(const key of ['lo','hi','start','end'])if(op[key])op[key]=op[key].map((v,i)=>v+context.lo[i])
  return {...validateSmallStructure(translated,context),structure_name:result.structure_name,camera:result.camera}
 }
-function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext=async()=>null}){
+function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext=async()=>null,validateCandidate=async()=>{}}){
  const file=path.join(directory,'api-settings.json');let config={...defaults},encrypted=null,active=null,generation=null
  async function load(){try{const saved=JSON.parse(await fs.readFile(file,'utf8'));config=configOf(saved.config);encrypted=saved.encryptedKey||null}catch{config={...defaults};encrypted=null}return publicConfig()}
  function publicConfig(){return {...structuredClone(config),hasKey:!!encrypted}}
@@ -198,19 +198,20 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     if(parsed.size&&JSON.stringify(parsed.size)!==JSON.stringify(context.size))throw Error('AI不能更改用户指定的独立结构尺寸')
     if(!['operations','placements'].some(key=>Array.isArray(spec[key])&&spec[key].length))throw Error('独立结构需要工具步骤或引用资产')
     if(spec.placements!==undefined&&(!Array.isArray(spec.placements)||spec.placements.length>32))throw Error('引用放置须为至多32项的数组')
-    const used=[];for(const item of spec.placements??[]){const reference=context.references.find(ref=>ref.id===item.id&&ref.content_sha256===item.content_sha256);if(!reference)throw Error('AI引用了未提供或哈希不匹配的资产');used.push(item.id)}return {mode:'component',spec,api_metrics,reference_sources:internal?.reference_sources??[],used_assets:[...new Set(used)]}
+    const used=[];for(const item of spec.placements??[]){const reference=context.references.find(ref=>ref.id===item.id&&ref.content_sha256===item.content_sha256);if(!reference)throw Error('AI引用了未提供或哈希不匹配的资产');used.push(item.id)}const result={mode:'component',spec,api_metrics,reference_sources:internal?.reference_sources??[],used_assets:[...new Set(used)]};await validateCandidate({mode:input.mode,result,context,signal:token.controller.signal});return result
    }
-   if(input.mode==='workbench'){const validated=validateWorkbench(parsed,context);if(parsed.operation_patch)api_metrics.operation_changes=parsed.operation_patch.changes.length;return {mode:'workbench',...validated,...(parsed.operation_patch?{operation_patch:parsed.operation_patch}:{}),api_metrics,...referenceFields}}
+   if(input.mode==='workbench'){const validated=validateWorkbench(parsed,context);await validateCandidate({mode:input.mode,result:validated,context,signal:token.controller.signal});if(parsed.operation_patch)api_metrics.operation_changes=parsed.operation_patch.changes.length;return {mode:'workbench',...validated,...(parsed.operation_patch?{operation_patch:parsed.operation_patch}:{}),api_metrics,...referenceFields}}
    if(input.mode==='small_structure')return {mode:'small_structure',...localSmallStructure(parsed,context),api_metrics,...referenceFields}
    return {mode:'structure',...validatePatch(parsed,context),api_metrics,...referenceFields}
   }finally{api_metrics.validation_ms=(api_metrics.validation_ms??0)+Math.round(performance.now()-validating)}
   }
   while(true){
    response=await invoke()
-   try{return await validateResponse()}catch(error){
+   try{const result=await validateResponse();api_metrics.calls.at(-1).validation_status='passed';return result}catch(error){
+    api_metrics.calls.at(-1).validation_status='failed';api_metrics.calls.at(-1).validation_issue=require('./ai-validation-issue.cjs').validationIssue(error)
     if(token.cancelled)throw Error('API 请求已取消')
     const reason=response.choices?.[0]?.finish_reason,text=response.choices?.[0]?.message?.content
-    if(reason==='content_filter'||api_metrics.attempts>=3||reason==='length'&&compactRetries>=1)throw error
+    if(error.retryable===false||reason==='content_filter'||api_metrics.attempts>=3||reason==='length'&&compactRetries>=1)throw error
     if(reason==='length'){compactRetries++;api_metrics.retried_compact=true}
     const feedback=reason==='length'?'上次输出达到长度上限。重新给出完整精简答案，不续写；小构件只保留最多24个box/beam/frame操作。':('本地校验未通过：'+error.message.replace(/[\r\n]/g,' ').slice(0,300)+'。仅修正格式、长度或错误参数，保持原任务和原上下文，不扩大权限。')
     payload.messages=structuredClone(originalMessages)
@@ -222,10 +223,10 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
  }
  async function generate(input){
   if(generation||active)throw Error('已有 API 请求进行中')
-  const token={cancelled:false,started:performance.now(),metrics:{attempts:0,finish_reason:'unknown',retried_compact:false,calls:[]}};generation=token
+  const token={cancelled:false,controller:new AbortController(),started:performance.now(),metrics:{attempts:0,finish_reason:'unknown',retried_compact:false,calls:[]}};generation=token
   try{return await generateCore(input,token)}catch(error){error.api_metrics=token.metrics;throw error}
   finally{token.metrics.service_total_ms=Math.round(performance.now()-token.started);if(generation===token)generation=null}
  }
- return {load,save,models,generate,cancel:()=>{if(generation)generation.cancelled=true;active?.abort();return true},publicConfig}
+ return {load,save,models,generate,cancel:()=>{if(generation){generation.cancelled=true;generation.controller.abort()}active?.abort();return true},publicConfig}
 }
 module.exports={localSmallStructure,validateSmallStructure,createApiService,validatePatch,contextOf,configOf}

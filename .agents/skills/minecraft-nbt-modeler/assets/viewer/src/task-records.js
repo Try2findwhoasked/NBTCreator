@@ -17,6 +17,8 @@ export function initTaskRecords(){
     if(Number.isFinite(call.read_ms))parts.push('接收 '+seconds(call.read_ms))
     if(Number.isFinite(call.completion_tokens))parts.push('返回 '+call.completion_tokens+' tokens')
     if(call.finish_reason==='length')parts.push('达到长度上限')
+    if(call.validation_status==='passed')parts.push('本地校验通过')
+    if(call.validation_status==='failed'){const issue=call.validation_issue??{},names={invalid_geometry:'几何预检未通过',invalid_classification:'方块归属无效',invalid_tool:'工具名称无效',invalid_json:'JSON格式无效',output_limit:'超出限制',invalid_parameter:'参数无效',invalid_result:'结果不符合要求'};parts.push((issue.step?'第'+issue.step+'步：':'')+(names[issue.code]??'本地校验未通过')+(issue.received?'（'+issue.received+'）':''))}
     body.append(text('p',parts.join(' · ')))
    }
    if(m.calls?.length){const counted=m.calls.filter(call=>Number.isFinite(call.total_tokens)).length;body.append(text('p','接口提供了 '+counted+'/'+m.calls.length+' 次请求的合计 token 用量；缺失用量不按零消耗计算。','muted'))}

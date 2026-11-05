@@ -797,7 +797,7 @@ globalThis.NbtToolCatalog = {
         "overwrite": false,
         "max_writes": 4096
       },
-      "start/end为整数玩家脚位（XZ取方块格，Y为脚底高度）；以半砖和完整块形成每次半格爬升。支持straight/switchback/spiral，转弯处平平台；逐段碰撞检查通过才返回候选。"
+      "start/end是玩家脚位，end.y必须高于start.y。straight须沿X或Z轴，水平路程L至少2*(end.y-start.y)+2*width+1，给两端平平台留白；放不下时改为明确box阶梯或另设计折返。不能自动清头顶或补支撑；须实际预览通行。"
     ],
     "terrain_road": [
       "地形道路 / 避障 / 有限填挖",
@@ -1695,7 +1695,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -1741,7 +1746,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -1778,7 +1788,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -1818,7 +1833,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -1858,7 +1878,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -1911,7 +1936,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -1954,7 +1984,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -1991,7 +2026,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2037,7 +2077,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2086,7 +2131,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2146,7 +2196,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2195,7 +2250,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2253,7 +2313,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2314,7 +2379,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2369,7 +2439,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2394,10 +2469,18 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "scope": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "volume",
+            "surface"
+          ]
         },
         "mode": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "independent",
+            "clustered"
+          ]
         },
         "scale": {
           "anyOf": [
@@ -2423,7 +2506,31 @@ globalThis.NbtToolCatalog = {
           "type": "array"
         },
         "palette": {
-          "type": "array"
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string"
+                  },
+                  "weight": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "state"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
         },
         "preserve_properties": {
           "type": "boolean"
@@ -2447,7 +2554,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2472,7 +2584,11 @@ globalThis.NbtToolCatalog = {
           "type": "array"
         },
         "palette": {
-          "type": "array"
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
         },
         "fraction": {
           "type": "number"
@@ -2493,7 +2609,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2521,13 +2642,107 @@ globalThis.NbtToolCatalog = {
           "type": "integer"
         },
         "moss": {
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "patch_size": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 512
+              }
+            },
+            "state": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
         },
         "cracks": {
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "length": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 512
+              }
+            },
+            "straightness": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "branch_chance": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "state": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
         },
         "floor": {
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "levels": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "slab_share": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "patch_size": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 512
+              }
+            },
+            "pit_depth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            },
+            "rim_width": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3
+            },
+            "slab_state": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false,
@@ -2542,7 +2757,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2603,7 +2823,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2646,7 +2871,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2714,7 +2944,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2797,7 +3032,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -2917,7 +3157,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -3036,7 +3281,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -3147,7 +3397,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",
@@ -3236,7 +3491,12 @@ globalThis.NbtToolCatalog = {
           "type": "string"
         },
         "classification": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "body",
+            "wall",
+            "inherit"
+          ]
         },
         "lo": {
           "type": "array",

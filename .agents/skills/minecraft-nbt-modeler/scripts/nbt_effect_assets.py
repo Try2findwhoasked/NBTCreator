@@ -133,7 +133,12 @@ def dispatch(workspace,action,request):
         install(workspace)
         items=[];errors=[]
         for file in root(workspace).glob('*/effect.json'):
-            try:items.append(load(workspace,file.parent.name))
+            try:
+                item=load(workspace,file.parent.name)
+                from nbt_starter_effects import cached_preview
+                cached=cached_preview(workspace,item)
+                if cached:item['thumbnail']=cached['thumbnail']
+                items.append(item)
             except Exception as error:errors.append(dict(file=str(file),error=str(error)))
         return dict(items=items,errors=errors)
     if action=='save':return save(workspace,request['asset'])

@@ -13,6 +13,12 @@ export function cleanApiMetrics(value){
   Object.assign(item,copyNumbers(call,['elapsed_ms','headers_ms','read_ms','response_parse_ms'],86400000))
   if(['complete','failed','cancelled','timeout'].includes(call?.status))item.status=call.status
   if(['stop','length','content_filter','tool_calls','function_call','unknown'].includes(call?.finish_reason))item.finish_reason=call.finish_reason
+  if(['passed','failed'].includes(call?.validation_status))item.validation_status=call.validation_status
+  const issue=call?.validation_issue
+  if(['invalid_geometry','invalid_classification','invalid_tool','invalid_json','output_limit','invalid_parameter','invalid_result'].includes(issue?.code)){
+   item.validation_issue={code:issue.code,...(number(issue.step,128)&&issue.step>0?{step:issue.step}:{})}
+   if(['classification','kind'].includes(issue.field)&&typeof issue.received==='string'&&/^[a-z_]{1,40}$/i.test(issue.received))Object.assign(item.validation_issue,{field:issue.field,received:issue.received})
+  }
   return item
  })
  return clean

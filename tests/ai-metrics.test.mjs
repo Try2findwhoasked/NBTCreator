@@ -10,4 +10,6 @@ test('diagnostic persistence strips payloads, arbitrary strings, invalid timings
  assert.doesNotThrow(()=>cleanApiMetrics({calls:[null,{},'bad']}))
  const reasoning=cleanApiMetrics({reasoning_tokens:10,reasoning_content:'private',calls:[{reasoning_tokens:10,reasoning_content:'private'},{reasoning_tokens:-1}]})
  assert.equal(reasoning.reasoning_tokens,10);assert.equal(reasoning.calls[0].reasoning_tokens,10);assert.equal(reasoning.calls[1].reasoning_tokens,undefined);assert.ok(!JSON.stringify(reasoning).includes('private'))
+ const validation=cleanApiMetrics({calls:[{validation_status:'failed',validation_issue:{code:'invalid_classification',step:1,field:'classification',received:'structure',raw:'private'}},{validation_issue:{code:'private'}},{validation_status:'private',validation_issue:{code:'invalid_result',field:'Authorization',received:'Bearer secret'}}]})
+ assert.deepEqual(validation.calls[0].validation_issue,{code:'invalid_classification',step:1,field:'classification',received:'structure'});assert.equal(validation.calls[1].validation_issue,undefined);assert.ok(!JSON.stringify(validation).includes('private'));assert.ok(!JSON.stringify(validation).includes('secret'))
 })
