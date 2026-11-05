@@ -28,7 +28,7 @@ try{
  const index=await page.evaluate(source=>window.detailControl.state.models.findIndex(m=>m.source.toLowerCase()===source.toLowerCase()),after);assert.ok(index>=0)
  await page.locator('#models').selectOption(String(index));await page.waitForFunction(source=>window.detailControl.state.info?.source.toLowerCase()===source.toLowerCase()&&!window.detailControl.state.sessionRestoring&&!window.detailControl.state.busy,after)
  const pose={eye:[20,12,-10],target:[13,4,13],up:[0,1,0],fov:55};await page.evaluate(pose=>document.querySelector('#viewer').contentWindow.nbtModeler.renderView({...pose,cuts:[{axis:'y',position:8,removed_side:'above'}],layer:'all',lighting:'day'}),pose)
- await page.locator('#feedback-text').fill('版本对比前未保存的草稿');await page.evaluate(()=>window.nbtEditSession.flush())
+ await page.locator('#studio-panel-notes').evaluate(e=>e.click());await page.locator('#feedback-text').fill('版本对比前未保存的草稿');await page.evaluate(()=>window.nbtEditSession.flush())
  const originalMeta=await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.metadata())
  const originalSettings=await page.evaluate(()=>window.detailControl.gather())
  await page.waitForFunction(()=>!document.querySelector('#open-version-compare').disabled);await click('#open-version-compare');await page.locator('#version-same-object').uncheck();await page.locator('#version-reference').selectOption(before);await click('#start-version-compare');await page.waitForFunction(()=>window.detailControl.state.versionComparing&&!document.querySelector('#version-after').disabled&&document.querySelector('#viewer').contentWindow.nbtModeler.differenceStatus().enabled)

@@ -54,7 +54,7 @@
        if(key==='buildingShape')C.applyShape(state.project,v);else state.project[key]=v;
        if(key==='stage'&&v==='draft'){state.project.source='';state.project.contextPath='';state.project.reviewPath='';state.project.context=C.defaults().project.context;}
        if(['buildingShape','stage'].includes(key))renderProject();
-     },{label:key==='output'&&draft?'自动保存到当前项目':label,token:'project.'+key,wide:['style','ceiling','floor','wall','props','preserve','extras','source','output','contextPath','reviewPath','footprint','layout','circulation'].includes(key)});
+     },{label:key==='output'&&draft?'自动保存到当前项目':label,token:'project.'+key,wide:['theme','purpose','style','ceiling','floor','wall','props','preserve','extras','source','output','contextPath','reviewPath','footprint','layout','circulation'].includes(key)});
      if(key==='output'&&draft){input.readOnly=true;input.classList.add('auto-path');const hint=element('small','建造助手会在这里为建筑另存新版本。制作稿使用 SNBT；你定稿后，再导出到专用 NBT 交付目录。','field-help');input.parentElement.append(hint);}
      if(key==='buildingShape'&&!draft)input.disabled=true;
    }
