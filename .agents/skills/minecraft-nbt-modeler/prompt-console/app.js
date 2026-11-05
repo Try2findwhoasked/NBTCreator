@@ -76,7 +76,21 @@
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab').forEach(x=>x.hidden=x.id!==b.dataset.tab);});
  $('context-json').oninput=()=>{try{const v=JSON.parse($('context-json').value);if(!v||typeof v!=='object'||Array.isArray(v))throw Error('上下文须为对象');state.project.context=v;pending.delete('context');$('context-error').textContent='';}catch(e){pending.set('context','上下文JSON无效：'+e.message);$('context-error').textContent=e.message;}update();};
  $('save').onclick=()=>download('nbt_prompt_settings.json',state);
- $('left-read').onclick=()=>$('import').click();$('left-save').onclick=()=>$('save').click();
+ $('left-read').onclick=()=>$('import').click();
+ $('left-save').onclick=async()=>{
+  const button=$('left-save');button.disabled=true
+  try{
+   if(pending.size||C.validate(state).length)throw Error('请先修正当前参数，再保存任务')
+   const saved=await autosave.flush()
+   if(!saved||!parent.nbtPromptStorage?.publish)throw Error('保存任务需要在工作区桌面版中使用')
+   if(pending.size||C.validate(state).length)throw Error('参数已变化，请修正后重新保存任务')
+   const task=await parent.nbtPromptStorage.publish({index:saved.index,id:saved.id,revision:saved.revision})
+   const status=$('prompt-task-state');status.dataset.id=task.id;status.dataset.path=task.directory;status.textContent='任务已保存：'+task.directory;status.title=task.directory
+   $('prompt-task-command').textContent='python .agents/skills/nbtcreator-workspace/nbt.py prompts task --id '+task.id
+   $('prompt-task-handoff').hidden=false;notify(task.unchanged?'该任务已保存，未重复创建文件夹':'任务目录已创建，提示词和方案已保存，可交给外部 Agent')
+  }catch(error){notify(error.message,true)}finally{button.disabled=pending.size>0||C.validate(state).length>0}
+ };
+ $('prompt-task-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('prompt-task-command').textContent);notify('Agent读取命令已复制')}catch{notify($('prompt-task-command').textContent)}}
  $('markdown').onclick=()=>download('NBT建模完整提示词.md',outputText(),'text/markdown;charset=utf-8');
  $('plan').onclick=()=>download('plan.json',C.plan(state));
  $('config').onclick=()=>download('context_draft.json',{...state.project.context,max_changed_blocks:state.project.budget});

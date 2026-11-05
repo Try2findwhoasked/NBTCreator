@@ -190,7 +190,7 @@ async function captureViewport(isCancelled=()=>false){
 }
 let promptLoaded=false
 initReferencePicker({api})
-window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload)})
+window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload),publish:payload=>api('prompt-publish',payload)})
 // The iframe gets only prompt generation, never the native API/key management bridge.
 window.nbtPromptAI=Object.freeze({
  config:()=>window.nbtDesktop?.apiConfig?.()??Promise.resolve({enabled:false,available:false}),

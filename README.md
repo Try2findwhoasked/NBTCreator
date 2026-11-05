@@ -27,6 +27,10 @@
 4. **检查结果**：检查当前效果、保护区与适用的通路报告，再实际查看图片或 3D。
 5. **保存下一版**：满意后主动执行“导出建筑下一版”。生成建议、恢复草稿或检查通过都不会自动导出正式 NBT。
 
+在“提示词方案”编辑建筑要求后，底部点击 **保存任务到工作区**，会创建带日期的任务文件夹并自动保存完整提示词、方案、操作计划和上下文。页面显示任务目录及外部 Agent 的读取命令；顶部“下载方案 JSON”保留为独立的文件下载入口。
+
+外部 Agent 从工作区根目录运行 `python .agents/skills/nbtcreator-workspace/nbt.py prompts tasks --status pending` 查看待办，或用 `prompts tasks --after <上次cursor>` 发现新增提示词；`prompts task --id <id>` 返回实际文件夹、正文和经哈希检查的方案。进度通过 `prompts task-status --id <id> --status in_progress/completed` 登记。任务文件位于对应建筑 `提示词方案/任务/`；重复保存同一修订不创建重复目录，普通编辑草稿继续自动归档。任务登记不自动启动 Agent 或授予模型验收、精修批准。
+
 ## 主要功能
 
 ### 项目与版本

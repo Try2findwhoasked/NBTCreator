@@ -334,9 +334,9 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         res.setHeader('Content-Type',name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.js')?'text/javascript; charset=utf-8':'text/css; charset=utf-8')
         res.setHeader('Cache-Control','no-store')
         res.end(await fs.readFile(path.join(skillRoot,'prompt-console',name)))
-      } else if(req.method==='POST'&&url.pathname==='/__detail__/prompt-save'){
+      } else if(req.method==='POST'&&['/__detail__/prompt-save','/__detail__/prompt-publish'].includes(url.pathname)){
         const input=await body(req,3*1024*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'prompt-save-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input))
-        try{json(res,await invoke(['prompt-save','--workspace',workspace,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
+        try{json(res,await invoke([url.pathname.endsWith('prompt-publish')?'prompt-publish':'prompt-save','--workspace',workspace,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if (req.method === 'POST' && url.pathname === '/__detail__/prompt-export') {
         const input=await body(req)
         input.source=localPath(input.source)

@@ -9,7 +9,7 @@ import uuid
 import copy
 import time
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from nbt_web_paths import project_paths
 
 def digest(raw):
@@ -162,15 +162,108 @@ def scan(workspace, source=None):
         except (ValueError,OSError,KeyError) as error:errors.append(dict(index=relative(workspace,file),error=str(error)))
     return dict(schema_version=1,items=sorted(items,key=lambda item:item.get('updated_at') or '',reverse=True),errors=errors,full_text_loaded=False)
 
+
+def task_index(workspace):
+    return inside(workspace,'nbt_models/_workspaces/prompt_tasks/任务索引.json')
+
+
+def load_tasks(workspace):
+    file=task_index(workspace)
+    if not file.exists():return dict(schema_version=1,records=[])
+    if file.stat().st_size>4*1024*1024:raise ValueError('提示词任务索引超过4MiB')
+    data=json.loads(file.read_text(encoding='utf8'))
+    if data.get('schema_version')!=1 or not isinstance(data.get('records'),list):raise ValueError('提示词任务索引无效')
+    for item in data['records']:
+        if not isinstance(item,dict) or not re.fullmatch('[a-f0-9]{32}',str(item.get('id',''))) or type(item.get('sequence')) is not int or item['sequence']<1:raise ValueError('提示词任务记录无效')
+    return data
+
+
+def publish(workspace,index,identifier,revision):
+    from nbt_project_batch import write
+    archived=read_prompt(workspace,index,identifier)
+    record=archived['record']
+    if record['revision']!=revision:raise ValueError('提示词已更新，请重新保存当前任务')
+    if archived['source_matches'] is False:raise ValueError('源模型已变化，不能交接旧提示词')
+    task_id=uuid.uuid5(uuid.NAMESPACE_URL,archived['index']+':'+identifier+':'+revision).hex
+    global_index=task_index(workspace);global_index.parent.mkdir(parents=True,exist_ok=True)
+    with index_lock(workspace,global_index.parent):
+        data=load_tasks(workspace)
+        previous=next((item for item in data['records'] if item['id']==task_id),None)
+        if previous:
+            read_task(workspace,task_id)
+            return dict(previous,unchanged=True)
+        stamp=datetime.now(timezone(timedelta(hours=8))).strftime('%Y%m%d_%H%M%S')
+        folder=inside(workspace,Path(index).parent/'任务'/(stamp+'_'+task_id[:12]));folder.mkdir(parents=True,exist_ok=True)
+        files={}
+        for name in ('提示词.md','方案.json','操作计划.json','上下文草案.json'):
+            item=record['files'][name]
+            raw=inside(workspace,Path(index).parent/item['path']).read_bytes()
+            if digest(raw)!=item['sha256']:raise ValueError('提示词修订已变化，未发布任务')
+            target=inside(workspace,folder/name)
+            try:
+                with target.open('xb') as stream:stream.write(raw)
+            except FileExistsError:
+                if digest(target.read_bytes())!=item['sha256']:raise ValueError('任务文件已存在不同内容，未覆盖')
+            files[name]=dict(path=relative(workspace,target),sha256=item['sha256'])
+        task=dict(id=task_id,sequence=max((item['sequence'] for item in data['records']),default=0)+1,
+                  name=record['name'],stage=record['stage'],status='pending',created_at=datetime.now(timezone.utc).isoformat(),
+                  directory=relative(workspace,folder),prompt=files['提示词.md']['path'],files=files,
+                  archive_index=archived['index'],archive_id=identifier,revision=revision,source=record.get('source'),source_sha256=record.get('source_sha256'),
+                  approval='not_granted_by_prompt',model_written=False)
+        write(inside(workspace,folder/'任务.json'),task)
+        data['records'].append(task);write(global_index,data)
+        return dict(task,unchanged=False)
+
+
+def tasks(workspace,after=0,status=None):
+    if type(after) is not int or after<0:raise ValueError('任务游标须为非负整数')
+    data=load_tasks(workspace)
+    items=[{key:item[key] for key in ('id','sequence','name','stage','status','created_at','directory','prompt','revision')} for item in data['records'] if item['sequence']>after and (status is None or item['status']==status)]
+    return dict(items=sorted(items,key=lambda item:item['sequence']),cursor=max((item['sequence'] for item in data['records']),default=0),full_text_loaded=False)
+
+
+def read_task(workspace,identifier):
+    record=next((item for item in load_tasks(workspace)['records'] if item['id']==identifier),None)
+    if not record:raise ValueError('提示词任务不存在，请先 prompts tasks')
+    folder=inside(workspace,record['directory']);contents={}
+    for name in ('提示词.md','方案.json','操作计划.json','上下文草案.json'):
+        item=record['files'][name];file=inside(workspace,item['path'])
+        if not file.is_relative_to(folder) or file.stat().st_size>2*1024*1024:raise ValueError('任务文件路径或大小无效')
+        raw=file.read_bytes()
+        if digest(raw)!=item['sha256']:raise ValueError('任务文件已变化：'+name)
+        contents[name]=raw.decode('utf8') if name.endswith('.md') else json.loads(raw)
+    source=inside(workspace,record['source']) if record.get('source') else None
+    matches=(digest(source.read_bytes())==record['source_sha256'] if source.is_file() else False) if source else None
+    return dict(task=record,directory=str(folder),prompt=str(inside(workspace,record['prompt'])),text=contents['提示词.md'],document=contents['方案.json'],plan=contents['操作计划.json'],context=contents['上下文草案.json'],source_matches=matches,approval='not_granted_by_prompt')
+
+
+def task_status(workspace,identifier,status):
+    from nbt_project_batch import write
+    if status not in ('pending','in_progress','completed'):raise ValueError('任务状态无效')
+    file=task_index(workspace);file.parent.mkdir(parents=True,exist_ok=True)
+    with index_lock(workspace,file.parent):
+        data=load_tasks(workspace);item=next((item for item in data['records'] if item['id']==identifier),None)
+        if not item:raise ValueError('提示词任务不存在')
+        item['status']=status;write(inside(workspace,Path(item['directory'])/'任务.json'),item);write(file,data)
+        return dict(id=identifier,status=status,approval='not_granted_by_prompt')
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());sub=parser.add_subparsers(dest='command',required=True)
     cmd=sub.add_parser('save');cmd.add_argument('--request',type=Path,required=True)
     cmd=sub.add_parser('scan');cmd.add_argument('--source')
     cmd=sub.add_parser('read');cmd.add_argument('--index');cmd.add_argument('--id');cmd.add_argument('--file');cmd.add_argument('--sha256')
+    cmd=sub.add_parser('publish');cmd.add_argument('--index',required=True);cmd.add_argument('--id',required=True);cmd.add_argument('--revision',required=True)
+    cmd=sub.add_parser('tasks');cmd.add_argument('--after',type=int,default=0);cmd.add_argument('--status',choices=['pending','in_progress','completed'])
+    cmd=sub.add_parser('task');cmd.add_argument('--id',required=True)
+    cmd=sub.add_parser('task-status');cmd.add_argument('--id',required=True);cmd.add_argument('--status',choices=['pending','in_progress','completed'],required=True)
     args=parser.parse_args()
     try:
         if args.command=='read' and not ((args.index and args.id and not args.file) or (args.file and args.sha256 and not args.index)):raise ValueError('read 使用 --index/--id，或交接文件的 --file/--sha256')
-        result=save(args.workspace,json.loads(args.request.read_text(encoding='utf-8-sig'))) if args.command=='save' else scan(args.workspace,args.source) if args.command=='scan' else read_handoff(args.workspace,args.file,args.sha256) if args.file else read_prompt(args.workspace,args.index,args.id)
+        if args.command=='publish':result=publish(args.workspace,args.index,args.id,args.revision)
+        elif args.command=='tasks':result=tasks(args.workspace,args.after,args.status)
+        elif args.command=='task':result=read_task(args.workspace,args.id)
+        elif args.command=='task-status':result=task_status(args.workspace,args.id,args.status)
+        else:result=save(args.workspace,json.loads(args.request.read_text(encoding='utf-8-sig'))) if args.command=='save' else scan(args.workspace,args.source) if args.command=='scan' else read_handoff(args.workspace,args.file,args.sha256) if args.file else read_prompt(args.workspace,args.index,args.id)
         print(json.dumps(result,ensure_ascii=False));return 0
     except (ValueError,OSError,KeyError,TypeError) as error:print(json.dumps(dict(error=str(error)),ensure_ascii=False));return 1
 

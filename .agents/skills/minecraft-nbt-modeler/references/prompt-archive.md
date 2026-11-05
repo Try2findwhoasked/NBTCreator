@@ -1,5 +1,23 @@
 # 工作区提示词归档与读取
 
+## 直接生成任务文件夹并交给外部 Agent
+
+工作台底部“保存任务到工作区”先等待当前有效提示词自动保存，再创建 `提示词方案/任务/YYYYMMDD_HHMMSS_<任务短编号>/`。文件夹包含 `提示词.md`、`方案.json`、`操作计划.json`、`上下文草案.json` 和 `任务.json`；界面显示实际目录及可复制的 Skill 读取命令。同一修订重复保存不创建重复任务，后续修改另存新任务并保留旧文件。自动编辑归档与明确交接分开：未点击保存任务的中间草稿不会进入待处理任务列表。
+
+外部 Agent 在工作区根目录调用已生成的 Skill 脚本即可发现新任务，无需操作软件界面：
+
+```text
+python .agents/skills/nbtcreator-workspace/nbt.py prompts tasks --status pending
+python .agents/skills/nbtcreator-workspace/nbt.py prompts tasks --after 0
+python .agents/skills/nbtcreator-workspace/nbt.py prompts task --id <任务id>
+python .agents/skills/nbtcreator-workspace/nbt.py prompts task-status --id <任务id> --status in_progress
+python .agents/skills/nbtcreator-workspace/nbt.py prompts task-status --id <任务id> --status completed
+```
+
+`tasks` 只返回摘要、工作区相对目录、提示词位置及单调递增的 `sequence`，保存返回的 `cursor` 后用 `--after` 获取新增加的任务；不因状态更新重复出现。`task` 返回当前工作区下实际绝对目录、提示词路径和完整正文/方案/计划/上下文，逐文件核对SHA256；旧任务读取不受后来编辑归档影响。任务索引位于 `nbt_models/_workspaces/prompt_tasks/任务索引.json`，迁移整个工作区后仍可读取。`source_matches=false` 时必须重新核对源。状态只记录工作进度，不新增用户批准，也不会自动执行提示词、制作模型或导出NBT。
+
+## 编辑过程的自动归档
+
 提示词工作台在参数有效时自动导出当前完整提示词、方案JSON、操作计划和上下文草案。采用AI建议、导入方案或修改控件都会更新归档；尚未修正的参数不会替换上次有效导出。已有建筑保存到当前结构版本的 `提示词方案/`，首次创建保存到 `nbt_models/<形状>/<建筑名>/提示词方案/`；首次提示词不会提前创建模型版本，Agent实际制作时仍按library new分配全新版本。
 
 `提示词索引.json` 按任务编号指向最新有效修订，正文和配套文件保存在 `修订/<任务编号>/<内容指纹>/`。旧修订保留，相同内容不重复写入。项目内路径相对于工作区，复制整个工作区后仍可调用。提示词、参数与导出动作都不表示用户看过图、同意精修或模型已制作。

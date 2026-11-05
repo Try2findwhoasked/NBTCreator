@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_prompts import save,scan,read_prompt,read_handoff
+from nbt_prompts import save,scan,read_prompt,read_handoff,publish,tasks,read_task,task_status
 
 class Prompts(unittest.TestCase):
  def setUp(self):
@@ -15,6 +15,21 @@ class Prompts(unittest.TestCase):
   self.payload=dict(session_id='a'*32,document=dict(project=dict(name='测试厅',stage='draft',buildingShape='single',source=''),operations=[]),text='完整提示词：不要把方案当作批准。',plan={'operations':[]},context={'start':None})
  def test_first_creation_goes_under_building_root_and_scan_is_only_index_metadata(self):
   r=save(self.workspace,self.payload);self.assertTrue(r['prompt'].startswith('nbt_models/single/测试厅/提示词方案/'));items=scan(self.workspace)['items'];self.assertEqual(len(items),1);self.assertNotIn('text',items[0]);self.assertEqual(read_prompt(self.workspace,r['index'],r['id'])['text'],self.payload['text']);self.assertFalse(any((self.workspace/'nbt_models').rglob('room_description.json')))
+ def test_publish_creates_complete_folder_and_incremental_discovery_ignores_edit_drafts(self):
+  r=save(self.workspace,self.payload);self.assertEqual(tasks(self.workspace)['items'],[])
+  task=publish(self.workspace,r['index'],r['id'],r['revision']);self.assertEqual(task['sequence'],1);self.assertEqual(len(list((self.workspace/task['directory']).iterdir())),5);self.assertEqual(read_task(self.workspace,task['id'])['text'],self.payload['text'])
+  self.assertTrue(publish(self.workspace,r['index'],r['id'],r['revision'])['unchanged']);cursor=tasks(self.workspace)['cursor'];self.assertEqual(tasks(self.workspace,cursor)['items'],[])
+  self.payload['text']='新任务内容';new=save(self.workspace,self.payload)
+  with self.assertRaisesRegex(ValueError,'已更新'):publish(self.workspace,r['index'],r['id'],r['revision'])
+  next_task=publish(self.workspace,new['index'],new['id'],new['revision']);self.assertEqual(tasks(self.workspace,cursor)['items'][0]['id'],next_task['id']);self.assertEqual(read_task(self.workspace,task['id'])['text'],'完整提示词：不要把方案当作批准。')
+  task_status(self.workspace,task['id'],'completed');self.assertEqual(len(tasks(self.workspace,status='pending')['items']),1);self.assertEqual(json.loads((self.workspace/task['directory']/'任务.json').read_text(encoding='utf8'))['status'],'completed')
+ def test_task_reads_are_portable_and_tamper_or_stale_source_is_detected(self):
+  import shutil
+  source,p=self.existing();r=save(self.workspace,p);task=publish(self.workspace,r['index'],r['id'],r['revision']);moved=self.workspace/'moved';shutil.copytree(self.workspace/'nbt_models',moved/'nbt_models');self.assertTrue(read_task(moved,task['id'])['source_matches']);self.assertTrue(Path(read_task(moved,task['id'])['directory']).is_relative_to(moved))
+  source.write_bytes(b'changed');self.assertFalse(read_task(self.workspace,task['id'])['source_matches'])
+  with self.assertRaisesRegex(ValueError,'源模型已变化'):publish(self.workspace,r['index'],r['id'],r['revision'])
+  (moved/task['prompt']).write_text('tampered',encoding='utf8')
+  with self.assertRaisesRegex(ValueError,'任务文件已变化'):read_task(moved,task['id'])
  def existing(self):
   source=self.workspace/'nbt_models/single/测试厅/v01/master/model.json.gz';source.parent.mkdir(parents=True);source.write_bytes(b'synthetic master');p=copy.deepcopy(self.payload);p['document']['project'].update(stage='plan',source=str(source));p['document']['source_sha256']=hashlib.sha256(source.read_bytes()).hexdigest();return source,p
  def test_existing_model_uses_actual_version_and_relative_paths(self):
@@ -33,9 +48,11 @@ class Prompts(unittest.TestCase):
  def test_generated_skill_finds_and_reads_after_workspace_relocation(self):
   from nbt_exposure import apply
   import shutil
-  source,p=self.existing();r=save(self.workspace,p);apply(self.workspace);relocated=self.workspace/'relocated';relocated.mkdir();shutil.copytree(self.workspace/'nbt_models',relocated/'nbt_models');shutil.copytree(self.workspace/'.agents',relocated/'.agents');shutil.copytree(self.workspace/'.nbtcreator',relocated/'.nbtcreator');facade=relocated/'.agents/skills/nbtcreator-workspace/nbt.py'
+  source,p=self.existing();r=save(self.workspace,p);task=publish(self.workspace,r['index'],r['id'],r['revision']);apply(self.workspace);relocated=self.workspace/'relocated';relocated.mkdir();shutil.copytree(self.workspace/'nbt_models',relocated/'nbt_models');shutil.copytree(self.workspace/'.agents',relocated/'.agents');shutil.copytree(self.workspace/'.nbtcreator',relocated/'.nbtcreator');facade=relocated/'.agents/skills/nbtcreator-workspace/nbt.py'
   found=subprocess.run([sys.executable,str(facade),'prompts','scan'],cwd=relocated,capture_output=True,text=True,encoding='utf8');self.assertEqual(found.returncode,0,found.stderr);self.assertEqual(len(json.loads(found.stdout)['items']),1)
   run=subprocess.run([sys.executable,str(facade),'prompts','read','--index',r['index'],'--id',r['id']],cwd=relocated,capture_output=True,text=True,encoding='utf8');self.assertEqual(run.returncode,0,run.stderr);self.assertTrue(json.loads(run.stdout)['source_matches'])
+  run=subprocess.run([sys.executable,str(facade),'prompts','tasks','--after','0'],cwd=relocated,capture_output=True,text=True,encoding='utf8');self.assertEqual(run.returncode,0,run.stderr);self.assertEqual(json.loads(run.stdout)['items'][0]['id'],task['id'])
+  run=subprocess.run([sys.executable,str(facade),'prompts','task','--id',task['id']],cwd=relocated,capture_output=True,text=True,encoding='utf8');self.assertEqual(run.returncode,0,run.stderr);self.assertTrue(json.loads(run.stdout)['source_matches']);self.assertTrue(Path(json.loads(run.stdout)['directory']).is_relative_to(relocated))
  def test_existing_agent_handoff_is_discovered_and_bound_to_digest(self):
   folder=self.workspace/'nbt_models/single/旧建筑/v01/Agent交接/plan-123';folder.mkdir(parents=True);file=folder/'交给Agent.md';file.write_text('已有交接提示词',encoding='utf8');item=scan(self.workspace)['items'][0];self.assertEqual(item['kind'],'handoff');self.assertEqual(read_handoff(self.workspace,item['file'],item['sha256'])['text'],'已有交接提示词');file.write_text('changed')
   with self.assertRaisesRegex(ValueError,'已变化'):read_handoff(self.workspace,item['file'],item['sha256'])
