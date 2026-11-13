@@ -7,11 +7,12 @@ const {extractResult}=require('./ai-result-extract.cjs')
 const {cleanContext,validateWorkbench}=require('./workbench-contract.cjs')
 const {validateRequestOptions}=require('./api-options.cjs')
 const {cleanSelectionContext,validateSelectionResult}=require('./selection-edit.cjs')
-const defaults={enabled:false,provider:'deepseek',baseUrl:'https://api.deepseek.com',model:'deepseek-flash',jsonMode:true,outputCharLimit:0,timeoutMs:90000,tokenParameter:'max_tokens',requestOptions:{}}
+const {createAiScheduler}=require('./ai-scheduler.cjs')
+const defaults={maxConcurrent:2,enabled:false,provider:'deepseek',baseUrl:'https://api.deepseek.com',model:'deepseek-flash',jsonMode:true,outputCharLimit:0,timeoutMs:90000,tokenParameter:'max_tokens',requestOptions:{}}
 const own=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).every(k=>keys.includes(k))
 function configOf(input){
- if(!own(input,['enabled','provider','baseUrl','model','jsonMode','key','clearKey','outputCharLimit','timeoutMs','tokenParameter','requestOptions']))throw Error('API 配置字段无效')
- const c={...defaults,...input};delete c.key;delete c.clearKey
+ if(!own(input,['maxConcurrent','enabled','provider','baseUrl','model','jsonMode','key','clearKey','outputCharLimit','timeoutMs','tokenParameter','requestOptions']))throw Error('API 配置字段无效')
+ const c={...defaults,...input};if(!Number.isInteger(c.maxConcurrent)||c.maxConcurrent<1||c.maxConcurrent>4)throw Error('AI 并发数须为1～4');delete c.key;delete c.clearKey
  if(typeof c.enabled!=='boolean'||typeof c.jsonMode!=='boolean'||!['deepseek','compatible'].includes(c.provider))throw Error('API 配置无效')
  const u=new URL(c.baseUrl)
  if(u.username||u.password||u.search||u.hash||!['https:','http:'].includes(u.protocol)||u.protocol==='http:'&&!['127.0.0.1','localhost','[::1]'].includes(u.hostname))throw Error('API 地址须为 HTTPS，或本机 HTTP 地址')
@@ -90,19 +91,18 @@ function localSmallStructure(result,context){
  return {...validateSmallStructure(translated,context),structure_name:result.structure_name,camera:result.camera}
 }
 function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext=async()=>null,validateCandidate=async()=>{}}){
- const file=path.join(directory,'api-settings.json');let config={...defaults},encrypted=null,active=null,generation=null
- async function load(){try{const saved=JSON.parse(await fs.readFile(file,'utf8'));config=configOf(saved.config);encrypted=saved.encryptedKey||null}catch{config={...defaults};encrypted=null}return publicConfig()}
+ const file=path.join(directory,'api-settings.json');let config={...defaults},encrypted=null,modelBusy=false,saving=false;const transports=new Set(),scheduler=createAiScheduler({limit:()=>config.maxConcurrent})
+ async function load(){if(scheduler.size||modelBusy||saving)return publicConfig();try{const saved=JSON.parse(await fs.readFile(file,'utf8'));config=configOf(saved.config);encrypted=saved.encryptedKey||null}catch{config={...defaults};encrypted=null}return publicConfig()}
  function publicConfig(){return {...structuredClone(config),hasKey:!!encrypted}}
- async function save(input){if(active||generation)throw Error('API 请求进行中，请先取消');const next=configOf({...config,...input});let nextKey=encrypted
+ async function save(input){if(transports.size||scheduler.size||modelBusy||saving)throw Error('API 请求或配置保存进行中，请稍后重试');saving=true;try{const next=configOf({...config,...input});let nextKey=encrypted
   if(new URL(next.baseUrl).origin!==new URL(config.baseUrl).origin&&!input.key)nextKey=null
   if(input.clearKey)nextKey=null
   if(input.key){if(typeof input.key!=='string'||input.key.length>4096)throw Error('API Key 无效');if(!await safeStorage.isAsyncEncryptionAvailable())throw Error('系统密钥加密不可用，本次未保存 Key');nextKey=Buffer.from(await safeStorage.encryptStringAsync(input.key)).toString('base64')}
-  const temp=file+'.tmp';await fs.mkdir(directory,{recursive:true});await fs.writeFile(temp,JSON.stringify({config:next,encryptedKey:nextKey},null,2));await fs.rename(temp,file);config=next;encrypted=nextKey;return publicConfig()
+  const temp=file+'.tmp';await fs.mkdir(directory,{recursive:true});await fs.writeFile(temp,JSON.stringify({config:next,encryptedKey:nextKey},null,2));await fs.rename(temp,file);config=next;encrypted=nextKey;return publicConfig()}finally{saving=false}
  }
- async function request(endpoint,body,measurement){
+ async function request(endpoint,body,measurement,token){
   if(!config.enabled)throw Error('API 接入已关闭')
-  if(active)throw Error('已有 API 请求进行中')
-  const controller=new AbortController();active=controller;const timer=setTimeout(()=>controller.abort(),config.timeoutMs)
+  const controller=new AbortController();transports.add(controller);const cancel=()=>controller.abort();token?.controller.signal.addEventListener('abort',cancel,{once:true});if(token?.cancelled)controller.abort();let timedOut=false;const timer=setTimeout(()=>{timedOut=true;controller.abort()},config.timeoutMs)
   const started=performance.now()
   if(measurement){measurement.status='failed';measurement.response_bytes=0}
   try{
@@ -124,10 +124,10 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    const parsing=performance.now()
    try{const result=JSON.parse(Buffer.concat(chunks).toString('utf8'));if(measurement)measurement.status='complete';return result}
    finally{if(measurement)measurement.response_parse_ms=Math.round(performance.now()-parsing)}
-  }catch(e){if(e.name==='AbortError'){if(measurement)measurement.status=generation?.cancelled?'cancelled':'timeout';throw Error('API 请求已取消或超时')}if(e.message.startsWith('API '))throw e;throw Error('API 连接或响应格式异常，请检查网络和兼容接口配置')}
-  finally{if(measurement)measurement.elapsed_ms=Math.round(performance.now()-started);clearTimeout(timer);active=null}
+  }catch(e){if(e.name==='AbortError'){const cancelled=token?.cancelled||!timedOut;if(measurement)measurement.status=cancelled?'cancelled':'timeout';throw Object.assign(Error(cancelled?'API 请求已取消':'API 请求超时，请稍后重试'),{code:cancelled?'AI_CANCELLED':'AI_TIMEOUT',retryable:!cancelled})}if(e.message.startsWith('API '))throw e;throw Error('API 连接或响应格式异常，请检查网络和兼容接口配置')}
+  finally{if(measurement)measurement.elapsed_ms=Math.round(performance.now()-started);clearTimeout(timer);transports.delete(controller);token?.controller.signal.removeEventListener('abort',cancel)}
  }
- async function models(){if(generation)throw Error('已有 API 请求进行中');const result=await request('models');if(!Array.isArray(result.data))throw Error('模型列表响应无效');return result.data.slice(0,200).map(m=>String(m.id)).filter(Boolean)}
+ async function models(){if(modelBusy||scheduler.size||saving)throw Error('已有 API 请求进行中');modelBusy=true;try{const result=await request('models');if(!Array.isArray(result.data))throw Error('模型列表响应无效');return result.data.slice(0,200).map(m=>String(m.id)).filter(Boolean)}finally{modelBusy=false}}
  async function generateCore(input,token){
   const api_metrics=token.metrics
   if(!own(input,['mode','instruction','context','viewport','retrieval'])||!['prompt','structure','small_structure','workbench','component','selection_edit'].includes(input.mode)||typeof input.instruction!=='string'||!input.instruction.trim()||input.instruction.length>12000)throw Error('填写有效任务要求（最多12000字）')
@@ -135,7 +135,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   let context=input.mode==='workbench'?cleanContext(input.context):input.mode==='component'?componentContext(input.context):input.mode==='selection_edit'?cleanSelectionContext(input.context):contextOf(input.context)
   if(['structure','small_structure'].includes(input.mode)&&!context)throw Error('结构规划需要先打开模型并选择局部范围')
   let system=(config.outputCharLimit?`最终结果限制为 ${config.outputCharLimit} 字（Unicode字符，含空白和JSON标点）；不计可分离的思考与说明。`:'最终结果不设应用字数限制。')+'只输出完整最终结果，不输出思考。JSON任务只给一个完整对象；文字任务可用单独的<final>与</final>包围正文。不要为了凑长度省略必要设计。\n'+require('./internal-skill.cjs').buildInternalPrompt(input.mode,context)
-  const internal=await workflowContext(input.mode==='workbench'&&['draft','brief'].includes(context.task)?'draft':input.mode,{retrieval:input.retrieval})
+  const internal=await token.workflowPromise;if(token.cancelled)throw Error('API 请求已取消')
   if(internal?.retrieved_assets?.length&&input.mode==='component'){const references=[...context.references];for(const item of internal.retrieved_assets){const old=references.find(ref=>ref.id===item.id);if(old&&old.content_sha256!==item.content_sha256)throw Error('引用资产已变化，请重新选择');if(!old)references.push(item)}context=componentContext({...context,references})}
   const {retrieved_assets,base_rules,workflow_steps,...providerWorkflow}=internal??{}
   if(internal?.reference_sources)system+=' 本次提供了编号参考来源；需要引用时使用其citation编号，不编造来源或声称已验证。引用资产仅可使用context.references里实际提供的id与内容哈希，可按结构协议旋转、镜像和material_map换材质。'
@@ -161,7 +161,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    if(token.cancelled)throw Error('API 请求已取消')
    const measurement={attempt:++api_metrics.attempts,max_tokens:payload.max_tokens??payload.max_completion_tokens,input_text_chars:textChars()};api_metrics.calls.push(measurement)
    try{
-    const value=await request('chat/completions',payload,measurement)
+    const value=await request('chat/completions',payload,measurement,token)
     const reason=value.choices?.[0]?.finish_reason
     measurement.finish_reason=['stop','length','content_filter','tool_calls','function_call'].includes(reason)?reason:'unknown'
     for(const key of ['prompt_tokens','completion_tokens','total_tokens'])if(Number.isSafeInteger(value.usage?.[key])&&value.usage[key]>=0){measurement[key]=value.usage[key];api_metrics[key]=(api_metrics[key]??0)+value.usage[key]}
@@ -221,12 +221,16 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    }
   }
  }
- async function generate(input){
-  if(generation||active)throw Error('已有 API 请求进行中')
-  const token={cancelled:false,controller:new AbortController(),started:performance.now(),metrics:{attempts:0,finish_reason:'unknown',retried_compact:false,calls:[]}};generation=token
-  try{return await generateCore(input,token)}catch(error){error.api_metrics=token.metrics;throw error}
-  finally{token.metrics.service_total_ms=Math.round(performance.now()-token.started);if(generation===token)generation=null}
+ async function generate(input,options={}){
+  if(modelBusy||saving)throw Error('API 连接测试或配置保存进行中，请稍后重试')
+  const frozen=structuredClone(input)
+  return scheduler.run(options.requestId,async token=>{
+   token.workflowPromise=token.prepared
+   try{return await generateCore(frozen,token)}catch(error){error.api_metrics=token.metrics;throw error}
+   finally{token.metrics.service_total_ms=Math.round(performance.now()-token.started)}
+  },()=>workflowContext(frozen.mode==='workbench'&&['draft','brief'].includes(frozen.context?.task)?'draft':frozen.mode,{retrieval:frozen.retrieval}))
  }
- return {load,save,models,generate,cancel:()=>{if(generation){generation.cancelled=true;generation.controller.abort()}active?.abort();return true},publicConfig}
+ return {load,save,models,generate,cancel:id=>{const found=scheduler.cancel(id);if(id===undefined)for(const controller of transports)controller.abort();return found||id===undefined},publicConfig,state:scheduler.state}
+
 }
 module.exports={localSmallStructure,validateSmallStructure,createApiService,validatePatch,contextOf,configOf}

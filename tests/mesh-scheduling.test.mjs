@@ -4,7 +4,7 @@ import {yieldForMeshBuild,installMeshScheduling} from '../.agents/skills/minecra
 
 test('a starved idle callback cannot stall mesh construction',async()=>{
  let timer,idle,cancelled,cleared
- const pending=yieldForMeshBuild({setTimeout(callback,ms){timer=callback;assert.equal(ms,32);return 1},clearTimeout(id){cleared=id},requestIdleCallback(callback,options){idle=callback;assert.equal(options.timeout,32);return 2},cancelIdleCallback(id){cancelled=id}})
+ const pending=yieldForMeshBuild({setTimeout(callback,ms){timer=callback;assert.equal(ms,0);return 1},clearTimeout(id){cleared=id},requestIdleCallback(callback,options){idle=callback;assert.equal(options.timeout,32);return 2},cancelIdleCallback(id){cancelled=id}})
  timer();await pending;assert.equal(cancelled,2);assert.equal(cleared,1);idle();assert.equal(cancelled,2)
 })
 test('idle completion cancels its fallback and unavailable idle still yields',async()=>{

@@ -50,10 +50,15 @@ Key由Electron主进程使用safeStorage异步加密，放在当前用户配置�
 
 ## 验证范围
 
-`npm run test:api`：默认关闭不联网、加密保存/删除、最小上下文、受限结构、非法字段/越界、空/截断输出、错误信息、取消和并发拒绝。
+`npm run test:api`：默认关闭不联网、加密保存/删除、最小上下文、受限结构、非法字段/越界、空/截断输出、错误信息、独立取消、有界并发、队列上限、输入快照、配置保存互斥和工作区切换取消。
 
 `npm run test:api-desktop`：本机模拟HTTP接口 + 真实Electron safeStorage和Python引擎，检查配置、模型列表、提示词、局部计划、旧参数拒绝、本地预览和原稿保留。没有使用真实DeepSeek Key，不宣称真实服务连通或模型质量已经验收。
 
 0.2.1联调还包含提示词iframe共用连接、AI稿采用/失效/方案往返、真实Electron文件下载、共用设计变量，以及顶部功能页和窄屏切换。
 
 官方协议参考：[DeepSeek JSON输出](https://api-docs.deepseek.com/guides/json_mode/)、[模型列表](https://api-docs.deepseek.com/api/list-models/)、[Electron safeStorage](https://www.electronjs.org/docs/latest/api/safe-storage)。
+
+
+AI 连接默认允许 2 个并发生成，可在设置中选择 1～4 个；每个请求有独立编号、超时和取消信号。批量提示词按建筑独立保存，失败/取消的条目可重试，同一建筑的采用和预览仍依次执行。`npm run test:ai-batch` 验证并发、结果归属、部分失败重试和批量取消。
+
+外部 Agent 使用 `machine --schema` / `machine --request <JSON>` 获取版本化契约和统一错误封装；任务租约、幂等回执与独立批注读取见 [机器接口说明](../.agents/skills/minecraft-nbt-modeler/references/agent-protocol.md)。`npm run test:agent-protocol` 验证跨进程领取、超时重领、旧执行者拦截、提交中断重试和回执校验。

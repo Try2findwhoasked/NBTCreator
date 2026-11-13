@@ -10,7 +10,7 @@ CI先运行工具一致性、冻结资料库、API/工作区/交接/提示词契
 
 `tests/task-cancel.mjs`另用超过50万格的真实合成主稿启动Python，确认PID仍存活后分别取消前置inspect和实际preview任务，检查cancelled状态、诊断保留和后续任务可继续；服务关闭也须结束自己创建的非job inspect子进程。该测试不使用sleep伪造工作，不扫描杀死用户其他进程。
 
-发布产物为 `NBTCreator-<版本>-windows-x64-portable.zip`、`.zip.sha256` 和逐文件 `.manifest.json`。用自有ZIP脚本确保`.agents`隐藏目录被保留，拒绝用户资产、环境文件和API配置。普通CI产物保留14天，Release资产长期保留。
+发布产物为 `NBTCreator-<版本>-windows-x64-portable.zip`、`.zip.sha256` 和逐文件 `.manifest.json`。用自有ZIP脚本确保`.agents`隐藏目录被保留，拒绝用户资产、运行日志、环境文件和API配置。普通CI产物保留14天，Release资产长期保留。
 
 本地构建与检查：
 

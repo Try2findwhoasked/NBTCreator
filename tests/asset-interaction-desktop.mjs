@@ -54,7 +54,7 @@ try{
  await click('asset-refresh');assert.equal(await page.locator('#asset-inspector-dialog').evaluate(e=>e.open),false)
  checks.inflight_management_is_locked_and_closed_dialog_stays_closed=true
 
- await page.locator('button[data-workspace=project]').evaluate(e=>e.click());await page.locator('.project-card-open').first().evaluate(e=>e.click())
+ await page.locator('button[data-workspace=project]').evaluate(e=>e.click());await page.locator('.project-card-open').first().evaluate(e=>e.click());await page.waitForFunction(()=>!window.detailControl.state.busy);await click('project-preview-edit')
  await page.waitForFunction(()=>window.detailControl.state.info&&!window.detailControl.state.busy&&window.detailControl.state.mode==='3d')
  let releasePreview,previewSeen;const previewWaiting=new Promise(resolve=>previewSeen=resolve)
  await page.route('**/__detail__/jobs',async route=>{if(route.request().method()==='POST'&&route.request().postDataJSON()?.kind==='preview'){previewSeen();await new Promise(resolve=>releasePreview=resolve)}await route.continue()})

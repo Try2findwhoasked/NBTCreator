@@ -19,7 +19,7 @@ class PortableContracts(unittest.TestCase):
             with zip.open('ab') as stream:stream.write(b'changed')
             with self.assertRaisesRegex(ValueError,'checksum'):archive.unpack(zip,folder/'bad')
     def test_private_assets_and_traversal_rejected(self):
-        for name in ['nbt_models','api-settings.json','.env']:
+        for name in ['nbt_models','api-settings.json','.env','session.log']:
             with tempfile.TemporaryDirectory() as temporary:
                 folder=Path(temporary);app=self.make_app(folder);(app/name).write_text('private')
                 with self.assertRaisesRegex(ValueError,'Private'):archive.pack(app,folder/'app.zip')

@@ -53,7 +53,7 @@ export function initComponentAuthor({actions,api,created}){
  for(const element of dialog.querySelectorAll('input,textarea,select'))element.addEventListener('input',invalidate)
  $('component-reference').addEventListener('change',invalidate)
  $('component-close').onclick=()=>dialog.close();dialog.addEventListener('cancel',event=>{if(phase==='write')event.preventDefault()})
- dialog.addEventListener('close',()=>{epoch++;if(phase==='ai')cancelAI();invalidate();$('component-viewer').src='about:blank';$('component-preview-area').hidden=true;$('component-preview-empty').hidden=false;$('component-preview-name').textContent='结构预览'})
+ dialog.addEventListener('close',()=>{epoch++;if(phase==='ai')cancelAI('component');invalidate();$('component-viewer').src='about:blank';$('component-preview-area').hidden=true;$('component-preview-empty').hidden=false;$('component-preview-name').textContent='结构预览'})
  $('component-preview').onclick=safe(async token=>{const spec=JSON.parse($('component-spec').value);await preview(spec,token)})
  $('component-generate-save').onclick=()=>generate(true)
  $('component-generate').onclick=()=>generate(false)
@@ -64,6 +64,7 @@ export function initComponentAuthor({actions,api,created}){
    const c=context(),instruction=$('component-instruction').value.trim();if(!instruction)throw Error('请填写结构创作要求')
    invalidate();lock(true,'ai');status('正在生成独立结构方案…')
    if($('component-reference').value)c.references=[await call('structure_read',{id:$('component-reference').value})]
+   if(token!==epoch||!dialog.open)return
    const result=await requestAI({mode:'component',instruction,context:c},()=>{const viewer=$('component-viewer').contentWindow?.nbtModeler;if(viewer?.status!=='ready')throw Error('尚无独立结构视口；请先关闭本工作流截图开关或生成一次参数预览');return viewer.captureCurrent()})
    if(token!==epoch||!dialog.open)return
    window.nbtReferencePicker?.sources(referenceSources,result);$('component-spec').value=JSON.stringify(result.spec,null,2);phase='preview'

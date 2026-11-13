@@ -10,3 +10,15 @@
 #axis-navigation button:hover,#axis-navigation button[aria-pressed=true]{border-color:currentColor;background:#fff}
 #axis-navigation button:focus-visible{outline:2px solid #2f63b5;outline-offset:1px}
 @media(max-height:360px){#axis-navigation{left:8px;bottom:8px}#axis-navigation>svg{height:48px}}
+
+/* Orbit gizmo: drag anywhere, click one of the six axis endpoints. */
+#axis-navigation { width:112px; height:96px; padding:0; border:0; border-radius:50%; background:#f9fbfe99; cursor:grab; touch-action:none; }
+#axis-navigation:active { cursor:grabbing; }
+#axis-navigation>svg { width:100%; height:100%; pointer-events:none; }
+#axis-navigation svg text,#axis-navigation svg circle:not(.axis-origin) { display:none; }
+#axis-navigation .axis-directions { position:absolute; inset:0; display:block; pointer-events:none; }
+#axis-navigation button { position:absolute; transform:translate(-50%,-50%); width:24px; height:24px; min-height:24px; padding:0; border-radius:50%; pointer-events:auto; background:currentColor; border:1px solid #fff; font-size:0; cursor:grab; }
+#axis-navigation button:after { content:attr(data-view-axis); color:white; font:600 11px/22px 'Segoe UI',sans-serif; text-transform:uppercase; }
+#axis-navigation button[data-view-sign='-1'] { background:#eef2f7; }
+#axis-navigation button[data-view-sign='-1']:after { color:currentColor; }
+#axis-navigation button:hover,#axis-navigation button[aria-pressed=true] { outline:2px solid currentColor; outline-offset:1px; }

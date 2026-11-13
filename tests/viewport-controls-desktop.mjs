@@ -1,0 +1,29 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import {spawnSync} from 'node:child_process'
+import {createRequire} from 'node:module'
+import {createHash} from 'node:crypto'
+import {root,skill,python} from '../scripts/paths.mjs'
+import {minimizedScreenshots} from './minimized-screenshots.mjs'
+const require=createRequire(path.join(skill,'assets/viewer/package.json')),{_electron}=require('playwright'),output=path.join(root,'build','viewport-controls-'+Date.now()),workspace=path.join(output,'workspace'),folder=path.join(workspace,'nbt_models/single/调度测试/v1'),checks={},errors=[];let app,page
+const made=spawnSync(python,[path.join(root,'tests/make_fixture.py'),folder],{encoding:'utf8',windowsHide:true});assert.equal(made.status,0,made.stderr);const source=path.join(folder,'synthetic.master.json.gz'),hash=bytes=>createHash('sha256').update(bytes).digest('hex'),original=hash(await fs.readFile(source));await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'model',autoPreview:false}))
+const picture=spawnSync(python,['-c',"import sys,json;from pathlib import Path;from PIL import Image;sys.path.insert(0,sys.argv[1]);from nbt_refine import read_master;p=Path(sys.argv[2]);m,w=read_master(p/'synthetic.master.json.gz');Image.new('RGB',(400,240),'#668899').save(p/'overview.png');(p/'overview.json').write_text(json.dumps(dict(geometry_sha256=m.fingerprint(),id='whole',eye=[70,42,-20],target=[24,7,24],layer='all',cuts=[])))",path.join(skill,'scripts'),folder],{encoding:'utf8',windowsHide:true});assert.equal(picture.status,0,picture.stderr)
+try{
+ const env={...process.env,NBTCREATOR_AUTOMATION:'1',OPENBLAS_NUM_THREADS:'1',OMP_NUM_THREADS:'1'};delete env.ELECTRON_RUN_AS_NODE
+ app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000});page=await app.firstWindow();await minimizedScreenshots(app,page);page.setDefaultTimeout(30000);page.on('pageerror',error=>{errors.push(error.message);console.error(error.stack)});await page.waitForFunction(()=>window.nbtEditSession?.ready&&!window.detailControl.state.busy&&document.querySelector('#viewer').contentWindow.nbtModeler?.status==='ready',undefined,{timeout:90000})
+
+
+ await page.setViewportSize({width:1200,height:850})
+ await page.locator('#studio-view-menu>summary').click()
+ for(const id of ['walk-open','protection-open'])assert.equal(await page.locator('#studio-display-settings #'+id).isVisible(),true)
+ const fonts=await page.locator('#studio-display-settings select').evaluateAll(nodes=>nodes.map(n=>{const s=getComputedStyle(n);return {height:n.clientHeight,padding:parseFloat(s.paddingTop)+parseFloat(s.paddingBottom),line:parseFloat(s.lineHeight)||parseFloat(s.fontSize)*1.2}}));for(const f of fonts)assert.ok(f.height-f.padding>=f.line-1,JSON.stringify(f));await page.screenshot();await page.waitForTimeout(150);await page.screenshot({path:path.join(output,'display.png')});await page.locator('#studio-view-menu>summary').click();checks.display_controls_and_text_fit=true
+ const nav=page.frameLocator('#viewer').locator('#axis-navigation'),before=await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.metadata().camera),box=await nav.boundingBox()
+ await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+box.width/2+28,box.y+box.height/2-18,{steps:6});await page.mouse.up()
+ const after=await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.metadata().camera);assert.notDeepEqual(after.eye,before.eye);assert.deepEqual(after.target,before.target);const distance=c=>Math.hypot(...c.eye.map((n,i)=>n-c.target[i]));assert.ok(Math.abs(distance(after)-distance(before))<1e-6)
+ await nav.locator('[data-view-axis=x][data-view-sign="1"]').evaluate(e=>e.click());await page.waitForFunction(()=>{const c=document.querySelector('#viewer').contentWindow.nbtModeler.metadata().camera;return Math.abs(c.eye[1]-c.target[1])<1e-6&&Math.abs(c.eye[2]-c.target[2])<1e-6});checks.orbit_and_axis_snap=true
+ await page.locator('#image-mode').evaluate(e=>e.click());if(!await page.locator('#studio-photos').isVisible())await page.locator('#studio-photo-toggle').evaluate(e=>e.click())
+ assert.equal(await page.locator('.canvas-wrap #review-canvas').isVisible(),true);assert.equal(await page.locator('#studio-photos #review-canvas').count(),0);assert.equal(await page.locator('#studio-photos #gallery').isVisible(),true)
+ const photoBefore=await page.locator('#studio-photos').boundingBox(),head=await page.locator('.studio-photo-header').boundingBox();await page.mouse.move(head.x+40,head.y+10);await page.mouse.down();await page.mouse.move(head.x+10,head.y+70,{steps:5});await page.mouse.up();const photoAfter=await page.locator('#studio-photos').boundingBox();assert.notEqual(photoAfter.y,photoBefore.y);await page.screenshot({path:path.join(output,'floating-image.png')});await page.locator('#studio-photo-close').evaluate(e=>e.click());assert.equal(await page.locator('#studio-photos').isVisible(),false);assert.equal(await page.locator('.canvas-wrap #review-canvas').isVisible(),true);checks.floating_image_selector_keeps_main_preview=true
+ assert.deepEqual(errors,[]);await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks},null,2));console.log(JSON.stringify({passed:true,checks,output}))
+}catch(error){console.error(JSON.stringify({errors,checks,output}));await page?.screenshot({path:path.join(output,'failure.png')}).catch(()=>{});throw error}finally{await app?.close()}

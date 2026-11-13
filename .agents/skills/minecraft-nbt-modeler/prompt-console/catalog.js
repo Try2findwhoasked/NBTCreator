@@ -999,7 +999,9 @@ globalThis.NbtToolCatalog = {
     "effect-assets": "nbt_effect_assets.py",
     "history": "nbt_history.py",
     "snbt": "nbt_snbt.py",
-    "finalize": "nbt_finalize.py"
+    "finalize": "nbt_finalize.py",
+    "machine": "nbt_machine.py",
+    "architect": "nbt_architect.py"
   },
   "building_shapes": {
     "single": {
@@ -3859,5 +3861,343 @@ globalThis.NbtToolCatalog = {
     },
     "storage": "nbt_models/asset_library/tool_effects/<id>/effect.json",
     "safety": "preview uses an isolated sample; compile returns settings only; application preserves target source/selection/protection/budget; NBT requires explicit export"
+  },
+  "machine_protocol": {
+    "protocol_version": 1,
+    "request": {
+      "required": [
+        "protocol_version",
+        "method"
+      ],
+      "optional": [
+        "request_id",
+        "params"
+      ]
+    },
+    "response": {
+      "fields": [
+        "protocol_version",
+        "request_id",
+        "ok",
+        "data",
+        "error"
+      ],
+      "error_fields": [
+        "code",
+        "message",
+        "retryable",
+        "details"
+      ]
+    },
+    "methods": {
+      "tasks.list": {
+        "fields": {
+          "source": "string"
+        },
+        "required": [],
+        "mutation": false
+      },
+      "tasks.get": {
+        "fields": {
+          "id": "string"
+        },
+        "required": [
+          "id"
+        ],
+        "mutation": false
+      },
+      "tasks.discover": {
+        "fields": {
+          "id": "string"
+        },
+        "required": [
+          "id"
+        ],
+        "mutation": false
+      },
+      "tasks.create": {
+        "fields": {
+          "source": "string",
+          "source_sha256": "string",
+          "name": "string",
+          "origins": "array",
+          "camera": "object"
+        },
+        "required": [
+          "source",
+          "source_sha256"
+        ],
+        "mutation": true
+      },
+      "tasks.record": {
+        "fields": {
+          "id": "string",
+          "revision": "integer",
+          "new_source": "string",
+          "new_source_sha256": "string",
+          "summary": "string",
+          "comments": "array",
+          "lease_token": "string",
+          "fence": "integer"
+        },
+        "required": [
+          "id",
+          "revision",
+          "new_source",
+          "new_source_sha256",
+          "summary",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "prompts.list": {
+        "fields": {
+          "after": "integer",
+          "status": "string"
+        },
+        "required": [],
+        "mutation": false
+      },
+      "prompts.get": {
+        "fields": {
+          "id": "string"
+        },
+        "required": [
+          "id"
+        ],
+        "mutation": false
+      },
+      "prompts.task-status": {
+        "fields": {
+          "id": "string",
+          "status": "string",
+          "expected_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer"
+        },
+        "required": [
+          "id",
+          "status",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "tasks.claim": {
+        "fields": {
+          "id": "string",
+          "owner": "string",
+          "ttl_seconds": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "revision": "integer"
+        },
+        "required": [
+          "id",
+          "owner"
+        ],
+        "mutation": true
+      },
+      "tasks.heartbeat": {
+        "fields": {
+          "id": "string",
+          "owner": "string",
+          "ttl_seconds": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "revision": "integer"
+        },
+        "required": [
+          "id",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "tasks.release": {
+        "fields": {
+          "id": "string",
+          "owner": "string",
+          "ttl_seconds": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "revision": "integer"
+        },
+        "required": [
+          "id",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "prompts.claim": {
+        "fields": {
+          "id": "string",
+          "owner": "string",
+          "ttl_seconds": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "expected_revision": "integer"
+        },
+        "required": [
+          "id",
+          "owner"
+        ],
+        "mutation": true
+      },
+      "prompts.heartbeat": {
+        "fields": {
+          "id": "string",
+          "owner": "string",
+          "ttl_seconds": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "expected_revision": "integer"
+        },
+        "required": [
+          "id",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "prompts.release": {
+        "fields": {
+          "id": "string",
+          "owner": "string",
+          "ttl_seconds": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "expected_revision": "integer"
+        },
+        "required": [
+          "id",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "annotations.scan": {
+        "fields": {
+          "version": "string"
+        },
+        "required": [],
+        "mutation": false
+      },
+      "annotations.collect": {
+        "fields": {
+          "source": "string"
+        },
+        "required": [
+          "source"
+        ],
+        "mutation": false
+      },
+      "annotation-tasks.list": {
+        "fields": {
+          "source": "string",
+          "source_sha256": "string"
+        },
+        "required": [
+          "source",
+          "source_sha256"
+        ],
+        "mutation": false
+      },
+      "annotation-tasks.evidence": {
+        "fields": {
+          "source": "string",
+          "source_sha256": "string",
+          "id": "string",
+          "offset": "integer",
+          "limit": "integer"
+        },
+        "required": [
+          "source",
+          "source_sha256",
+          "id"
+        ],
+        "mutation": false
+      },
+      "annotation-tasks.create": {
+        "fields": {
+          "source": "string",
+          "source_sha256": "string",
+          "revision": "integer",
+          "title": "string",
+          "category": "string",
+          "members": "array"
+        },
+        "required": [
+          "source",
+          "source_sha256",
+          "revision",
+          "title",
+          "members"
+        ],
+        "mutation": true
+      },
+      "annotation-tasks.update": {
+        "fields": {
+          "source": "string",
+          "source_sha256": "string",
+          "revision": "integer",
+          "id": "string",
+          "patch": "object"
+        },
+        "required": [
+          "source",
+          "source_sha256",
+          "revision",
+          "id",
+          "patch"
+        ],
+        "mutation": true
+      },
+      "annotation-tasks.merge": {
+        "fields": {
+          "source": "string",
+          "source_sha256": "string",
+          "revision": "integer",
+          "ids": "array"
+        },
+        "required": [
+          "source",
+          "source_sha256",
+          "revision",
+          "ids"
+        ],
+        "mutation": true
+      }
+    },
+    "lease": {
+      "default_ttl_seconds": 900,
+      "min_ttl_seconds": 60,
+      "max_ttl_seconds": 3600
+    },
+    "retry": "Reuse the same request_id and identical params after transport failure. New intent or renewed claim requires a new ID. Receipt storage is per task index.",
+    "discovery": "Creation cursor finds new tasks only. Also poll pending tasks to recover expired leases. Reads never expose lease tokens.",
+    "errors": [
+      "INVALID_REQUEST",
+      "PROTOCOL_VERSION_UNSUPPORTED",
+      "METHOD_NOT_FOUND",
+      "REQUEST_ID_REQUIRED",
+      "VALIDATION_ERROR",
+      "IO_ERROR",
+      "TASK_NOT_FOUND",
+      "TASK_COMPLETED",
+      "TASK_CLAIMED",
+      "LEASE_REQUIRED",
+      "LEASE_EXPIRED",
+      "LEASE_NOT_OWNER",
+      "LEASE_FENCE_CONFLICT",
+      "REVISION_CONFLICT",
+      "SOURCE_CHANGED",
+      "IDEMPOTENCY_CONFLICT",
+      "RECEIPT_CHANGED",
+      "RECEIPT_LIMIT",
+      "LOCK_BUSY"
+    ]
   }
 };

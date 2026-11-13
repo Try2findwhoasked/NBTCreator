@@ -16,6 +16,12 @@ from nbt_feedback_tasks import dispatch
 def sha(file):return hashlib.sha256(Path(file).read_bytes()).hexdigest()
 
 class FeedbackTasks(unittest.TestCase):
+ def test_durable_retry_does_not_duplicate_group_or_require_unchanged_live_evidence(self):
+  from nbt_agent_protocol import ProtocolError
+  listing=self.call('list');member=listing['comments'][0];request=dict(self.request,request_id='feedback-retry-0001',revision=0,title='真实分组',members=[dict(key=member['key'],evidence_sha256=member['evidence_sha256'])]);result=dispatch(self.workspace,'create',request)
+  self.assertEqual(dispatch(self.workspace,'create',request),result)
+  with self.assertRaises(ProtocolError) as failure:dispatch(self.workspace,'create',dict(request,title='不同意图'))
+  self.assertEqual(failure.exception.code,'IDEMPOTENCY_CONFLICT');self.source.write_bytes(b'changed after accepted operation');self.assertEqual(dispatch(self.workspace,'create',request),result)
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.workspace=Path(self.temp.name);self.version=self.workspace/'nbt_models/single/意见测试/v01';self.source=self.version/'master/master_geometry.json.gz';self.source.parent.mkdir(parents=True);model=Volume((8,6,8));model.box((0,0,0),(7,0,7),'stone_bricks');save_master(self.source,model,set());self.original=self.source.read_bytes();self.snapshot=self.version/'previews/snapshot.json';snap=write_snapshot(self.source,self.snapshot);self.hash=sha(self.source)
   self.folder=self.version/'修改意见';self.folder.mkdir();self.file=self.folder/'comments.json';binding=dict(kind='3d',source=str(self.source),source_sha256=self.hash,geometry_sha256=snap['geometry_sha256'],snapshot=str(self.snapshot),snapshot_sha256=sha(self.snapshot),size=[8,6,8]);notes=[]

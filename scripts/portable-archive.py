@@ -27,7 +27,7 @@ def pack(source,output,kind="full"):
         is_runtime=not (relative.startswith('resources/app/') and not relative.startswith('resources/app/runtime/') or relative in {'portable-info.json','NBT工具.cmd','Portable说明.txt'})
         if kind=='application' and is_runtime or kind=='runtime' and not is_runtime:continue
         parts=PurePosixPath(relative).parts
-        if any(p in {'.git','.github','.nbtcreator','nbt_models'} for p in parts) or file.name=='api-settings.json' or file.name=='.env' or file.name.startswith('.env.'):
+        if any(p in {'.git','.github','.nbtcreator','nbt_models'} for p in parts) or relative.startswith('resources/app/logs/') or file.suffix.lower()=='.log' or file.name=='api-settings.json' or file.name=='.env' or file.name.startswith('.env.'):
             raise ValueError('Private/generated content in portable package: '+relative)
         files.append(dict(path=source.name+'/'+relative,bytes=file.stat().st_size,sha256=digest(file)))
     expected={f['path'] for f in files}

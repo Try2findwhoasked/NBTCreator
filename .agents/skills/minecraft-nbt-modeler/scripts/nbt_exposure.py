@@ -10,7 +10,7 @@ from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 GROUPS={
- 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','ai-creative-preferences','version-history','snbt-authoring']),
+ 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','architect-tools','ai-creative-preferences','version-history','snbt-authoring']),
  'architecture':('建筑风格与场所',['architecture-knowledge-base','structure-atlas','design-grammar']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
@@ -118,7 +118,9 @@ def apply(workspace,config=None):
       '无界面调用：`python .agents/skills/nbtcreator-workspace/nbt.py capabilities`；各命令用 --help 查询。Electron无需启动。',
       '`python .agents/skills/nbtcreator-workspace/nbt.py paths` 返回当前冻结引擎、scripts、references 和 Python 的实际路径。任务脚本据此导入 API，无需读包装器猜目录，不硬编码应用安装路径。',
       '工具能力与应用保持一致，AI结构建议按工作流开放相应子集。已有批准/预览均绑定源哈希；不要并发写出同一建筑。',
-      '提示词任务由工作台“保存任务到工作区”创建目录并保存完整提示词。先 `python .agents/skills/nbtcreator-workspace/nbt.py prompts tasks --status pending` 发现新增任务，或用 `--after <上次cursor>` 增量列出；再 `prompts task --id <id>` 获取任务文件夹、正文、方案和源校验。处理前核对当前用户要求与source_matches，完成后用 `prompts task-status --id <id> --status completed` 登记进度；任务状态不等于验收或批准。',
+      f'项目规范、交付清单、从定稿版继续制作与跨版本批注核对见 [建筑师工具]({relative}/references/architect-tools.md)。接手提示词时沿用任务内的设计规范快照；跨版本核对不复制旧坐标或自动解决原批注。',
+      f'对外任务与批注使用 [机器接口]({relative}/references/agent-protocol.md)：machine --schema 获取统一契约；先领取、定期续期，以稳定请求编号幂等提交。任务与批注分开读取，仍由人手动触发Skill。',
+      '提示词任务由工作台“保存任务到工作区”创建目录并保存完整提示词。先 `python .agents/skills/nbtcreator-workspace/nbt.py prompts tasks --status pending` 发现新增任务，或用 `--after <上次cursor>` 增量列出；再 `prompts task --id <id>` 获取任务文件夹、正文、方案和源校验。处理前核对当前用户要求与source_matches，领取后用 `machine` 的 `prompts.task-status` 携带 lease_token 与 fence 登记进度；任务状态不等于验收或批准。',
       '工具效果配置使用 effect-assets list/save/get/preview/compile，由Agent直接写入原生效果库；预览只运行独立样例，compile只返回候选，正式NBT仍须明确导出。',
       '独立构件使用 capabilities.agent_tools 与 components agent 共用协议：list/read/view/preview/write/place/save；structure_save可将spec或component直接保存为待审阅资产并生成清单，asset-batches save可批量保存，无需手动导入。不需要打开Electron，写入仅保存新资产，放置只产生候选，NBT仍须显式导出。',
       '', '## 各区域 AI 创作偏好', '先读工作区共用配置 [ai-style.json](../../../.nbtcreator/ai-style.json)，按当前任务选择 draft（完整初稿）、workbench（控件配置）、prompt（文字）、structure（局部编辑）、small_structure（小型构件）、component（资产管理独立结构）或 selection_edit（选区自然语言工具编辑）。',

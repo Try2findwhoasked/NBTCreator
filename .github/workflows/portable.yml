@@ -104,6 +104,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/diagnostic-guidance.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/architect-tools.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/agent-protocol.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/agent-task-return.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests/retrieval.test.cjs
@@ -173,6 +177,10 @@ jobs:
           python tests/snbt-source.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/building-history.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/architect-tools-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/ai-batch-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/architect-workspace-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

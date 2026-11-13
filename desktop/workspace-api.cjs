@@ -11,10 +11,7 @@ function createWorkspaceApi({cancel,timeoutMs=5000}){
   pending.add(task)
   return task.finally(()=>pending.delete(task))
  }
- async function guardContext(operation){
-  const token=epoch;check(token)
-  const result=await operation();check(token);return result
- }
+ function guardContext(operation){return run(operation)}
  async function suspend(){
   if(!paused){paused=true;epoch++;cancel()}
   let timer

@@ -17,7 +17,8 @@ function cleanContext(input){
  if(['draft','brief'].includes(input.task)&&input.existing_model)throw Error('完整初稿必须是新建任务');
  if(input.baseline_binding!==undefined&&!SHA.test(input.baseline_binding))throw Error('方案绑定指纹无效')
  if(input.operations!==undefined&&(!Array.isArray(input.operations)||input.operations.length>128))throw Error('当前工具序列最多128项，不能静默截断')
- return {project,task:['draft','brief'].includes(input.task)?input.task:'controls',existing_model:input.existing_model===true,operations:input.task==='brief'?[]:structuredClone(input.operations??[]),...(input.baseline_binding?{baseline_binding:input.baseline_binding}:{})}
+ if(input.project_standard!==undefined&&(typeof input.project_standard!=='string'||input.project_standard.length>40000))throw Error('项目规范文本无效或超过40000字')
+ return {...(input.project_standard?{project_standard:input.project_standard}:{}),project,task:['draft','brief'].includes(input.task)?input.task:'controls',existing_model:input.existing_model===true,operations:input.task==='brief'?[]:structuredClone(input.operations??[]),...(input.baseline_binding?{baseline_binding:input.baseline_binding}:{})}
 }
 function operationBase(context){return {baseline:fingerprint(context),steps:context.operations.map((op,i)=>({step:i+1,expected:fingerprint(op)}))}}
 function mergeOperationPatch(result,context){

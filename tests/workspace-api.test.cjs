@@ -49,3 +49,13 @@ test('unsettled request times out without silently permitting a workspace change
  await assert.rejects(lifecycle.suspend(),/已取消切换/);assert.equal(lifecycle.state().paused,true)
  result.resolve('late');await rejected;lifecycle.resume();assert.equal(lifecycle.state().pending,0)
 })
+
+test('workspace switch cancels running and queued generations and waits for their context readers',async()=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-workspace-parallel-')),context=deferred();let api,calls=0,prepared=0
+ const lifecycle=createWorkspaceApi({cancel:()=>api.cancel()})
+ api=createApiService({directory,safeStorage:{},workflowContext:()=>lifecycle.guardContext(async()=>{prepared++;await context.promise;return {}}),fetchImpl:async()=>{calls++;throw Error('old workspace reached provider')}})
+ try{await api.save({enabled:true,maxConcurrent:2});const pending=Array.from({length:4},(_,i)=>lifecycle.run(()=>api.generate({mode:'prompt',instruction:'old '+i},{requestId:'workspace-parallel-'+i})));const settled=Promise.allSettled(pending)
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(prepared,4);assert.equal(api.state().queued,2);const transition=lifecycle.suspend();await new Promise(resolve=>setImmediate(resolve));assert.ok(lifecycle.state().pending>0);context.resolve();await transition
+  assert.ok((await settled).every(result=>result.status==='rejected'));assert.equal(calls,0);assert.equal(api.state().running,0);assert.equal(lifecycle.state().pending,0)
+ }finally{api.cancel();context.resolve();await fs.rm(directory,{recursive:true,force:true})}
+})

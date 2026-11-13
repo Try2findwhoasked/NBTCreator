@@ -74,6 +74,8 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 - history → scripts/nbt_history.py
 - snbt → scripts/nbt_snbt.py
 - finalize → scripts/nbt_finalize.py
+- machine → scripts/nbt_machine.py
+- architect → scripts/nbt_architect.py
 
 工作区入口为 `python .agents/skills/nbtcreator-workspace/nbt.py <命令>`。`feedback scan` 扫描结构版本的评论索引，`feedback collect/archive` 校验或归档意见证据，详见 [Agent读取意见](agent-feedback.md)。
 
@@ -94,3 +96,8 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | structure_write | 显式将绑定预览保存为新的构件资产；不能覆盖已有资产或导出NBT，保存不表示设计批准。 |
 | structure_place | 按锚点、旋转、镜像生成放置操作；不实际写建筑，仍须control preview/validate和显式新版本导出。 |
 | structure_save | 直接保存模型生成的资产：spec、component或绑定预览三选一；本地校验和真实预览后入库为待审阅资产，生成资产批次清单。保留手动导入，不产生NBT或设计批准。 |
+
+
+## 外部 Agent 机器接口
+
+`machine --schema` 返回 tool-catalog.json 的 machine_protocol 契约；`machine --request <JSON>` 使用统一请求与错误封装。任务领取、超时重领、幂等重试和批注独立接口见 [机器接口说明](agent-protocol.md)。
