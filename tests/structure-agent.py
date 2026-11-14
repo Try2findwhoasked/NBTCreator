@@ -23,6 +23,7 @@ class StructureAgent(unittest.TestCase):
   self.assertTrue(Path(result['snapshot']).is_file());self.assertTrue(Path(result['thumbnail']).is_file());self.assertEqual(len(result['cameras']),1)
   self.assertEqual(result['verification']['design'],'pending_visual_review')
   stored=dispatch(self.root,'structure_write',{k:result[k] for k in ['preview_id','preview_sha256']});data=dispatch(self.root,'structure_read',{'id':stored['id']})
+  self.assertEqual(Path(stored['thumbnail']).read_bytes(),Path(result['thumbnail']).read_bytes())
   self.assertEqual(sum(b[4] for b in data['blocks']),4);self.assertEqual(data['size'],[5,8,5])
   viewed=dispatch(self.root,'structure_view',{'id':stored['id']});self.assertEqual(viewed['content_sha256'],data['content_sha256'])
   args=dict(id=stored['id'],content_sha256=data['content_sha256'],position=[20,2,20],size=[48,24,48],quarter_turns=1,mirror='x')
@@ -49,11 +50,104 @@ class StructureAgent(unittest.TestCase):
   result=dispatch(self.root,'structure_preview',{'spec':self.spec});item=dispatch(self.root,'structure_write',{k:result[k] for k in ['preview_id','preview_sha256']})
   spec=dict(name='组合双柱',size=[16,10,8],placements=[dict(id=item['id'],content_sha256=item['content_sha256'],position=[3,0,3]),dict(id=item['id'],content_sha256=item['content_sha256'],position=[11,0,3],quarter_turns=1)])
   built=build(self.root,spec);self.assertEqual(len(built['blocks']),len(load(self.root,item['id'])['blocks'])*2)
+ def test_pattern_library_compiles_each_surface_and_preserves_mount_faces(self):
+  from nbt_collision import collision_cells
+  patterns=dispatch(self.root,'pattern_list',{})['patterns']
+  basic={'checkerboard','horizontal-stripes','vertical-stripes','running-bond',
+         'basket-weave','herringbone','diamond-lattice','greek-key','zigzag-band',
+         'cross-tile','stepped-diamond','four-petal'}
+  self.assertTrue(basic <= patterns.keys())
+  for tool in ('pattern_compile','pattern_preview'):
+   allowed=definitions()[tool]['parameters']['properties']['preset']['enum']
+   self.assertEqual(set(allowed),set(patterns))
+  self.assertEqual(set(definitions()['pattern_mount']['parameters']['properties']['object']['properties']['preset']['enum']),set(patterns))
+  for key,preset in patterns.items():
+   for surface in preset['surfaces']:
+    with self.subTest(key=key,surface=surface):
+     args=dict(preset=key,surface=surface,size_uv=preset['size_uv'])
+     if surface=='cylinder':args['size_uv']=[12,24]
+     if surface!='floor':args['shapes']=dict(stairs='quartz_stairs')
+     if surface in ('wall','column','cylinder'):args['shapes']['slab']='quartz_slab'
+     result=dispatch(self.root,'pattern_compile',args);data=build(self.root,result['spec'])
+     self.assertEqual(result['sample_sha256'],preset['sha256'])
+     if surface=='floor':
+      self.assertEqual(len(data['blocks']),data['size'][0]*data['size'][2])
+      self.assertTrue(all(b[1]==0 and len(collision_cells(data['palette'][b[3]])[0])==8 for b in data['blocks']))
+     if surface=='ceiling':
+      self.assertEqual(data['anchor'][1],1)
+      self.assertGreater(sum(result['shape_counts'].values()),0)
+      for x,y,z,index,wall in data['blocks']:
+       if y==0:self.assertTrue(any(p[1]==1 for p in collision_cells(data['palette'][index])[0]))
+     if key in basic:
+      self.assertEqual(result,dispatch(self.root,'pattern_compile',args))
+      self.assertGreater(len(data['palette']),1)
+  previewed=dispatch(self.root,'pattern_preview',dict(preset='acanthus-capital',surface='column',size_uv=[32,22]))
+  self.assertTrue(Path(previewed['thumbnail']).is_file())
+  previewed=dispatch(self.root,'pattern_preview',dict(preset='checkerboard',surface='floor',size_uv=[32,32],repeat=[2,2]))
+  self.assertTrue(Path(previewed['thumbnail']).is_file())
+  with self.assertRaises(ValueError):
+   dispatch(self.root,'pattern_compile',dict(preset='cosmati-floor',surface='floor',size_uv=[16,16],shapes=dict(slab='quartz_slab')))
+
+ def test_pattern_detail_controls_budgets_and_frozen_facade(self):
+  args=dict(preset='acanthus-capital',surface='column',size_uv=[64,44],max_changed_blocks=8192,shapes=dict(slab='quartz_slab',stairs='quartz_stairs'))
+  result=dispatch(self.root,'pattern_compile',args)
+  fit=result['fitting']
+  self.assertEqual(fit['requested'],fit['matched']+fit['missing'])
+  self.assertEqual(fit['subcells_per_block'],4)
+  changed=dispatch(self.root,'pattern_compile',dict(args,preset_options=dict(invert=True)))
+  self.assertNotEqual(result['content_sha256'],changed['content_sha256'])
+  with self.assertRaisesRegex(ValueError,'预算|上限'):
+   dispatch(self.root,'pattern_compile',dict(args,max_changed_blocks=1))
+  from nbt_exposure import apply
+  apply(self.root)
+  request=self.root/'pattern.json';request.write_text(json.dumps(args))
+  run=subprocess.run([sys.executable,str(self.root/'.agents/skills/nbtcreator-workspace/nbt.py'),'components','agent','--tool','pattern_compile','--request',str(request)],cwd=self.root,capture_output=True,text=True,encoding='utf8')
+  self.assertEqual(run.returncode,0,(run.stdout+run.stderr)[-2000:])
+  frozen=json.loads(run.stdout)['result']
+  self.assertEqual(frozen['content_sha256'],result['content_sha256'])
+  self.assertEqual(frozen['fitting'],fit)
+  viewed=dispatch(self.root,'pattern_preview',dict(preset='cosmati-floor',surface='floor',size_uv=[16,16]))
+  saved=dispatch(self.root,'structure_save',{k:viewed[k] for k in ('preview_id','preview_sha256')})
+  from nbt_components import library_root
+  record=json.loads((library_root(self.root)/'recipes'/(saved['id']+'.json')).read_text(encoding='utf8'))
+  self.assertEqual(record['pattern_recipe']['sample_sha256'],viewed['sample_sha256'])
+  self.assertEqual(record['pattern_recipe']['parameters']['preset'],'cosmati-floor')
+
+ def test_stair_orientation_is_inferred_from_image_contours(self):
+  from PIL import Image
+  from nbt_collision import collision_cells
+  from nbt_ornament_sample import match_silhouette
+  masks={'wall':[(1,1,1,0),(1,1,0,1),(1,0,1,1),(0,1,1,1)],
+         'ceiling':[(1,1,0,0),(0,0,1,1),(1,0,1,0),(0,1,0,1)]}
+  for surface,variants in masks.items():
+   orientations=set()
+   for mask in variants:
+    with self.subTest(surface=surface,mask=mask):
+     image=Image.new('L',(6,6))
+     for x in range(6):
+      for y in range(6):image.putpixel((x,5-y),255*mask[x%2+2*(y%2)])
+     file=self.root/'contour.png';image.save(file)
+     args=dict(surface=surface,size_uv=[3,3],shapes=dict(stairs='quartz_stairs'),sample=dict(path=file.name,sha256=hashlib.sha256(file.read_bytes()).hexdigest(),noise_strength=0))
+     result=dispatch(self.root,'pattern_compile',args);data=build(self.root,result['spec'])
+     self.assertEqual(result['shape_counts'],{'stairs':9})
+     self.assertEqual(result['fitting']['missing']+result['fitting']['extra'],0)
+     self.assertEqual(len(result['stair_orientations']),1)
+     orientations.update(result['stair_orientations'])
+     for x,y,z,index,_ in data['blocks']:
+      if (surface=='wall' and z==1) or (surface=='ceiling' and y==0):
+       cells,_=collision_cells(data['palette'][index])
+       projected={(a,b) for a,b,c in cells} if surface=='wall' else {(a,c) for a,b,c in cells if b==0}
+       self.assertEqual(tuple(int(p in projected) for p in ((0,0),(1,0),(0,1),(1,1))),mask)
+   self.assertEqual(len(orientations),4)
+  # Same binary corner can fit two directions. Gray edge coverage decides.
+  options=[('row',(1,1,0,0)),('column',(1,0,1,0))]
+  self.assertEqual(match_silhouette((1,0,0,0),options,(1,.01,.49,0))[0],'column')
+
  def test_cli_agent_entry_uses_the_same_contract_and_does_not_require_electron(self):
   file=self.root/'request.json';file.write_text(json.dumps({'spec':self.spec}))
   run=subprocess.run([sys.executable,str(SCRIPTS/'nbt_components.py'),'--workspace',str(self.root),'agent','--tool','structure_preview','--request',str(file)],capture_output=True,text=True,encoding='utf8')
   self.assertEqual(run.returncode,0,run.stdout+run.stderr);result=json.loads(run.stdout)['result'];self.assertTrue(Path(result['thumbnail']).is_file())
-  self.assertEqual(set(definitions()),{'structure_list','structure_read','structure_view','structure_preview','structure_write','structure_place','structure_save'})
+  self.assertEqual(set(definitions()),{'structure_list','structure_read','structure_view','structure_preview','structure_write','structure_place','structure_save','parametric_list','parametric_compile','parametric_preview','parametric_contract','parametric_validate','parametric_surface','parametric_mount','parametric_layout','parametric_compose','parametric_regenerate','pattern_list','pattern_compile','pattern_preview','pattern_mount','pattern_cylinder_mount','pattern_create','pattern_assets','pattern_microfit'})
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

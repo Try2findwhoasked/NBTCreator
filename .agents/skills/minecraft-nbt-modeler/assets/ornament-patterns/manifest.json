@@ -1,0 +1,281 @@
+{
+  "cosmati-floor": {
+    "file": "cosmati-floor.png",
+    "sha256": "a68de2cb87554080d14897290be5ea5d330ca63b3d9ea2f2e5d1f8fbb7bb0ea4",
+    "surfaces": [
+      "floor"
+    ],
+    "size_uv": [
+      64,
+      64
+    ],
+    "source": "ImageGen",
+    "label": "科斯马蒂几何地坪"
+  },
+  "braided-shaft": {
+    "file": "braided-shaft.png",
+    "sha256": "8dd4bcdf425b80403323ea5de3adf285cb3470a0d362df60554b2cfff03e2b19",
+    "surfaces": [
+      "column",
+      "wall",
+      "cylinder"
+    ],
+    "size_uv": [
+      28,
+      64
+    ],
+    "source": "ImageGen",
+    "label": "编织棕榈叶柱身"
+  },
+  "acanthus-capital": {
+    "file": "acanthus-capital.png",
+    "sha256": "2c1d5d4307ea8125972c46afc94303a0dfada60320d5db79e0c19b121d3b90bd",
+    "surfaces": [
+      "column",
+      "wall",
+      "cylinder"
+    ],
+    "size_uv": [
+      64,
+      44
+    ],
+    "source": "ImageGen",
+    "label": "莨苕叶柱头饰板"
+  },
+  "coffer-rosette": {
+    "file": "coffer-rosette.png",
+    "sha256": "51c214668914614e32d4ec2314528421eb10afb6dfa5b3e39cddd9c649739cd1",
+    "surfaces": [
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      64,
+      64
+    ],
+    "source": "ImageGen",
+    "label": "方格玫瑰吊顶"
+  },
+  "gothic-rose": {
+    "file": "gothic-rose.png",
+    "sha256": "2d27a279bdba9efd72e89a08e3268a57bae2ecec87a1a43078279662507cd2b8",
+    "surfaces": [
+      "wall"
+    ],
+    "size_uv": [
+      30,
+      30
+    ],
+    "source": "ImageGen",
+    "label": "哥特玫瑰窗纹"
+  },
+  "acanthus-frieze": {
+    "file": "acanthus-frieze.png",
+    "sha256": "02bab1419b3482b2596bf762dcea180daa4f8db2aa4ace0c357951221ca0ecc2",
+    "surfaces": [
+      "wall",
+      "cylinder"
+    ],
+    "size_uv": [
+      32,
+      13
+    ],
+    "source": "ImageGen",
+    "label": "莨苕叶卷草腰线"
+  },
+  "baroque-pilaster": {
+    "file": "baroque-pilaster.png",
+    "sha256": "678b4d907ffa39aa430c0f76718122a7140524d88c33efc6c2801818b7ef8a7d",
+    "surfaces": [
+      "wall",
+      "column",
+      "cylinder"
+    ],
+    "size_uv": [
+      14,
+      32
+    ],
+    "source": "ImageGen",
+    "label": "巴洛克壁柱"
+  },
+  "pointed-spandrel": {
+    "file": "pointed-spandrel.png",
+    "sha256": "7f9225ba2fd28ad9adf24882941d5b78afee574e4c348aeae9c1aafa95c7dd07",
+    "surfaces": [
+      "wall"
+    ],
+    "size_uv": [
+      32,
+      24
+    ],
+    "source": "ImageGen",
+    "label": "尖拱拱肩"
+  },
+  "checkerboard": {
+    "file": "checkerboard.png",
+    "sha256": "09f4740c3c43aa4943d56911700d8a18bd2f2e5ffb726a20e4d8d567733e6268",
+    "surfaces": [
+      "floor",
+      "wall",
+      "ceiling"
+    ],
+    "size_uv": [
+      16,
+      16
+    ],
+    "source": "NBTCreator geometric mask"
+  },
+  "horizontal-stripes": {
+    "file": "horizontal-stripes.png",
+    "sha256": "b097c8c3045f06a7af3be0732a88ef686ad47c5b24fc26fe18e185a77cbbe7af",
+    "surfaces": [
+      "wall",
+      "column",
+      "cylinder"
+    ],
+    "size_uv": [
+      16,
+      16
+    ],
+    "source": "NBTCreator geometric mask"
+  },
+  "vertical-stripes": {
+    "file": "vertical-stripes.png",
+    "sha256": "7e9310c4bf1780a8f0bd87a8377d024502e3ea24bcfe8eddf9a405f39bd0ebea",
+    "surfaces": [
+      "wall",
+      "column",
+      "cylinder"
+    ],
+    "size_uv": [
+      16,
+      16
+    ],
+    "source": "NBTCreator geometric mask"
+  },
+  "running-bond": {
+    "file": "running-bond.png",
+    "sha256": "3c4571e710d6d275fb7444318d42060759690eab1bef080bab1034f5a01704fd",
+    "surfaces": [
+      "floor",
+      "wall"
+    ],
+    "size_uv": [
+      16,
+      16
+    ],
+    "source": "NBTCreator geometric mask"
+  },
+  "basket-weave": {
+    "file": "basket-weave.png",
+    "sha256": "51c889a6c67226d81009d8305c41a764e5aa57d2ec2ef55aa4622ace7bb6db80",
+    "surfaces": [
+      "floor",
+      "wall",
+      "ceiling"
+    ],
+    "size_uv": [
+      16,
+      16
+    ],
+    "source": "NBTCreator geometric mask"
+  },
+  "herringbone": {
+    "file": "herringbone.png",
+    "sha256": "a6ed8b16c070c52c4e6339c65bedeec32abaa3e7f7e88e253c01d61eddef9106",
+    "surfaces": [
+      "floor",
+      "wall",
+      "ceiling"
+    ],
+    "size_uv": [
+      16,
+      16
+    ],
+    "source": "NBTCreator geometric mask"
+  },
+  "diamond-lattice": {
+    "file": "diamond-lattice.png",
+    "sha256": "eafc0425f55f2da15ba8a0459a11901cdc4f4f484a497d098edadcde8c3636ba",
+    "surfaces": [
+      "floor",
+      "wall",
+      "ceiling"
+    ],
+    "size_uv": [
+      16,
+      16
+    ],
+    "source": "NBTCreator geometric mask"
+  },
+  "greek-key": {
+    "file": "greek-key.png",
+    "sha256": "c7b08f80f372ecf2526fe2ce3b7e133825eef0c0e3dec8b05b90d717ceb3239e",
+    "surfaces": [
+      "floor",
+      "wall",
+      "ceiling"
+    ],
+    "size_uv": [
+      16,
+      16
+    ],
+    "source": "NBTCreator geometric mask"
+  },
+  "zigzag-band": {
+    "file": "zigzag-band.png",
+    "sha256": "a3401f472b79c086ce175d1c56551252e5bf5ac7ac9f60b3b229db9be1eace24",
+    "surfaces": [
+      "floor",
+      "wall",
+      "ceiling"
+    ],
+    "size_uv": [
+      16,
+      16
+    ],
+    "source": "NBTCreator geometric mask"
+  },
+  "cross-tile": {
+    "file": "cross-tile.png",
+    "sha256": "1429d5a6a71296e4c2c965b8aecfaa84035772a672eb52322a811f448d7d5d14",
+    "surfaces": [
+      "floor",
+      "wall",
+      "ceiling"
+    ],
+    "size_uv": [
+      16,
+      16
+    ],
+    "source": "NBTCreator geometric mask"
+  },
+  "stepped-diamond": {
+    "file": "stepped-diamond.png",
+    "sha256": "ae9e4fcab9985b58b1a1c9837d1e1d8e7312f13d48010c9e05152648a58094cd",
+    "surfaces": [
+      "floor",
+      "wall",
+      "ceiling"
+    ],
+    "size_uv": [
+      16,
+      16
+    ],
+    "source": "NBTCreator geometric mask"
+  },
+  "four-petal": {
+    "file": "four-petal.png",
+    "sha256": "8dbd9fe57347643d434b5331b104045200fb554bfe1d3e953de4a2c989c3b254",
+    "surfaces": [
+      "floor",
+      "wall",
+      "ceiling"
+    ],
+    "size_uv": [
+      16,
+      16
+    ],
+    "source": "NBTCreator geometric mask"
+  }
+}

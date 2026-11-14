@@ -48,7 +48,12 @@ def transformed_state(value, turns, mirror):
     name, props = effective(value)
     if not props:
         return value
-    if set(props)-{'axis', 'facing', 'waterlogged'}:
+    allowed={'axis', 'facing', 'waterlogged'}
+    if name.endswith('_stairs') and props.get('shape')=='straight':
+        allowed.update(('half','shape'))
+    if name.endswith('_slab'):
+        allowed.add('type')
+    if set(props)-allowed:
         raise ValueError('Transform does not support this state family: '+value)
     directions = ['north', 'east', 'south', 'west']
     if props.get('facing') in directions:

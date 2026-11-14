@@ -78,7 +78,7 @@ def load(workspace, identifier):
     return {**valid,'id':identifier}
 
 
-def thumbnail(data, target):
+def thumbnail(data, target, camera=None):
     from nbt_assembly import Volume
     from nbt_preview import make_grid,render
     import numpy as np
@@ -86,7 +86,9 @@ def thumbnail(data, target):
     for x,y,z,index,_ in data['blocks']:model.put((x,y,z),data['palette'][index])
     grid,colors,_=make_grid(model)
     size=np.array(data['size'],float);center=size/2;span=float(size.max())
-    image,_=render(grid,colors,center+np.array([span,span*.8,-span]),center,384,240)
+    eye=np.asarray(camera['eye'],float) if camera else center+np.array([span,span*.8,-span])
+    target_point=np.asarray(camera['target'],float) if camera else center
+    image,_=render(grid,colors,eye,target_point,384,240,fov=camera.get('fov',60) if camera else 60)
     image.save(target,'JPEG',quality=85)
 
 

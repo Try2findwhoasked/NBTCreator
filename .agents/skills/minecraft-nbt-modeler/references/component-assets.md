@@ -2,6 +2,10 @@
 
 资产管理保存可复用的体素构件，不覆盖源建筑。库位于工作区 `.nbtcreator/components/`，随工作区移动，不进入应用安装包。
 
+## 参数化建筑对象
+
+外部 Agent 用 `parametric_list/parametric_compile/parametric_preview` 查询、编译并预览柱、楼梯、桌、墙饰、吊顶、植物和小型物品；尺寸、样式、材质与构造节奏可调。详细参数与安装约定见 [参数化建模](parametric-components.md)。复用后续 structure_write/place 和真实源候选检查，不直接写建筑。
+
 ## 内外 Agent 共用结构协议
 
 `capabilities` 的 `agent_tools` 是结构工具定义与 JSON 参数 Schema 的共同来源，内部 API、资产管理与外部 Agent 都通过同一个 Python 引擎执行。入口无需 Electron：
@@ -66,7 +70,7 @@ python .agents/skills/nbtcreator-workspace/nbt.py components place --id <构件�
 
 需要一次放置多份或复用材质映射时，使用 `components batch`，详见 [参数化配方、主题与XYZ阵列](reusable-recipes.md)。构件详情可设置数量和锚点间距；配方与主题入口在资产管理左侧，不占用顶部浏览空间。
 
-每轴最多64格，总计最多65536个记录。旋转为绕Y轴90°的整数倍，可选 X/Z 镜像；采用保守状态转换，暂不支持的楼梯、门、轨道等状态明确拒绝，不猜朝向。
+每轴最多64格，总计最多65536个记录。旋转为绕Y轴90°的整数倍，可选 X/Z 镜像；采用保守状态转换，支持直形楼梯的朝向变换，转角楼梯、门、轨道等未覆盖的状态明确拒绝，不猜朝向。
 
 ## 数据与管理
 

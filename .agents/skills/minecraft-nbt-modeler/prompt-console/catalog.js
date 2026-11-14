@@ -1676,6 +1676,7130 @@ globalThis.NbtToolCatalog = {
         },
         "additionalProperties": false
       }
+    },
+    "parametric_list": {
+      "description": "查询参数化构件类型、样式、默认参数及安装边界；只读，不生成资产。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "pillar",
+              "stairs",
+              "table",
+              "wall",
+              "ceiling",
+              "plant",
+              "shelf",
+              "bench",
+              "planter",
+              "lantern"
+            ]
+          },
+          "ornament_profile": {
+            "type": "string",
+            "enum": [
+              "none",
+              "classical",
+              "gothic",
+              "art_deco",
+              "art_nouveau",
+              "geometric"
+            ],
+            "default": "none"
+          }
+        }
+      }
+    },
+    "parametric_compile": {
+      "description": "将柱、楼梯、桌子、墙饰、吊顶、植物和小型物品编译为共享结构spec；确定性校验，不写建筑。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "size"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "pillar",
+              "stairs",
+              "table",
+              "wall",
+              "ceiling",
+              "plant",
+              "shelf",
+              "bench",
+              "planter",
+              "lantern"
+            ]
+          },
+          "size": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 32
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "classic",
+              "stepped",
+              "open"
+            ],
+            "default": "classic"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "material": {
+            "type": "string",
+            "maxLength": 160,
+            "default": "stone_bricks"
+          },
+          "accent": {
+            "type": "string",
+            "maxLength": 160,
+            "default": "polished_andesite"
+          },
+          "foliage": {
+            "type": "string",
+            "maxLength": 160,
+            "default": "oak_leaves[persistent=true]"
+          },
+          "spacing": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 8,
+            "default": 3
+          },
+          "thickness": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3,
+            "default": 1
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536,
+            "default": 65536
+          },
+          "theme": {
+            "type": "string",
+            "enum": [
+              "stone_hall",
+              "timber_room",
+              "deepslate_workshop"
+            ]
+          },
+          "form": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "dado_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30
+              },
+              "cornice_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "panel_pitch": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 12
+              },
+              "relief_depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "base_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "capital_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "inset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 6
+              },
+              "drop": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "pitch": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 12
+              },
+              "border": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 6
+              },
+              "pot_height": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 10
+              },
+              "crown_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "radius": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 6
+              },
+              "density": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "seed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              },
+              "run_width": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "rise": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 24
+              },
+              "landing": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "taper": {
+                "type": "boolean"
+              },
+              "flutes": {
+                "type": "boolean"
+              },
+              "light_strip": {
+                "type": "boolean"
+              },
+              "rail": {
+                "type": "boolean"
+              },
+              "base_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "capital_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "tread": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "section": {
+                "type": "string",
+                "enum": [
+                  "square",
+                  "cross"
+                ]
+              },
+              "profile": {
+                "type": "string",
+                "enum": [
+                  "grid",
+                  "parallel",
+                  "upright",
+                  "trailing",
+                  "climbing",
+                  "straight",
+                  "quarter_turn",
+                  "switchback",
+                  "spiral"
+                ]
+              }
+            }
+          },
+          "stair_material": {
+            "type": "string",
+            "maxLength": 160,
+            "default": "stone_brick_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]"
+          },
+          "ornament": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "profile": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "classical",
+                  "gothic",
+                  "art_deco",
+                  "art_nouveau",
+                  "geometric"
+                ],
+                "default": "none"
+              },
+              "motif": {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "dentil",
+                  "fluting",
+                  "pointed_arch",
+                  "tracery",
+                  "chevron",
+                  "sunburst",
+                  "vine",
+                  "leaf",
+                  "lattice",
+                  "diamond"
+                ],
+                "default": "auto"
+              },
+              "density": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "default": 65
+              },
+              "scale": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 8,
+                "default": 4
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3,
+                "default": 1
+              },
+              "layout": {
+                "type": "string",
+                "enum": [
+                  "continuous",
+                  "centerpiece",
+                  "corners"
+                ]
+              },
+              "center_clear": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 16
+              },
+              "sample": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover"
+                    ]
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "reference_id": {
+                    "type": "string",
+                    "enum": [
+                      "kashan_star_cross",
+                      "bursa_vine_frieze",
+                      "kashan_corner_vine"
+                    ]
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "minItems": 4,
+                    "maxItems": 4
+                  }
+                }
+              },
+              "richness": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3
+              },
+              "highlight": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "sample_shape_fit": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "slab": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "stairs": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  }
+                }
+              },
+              "edge_trim": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "slab": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "stairs": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  }
+                }
+              },
+              "sample_repeat": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 8
+                }
+              },
+              "border_layers": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3,
+                "default": 1
+              },
+              "symmetry": {
+                "type": "boolean",
+                "default": true
+              },
+              "seed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647,
+                "default": 0
+              },
+              "material": {
+                "type": "string",
+                "maxLength": 160
+              }
+            }
+          }
+        }
+      }
+    },
+    "parametric_preview": {
+      "description": "按参数编译并生成真实独立构件候选与缩略图；不入库、不批准、不写建筑。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "size"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "pillar",
+              "stairs",
+              "table",
+              "wall",
+              "ceiling",
+              "plant",
+              "shelf",
+              "bench",
+              "planter",
+              "lantern"
+            ]
+          },
+          "size": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 32
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "classic",
+              "stepped",
+              "open"
+            ],
+            "default": "classic"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "material": {
+            "type": "string",
+            "maxLength": 160,
+            "default": "stone_bricks"
+          },
+          "accent": {
+            "type": "string",
+            "maxLength": 160,
+            "default": "polished_andesite"
+          },
+          "foliage": {
+            "type": "string",
+            "maxLength": 160,
+            "default": "oak_leaves[persistent=true]"
+          },
+          "spacing": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 8,
+            "default": 3
+          },
+          "thickness": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3,
+            "default": 1
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536,
+            "default": 65536
+          },
+          "theme": {
+            "type": "string",
+            "enum": [
+              "stone_hall",
+              "timber_room",
+              "deepslate_workshop"
+            ]
+          },
+          "form": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "dado_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30
+              },
+              "cornice_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "panel_pitch": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 12
+              },
+              "relief_depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "base_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "capital_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "inset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 6
+              },
+              "drop": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "pitch": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 12
+              },
+              "border": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 6
+              },
+              "pot_height": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 10
+              },
+              "crown_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "radius": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 6
+              },
+              "density": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "seed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              },
+              "run_width": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "rise": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 24
+              },
+              "landing": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "taper": {
+                "type": "boolean"
+              },
+              "flutes": {
+                "type": "boolean"
+              },
+              "light_strip": {
+                "type": "boolean"
+              },
+              "rail": {
+                "type": "boolean"
+              },
+              "base_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "capital_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "tread": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "section": {
+                "type": "string",
+                "enum": [
+                  "square",
+                  "cross"
+                ]
+              },
+              "profile": {
+                "type": "string",
+                "enum": [
+                  "grid",
+                  "parallel",
+                  "upright",
+                  "trailing",
+                  "climbing",
+                  "straight",
+                  "quarter_turn",
+                  "switchback",
+                  "spiral"
+                ]
+              }
+            }
+          },
+          "stair_material": {
+            "type": "string",
+            "maxLength": 160,
+            "default": "stone_brick_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]"
+          },
+          "ornament": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "profile": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "classical",
+                  "gothic",
+                  "art_deco",
+                  "art_nouveau",
+                  "geometric"
+                ],
+                "default": "none"
+              },
+              "motif": {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "dentil",
+                  "fluting",
+                  "pointed_arch",
+                  "tracery",
+                  "chevron",
+                  "sunburst",
+                  "vine",
+                  "leaf",
+                  "lattice",
+                  "diamond"
+                ],
+                "default": "auto"
+              },
+              "density": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100,
+                "default": 65
+              },
+              "scale": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 8,
+                "default": 4
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3,
+                "default": 1
+              },
+              "layout": {
+                "type": "string",
+                "enum": [
+                  "continuous",
+                  "centerpiece",
+                  "corners"
+                ]
+              },
+              "center_clear": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 16
+              },
+              "sample": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover"
+                    ]
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "reference_id": {
+                    "type": "string",
+                    "enum": [
+                      "kashan_star_cross",
+                      "bursa_vine_frieze",
+                      "kashan_corner_vine"
+                    ]
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "minItems": 4,
+                    "maxItems": 4
+                  }
+                }
+              },
+              "richness": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3
+              },
+              "highlight": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "sample_shape_fit": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "slab": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "stairs": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  }
+                }
+              },
+              "edge_trim": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "slab": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "stairs": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  }
+                }
+              },
+              "sample_repeat": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 8
+                }
+              },
+              "border_layers": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3,
+                "default": 1
+              },
+              "symmetry": {
+                "type": "boolean",
+                "default": true
+              },
+              "seed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647,
+                "default": 0
+              },
+              "material": {
+                "type": "string",
+                "maxLength": 160
+              }
+            }
+          }
+        }
+      }
+    },
+    "parametric_contract": {
+      "description": "由可信调用方给定硬约束，返回供模型输出使用的JSON Schema及语义门禁说明；模型回复不能修改该契约。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "constraints"
+        ],
+        "properties": {
+          "constraints": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "pillar",
+                  "stairs",
+                  "table",
+                  "wall",
+                  "ceiling",
+                  "plant",
+                  "shelf",
+                  "bench",
+                  "planter",
+                  "lantern"
+                ]
+              },
+              "size": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 3,
+                  "maximum": 32
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "profiles": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 6,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "classical",
+                    "gothic",
+                    "art_deco",
+                    "art_nouveau",
+                    "geometric"
+                  ],
+                  "default": "none"
+                }
+              },
+              "motifs": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "dentil",
+                    "fluting",
+                    "pointed_arch",
+                    "tracery",
+                    "chevron",
+                    "sunburst",
+                    "vine",
+                    "leaf",
+                    "lattice",
+                    "diamond"
+                  ]
+                }
+              },
+              "materials": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                }
+              },
+              "min_density": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "max_density": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "max_depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3
+              },
+              "max_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536
+              },
+              "max_operations": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 128
+              },
+              "require_decoration": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "parametric_validate": {
+      "description": "使用调用方保留的硬约束验收模型proposal，再运行共享编译器；超限拒绝，不截断、不降级、不写建筑。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proposal",
+          "constraints"
+        ],
+        "properties": {
+          "proposal": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "size"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "pillar",
+                  "stairs",
+                  "table",
+                  "wall",
+                  "ceiling",
+                  "plant",
+                  "shelf",
+                  "bench",
+                  "planter",
+                  "lantern"
+                ]
+              },
+              "size": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 3,
+                  "maximum": 32
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "style": {
+                "type": "string",
+                "enum": [
+                  "classic",
+                  "stepped",
+                  "open"
+                ],
+                "default": "classic"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "material": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "stone_bricks"
+              },
+              "accent": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "polished_andesite"
+              },
+              "foliage": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "oak_leaves[persistent=true]"
+              },
+              "spacing": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 8,
+                "default": 3
+              },
+              "thickness": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3,
+                "default": 1
+              },
+              "max_changed_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536,
+                "default": 65536
+              },
+              "theme": {
+                "type": "string",
+                "enum": [
+                  "stone_hall",
+                  "timber_room",
+                  "deepslate_workshop"
+                ]
+              },
+              "form": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "dado_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 30
+                  },
+                  "cornice_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "panel_pitch": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 12
+                  },
+                  "relief_depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "base_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "capital_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "inset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  "drop": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "pitch": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 12
+                  },
+                  "border": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  "pot_height": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 10
+                  },
+                  "crown_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "radius": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 6
+                  },
+                  "density": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  },
+                  "run_width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "rise": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 24
+                  },
+                  "landing": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "taper": {
+                    "type": "boolean"
+                  },
+                  "flutes": {
+                    "type": "boolean"
+                  },
+                  "light_strip": {
+                    "type": "boolean"
+                  },
+                  "rail": {
+                    "type": "boolean"
+                  },
+                  "base_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "capital_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "tread": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "section": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "cross"
+                    ]
+                  },
+                  "profile": {
+                    "type": "string",
+                    "enum": [
+                      "grid",
+                      "parallel",
+                      "upright",
+                      "trailing",
+                      "climbing",
+                      "straight",
+                      "quarter_turn",
+                      "switchback",
+                      "spiral"
+                    ]
+                  }
+                }
+              },
+              "stair_material": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "stone_brick_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]"
+              },
+              "ornament": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "profile": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "classical",
+                      "gothic",
+                      "art_deco",
+                      "art_nouveau",
+                      "geometric"
+                    ],
+                    "default": "none"
+                  },
+                  "motif": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "dentil",
+                      "fluting",
+                      "pointed_arch",
+                      "tracery",
+                      "chevron",
+                      "sunburst",
+                      "vine",
+                      "leaf",
+                      "lattice",
+                      "diamond"
+                    ],
+                    "default": "auto"
+                  },
+                  "density": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "default": 65
+                  },
+                  "scale": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 8,
+                    "default": 4
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3,
+                    "default": 1
+                  },
+                  "layout": {
+                    "type": "string",
+                    "enum": [
+                      "continuous",
+                      "centerpiece",
+                      "corners"
+                    ]
+                  },
+                  "center_clear": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 16
+                  },
+                  "sample": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "path",
+                      "sha256"
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2048
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "luminance",
+                          "alpha"
+                        ]
+                      },
+                      "fit": {
+                        "type": "string",
+                        "enum": [
+                          "contain",
+                          "cover"
+                        ]
+                      },
+                      "threshold": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                      },
+                      "reference_id": {
+                        "type": "string",
+                        "enum": [
+                          "kashan_star_cross",
+                          "bursa_vine_frieze",
+                          "kashan_corner_vine"
+                        ]
+                      },
+                      "colors": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 8,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "rgb",
+                            "material"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "rgb": {
+                              "type": "string",
+                              "pattern": "^#[0-9a-fA-F]{6}$"
+                            },
+                            "material": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            }
+                          }
+                        }
+                      },
+                      "noise_strength": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      "noise_scale": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 16
+                      },
+                      "invert": {
+                        "type": "boolean"
+                      },
+                      "mirror": {
+                        "type": "boolean"
+                      },
+                      "crop": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "minItems": 4,
+                        "maxItems": 4
+                      }
+                    }
+                  },
+                  "richness": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                  },
+                  "highlight": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "sample_shape_fit": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "slab": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "stairs": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
+                  },
+                  "edge_trim": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "slab": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "stairs": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
+                  },
+                  "sample_repeat": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    }
+                  },
+                  "border_layers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3,
+                    "default": 1
+                  },
+                  "symmetry": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647,
+                    "default": 0
+                  },
+                  "material": {
+                    "type": "string",
+                    "maxLength": 160
+                  }
+                }
+              }
+            }
+          },
+          "constraints": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "pillar",
+                  "stairs",
+                  "table",
+                  "wall",
+                  "ceiling",
+                  "plant",
+                  "shelf",
+                  "bench",
+                  "planter",
+                  "lantern"
+                ]
+              },
+              "size": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 3,
+                  "maximum": 32
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "profiles": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 6,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "classical",
+                    "gothic",
+                    "art_deco",
+                    "art_nouveau",
+                    "geometric"
+                  ],
+                  "default": "none"
+                }
+              },
+              "motifs": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 10,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "dentil",
+                    "fluting",
+                    "pointed_arch",
+                    "tracery",
+                    "chevron",
+                    "sunburst",
+                    "vine",
+                    "leaf",
+                    "lattice",
+                    "diamond"
+                  ]
+                }
+              },
+              "materials": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                }
+              },
+              "min_density": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "max_density": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "max_depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3
+              },
+              "max_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536
+              },
+              "max_operations": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 128
+              },
+              "require_decoration": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "parametric_surface": {
+      "description": "查询真实完整方块平面、缺口候选、未知形状与安装厚度；绑定源、候选和保护上下文，不推断门窗语义。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "surface"
+        ],
+        "properties": {
+          "surface": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source",
+              "source_sha256",
+              "geometry_sha256",
+              "context",
+              "context_sha256",
+              "lo",
+              "hi",
+              "normal"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "source_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "geometry_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "context": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "context_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "snapshot": {
+                "type": "string",
+                "maxLength": 2048
+              },
+              "snapshot_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "lo": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "hi": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "normal": {
+                "type": "string",
+                "enum": [
+                  "north",
+                  "south",
+                  "east",
+                  "west",
+                  "up",
+                  "down"
+                ]
+              },
+              "min_support": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "default": 1
+              },
+              "opening_margin": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8,
+                "default": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "parametric_mount": {
+      "description": "按平面UV锚点安装参数化对象，硬检查安装面、缺口边距、碰撞、保护和预算；返回只读候选操作。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "surface",
+          "surface_sha256",
+          "object",
+          "anchor_uv"
+        ],
+        "properties": {
+          "surface_fit": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "max_gap"
+            ],
+            "properties": {
+              "max_gap": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            }
+          },
+          "compare_routes": {
+            "type": "boolean"
+          },
+          "review": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cameras"
+            ],
+            "properties": {
+              "cameras": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "render": {
+                "type": "boolean"
+              }
+            }
+          },
+          "surface": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source",
+              "source_sha256",
+              "geometry_sha256",
+              "context",
+              "context_sha256",
+              "lo",
+              "hi",
+              "normal"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "source_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "geometry_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "context": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "context_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "snapshot": {
+                "type": "string",
+                "maxLength": 2048
+              },
+              "snapshot_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "lo": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "hi": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "normal": {
+                "type": "string",
+                "enum": [
+                  "north",
+                  "south",
+                  "east",
+                  "west",
+                  "up",
+                  "down"
+                ]
+              },
+              "min_support": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "default": 1
+              },
+              "opening_margin": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8,
+                "default": 1
+              }
+            }
+          },
+          "surface_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "size"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "pillar",
+                  "stairs",
+                  "table",
+                  "wall",
+                  "ceiling",
+                  "plant",
+                  "shelf",
+                  "bench",
+                  "planter",
+                  "lantern"
+                ]
+              },
+              "size": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 3,
+                  "maximum": 32
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "style": {
+                "type": "string",
+                "enum": [
+                  "classic",
+                  "stepped",
+                  "open"
+                ],
+                "default": "classic"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "material": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "stone_bricks"
+              },
+              "accent": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "polished_andesite"
+              },
+              "foliage": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "oak_leaves[persistent=true]"
+              },
+              "spacing": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 8,
+                "default": 3
+              },
+              "thickness": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3,
+                "default": 1
+              },
+              "max_changed_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536,
+                "default": 65536
+              },
+              "theme": {
+                "type": "string",
+                "enum": [
+                  "stone_hall",
+                  "timber_room",
+                  "deepslate_workshop"
+                ]
+              },
+              "form": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "dado_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 30
+                  },
+                  "cornice_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "panel_pitch": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 12
+                  },
+                  "relief_depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "base_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "capital_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "inset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  "drop": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "pitch": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 12
+                  },
+                  "border": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  "pot_height": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 10
+                  },
+                  "crown_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "radius": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 6
+                  },
+                  "density": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  },
+                  "run_width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "rise": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 24
+                  },
+                  "landing": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "taper": {
+                    "type": "boolean"
+                  },
+                  "flutes": {
+                    "type": "boolean"
+                  },
+                  "light_strip": {
+                    "type": "boolean"
+                  },
+                  "rail": {
+                    "type": "boolean"
+                  },
+                  "base_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "capital_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "tread": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "section": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "cross"
+                    ]
+                  },
+                  "profile": {
+                    "type": "string",
+                    "enum": [
+                      "grid",
+                      "parallel",
+                      "upright",
+                      "trailing",
+                      "climbing",
+                      "straight",
+                      "quarter_turn",
+                      "switchback",
+                      "spiral"
+                    ]
+                  }
+                }
+              },
+              "stair_material": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "stone_brick_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]"
+              },
+              "ornament": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "profile": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "classical",
+                      "gothic",
+                      "art_deco",
+                      "art_nouveau",
+                      "geometric"
+                    ],
+                    "default": "none"
+                  },
+                  "motif": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "dentil",
+                      "fluting",
+                      "pointed_arch",
+                      "tracery",
+                      "chevron",
+                      "sunburst",
+                      "vine",
+                      "leaf",
+                      "lattice",
+                      "diamond"
+                    ],
+                    "default": "auto"
+                  },
+                  "density": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "default": 65
+                  },
+                  "scale": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 8,
+                    "default": 4
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3,
+                    "default": 1
+                  },
+                  "layout": {
+                    "type": "string",
+                    "enum": [
+                      "continuous",
+                      "centerpiece",
+                      "corners"
+                    ]
+                  },
+                  "center_clear": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 16
+                  },
+                  "sample": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "path",
+                      "sha256"
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2048
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "luminance",
+                          "alpha"
+                        ]
+                      },
+                      "fit": {
+                        "type": "string",
+                        "enum": [
+                          "contain",
+                          "cover"
+                        ]
+                      },
+                      "threshold": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                      },
+                      "reference_id": {
+                        "type": "string",
+                        "enum": [
+                          "kashan_star_cross",
+                          "bursa_vine_frieze",
+                          "kashan_corner_vine"
+                        ]
+                      },
+                      "colors": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 8,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "rgb",
+                            "material"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "rgb": {
+                              "type": "string",
+                              "pattern": "^#[0-9a-fA-F]{6}$"
+                            },
+                            "material": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            }
+                          }
+                        }
+                      },
+                      "noise_strength": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      "noise_scale": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 16
+                      },
+                      "invert": {
+                        "type": "boolean"
+                      },
+                      "mirror": {
+                        "type": "boolean"
+                      },
+                      "crop": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "minItems": 4,
+                        "maxItems": 4
+                      }
+                    }
+                  },
+                  "richness": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                  },
+                  "highlight": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "sample_shape_fit": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "slab": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "stairs": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
+                  },
+                  "edge_trim": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "slab": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "stairs": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
+                  },
+                  "sample_repeat": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    }
+                  },
+                  "border_layers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3,
+                    "default": 1
+                  },
+                  "symmetry": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647,
+                    "default": 0
+                  },
+                  "material": {
+                    "type": "string",
+                    "maxLength": 160
+                  }
+                }
+              }
+            }
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536,
+            "default": 4096
+          },
+          "reserved_boxes": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lo",
+                "hi"
+              ],
+              "properties": {
+                "lo": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "hi": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              }
+            }
+          },
+          "anchor_uv": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            }
+          },
+          "min_clearance": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16
+          },
+          "require_routes": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "parametric_layout": {
+      "description": "按网格、边框或中心布局安装对象；明确拒绝或跳过缺口/保护冲突并逐项报告；不写建筑。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "surface",
+          "surface_sha256",
+          "object"
+        ],
+        "properties": {
+          "surface_fit": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "max_gap"
+            ],
+            "properties": {
+              "max_gap": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            }
+          },
+          "compare_routes": {
+            "type": "boolean"
+          },
+          "review": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cameras"
+            ],
+            "properties": {
+              "cameras": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "render": {
+                "type": "boolean"
+              }
+            }
+          },
+          "surface": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source",
+              "source_sha256",
+              "geometry_sha256",
+              "context",
+              "context_sha256",
+              "lo",
+              "hi",
+              "normal"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "source_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "geometry_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "context": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "context_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "snapshot": {
+                "type": "string",
+                "maxLength": 2048
+              },
+              "snapshot_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "lo": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "hi": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "normal": {
+                "type": "string",
+                "enum": [
+                  "north",
+                  "south",
+                  "east",
+                  "west",
+                  "up",
+                  "down"
+                ]
+              },
+              "min_support": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "default": 1
+              },
+              "opening_margin": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8,
+                "default": 1
+              }
+            }
+          },
+          "surface_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "size"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "pillar",
+                  "stairs",
+                  "table",
+                  "wall",
+                  "ceiling",
+                  "plant",
+                  "shelf",
+                  "bench",
+                  "planter",
+                  "lantern"
+                ]
+              },
+              "size": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 3,
+                  "maximum": 32
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "style": {
+                "type": "string",
+                "enum": [
+                  "classic",
+                  "stepped",
+                  "open"
+                ],
+                "default": "classic"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "material": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "stone_bricks"
+              },
+              "accent": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "polished_andesite"
+              },
+              "foliage": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "oak_leaves[persistent=true]"
+              },
+              "spacing": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 8,
+                "default": 3
+              },
+              "thickness": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3,
+                "default": 1
+              },
+              "max_changed_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536,
+                "default": 65536
+              },
+              "theme": {
+                "type": "string",
+                "enum": [
+                  "stone_hall",
+                  "timber_room",
+                  "deepslate_workshop"
+                ]
+              },
+              "form": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "dado_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 30
+                  },
+                  "cornice_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "panel_pitch": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 12
+                  },
+                  "relief_depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "base_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "capital_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "inset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  "drop": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "pitch": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 12
+                  },
+                  "border": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  "pot_height": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 10
+                  },
+                  "crown_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "radius": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 6
+                  },
+                  "density": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  },
+                  "run_width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "rise": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 24
+                  },
+                  "landing": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "taper": {
+                    "type": "boolean"
+                  },
+                  "flutes": {
+                    "type": "boolean"
+                  },
+                  "light_strip": {
+                    "type": "boolean"
+                  },
+                  "rail": {
+                    "type": "boolean"
+                  },
+                  "base_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "capital_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "tread": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "section": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "cross"
+                    ]
+                  },
+                  "profile": {
+                    "type": "string",
+                    "enum": [
+                      "grid",
+                      "parallel",
+                      "upright",
+                      "trailing",
+                      "climbing",
+                      "straight",
+                      "quarter_turn",
+                      "switchback",
+                      "spiral"
+                    ]
+                  }
+                }
+              },
+              "stair_material": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "stone_brick_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]"
+              },
+              "ornament": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "profile": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "classical",
+                      "gothic",
+                      "art_deco",
+                      "art_nouveau",
+                      "geometric"
+                    ],
+                    "default": "none"
+                  },
+                  "motif": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "dentil",
+                      "fluting",
+                      "pointed_arch",
+                      "tracery",
+                      "chevron",
+                      "sunburst",
+                      "vine",
+                      "leaf",
+                      "lattice",
+                      "diamond"
+                    ],
+                    "default": "auto"
+                  },
+                  "density": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "default": 65
+                  },
+                  "scale": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 8,
+                    "default": 4
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3,
+                    "default": 1
+                  },
+                  "layout": {
+                    "type": "string",
+                    "enum": [
+                      "continuous",
+                      "centerpiece",
+                      "corners"
+                    ]
+                  },
+                  "center_clear": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 16
+                  },
+                  "sample": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "path",
+                      "sha256"
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2048
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "luminance",
+                          "alpha"
+                        ]
+                      },
+                      "fit": {
+                        "type": "string",
+                        "enum": [
+                          "contain",
+                          "cover"
+                        ]
+                      },
+                      "threshold": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                      },
+                      "reference_id": {
+                        "type": "string",
+                        "enum": [
+                          "kashan_star_cross",
+                          "bursa_vine_frieze",
+                          "kashan_corner_vine"
+                        ]
+                      },
+                      "colors": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 8,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "rgb",
+                            "material"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "rgb": {
+                              "type": "string",
+                              "pattern": "^#[0-9a-fA-F]{6}$"
+                            },
+                            "material": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            }
+                          }
+                        }
+                      },
+                      "noise_strength": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      "noise_scale": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 16
+                      },
+                      "invert": {
+                        "type": "boolean"
+                      },
+                      "mirror": {
+                        "type": "boolean"
+                      },
+                      "crop": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "minItems": 4,
+                        "maxItems": 4
+                      }
+                    }
+                  },
+                  "richness": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                  },
+                  "highlight": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "sample_shape_fit": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "slab": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "stairs": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
+                  },
+                  "edge_trim": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "slab": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "stairs": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
+                  },
+                  "sample_repeat": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    }
+                  },
+                  "border_layers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3,
+                    "default": 1
+                  },
+                  "symmetry": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647,
+                    "default": 0
+                  },
+                  "material": {
+                    "type": "string",
+                    "maxLength": 160
+                  }
+                }
+              }
+            }
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536,
+            "default": 4096
+          },
+          "reserved_boxes": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lo",
+                "hi"
+              ],
+              "properties": {
+                "lo": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "hi": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              }
+            }
+          },
+          "pattern": {
+            "type": "string",
+            "enum": [
+              "grid",
+              "border",
+              "center"
+            ],
+            "default": "grid"
+          },
+          "gap_uv": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "default": [
+              2,
+              2
+            ]
+          },
+          "edge_margin": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 8,
+            "default": 0
+          },
+          "max_instances": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "default": 32
+          },
+          "on_conflict": {
+            "type": "string",
+            "enum": [
+              "reject",
+              "skip"
+            ],
+            "default": "reject"
+          },
+          "min_clearance": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16
+          },
+          "require_routes": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "parametric_compose": {
+      "description": "按对象编号、锚点与朝向组合构件，检查重叠和保留空间，返回可预览结构方案。",
+      "parameters": {
+        "type": "object",
+        "required": [
+          "name",
+          "size",
+          "objects"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "size": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            }
+          },
+          "objects": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 12,
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "object",
+                "position"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "object": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "size"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "pillar",
+                        "stairs",
+                        "table",
+                        "wall",
+                        "ceiling",
+                        "plant",
+                        "shelf",
+                        "bench",
+                        "planter",
+                        "lantern"
+                      ]
+                    },
+                    "size": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 3,
+                        "maximum": 32
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "style": {
+                      "type": "string",
+                      "enum": [
+                        "classic",
+                        "stepped",
+                        "open"
+                      ],
+                      "default": "classic"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "material": {
+                      "type": "string",
+                      "maxLength": 160,
+                      "default": "stone_bricks"
+                    },
+                    "accent": {
+                      "type": "string",
+                      "maxLength": 160,
+                      "default": "polished_andesite"
+                    },
+                    "foliage": {
+                      "type": "string",
+                      "maxLength": 160,
+                      "default": "oak_leaves[persistent=true]"
+                    },
+                    "spacing": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "maximum": 8,
+                      "default": 3
+                    },
+                    "thickness": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 3,
+                      "default": 1
+                    },
+                    "max_changed_blocks": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65536,
+                      "default": 65536
+                    },
+                    "theme": {
+                      "type": "string",
+                      "enum": [
+                        "stone_hall",
+                        "timber_room",
+                        "deepslate_workshop"
+                      ]
+                    },
+                    "form": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "dado_height": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 30
+                        },
+                        "cornice_height": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 8
+                        },
+                        "panel_pitch": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 12
+                        },
+                        "relief_depth": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 8
+                        },
+                        "base_height": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 12
+                        },
+                        "capital_height": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 12
+                        },
+                        "inset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 6
+                        },
+                        "drop": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 16
+                        },
+                        "pitch": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 12
+                        },
+                        "border": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 6
+                        },
+                        "pot_height": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 10
+                        },
+                        "crown_height": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 12
+                        },
+                        "radius": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 6
+                        },
+                        "density": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "seed": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "run_width": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 8
+                        },
+                        "rise": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 24
+                        },
+                        "landing": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 8
+                        },
+                        "taper": {
+                          "type": "boolean"
+                        },
+                        "flutes": {
+                          "type": "boolean"
+                        },
+                        "light_strip": {
+                          "type": "boolean"
+                        },
+                        "rail": {
+                          "type": "boolean"
+                        },
+                        "base_material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "capital_material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "tread": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "section": {
+                          "type": "string",
+                          "enum": [
+                            "square",
+                            "cross"
+                          ]
+                        },
+                        "profile": {
+                          "type": "string",
+                          "enum": [
+                            "grid",
+                            "parallel",
+                            "upright",
+                            "trailing",
+                            "climbing",
+                            "straight",
+                            "quarter_turn",
+                            "switchback",
+                            "spiral"
+                          ]
+                        }
+                      }
+                    },
+                    "stair_material": {
+                      "type": "string",
+                      "maxLength": 160,
+                      "default": "stone_brick_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]"
+                    },
+                    "ornament": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "profile": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "classical",
+                            "gothic",
+                            "art_deco",
+                            "art_nouveau",
+                            "geometric"
+                          ],
+                          "default": "none"
+                        },
+                        "motif": {
+                          "type": "string",
+                          "enum": [
+                            "auto",
+                            "dentil",
+                            "fluting",
+                            "pointed_arch",
+                            "tracery",
+                            "chevron",
+                            "sunburst",
+                            "vine",
+                            "leaf",
+                            "lattice",
+                            "diamond"
+                          ],
+                          "default": "auto"
+                        },
+                        "density": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100,
+                          "default": 65
+                        },
+                        "scale": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 8,
+                          "default": 4
+                        },
+                        "depth": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 3,
+                          "default": 1
+                        },
+                        "layout": {
+                          "type": "string",
+                          "enum": [
+                            "continuous",
+                            "centerpiece",
+                            "corners"
+                          ]
+                        },
+                        "center_clear": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 16
+                        },
+                        "sample": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "path",
+                            "sha256"
+                          ],
+                          "properties": {
+                            "path": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 2048
+                            },
+                            "sha256": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "channel": {
+                              "type": "string",
+                              "enum": [
+                                "luminance",
+                                "alpha"
+                              ]
+                            },
+                            "fit": {
+                              "type": "string",
+                              "enum": [
+                                "contain",
+                                "cover"
+                              ]
+                            },
+                            "threshold": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 100
+                            },
+                            "reference_id": {
+                              "type": "string",
+                              "enum": [
+                                "kashan_star_cross",
+                                "bursa_vine_frieze",
+                                "kashan_corner_vine"
+                              ]
+                            },
+                            "colors": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 8,
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "rgb",
+                                  "material"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "rgb": {
+                                    "type": "string",
+                                    "pattern": "^#[0-9a-fA-F]{6}$"
+                                  },
+                                  "material": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 160
+                                  }
+                                }
+                              }
+                            },
+                            "noise_strength": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100
+                            },
+                            "noise_scale": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 16
+                            },
+                            "invert": {
+                              "type": "boolean"
+                            },
+                            "mirror": {
+                              "type": "boolean"
+                            },
+                            "crop": {
+                              "type": "array",
+                              "items": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "minItems": 4,
+                              "maxItems": 4
+                            }
+                          }
+                        },
+                        "richness": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 3
+                        },
+                        "highlight": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "sample_shape_fit": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "slab": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            },
+                            "stairs": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            }
+                          }
+                        },
+                        "edge_trim": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "slab": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            },
+                            "stairs": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            }
+                          }
+                        },
+                        "sample_repeat": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 8
+                          }
+                        },
+                        "border_layers": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 3,
+                          "default": 1
+                        },
+                        "symmetry": {
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "seed": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647,
+                          "default": 0
+                        },
+                        "material": {
+                          "type": "string",
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  }
+                },
+                "position": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 64
+                  }
+                },
+                "quarter_turns": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                }
+              }
+            }
+          },
+          "reserved_boxes": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "object",
+              "required": [
+                "lo",
+                "hi"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "lo": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 64
+                  }
+                },
+                "hi": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 64
+                  }
+                }
+              }
+            }
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          }
+        }
+      }
+    },
+    "parametric_regenerate": {
+      "description": "核对原配方并仅重生成指定部件，检查其他体素相同，返回含对象编号和父配方哈希的候选。",
+      "parameters": {
+        "type": "object",
+        "required": [
+          "object_id",
+          "original",
+          "original_recipe_sha256",
+          "replacement",
+          "part"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "object_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "original": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "size"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "pillar",
+                  "stairs",
+                  "table",
+                  "wall",
+                  "ceiling",
+                  "plant",
+                  "shelf",
+                  "bench",
+                  "planter",
+                  "lantern"
+                ]
+              },
+              "size": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 3,
+                  "maximum": 32
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "style": {
+                "type": "string",
+                "enum": [
+                  "classic",
+                  "stepped",
+                  "open"
+                ],
+                "default": "classic"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "material": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "stone_bricks"
+              },
+              "accent": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "polished_andesite"
+              },
+              "foliage": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "oak_leaves[persistent=true]"
+              },
+              "spacing": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 8,
+                "default": 3
+              },
+              "thickness": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3,
+                "default": 1
+              },
+              "max_changed_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536,
+                "default": 65536
+              },
+              "theme": {
+                "type": "string",
+                "enum": [
+                  "stone_hall",
+                  "timber_room",
+                  "deepslate_workshop"
+                ]
+              },
+              "form": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "dado_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 30
+                  },
+                  "cornice_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "panel_pitch": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 12
+                  },
+                  "relief_depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "base_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "capital_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "inset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  "drop": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "pitch": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 12
+                  },
+                  "border": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  "pot_height": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 10
+                  },
+                  "crown_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "radius": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 6
+                  },
+                  "density": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  },
+                  "run_width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "rise": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 24
+                  },
+                  "landing": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "taper": {
+                    "type": "boolean"
+                  },
+                  "flutes": {
+                    "type": "boolean"
+                  },
+                  "light_strip": {
+                    "type": "boolean"
+                  },
+                  "rail": {
+                    "type": "boolean"
+                  },
+                  "base_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "capital_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "tread": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "section": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "cross"
+                    ]
+                  },
+                  "profile": {
+                    "type": "string",
+                    "enum": [
+                      "grid",
+                      "parallel",
+                      "upright",
+                      "trailing",
+                      "climbing",
+                      "straight",
+                      "quarter_turn",
+                      "switchback",
+                      "spiral"
+                    ]
+                  }
+                }
+              },
+              "stair_material": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "stone_brick_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]"
+              },
+              "ornament": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "profile": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "classical",
+                      "gothic",
+                      "art_deco",
+                      "art_nouveau",
+                      "geometric"
+                    ],
+                    "default": "none"
+                  },
+                  "motif": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "dentil",
+                      "fluting",
+                      "pointed_arch",
+                      "tracery",
+                      "chevron",
+                      "sunburst",
+                      "vine",
+                      "leaf",
+                      "lattice",
+                      "diamond"
+                    ],
+                    "default": "auto"
+                  },
+                  "density": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "default": 65
+                  },
+                  "scale": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 8,
+                    "default": 4
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3,
+                    "default": 1
+                  },
+                  "layout": {
+                    "type": "string",
+                    "enum": [
+                      "continuous",
+                      "centerpiece",
+                      "corners"
+                    ]
+                  },
+                  "center_clear": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 16
+                  },
+                  "sample": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "path",
+                      "sha256"
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2048
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "luminance",
+                          "alpha"
+                        ]
+                      },
+                      "fit": {
+                        "type": "string",
+                        "enum": [
+                          "contain",
+                          "cover"
+                        ]
+                      },
+                      "threshold": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                      },
+                      "reference_id": {
+                        "type": "string",
+                        "enum": [
+                          "kashan_star_cross",
+                          "bursa_vine_frieze",
+                          "kashan_corner_vine"
+                        ]
+                      },
+                      "colors": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 8,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "rgb",
+                            "material"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "rgb": {
+                              "type": "string",
+                              "pattern": "^#[0-9a-fA-F]{6}$"
+                            },
+                            "material": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            }
+                          }
+                        }
+                      },
+                      "noise_strength": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      "noise_scale": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 16
+                      },
+                      "invert": {
+                        "type": "boolean"
+                      },
+                      "mirror": {
+                        "type": "boolean"
+                      },
+                      "crop": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "minItems": 4,
+                        "maxItems": 4
+                      }
+                    }
+                  },
+                  "richness": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                  },
+                  "highlight": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "sample_shape_fit": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "slab": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "stairs": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
+                  },
+                  "edge_trim": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "slab": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "stairs": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
+                  },
+                  "sample_repeat": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    }
+                  },
+                  "border_layers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3,
+                    "default": 1
+                  },
+                  "symmetry": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647,
+                    "default": 0
+                  },
+                  "material": {
+                    "type": "string",
+                    "maxLength": 160
+                  }
+                }
+              }
+            }
+          },
+          "replacement": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "size"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "pillar",
+                  "stairs",
+                  "table",
+                  "wall",
+                  "ceiling",
+                  "plant",
+                  "shelf",
+                  "bench",
+                  "planter",
+                  "lantern"
+                ]
+              },
+              "size": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 3,
+                  "maximum": 32
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "style": {
+                "type": "string",
+                "enum": [
+                  "classic",
+                  "stepped",
+                  "open"
+                ],
+                "default": "classic"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "material": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "stone_bricks"
+              },
+              "accent": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "polished_andesite"
+              },
+              "foliage": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "oak_leaves[persistent=true]"
+              },
+              "spacing": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 8,
+                "default": 3
+              },
+              "thickness": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3,
+                "default": 1
+              },
+              "max_changed_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536,
+                "default": 65536
+              },
+              "theme": {
+                "type": "string",
+                "enum": [
+                  "stone_hall",
+                  "timber_room",
+                  "deepslate_workshop"
+                ]
+              },
+              "form": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "dado_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 30
+                  },
+                  "cornice_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "panel_pitch": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 12
+                  },
+                  "relief_depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "base_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "capital_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "inset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  "drop": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "pitch": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 12
+                  },
+                  "border": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  "pot_height": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 10
+                  },
+                  "crown_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "radius": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 6
+                  },
+                  "density": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  },
+                  "run_width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "rise": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 24
+                  },
+                  "landing": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "taper": {
+                    "type": "boolean"
+                  },
+                  "flutes": {
+                    "type": "boolean"
+                  },
+                  "light_strip": {
+                    "type": "boolean"
+                  },
+                  "rail": {
+                    "type": "boolean"
+                  },
+                  "base_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "capital_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "tread": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "section": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "cross"
+                    ]
+                  },
+                  "profile": {
+                    "type": "string",
+                    "enum": [
+                      "grid",
+                      "parallel",
+                      "upright",
+                      "trailing",
+                      "climbing",
+                      "straight",
+                      "quarter_turn",
+                      "switchback",
+                      "spiral"
+                    ]
+                  }
+                }
+              },
+              "stair_material": {
+                "type": "string",
+                "maxLength": 160,
+                "default": "stone_brick_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]"
+              },
+              "ornament": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "profile": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "classical",
+                      "gothic",
+                      "art_deco",
+                      "art_nouveau",
+                      "geometric"
+                    ],
+                    "default": "none"
+                  },
+                  "motif": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "dentil",
+                      "fluting",
+                      "pointed_arch",
+                      "tracery",
+                      "chevron",
+                      "sunburst",
+                      "vine",
+                      "leaf",
+                      "lattice",
+                      "diamond"
+                    ],
+                    "default": "auto"
+                  },
+                  "density": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "default": 65
+                  },
+                  "scale": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 8,
+                    "default": 4
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3,
+                    "default": 1
+                  },
+                  "layout": {
+                    "type": "string",
+                    "enum": [
+                      "continuous",
+                      "centerpiece",
+                      "corners"
+                    ]
+                  },
+                  "center_clear": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 16
+                  },
+                  "sample": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "path",
+                      "sha256"
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2048
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "luminance",
+                          "alpha"
+                        ]
+                      },
+                      "fit": {
+                        "type": "string",
+                        "enum": [
+                          "contain",
+                          "cover"
+                        ]
+                      },
+                      "threshold": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100
+                      },
+                      "reference_id": {
+                        "type": "string",
+                        "enum": [
+                          "kashan_star_cross",
+                          "bursa_vine_frieze",
+                          "kashan_corner_vine"
+                        ]
+                      },
+                      "colors": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 8,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "rgb",
+                            "material"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "rgb": {
+                              "type": "string",
+                              "pattern": "^#[0-9a-fA-F]{6}$"
+                            },
+                            "material": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            }
+                          }
+                        }
+                      },
+                      "noise_strength": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      "noise_scale": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 16
+                      },
+                      "invert": {
+                        "type": "boolean"
+                      },
+                      "mirror": {
+                        "type": "boolean"
+                      },
+                      "crop": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "minItems": 4,
+                        "maxItems": 4
+                      }
+                    }
+                  },
+                  "richness": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                  },
+                  "highlight": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "sample_shape_fit": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "slab": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "stairs": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
+                  },
+                  "edge_trim": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "slab": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "stairs": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
+                  },
+                  "sample_repeat": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    }
+                  },
+                  "border_layers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3,
+                    "default": 1
+                  },
+                  "symmetry": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647,
+                    "default": 0
+                  },
+                  "material": {
+                    "type": "string",
+                    "maxLength": 160
+                  }
+                }
+              }
+            }
+          },
+          "original_recipe_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "part": {
+            "type": "string",
+            "enum": [
+              "base",
+              "shaft",
+              "capital",
+              "trim",
+              "container",
+              "wainscot",
+              "cornice",
+              "crown"
+            ]
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          }
+        }
+      }
+    },
+    "pattern_list": {
+      "description": "查询纹样图、哈希、适用安装面和建议尺寸。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      }
+    },
+    "pattern_compile": {
+      "description": "将库中或工作区的灰度纹样编译为地板、墙、柱或吊顶面板方案。 支持surface=cylinder的圆柱环绕，楼梯和半砖状态由脚本按局部轮廓和切线自动确定。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "surface",
+          "size_uv"
+        ],
+        "properties": {
+          "surface": {
+            "type": "string",
+            "enum": [
+              "floor",
+              "wall",
+              "column",
+              "ceiling",
+              "cylinder"
+            ]
+          },
+          "size_uv": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            },
+            "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+          },
+          "preset": {
+            "type": "string",
+            "enum": [
+              "cosmati-floor",
+              "braided-shaft",
+              "acanthus-capital",
+              "coffer-rosette",
+              "gothic-rose",
+              "acanthus-frieze",
+              "baroque-pilaster",
+              "pointed-spandrel",
+              "checkerboard",
+              "horizontal-stripes",
+              "vertical-stripes",
+              "running-bond",
+              "basket-weave",
+              "herringbone",
+              "diamond-lattice",
+              "greek-key",
+              "zigzag-band",
+              "cross-tile",
+              "stepped-diamond",
+              "four-petal"
+            ]
+          },
+          "sample": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "channel": {
+                "type": "string",
+                "enum": [
+                  "luminance",
+                  "alpha"
+                ]
+              },
+              "fit": {
+                "type": "string",
+                "enum": [
+                  "contain",
+                  "cover"
+                ]
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "reference_id": {
+                "type": "string",
+                "enum": [
+                  "kashan_star_cross",
+                  "bursa_vine_frieze",
+                  "kashan_corner_vine"
+                ]
+              },
+              "colors": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rgb",
+                    "material"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "rgb": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                }
+              },
+              "noise_strength": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "noise_scale": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "invert": {
+                "type": "boolean"
+              },
+              "mirror": {
+                "type": "boolean"
+              },
+              "crop": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minItems": 4,
+                "maxItems": 4
+              }
+            }
+          },
+          "shapes": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "slab": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "stairs": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            }
+          },
+          "repeat": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            }
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "base": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "preset_options": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "channel": {
+                "type": "string",
+                "enum": [
+                  "luminance",
+                  "alpha"
+                ]
+              },
+              "fit": {
+                "type": "string",
+                "enum": [
+                  "contain",
+                  "cover"
+                ]
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "colors": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rgb",
+                    "material"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "rgb": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                }
+              },
+              "noise_strength": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "noise_scale": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "invert": {
+                "type": "boolean"
+              },
+              "mirror": {
+                "type": "boolean"
+              },
+              "crop": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          },
+          "seam_degrees": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180,
+            "description": "仅圆柱，纹样接缝的角度，默认180度在北侧。0度在南侧。"
+          },
+          "fit_mode": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "micro"
+            ]
+          },
+          "tile_counts": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            }
+          },
+          "gap_uv": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4
+            }
+          },
+          "micro_max_error": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "diameter": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 30
+          },
+          "full_blocks_only": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "pattern_preview": {
+      "description": "编译纹样面板并生成引擎候选预览。 支持surface=cylinder的圆柱环绕，楼梯和半砖状态由脚本按局部轮廓和切线自动确定。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "surface",
+          "size_uv"
+        ],
+        "properties": {
+          "surface": {
+            "type": "string",
+            "enum": [
+              "floor",
+              "wall",
+              "column",
+              "ceiling",
+              "cylinder"
+            ]
+          },
+          "size_uv": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            },
+            "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+          },
+          "preset": {
+            "type": "string",
+            "enum": [
+              "cosmati-floor",
+              "braided-shaft",
+              "acanthus-capital",
+              "coffer-rosette",
+              "gothic-rose",
+              "acanthus-frieze",
+              "baroque-pilaster",
+              "pointed-spandrel",
+              "checkerboard",
+              "horizontal-stripes",
+              "vertical-stripes",
+              "running-bond",
+              "basket-weave",
+              "herringbone",
+              "diamond-lattice",
+              "greek-key",
+              "zigzag-band",
+              "cross-tile",
+              "stepped-diamond",
+              "four-petal"
+            ]
+          },
+          "sample": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "channel": {
+                "type": "string",
+                "enum": [
+                  "luminance",
+                  "alpha"
+                ]
+              },
+              "fit": {
+                "type": "string",
+                "enum": [
+                  "contain",
+                  "cover"
+                ]
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "reference_id": {
+                "type": "string",
+                "enum": [
+                  "kashan_star_cross",
+                  "bursa_vine_frieze",
+                  "kashan_corner_vine"
+                ]
+              },
+              "colors": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rgb",
+                    "material"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "rgb": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                }
+              },
+              "noise_strength": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "noise_scale": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "invert": {
+                "type": "boolean"
+              },
+              "mirror": {
+                "type": "boolean"
+              },
+              "crop": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minItems": 4,
+                "maxItems": 4
+              }
+            }
+          },
+          "shapes": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "slab": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "stairs": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            }
+          },
+          "repeat": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            }
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "base": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "preset_options": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "channel": {
+                "type": "string",
+                "enum": [
+                  "luminance",
+                  "alpha"
+                ]
+              },
+              "fit": {
+                "type": "string",
+                "enum": [
+                  "contain",
+                  "cover"
+                ]
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "colors": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rgb",
+                    "material"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "rgb": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                }
+              },
+              "noise_strength": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "noise_scale": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "invert": {
+                "type": "boolean"
+              },
+              "mirror": {
+                "type": "boolean"
+              },
+              "crop": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          },
+          "seam_degrees": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180,
+            "description": "仅圆柱，纹样接缝的角度，默认180度在北侧。0度在南侧。"
+          },
+          "fit_mode": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "micro"
+            ]
+          },
+          "tile_counts": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            }
+          },
+          "gap_uv": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4
+            }
+          },
+          "micro_max_error": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "diameter": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 30
+          },
+          "full_blocks_only": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "pattern_mount": {
+      "description": "将图库或样本纹样贴合绑定安装面，地板生成原层镶嵌替换候选，墙柱和吊顶生成外贴候选，硬检查保护、开口、占用、净空和预算。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "surface",
+          "surface_sha256",
+          "object",
+          "anchor_uv"
+        ],
+        "properties": {
+          "compare_routes": {
+            "type": "boolean"
+          },
+          "review": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cameras"
+            ],
+            "properties": {
+              "cameras": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "render": {
+                "type": "boolean"
+              }
+            }
+          },
+          "surface": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source",
+              "source_sha256",
+              "geometry_sha256",
+              "context",
+              "context_sha256",
+              "lo",
+              "hi",
+              "normal"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "source_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "geometry_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "context": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "context_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "snapshot": {
+                "type": "string",
+                "maxLength": 2048
+              },
+              "snapshot_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "lo": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "hi": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "normal": {
+                "type": "string",
+                "enum": [
+                  "north",
+                  "south",
+                  "east",
+                  "west",
+                  "up",
+                  "down"
+                ]
+              },
+              "min_support": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "default": 1
+              },
+              "opening_margin": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8,
+                "default": 1
+              }
+            }
+          },
+          "surface_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "surface",
+              "size_uv"
+            ],
+            "properties": {
+              "surface": {
+                "type": "string",
+                "enum": [
+                  "floor",
+                  "wall",
+                  "column",
+                  "ceiling",
+                  "cylinder"
+                ]
+              },
+              "size_uv": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64
+                },
+                "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+              },
+              "preset": {
+                "type": "string",
+                "enum": [
+                  "cosmati-floor",
+                  "braided-shaft",
+                  "acanthus-capital",
+                  "coffer-rosette",
+                  "gothic-rose",
+                  "acanthus-frieze",
+                  "baroque-pilaster",
+                  "pointed-spandrel",
+                  "checkerboard",
+                  "horizontal-stripes",
+                  "vertical-stripes",
+                  "running-bond",
+                  "basket-weave",
+                  "herringbone",
+                  "diamond-lattice",
+                  "greek-key",
+                  "zigzag-band",
+                  "cross-tile",
+                  "stepped-diamond",
+                  "four-petal"
+                ]
+              },
+              "sample": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover"
+                    ]
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "reference_id": {
+                    "type": "string",
+                    "enum": [
+                      "kashan_star_cross",
+                      "bursa_vine_frieze",
+                      "kashan_corner_vine"
+                    ]
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "minItems": 4,
+                    "maxItems": 4
+                  }
+                }
+              },
+              "shapes": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "slab": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "stairs": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  }
+                }
+              },
+              "repeat": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 8
+                }
+              },
+              "seed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              },
+              "max_changed_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "base": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "preset_options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover"
+                    ]
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
+              },
+              "seam_degrees": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180,
+                "description": "仅圆柱，纹样接缝的角度，默认180度在北侧。0度在南侧。"
+              },
+              "fit_mode": {
+                "type": "string",
+                "enum": [
+                  "standard",
+                  "micro"
+                ]
+              },
+              "tile_counts": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 16
+                }
+              },
+              "gap_uv": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4
+                }
+              },
+              "micro_max_error": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "diameter": {
+                "type": "integer",
+                "minimum": 4,
+                "maximum": 30
+              },
+              "full_blocks_only": {
+                "type": "boolean"
+              }
+            }
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536,
+            "default": 4096
+          },
+          "reserved_boxes": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lo",
+                "hi"
+              ],
+              "properties": {
+                "lo": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "hi": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              }
+            }
+          },
+          "anchor_uv": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            }
+          },
+          "min_clearance": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16
+          },
+          "require_routes": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "pattern_cylinder_mount": {
+      "description": "对哈希绑定的既有竖直圆柱生成环绕外饰候选，自动确定楼梯与半砖状态，检查完整柱芯、碰撞接触、保护、开口和预算。目标框包含柱芯及一格外饰边。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "object"
+        ],
+        "properties": {
+          "compare_routes": {
+            "type": "boolean"
+          },
+          "review": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cameras"
+            ],
+            "properties": {
+              "cameras": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "render": {
+                "type": "boolean"
+              }
+            }
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536,
+            "default": 4096
+          },
+          "reserved_boxes": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lo",
+                "hi"
+              ],
+              "properties": {
+                "lo": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "hi": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              }
+            }
+          },
+          "require_routes": {
+            "type": "boolean"
+          },
+          "target": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source",
+              "source_sha256",
+              "geometry_sha256",
+              "context",
+              "context_sha256",
+              "lo",
+              "hi"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "source_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "geometry_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "context": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "context_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "snapshot": {
+                "type": "string",
+                "maxLength": 2048
+              },
+              "snapshot_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "lo": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "hi": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              }
+            }
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "surface",
+              "size_uv"
+            ],
+            "properties": {
+              "surface": {
+                "type": "string",
+                "enum": [
+                  "cylinder"
+                ]
+              },
+              "size_uv": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64
+                },
+                "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+              },
+              "preset": {
+                "type": "string",
+                "enum": [
+                  "cosmati-floor",
+                  "braided-shaft",
+                  "acanthus-capital",
+                  "coffer-rosette",
+                  "gothic-rose",
+                  "acanthus-frieze",
+                  "baroque-pilaster",
+                  "pointed-spandrel",
+                  "checkerboard",
+                  "horizontal-stripes",
+                  "vertical-stripes",
+                  "running-bond",
+                  "basket-weave",
+                  "herringbone",
+                  "diamond-lattice",
+                  "greek-key",
+                  "zigzag-band",
+                  "cross-tile",
+                  "stepped-diamond",
+                  "four-petal"
+                ]
+              },
+              "sample": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover"
+                    ]
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "reference_id": {
+                    "type": "string",
+                    "enum": [
+                      "kashan_star_cross",
+                      "bursa_vine_frieze",
+                      "kashan_corner_vine"
+                    ]
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "minItems": 4,
+                    "maxItems": 4
+                  }
+                }
+              },
+              "shapes": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "slab": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "stairs": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  }
+                }
+              },
+              "repeat": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 8
+                }
+              },
+              "seed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              },
+              "max_changed_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "base": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "preset_options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover"
+                    ]
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
+              },
+              "seam_degrees": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180,
+                "description": "仅圆柱，纹样接缝的角度，默认180度在北侧。0度在南侧。"
+              },
+              "fit_mode": {
+                "type": "string",
+                "enum": [
+                  "standard",
+                  "micro"
+                ]
+              },
+              "tile_counts": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 16
+                }
+              },
+              "gap_uv": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4
+                }
+              },
+              "micro_max_error": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "diameter": {
+                "type": "integer",
+                "minimum": 4,
+                "maximum": 30
+              },
+              "full_blocks_only": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "pattern_create": {
+      "description": "优先设计8～32像素的小型基础纹样，默认16×16。Agent以小位图、几何绘图或基础图层组合生成原生纹样资产，再用pattern_microfit拟合2～8格单元。支持区域裁取、旋转镜像、重复和镂空；返回sample与预览。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "layers"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "resolution": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 8,
+              "maximum": 256
+            },
+            "description": "纹样图片像素尺寸，默认16×16；微型主纹优先8～32像素。"
+          },
+          "background": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "layers": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "bitmap",
+                    "rect",
+                    "ellipse",
+                    "polygon",
+                    "polyline",
+                    "bezier",
+                    "preset",
+                    "asset",
+                    "sample"
+                  ]
+                },
+                "blend": {
+                  "type": "string",
+                  "enum": [
+                    "union",
+                    "subtract",
+                    "intersect",
+                    "xor",
+                    "add"
+                  ]
+                },
+                "box": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "rotation": {
+                  "type": "number",
+                  "minimum": -360,
+                  "maximum": 360
+                },
+                "repeat": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  }
+                },
+                "flip_x": {
+                  "type": "boolean"
+                },
+                "flip_y": {
+                  "type": "boolean"
+                },
+                "radial_count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 16
+                },
+                "opacity": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "rows": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 128,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[.#0-9a-fA-F]+$"
+                  }
+                },
+                "bounds": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "value": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                "fill": {
+                  "type": "boolean"
+                },
+                "stroke": {
+                  "type": "number",
+                  "minimum": 0.001,
+                  "maximum": 0.5
+                },
+                "points": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 64,
+                  "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                },
+                "preset": {
+                  "type": "string",
+                  "enum": [
+                    "cosmati-floor",
+                    "braided-shaft",
+                    "acanthus-capital",
+                    "coffer-rosette",
+                    "gothic-rose",
+                    "acanthus-frieze",
+                    "baroque-pilaster",
+                    "pointed-spandrel",
+                    "checkerboard",
+                    "horizontal-stripes",
+                    "vertical-stripes",
+                    "running-bond",
+                    "basket-weave",
+                    "herringbone",
+                    "diamond-lattice",
+                    "greek-key",
+                    "zigzag-band",
+                    "cross-tile",
+                    "stepped-diamond",
+                    "four-petal"
+                  ]
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "^(?:[a-f0-9]{32}|builtin:[a-z0-9-]+)$"
+                },
+                "image_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "crop": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "channel": {
+                  "type": "string",
+                  "enum": [
+                    "luminance",
+                    "alpha"
+                  ]
+                },
+                "sample": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "sha256"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2048
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "luminance",
+                        "alpha"
+                      ]
+                    },
+                    "crop": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "minItems": 4,
+                      "maxItems": 4
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "pattern_assets": {
+      "description": "查询、读取、导入、复制裁取、重命名或回收原生纹样资产。内置图库只读，copy创建新副本，修改需绑定content_sha256，重用图像以image_sha256绑定。list不修改建筑或复制内置文件。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "list",
+              "get",
+              "update",
+              "import",
+              "copy"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^(?:[a-f0-9]{32}|builtin:[a-z0-9-]+)$"
+          },
+          "content_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "image_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "sample": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "channel": {
+                "type": "string",
+                "enum": [
+                  "luminance",
+                  "alpha"
+                ]
+              },
+              "fit": {
+                "type": "string",
+                "enum": [
+                  "contain",
+                  "cover"
+                ]
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "reference_id": {
+                "type": "string",
+                "enum": [
+                  "kashan_star_cross",
+                  "bursa_vine_frieze",
+                  "kashan_corner_vine"
+                ]
+              },
+              "colors": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rgb",
+                    "material"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "rgb": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                }
+              },
+              "noise_strength": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "noise_scale": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "invert": {
+                "type": "boolean"
+              },
+              "mirror": {
+                "type": "boolean"
+              },
+              "crop": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minItems": 4,
+                "maxItems": 4
+              }
+            }
+          },
+          "image_base64": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 6000000
+          },
+          "crop": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "minItems": 4,
+            "maxItems": 4
+          }
+        }
+      }
+    },
+    "pattern_microfit": {
+      "description": "优先使用的微型纹样拟合器。2～8格单元保留主轮廓、连通分量和孔洞，自动选择半砖楼梯并检查失真，再逐份复制铺排，支持圆柱。无法辨认时拒绝并提示裁取更简单的单元；preview可生成真实预览。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "surface",
+          "size_uv"
+        ],
+        "properties": {
+          "surface": {
+            "type": "string",
+            "enum": [
+              "floor",
+              "wall",
+              "column",
+              "ceiling",
+              "cylinder"
+            ]
+          },
+          "size_uv": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            },
+            "description": "微型单元宽高，1～12格；1格用于基础笔画，主纹优先2～8格，先拟合再铺排。"
+          },
+          "preset": {
+            "type": "string",
+            "enum": [
+              "cosmati-floor",
+              "braided-shaft",
+              "acanthus-capital",
+              "coffer-rosette",
+              "gothic-rose",
+              "acanthus-frieze",
+              "baroque-pilaster",
+              "pointed-spandrel",
+              "checkerboard",
+              "horizontal-stripes",
+              "vertical-stripes",
+              "running-bond",
+              "basket-weave",
+              "herringbone",
+              "diamond-lattice",
+              "greek-key",
+              "zigzag-band",
+              "cross-tile",
+              "stepped-diamond",
+              "four-petal"
+            ]
+          },
+          "sample": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "channel": {
+                "type": "string",
+                "enum": [
+                  "luminance",
+                  "alpha"
+                ]
+              },
+              "fit": {
+                "type": "string",
+                "enum": [
+                  "contain",
+                  "cover"
+                ]
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "reference_id": {
+                "type": "string",
+                "enum": [
+                  "kashan_star_cross",
+                  "bursa_vine_frieze",
+                  "kashan_corner_vine"
+                ]
+              },
+              "colors": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rgb",
+                    "material"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "rgb": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                }
+              },
+              "noise_strength": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "noise_scale": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "invert": {
+                "type": "boolean"
+              },
+              "mirror": {
+                "type": "boolean"
+              },
+              "crop": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minItems": 4,
+                "maxItems": 4
+              }
+            }
+          },
+          "shapes": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "slab": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "stairs": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            }
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "base": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "preset_options": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "channel": {
+                "type": "string",
+                "enum": [
+                  "luminance",
+                  "alpha"
+                ]
+              },
+              "fit": {
+                "type": "string",
+                "enum": [
+                  "contain",
+                  "cover"
+                ]
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "colors": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rgb",
+                    "material"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "rgb": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                }
+              },
+              "noise_strength": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "noise_scale": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "invert": {
+                "type": "boolean"
+              },
+              "mirror": {
+                "type": "boolean"
+              },
+              "crop": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          },
+          "seam_degrees": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180,
+            "description": "仅圆柱，纹样接缝的角度，默认180度在北侧。0度在南侧。"
+          },
+          "fit_mode": {
+            "type": "string",
+            "enum": [
+              "micro"
+            ]
+          },
+          "tile_counts": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            }
+          },
+          "gap_uv": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4
+            }
+          },
+          "micro_max_error": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "diameter": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 30
+          },
+          "full_blocks_only": {
+            "type": "boolean"
+          },
+          "preview": {
+            "type": "boolean"
+          }
+        }
+      }
     }
   },
   "agent_contract": {

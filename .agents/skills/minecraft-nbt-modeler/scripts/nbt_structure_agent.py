@@ -3,13 +3,14 @@ import hashlib
 import json
 import math
 import re
+import shutil
 import uuid
 from pathlib import Path
 
 import nbt_components as library
 
 ROOT=Path(__file__).resolve().parents[1]
-SUPPORTED_AGENT_TOOLS={'structure_list','structure_read','structure_view','structure_preview','structure_write','structure_place','structure_save'}
+SUPPORTED_AGENT_TOOLS={'structure_list','structure_read','structure_view','structure_preview','structure_write','structure_place','structure_save','parametric_list','parametric_compile','parametric_preview','parametric_contract','parametric_validate','parametric_surface','parametric_mount','parametric_layout','parametric_compose','parametric_regenerate','pattern_list','pattern_compile','pattern_preview','pattern_mount','pattern_cylinder_mount','pattern_create','pattern_assets','pattern_microfit'}
 
 
 def definitions():
@@ -120,7 +121,7 @@ def preview(workspace,data,spec=None,reference_sources=None):
     snapshot=directory/'snapshot.json';view=write_snapshot(source,snapshot,cameras=[camera]);view['name']=data['name']
     snapshot.write_text(json.dumps(view,ensure_ascii=False,separators=(',',':')),encoding='utf8')
     cameras=directory/'cameras.json';cameras.write_text(json.dumps([camera],ensure_ascii=False),encoding='utf8')
-    image=directory/'thumbnail.jpg';library.thumbnail(data,image)
+    image=directory/'thumbnail.jpg';library.thumbnail(data,image,camera=camera)
     draft=directory/'draft.json';raw=json.dumps(dict(component=data,spec=spec,reference_sources=reference_sources or []),ensure_ascii=False,separators=(',',':')).encode('utf8');draft.write_bytes(raw)
     return dict(preview_id=directory.name,preview_sha256=_preview_fingerprint(directory),content_sha256=data['content_sha256'],name=data['name'],size=data['size'],
                 block_count=len(data['blocks']),source=str(source),snapshot=str(snapshot),thumbnail=str(image),cameras=[camera],cameras_file=str(cameras),
@@ -131,6 +132,56 @@ def dispatch(workspace,tool,arguments):
     definition=definitions().get(tool)
     if not definition:raise ValueError('未开放的结构Agent工具')
     _schema(arguments,definition['parameters'])
+    if tool=='pattern_create':
+        from nbt_pattern_design import create
+        return create(workspace,arguments)
+    if tool=='pattern_assets':
+        from nbt_pattern_assets import dispatch as pattern_assets
+        return pattern_assets(workspace,arguments)
+    if tool=='pattern_cylinder_mount':
+        from nbt_cylinder_pattern import mount_cylinder
+        return mount_cylinder(workspace,arguments)
+    if tool in ('pattern_list','pattern_compile','pattern_preview','pattern_microfit'):
+        from nbt_pattern_panel import compile_panel,library as pattern_library
+        if tool=='pattern_list':
+            return dict(patterns=pattern_library())
+        result=compile_panel(workspace,dict(arguments,fit_mode='micro') if tool=='pattern_microfit' else arguments)
+        if tool=='pattern_preview' or tool=='pattern_microfit' and arguments.get('preview',False):
+            result.update(preview(workspace,build(workspace,result['spec']),result['spec']))
+            directory=Path(result['source']).parent
+            draft=directory/'draft.json';record=json.loads(draft.read_text(encoding='utf8'))
+            record['pattern_recipe']=dict(parameters=arguments,sample_sha256=result['sample_sha256'],fitting=result['fitting'])
+            if 'microfit' in result:record['pattern_recipe']['microfit']=result['microfit']
+            draft.write_text(json.dumps(record,ensure_ascii=False,separators=(',',':')),encoding='utf8')
+            result['preview_sha256']=_preview_fingerprint(directory)
+        return result
+    if tool in ('parametric_surface','parametric_mount','parametric_layout','pattern_mount'):
+        from nbt_surface_mount import dispatch as mount_dispatch
+        return mount_dispatch(workspace,tool,arguments)
+    if tool in ('parametric_compose','parametric_regenerate'):
+        from nbt_parametric_composition import compose, regenerate
+        return (compose if tool=='parametric_compose' else regenerate)(workspace,arguments)
+    if tool=='parametric_contract':
+        from nbt_parametric_contract import contract
+        return contract(arguments['constraints'])
+    if tool=='parametric_validate':
+        from nbt_parametric_contract import validate
+        return validate(workspace,arguments['proposal'],arguments['constraints'])
+    if tool=='parametric_list':
+        from nbt_parametric import listing
+        return listing(arguments)
+    if tool in ('parametric_compile','parametric_preview'):
+        from nbt_parametric import compile_object
+        result=compile_object(workspace,arguments)
+        if tool=='parametric_preview':
+            rendered=preview(workspace,build(workspace,result['spec']),result['spec'])
+            directory=Path(rendered['source']).parent
+            draft=directory/'draft.json';record=json.loads(draft.read_text(encoding='utf8'))
+            record['parametric_recipe']=dict(revision=result['revision'],parameters=arguments,recipe_sha256=result['recipe_sha256'],mount=result['mount'])
+            draft.write_text(json.dumps(record,ensure_ascii=False,separators=(',',':')),encoding='utf8')
+            rendered['preview_sha256']=_preview_fingerprint(directory)
+            result.update(rendered)
+        return result
     if tool=='structure_save':
         if 'batch_name' in arguments and not arguments['batch_name'].strip():raise ValueError('批次名称不能为空')
         options=sum(key in arguments for key in ('spec','component','preview_id'))
@@ -153,8 +204,9 @@ def dispatch(workspace,tool,arguments):
             if (directory/'draft.json').stat().st_size>library.MAX_BYTES:raise ValueError('预览资料过大')
             if _preview_fingerprint(directory)!=prepared['preview_sha256']:raise ValueError('预览在保存期间变化')
             draft=json.loads((directory/'draft.json').read_text(encoding='utf8'));item=library.store(workspace,dict(draft['component'],review_status='pending_visual_review'))
+            shutil.copyfile(directory/'thumbnail.jpg',Path(item['file']).with_suffix('.jpg'))
             recipes=library.library_root(workspace)/'recipes';recipes.mkdir(exist_ok=True)
-            (recipes/(item['id']+'.json')).write_text(json.dumps(dict(spec=draft.get('spec'),reference_sources=draft.get('reference_sources',[]),preview_sha256=prepared['preview_sha256'],content_sha256=item['content_sha256'],verification=dict(design='pending_visual_review',game='not_checked')),ensure_ascii=False),encoding='utf8')
+            (recipes/(item['id']+'.json')).write_text(json.dumps(dict(spec=draft.get('spec'),parametric_recipe=draft.get('parametric_recipe'),pattern_recipe=draft.get('pattern_recipe'),reference_sources=draft.get('reference_sources',[]),preview_sha256=prepared['preview_sha256'],content_sha256=item['content_sha256'],verification=dict(design='pending_visual_review',game='not_checked')),ensure_ascii=False),encoding='utf8')
             from nbt_asset_batches import register_components
             batch=register_components(workspace,[item],arguments.get('batch_name',item['name']))
             result=dict(item,preview_id=prepared['preview_id'],preview_sha256=prepared['preview_sha256'],batch_id=batch['id'],batch_manifest=batch['manifest'],nbt_exported=False,approval_created=False)
@@ -183,8 +235,9 @@ def dispatch(workspace,tool,arguments):
         raw=draft.read_bytes()
         if _preview_fingerprint(directory)!=arguments['preview_sha256']:raise ValueError('预览已改变，请重新生成并查看')
         data=json.loads(raw);result=library.store(workspace,data['component'])
+        shutil.copyfile(directory/'thumbnail.jpg',Path(result['file']).with_suffix('.jpg'))
         recipes=library.library_root(workspace)/'recipes';recipes.mkdir(exist_ok=True)
-        (recipes/(result['id']+'.json')).write_text(json.dumps(dict(spec=data.get('spec'),reference_sources=data.get('reference_sources',[]),preview_sha256=arguments['preview_sha256'],content_sha256=result['content_sha256']),ensure_ascii=False),encoding='utf8')
+        (recipes/(result['id']+'.json')).write_text(json.dumps(dict(spec=data.get('spec'),parametric_recipe=data.get('parametric_recipe'),pattern_recipe=data.get('pattern_recipe'),reference_sources=data.get('reference_sources',[]),preview_sha256=arguments['preview_sha256'],content_sha256=result['content_sha256']),ensure_ascii=False),encoding='utf8')
         return result
     data=library.load(workspace,arguments['id'])
     if arguments['content_sha256']!=data['content_sha256']:raise ValueError('构件内容已变化，请重新读取')

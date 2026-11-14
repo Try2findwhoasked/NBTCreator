@@ -383,7 +383,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         let result
         try{result=await invoke(['components','--workspace',workspace,'--action',action,'--request',file])}finally{await fs.unlink(file).catch(()=>{})}
         if(result.reference_sources)result.reference_sources=referenceSources(result.reference_sources)
-        const expose=item=>({...item,thumbnail:item.thumbnail?asset(item.thumbnail):null,download:item.file?asset(item.file):null})
+        const expose=item=>({...item,thumbnail:item.thumbnail?asset(item.thumbnail):null,download:item.file?asset(item.file):null,...(item.asset_type==='ornament_pattern'&&item.image?{image_download:asset(item.image)}:{})})
         if(action==='list')result={...result,items:result.items.map(expose)}
         if(['save','import'].includes(action))result=expose(result)
         if(action==='agent'){

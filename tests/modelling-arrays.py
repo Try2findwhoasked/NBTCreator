@@ -17,6 +17,6 @@ class Arrays(unittest.TestCase):
    with self.assertRaises(ValueError):modelling_plan(self.m,dict(self.op,**patch))
   with self.assertRaises(ValueError):modelling_plan(self.m,self.op,[(10,2,10)])
  def test_turns_use_existing_conservative_transform(self):
-  self.m.put((2,2,2),'oak_stairs')
+  self.m.put((2,2,2),'oak_stairs[shape=outer_left]')
   with self.assertRaises(ValueError):modelling_plan(self.m,dict(self.op,orientation='cardinal'))
 if __name__=='__main__':unittest.main()
