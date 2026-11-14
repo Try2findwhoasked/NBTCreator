@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_prompts import save,scan,read_prompt,read_handoff,publish,tasks,read_task,task_status
+from nbt_prompts import save,scan,read_prompt,read_handoff,publish,tasks,read_task,task_status,remove_prompt
 
 class Prompts(unittest.TestCase):
  def setUp(self):
@@ -15,6 +15,22 @@ class Prompts(unittest.TestCase):
   self.payload=dict(session_id='a'*32,document=dict(project=dict(name='测试厅',stage='draft',buildingShape='single',source=''),operations=[]),text='完整提示词：不要把方案当作批准。',plan={'operations':[]},context={'start':None})
  def test_first_creation_goes_under_building_root_and_scan_is_only_index_metadata(self):
   r=save(self.workspace,self.payload);self.assertTrue(r['prompt'].startswith('nbt_models/single/测试厅/提示词方案/'));items=scan(self.workspace)['items'];self.assertEqual(len(items),1);self.assertNotIn('text',items[0]);self.assertEqual(read_prompt(self.workspace,r['index'],r['id'])['text'],self.payload['text']);self.assertFalse(any((self.workspace/'nbt_models').rglob('room_description.json')))
+ def test_deleted_prompt_stays_hidden_after_rename_and_preserves_archive_and_published_task(self):
+  old=save(self.workspace,self.payload);self.payload['document']['project']['name']='改名后的测试厅';current=save(self.workspace,self.payload)
+  task=publish(self.workspace,current['index'],current['id'],current['revision'])
+  with self.assertRaisesRegex(ValueError,'已更新'):remove_prompt(self.workspace,current['index'],current['id'],'stale')
+  self.assertEqual(len(scan(self.workspace)['items']),2)
+  self.assertTrue(remove_prompt(self.workspace,current['index'],current['id'],current['revision'])['deleted'])
+  self.assertTrue(remove_prompt(self.workspace,current['index'],current['id'],current['revision'])['deleted'])
+  self.assertEqual(scan(self.workspace)['items'],[])
+  self.assertTrue((self.workspace/old['prompt']).is_file());self.assertTrue((self.workspace/current['prompt']).is_file())
+  self.assertEqual(read_task(self.workspace,task['id'])['text'],self.payload['text'])
+  with self.assertRaisesRegex(ValueError,'已删除'):read_prompt(self.workspace,current['index'],current['id'])
+  with self.assertRaisesRegex(ValueError,'已删除'):save(self.workspace,self.payload)
+ def test_delete_existing_building_prompt_does_not_change_model_and_rejects_external_paths(self):
+  source,p=self.existing();current=save(self.workspace,p);before=source.read_bytes()
+  remove_prompt(self.workspace,current['index'],current['id'],current['revision']);self.assertEqual(source.read_bytes(),before)
+  with self.assertRaisesRegex(ValueError,'当前工作区'):remove_prompt(self.workspace,'../提示词方案/提示词索引.json',current['id'],current['revision'])
  def test_publish_creates_complete_folder_and_incremental_discovery_ignores_edit_drafts(self):
   r=save(self.workspace,self.payload);self.assertEqual(tasks(self.workspace)['items'],[])
   task=publish(self.workspace,r['index'],r['id'],r['revision']);self.assertEqual(task['sequence'],1);self.assertEqual(len(list((self.workspace/task['directory']).iterdir())),5);self.assertEqual(read_task(self.workspace,task['id'])['text'],self.payload['text'])

@@ -4,8 +4,10 @@ from collections import Counter,deque
 from pathlib import Path
 from nbt_refine import read_master
 from nbt_assembly import Volume
-from nbt_collision import _Space,PLAYER_HEIGHT
+from nbt_collision import _Space,PLAYER_HEIGHT,RADIUS
 from nbt_walk_view import inspect_walk
+
+PLAYER_SCALE=dict(unit='block',edition='Java 1.20.1',pose='standing',width=2*RADIUS,height=PLAYER_HEIGHT,comfort_width=4*RADIUS,comfort_height=2.5,grid=0.5,minimum_full_block_opening=[1,2],notes=['按实际碰撞形状检查，不按方块名称或外观判断','舒适宽度与净高为设计建议，不是通行硬门槛','仅验证普通站立步行，不代表潜行、跳跃或游泳可达'])
 
 PROFILES={'room':dict(headroom=12,headroom_comfort=6,connectivity=10,reachable_space=12,comfort=10,stable_support=8,edge_safety=8,hazard_safety=8,routes=14,route_directness=4,route_comfort=5,target_standing=3),'corridor':dict(headroom=15,headroom_comfort=3,connectivity=12,reachable_space=8,comfort=5,stable_support=10,edge_safety=8,hazard_safety=8,routes=18,route_directness=5,route_comfort=5,target_standing=3)}
 VISUAL={'interior':['functional_completeness','spatial_hierarchy','material_coherence','detail_logic','structural_readability','human_scale','circulation_legibility','lighting_atmosphere','theme_identity','maintenance_finish'],'exterior':['silhouette','facade_rhythm','entrance_legibility','roof_wall_transition','mass_proportion','material_weathering','site_integration','multi_view_composition']}
@@ -13,7 +15,35 @@ LABELS=dict(headroom='玩家净空满足率',headroom_comfort='2.5格宽裕净�
 FORMULAS=dict(headroom='可容纳0.6×1.8玩家的采样/暴露支持面采样',headroom_comfort='净高至少2.5格的有效采样/有效站位采样',connectivity='最大半格步行连通分量/有效站位采样',reachable_space='可与声明起点连接的连通分量采样/有效站位采样',comfort='可容纳1.2格宽、1.8格高活动体积的采样/有效站位采样',stable_support='玩家0.6格脚印下方支持半格全部覆盖的采样/有效站位采样',edge_safety='四个界内相邻方向无可进入但缺支撑落脚点的采样/有效站位采样；不模拟坠落',hazard_safety='脚下、脚边和头部近邻无已列明潜在危险状态的采样/有效站位采样；不模拟伤害',routes='可达声明目标/声明目标总数',route_directness='各可达目标同网格无障碍距离下界总和/实际路径长度总和，上限100%；仅效率参考，探索迷宫不应单独追高',route_comfort='路线中可容纳1.2格宽活动体积的站位/可达路线站位',target_standing='有支撑且玩家占位无碰撞的目标/目标总数')
 GROUPS={key:('净空' if key in ('headroom','headroom_comfort') else '活动空间' if key=='comfort' else '踏足与风险' if key in ('stable_support','edge_safety','hazard_safety') else '连通与动线') for key in LABELS}
 
-def rubric():return dict(model_version='room-quality-v0.2-heuristic',profiles=PROFILES,functions={key:dict(label=LABELS[key],formula=FORMULAS[key],group=GROUPS[key]) for key in LABELS},visual_criteria=VISUAL,overall_weights=dict(without_exterior=dict(engineering=65,interior=35),with_exterior=dict(engineering=55,interior=25,exterior=20)),calibrated=False)
+def rubric():return dict(player_scale=PLAYER_SCALE,model_version='room-quality-v0.2-heuristic',profiles=PROFILES,functions={key:dict(label=LABELS[key],formula=FORMULAS[key],group=GROUPS[key]) for key in LABELS},visual_criteria=VISUAL,overall_weights=dict(without_exterior=dict(engineering=65,interior=35),with_exterior=dict(engineering=55,interior=25,exterior=20)),calibrated=False)
+
+def comprehensive(metrics, interior, exterior):
+    definitions=[
+        ('功能完整性',20,['routes','target_standing'],['functional_completeness']),
+        ('空间与动线',20,['headroom','headroom_comfort','connectivity','reachable_space','comfort','route_directness','route_comfort'],['spatial_hierarchy','human_scale','circulation_legibility']),
+        ('安全性',15,['stable_support','edge_safety','hazard_safety'],[]),
+        ('比例与构图',15,[],['structural_readability']),
+        ('材质与光照',15,[],['material_coherence','lighting_atmosphere']),
+        ('细节与主题',15,[],['detail_logic','theme_identity','maintenance_finish'])]
+    outside={'比例与构图':['silhouette','facade_rhythm','entrance_legibility','roof_wall_transition','mass_proportion','multi_view_composition'],'材质与光照':['material_weathering'],'细节与主题':['site_integration']}
+    dimensions={};priorities=[];earned=coverage=0
+    for label,weight,automatic,visual in definitions:
+        items=[dict(key=k,score=metrics[k]['score'],source='geometry',evidence=metrics[k]['formula']) for k in automatic]
+        items += [dict(key=k,score=interior['scores'][k] if interior else None,source='visual',evidence=interior['evidence'] if interior else None) for k in visual]
+        if exterior:
+            items += [dict(key=k,score=exterior['scores'][k],source='visual',evidence=exterior['evidence']) for k in outside.get(label,[])]
+        measured=[i for i in items if i['score'] is not None]
+        fraction=len(measured)/len(items)
+        value=sum(i['score'] for i in measured)/len(measured) if measured else None
+        dimensions[label]=dict(weight=weight,score=round(value,2) if value is not None else None,coverage_percent=round(fraction*100,2),criteria=items)
+        coverage+=weight*fraction
+        earned+=sum(i['score'] for i in measured)*weight/len(items)/100
+        for item in items:
+            loss=(100-item['score'])*weight/len(items)/100 if item['score'] is not None else None
+            if loss is None or loss>0:
+                priorities.append(dict(dimension=label,metric=item['key'],lost_points=round(loss,2) if loss is not None else None,action='补充评价证据' if loss is None else '改进此项后重新评估'))
+    priorities.sort(key=lambda i:(i['lost_points'] is None,-(i['lost_points'] or 0)))
+    return dict(version='six-dimension-v1',dimensions=dimensions,coverage_percent=round(coverage,2),score=round(earned,2) if abs(coverage-100)<1e-8 else None,score_interval=[round(earned,2),round(earned+100-coverage,2)],priorities=priorities,calibrated=False)
 
 def sha(file):return hashlib.sha256(Path(file).read_bytes()).hexdigest()
 
@@ -55,7 +85,7 @@ def score_room(request,snapshot=None):
             exposed=space.support_rows[(y-1)*space.sz+z]&~space.rows[y*space.sz+z]
             while exposed:
                 bit=exposed&-exposed;x=bit.bit_length()-1;exposed-=bit;node=(x+1,y,z+1);p=tuple(n*.5 for n in node)
-                if space.supported(p) and space.clear_box((p[0]-.3,p[1],p[2]-.3),(p[0]+.3,p[1]+.1,p[2]+.3)):
+                if space.supported(p) and space.clear_box((p[0]-RADIUS,p[1],p[2]-RADIUS),(p[0]+RADIUS,p[1]+.1,p[2]+RADIUS)):
                     samples.add(node)
                     if len(samples)>100000:raise ValueError('可评估地面超过10万采样点，请拆分房间模型')
     valid={node for node in samples if space.standing(tuple(n*.5 for n in node))}
@@ -70,12 +100,12 @@ def score_room(request,snapshot=None):
                     b=(a[0]+dx,a[1]+dy,a[2]+dz)
                     if b in remaining and space.move(tuple(v*.5 for v in a),tuple(v*.5 for v in b)):remaining.remove(b);queue.append(b)
         largest=max(largest,count);component_sizes[components]=count
-    comfortable=sum(space.clear_box((x*.5-.6,y*.5,z*.5-.6),(x*.5+.6,y*.5+PLAYER_HEIGHT,z*.5+.6)) for x,y,z in valid)
+    comfortable=sum(space.clear_box((x*.5-2*RADIUS,y*.5,z*.5-2*RADIUS),(x*.5+2*RADIUS,y*.5+PLAYER_HEIGHT,z*.5+2*RADIUS)) for x,y,z in valid)
     roomy_height=stable=edge_safe=hazard_safe=0;edge_positions=[];hazard_positions=[]
-    def wide(p):return space.clear_box((p[0]-.6,p[1],p[2]-.6),(p[0]+.6,p[1]+PLAYER_HEIGHT,p[2]+.6))
+    def wide(p):return space.clear_box((p[0]-2*RADIUS,p[1],p[2]-2*RADIUS),(p[0]+2*RADIUS,p[1]+PLAYER_HEIGHT,p[2]+2*RADIUS))
     for node in sorted(valid):
-        p=tuple(v*.5 for v in node);roomy_height+=space.clear_box((p[0]-.3,p[1],p[2]-.3),(p[0]+.3,p[1]+2.5,p[2]+.3))
-        x0,x1=space._span(p[0]-.3,p[0]+.3);z0,z1=space._span(p[2]-.3,p[2]+.3);mask=((1<<(x1-x0))-1)<<x0;below=node[1]-1
+        p=tuple(v*.5 for v in node);roomy_height+=space.clear_box((p[0]-RADIUS,p[1],p[2]-RADIUS),(p[0]+RADIUS,p[1]+2.5,p[2]+RADIUS))
+        x0,x1=space._span(p[0]-RADIUS,p[0]+RADIUS);z0,z1=space._span(p[2]-RADIUS,p[2]+RADIUS);mask=((1<<(x1-x0))-1)<<x0;below=node[1]-1
         stable+=all(space.support_rows[below*space.sz+z]&mask==mask for z in range(z0,z1))
         exposed=any(space.clear_player_sweep(p,(p[0]+dx,p[1],p[2]+dz)) and not space.supported((p[0]+dx,p[1],p[2]+dz)) for dx,dz in ((.5,0),(-.5,0),(0,.5),(0,-.5)))
         edge_safe+=not exposed
@@ -127,7 +157,9 @@ def score_room(request,snapshot=None):
     for group in sorted(set(GROUPS.values())):
         values=[v for v in measured if v['group']==group];weight=sum(v['weight'] for v in values);group_scores[group]=dict(score=round(sum(v['score']*v['weight'] for v in values)/weight,2) if weight else None,available_weight=weight,total_weight=sum(PROFILES[profile][key] for key in GROUPS if GROUPS[key]==group))
     materials=Counter(value.split('[')[0] for value in model.blocks.values())
-    return dict(schema_version=1,model_version='room-quality-v0.2-heuristic',scope='whole_model',profile=profile,source_sha256=source_hash,geometry_sha256=geometry,context_sha256=context_hash,include_exterior=exterior,total_score=total,engineering_score=engineering,diagnostic_score=diagnostic,coverage_percent=available,gate=gate,issues=issues,missing=missing,metrics=metrics,group_scores=group_scores,deductions=deductions,visual=dict(interior=interior,exterior=outside),overall_weights=weights,evidence=dict(sample_count=len(samples),standing_count=len(valid),walk_components=components,blocked_samples=[list(n*.5 for n in p) for p in sorted(samples-valid)[:32]],unknown_shapes=[dict(state=s,reason=r,count=n) for (s,r),n in space.unknown.items()],edge_positions=edge_positions,hazard_positions=hazard_positions,conservative_obstacles=len(space.conservative),materials=materials.most_common(12)),route_report=route,limitations=['启发式权重，尚未用人类偏好数据校准','完整模型范围，不自动分割多个房间','不把材料种数或装饰数量当作美观分','视觉项来自有证据的外部输入，脚本不声称已看图','普通步行与半格台阶，不模拟跳跃、游泳、动态机关和游戏内体验'],asset_written=False,approval_created=False,runtime_verified=False)
+    quality=comprehensive(metrics,interior,outside)
+    if gate!='evaluated_static' or missing:quality['score']=None
+    return dict(player_scale=PLAYER_SCALE,comprehensive=quality,schema_version=1,model_version='room-quality-v0.2-heuristic',scope='whole_model',profile=profile,source_sha256=source_hash,geometry_sha256=geometry,context_sha256=context_hash,include_exterior=exterior,total_score=total,engineering_score=engineering,diagnostic_score=diagnostic,coverage_percent=available,gate=gate,issues=issues,missing=missing,metrics=metrics,group_scores=group_scores,deductions=deductions,visual=dict(interior=interior,exterior=outside),overall_weights=weights,evidence=dict(sample_count=len(samples),standing_count=len(valid),walk_components=components,blocked_samples=[list(n*.5 for n in p) for p in sorted(samples-valid)[:32]],unknown_shapes=[dict(state=s,reason=r,count=n) for (s,r),n in space.unknown.items()],edge_positions=edge_positions,hazard_positions=hazard_positions,conservative_obstacles=len(space.conservative),materials=materials.most_common(12)),route_report=route,limitations=['启发式权重，尚未用人类偏好数据校准','完整模型范围，不自动分割多个房间','不把材料种数或装饰数量当作美观分','视觉项来自有证据的外部输入，脚本不声称已看图','普通步行与半格台阶，不模拟跳跃、游泳、动态机关和游戏内体验'],asset_written=False,approval_created=False,runtime_verified=False)
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--request',type=Path);parser.add_argument('--snapshot',type=Path);parser.add_argument('--output',type=Path);parser.add_argument('--rubric',action='store_true');args=parser.parse_args()

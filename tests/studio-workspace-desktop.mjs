@@ -20,7 +20,7 @@ try{
  await page.waitForFunction(()=>window.detailControl?.state.catalogReady&&!window.detailControl.state.busy&&!window.detailControl.state.sessionRestoring)
  const requiredIds=[...(await fs.readFile(path.join(skill,'assets/viewer/control.html'),'utf8')).matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.deepEqual(await page.evaluate(ids=>ids.filter(id=>!document.getElementById(id)),requiredIds),[])
  await page.setViewportSize({width:1440,height:900});await capture('projects')
- await click('.project-card-open');await page.waitForFunction(()=>window.detailControl.state.info&&!window.detailControl.state.busy&&!window.detailControl.state.sessionRestoring&&document.querySelector('#viewer').contentWindow?.nbtModeler?.status==='ready',undefined,{timeout:90000})
+ await click('.project-card-open');await page.waitForFunction(()=>!window.detailControl.state.busy);await click('#project-preview-edit');await page.waitForFunction(()=>window.detailControl.state.info&&!window.detailControl.state.busy&&!window.detailControl.state.sessionRestoring&&document.querySelector('#viewer').contentWindow?.nbtModeler?.status==='ready',undefined,{timeout:90000})
  assert.equal(await page.locator('#validate-preview').isDisabled(),true)
  for(const [width,height,min]of [[1440,900,.57],[1000,760,.45],[900,650,.40]]){await page.setViewportSize({width,height});const m=await measure();measurements.push(m);assert.ok(m.ratio>=min,JSON.stringify(m));assert.ok(m.toolbarHeight<=37,JSON.stringify(m));assert.equal(m.overflow,false);assert.equal(m.toolbarOverflow,false,JSON.stringify(m));assert.ok(m.canvas.bottom<=height-20);await capture('editor-'+width)}
  checks.canvas_has_measured_space_and_single_toolbar_at_all_window_sizes=true

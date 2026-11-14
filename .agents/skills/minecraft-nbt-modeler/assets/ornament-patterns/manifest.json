@@ -277,5 +277,545 @@
       16
     ],
     "source": "NBTCreator geometric mask"
+  },
+  "micro-diamond": {
+    "file": "micro-diamond.png",
+    "sha256": "dffdef3337c21cdfdbc03a34bd19170d82ebd20bd94b4aa8b89ef987874138ea",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      4,
+      4
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "阶梯菱花",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        8,
+        8
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          4,
+          4
+        ],
+        "column": [
+          4,
+          4
+        ],
+        "ceiling": [
+          4,
+          4
+        ],
+        "floor": [
+          4,
+          4
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "micro-diamond-ring": {
+    "file": "micro-diamond-ring.png",
+    "sha256": "3dd67964984b9cf670e507f5ae9b80473a95da2c2af2d7ffef96502acaf10197",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      4,
+      4
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "镂空菱环",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        8,
+        8
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          4,
+          4
+        ],
+        "column": [
+          4,
+          4
+        ],
+        "ceiling": [
+          5,
+          5
+        ],
+        "floor": [
+          8,
+          8
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "micro-quatrefoil": {
+    "file": "micro-quatrefoil.png",
+    "sha256": "432841a62d2a047c3929b47f8a78efeaf95479c4060a6e01fab58a685065e06e",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      4,
+      4
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "四瓣连结",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        8,
+        8
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          4,
+          4
+        ],
+        "column": [
+          4,
+          4
+        ],
+        "ceiling": [
+          4,
+          4
+        ],
+        "floor": [
+          8,
+          8
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "micro-crosslet": {
+    "file": "micro-crosslet.png",
+    "sha256": "7775de86dbd2cd40a9053729e0bb3b7383d17350333a17b7d8a1b6741843ad56",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      3,
+      3
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "十字花结",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        6,
+        6
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          3,
+          3
+        ],
+        "column": [
+          3,
+          3
+        ],
+        "ceiling": [
+          3,
+          3
+        ],
+        "floor": [
+          3,
+          3
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "micro-leaf": {
+    "file": "micro-leaf.png",
+    "sha256": "2f2e557eb0a8d62df56bb40844391569892e075bc165b34da3c6366390478cf9",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      4,
+      6
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "单叶与叶柄",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        8,
+        12
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          4,
+          6
+        ],
+        "column": [
+          4,
+          6
+        ],
+        "ceiling": [
+          4,
+          6
+        ],
+        "floor": [
+          6,
+          8
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "micro-bud": {
+    "file": "micro-bud.png",
+    "sha256": "40a833332ec4af000c1103c3431bf00a4ff4034094b8492be8c1df9cc47b5ae3",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      4,
+      6
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "分枝花蕾",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        8,
+        12
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          4,
+          6
+        ],
+        "column": [
+          4,
+          6
+        ],
+        "ceiling": [
+          4,
+          6
+        ],
+        "floor": [
+          6,
+          9
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "micro-chevron": {
+    "file": "micro-chevron.png",
+    "sha256": "2f68bd1498051b7822ae5fa49b7270428806e642693224573a46ba0054b6a2ac",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      4,
+      3
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "折线边带",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        8,
+        6
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          4,
+          3
+        ],
+        "column": [
+          4,
+          3
+        ],
+        "ceiling": [
+          4,
+          3
+        ],
+        "floor": [
+          8,
+          6
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "micro-key": {
+    "file": "micro-key.png",
+    "sha256": "c8b0892f52fe37df96c19655343bba4b8e6d41d2833d05b235ceed196d50b695",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      4,
+      4
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "方回钩",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        8,
+        8
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          4,
+          4
+        ],
+        "column": [
+          4,
+          4
+        ],
+        "ceiling": [
+          4,
+          4
+        ],
+        "floor": [
+          4,
+          4
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "micro-link": {
+    "file": "micro-link.png",
+    "sha256": "4f7345d5c014cd579d42a65e7228c9dfd53d3d2339921fdbe7515441a4c3e766",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      2,
+      2
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "方环链扣",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        4,
+        4
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          2,
+          2
+        ],
+        "column": [
+          2,
+          2
+        ],
+        "ceiling": [
+          3,
+          3
+        ],
+        "floor": [
+          3,
+          3
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "micro-palmette": {
+    "file": "micro-palmette.png",
+    "sha256": "66993b22b37bbeff445431c25d392ec5eeaf00c2b886be0c35070b586e7ed2be",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      6,
+      6
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "扇叶棕榈饰",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        12,
+        12
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          6,
+          6
+        ],
+        "column": [
+          6,
+          6
+        ],
+        "ceiling": [
+          6,
+          6
+        ],
+        "floor": [
+          8,
+          8
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "micro-scroll": {
+    "file": "micro-scroll.png",
+    "sha256": "c83cfa11b532eaff066b072071d0acc1512aa36df257be5dcada60803f15b78b",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      6,
+      6
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "开口卷钩",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        12,
+        12
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          6,
+          6
+        ],
+        "column": [
+          6,
+          6
+        ],
+        "ceiling": [
+          6,
+          6
+        ],
+        "floor": [
+          6,
+          6
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "micro-rosette": {
+    "file": "micro-rosette.png",
+    "sha256": "5961c7d3fea92bb4ddd5a76f011da3c6dffebee79313501140cd213d7591951a",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      6,
+      6
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "八向花章",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        12,
+        12
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          6,
+          6
+        ],
+        "column": [
+          6,
+          6
+        ],
+        "ceiling": [
+          6,
+          6
+        ],
+        "floor": [
+          6,
+          6
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
   }
 }

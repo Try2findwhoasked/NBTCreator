@@ -294,6 +294,27 @@ def _position(value):
 
 
 def check_routes(model, start, targets, *, conservative_obstacles=True, max_poses=None):
+    """Check exact declared walking routes; reuse only identical geometry/inputs."""
+    from nbt_modeling_session import current,canonical,engine_revision
+    if max_poses is not None and (type(max_poses) is not int or max_poses<1):raise ValueError('max_poses must be a positive integer')
+    start=_position(start)
+    named=[(str(name),_position(p)) for name,p in (targets.items() if isinstance(targets,dict) else enumerate(targets))]
+    revision=engine_revision();geometry=model.fingerprint();cache=current()
+    key=(revision,geometry,canonical([start,named,conservative_obstacles,max_poses]))
+    hit=cache.get('routes',key)
+    if hit is not None:return hit
+    space_key=(revision,geometry,conservative_obstacles)
+    space=cache.get('collision_space',space_key)
+    if space is None:
+        space=_Space(model,conservative_obstacles=conservative_obstacles)
+        cache.put('collision_space',space_key,space,weight=len(space.rows)*2*(40+space.sx//8))
+    result=_check_routes(model,start,named,conservative_obstacles=conservative_obstacles,
+                         max_poses=max_poses,space=space,geometry=geometry)
+    cache.put('routes',key,result)
+    return result
+
+
+def _check_routes(model,start,targets,*,conservative_obstacles,max_poses,space,geometry):
     """Return a JSON-serializable report; failed routes do not raise assertions.
 
     Half-block graph sampling is conservative and can miss narrow/off-grid
@@ -306,11 +327,9 @@ def check_routes(model, start, targets, *, conservative_obstacles=True, max_pose
     if max_poses is not None and (type(max_poses) is not int or max_poses < 1):
         raise ValueError('max_poses must be a positive integer')
     start = _position(start)
-    named = list(targets.items()) if isinstance(targets, dict) else [(str(i), p) for i, p in enumerate(targets)]
-    named = [(str(name), _position(p)) for name, p in named]
-    space = _Space(model, conservative_obstacles=conservative_obstacles)
+    named = [(str(name), _position(p)) for name, p in targets]
     report = dict(passed=False, method='half_block_graph_swept_player_aabb',
-                  size=list(model.size), geometry_sha256=model.fingerprint(),
+                  size=list(model.size), geometry_sha256=geometry,
                   player_width=.6, player_height=1.8, horizontal_grid=.5,
                   maximum_step_up=.5, maximum_step_down=.5, jumps_allowed=False,
                   runtime_verified=False, registry_verified=False,

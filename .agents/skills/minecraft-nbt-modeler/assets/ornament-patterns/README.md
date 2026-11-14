@@ -8,7 +8,34 @@
 
 上例供 pattern_microfit 使用。脚本保留主孔洞、连通性和对称性，自动选择楼梯与半砖状态；先做一个单元，再逐份复制。微型墙饰、吊顶贴到既有表面时复用原背板。无法保留主纹时会拒绝并提示裁取更简单的区域或适量增加单元尺寸。
 
-本目录的 8 张灰度掩模由内置 ImageGen 生成，供外部 Agent 通过 `pattern_list`、`pattern_compile`、`pattern_preview`、`pattern_mount` 使用。清单记录每张图片的 SHA256、用途及推荐格数，随工作区冻结运行时一起复制。源码维护时不在本仓库生成创作工作区 facade。
+## 小尺寸专用纹样
+
+新增 12 项 `micro-` 原创黑白轮廓，直接按半格采样设计，避免大图缩小后的细线、阴影和碎孔。`pattern_list` 返回的 `microfit.recommended_size_uv` 分别给出墙饰、平面柱饰、吊顶和平齐地板的已测尺寸；`size_uv` 是默认墙饰尺寸，不代表每个安装面都适用。平面柱饰不等于已验证圆柱环绕。
+
+| ID | 纹样 | 墙饰单元 | 使用位置 |
+| --- | --- | --- | --- |
+| micro-link | 方环链扣 | 2×2 | 小门饰、边带、家具嵌饰 |
+| micro-crosslet | 十字花结 | 3×3 | 地砖点缀、梁端、柜门 |
+| micro-diamond | 阶梯菱花 | 4×4 | 墙面中心、腰线 |
+| micro-diamond-ring | 镂空菱环 | 4×4 | 连续边饰、小窗格 |
+| micro-quatrefoil | 四瓣连结 | 4×4 | 吊顶格心、墙裙、门板 |
+| micro-key | 方回钩 | 4×4 | 檐下、地板边缘、家具 |
+| micro-chevron | 折线边带 | 4×3 | 横向腰线、台座收边 |
+| micro-leaf | 单叶与叶柄 | 4×6 | 壁柱、植物主题饰板 |
+| micro-bud | 分枝花蕾 | 4×6 | 门侧、竖向饰带 |
+| micro-palmette | 扇叶棕榈饰 | 6×6 | 柱头平面饰板、檐饰 |
+| micro-scroll | 开口卷钩 | 6×6 | 拱肩、角饰、卷草单元 |
+| micro-rosette | 八向花章 | 6×6 | 吊顶格心、墙面花章 |
+
+```json
+{"surface":"wall","preset":"micro-quatrefoil","size_uv":[4,4],"tile_counts":[4,2],"gap_uv":[1,1],"material":"quartz_block","preview":true}
+```
+
+楼梯与半砖由脚本按材质自动配对并定向。方环在墙上 2×2 格可用四个楼梯保留孔洞；平齐地板和吊顶推荐 3×3 格，2×2 会拒绝。复杂花章仍需要 6×6 格，不能把所有纹样强缩成 2×2。已测尺寸在默认石英材质下保留源连通分量和孔洞，墨迹交并比至少 0.8、覆盖误差不高于 0.15；这些数值不是视觉美感或其他材质、尺寸、环绕方式的保证。测试没有提高微型拟合的允许误差。
+
+源码根目录执行 `mise exec -- python scripts/build-micro-patterns.py` 可重建图片、清单和预设枚举，再运行 `mise exec -- npm run sync:tools`。`--check` 只验证，不写文件。针对性回归为 `mise exec -- python -B tests/micro-presets.py`；完整构件回归已包含该项。
+
+本目录保留 8 张由内置 ImageGen 生成的大幅灰度掩模，以及 12 项基础几何掩模和上述 12 项微型轮廓，供外部 Agent 通过 `pattern_list`、`pattern_compile`、`pattern_preview`、`pattern_mount` 使用。清单记录每张图片的 SHA256、用途及推荐格数，随工作区冻结运行时一起复制。源码维护时不在本仓库生成创作工作区 facade。
 
 圆柱环绕也通过 pattern_compile / pattern_preview 调用，设置 surface=cylinder。既有圆柱用 pattern_cylinder_mount 绑定源建筑和三维目标框。
 

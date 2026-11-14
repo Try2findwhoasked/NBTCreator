@@ -999,7 +999,10 @@ globalThis.NbtToolCatalog = {
     "effect-assets": "nbt_effect_assets.py",
     "history": "nbt_history.py",
     "snbt": "nbt_snbt.py",
-    "finalize": "nbt_finalize.py"
+    "finalize": "nbt_finalize.py",
+    "machine": "nbt_machine.py",
+    "architect": "nbt_architect.py",
+    "session": "nbt_engine_session.py"
   },
   "building_shapes": {
     "single": {
@@ -2044,8 +2047,10 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "enum": [
                       "contain",
-                      "cover"
-                    ]
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
                   },
                   "threshold": {
                     "type": "integer",
@@ -2520,8 +2525,10 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "enum": [
                       "contain",
-                      "cover"
-                    ]
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
                   },
                   "threshold": {
                     "type": "integer",
@@ -3122,8 +3129,10 @@ globalThis.NbtToolCatalog = {
                         "type": "string",
                         "enum": [
                           "contain",
-                          "cover"
-                        ]
+                          "cover",
+                          "stretch"
+                        ],
+                        "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
                       },
                       "threshold": {
                         "type": "integer",
@@ -3949,8 +3958,10 @@ globalThis.NbtToolCatalog = {
                         "type": "string",
                         "enum": [
                           "contain",
-                          "cover"
-                        ]
+                          "cover",
+                          "stretch"
+                        ],
+                        "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
                       },
                       "threshold": {
                         "type": "integer",
@@ -4626,8 +4637,10 @@ globalThis.NbtToolCatalog = {
                         "type": "string",
                         "enum": [
                           "contain",
-                          "cover"
-                        ]
+                          "cover",
+                          "stretch"
+                        ],
+                        "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
                       },
                       "threshold": {
                         "type": "integer",
@@ -5237,8 +5250,10 @@ globalThis.NbtToolCatalog = {
                               "type": "string",
                               "enum": [
                                 "contain",
-                                "cover"
-                              ]
+                                "cover",
+                                "stretch"
+                              ],
+                              "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
                             },
                             "threshold": {
                               "type": "integer",
@@ -5788,8 +5803,10 @@ globalThis.NbtToolCatalog = {
                         "type": "string",
                         "enum": [
                           "contain",
-                          "cover"
-                        ]
+                          "cover",
+                          "stretch"
+                        ],
+                        "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
                       },
                       "threshold": {
                         "type": "integer",
@@ -6261,8 +6278,10 @@ globalThis.NbtToolCatalog = {
                         "type": "string",
                         "enum": [
                           "contain",
-                          "cover"
-                        ]
+                          "cover",
+                          "stretch"
+                        ],
+                        "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
                       },
                       "threshold": {
                         "type": "integer",
@@ -6431,7 +6450,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "pattern_list": {
-      "description": "查询纹样图、哈希、适用安装面和建议尺寸。",
+      "description": "查询纹样图、哈希、适用安装面和建议尺寸；microfit.preferred 标记小尺寸专用纹样，recommended_size_uv 按安装面给出已测微型尺寸。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -6491,7 +6510,19 @@ globalThis.NbtToolCatalog = {
               "zigzag-band",
               "cross-tile",
               "stepped-diamond",
-              "four-petal"
+              "four-petal",
+              "micro-diamond",
+              "micro-diamond-ring",
+              "micro-quatrefoil",
+              "micro-crosslet",
+              "micro-leaf",
+              "micro-bud",
+              "micro-chevron",
+              "micro-key",
+              "micro-link",
+              "micro-palmette",
+              "micro-scroll",
+              "micro-rosette"
             ]
           },
           "sample": {
@@ -6522,8 +6553,10 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "enum": [
                   "contain",
-                  "cover"
-                ]
+                  "cover",
+                  "stretch"
+                ],
+                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
               },
               "threshold": {
                 "type": "integer",
@@ -6656,8 +6689,10 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "enum": [
                   "contain",
-                  "cover"
-                ]
+                  "cover",
+                  "stretch"
+                ],
+                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
               },
               "threshold": {
                 "type": "integer",
@@ -6754,6 +6789,14 @@ globalThis.NbtToolCatalog = {
             "minimum": 0,
             "maximum": 1
           },
+          "micro_alignment": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "fixed"
+            ],
+            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+          },
           "diameter": {
             "type": "integer",
             "minimum": 4,
@@ -6761,6 +6804,21 @@ globalThis.NbtToolCatalog = {
           },
           "full_blocks_only": {
             "type": "boolean"
+          },
+          "quality_profile": {
+            "type": "string",
+            "enum": [
+              "balanced",
+              "ornate",
+              "border"
+            ],
+            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+          },
+          "min_quality_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
           }
         }
       }
@@ -6818,7 +6876,19 @@ globalThis.NbtToolCatalog = {
               "zigzag-band",
               "cross-tile",
               "stepped-diamond",
-              "four-petal"
+              "four-petal",
+              "micro-diamond",
+              "micro-diamond-ring",
+              "micro-quatrefoil",
+              "micro-crosslet",
+              "micro-leaf",
+              "micro-bud",
+              "micro-chevron",
+              "micro-key",
+              "micro-link",
+              "micro-palmette",
+              "micro-scroll",
+              "micro-rosette"
             ]
           },
           "sample": {
@@ -6849,8 +6919,10 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "enum": [
                   "contain",
-                  "cover"
-                ]
+                  "cover",
+                  "stretch"
+                ],
+                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
               },
               "threshold": {
                 "type": "integer",
@@ -6983,8 +7055,10 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "enum": [
                   "contain",
-                  "cover"
-                ]
+                  "cover",
+                  "stretch"
+                ],
+                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
               },
               "threshold": {
                 "type": "integer",
@@ -7081,6 +7155,14 @@ globalThis.NbtToolCatalog = {
             "minimum": 0,
             "maximum": 1
           },
+          "micro_alignment": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "fixed"
+            ],
+            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+          },
           "diameter": {
             "type": "integer",
             "minimum": 4,
@@ -7088,6 +7170,21 @@ globalThis.NbtToolCatalog = {
           },
           "full_blocks_only": {
             "type": "boolean"
+          },
+          "quality_profile": {
+            "type": "string",
+            "enum": [
+              "balanced",
+              "ornate",
+              "border"
+            ],
+            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+          },
+          "min_quality_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
           }
         }
       }
@@ -7268,7 +7365,19 @@ globalThis.NbtToolCatalog = {
                   "zigzag-band",
                   "cross-tile",
                   "stepped-diamond",
-                  "four-petal"
+                  "four-petal",
+                  "micro-diamond",
+                  "micro-diamond-ring",
+                  "micro-quatrefoil",
+                  "micro-crosslet",
+                  "micro-leaf",
+                  "micro-bud",
+                  "micro-chevron",
+                  "micro-key",
+                  "micro-link",
+                  "micro-palmette",
+                  "micro-scroll",
+                  "micro-rosette"
                 ]
               },
               "sample": {
@@ -7299,8 +7408,10 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "enum": [
                       "contain",
-                      "cover"
-                    ]
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
                   },
                   "threshold": {
                     "type": "integer",
@@ -7433,8 +7544,10 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "enum": [
                       "contain",
-                      "cover"
-                    ]
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
                   },
                   "threshold": {
                     "type": "integer",
@@ -7531,6 +7644,14 @@ globalThis.NbtToolCatalog = {
                 "minimum": 0,
                 "maximum": 1
               },
+              "micro_alignment": {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "fixed"
+                ],
+                "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+              },
               "diameter": {
                 "type": "integer",
                 "minimum": 4,
@@ -7538,6 +7659,21 @@ globalThis.NbtToolCatalog = {
               },
               "full_blocks_only": {
                 "type": "boolean"
+              },
+              "quality_profile": {
+                "type": "string",
+                "enum": [
+                  "balanced",
+                  "ornate",
+                  "border"
+                ],
+                "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+              },
+              "min_quality_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
               }
             }
           },
@@ -7598,6 +7734,12 @@ globalThis.NbtToolCatalog = {
           },
           "require_routes": {
             "type": "boolean"
+          },
+          "embed_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6,
+            "description": "0保留外贴；1嵌入原表层且不外凸；2～6在笔画位置浅开槽后嵌入。墙/平面柱饰/吊顶须保留min_support格完整背衬；地板已平齐，不设置本项。"
           }
         }
       }
@@ -7787,7 +7929,19 @@ globalThis.NbtToolCatalog = {
                   "zigzag-band",
                   "cross-tile",
                   "stepped-diamond",
-                  "four-petal"
+                  "four-petal",
+                  "micro-diamond",
+                  "micro-diamond-ring",
+                  "micro-quatrefoil",
+                  "micro-crosslet",
+                  "micro-leaf",
+                  "micro-bud",
+                  "micro-chevron",
+                  "micro-key",
+                  "micro-link",
+                  "micro-palmette",
+                  "micro-scroll",
+                  "micro-rosette"
                 ]
               },
               "sample": {
@@ -7818,8 +7972,10 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "enum": [
                       "contain",
-                      "cover"
-                    ]
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
                   },
                   "threshold": {
                     "type": "integer",
@@ -7952,8 +8108,10 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "enum": [
                       "contain",
-                      "cover"
-                    ]
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
                   },
                   "threshold": {
                     "type": "integer",
@@ -8050,6 +8208,14 @@ globalThis.NbtToolCatalog = {
                 "minimum": 0,
                 "maximum": 1
               },
+              "micro_alignment": {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "fixed"
+                ],
+                "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+              },
               "diameter": {
                 "type": "integer",
                 "minimum": 4,
@@ -8057,6 +8223,21 @@ globalThis.NbtToolCatalog = {
               },
               "full_blocks_only": {
                 "type": "boolean"
+              },
+              "quality_profile": {
+                "type": "string",
+                "enum": [
+                  "balanced",
+                  "ornate",
+                  "border"
+                ],
+                "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+              },
+              "min_quality_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
               }
             }
           }
@@ -8250,7 +8431,19 @@ globalThis.NbtToolCatalog = {
                     "zigzag-band",
                     "cross-tile",
                     "stepped-diamond",
-                    "four-petal"
+                    "four-petal",
+                    "micro-diamond",
+                    "micro-diamond-ring",
+                    "micro-quatrefoil",
+                    "micro-crosslet",
+                    "micro-leaf",
+                    "micro-bud",
+                    "micro-chevron",
+                    "micro-key",
+                    "micro-link",
+                    "micro-palmette",
+                    "micro-scroll",
+                    "micro-rosette"
                   ]
                 },
                 "id": {
@@ -8396,8 +8589,10 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "enum": [
                   "contain",
-                  "cover"
-                ]
+                  "cover",
+                  "stretch"
+                ],
+                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
               },
               "threshold": {
                 "type": "integer",
@@ -8483,7 +8678,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "pattern_microfit": {
-      "description": "优先使用的微型纹样拟合器。2～8格单元保留主轮廓、连通分量和孔洞，自动选择半砖楼梯并检查失真，再逐份复制铺排，支持圆柱。无法辨认时拒绝并提示裁取更简单的单元；preview可生成真实预览。",
+      "description": "先拟合可辨纹样单元，再铺排；支持显式拉伸和量化视觉质量报告/门槛，保留楼梯半砖细节与硬拓扑约束。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -8535,7 +8730,19 @@ globalThis.NbtToolCatalog = {
               "zigzag-band",
               "cross-tile",
               "stepped-diamond",
-              "four-petal"
+              "four-petal",
+              "micro-diamond",
+              "micro-diamond-ring",
+              "micro-quatrefoil",
+              "micro-crosslet",
+              "micro-leaf",
+              "micro-bud",
+              "micro-chevron",
+              "micro-key",
+              "micro-link",
+              "micro-palmette",
+              "micro-scroll",
+              "micro-rosette"
             ]
           },
           "sample": {
@@ -8566,8 +8773,10 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "enum": [
                   "contain",
-                  "cover"
-                ]
+                  "cover",
+                  "stretch"
+                ],
+                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
               },
               "threshold": {
                 "type": "integer",
@@ -8690,8 +8899,10 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "enum": [
                   "contain",
-                  "cover"
-                ]
+                  "cover",
+                  "stretch"
+                ],
+                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
               },
               "threshold": {
                 "type": "integer",
@@ -8787,6 +8998,14 @@ globalThis.NbtToolCatalog = {
             "minimum": 0,
             "maximum": 1
           },
+          "micro_alignment": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "fixed"
+            ],
+            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+          },
           "diameter": {
             "type": "integer",
             "minimum": 4,
@@ -8797,8 +9016,756 @@ globalThis.NbtToolCatalog = {
           },
           "preview": {
             "type": "boolean"
+          },
+          "quality_profile": {
+            "type": "string",
+            "enum": [
+              "balanced",
+              "ornate",
+              "border"
+            ],
+            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+          },
+          "min_quality_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
           }
         }
+      }
+    },
+    "scene_compile": {
+      "description": "按稳定对象ID、尺寸引用和贴附关系编译建筑对象图；检查依赖、实际接触、重叠、保留空间与声明通路，只返回候选。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "graph": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "size": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "objects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "recipe": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "tool": {
+                          "type": "string",
+                          "enum": [
+                            "structure",
+                            "parametric_compile",
+                            "pattern_compile",
+                            "pattern_microfit"
+                          ]
+                        },
+                        "arguments": {
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "tool",
+                        "arguments"
+                      ]
+                    },
+                    "lo": {
+                      "type": "array",
+                      "items": {
+                        "description": "整数或受限尺寸引用/加减运算；由脚本解析，无代码执行。"
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "attach": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "target": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "face": {
+                          "type": "string",
+                          "enum": [
+                            "up",
+                            "down",
+                            "north",
+                            "south",
+                            "east",
+                            "west"
+                          ]
+                        },
+                        "offset": {
+                          "type": "array",
+                          "items": {
+                            "description": "整数或受限尺寸引用/加减运算；由脚本解析，无代码执行。"
+                          },
+                          "minItems": 3,
+                          "maxItems": 3
+                        },
+                        "max_inset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 8
+                        }
+                      },
+                      "required": [
+                        "target",
+                        "face"
+                      ]
+                    },
+                    "quarter_turns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3
+                    },
+                    "contacts": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                      },
+                      "minItems": 0,
+                      "maxItems": 32
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "recipe"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 32
+              },
+              "reserved_boxes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "lo": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 63
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "hi": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 63
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    }
+                  },
+                  "required": [
+                    "lo",
+                    "hi"
+                  ]
+                },
+                "minItems": 0,
+                "maxItems": 64
+              },
+              "protected_boxes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "lo": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 63
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "hi": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 63
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    }
+                  },
+                  "required": [
+                    "lo",
+                    "hi"
+                  ]
+                },
+                "minItems": 0,
+                "maxItems": 64
+              },
+              "routes": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "start": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 64
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "targets": {
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 64
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "minItems": 1,
+                    "maxItems": 32
+                  }
+                },
+                "required": [
+                  "start",
+                  "targets"
+                ]
+              },
+              "max_changed_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536
+              }
+            },
+            "required": [
+              "schema_version",
+              "name",
+              "size",
+              "objects"
+            ]
+          }
+        },
+        "required": [
+          "graph"
+        ]
+      }
+    },
+    "scene_save": {
+      "description": "显式保存对象图和编译快照的新版本；校验候选内容与父版本，保留旧版，不写建筑或定稿NBT。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "graph": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "size": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "objects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "recipe": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "tool": {
+                          "type": "string",
+                          "enum": [
+                            "structure",
+                            "parametric_compile",
+                            "pattern_compile",
+                            "pattern_microfit"
+                          ]
+                        },
+                        "arguments": {
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "tool",
+                        "arguments"
+                      ]
+                    },
+                    "lo": {
+                      "type": "array",
+                      "items": {
+                        "description": "整数或受限尺寸引用/加减运算；由脚本解析，无代码执行。"
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "attach": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "target": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "face": {
+                          "type": "string",
+                          "enum": [
+                            "up",
+                            "down",
+                            "north",
+                            "south",
+                            "east",
+                            "west"
+                          ]
+                        },
+                        "offset": {
+                          "type": "array",
+                          "items": {
+                            "description": "整数或受限尺寸引用/加减运算；由脚本解析，无代码执行。"
+                          },
+                          "minItems": 3,
+                          "maxItems": 3
+                        },
+                        "max_inset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 8
+                        }
+                      },
+                      "required": [
+                        "target",
+                        "face"
+                      ]
+                    },
+                    "quarter_turns": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 3
+                    },
+                    "contacts": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                      },
+                      "minItems": 0,
+                      "maxItems": 32
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "recipe"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 32
+              },
+              "reserved_boxes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "lo": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 63
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "hi": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 63
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    }
+                  },
+                  "required": [
+                    "lo",
+                    "hi"
+                  ]
+                },
+                "minItems": 0,
+                "maxItems": 64
+              },
+              "protected_boxes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "lo": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 63
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "hi": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 63
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    }
+                  },
+                  "required": [
+                    "lo",
+                    "hi"
+                  ]
+                },
+                "minItems": 0,
+                "maxItems": 64
+              },
+              "routes": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "start": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 64
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "targets": {
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 64
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "minItems": 1,
+                    "maxItems": 32
+                  }
+                },
+                "required": [
+                  "start",
+                  "targets"
+                ]
+              },
+              "max_changed_blocks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536
+              }
+            },
+            "required": [
+              "schema_version",
+              "name",
+              "size",
+              "objects"
+            ]
+          },
+          "graph_sha256": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64,
+            "pattern": "[a-f0-9]{64}"
+          },
+          "content_sha256": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64,
+            "pattern": "[a-f0-9]{64}"
+          },
+          "parent": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 32,
+                "maxLength": 32,
+                "pattern": "[a-f0-9]{32}"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              },
+              "version": {
+                "type": "string",
+                "minLength": 64,
+                "maxLength": 64,
+                "pattern": "[a-f0-9]{64}"
+              }
+            },
+            "required": [
+              "id",
+              "revision",
+              "version"
+            ]
+          }
+        },
+        "required": [
+          "graph",
+          "graph_sha256",
+          "content_sha256"
+        ]
+      }
+    },
+    "scene_read": {
+      "description": "读取建筑对象图及不可变版本快照，校验文件哈希；不推定已审阅或已批准。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 32,
+            "pattern": "[a-f0-9]{32}"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64,
+            "pattern": "[a-f0-9]{64}"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    "scene_update": {
+      "description": "修改已有对象并按依赖联动重算，复验整图，检查原保护区与修改预算；返回候选，须另用scene_save保存新版本。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 32,
+            "pattern": "[a-f0-9]{32}"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "version": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64,
+            "pattern": "[a-f0-9]{64}"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                },
+                "recipe": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "tool": {
+                      "type": "string",
+                      "enum": [
+                        "structure",
+                        "parametric_compile",
+                        "pattern_compile",
+                        "pattern_microfit"
+                      ]
+                    },
+                    "arguments": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "tool",
+                    "arguments"
+                  ]
+                },
+                "lo": {
+                  "type": "array",
+                  "items": {
+                    "description": "整数或受限尺寸引用/加减运算；由脚本解析，无代码执行。"
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "attach": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "target": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "face": {
+                      "type": "string",
+                      "enum": [
+                        "up",
+                        "down",
+                        "north",
+                        "south",
+                        "east",
+                        "west"
+                      ]
+                    },
+                    "offset": {
+                      "type": "array",
+                      "items": {
+                        "description": "整数或受限尺寸引用/加减运算；由脚本解析，无代码执行。"
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "max_inset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8
+                    }
+                  },
+                  "required": [
+                    "target",
+                    "face"
+                  ]
+                },
+                "quarter_turns": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                "contacts": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                  },
+                  "minItems": 0,
+                  "maxItems": 32
+                }
+              },
+              "required": [
+                "id"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 32
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "version",
+          "changes"
+        ]
       }
     }
   },
@@ -10983,5 +11950,381 @@ globalThis.NbtToolCatalog = {
     },
     "storage": "nbt_models/asset_library/tool_effects/<id>/effect.json",
     "safety": "preview uses an isolated sample; compile returns settings only; application preserves target source/selection/protection/budget; NBT requires explicit export"
+  },
+  "machine_protocol": {
+    "protocol_version": 1,
+    "request": {
+      "required": [
+        "protocol_version",
+        "method"
+      ],
+      "optional": [
+        "request_id",
+        "params"
+      ]
+    },
+    "response": {
+      "fields": [
+        "protocol_version",
+        "request_id",
+        "ok",
+        "data",
+        "error"
+      ],
+      "error_fields": [
+        "code",
+        "message",
+        "retryable",
+        "details"
+      ]
+    },
+    "methods": {
+      "tasks.list": {
+        "fields": {
+          "source": "string"
+        },
+        "required": [],
+        "mutation": false
+      },
+      "tasks.get": {
+        "fields": {
+          "id": "string"
+        },
+        "required": [
+          "id"
+        ],
+        "mutation": false
+      },
+      "tasks.discover": {
+        "fields": {
+          "id": "string"
+        },
+        "required": [
+          "id"
+        ],
+        "mutation": false
+      },
+      "tasks.create": {
+        "fields": {
+          "source": "string",
+          "source_sha256": "string",
+          "name": "string",
+          "origins": "array",
+          "camera": "object"
+        },
+        "required": [
+          "source",
+          "source_sha256"
+        ],
+        "mutation": true
+      },
+      "tasks.record": {
+        "fields": {
+          "id": "string",
+          "revision": "integer",
+          "new_source": "string",
+          "new_source_sha256": "string",
+          "summary": "string",
+          "comments": "array",
+          "lease_token": "string",
+          "fence": "integer"
+        },
+        "required": [
+          "id",
+          "revision",
+          "new_source",
+          "new_source_sha256",
+          "summary",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "prompts.list": {
+        "fields": {
+          "after": "integer",
+          "status": "string"
+        },
+        "required": [],
+        "mutation": false
+      },
+      "prompts.get": {
+        "fields": {
+          "id": "string"
+        },
+        "required": [
+          "id"
+        ],
+        "mutation": false
+      },
+      "prompts.task-status": {
+        "fields": {
+          "id": "string",
+          "status": "string",
+          "expected_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer"
+        },
+        "required": [
+          "id",
+          "status",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "tasks.claim": {
+        "fields": {
+          "id": "string",
+          "owner": "string",
+          "ttl_seconds": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "revision": "integer"
+        },
+        "required": [
+          "id",
+          "owner"
+        ],
+        "mutation": true
+      },
+      "tasks.heartbeat": {
+        "fields": {
+          "id": "string",
+          "owner": "string",
+          "ttl_seconds": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "revision": "integer"
+        },
+        "required": [
+          "id",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "tasks.release": {
+        "fields": {
+          "id": "string",
+          "owner": "string",
+          "ttl_seconds": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "revision": "integer"
+        },
+        "required": [
+          "id",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "prompts.claim": {
+        "fields": {
+          "id": "string",
+          "owner": "string",
+          "ttl_seconds": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "expected_revision": "integer"
+        },
+        "required": [
+          "id",
+          "owner"
+        ],
+        "mutation": true
+      },
+      "prompts.heartbeat": {
+        "fields": {
+          "id": "string",
+          "owner": "string",
+          "ttl_seconds": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "expected_revision": "integer"
+        },
+        "required": [
+          "id",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "prompts.release": {
+        "fields": {
+          "id": "string",
+          "owner": "string",
+          "ttl_seconds": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "expected_revision": "integer"
+        },
+        "required": [
+          "id",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "annotations.scan": {
+        "fields": {
+          "version": "string"
+        },
+        "required": [],
+        "mutation": false
+      },
+      "annotations.collect": {
+        "fields": {
+          "source": "string"
+        },
+        "required": [
+          "source"
+        ],
+        "mutation": false
+      },
+      "annotation-tasks.list": {
+        "fields": {
+          "source": "string",
+          "source_sha256": "string"
+        },
+        "required": [
+          "source",
+          "source_sha256"
+        ],
+        "mutation": false
+      },
+      "annotation-tasks.evidence": {
+        "fields": {
+          "source": "string",
+          "source_sha256": "string",
+          "id": "string",
+          "offset": "integer",
+          "limit": "integer"
+        },
+        "required": [
+          "source",
+          "source_sha256",
+          "id"
+        ],
+        "mutation": false
+      },
+      "annotation-tasks.create": {
+        "fields": {
+          "source": "string",
+          "source_sha256": "string",
+          "revision": "integer",
+          "title": "string",
+          "category": "string",
+          "members": "array"
+        },
+        "required": [
+          "source",
+          "source_sha256",
+          "revision",
+          "title",
+          "members"
+        ],
+        "mutation": true
+      },
+      "annotation-tasks.update": {
+        "fields": {
+          "source": "string",
+          "source_sha256": "string",
+          "revision": "integer",
+          "id": "string",
+          "patch": "object"
+        },
+        "required": [
+          "source",
+          "source_sha256",
+          "revision",
+          "id",
+          "patch"
+        ],
+        "mutation": true
+      },
+      "annotation-tasks.merge": {
+        "fields": {
+          "source": "string",
+          "source_sha256": "string",
+          "revision": "integer",
+          "ids": "array"
+        },
+        "required": [
+          "source",
+          "source_sha256",
+          "revision",
+          "ids"
+        ],
+        "mutation": true
+      }
+    },
+    "lease": {
+      "default_ttl_seconds": 900,
+      "min_ttl_seconds": 60,
+      "max_ttl_seconds": 3600
+    },
+    "retry": "Reuse the same request_id and identical params after transport failure. New intent or renewed claim requires a new ID. Receipt storage is per task index.",
+    "discovery": "Creation cursor finds new tasks only. Also poll pending tasks to recover expired leases. Reads never expose lease tokens.",
+    "errors": [
+      "INVALID_REQUEST",
+      "PROTOCOL_VERSION_UNSUPPORTED",
+      "METHOD_NOT_FOUND",
+      "REQUEST_ID_REQUIRED",
+      "VALIDATION_ERROR",
+      "IO_ERROR",
+      "TASK_NOT_FOUND",
+      "TASK_COMPLETED",
+      "TASK_CLAIMED",
+      "LEASE_REQUIRED",
+      "LEASE_EXPIRED",
+      "LEASE_NOT_OWNER",
+      "LEASE_FENCE_CONFLICT",
+      "REVISION_CONFLICT",
+      "SOURCE_CHANGED",
+      "IDEMPOTENCY_CONFLICT",
+      "RECEIPT_CHANGED",
+      "RECEIPT_LIMIT",
+      "LOCK_BUSY"
+    ]
+  },
+  "agent_session": {
+    "transport": "json_lines_stdio",
+    "request_fields": [
+      "id",
+      "method",
+      "params"
+    ],
+    "methods": [
+      "agent",
+      "validate"
+    ],
+    "max_request_bytes": 8388608,
+    "max_response_bytes": 33554432,
+    "tools": [
+      "pattern_list",
+      "pattern_compile",
+      "pattern_microfit",
+      "parametric_list",
+      "parametric_contract",
+      "parametric_validate",
+      "parametric_compile",
+      "parametric_surface",
+      "parametric_mount",
+      "parametric_layout",
+      "parametric_compose",
+      "parametric_regenerate",
+      "pattern_mount",
+      "pattern_cylinder_mount",
+      "structure_list",
+      "structure_read",
+      "structure_place",
+      "scene_compile",
+      "scene_read",
+      "scene_update"
+    ],
+    "candidate_only": true,
+    "automatic_retry": false
   }
 };

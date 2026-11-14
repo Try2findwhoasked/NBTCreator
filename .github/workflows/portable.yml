@@ -86,6 +86,10 @@ jobs:
           New-Item -ItemType Directory -Path $probeRoot | Out-Null
           npm run test:projects
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/surface-mount.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/parametric-components.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/structure-agent.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/protection-mask.py
@@ -103,6 +107,10 @@ jobs:
           python tests/retrieval.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/diagnostic-guidance.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/architect-tools.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/agent-protocol.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/agent-task-return.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -173,6 +181,10 @@ jobs:
           python tests/snbt-source.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/building-history.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/architect-tools-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/ai-batch-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/architect-workspace-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -44,7 +44,9 @@ def index_lock(workspace,directory):
                     fcntl.flock(stream,fcntl.LOCK_EX|fcntl.LOCK_NB)
                 break
             except OSError:
-                if time.monotonic()>=deadline:raise ValueError('提示词索引正在写入，请稍后重试') from None
+                if time.monotonic()>=deadline:
+                    from nbt_agent_protocol import error
+                    error('LOCK_BUSY','任务索引正在写入，请稍后重试',retryable=True)
                 time.sleep(.01)
         try:yield
         finally:
@@ -60,6 +62,10 @@ def save(workspace, payload):
     if not isinstance(document,dict) or not isinstance(document.get('project'),dict):raise ValueError('缺少提示词方案')
     if not isinstance(text,str) or not text.strip() or len(text.encode('utf8'))>512*1024:raise ValueError('提示词正文须非空且不超过512KiB')
     if len(encode(document))>2*1024*1024:raise ValueError('提示词方案超过2MiB')
+    if document.get('design_standard') is not None:
+        from nbt_architect import validate_standard
+        validate_standard(document['design_standard'])
+    if not isinstance(document.get('design_override',''),str) or len(document.get('design_override',''))>4000:raise ValueError('建筑规范例外最多4000字')
     document=copy.deepcopy(document);project=document['project'];stage=project.get('stage');source=None;source_hash=None
     if stage not in ('draft','plan','refine'):raise ValueError('提示词阶段无效')
     if stage=='draft':
@@ -86,6 +92,8 @@ def save(workspace, payload):
     with index_lock(workspace,directory):
         index=load_index(workspace,index_file)[1] if index_file.exists() else dict(schema_version=1,records=[])
         if index.get('schema_version')!=1 or not isinstance(index.get('records'),list):raise ValueError('提示词索引无效，未覆盖')
+        previous=next((item for item in index['records'] if item.get('id')==session),None)
+        if previous and previous.get('deleted_at'):raise ValueError('这条创作方案已删除，请新建方案')
         files={'提示词.md':text.encode('utf8'),'方案.json':encode(document),'操作计划.json':encode(payload.get('plan',{})),'上下文草案.json':encode(payload.get('context',{}))}
         hashes={name:digest(raw) for name,raw in files.items()};revision=digest(encode(dict(files=hashes,source_sha256=source_hash)))
         folder=inside(workspace,directory/'修订'/session/revision);folder.mkdir(parents=True,exist_ok=True)
@@ -96,7 +104,6 @@ def save(workspace, payload):
             except FileExistsError:
                 if digest(target.read_bytes())!=hashes[name]:raise ValueError('已归档提示词修订被改动；未覆盖')
         if source and digest(source.read_bytes())!=source_hash:raise ValueError('导出期间源模型已变化，未更新提示词索引')
-        previous=next((item for item in index['records'] if item.get('id')==session),None)
         record=dict(id=session,name=project.get('name',''),stage=stage,source=relative(workspace,source) if source else None,
                     source_sha256=source_hash,revision=revision,updated_at=datetime.now(timezone.utc).isoformat(),
                     files={name:dict(path=os.path.relpath(folder/name,directory).replace('\\','/'),sha256=hashes[name]) for name in files},
@@ -124,6 +131,7 @@ def read_prompt(workspace,index,id):
     file,data=load_index(workspace,index);records=[item for item in data['records'] if item.get('id')==id]
     if len(records)!=1:raise ValueError('提示词编号不存在或不唯一，请重新扫描')
     record=records[0];contents={}
+    if record.get('deleted_at'):raise ValueError('这条创作方案已删除')
     for name in ('提示词.md','方案.json','操作计划.json','上下文草案.json'):
         item=record['files'][name];target=inside(workspace,file.parent/item['path'])
         if not target.is_relative_to(file.parent) or target.stat().st_size>2*1024*1024:raise ValueError('提示词产物路径或大小无效')
@@ -136,6 +144,20 @@ def read_prompt(workspace,index,id):
     return dict(record=record,index=relative(workspace,file),source_matches=actual==record.get('source_sha256') if record.get('source') else None,
                 text=contents['提示词.md'],document=contents['方案.json'],plan=contents['操作计划.json'],context=contents['上下文草案.json'],approval='not_granted_by_prompt')
 
+def remove_prompt(workspace,index,identifier,revision):
+    file,_=load_index(workspace,index)
+    with index_lock(workspace,file.parent):
+        _,data=load_index(workspace,file)
+        records=[item for item in data['records'] if item['id']==identifier]
+        if len(records)!=1:raise ValueError('提示词编号不存在或不唯一，请重新扫描')
+        record=records[0]
+        if record['revision']!=revision:raise ValueError('方案已更新，请重新打开后删除')
+        if not record.get('deleted_at'):
+            record['deleted_at']=datetime.now(timezone.utc).isoformat()
+            temporary=file.with_name(file.name+'.'+uuid.uuid4().hex+'.tmp')
+            temporary.write_bytes(encode(data));temporary.replace(file)
+    return dict(id=identifier,deleted=True)
+
 def read_handoff(workspace,file,expected):
     target=inside(workspace,file)
     if target.name!='交给Agent.md' or 'Agent交接' not in target.parts or target.stat().st_size>512*1024:raise ValueError('请选择扫描返回的 Agent 交接提示词')
@@ -144,7 +166,7 @@ def read_handoff(workspace,file,expected):
     return dict(file=relative(workspace,target),sha256=expected,text=raw.decode('utf8'),approval='not_granted_by_prompt')
 
 def scan(workspace, source=None):
-    workspace=Path(workspace).resolve();models=workspace/'nbt_models';items=[];errors=[]
+    workspace=Path(workspace).resolve();models=workspace/'nbt_models';items=[];errors=[];deleted=set()
     selected=relative(workspace,inside(workspace,source)) if source else None
     for directory,dirs,names in os.walk(models,followlinks=False):
         dirs[:]=[name for name in dirs if name not in {'_workspaces','_migration','_exports','修订','修改意见'} and not (Path(directory)/name).is_symlink()]
@@ -160,10 +182,11 @@ def scan(workspace, source=None):
         try:
             _,data=load_index(workspace,file)
             for record in data['records']:
+                if record.get('deleted_at'):deleted.add(record['id']);continue
                 if selected and record.get('source')!=selected:continue
                 items.append({key:record.get(key) for key in ('id','name','stage','source','source_sha256','revision','updated_at','review_state','generation_state','queue_created_at')}|dict(kind='workbench',index=relative(workspace,file)))
         except (ValueError,OSError,KeyError) as error:errors.append(dict(index=relative(workspace,file),error=str(error)))
-    return dict(schema_version=1,items=sorted(items,key=lambda item:item.get('updated_at') or '',reverse=True),errors=errors,full_text_loaded=False)
+    return dict(schema_version=1,items=sorted((item for item in items if item.get('id') not in deleted),key=lambda item:item.get('updated_at') or '',reverse=True),errors=errors,full_text_loaded=False)
 
 
 def task_index(workspace):
@@ -221,7 +244,9 @@ def publish(workspace,index,identifier,revision):
 def tasks(workspace,after=0,status=None):
     if type(after) is not int or after<0:raise ValueError('任务游标须为非负整数')
     data=load_tasks(workspace)
-    items=[{key:item[key] for key in ('id','sequence','name','stage','status','created_at','directory','prompt','revision')} for item in data['records'] if item['sequence']>after and (status is None or item['status']==status)]
+    from nbt_agent_protocol import redact
+    records=[redact(item) for item in data['records']]
+    items=[{key:item[key] for key in ('id','sequence','name','stage','status','created_at','directory','prompt','revision','state_revision','lease','lease_expired') if key in item} for item in records if item['sequence']>after and (status is None or item['status']==status)]
     return dict(items=sorted(items,key=lambda item:item['sequence']),cursor=max((item['sequence'] for item in data['records']),default=0),full_text_loaded=False)
 
 
@@ -237,18 +262,40 @@ def read_task(workspace,identifier):
         contents[name]=raw.decode('utf8') if name.endswith('.md') else json.loads(raw)
     source=inside(workspace,record['source']) if record.get('source') else None
     matches=(digest(source.read_bytes())==record['source_sha256'] if source.is_file() else False) if source else None
-    return dict(task=record,directory=str(folder),prompt=str(inside(workspace,record['prompt'])),text=contents['提示词.md'],document=contents['方案.json'],plan=contents['操作计划.json'],context=contents['上下文草案.json'],source_matches=matches,approval='not_granted_by_prompt')
+    from nbt_agent_protocol import redact
+    return dict(task=redact(record),directory=str(folder),prompt=str(inside(workspace,record['prompt'])),text=contents['提示词.md'],document=contents['方案.json'],plan=contents['操作计划.json'],context=contents['上下文草案.json'],source_matches=matches,approval='not_granted_by_prompt')
 
+
+def task_action(workspace,action,request):
+    from nbt_project_batch import write
+    import nbt_agent_protocol as protocol
+    workspace=Path(workspace).resolve();file=task_index(workspace);file.parent.mkdir(parents=True,exist_ok=True)
+    with index_lock(workspace,file.parent):
+        data=load_tasks(workspace);replayed=protocol.replay(workspace,data,'prompts.'+action,request)
+        if replayed is not None:return replayed
+        item=next((item for item in data['records'] if item['id']==request.get('id')),None)
+        if not item:protocol.error('TASK_NOT_FOUND','提示词任务不存在')
+        if 'expected_revision' in request and request['expected_revision']!=item.get('state_revision',0):protocol.error('REVISION_CONFLICT','任务状态已改变',retryable=True,details={'current_revision':item.get('state_revision',0)})
+        if action in ('claim','heartbeat','release'):
+            original=read_task(workspace,item['id'])
+            if original['source_matches'] is False:protocol.error('SOURCE_CHANGED','任务原建筑已变化，不能继续领取')
+            result=protocol.lease_action(item,action,request)
+        elif action=='task-status':
+            status=request.get('status')
+            if status not in ('pending','in_progress','completed'):protocol.error('INVALID_REQUEST','任务状态无效')
+            protocol.check_lease(item,request,required=bool(request.get('request_id')));item['status']=status
+            if status=='completed':item.pop('lease',None)
+            result=dict(id=item['id'],status=status)
+        else:protocol.error('METHOD_NOT_FOUND','未知任务动作')
+        item['state_revision']=item.get('state_revision',0)+1
+        result.update(state_revision=item['state_revision'],approval='not_granted_by_prompt')
+        protocol.receipt(workspace,data,'prompts.'+action,request,result)
+        write(inside(workspace,Path(item['directory'])/'任务.json'),item);write(file,data)
+        return result
 
 def task_status(workspace,identifier,status):
-    from nbt_project_batch import write
-    if status not in ('pending','in_progress','completed'):raise ValueError('任务状态无效')
-    file=task_index(workspace);file.parent.mkdir(parents=True,exist_ok=True)
-    with index_lock(workspace,file.parent):
-        data=load_tasks(workspace);item=next((item for item in data['records'] if item['id']==identifier),None)
-        if not item:raise ValueError('提示词任务不存在')
-        item['status']=status;write(inside(workspace,Path(item['directory'])/'任务.json'),item);write(file,data)
-        return dict(id=identifier,status=status,approval='not_granted_by_prompt')
+    return task_action(workspace,'task-status',dict(id=identifier,status=status))
+
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());sub=parser.add_subparsers(dest='command',required=True)
@@ -258,11 +305,14 @@ def main():
     cmd=sub.add_parser('publish');cmd.add_argument('--index',required=True);cmd.add_argument('--id',required=True);cmd.add_argument('--revision',required=True)
     cmd=sub.add_parser('tasks');cmd.add_argument('--after',type=int,default=0);cmd.add_argument('--status',choices=['pending','in_progress','completed'])
     cmd=sub.add_parser('task');cmd.add_argument('--id',required=True)
+    for action in ('claim','heartbeat','release'):
+        cmd=sub.add_parser(action);cmd.add_argument('--request',type=Path,required=True)
     cmd=sub.add_parser('task-status');cmd.add_argument('--id',required=True);cmd.add_argument('--status',choices=['pending','in_progress','completed'],required=True)
     args=parser.parse_args()
     try:
         if args.command=='read' and not ((args.index and args.id and not args.file) or (args.file and args.sha256 and not args.index)):raise ValueError('read 使用 --index/--id，或交接文件的 --file/--sha256')
-        if args.command=='publish':result=publish(args.workspace,args.index,args.id,args.revision)
+        if args.command in ('claim','heartbeat','release'):result=task_action(args.workspace,args.command,json.loads(args.request.read_text(encoding='utf-8-sig')))
+        elif args.command=='publish':result=publish(args.workspace,args.index,args.id,args.revision)
         elif args.command=='tasks':result=tasks(args.workspace,args.after,args.status)
         elif args.command=='task':result=read_task(args.workspace,args.id)
         elif args.command=='task-status':result=task_status(args.workspace,args.id,args.status)

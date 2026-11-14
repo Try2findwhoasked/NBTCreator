@@ -739,6 +739,7 @@ def main():
     cmd = sub.add_parser('protection-mask');cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('walk-inspect');cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
     cmd = sub.add_parser('agent-tasks');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['create','list','get','discover','record','review'],required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('architect');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['standards-get','standards-save','deliveries','continue','cross-list','cross-save'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('history');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','get','record','current','derive','finalize'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('retrieve');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['search','source','bundle','read'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('selection-edit');cmd.add_argument('--action',choices=['context','compile'],required=True);cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
@@ -784,9 +785,10 @@ def main():
             from nbt_prompts import publish
             data=read_json(args.request);result=publish(args.workspace,data['index'],data['id'],data['revision'])
         elif args.command == 'prompt-library':
-            from nbt_prompts import scan,read_prompt,load_tasks
+            from nbt_prompts import scan,read_prompt,load_tasks,remove_prompt
             data=read_json(args.request)
             if data.get('action')=='read':result=read_prompt(args.workspace,data['index'],data['id'])
+            elif data.get('action')=='delete':result=remove_prompt(args.workspace,data['index'],data['id'],data['revision'])
             elif data.get('action')=='list':
                 result=scan(args.workspace);seen=set();items=[];published=load_tasks(args.workspace)['records']
                 for item in result['items']:
@@ -815,6 +817,9 @@ def main():
         elif args.command == 'agent-tasks':
             from nbt_agent_tasks import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request))
+        elif args.command == 'architect':
+            from nbt_architect import dispatch
+            result=dispatch(args.workspace,args.action,read_json(args.request))
         elif args.command == 'history':
             from nbt_history import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request))

@@ -1,3 +1,4 @@
+import {presets} from './component-presets.mjs'
 import {requestAI,previewAI,cancelAI} from './ai-request.js'
 
 export function initComponentAuthor({actions,api,created}){
@@ -53,7 +54,9 @@ export function initComponentAuthor({actions,api,created}){
  for(const element of dialog.querySelectorAll('input,textarea,select'))element.addEventListener('input',invalidate)
  $('component-reference').addEventListener('change',invalidate)
  $('component-close').onclick=()=>dialog.close();dialog.addEventListener('cancel',event=>{if(phase==='write')event.preventDefault()})
- dialog.addEventListener('close',()=>{epoch++;if(phase==='ai')cancelAI();invalidate();$('component-viewer').src='about:blank';$('component-preview-area').hidden=true;$('component-preview-empty').hidden=false;$('component-preview-name').textContent='结构预览'})
+ dialog.addEventListener('close',()=>{epoch++;if(phase==='ai')cancelAI('component');invalidate();$('component-viewer').src='about:blank';$('component-preview-area').hidden=true;$('component-preview-empty').hidden=false;$('component-preview-name').textContent='结构预览'})
+ const presetPanel=document.createElement('fieldset');presetPanel.innerHTML='<legend>参数化模块预设（无需 AI）</legend><label>构件<select id="component-preset-kind">'+Object.entries(presets).map(([key,name])=>`<option value="${key}">${name}</option>`).join('')+'</select></label><label>样式<select id="component-preset-style"><option value="classic">经典</option><option value="stepped">层叠</option><option value="open">通透</option></select></label><label>主材<input id="component-preset-material" value="stone_bricks"></label><label>收边材质<input id="component-preset-accent" value="polished_andesite"></label><label>节奏间距<input id="component-preset-spacing" type="number" min="2" max="8" value="3"></label><button id="component-preset-preview" type="button">预览参数化构件</button><p>使用上方 XYZ 尺寸（预设每轴3～32格）。墙面贴在局部 Z=0，安装时须贴合实墙；吊顶顶部为安装面，须核对承托。楼梯每级一格，仅为几何预设，放置后仍须检查玩家通路。植物使用原版方块组合。</p>';dialog.querySelector('.component-author-form').append(presetPanel)
+ $('component-preset-preview').onclick=safe(async token=>{const {spec}=await call('parametric_compile',{kind:$('component-preset-kind').value,style:$('component-preset-style').value,size:context().size,material:$('component-preset-material').value.trim(),accent:$('component-preset-accent').value.trim(),spacing:Number($('component-preset-spacing').value)});$('component-spec').value=JSON.stringify(spec,null,2);await preview(spec,token)})
  $('component-preview').onclick=safe(async token=>{const spec=JSON.parse($('component-spec').value);await preview(spec,token)})
  $('component-generate-save').onclick=()=>generate(true)
  $('component-generate').onclick=()=>generate(false)
@@ -64,6 +67,7 @@ export function initComponentAuthor({actions,api,created}){
    const c=context(),instruction=$('component-instruction').value.trim();if(!instruction)throw Error('请填写结构创作要求')
    invalidate();lock(true,'ai');status('正在生成独立结构方案…')
    if($('component-reference').value)c.references=[await call('structure_read',{id:$('component-reference').value})]
+   if(token!==epoch||!dialog.open)return
    const result=await requestAI({mode:'component',instruction,context:c},()=>{const viewer=$('component-viewer').contentWindow?.nbtModeler;if(viewer?.status!=='ready')throw Error('尚无独立结构视口；请先关闭本工作流截图开关或生成一次参数预览');return viewer.captureCurrent()})
    if(token!==epoch||!dialog.open)return
    window.nbtReferencePicker?.sources(referenceSources,result);$('component-spec').value=JSON.stringify(result.spec,null,2);phase='preview'

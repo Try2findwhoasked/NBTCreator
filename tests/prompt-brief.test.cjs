@@ -12,3 +12,11 @@ test('model tool output is corrected into a requirements-only handoff instead of
  const api=createApiService({directory,safeStorage:{},fetchImpl:async()=>{const reply={project_patch:project,...(++n===1?{operations:[{kind:'box',lo:[0,0,0],hi:[0,1,0],state:'stone'}]}:{})};return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reply)}}]}))}})
  await api.save({enabled:true});const result=await api.generate({mode:'workbench',instruction:'编写设计',context:{task:'brief',project:{size:[48,24,48]},operations:[]}});assert.equal(n,2);assert.equal(result.operations,undefined)
 })
+
+
+test('design briefs describe objects and relations while deferring construction choices',()=>{
+ const brief=buildInternalPrompt('workbench',{task:'brief'}),prose=buildInternalPrompt('prompt')
+ for(const text of [brief,prose]){assert.ok(text.includes('连接关系'));assert.ok(text.includes('实现自由'));assert.ok(text.includes('施工'));assert.ok(!text.includes('geometry_parameters'))}
+ assert.ok(brief.includes('用户明确给出的坐标、尺寸与约束可以保留'))
+ assert.ok(brief.includes('不返回operations'))
+})

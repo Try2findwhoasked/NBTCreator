@@ -1,5 +1,18 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path')
 const {createInternalAI}=require('../desktop/internal-ai.cjs')
+
+test('queued knowledge uses admission rules and rejects changed reference bytes',async t=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-ai-capture-'));t.after(()=>fs.rm(root,{recursive:true,force:true}))
+ const skill=path.resolve(__dirname,'../.agents/skills/minecraft-nbt-modeler'),service=createInternalAI({workspace:()=>root,skill})
+ const file=path.join(root,'reference.md');await fs.writeFile(file,'original')
+ const config=await service.importDocuments([file]),id=config.documents[0].id
+ config.workflows.draft.knowledge=[id];config.workflows.draft.instruction='original rules';await service.save({workflows:config.workflows})
+ const snapshot=await service.capture('draft')
+ config.workflows.draft.instruction='later rules';await service.save({workflows:config.workflows})
+ assert.equal((await service.context('draft',{},snapshot)).instruction,'original rules')
+ await fs.writeFile(path.join(root,'.nbtcreator/internal-ai',config.documents[0].path),'changed reference')
+ await assert.rejects(service.context('draft',{},snapshot),/参考资料已变化/)
+})
 test('internal workflows and knowledge are separate, portable and selected per call',async t=>{
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-internal-'));t.after(()=>fs.rm(root,{recursive:true,force:true}))
  let workspace=path.join(root,'one');const skill=path.join(root,'skill');await fs.mkdir(path.join(skill,'references'),{recursive:true});await fs.mkdir(path.join(skill,'config'),{recursive:true});await fs.copyFile(path.resolve(__dirname,'../.agents/skills/minecraft-nbt-modeler/config/ai-style-schema.json'),path.join(skill,'config/ai-style-schema.json'));await fs.writeFile(path.join(skill,'references/design-principles.md'),'builtin-design')

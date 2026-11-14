@@ -47,7 +47,17 @@ body[data-workspace=project]>.workspace,body[data-workspace=project]>.action-bar
 #project-workspace .project-card-actions{display:flex;justify-content:flex-end;gap:8px}
 #project-workspace .project-card-actions button{position:static;margin:0;font-size:12px;min-height:30px;padding:4px 12px}
 #project-workspace .project-card-open>strong{white-space:normal;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-#project-manage-dialog{width:min(480px,90vw)}
+.project-detail-body{display:grid;grid-template-columns:minmax(0,1fr) 270px;min-height:0}
+.project-detail-management{padding:18px;border-left:1px solid var(--ui-line,#e1e7ef);overflow:auto;max-height:68dvh}
+.project-detail-management h3{margin:0 0 6px;font-size:14px}
+.project-detail-management>p{font-size:12px;color:var(--ui-muted,#7185a0)}
+.project-detail-management .path{font-size:11px;overflow-wrap:anywhere}
+#project-preview-dialog .project-preview-stage{min-width:0;min-height:260px}
+#project-preview-dialog .project-preview-stage iframe{height:56dvh}
+#project-preview-dialog .project-preview-stage img{max-height:56dvh}
+#project-preview-dialog>footer{flex-wrap:wrap}
+#project-preview-task-link:empty{display:none}
+@media(max-width:760px){.project-detail-body{grid-template-columns:minmax(0,1fr)}.project-detail-management{max-height:none;border-left:0;border-top:1px solid var(--ui-line,#e1e7ef)}#project-preview-dialog .project-preview-stage iframe{height:40dvh}}
 .project-item-management{display:flex;flex-direction:column;gap:14px;margin:18px 0}
 .project-item-management .project-organization-controls{display:flex;flex-direction:column;gap:7px}
 .project-item-management label,.project-item-management .project-content-label{display:block;font-size:12px;white-space:normal;margin:0}

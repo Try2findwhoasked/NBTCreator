@@ -39,12 +39,30 @@ def panel_materials(args):
 
 
 def compile_panel(workspace, args):
+    from nbt_modeling_session import current,canonical,engine_revision
+    from nbt_ornament_sample import sample_image
+    root,sample=sample_input(workspace,args)
+    # Verify the real raster hash even on a cache hit. Cached data never
+    # replaces installation protection, source or geometry checks.
+    sample_image(root,sample)
+    parameters={k:v for k,v in args.items() if k!='preview'}
+    key=(str(Path(workspace).resolve()),str(Path(root).resolve()),engine_revision(),canonical(sample),canonical(parameters))
+    cache=current();hit=cache.get('pattern_compile',key)
+    if hit is not None:return hit
+    result=_compile_panel(workspace,args)
+    cache.put('pattern_compile',key,result)
+    return result
+
+
+def _compile_panel(workspace, args):
     from nbt_structure_agent import build
 
     if args.get('fit_mode')=='micro':
         from nbt_microfit import compile_microfit
         return compile_microfit(workspace,args)
-    if set(args)&{'tile_counts','gap_uv','micro_max_error','diameter','full_blocks_only'}:
+    if set(args)&{'quality_profile','min_quality_score'}:
+        raise ValueError('量化质量配置用于pattern_microfit或fit_mode=micro，按单元评估后再铺排')
+    if set(args)&{'tile_counts','gap_uv','micro_max_error','micro_alignment','diameter','full_blocks_only'}:
         raise ValueError('微型铺排参数须使用fit_mode=micro或pattern_microfit')
     if args['surface']=='cylinder':
         from nbt_cylinder_pattern import compile_cylinder

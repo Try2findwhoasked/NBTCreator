@@ -19,6 +19,7 @@ import {createEditSessionStore} from './edit-session-store.mjs'
 import {createCommandStore} from './command-store.mjs'
 import {referenceSources} from './reference-sources.mjs'
 import {cleanApiMetrics,cleanTimings} from './ai-metrics.mjs'
+import {createEngineSession} from './engine-session.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const backend = path.resolve(here, '../../scripts/nbt_detail_control.py')
@@ -64,7 +65,9 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   const covers=new Map(),batchAssets=new Map()
   const projectStages=createProjectStages(workspace)
   const editSessions=createEditSessionStore(workspace)
-  const commandStore=createCommandStore(workspace,JSON.parse(await fs.readFile(path.join(skillRoot,'tool-catalog.json'),'utf8')))
+  const toolCatalog=JSON.parse(await fs.readFile(path.join(skillRoot,'tool-catalog.json'),'utf8'))
+  const commandStore=createCommandStore(workspace,toolCatalog)
+  const engineSession=createEngineSession({workspace,python})
   const ownedChildren=new Set(),workerInfo=new WeakMap(),stoppingChildren=new WeakMap(),childStopped=Symbol('childStopped')
   let closing=false,closePromise
   const feedback = createFeedbackStore(binding=>{if(!binding.version_dir)throw new Error('请重新打开建筑以识别版本目录');return path.join(binding.version_dir,'修改意见')},binding=>[...(binding.workdir?[path.join(binding.workdir,'修改意见')]:[]),path.join(workspace,'build/nbt_feedback')])
@@ -377,11 +380,16 @@ export async function startDetailServer({ workspace, output, python = 'python', 
           if(actual!==info.source_sha256)throw Error('源文件已改变，请刷新模型')
           input.size=info.size
         }
-        const system=path.join(outputRoot,'system');await fs.mkdir(system,{recursive:true})
-        const file=path.join(system,'components-'+randomUUID()+'.json')
-        await fs.writeFile(file,JSON.stringify(input))
         let result
-        try{result=await invoke(['components','--workspace',workspace,'--action',action,'--request',file])}finally{await fs.unlink(file).catch(()=>{})}
+        if(action==='agent'&&toolCatalog.agent_session.tools.includes(input.tool)&&!input.arguments?.preview&&!input.arguments?.review){
+          const response=await engineSession.request('agent',input)
+          if(!response.ok)throw Error(response.error??'建模会话失败')
+          result=response.result
+        }else{
+          const system=path.join(outputRoot,'system');await fs.mkdir(system,{recursive:true})
+          const file=path.join(system,'components-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input))
+          try{result=await invoke(['components','--workspace',workspace,'--action',action,'--request',file])}finally{await fs.unlink(file).catch(()=>{})}
+        }
         if(result.reference_sources)result.reference_sources=referenceSources(result.reference_sources)
         const expose=item=>({...item,thumbnail:item.thumbnail?asset(item.thumbnail):null,download:item.file?asset(item.file):null,...(item.asset_type==='ornament_pattern'&&item.image?{image_download:asset(item.image)}:{})})
         if(action==='list')result={...result,items:result.items.map(expose)}
@@ -444,6 +452,8 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         json(res,result)
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/batches/')){
         const action=url.pathname.split('/').at(-1);if(!['list','get','create','import','ack','locate'].includes(action))throw Error('未知批次操作');const input=await body(req,256*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'batches-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['batches','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
+      } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/architect/')){
+        const action=url.pathname.split('/').at(-1);if(!['standards-get','standards-save','deliveries','continue','cross-list','cross-save'].includes(action))throw Error('未知建筑师工具');const input=await body(req,1024*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'architect-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['architect','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/history/')){
         const action=url.pathname.split('/').at(-1);if(!['list','get','record','current','derive','finalize'].includes(action))throw Error('未知版本历史操作')
         const input=await body(req);const directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'history-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['history','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
@@ -527,7 +537,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     return true
   } })
   return { url: viewer.url+'control.html', frontend:viewer.frontend, output: outputRoot, close: () => {
-    if(!closePromise){closing=true;closePromise=(async()=>{await Promise.all([cancel(),...Array.from(ownedChildren,terminate)]);await viewer.close()})()}
+    if(!closePromise){closing=true;closePromise=(async()=>{await Promise.all([engineSession.close(),cancel(),...Array.from(ownedChildren,terminate)]);await viewer.close()})()}
     return closePromise
   } }
 }

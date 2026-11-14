@@ -9,6 +9,7 @@ from pathlib import Path
 import uuid
 from nbt_prompts import encode,digest,inside,relative,index_lock
 from nbt_web_paths import project_paths
+import nbt_agent_protocol as protocol
 
 def now():return datetime.now(timezone.utc).isoformat()
 def read(file):
@@ -41,17 +42,21 @@ def verify(workspace,data):
         if sha(inside(workspace,entry['source']))!=entry['source_sha256']:raise ValueError('已回传版本被覆盖，请使用新版本重新登记')
     return source
 def output(workspace,data):
-    result=copy.deepcopy(data);result['absolute_source']=str(inside(workspace,data['source']));result['approval']='not_granted_by_task_registration'
+    result=protocol.redact(data);result['absolute_source']=str(inside(workspace,data['source']));result['approval']='not_granted_by_task_registration'
     for entry in result['returns']:entry['absolute_source']=str(inside(workspace,entry['source']))
     return result
-def commit(workspace,file,index,data,action):
+def commit(workspace,file,index,data,action,request,extras=None):
     data['revision']+=1;data['updated_at']=now();data['history'].append(dict(action=action,time=data['updated_at'],revision=data['revision']))
     directory=inside(workspace,data['directory']);directory.mkdir(parents=True,exist_ok=True);raw=encode(data)
     if len(raw)>8*1024*1024:raise ValueError('任务记录过大，请拆分任务')
     manifest=directory/('task-r'+str(data['revision']).zfill(4)+'-'+uuid.uuid4().hex[:8]+'.json')
     with manifest.open('xb') as stream:stream.write(raw)
     index['tasks']=[entry for entry in index['tasks'] if entry['id']!=data['id']]+[dict(id=data['id'],name=data['name'],source=data['source'],source_sha256=data['source_sha256'],manifest=relative(workspace,manifest),sha256=digest(raw))]
+    result=output(workspace,data);result.update(extras or {})
+    if action in ('claim','heartbeat'):result['lease_token']=data['lease']['token']
+    protocol.receipt(workspace,index,'agent-tasks.'+action,request,result)
     temp=file.with_suffix('.'+uuid.uuid4().hex+'.tmp');temp.write_bytes(encode(index));temp.replace(file)
+    return result
 def comment_snapshot(workspace,source):
     from nbt_feedback_tasks import inventory
     _,comments=inventory(workspace,source)
@@ -69,7 +74,7 @@ def discover(workspace,data):
     return dict(candidates=sorted(items,key=lambda item:int(item['modified_ns']),reverse=True),truncated=False)
 
 def dispatch(workspace,action,request):
-    if not isinstance(request,dict) or action not in ('list','create','get','discover','record','review'):raise ValueError('Agent任务请求无效')
+    if not isinstance(request,dict) or action not in ('list','create','get','discover','record','review','claim','heartbeat','release'):raise ValueError('Agent任务请求无效')
     workspace=Path(workspace).resolve();file,index=load_index(workspace)
     if action=='list':
         source=relative(workspace,inside(workspace,request['source'])) if request.get('source') else None;tasks=[];errors=[]
@@ -86,6 +91,8 @@ def dispatch(workspace,action,request):
     file.parent.mkdir(parents=True,exist_ok=True)
     with index_lock(workspace,file.parent):
         file,index=load_index(workspace)
+        replay=protocol.replay(workspace,index,'agent-tasks.'+action,request)
+        if replay is not None:return replay
         if action=='create':
             source=inside(workspace,request['source']);source_hash=sha(source)
             if request.get('source_sha256')!=source_hash:raise ValueError('原建筑已变化，请重新打开后交接')
@@ -102,11 +109,14 @@ def dispatch(workspace,action,request):
                 import math
                 if not isinstance(camera,dict) or any(not isinstance(camera.get(key),list) or len(camera[key])!=3 or any(type(n) not in (int,float) or not math.isfinite(n) for n in camera[key]) for key in ('eye','target','up')) or type(camera.get('fov')) not in (int,float) or not 1<=camera['fov']<=120:raise ValueError('任务相机须为有效eye/target/up/fov')
                 camera={key:camera[key] for key in ('eye','target','up','fov')}
-            data=dict(schema_version=1,id=identifier,name=name.strip(),source=relative(workspace,source),source_sha256=source_hash,geometry_sha256=model.fingerprint(),size=list(model.size),directory=relative(workspace,project_paths(source)['version']/'Agent交接'/('task-'+identifier)),revision=0,created_at=now(),comments=comments,camera=camera,origins=origins,returns=[],history=[])
+            data=dict(status='pending',schema_version=1,id=identifier,name=name.strip(),source=relative(workspace,source),source_sha256=source_hash,geometry_sha256=model.fingerprint(),size=list(model.size),directory=relative(workspace,project_paths(source)['version']/'Agent交接'/('task-'+identifier)),revision=0,created_at=now(),comments=comments,camera=camera,origins=origins,returns=[],history=[])
         else:
             data=task_for(workspace,index,request['id']);source=verify(workspace,data)
-            if request.get('revision')!=data['revision']:raise ValueError('任务已更新，请刷新后核对再提交')
-            if action=='record':
+            if action not in ('claim','heartbeat','release') or 'revision' in request:
+                if request.get('revision')!=data['revision']:protocol.error('REVISION_CONFLICT','任务已更新，请刷新后核对再提交',retryable=True,details={'current_revision':data['revision']})
+            if action in ('claim','heartbeat','release'):protocol.lease_action(data,action,request)
+            elif action=='record':
+                protocol.check_lease(data,request,required=bool(request.get('request_id')))
                 from nbt_refine import read_master
                 target=inside(workspace,request['new_source']);paths=project_paths(source);new_paths=project_paths(target)
                 if target==source or new_paths['version']==paths['version'] or new_paths['workdir']!=paths['workdir'] or any(part in ('delivery','runtime','parts','Agent交接') for part in target.relative_to(paths['workdir']).parts):raise ValueError('请回传同一建筑的新版本完整主模型，不是原稿、过程稿或交付副本')
@@ -124,6 +134,7 @@ def dispatch(workspace,action,request):
                 if not isinstance(summary,str) or not 1<=len(summary)<=8000:raise ValueError('请填写1～8000字的真实改动说明')
                 if sha(target)!=target_hash or sha(source)!=data['source_sha256']:raise ValueError('登记期间模型已变化')
                 data['returns'].append(dict(id=uuid.uuid4().hex,source=relative(workspace,target),source_sha256=target_hash,geometry_sha256=model.fingerprint(),size=list(model.size),summary=summary,comments=claims,review={},created_at=now(),acceptance='pending_user_review'))
+                data['status']='completed';data.pop('lease',None)
             elif action=='review':
                 entry=next((entry for entry in data['returns'] if entry['id']==request.get('return_id')),None)
                 if not entry:raise ValueError('回传版本不存在')
@@ -135,15 +146,14 @@ def dispatch(workspace,action,request):
                 if not isinstance(note,str) or len(note)>4000:raise ValueError('核对备注最多4000字')
                 entry['review'][key]=dict(state=request['state'],note=note,updated_at=now())
             else:raise ValueError('未知Agent任务操作')
-        commit(workspace,file,index,data,action)
-        result=output(workspace,data)
+        extras={}
         if action=='record':
             from nbt_history import record_produced_version
-            result['version_history']=record_produced_version(workspace,target,parent=source,message=summary,actor='external_agent',tasks=['agent:'+data['id']],set_current=False)
-        return result
+            extras['version_history']=record_produced_version(workspace,target,parent=source,message=summary,actor='external_agent',tasks=['agent:'+data['id']],set_current=False)
+        return commit(workspace,file,index,data,action,request,extras)
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['create','list','get','discover','record','review']);parser.add_argument('--request',type=Path,required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['create','list','get','discover','record','review','claim','heartbeat','release']);parser.add_argument('--request',type=Path,required=True);args=parser.parse_args()
     try:print(json.dumps(dispatch(args.workspace,args.action,read(args.request)),ensure_ascii=False));return 0
     except (ValueError,OSError,KeyError,TypeError) as error:print(json.dumps(dict(error=str(error)),ensure_ascii=False));return 1
 if __name__=='__main__':raise SystemExit(main())

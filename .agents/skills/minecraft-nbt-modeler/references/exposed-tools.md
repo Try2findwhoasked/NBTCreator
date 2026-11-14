@@ -74,6 +74,9 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 - history → scripts/nbt_history.py
 - snbt → scripts/nbt_snbt.py
 - finalize → scripts/nbt_finalize.py
+- machine → scripts/nbt_machine.py
+- architect → scripts/nbt_architect.py
+- session → scripts/nbt_engine_session.py
 
 工作区入口为 `python .agents/skills/nbtcreator-workspace/nbt.py <命令>`。`feedback scan` 扫描结构版本的评论索引，`feedback collect/archive` 校验或归档意见证据，详见 [Agent读取意见](agent-feedback.md)。
 
@@ -104,11 +107,20 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | parametric_layout | 按网格、边框或中心布局安装对象；明确拒绝或跳过缺口/保护冲突并逐项报告；不写建筑。 |
 | parametric_compose | 按对象编号、锚点与朝向组合构件，检查重叠和保留空间，返回可预览结构方案。 |
 | parametric_regenerate | 核对原配方并仅重生成指定部件，检查其他体素相同，返回含对象编号和父配方哈希的候选。 |
-| pattern_list | 查询纹样图、哈希、适用安装面和建议尺寸。 |
+| pattern_list | 查询纹样图、哈希、适用安装面和建议尺寸；microfit.preferred 标记小尺寸专用纹样，recommended_size_uv 按安装面给出已测微型尺寸。 |
 | pattern_compile | 将库中或工作区的灰度纹样编译为地板、墙、柱或吊顶面板方案。 支持surface=cylinder的圆柱环绕，楼梯和半砖状态由脚本按局部轮廓和切线自动确定。 |
 | pattern_preview | 编译纹样面板并生成引擎候选预览。 支持surface=cylinder的圆柱环绕，楼梯和半砖状态由脚本按局部轮廓和切线自动确定。 |
 | pattern_mount | 将图库或样本纹样贴合绑定安装面，地板生成原层镶嵌替换候选，墙柱和吊顶生成外贴候选，硬检查保护、开口、占用、净空和预算。 |
 | pattern_cylinder_mount | 对哈希绑定的既有竖直圆柱生成环绕外饰候选，自动确定楼梯与半砖状态，检查完整柱芯、碰撞接触、保护、开口和预算。目标框包含柱芯及一格外饰边。 |
 | pattern_create | 优先设计8～32像素的小型基础纹样，默认16×16。Agent以小位图、几何绘图或基础图层组合生成原生纹样资产，再用pattern_microfit拟合2～8格单元。支持区域裁取、旋转镜像、重复和镂空；返回sample与预览。 |
 | pattern_assets | 查询、读取、导入、复制裁取、重命名或回收原生纹样资产。内置图库只读，copy创建新副本，修改需绑定content_sha256，重用图像以image_sha256绑定。list不修改建筑或复制内置文件。 |
-| pattern_microfit | 优先使用的微型纹样拟合器。2～8格单元保留主轮廓、连通分量和孔洞，自动选择半砖楼梯并检查失真，再逐份复制铺排，支持圆柱。无法辨认时拒绝并提示裁取更简单的单元；preview可生成真实预览。 |
+| pattern_microfit | 先拟合可辨纹样单元，再铺排；支持显式拉伸和量化视觉质量报告/门槛，保留楼梯半砖细节与硬拓扑约束。 |
+| scene_compile | 按稳定对象ID、尺寸引用和贴附关系编译建筑对象图；检查依赖、实际接触、重叠、保留空间与声明通路，只返回候选。 |
+| scene_save | 显式保存对象图和编译快照的新版本；校验候选内容与父版本，保留旧版，不写建筑或定稿NBT。 |
+| scene_read | 读取建筑对象图及不可变版本快照，校验文件哈希；不推定已审阅或已批准。 |
+| scene_update | 修改已有对象并按依赖联动重算，复验整图，检查原保护区与修改预算；返回候选，须另用scene_save保存新版本。 |
+
+
+## 外部 Agent 机器接口
+
+`machine --schema` 返回 tool-catalog.json 的 machine_protocol 契约；`machine --request <JSON>` 使用统一请求与错误封装。任务领取、超时重领、幂等重试和批注独立接口见 [机器接口说明](agent-protocol.md)。

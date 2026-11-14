@@ -7,7 +7,7 @@
  function element(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;}
  function download(name,value,type='application/json'){const blob=new Blob([typeof value==='string'?value:JSON.stringify(value,null,2)],{type});const a=element('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
  function notify(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error);$('prompt-editor-save-state').textContent=error?message:'修改后自动保存';$('prompt-editor-save-state').title=message;$('prompt-editor-save-state').classList.toggle('error',error);}
- function binding(){return JSON.stringify({project:state.project,operations:state.operations});}
+ function binding(){return JSON.stringify({project:state.project,operations:state.operations,...(state.design_standard?{project_standard:C.standardText(state)}:{})});}
  function aiDraft(){return state.aiDraft&&typeof state.aiDraft.text==='string'&&state.aiDraft.text.length<=60000&&state.aiDraft.binding===binding()?state.aiDraft:null;}
  function composeAI(text){const base=C.prompt(state);return base.slice(0,base.indexOf('# 全局设计与细节要求'))+'# 全局设计与细节要求（AI 建议，待审阅）\n'+text+'\n\n'+base.slice(base.indexOf('# 自动存放规则'));}
  function outputText(){const cached=archivedPrompts.get(state.export_id);if(cached?.binding===JSON.stringify(state))return cached.original.text;return aiDraft()?composeAI(aiDraft().text):C.prompt(state);}
@@ -90,7 +90,7 @@
    await studio.confirmCurrent();const current=await autosave.flush();const task=await parent.nbtPromptStorage.publish({index:current.index,id:current.id,revision:current.revision});studio.published(task)
    const status=$('prompt-task-state');status.dataset.id=task.id;status.dataset.path=task.directory;status.textContent='已交接“'+state.project.name+'”，请手动让外部助手读取任务。';status.title=task.directory
    $('prompt-task-command').textContent='python .agents/skills/nbtcreator-workspace/nbt.py prompts task --id '+task.id
-   $('prompt-task-handoff').hidden=false;notify(task.unchanged?'该任务已保存，未重复创建文件夹':'任务目录已创建，提示词和方案已保存，可交给外部 Agent')
+   $('prompt-task-handoff').hidden=false;studio.showOutput(true);notify(task.unchanged?'该任务已保存，未重复创建文件夹':'任务目录已创建，提示词和方案已保存，可交给外部 Agent')
   }catch(error){notify(error.message,true)}finally{button.disabled=pending.size>0||C.validate(state).length>0}
  });
  $('prompt-task-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('prompt-task-command').textContent);notify('Agent读取命令已复制')}catch{notify($('prompt-task-command').textContent)}}
@@ -100,10 +100,10 @@
  $('copy').onclick=async()=>{try{await autosave?.flush();if(navigator.clipboard?.writeText)await navigator.clipboard.writeText($('result').value);else throw Error('fallback');notify('完整提示词已复制');}catch{$('result').focus();$('result').select();notify(document.execCommand('copy')?'完整提示词已复制':'已选中提示词，请按 Ctrl+C');}};
  $('import').onclick=()=>$('file').click();$('file').onchange=async()=>{const f=$('file').files[0];if(!f)return;try{const v=JSON.parse(await f.text());const candidate=C.normalize(v);const errors=C.validate(candidate);if(errors.length)throw Error(errors.join('；'));state=candidate;pending.clear();renderProject();renderOperations();update();}catch(e){notify('导入失败：'+e.message,true);}finally{$('file').value='';}};
  $('reset').onclick=()=>studio.addBlank();
- let aiBridge=null,candidateBinding=null,aiRunning=false,candidateMode='text';
+ let aiBridge=null,candidateBinding=null,aiRunning=false,aiEpoch=0,candidateMode='text';
  try{if(window.parent!==window&&window.parent.location.origin===location.origin)aiBridge=window.parent.nbtPromptAI;}catch{}
  function aiMessage(text,error=false){$('prompt-ai-status').textContent=text;$('prompt-ai-status').classList.toggle('error',error);}
- function aiLock(value){aiRunning=value;$('prompt-ai-mode').disabled=value;$('prompt-ai-generate').disabled=value;$('prompt-ai-cancel').disabled=!value;$('prompt-ai-settings').disabled=value;studio?.refresh();}
+ function aiLock(value){aiRunning=value;$('prompt-ai-mode').disabled=value;$('prompt-ai-generate').disabled=value;$('prompt-ai-cancel').disabled=!value;$('prompt-ai-cancel').hidden=!value;$('prompt-ai-settings').disabled=value;studio?.refresh();}
  function renderCandidate(){
   const host=$('prompt-ai-review');host.replaceChildren();$('prompt-ai-proposal').hidden=!candidateBinding;$('prompt-ai-raw').open=candidateMode==='text';if(!candidateBinding||candidateMode==='text')return;
   try{const proposal=JSON.parse($('prompt-ai-candidate').value);for(const [key,value]of Object.entries(proposal.project_patch??{})){const label=element('label',undefined,['name','buildingShape'].includes(key)?'':'wide');label.append(element('span',projectFields[key]??key));const input=element(key==='name'?'input':'textarea');input.dataset.proposalField=key;input.value=Array.isArray(value)?value.join(' × '):value;input.oninput=()=>{const parsed=JSON.parse($('prompt-ai-candidate').value);parsed.project_patch[key]=key==='size'?input.value.split(/[×xX,， ]+/).filter(Boolean).map(Number):input.value;$('prompt-ai-candidate').value=JSON.stringify(parsed,null,2);state.proposal_draft={binding:candidateBinding,mode:candidateMode,raw:$('prompt-ai-candidate').value};update()};label.append(input);host.append(label)}}catch{aiMessage('AI 返回内容无法展开，请在高级数据中检查格式。',true)}
@@ -120,15 +120,15 @@
  document.querySelector('[data-tab=ai]').addEventListener('click',refreshAI);refreshAI();
  $('prompt-ai-references').onclick=()=>{const flow=$('prompt-ai-mode').value==='draft'?'draft':$('prompt-ai-mode').value==='text'?'prompt':'workbench';const picker=window.parent?.nbtReferencePicker;if(picker)picker.open({workflow:flow,query:$('prompt-ai-instruction').value}).catch(error=>aiMessage(error.message,true));else aiMessage('本地检索在桌面版工作区提供',true)};
  $('prompt-ai-settings').onclick=()=>{if(aiBridge)aiBridge.settings();else aiMessage('API 设置在 Electron 桌面版主界面右上角提供。',true);};
- function sanitizedDesign(){
-   const p=state.project,keys=['name','buildingShape','layout','circulation','stage','size','footprint','theme','purpose','integration','style','ceiling','floor','wall','props','preserve','budget'];
+ function sanitizedDesign(doc=state,mode=$('prompt-ai-mode').value){
+   const p=doc.project,keys=['name','buildingShape','layout','circulation','stage','size','footprint','theme','purpose','integration','style','ceiling','floor','wall','props','preserve','budget'];
    const project=Object.fromEntries(keys.map(k=>[k,p[k]]));
    project.extras=String(p.extras??'').split('\n').filter(line=>!line.startsWith('源文件 SHA256：')).join('\n');
    const allowed=new Set(['kind','label','enabled','classification','lo','hi','geometry','mode','state','from_states','seed','max_writes','offset','count','destination','quarter_turns','mirror','move','include_air','overwrite','iterations','seeds','steps','decay','surface_only','centre','radius','roughness','rays','ray_length','ray_width','fraction','spacing','supported','action','scope','scale','palette','preserve_properties','shape_policy','profile','style_note','slab_share','patch_size','pit_depth','route_margin','exclude_boxes','include_boxes','slab_overrides','moss','cracks','floor','thickness','width','start','end']);
-   return {project,task:$('prompt-ai-mode').value==='draft'?'draft':'controls',existing_model:!!p.source,operations:state.operations.map(op=>Object.fromEntries(Object.entries(op).filter(([key])=>allowed.has(key))))};
+   return {project,task:mode==='draft'?'draft':'controls',existing_model:!!p.source,...(doc.design_standard?{project_standard:C.standardText(doc)}:{}),operations:doc.operations.map(op=>Object.fromEntries(Object.entries(op).filter(([key])=>allowed.has(key))))};
  }
  $('prompt-ai-generate').onclick=async()=>{
-   if(aiRunning)return;
+   if(aiRunning)return;const epoch=++aiEpoch;
    try{
      if(!aiBridge)throw Error('AI 需要在 Electron 桌面版内使用');
      if(pending.size||C.validate(state).length)throw Error('请先修正当前方案参数');
@@ -139,29 +139,45 @@
      candidateMode=mode;
      if(candidateMode==='draft'&&(state.project.stage!=='draft'||state.project.source))throw Error('请先点击“新建初稿”，再生成完整初稿方案');
      if(input.mode==='workbench'){input.context.baseline_binding=await NbtPromptAIInput.bindingToken(before);if(binding()!==before)throw Error('方案已改变，请重新生成候选')}
+     if(epoch!==aiEpoch)throw Object.assign(Error('本次生成已终止'),{code:'AI_CANCELLED'});
      let result=input.mode==='workbench'?await aiBridge.generateWorkbench(input.instruction,input.context):await aiBridge.generate(input.instruction);
+     if(epoch!==aiEpoch)throw Object.assign(Error('本次生成已终止'),{code:'AI_CANCELLED'});
      window.parent?.nbtReferencePicker?.sources($('prompt-ai-sources'),result);
      if(binding()!==before)throw Error('生成期间方案已改变，请基于当前方案重新生成');
      if(result.operation_patch)result={...result,operations:NbtPromptAIInput.mergeOperations(state.operations,result.operation_patch)};
      if(candidateMode==='text'&&(result.mode!=='prompt'||typeof result.text!=='string'||!result.text.trim()))throw Error('AI 返回内容无效');
      $('prompt-ai-candidate').value=candidateMode!=='text'?JSON.stringify({summary:result.summary,project_patch:result.project_patch,operations:result.operations},null,2):result.text;candidateBinding=before;state.proposal_draft={binding:before,mode:candidateMode,raw:$('prompt-ai-candidate').value};$('prompt-ai-apply').disabled=false;renderCandidate();update();aiMessage(candidateMode!=='text'?'设计要求已生成。可以直接修改各项文字，再点击“采用并继续审查”。':'说明已写好，可以修改后采用。');
-   }catch(e){aiMessage(e.message,true);}finally{aiLock(false);}
+   }catch(e){if(epoch===aiEpoch)aiMessage(e.message,e.code!=='AI_CANCELLED');}finally{if(epoch===aiEpoch)aiLock(false);}
  };
- $('prompt-ai-cancel').onclick=()=>aiBridge?.cancel();
+ $('prompt-ai-cancel').onclick=()=>{aiEpoch++;aiBridge?.cancel();aiLock(false);aiMessage('本次生成已终止，可重新编写。')};
+ function adoptProposal(base,proposal,mode){
+     const patch=proposal.project_patch??{},allowed=['buildingShape','layout','circulation','name','theme','purpose','footprint','style','ceiling','floor','wall','props','preserve','extras','size'];
+     if(Object.keys(patch).some(key=>!allowed.includes(key)))throw Error('方案不能改写路径、阶段、预算或保护字段');
+     if(base.project.source&&patch.size&&JSON.stringify(patch.size)!==JSON.stringify(base.project.size))throw Error('已有模型的尺寸保持不变');
+     const next=C.clone(base);if(patch.buildingShape){if(!C.buildingShapes[patch.buildingShape]||base.project.source&&patch.buildingShape!==base.project.buildingShape)throw Error('建筑形状无效，或已有模型形状不能由 AI 改写');C.applyShape(next.project,patch.buildingShape);}for(const [key,value]of Object.entries(patch)){if(key!=='size'&&(typeof value!=='string'||value.length>4000))throw Error('设计字段需为有效文字');next.project[key]=value;}
+     if(proposal.operations!==undefined)next.operations=proposal.operations;
+     if(mode==='draft'){
+       for(const key of ['name','theme','purpose','layout','circulation','style','ceiling','floor','wall','props'])if(typeof patch[key]!=='string'||!patch[key].trim())throw Error('完整初稿需补齐：'+(projectFields[key]||key));
+       if(proposal.operations!==undefined&&(!Array.isArray(proposal.operations)||proposal.operations.length))throw Error('提示词编写只采用设计要求；具体工具步骤请使用高级工具模式');
+     }
+     const errors=C.validate(next);if(errors.length)throw Error(errors.join('；'));delete next.aiDraft;delete next.proposal_draft;next.workbench={...next.workbench,generated:true,status:'pending'};return next;
+ }
+ async function generateDocument(doc,isCancelled=()=>false){
+   if(!aiBridge)throw Error('AI 需要在 Electron 桌面版内使用');
+   const base=C.clone(doc),mode='draft',errors=C.validate(base);if(errors.length)throw Error(errors.join('；'));
+   const before=JSON.stringify({project:base.project,operations:base.operations,...(base.design_standard?{project_standard:C.standardText(base)}:{})});
+   const input=NbtPromptAIInput.request(mode,base.workbench?.instruction??'',sanitizedDesign(base,mode));
+   input.context.baseline_binding=await NbtPromptAIInput.bindingToken(before);
+   if(isCancelled())throw Error('已停止批量生成');
+   const result=await aiBridge.generateWorkbench(input.instruction,input.context,{scope:'prompt:'+base.export_id});
+   if(result.operation_patch)result.operations=NbtPromptAIInput.mergeOperations(base.operations,result.operation_patch);
+   return adoptProposal(base,result,mode);
+ }
  $('prompt-ai-apply').onclick=()=>{try{
    if(aiRunning||candidateBinding!==binding()||pending.size||C.validate(state).length)throw Error('方案已改变或参数无效，请重新生成建议');
    const text=$('prompt-ai-candidate').value.trim();if(!text||text.length>60000)throw Error('填写有效的候选建议');
    if(candidateMode!=='text'){
-     const proposal=JSON.parse(text),patch=proposal.project_patch??{},allowed=['buildingShape','layout','circulation','name','theme','purpose','footprint','style','ceiling','floor','wall','props','preserve','extras','size'];
-     if(Object.keys(patch).some(key=>!allowed.includes(key)))throw Error('方案不能改写路径、阶段、预算或保护字段');
-     if(state.project.source&&patch.size&&JSON.stringify(patch.size)!==JSON.stringify(state.project.size))throw Error('已有模型的尺寸保持不变');
-     const next=C.clone(state);if(patch.buildingShape){if(!C.buildingShapes[patch.buildingShape]||state.project.source&&patch.buildingShape!==state.project.buildingShape)throw Error('建筑形状无效，或已有模型形状不能由 AI 改写');C.applyShape(next.project,patch.buildingShape);}for(const [key,value]of Object.entries(patch)){if(key!=='size'&&(typeof value!=='string'||value.length>4000))throw Error('设计字段需为有效文字');next.project[key]=value;}
-     if(proposal.operations!==undefined)next.operations=proposal.operations;
-     if(candidateMode==='draft'){
-       for(const key of ['name','theme','purpose','layout','circulation','style','ceiling','floor','wall','props'])if(typeof patch[key]!=='string'||!patch[key].trim())throw Error('完整初稿需补齐：'+(projectFields[key]||key));
-       if(proposal.operations!==undefined&&(!Array.isArray(proposal.operations)||proposal.operations.length))throw Error('提示词编写只采用设计要求；具体工具步骤请使用高级工具模式');
-     }
-     const errors=C.validate(next);if(errors.length)throw Error(errors.join('；'));delete next.aiDraft;delete next.proposal_draft;next.workbench={...next.workbench,generated:true,status:'pending'};state=next;pending.clear();renderProject();renderOperations();candidateBinding=null;$('prompt-ai-apply').disabled=true;renderCandidate();update();document.querySelector('[data-tab=project]').click();aiMessage('设计要求已采用，请逐项审查；修改会自动保存。');return;
+     const next=adoptProposal(state,JSON.parse(text),candidateMode);state=next;pending.clear();renderProject();renderOperations();candidateBinding=null;$('prompt-ai-apply').disabled=true;renderCandidate();update();document.querySelector('[data-tab=project]').click();aiMessage('设计要求已采用，请逐项审查；修改会自动保存。');return;
    }
    state.aiDraft={text,binding:binding()};delete state.proposal_draft;state.workbench={...state.workbench,generated:true,status:'pending'};candidateBinding=null;$('prompt-ai-apply').disabled=true;renderCandidate();update();aiMessage('已采用设计说明，请审查完整提示词。');
  }catch(e){aiMessage(e.message,true);}};
@@ -181,9 +197,13 @@
    state=next;pending.clear();renderProject();renderOperations();update();
  }};
  if(window.parent!==window){document.body.classList.add('embedded');}
- const payload=doc=>{const cached=archivedPrompts.get(doc.export_id);if(cached?.binding===JSON.stringify(doc))return {session_id:doc.export_id,document:C.clone(cached.original.document),text:cached.original.text,plan:cached.original.plan,context:cached.original.context};return {session_id:doc.export_id,document:C.clone(doc),text:doc.aiDraft?.binding===JSON.stringify({project:doc.project,operations:doc.operations})?C.prompt(doc).replace(/# 全局设计与细节要求[\s\S]*?# 自动存放规则/,'# 全局设计与细节要求\n'+doc.aiDraft.text+'\n\n# 自动存放规则'):C.prompt(doc),plan:C.plan(doc),context:{...doc.project.context,max_changed_blocks:doc.project.budget}}};
+ const payload=doc=>{const cached=archivedPrompts.get(doc.export_id);if(cached?.binding===JSON.stringify(doc))return {session_id:doc.export_id,document:C.clone(cached.original.document),text:cached.original.text,plan:cached.original.plan,context:cached.original.context};return {session_id:doc.export_id,document:C.clone(doc),text:doc.aiDraft?.binding===JSON.stringify({project:doc.project,operations:doc.operations,...(doc.design_standard?{project_standard:C.standardText(doc)}:{})})?C.prompt(doc).replace(/# 全局设计与细节要求[\s\S]*?# 自动存放规则/,'# 全局设计与细节要求\n'+doc.aiDraft.text+'\n\n# 自动存放规则'):C.prompt(doc),plan:C.plan(doc),context:{...doc.project.context,max_changed_blocks:doc.project.budget}}};
  autosave=createPromptAutosave({host:$('output-mode'),read:()=>payload(state),onSaved:result=>studio?.saved(result)});
- studio=createPromptWorkspace({remember:(id,original,doc)=>archivedPrompts.set(id,{original,binding:JSON.stringify(doc)}),document:()=>state,valid:()=>!pending.size&&!C.validate(state).length,isGenerating:()=>aiRunning,flush:()=>autosave.flush(),bridge:parent!==window?parent.nbtPromptStorage:null,message:notify,update,saveDocument:doc=>parent.nbtPromptStorage.save(payload(doc)),instruction:text=>{$('prompt-ai-instruction').value=text},cancel:()=>aiBridge?.cancel(),restoreTask(task){$('prompt-task-handoff').hidden=!task;if(task){$('prompt-task-state').dataset.id=task.id;$('prompt-task-state').dataset.path=task.directory;$('prompt-task-state').textContent='已交接，请手动让外部助手读取。';$('prompt-task-command').textContent='python .agents/skills/nbtcreator-workspace/nbt.py prompts task --id '+task.id}},replace(doc){state=doc;pending.clear();$('prompt-ai-mode').value=state.project.stage==='draft'?'draft':'text';renderProject();renderOperations();restoreCandidate();update()},async generate(){await $('prompt-ai-generate').onclick();if(!candidateBinding)throw Error($('prompt-ai-status').textContent);$('prompt-ai-apply').onclick();if(candidateBinding)throw Error($('prompt-ai-status').textContent)}});
+ studio=createPromptWorkspace({remember:(id,original,doc)=>archivedPrompts.set(id,{original,binding:JSON.stringify(doc)}),document:()=>state,valid:()=>!pending.size&&!C.validate(state).length,isGenerating:()=>aiRunning,flush:()=>autosave.flush(),discard:()=>autosave.discard(),bridge:parent!==window?parent.nbtPromptStorage:null,message:notify,update,saveDocument:doc=>parent.nbtPromptStorage.save(payload(doc)),generateDocument,concurrency:async()=>(await aiBridge?.config())?.maxConcurrent??2,cancelDocument:id=>aiBridge?.cancel('prompt:'+id),instruction:text=>{$('prompt-ai-instruction').value=text},cancel:()=>aiBridge?.cancel(),restoreTask(task){$('prompt-task-handoff').hidden=!task;if(task){$('prompt-task-state').dataset.id=task.id;$('prompt-task-state').dataset.path=task.directory;$('prompt-task-state').textContent='已交接，请手动让外部助手读取。';$('prompt-task-command').textContent='python .agents/skills/nbtcreator-workspace/nbt.py prompts task --id '+task.id}},replace(doc){state=doc;pending.clear();$('prompt-ai-mode').value=state.project.stage==='draft'?'draft':'text';renderProject();renderOperations();restoreCandidate();update()},async generate(){await $('prompt-ai-generate').onclick();if(!candidateBinding)throw Error($('prompt-ai-status').textContent);$('prompt-ai-apply').onclick();if(candidateBinding)throw Error($('prompt-ai-status').textContent)}});
+ window.NbtPromptUI.defaultStandards=snapshot=>{if(!studio.pristine||studio.busy||aiRunning)return;state.design_standard=C.clone(snapshot);update()};
+ window.NbtPromptUI.applyStandards=async(snapshot,override='')=>{if(studio.busy||aiRunning)throw Error('请先结束当前提示词操作');await autosave.flush();if(snapshot)state.design_standard=C.clone(snapshot);else delete state.design_standard;state.design_override=override;state.workbench={...state.workbench,status:'pending'};delete state.aiDraft;delete state.proposal_draft;candidateBinding=null;restoreCandidate();update();await autosave.flush()};
+ window.NbtPromptUI.standards=()=>({snapshot:state.design_standard?C.clone(state.design_standard):null,override:state.design_override??''});
+ const norms=document.createElement('button');norms.id='prompt-project-standards';norms.type='button';norms.textContent='项目设计规范';$('prompt-batch-open').after(norms);norms.onclick=()=>parent.dispatchEvent(new Event('architect-standards'));
  window.NbtPromptUI.flushExport=()=>autosave.flush();
  renderProject();renderOperations();update();window.NbtPromptUI.ready=studio.load();window.NbtPromptUI.ready.catch(()=>{});
 })();

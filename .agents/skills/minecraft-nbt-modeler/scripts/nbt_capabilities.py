@@ -15,4 +15,13 @@ def capabilities():
     return dict(data,capabilities_sha256=hashlib.sha256(raw).hexdigest(),gui_required=False,
                 default_workspace='agent_cwd',default_assets='nbt_models',skill_entry='.agents/skills/nbtcreator-workspace/SKILL.md',knowledge_config='.nbtcreator/skill-exposure.json',path_policy='request_relative_with_absolute_legacy_compatibility')
 
-if __name__=='__main__':print(json.dumps(capabilities(),ensure_ascii=False,indent=2))
+if __name__=='__main__':
+    import argparse
+    data=capabilities();parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--agent-tool',choices=sorted(data['agent_tools']),help='只读取指定高层工具的完整参数Schema')
+    args=parser.parse_args()
+    if args.agent_tool:
+        data=dict(agent_tools={args.agent_tool:data['agent_tools'][args.agent_tool]},
+                  capabilities_sha256=data['capabilities_sha256'],gui_required=False,
+                  session_available=args.agent_tool in data.get('agent_session',{}).get('tools',[]))
+    print(json.dumps(data,ensure_ascii=False,indent=2))

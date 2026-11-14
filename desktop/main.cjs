@@ -10,7 +10,7 @@ const path=require('node:path')
 const fs=require('node:fs/promises')
 const root=path.resolve(__dirname,'..')
 const automationMinimized=process.env.NBTCREATOR_AUTOMATION==='1'&&process.env.NBTCREATOR_AUTOMATION_VISIBLE!=='1'
-let window,worker,serverUrl,api,closing=false,workspace,frontend
+let window,worker,serverUrl,api,candidateValidator,closing=false,workspace,frontend
 async function flushEditor(){
  if(!window||window.isDestroyed()||window.webContents.isDestroyed())return
  let timer
@@ -45,6 +45,7 @@ async function startBackend(){
  })
 }
 async function stopBackend(){
+ await candidateValidator?.close()
  const active=worker;if(!active)return;worker=null
  await new Promise(resolve=>{const timer=setTimeout(()=>{active.kill();resolve()},5000);active.once('exit',()=>{clearTimeout(timer);resolve()});active.postMessage({type:'stop'})})
 }
@@ -60,12 +61,12 @@ async function boot(){
  let initialPreferences
  const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler'),retrieve:async input=>{const response=await net.fetch(new URL('/__detail__/retrieve/read',serverUrl).href,{method:'POST',headers:{'content-type':'application/json',origin:new URL(serverUrl).origin},body:JSON.stringify(input),redirect:'error'});const data=await response.json();if(!response.ok)throw Error(data.error||'参考集合无法读取');return data}})
  const workspaceApi=createWorkspaceApi({cancel:()=>api?.cancel()})
- api=createApiService({workflowContext:(key,request)=>workspaceApi.guardContext(()=>internalAI.context(key,request)),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args),validateCandidate:require('./ai-candidate-validator.cjs').createCandidateValidator({root,python,directory:app.getPath('userData'),getWorkspace:()=>workspace})})
+ api=createApiService({captureWorkflowContext:(key,request)=>workspaceApi.guardContext(()=>internalAI.capture(key,request)),workflowContext:(key,{snapshot,...request})=>workspaceApi.guardContext(()=>internalAI.context(key,request,snapshot)),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args),validateCandidate:(candidateValidator=require('./ai-candidate-validator.cjs').createCandidateValidator({root,python,directory:app.getPath('userData'),getWorkspace:()=>workspace}))})
  await api.load()
- for(const [channel,handler]of Object.entries({'api-config':()=>api.publicConfig(),'api-save':input=>api.save(input),'api-models':()=>api.models(),'api-cancel':()=>api.cancel()}))ipcMain.handle('nbt:'+channel,(event,input)=>{allowed(event);return workspaceApi.run(()=>handler(input))})
+ for(const [channel,handler]of Object.entries({'api-config':()=>api.publicConfig(),'api-save':input=>api.save(input),'api-models':()=>api.models(),'api-cancel':input=>api.cancel(input?.requestId)}))ipcMain.handle('nbt:'+channel,(event,input)=>{allowed(event);return workspaceApi.run(()=>handler(input))})
  // Electron serializes thrown errors without custom fields. Return a bounded
  // failure envelope so the renderer can preserve this request's measurements.
- ipcMain.handle('nbt:api-generate',async(event,input)=>{allowed(event);try{return await workspaceApi.run(()=>api.generate(input))}catch(error){return {api_error:{message:error.message,api_metrics:error.api_metrics}}}})
+ ipcMain.handle('nbt:api-generate',async(event,input,options)=>{allowed(event);if(options&&(!options.requestId||Object.keys(options).some(key=>key!=='requestId')))throw Error('AI请求元数据无效');try{return await workspaceApi.run(()=>api.generate(input,options))}catch(error){return {api_error:{message:error.message,api_metrics:error.api_metrics,code:error.code,retryable:error.retryable===true}}}})
  let config={};try{config=JSON.parse(await fs.readFile(path.join(app.getPath('userData'),'settings.json'),'utf8'))}catch{}
  workspace=selectWorkspace({explicit:arg('--workspace'),environment:process.env.NBTCREATOR_WORKSPACE,agentCwd:process.env.NBTCREATOR_AGENT_CWD,cwd:process.cwd(),root,packaged:app.isPackaged,executable:app.getPath('exe'),config,settingsDirectory:app.getPath('userData'),systemDirectory:process.env.WINDIR})
  if(!workspace){const choice=await dialog.showOpenDialog({title:'选择项目根目录或nbt_models（自动识别）',properties:['openDirectory','createDirectory']});if(choice.canceled){app.quit();return}workspace=normalizeWorkspace(choice.filePaths[0]);await recordConfig()}

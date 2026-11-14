@@ -233,3 +233,24 @@ body[data-shell=studio] #prompt-editor-save-state { max-width:42%;overflow:hidde
 }
 @media(prefers-reduced-motion:reduce) { body[data-shell=studio] * { scroll-behavior:auto; transition:none; } }
 body[data-shell=studio].app-compact #studio-inspector :is(input:not([type=checkbox]):not([type=range]),select,textarea) { padding:4px 6px; }
+
+/* Display settings keep their own form layout after moving out of the toolbar. */
+body[data-shell=studio] #studio-display-settings { box-sizing:border-box; }
+body[data-shell=studio] #studio-display-settings>label { width:100%; min-width:0; max-width:none; margin:10px 0; }
+body[data-shell=studio] #studio-display-settings .cut-label { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; }
+body[data-shell=studio] #studio-display-settings #cut-value { display:block; order:0; margin:0; min-width:3em; color:var(--ui-text); text-align:right; }
+body[data-shell=studio] #studio-display-settings #view-cut { display:block; grid-column:1/-1; width:100%; min-width:0; max-width:none; margin:0; padding:0; box-sizing:border-box; }
+body[data-shell=studio] #studio-display-settings #view-layer { max-width:65%; }
+
+/* Menus use intrinsic form height; toolbar height rules must not clip text. */
+body[data-shell=studio] #studio-display-settings :is(select,button) { height:auto; min-height:36px; line-height:1.7; padding:6px 10px; white-space:normal; }
+body[data-shell=studio] #studio-display-settings select { width:100%; max-width:100%; box-sizing:border-box; }
+body[data-shell=studio] #studio-display-settings #view-layer { width:auto; min-width:90px; }
+body[data-shell=studio] #studio-display-settings>button { display:block; width:100%; margin-top:8px; text-align:left; }
+#studio-photos { width:min(600px,calc(100% - 16px)); max-width:calc(100% - 16px); max-height:calc(100% - 48px); min-width:260px; overflow:auto; resize:both; }
+#studio-photos.photos-open { display:flex; flex-direction:column; gap:8px; }
+.studio-photo-header { display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:move; touch-action:none; flex:none; }
+.studio-photo-header h3 { margin:0; font-size:14px; }
+#studio-photos .gallery { max-height:280px; overflow:auto; flex:none; }
+#studio-photos #image-toolbar { flex:none; height:auto; min-height:36px; flex-wrap:wrap; }
+#studio-photos #image-select { height:auto; min-height:34px; line-height:1.7; padding-block:6px; }

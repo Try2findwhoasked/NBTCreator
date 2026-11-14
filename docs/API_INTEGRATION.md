@@ -50,10 +50,21 @@ Key由Electron主进程使用safeStorage异步加密，放在当前用户配置�
 
 ## 验证范围
 
-`npm run test:api`：默认关闭不联网、加密保存/删除、最小上下文、受限结构、非法字段/越界、空/截断输出、错误信息、取消和并发拒绝。
+`npm run test:api`：默认关闭不联网、加密保存/删除、最小上下文、受限结构、非法字段/越界、空/截断输出、错误信息、独立取消、有界并发、队列上限、输入快照、配置保存互斥和工作区切换取消。
 
 `npm run test:api-desktop`：本机模拟HTTP接口 + 真实Electron safeStorage和Python引擎，检查配置、模型列表、提示词、局部计划、旧参数拒绝、本地预览和原稿保留。没有使用真实DeepSeek Key，不宣称真实服务连通或模型质量已经验收。
 
 0.2.1联调还包含提示词iframe共用连接、AI稿采用/失效/方案往返、真实Electron文件下载、共用设计变量，以及顶部功能页和窄屏切换。
 
 官方协议参考：[DeepSeek JSON输出](https://api-docs.deepseek.com/guides/json_mode/)、[模型列表](https://api-docs.deepseek.com/api/list-models/)、[Electron safeStorage](https://www.electronjs.org/docs/latest/api/safe-storage)。
+
+
+AI 连接默认允许 2 个并发生成，可在设置中选择 1～4 个；每个请求有独立编号、超时和取消信号。批量提示词按建筑独立保存，失败/取消的条目可重试，同一建筑的采用和预览仍依次执行。`npm run test:ai-batch` 验证并发、结果归属、部分失败重试和批量取消。
+
+外部 Agent 使用 `machine --schema` / `machine --request <JSON>` 获取版本化契约和统一错误封装；任务租约、幂等回执与独立批注读取见 [机器接口说明](../.agents/skills/minecraft-nbt-modeler/references/agent-protocol.md)。`npm run test:agent-protocol` 验证跨进程领取、超时重领、旧执行者拦截、提交中断重试和回执校验。
+
+内部 AI 的构件、选区和工作台任务按本次要求及已有操作附带工具说明，保留所选工具的必填字段和参数限制；工具或几何参数校验失败时，在原有重试次数内补充完整工具说明。此调整不改变后端允许的操作、工作区绑定或审阅流程。建筑交接要求按空间、构件及连接关系表达，未指定的实现细节由接收任务的 Agent 推导。提示词长度和本地模拟接口已验证，尚未用真实模型做质量对照。
+
+AI 资料准备最多同时进行2项。请求入队时冻结工作流配置、创作偏好与所选文档的文件版本；大段文档和检索集合在准备名额内读取。排队期间文档变化会拒绝旧快照，不悄悄使用新内容。几何预检复用工作区绑定的 Python 进程，取消、空闲退出与切换清理见[建模会话](../.agents/skills/minecraft-nbt-modeler/references/parametric-components.md#建模会话与结果复用)。测量记录分别保留 capture_ms、context_prepare_ms、queue_ms、validation_ms；这些阶段可重叠，不能简单相加当作总耗时。
+
+外部 Agent 可使用 scene_compile / scene_read / scene_update 编译和修改建筑对象关系，再显式 scene_save 保存图谱新版本；工具Schema统一加入 agent_tools，纯候选动作也开放给 session。图谱可驱动尺寸、接触与装饰贴附，更新绑定父版本并保留保护、留白、路线与预算。它不自动识别手工SNBT中的对象，不修改当前建筑或定稿导出，接入建筑仍走原候选预览与源绑定流程。详见[建筑对象图](../.agents/skills/minecraft-nbt-modeler/references/object-scenes.md)。

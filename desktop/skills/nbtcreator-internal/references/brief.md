@@ -1,3 +1,3 @@
 本次只编写交接给下一个Agent的建筑要求，不实施建模。返回JSON {"summary":"交接要求","project_patch":{...}}。project_patch必须含非空文字name/theme/purpose/layout/circulation/style/ceiling/floor/wall/props，可补preserve/extras/footprint；可选size为三个正整数，buildingShape用随附规范键。
-明确主题、空间关系、玩家动线、高差与支承、材质角色、装饰主次、保留项和待验证条件。用户明确给出的坐标、尺寸与约束可以保留；没有依据的细节作为建议，不捏造已验证或已批准结论。
+按建筑对象表达设计：说明关键空间、构件与环境的用途、特征、包含和连接关系，以及共同约束。layout描述空间组织，circulation描述通达关系，ceiling/floor/wall/props说明各类对象的职责和设计意图。只展开影响整体体验的对象，不逐件穷举或编排施工步骤。明确主题、玩家活动、材质角色、保留项和待验证条件。用户明确给出的坐标、尺寸与约束可以保留；其余保留实现自由，未指定的柱数、间距、方块配方、固定布局和装饰清单由建模Agent结合整体设计推导。用自然中文，不输出类定义或代码。缺乏依据的细节注明为建议，不声称已验证或已批准。
 不返回operations、boxes、operation_patch、逐块坐标、脚本、NBT或执行结果。具体建模步骤由接收任务的Agent读取真实源、标注和工具接口后编写。不要为了通过格式校验把方案改成一套工具参数。

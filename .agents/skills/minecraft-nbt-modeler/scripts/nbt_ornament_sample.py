@@ -61,6 +61,17 @@ def sample_image(workspace,settings):
     return crop_image(read_raster(raw),settings.get('crop'))
 
 
+def resize_sample(image, size, fit='contain'):
+    """One mapping for mask, alpha and colour; stretch is explicit distortion."""
+    if fit == 'stretch':
+        return image.resize(size, Image.Resampling.BOX)
+    if fit == 'cover':
+        return ImageOps.fit(image, size, Image.Resampling.BOX)
+    if fit == 'contain':
+        return ImageOps.pad(image, size, Image.Resampling.BOX, color=0)
+    raise ValueError('sample.fit 须为 contain、cover 或 stretch')
+
+
 def fit_sample(workspace, settings, width, height, seed, symmetry, repeat=(1, 1), *, subcells=False, return_coverage=False):
     image=sample_image(workspace,settings)
     mask = image.getchannel('A') if settings.get('channel') == 'alpha' else image.convert('L')
@@ -72,15 +83,10 @@ def fit_sample(workspace, settings, width, height, seed, symmetry, repeat=(1, 1)
         raise ValueError('重复次数超过装饰面格数')
     factor = 2 if subcells else 1
     size = (factor * (width // columns), factor * (height // rows))
-    if settings.get('fit', 'contain') == 'cover':
-        mask = ImageOps.fit(mask, size, Image.Resampling.BOX)
-        alpha = ImageOps.fit(alpha, size, Image.Resampling.BOX)
-    else:
-        mask = ImageOps.pad(mask, size, Image.Resampling.BOX, color=0)
-        alpha = ImageOps.pad(alpha, size, Image.Resampling.BOX, color=0)
+    mask = resize_sample(mask, size, settings.get('fit', 'contain'))
+    alpha = resize_sample(alpha, size, settings.get('fit', 'contain'))
     colors=image.convert('RGB')
-    resize=ImageOps.fit if settings.get('fit','contain')=='cover' else ImageOps.pad
-    colors=resize(colors,size,Image.Resampling.BOX)
+    colors=resize_sample(colors,size,settings.get('fit','contain'))
     from nbt_model import state, AIR_NAMES
     palette=[]
     for entry in settings.get('colors',[]):

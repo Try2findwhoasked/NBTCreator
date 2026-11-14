@@ -11,6 +11,7 @@ import nbt_components as library
 
 ROOT=Path(__file__).resolve().parents[1]
 SUPPORTED_AGENT_TOOLS={'structure_list','structure_read','structure_view','structure_preview','structure_write','structure_place','structure_save','parametric_list','parametric_compile','parametric_preview','parametric_contract','parametric_validate','parametric_surface','parametric_mount','parametric_layout','parametric_compose','parametric_regenerate','pattern_list','pattern_compile','pattern_preview','pattern_mount','pattern_cylinder_mount','pattern_create','pattern_assets','pattern_microfit'}
+SUPPORTED_AGENT_TOOLS.update(('scene_compile','scene_save','scene_read','scene_update'))
 
 
 def definitions():
@@ -132,6 +133,9 @@ def dispatch(workspace,tool,arguments):
     definition=definitions().get(tool)
     if not definition:raise ValueError('未开放的结构Agent工具')
     _schema(arguments,definition['parameters'])
+    if tool in ('scene_compile','scene_save','scene_read','scene_update'):
+        from nbt_object_scene import dispatch_scene
+        return dispatch_scene(workspace,tool,arguments)
     if tool=='pattern_create':
         from nbt_pattern_design import create
         return create(workspace,arguments)

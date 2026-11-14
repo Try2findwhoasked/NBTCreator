@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timezone
 from nbt_prompts import encode, digest, inside, relative, index_lock
 from nbt_web_paths import project_paths
+import nbt_agent_protocol as protocol
 
 STATUSES=('todo','working','blocked','done')
 
@@ -98,10 +99,11 @@ def view(workspace,source,data,comments,report):
                 boundary='Task organization only; original feedback, evidence, model and approval remain separate.')
 
 def dispatch(workspace,action,request):
-    workspace=Path(workspace).resolve();source=inside(workspace,request['source']);source_hash=digest(source.read_bytes())
-    if request.get('source_sha256')!=source_hash:raise ValueError('源建筑已变化，请重新打开后整理意见')
+    workspace=Path(workspace).resolve();source=inside(workspace,request['source']);source_hash=request.get('source_sha256')
     directory=inside(workspace,project_paths(source)['version']/'修改意见');file=directory/'意见任务.json'
-    report,comments=inventory(workspace,source);by_key={item['key']:item for item in comments}
+    if action in ('list','evidence'):
+        if digest(source.read_bytes())!=source_hash:protocol.error('SOURCE_CHANGED','源建筑已变化，请重新读取')
+        report,comments=inventory(workspace,source)
     if action=='list':return view(workspace,source,load_document(file,source,source_hash,workspace),comments,report)
     if action=='evidence':
         data=load_document(file,source,source_hash,workspace);task=next((item for item in data['tasks'] if item['id']==request.get('id')),None)
@@ -125,8 +127,12 @@ def dispatch(workspace,action,request):
     directory.mkdir(parents=True,exist_ok=True)
     with index_lock(workspace,directory):
         data=load_document(file,source,source_hash,workspace)
+        replayed=protocol.replay(workspace,data,'annotation-tasks.'+action,request)
+        if replayed is not None:return replayed
+        if digest(source.read_bytes())!=source_hash:protocol.error('SOURCE_CHANGED','源建筑已变化，请重新读取')
+        report,comments=inventory(workspace,source);by_key={item['key']:item for item in comments}
         if data['source_sha256']!=source_hash:raise ValueError('已有任务属于旧源版本，保留旧记录；请在新版本重新整理')
-        if request.get('revision')!=data['revision']:raise ValueError('意见任务已被其他页面更新，请刷新后再操作')
+        if request.get('revision')!=data['revision']:protocol.error('REVISION_CONFLICT','意见任务已被其他页面更新，请刷新后再操作',retryable=True,details={'current_revision':data['revision']})
         before=copy.deepcopy(data['tasks']);now=stamp()
         if action=='create':
             title=request.get('title','');category=request.get('category','其他')
@@ -174,8 +180,9 @@ def dispatch(workspace,action,request):
         except FileExistsError:
             if event_file.read_bytes()!=raw:raise ValueError('任务历史被改动')
         data['history'].append(dict(action=action,time=now,file=relative(workspace,event_file),sha256=digest(raw)));data['revision']+=1
+        result=view(workspace,source,data,comments,report);protocol.receipt(workspace,data,'annotation-tasks.'+action,request,result)
         temporary=file.with_name(file.name+'.'+uuid.uuid4().hex+'.tmp');temporary.write_bytes(encode(data));temporary.replace(file)
-        return view(workspace,source,data,comments,report)
+        return result
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['list','create','update','merge','evidence']);parser.add_argument('--request',type=Path,required=True);args=parser.parse_args()

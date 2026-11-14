@@ -32,7 +32,7 @@ export function initStudioWorkspace({state,gather}){
 
  const inspectorNav=document.createElement('nav');inspectorNav.id='studio-inspector-nav';inspectorNav.setAttribute('aria-label','编辑面板')
  const pages={}
- for(const [name,label]of [['tools','工具'],['notes','标注'],['checks','检查'],['more','更多']]){const page=document.createElement('section');page.id='studio-'+name;page.className='studio-inspector-page';page.hidden=name!=='tools';pages[name]=page;sidebar.append(page);const b=button('studio-panel-'+name,label,()=>showPanel(name));b.dataset.studioPanel=name;b.setAttribute('aria-controls',page.id);inspectorNav.append(b)}
+ for(const [name,label]of [['tools','工具'],['notes','标注'],['checks','检查'],['review','审查'],['more','更多']]){const page=document.createElement('section');page.id='studio-'+name;page.className='studio-inspector-page';page.hidden=name!=='tools';pages[name]=page;sidebar.append(page);const b=button('studio-panel-'+name,label,()=>showPanel(name));b.dataset.studioPanel=name;b.setAttribute('aria-controls',page.id);inspectorNav.append(b)}
  const tools=$('tool-tabs'),toolChooser=menu('studio-tool-menu','整体效果',tools,320)
  tools.setAttribute('aria-label','选择建模工具')
  const toolFooter=document.createElement('div');toolFooter.id='studio-tool-footer';pages.tools.append(toolFooter);toolFooter.append($('undo-settings'),$('redo-settings'),$('auto-preview').closest('label'))
@@ -52,7 +52,7 @@ export function initStudioWorkspace({state,gather}){
  // Existing validation creates its diagnostics after this node.
  const checks=document.querySelector('.preview-controls')
  const diagnosticTools=document.createElement('div');diagnosticTools.className='studio-secondary-actions'
- for(const id of ['protection-open','walk-open','room-score-open','open-version-compare'])if($(id))diagnosticTools.append($(id))
+ for(const id of ['room-score-open','open-version-compare'])if($(id))diagnosticTools.append($(id))
  pages.checks.append(heading('本次修改的检查结果'),checks,heading('进一步检查'),diagnosticTools)
  const result=document.querySelector('.result-panel');result.open=true
  const fileMenu=document.querySelector('.output-card');fileMenu.querySelector('summary').textContent='参数文件的保存位置'
@@ -82,10 +82,18 @@ export function initStudioWorkspace({state,gather}){
  displayPanel.append(heading('显示设置'),$('three-quality'),$('show-selection').closest('label'))
  const viewLabels=[...$('three-toolbar').querySelectorAll('label')]
  for(const label of viewLabels.slice(1))displayPanel.append(label)
- const viewMenu=menu('studio-view-menu','显示',displayPanel,270)
+ displayPanel.id='studio-display-settings'
+ const viewMenu=menu('studio-view-menu','显示',displayPanel,290)
+ for(const id of ['walk-open','protection-open']){const control=$(id);if(!control)continue;if(id==='walk-open')control.textContent='玩家路径';displayPanel.append(control);control.addEventListener('click',()=>{viewMenu.open=false;if(displayPanel.matches(':popover-open'))displayPanel.hidePopover()})}
  const comparison=document.createElement('div');comparison.className='studio-comparison';bar.append(comparison);comparison.append($('compare-before'),$('compare-after'));$('compare-before').textContent='原建筑';$('compare-after').textContent='调整后'
  const three=$('three-toolbar');three.replaceChildren(viewLabels[0]);bar.append(comparison,viewMenu)
  const photoStrip=document.querySelector('.thumbnail-card');photoStrip.id='studio-photos';photoStrip.querySelector('.inline-info').removeAttribute('open')
+ const photoHeader=document.createElement('header');photoHeader.className='studio-photo-header';photoHeader.append(heading('图片选择器'),button('studio-photo-close','关闭',()=>{photoStrip.classList.remove('photos-open');photoButton.setAttribute('aria-expanded','false')}));photoStrip.prepend(photoHeader)
+
+ let photoDrag=null
+ photoHeader.onpointerdown=event=>{if(event.button!==0||event.target.closest('button'))return;const r=photoStrip.getBoundingClientRect(),s=stage.getBoundingClientRect();photoDrag={x:event.clientX,y:event.clientY,left:r.left-s.left,top:r.top-s.top};photoHeader.setPointerCapture(event.pointerId);event.preventDefault()}
+ photoHeader.onpointermove=event=>{if(!photoDrag)return;photoStrip.style.right='auto';photoStrip.style.left=Math.max(0,Math.min(stage.clientWidth-photoStrip.offsetWidth,photoDrag.left+event.clientX-photoDrag.x))+'px';photoStrip.style.top=Math.max(0,Math.min(stage.clientHeight-40,photoDrag.top+event.clientY-photoDrag.y))+'px'}
+ for(const name of ['pointerup','pointercancel','lostpointercapture'])photoHeader.addEventListener(name,()=>{photoDrag=null})
  const photoButton=button('studio-photo-toggle','选择图片',()=>{photoStrip.classList.toggle('photos-open');photoButton.setAttribute('aria-expanded',String(photoStrip.classList.contains('photos-open')))});photoButton.setAttribute('aria-expanded','false');photoButton.setAttribute('aria-controls','studio-photos');bar.append(photoButton)
  let compactView=false
  function fitViewport(){const compact=viewport.clientWidth<720;if(compact===compactView)return;compactView=compact;if(compact){displayPanel.append(viewLabels[0],comparison,photoButton)}else{three.append(viewLabels[0]);bar.insertBefore(comparison,viewMenu);bar.append(photoButton)}viewLabels[0].hidden=compact&&state().mode!=='3d'}
@@ -102,7 +110,7 @@ export function initStudioWorkspace({state,gather}){
 
  let inspectorOpen=true,active='tools'
  function setInspector(open){inspectorOpen=open;workspace.classList.toggle('inspector-closed',!open);toggle.textContent=open?'收起面板':'展开面板';toggle.setAttribute('aria-expanded',String(open))}
- function showPanel(name){if(!pages[name])return;active=name;for(const [key,page]of Object.entries(pages))page.hidden=key!==name;for(const b of inspectorNav.children)b.setAttribute('aria-pressed',String(b.dataset.studioPanel===name));setInspector(true)}
+ function showPanel(name){if(!pages[name])return;active=name;for(const [key,page]of Object.entries(pages))page.hidden=key!==name;for(const b of inspectorNav.children)b.setAttribute('aria-pressed',String(b.dataset.studioPanel===name));setInspector(true);window.dispatchEvent(new CustomEvent('creator-studio-panel',{detail:name}))}
  showPanel('tools')
  window.addEventListener('creator-tool-select',()=>{toolChooser.open=false;if(tools.matches(':popover-open'))tools.hidePopover();const chosen=tools.querySelector('[aria-pressed=true]');toolChooser.querySelector('summary span').textContent=chosen?.textContent??'选择工具';showPanel('tools')})
  $('pick-material').addEventListener('click',()=>{if($('pick-material').getAttribute('aria-pressed')==='true'){const b=tools.querySelector('[data-tool-index="6"]');b.click()}})
@@ -110,6 +118,7 @@ export function initStudioWorkspace({state,gather}){
  $('validate-preview').addEventListener('click',()=>showPanel('checks'))
  window.addEventListener('creator-status',event=>{statusLink.textContent=event.detail.message;statusLink.title=event.detail.message})
  const captionObserver=new MutationObserver(()=>{statusLink.textContent=$('status').textContent;statusLink.title=$('status').textContent});captionObserver.observe($('status'),{childList:true,characterData:true,subtree:true})
+ let lastPhotoMode=null
  function sync(){
   const s=state(),model=s.models?.find(m=>m.source===s.info?.source)
   let current=false;try{current=!!s.preview&&s.previewSettings===JSON.stringify(gather())}catch{}
@@ -117,7 +126,7 @@ export function initStudioWorkspace({state,gather}){
   sourceMenu.querySelector('summary').title=s.info?.source??'选择要编辑的建筑'
   currentStep.textContent=!s.info?'尚未打开建筑':s.busy||s.previewBusy?'正在处理…':current?(s.candidateValidation?.passed?'修改预览已通过检查':'正在查看修改预览'):s.preview?'设置已改变，请更新预览':'正在查看原建筑'
   $('export-revision').title=current?'将当前候选另存为 SNBT 制作源，并在 _exports 镜像目录生成定稿 NBT':'请先预览当前参数，再定稿导出';$('validate-preview').title=current?'检查当前候选的参数、保护与改动上限':'请先预览当前参数，再检查效果'
-  photoButton.hidden=s.mode==='3d';if(s.mode==='3d')photoStrip.classList.remove('photos-open')
+  photoButton.hidden=false;photoStrip.classList.toggle('has-image',!!s.selectedImage);if(s.mode==='images'&&s.selectedImage&&lastPhotoMode!=='images'){photoStrip.classList.add('photos-open');photoButton.setAttribute('aria-expanded','true')}lastPhotoMode=s.mode
   if(compactView)viewLabels[0].hidden=s.mode!=='3d'
   noteHint.hidden=!feedback.hidden;notePick.disabled=$('pick-coordinate').disabled
   $('studio-panel-notes').textContent='标注'+(s.notes?.length?' '+s.notes.length:'')

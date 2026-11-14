@@ -74,7 +74,7 @@ def _query(s):
                 limitations='只确认白名单完整方块的局部接触与几何厚度（最多8格），不推断门窗语义、真实承重或完整玩家路径')
     record['surface_sha256']=digest(record);return record,safe
 
-def _object(workspace,proposal,normal,pattern=False):
+def _object(workspace,proposal,normal,pattern=False,reuse_backing=False):
     from nbt_parametric import compile_object
     from nbt_structure_agent import build
     kind=proposal['surface'] if pattern else proposal['kind']
@@ -96,7 +96,7 @@ def _object(workspace,proposal,normal,pattern=False):
     else:
         compiled=compile_object(workspace,proposal)
     data=build(workspace,compiled['spec'])
-    if pattern and 'microfit' in compiled and kind in ('wall','column','ceiling'):
+    if pattern and ('microfit' in compiled or reuse_backing) and kind in ('wall','column','ceiling'):
         # Existing walls/ceilings provide the backing of a micro ornament.
         # Keep only its relief, so a small glyph does not add another wall layer.
         from nbt_components import validate
@@ -104,7 +104,8 @@ def _object(workspace,proposal,normal,pattern=False):
         axis=1 if kind=='ceiling' else 2;layer=0 if kind=='ceiling' else 1
         data['blocks']=[[*b[:axis],0,*b[axis+1:]] for b in data['blocks'] if b[axis]==layer]
         data['size'][axis]=1;data['anchor'][axis]=0
-        data=validate(data);compiled['microfit']=dict(compiled['microfit'],backing_reused=True)
+        data=validate(data)
+        if 'microfit' in compiled:compiled['microfit']=dict(compiled['microfit'],backing_reused=True)
     # Anchor and support rectangle in positive-global plane UV coordinates.
     if normal in ('north','east'):anchor=[data['size'][0]-1-data['anchor'][0],data['anchor'][1]]
     elif normal in ('south','west'):anchor=[data['anchor'][0],data['anchor'][1]]
@@ -112,20 +113,32 @@ def _object(workspace,proposal,normal,pattern=False):
     dims=[data['size'][0],data['size'][2] if normal in ('up','down') else data['size'][1]]
     return compiled,data,turns,anchor,dims
 
-def _plan(s,data,turns,uv,safe,reserved,protected,fit=None,inlay=False):
+def _plan(s,data,turns,uv,safe,reserved,protected,fit=None,inlay=False,embed_depth=0):
     if not 0<=uv[0]<s['width'] or not 0<=uv[1]<s['height']:
         raise ValueError('安装锚点超出所选平面')
-    position=list(_point(s,*uv,0 if inlay else 1));placed=placement(data,position,list(s['model'].size),turns,overwrite=inlay)
+    position=list(_point(s,*uv,0 if inlay else 1-embed_depth));placed=placement(data,position,list(s['model'].size),turns,overwrite=inlay or embed_depth>0)
     # Every projected written voxel requires a supported backing cell. This is
     # deliberately stricter than a few contact points on arbitrary furniture.
-    edits=[]
+    edits=[];carved=set()
     materials={}
     def check_point(p):
         face=(p[s['u']]-s['lo'][s['u']],p[s['v']]-s['lo'][s['v']])
         if face not in safe or not s['model'].in_bounds(p):raise ValueError('安装面、厚度或开口边距不足')
         if p in reserved:raise ValueError('占用显式留白或使用空间')
         if p in protected:raise ValueError('触及保护区域')
-        if inlay:
+        if embed_depth:
+            if p[s['axis']]!=position[s['axis']]:raise ValueError('嵌入纹样只允许一层可见外饰')
+            support=s['request'].get('min_support',1)
+            if embed_depth+support>8:raise ValueError('嵌入深度与保留支承总厚度超过8格查询上限')
+            for distance in range(embed_depth+support):
+                q=list(p);q[s['axis']]=s['lo'][s['axis']]-distance*s['sign'];q=tuple(q)
+                if not s['model'].in_bounds(q) or not _full(s['model'].get(q)):
+                    raise ValueError('嵌入厚度不足，须保留原完整背衬，不能穿透墙或顶壳')
+                if distance<embed_depth:
+                    if q in reserved:raise ValueError('嵌入或开槽占用显式留白')
+                    if q in protected:raise ValueError('嵌入或开槽触及保护区域')
+                    if distance<embed_depth-1:carved.add(q)
+        elif inlay:
             if p[s['axis']]!=s['lo'][s['axis']]:raise ValueError('地板镶嵌只允许替换安装面一层')
         elif s['model'].get(p) not in AIR_NAMES:raise ValueError('安装空间已有方块，不能覆盖')
     for op in placed['operations']:
@@ -134,6 +147,14 @@ def _plan(s,data,turns,uv,safe,reserved,protected,fit=None,inlay=False):
             check_point(p)
             edits.append(p)
             materials[p]=op['palette'][index]
+    if carved:
+        low=[min(p[i] for p in carved) for i in range(3)]
+        high=[max(p[i] for p in carved) for i in range(3)]
+        placed['operations'].insert(0,dict(kind='paste_component',label='纹样浅槽',classification='body',
+            lo=low,hi=high,palette=['minecraft:air'],
+            voxels=[[*[p[i]-low[i] for i in range(3)],0] for p in sorted(carved)],overwrite=True))
+        placed['lo']=[min(a,b) for a,b in zip(placed['lo'],low)]
+        placed['hi']=[max(a,b) for a,b in zip(placed['hi'],high)]
     connectors={}
     remaining=set(edits)
     contact_coordinate=position[s['axis']]
@@ -195,7 +216,7 @@ def _plan(s,data,turns,uv,safe,reserved,protected,fit=None,inlay=False):
             palette=palette,voxels=[
                 [*[point[i]-lo[i] for i in range(3)],palette.index(value)]
                 for point,value in sorted(connectors.items())],overwrite=False))
-    return placed,edits+list(connectors),sorted(connectors)
+    return placed,edits+list(carved)+list(connectors),sorted(connectors)
 
 def dispatch(workspace,tool,arguments):
     s=_load(workspace,arguments['surface']);record,safe=_query(s)
@@ -204,7 +225,12 @@ def dispatch(workspace,tool,arguments):
     from nbt_refine import protections,box_points
     from nbt_detail_control import default_settings,compile_plan,simulate_plan
     is_pattern=tool=='pattern_mount'
-    compiled,data,turns,anchor,dims=_object(workspace,arguments['object'],s['request']['normal'],is_pattern)
+    embed_depth=arguments.get('embed_depth',0)
+    if type(embed_depth) is not int or not 0<=embed_depth<=6:raise ValueError('embed_depth 须为0～6的整数格')
+    if embed_depth and (not is_pattern or arguments['object']['surface']=='floor'):
+        raise ValueError('embed_depth 用于平面墙饰、柱饰或吊顶；地板已经平齐镶嵌')
+    if embed_depth and arguments.get('surface_fit'):raise ValueError('嵌入使用完整原背衬，不叠加悬空贴面连接')
+    compiled,data,turns,anchor,dims=_object(workspace,arguments['object'],s['request']['normal'],is_pattern,embed_depth>0)
     inlay=is_pattern and arguments['object']['surface']=='floor'
     protected=protections(s['model'],s['config']);reserved=set()
     for bounds in arguments.get('reserved_boxes',[]):
@@ -227,7 +253,7 @@ def dispatch(workspace,tool,arguments):
     operations=[];accepted=[];skipped=[];occupied=set();budget=arguments.get('max_changed_blocks',4096)
     for uv in anchors:
         try:
-            placed,points,connections=_plan(s,data,turns,uv,safe,reserved,protected,arguments.get('surface_fit'),inlay)
+            placed,points,connections=_plan(s,data,turns,uv,safe,reserved,protected,arguments.get('surface_fit'),inlay,embed_depth)
             if occupied.intersection(points):raise ValueError('布局构件互相重叠')
         except ValueError as error:
             if policy=='reject':raise ValueError(f'安装锚点{uv}失败：{error}') from error
@@ -245,6 +271,7 @@ def dispatch(workspace,tool,arguments):
             raise ValueError('min_clearance 适用于吊顶')
         lowest={}
         for x,y,z in occupied:
+            if candidate.get((x,y,z)) in AIR_NAMES:continue
             lowest[x,z]=min(y,lowest.get((x,z),y))
         for (x,z),y in lowest.items():
             if y<clearance or any(candidate.get((x,y-step,z)) not in AIR_NAMES for step in range(1,clearance+1)):
@@ -265,9 +292,11 @@ def dispatch(workspace,tool,arguments):
                     key=props['facing']+'/'+props['half']
                     orientations[key]=orientations.get(key,0)+1
         result['pattern']=dict(surface=compiled['surface'],sample_sha256=compiled['sample_sha256'],
-                               shape_counts=compiled['shape_counts'],fitting=compiled['fitting'],inlay=inlay,
+                               shape_counts=compiled['shape_counts'],fitting=compiled['fitting'],inlay=inlay or embed_depth>0,
+                               embed_depth=embed_depth,placement_mode='inlay' if inlay or embed_depth==1 else 'recessed' if embed_depth>1 else 'raised',
                                world_stair_orientations=orientations,orientation_policy=compiled['orientation_policy'])
         if 'microfit' in compiled:result['pattern']['microfit']=compiled['microfit']
+        if 'visual_quality' in compiled:result['pattern']['visual_quality']=compiled['visual_quality']
     result['plan_sha256']=digest(dict(result=result,arguments=arguments))
     if arguments.get('review'):
         from nbt_mount_review import write_review

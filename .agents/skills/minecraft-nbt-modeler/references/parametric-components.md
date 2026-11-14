@@ -12,7 +12,19 @@
 
 此例先拟合4×4格单元，再复制成4列3行，中间各留1格，最终面板为19×14格。所有单元使用同一组方块与状态，不在铺排时重新缩放采样。原图可以来自 pattern_create 的8～32像素小位图/绘图配方，也可以用 sample.crop 裁出单个叶片、环扣或菱花。pattern_create 默认分辨率已改为16×16，输出的 fitting_input 可直接用于微型拟合。
 
+小纹样可先查 `pattern_list` 中 `microfit.preferred=true` 的 12 项专用轮廓：2×2 方环、3×3 十字花、4×4 菱花/菱环/四瓣结/回钩、4×3 折线、4×6 叶片/花蕾和6×6 棕榈叶/卷钩/花章。按 `microfit.recommended_size_uv[surface]` 取已测尺寸，完整清单见[小尺寸图库](../assets/ornament-patterns/README.md#小尺寸专用纹样)。墙上2×2方环用楼梯能保孔，地板和吊顶需3×3；平齐地板仅用整块，部分图形需要更大尺寸。原有 `four-petal` 是大图几何预设，不应默认拿它做2×2微纹样；小四瓣结用 `micro-quatrefoil`。纹样参与主题表达时，检查玩家视角下的轮廓与孔洞，不以工具调用成功或远处不可辨的小点代替视觉验收。
+
+默认 `micro_alignment=auto`，脚本会自动适配图片比例和半格采样相位，不要求先手改图片画布或曲线中心。保留原居中方案，同时探测轻微整体缩放（0.97 / 1 / 1.03）、每轴±四分之一个采样格的偏移；楼梯/半砖采样格为半格，偏移对应±1/8建筑格。未显式填写 sample.fit / preset_options.fit 时，还会在等比留白到铺满指定单元之间尝试比例适配，宽高拉伸比最多2倍。明确指定 contain、cover 或 stretch 时沿用该比例模式，只自动搜索轻微缩放与相位；cover 的裁切及 stretch 的非等比拉伸由调用者明确要求。`micro_alignment=fixed` 关闭自动搜索，但仍执行显式指定的图片比例映射。
+
+自动处理不改原资产、不加粗笔画、不重画纹样、不改变 size_uv 或铺排间距，也不裁掉主纹。源的主要连通分量、孔洞及原有对称轴必须保留。脚本先快速探测，再对最多6个候选执行楼梯/半砖联合搜索，以拟合重合率减去缩放、偏移、拉伸惩罚选形；原方案精确匹配时直接使用。颜色与轮廓应用同一图片映射，避免对齐后配色错位。候选搜索有界，不保证所有小尺寸纹样都能自动恢复。
+
+`microfit.alignment` 记录实际选择的比例模式、缩放、像素/建筑格偏移、缩放后尺寸和粘贴原点、算法版本、原方案是否可用及探测数量。原图SHA256与输入参数仍随配方保存。`ink_overlap`、`raw_coverage_error` 和 `shape_search.baseline_*` 比较**当前映射后的参考图**；`alignment.original_reference_ink_overlap` / `original_reference_contour_error` 则在原居中参考图中评估实际方块。`alignment.baseline_*` 记录未自动适配时的候选及通过情况。改变比例后的高重合率不等于未变形原图的完整还原，可用 fixed 对照真实预览。
+
 微型脚本先按源图 threshold 二值化，再计算半格面积覆盖率。它尝试多档覆盖率阈值，锁定主轮廓的四向极值和主孔洞位置，并比较拟合后的连通分量与孔洞。源图的采样轮廓若严格左右/上下对称，会将对应方块联合匹配，避免各格独立选择楼梯/半砖时破坏对称性，preserved_symmetry_axes 记录结果。小于半个采样格面积的孤立细点/孔洞不计入主拓扑，报告会记录数量。source_threshold 与 selected_coverage_threshold 是两个不同阶段的阈值。候选优先保留主拓扑，再比较墨迹交并比 ink_overlap，减少大面积空白对匹配优劣的干扰。raw_coverage_error 是实际投影与源二值掩模的平均面积差异，stylized 表示存在明显的小尺寸简化；这些几何检查仍需结合真实预览评审。
+
+楼梯与半砖还会按整个单元联合搜索，不只逐格挑选。满足极值、孔洞位置及对称约束的组合不超过4096种时完整枚举；更多组合使用宽度96的有界搜索，并保留原覆盖率阈值方案作为候选。完成的候选先检查主拓扑和 micro_max_error；原方案可用时，候选的墨迹重合率和轮廓误差均不得变差，避免为了多覆盖半格而损伤原有细边。然后比较墨迹重合率；重合率相同时，优先选择内外轮廓误差更小的方案，减少细线加粗和转角多出的半格。不会为追求重合率而把原本满足面积误差预算的单元改为拒绝。大单元的有界搜索不保证全局最优，失败也不代表所有合法组合都不可拟合。
+
+microfit.shape_search 返回搜索方式 method（exhaustive / bounded_beam）、候选数量 candidates_evaluated、原逐格方案的 baseline_ink_overlap / baseline_contour_error / baseline_raw_coverage_error 和 improved；selection_method 表示最终使用 coverage_threshold 或 joint_shapes。contour_error 比较实际半格轮廓与样本覆盖率的相邻边界（包含外框及内部留白），以样本边界总量归一化，越低越好，可大于1，不是百分比。联合搜索方案的 selected_coverage_threshold=0.5 仅用于 requested / missing / extra 的半格统计，实际形状直接比较原覆盖率，不先把各格压成同一阈值掩模。ink_overlap 与 contour_error 均描述几何投影，不代表材质或游戏内光照效果。
 
 脚本根据 material 自动寻找同材质楼梯和半砖，也可在 shapes 指定材料。朝向与上下状态自动选择。无同材质半砖/楼梯时使用整块，不自动换成别的颜色。full_blocks_only=true 可限制整块。平齐地板只用整块，吊顶只在可用楼梯的下半层细分；无法在给定尺寸保留主纹和孔洞时会拒绝。例如细线环可用四个楼梯拟合成2×2格墙饰，平齐地板的2×2格无法容纳中孔，需用更大的单元。
 
@@ -22,11 +34,77 @@
 | gap_uv | 平面单元间距0～4格，默认1×1；圆柱竖向沿用间距，周向将剩余格数均匀分配 |
 | diameter | 仅微型圆柱，柱芯直径4～30，默认13格；size_uv 仍是纹样单元尺寸 |
 | micro_max_error | 允许的平均面积差异0～1，默认0.65；主拓扑仍须匹配，不因放宽此值跳过检查 |
+| micro_alignment | auto（默认）自动适配图片比例和半格采样位置；fixed 保留原比例与居中采样，仅用于微型拟合 |
 | preview | 仅 pattern_microfit，生成真实候选、图片和相机，不保存构件或修改建筑 |
 
 圆柱例：`{"surface":"cylinder","size_uv":[4,4],"diameter":13,"tile_counts":[4,3],...}` 将四份4格宽单元均布在圆周，竖向三排。不会把单元压缩到圆周宽度。总面板尺寸仍受每轴64格、预算和保护约束。
 
 microfit 报告针对单个单元，shape_counts 是全部铺排用量。返回的 mount_object 可直接交给 pattern_mount.object，圆柱则交给 pattern_cylinder_mount.object。微型墙饰和吊顶安装会复用已验证的原墙/顶面，只增加外饰层，不另铺整层背板。两种安装仍绑定原稿、保护和快照哈希。同一模式也可通过 pattern_compile / pattern_preview 的 fit_mode=micro 调用；整图拟合使用标准模式及 repeat。
+
+微型圆柱会在实际三维半格几何上检查每列单元的面连通分量、环孔和封闭空腔。绕过方块圆柱的阶梯转角时，只有源单元在该处连续的笔画才补连接：整格高用完整方块，半格高用对应上下半砖。不会通过减少 tile_counts 或放大 diameter 绕过失败；没有合适半砖、发生连接冲突或无法保持拓扑时拒绝。连接块可通过同一纹样的面相连部分接到柱芯，检查覆盖整个真实连通部件，新增连接仍计入占用、保护、留白和预算检查。`microfit.world_geometry` 给出逐列源/结果拓扑、实际实例数、连接块数量和支承检查范围。单元恰好铺满整个圆周时标记 periodic_boundary，允许周期接缝形成额外的环，不把该情形当平面开边界比较。
+
+## 拉伸、嵌入与量化视觉质量
+
+先按建筑构件决定纹样所在的带、框、凹面、柱面与收口。长檐口可采用横向舒展的卷草，窄竖带可伸长叶纹；留白、密度和转折仍需看实际结果。图样拉伸不缩放 Minecraft 方块，不改变原图文件，也不放宽主拓扑与拟合误差限制。
+
+### 显式拉伸
+
+`sample.fit` 和 `preset_options.fit` 支持三种映射：`contain` 等比留白、`cover` 等比裁取、`stretch` 分别按目标宽高拉伸。stretch 不受默认自动适配的2倍比例范围限制，仍受工具尺寸和预算约束。颜色、透明度与轮廓共用同一映射，报告保留实际宽高变形比。不要用原图视觉相似度描述经过主动变形的结果。
+
+```json
+{"surface":"wall","preset":"micro-scroll","size_uv":[12,4],"preset_options":{"fit":"stretch"},"quality_profile":"border"}
+```
+
+### 齐平与浅槽嵌入
+
+`pattern_mount` 新增 `embed_depth`，只返回经原稿、保护、开口、占用与预算复核的候选：
+
+- `0`：原有外贴行为；微型墙饰复用原背板。
+- `1`：替换宿主最外层笔画所在的方块，不再向外凸出。楼梯和半砖仍保留自身局部凹面，不能在同一个方块内混装两种材质的任意半格。
+- `2～6`：仅沿笔画投影开出前方浅槽，再嵌入对应深度。槽中的空气也计入预算、保护与墙层检查；未被笔画覆盖的宿主保持原状。
+
+嵌入只用于墙、平面柱饰与吊顶；`embed_depth + surface.min_support` 不超过8格，并逐格确认完整宿主，嵌入后保留 min_support 格完整背衬。薄墙、未知形状、开口、被占用的外侧或受保护的槽体拒绝安装，不靠穿墙让纹样“融合”。地板原本已平齐镶嵌，不使用此参数。圆柱径向嵌入尚未由该参数支持，不能把平面贴附的结果称作圆柱内嵌。
+
+先用 `parametric_surface` 查询真实安装面，再使用返回的 surface_sha256。下面仅展示 `pattern_mount` 的新增字段，surface 仍需完整源和上下文绑定：
+
+```python
+# surface_request 为绑定真实源与上下文的完整请求；surface_query 为其真实查询回执。
+request = {"surface": surface_request, "surface_sha256": surface_query["surface_sha256"],
+           "anchor_uv": [8, 4], "embed_depth": 1,
+           "object": {"surface": "wall", "preset": "micro-key", "fit_mode": "micro",
+                      "size_uv": [8, 3], "preset_options": {"fit": "stretch"},
+                      "material": "waxed_cut_copper", "quality_profile": "border", "min_quality_score": 70}}
+```
+
+### 拟合后质量与复杂度
+
+`pattern_microfit`（或 `fit_mode=micro`）返回 `visual_quality`，按实际楼梯/半砖投影与用户指定变形后的参考轮廓比较。`quality_profile` 为 `balanced`、`ornate` 或 `border`；`min_quality_score` 范围0～100，默认0仅报告，指定门槛时未达标直接拒绝候选，不生成成功预览或放宽硬约束。
+
+报告包括：墨迹交并比、带采样容差的轮廓F1、骨架分枝/端点/孔洞与形状复杂度保留、留白密度、相对于源图的对称/重心与行列墨迹节奏保留、额外碎片和面连通分量。骨架会按局部笔画厚度过滤拐角短枝，避免简单厚环仅因栅格放大就增加“装饰分枝”。所有配置都考虑保真、细节、可读性和规则性；border 更重视可读性与墨迹节奏，ornate 另外限制实际结果的细节丰富度，简单圆环即使拟合准确也不能仅凭高IoU获得华丽高分。碎噪点也不会因数量多而提高分数。
+
+这些是版本化的确定性代理指标，不是经人类偏好标定的“美学真值”，也不评价材质、光照、历史风格或整栋建筑的协调性。border 用于条带构图，不要求所有条带必须复杂；balanced 也不强迫简洁构件变华丽。跨尺寸/安装面的分数要结合实际精度解读。保留指标与警告，不能只交一个总分。
+
+复杂样本不达项目目标时，优先增加1～2格、裁取保留主题的局部，或组合基础单元形成更有组织的纹样。确需简化时记录损失；不能用简单徽记替换复杂卷草后声称原目标通过。模型仍须查看最终建筑中的玩家视角，检查是否像后贴的大块招牌、是否遮挡构造或挤占战斗空间。
+
+## 建模会话与结果复用
+
+同一 Python 进程默认复用纯编译结果和通路数据。显式会话入口为 `nbt_modeling_session.ModellingSession(workspace)`，通过 `session.call(tool, arguments)` 调用相同工具；返回值仍是候选，会话不自动应用、保存、批准或导出。也可在 `with ModellingSession(workspace):` 中继续使用已有 dispatch 调用。默认缓存最多32项、估算32MiB，超限淘汰；返回深拷贝，修改上次结果不会污染下次调用。
+
+先 pattern_microfit 再 pattern_mount / pattern_cylinder_mount 时，相同参数可复用拟合，不必让 Agent 重新计算。缓存区分工作区、原图SHA与采样参数、完整工具参数、引擎/目录/注册表版本；命中前仍核验实际图片SHA。碰撞索引按完整几何复用，路线结果另区分起终点及顺序、碰撞模式和搜索上限；每次重新计算几何指纹，模型改变后重新检查。安装面的原稿、快照、上下文哈希和保护检查保持执行。Python实现更新须重启进程。该缓存不跨进程，逐条启动CLI仍有启动开销；连续任务可在同一脚本或显式会话中运行。
+
+### 连续调用的 JSON 行会话
+
+外部 Agent 可运行 `node scripts/cli.mjs session --workspace <创作项目>`，保持标准输入开启，一行发送一个 JSON 请求并读取一行响应。例如：
+
+```json
+{"id":"fit-001","method":"agent","params":{"tool":"pattern_microfit","arguments":{"surface":"wall","size_uv":[4,8],"preset":"horizontal-stripes","micro_alignment":"fixed"}}}
+```
+
+响应以 id 对应请求，成功包含 ok=true、result、metrics.engine_ms 和缓存计数；失败包含 ok=false、error 和 code。能力清单的 agent_session 列出开放工具。此会话只读资产和编译候选，不开放保存、定稿、任意执行，也不生成 preview / review 文件；需要这些产物时使用原单次命令。输入最多8MiB、响应最多32MiB，超长输入关闭会话。引擎或工具目录改变后返回 STALE_ENGINE，重新启动进程后再发新请求；不自动重放失败请求。关闭标准输入即可结束。
+
+桌面的纯候选工具和 AI 几何预检复用相同进程管理器：单进程依序处理、最多32个待办、运行超时30秒、空闲30秒退出；取消运行任务会终止其进程，其他排队请求在新进程继续。取消排队任务不影响运行邻项；关闭应用和切换工作区会关闭对应进程。预览、资产保存和显式导出继续走原入口。持续占用的缓存仅属于该进程，不跨工作区复用。
+
+需要跨构件联动时，用[建筑对象图](object-scenes.md)保存稳定ID、尺寸引用和接触关系；scene_compile / scene_update 复验整图后返回候选，scene_save 显式保存不可变版本。它与下文一次性compose、同部件边界regenerate的适用范围不同，不自动接管已有手工几何。
 
 ## 对象与参数
 

@@ -1,9 +1,9 @@
 const {createAIStyle}=require('./ai-style.cjs')
 const fs=require('node:fs/promises'),path=require('node:path'),crypto=require('node:crypto')
 const flows={
- draft:{label:'提示词方案 · 交接要求',steps:'整理设计要求 → 用户审阅 → 保存任务与提示词 → 下一个Agent读取后制作',rules:'只编写设计要求和交接文字；补齐入口、主空间、辅助区、高差、支承及玩家动线。具体建模步骤由接收任务的Agent编写，不在提示词编写阶段实施模型。'},
+ draft:{label:'提示词方案 · 交接要求',steps:'整理设计要求 → 用户审阅 → 保存任务与提示词 → 下一个Agent读取后制作',rules:'只编写设计要求和交接文字；以关键空间、构件与环境为对象，描述用途、特征、包含和连接关系及共同约束；默认不预定数量、间距、方块配方或施工顺序，用户明确给定的细节保留。具体建模步骤由接收任务的Agent编写，不在提示词编写阶段实施模型。'},
  workbench:{label:'提示词方案 · 配置控件',steps:'读取当前表单 → 提议设计字段和工具序列 → 校验 → 用户采用',rules:'保留不需修改的字段与步骤；已有模型尺寸、路径、阶段和保护保持本地值。'},
- prompt:{label:'提示词方案 / 模型编辑 · 文字编写',steps:'读取本次文字要求 → 补充设计说明 → 返回候选正文 → 用户采用或复制',rules:'使用简体中文和具体构造说明，不声称已执行、已看图或已获批准。'},
+ prompt:{label:'提示词方案 / 模型编辑 · 文字编写',steps:'读取本次文字要求 → 补充设计说明 → 返回候选正文 → 用户采用或复制',rules:'使用简体中文描述建筑对象、职责和关系，保留实现自由，不声称已执行、已看图或已获批准。'},
  structure:{label:'模型编辑 · 局部编辑',steps:'读取局部选区与材质 → 生成填充/换块候选 → 本地校验 → 预览 → 用户导出',rules:'严格留在选区内；保护必要路线和承重，不能降低验证要求。'},
  small_structure:{label:'模型编辑 · 小型结构 / 3D放置',steps:'3D点选/XYZ限定体积 → 发送局部尺寸和材质 → AI返回相对坐标步骤 → 脚本平移及检查 → 候选合并和3D渲染 → 用户确认导出NBT',rules:'1. 使用选区局部坐标，原点为选区最小角，X宽/Y高/Z深；只返回整数坐标与minecraft方块状态。\n2. 先确定占地、支承、净空和用途，再拆分box/beam/frame；也可逐块返回pos/state，单个方块用lo=hi的box表达。最多128步，需要开口可用air；缺失的常规字段由应用补齐。\n3. 不输出NBT二进制、palette索引、Python或任意代码，不猜全局坐标。\n4. 保留玩家通路和承重，避免悬空；朝向与半砖等属性必须合法。\n5. 应用负责平移坐标、注册表校验、保护/预算检查、墙归属、合并和导出；结果只是候选，不能声称已经保存或验证通过。'}
 }
@@ -35,13 +35,21 @@ function createInternalAI({workspace,skill,retrieve}){
   for(const source of files){if(!['.md','.txt'].includes(path.extname(source).toLowerCase()))throw Error('仅支持Markdown和TXT');const bytes=await fs.readFile(source);if(bytes.length>256*1024||bytes.includes(0))throw Error('单个资料须为不超过256KiB的文本');const id=crypto.createHash('sha256').update(bytes).digest('hex');if(c.documents.some(d=>d.id===id))continue;const relative=`knowledge/${id}.md`;await fs.writeFile(path.join(base(),relative),bytes,{flag:'wx'}).catch(e=>{if(e.code!=='EEXIST')throw e});c.documents.push({id,path:relative,label:path.basename(source).slice(0,150)})}
   await persist(c);return show()
  }
- async function context(key,request={}){if(!flows[key])throw Error('未知AI工作流');const c=validate(await load()),flow=c.workflows[key],knowledge=[];let total=0
+ const stamp=async file=>{const s=await fs.stat(file,{bigint:true});return [s.size,s.mtimeNs,s.ctimeNs,s.ino].join(':')}
+ const documentPath=(c,id)=>{const b=builtins[id],d=c.documents.find(d=>d.id===id);return b?path.join(skill,'references',b.file):path.join(base(),d.path)}
+ async function capture(key,request={}){
+  if(!flows[key])throw Error('未知AI工作流')
+  const c=validate(await load()),preference=await styles.context(key),documents={}
+  for(const id of request.retrieval?[]:c.workflows[key].knowledge){const file=documentPath(c,id);documents[id]={file,stamp:await stamp(file)}}
+  return {key,workspace:path.resolve(workspace()),config:c,preference,documents}
+ }
+ async function context(key,request={},snapshot){if(!flows[key])throw Error('未知AI工作流');if(snapshot&&(snapshot.key!==key||snapshot.workspace!==path.resolve(workspace())))throw Error('AI资料快照属于其他工作区或工作流');const c=snapshot?.config??validate(await load()),flow=c.workflows[key],knowledge=[];let total=0
   let bundle;if(request.retrieval){if(!retrieve)throw Error('当前环境无法校验参考集合');bundle=await retrieve({...request.retrieval,workflow:key});if(bundle.workflow!==key||!Array.isArray(bundle.sources)||!Array.isArray(bundle.knowledge)||!Array.isArray(bundle.references))throw Error('参考集合工作流或内容无效');knowledge.push(...bundle.knowledge)}
-  for(const id of request.retrieval?[]:flow.knowledge){const b=builtins[id],d=c.documents.find(d=>d.id===id);const content=await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8');total+=content.length;if(total>48000)throw Error('本工作流资料总量超过48000字，请减少选中的文档');knowledge.push({label:b?.label??d.label,content})}
-  const preference=await styles.context(key)
+  for(const id of request.retrieval?[]:flow.knowledge){const b=builtins[id],d=c.documents.find(d=>d.id===id),saved=snapshot?.documents[id],file=saved?.file??documentPath(c,id);if(saved&&await stamp(file)!==saved.stamp)throw Error('排队期间AI参考资料已变化，请重新生成');const content=await fs.readFile(file,'utf8');if(saved&&await stamp(file)!==saved.stamp)throw Error('读取期间AI参考资料已变化，请重新生成');total+=content.length;if(total>48000)throw Error('本工作流资料总量超过48000字，请减少选中的文档');knowledge.push({label:b?.label??d.label,content})}
+  const preference=snapshot?.preference??await styles.context(key)
   return {style:preference.values,style_prompt:preference.prompt,attachViewport:flow.attachViewport===true,workflow:key,workflow_steps:flows[key].steps,base_rules:flows[key].rules,...(flow.rules===flows[key].rules?{}:{rules:flow.rules}),instruction:flow.instruction,knowledge,...(bundle?{reference_sources:bundle.sources,retrieved_assets:bundle.references}:{})}
  }
  async function preview(id){const c=validate(await load()),b=builtins[id],d=c.documents.find(d=>d.id===id);if(!b&&!d)throw Error('未知内部资料');return {title:b?.label??d.label,recipient:'仅在勾选并保存后，默认随对应工作流发送全文；使用本地检索集合后只发送所选片段给已配置的 API。',text:await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8')}}
- return {show,save,importDocuments,context,preview}
+ return {show,save,importDocuments,capture,context,preview}
 }
 module.exports={createInternalAI,flows}

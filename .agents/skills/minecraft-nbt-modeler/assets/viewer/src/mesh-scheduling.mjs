@@ -4,7 +4,7 @@ export function yieldForMeshBuild(host=globalThis){
  return new Promise(resolve=>{
   let idle,timer,done=false
   const finish=()=>{if(done)return;done=true;if(timer!==undefined)host.clearTimeout(timer);if(idle!==undefined)host.cancelIdleCallback?.(idle);resolve()}
-  timer=host.setTimeout(finish,32)
+  timer=host.setTimeout(finish,0)
   try{if(typeof host.requestIdleCallback==='function')idle=host.requestIdleCallback(finish,{timeout:32})}catch{/* The independent timer still completes the yield. */}
  })
 }

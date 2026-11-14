@@ -1,3 +1,4 @@
+import {initArchitectTools} from './architect-tools.js'
 import {initAgentTaskReturns} from './agent-task-return.js'
 import {renderDiagnostics} from './diagnostic-guidance.js'
 import {linkRange} from './range-control.js'
@@ -191,13 +192,13 @@ async function captureViewport(isCancelled=()=>false){
 }
 let promptLoaded=false
 initReferencePicker({api})
-window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload),publish:payload=>api('prompt-publish',payload),library:payload=>api('prompt-library',payload)})
+window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload),publish:payload=>api('prompt-publish',payload),library:payload=>api('prompt-library',payload),standards:()=>api('architect/standards-get',{})})
 // The iframe gets only prompt generation, never the native API/key management bridge.
 window.nbtPromptAI=Object.freeze({
  config:()=>window.nbtDesktop?.apiConfig?.()??Promise.resolve({enabled:false,available:false}),
- generate:instruction=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI 需要 Electron 桌面版');return requestAI({mode:'prompt',instruction,context:null},captureViewport)},
- generateWorkbench:(instruction,context)=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI需要Electron桌面版');return requestAI({mode:'workbench',instruction,context},captureViewport)},
- cancel:()=>cancelAI(),
+ generate:instruction=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI 需要 Electron 桌面版');return requestAI({mode:'prompt',instruction,context:null},captureViewport,{scope:'prompt-editor'})},
+ generateWorkbench:(instruction,context,options={})=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI需要Electron桌面版');return requestAI({mode:'workbench',instruction,context},captureViewport,{scope:options.scope??'prompt-editor'})},
+ cancel:scope=>cancelAI(scope??'prompt-editor'),
  settings:()=>$('open-api').click()
 })
 async function syncPrompt(){
@@ -267,7 +268,7 @@ function updateCount() {
 const taskControlStates=new Map(),readonlyControlStates=new Map()
 function syncVersionReadonly(){
  const locked=!!(state.versionComparing||state.transforming)
- document.querySelector('.sidebar').inert=locked
+ const sidebar=document.querySelector('.sidebar'),pages=[...sidebar.querySelectorAll(':scope>.studio-inspector-page')];sidebar.inert=locked&&!(state.versionComparing&&pages.length);for(const page of pages)page.inert=locked&&(state.transforming||page.id!=='studio-review')
  const disable=control=>{if(!control)return;if(!readonlyControlStates.has(control))readonlyControlStates.set(control,taskControlStates.has(control)?taskControlStates.get(control):control.disabled);control.disabled=true}
  if(locked){document.querySelector('.action-bar').inert=!!state.versionComparing||!state.previewBusy;$('feedback-card').hidden=true
   for(const button of document.querySelectorAll('.action-bar button'))if(button.id!=='cancel')disable(button)
@@ -358,6 +359,7 @@ function imageMode() {
   $('image-toolbar').hidden=false;$('review-canvas').hidden=!state.selectedImage;$('empty-view').hidden=Boolean(state.selectedImage)
   $('pause-3d').disabled=true;$('view-hint').textContent='点击图片定位修改位置；需要旋转查看时可打开 3D。'
   activateImageFeedback().catch(error=>status(error.message,'error'))
+  window.dispatchEvent(new Event('creator-editor-state'))
   syncWorkspace()
   previewToolbar?.sync(state.mode,state.busy,!!state.info)
 }
@@ -1056,7 +1058,7 @@ versionComparison=initVersionCompare({
   $('model-hash').textContent=previous.hashLabel;busy(false);document.querySelector('.action-bar').inert=window.creatorWorkspace?.current()!=='model';$('three-quality').disabled=false;$('auto-preview').disabled=false;$('view-select').disabled=false;$('view-hint').textContent=state.mode==='3d'?'材质 3D · 左键原地转向，中键平移，滚轮前进／后退':$('view-hint').textContent
  },viewChanged:()=>syncComparisonViewControls($('viewer').contentWindow.nbtModeler.snapshot,$('viewer').contentWindow.nbtModeler.metadata())
 })
-initAgentTaskReturns({api,context:()=>({info:state.info,busy:state.busy||state.previewBusy||state.commitBusy||state.versionComparing,camera:$('viewer').contentWindow?.nbtModeler?.metadata?.().camera}),compare:(pair,camera)=>versionComparison.compare(pair,camera),message:text=>status(text)})
+initAgentTaskReturns({api,context:()=>({info:state.info,busy:state.busy||state.previewBusy||state.commitBusy,camera:$('viewer').contentWindow?.nbtModeler?.metadata?.().camera}),compare:(pair,camera)=>versionComparison.compare(pair,camera),message:text=>status(text),closeCompare:()=>versionComparison.close(),setCompareSide:side=>{if(!versionComparison.active)throw Error('请先启动原稿与回传版对比');return versionComparison.showSide(side)}})
 componentEditor=initComponentEditor({
  api,message:status,viewer:()=>$('viewer').contentWindow?.nbtModeler,
  context:()=>{if(!state.info)return{};const settings=gather();return {source:state.info.source,source_sha256:state.info.source_sha256,size:state.info.size,whole:settings.whole_region,lo:settings.whole_region?[0,0,0]:settings.lo,hi:settings.whole_region?state.info.size.map(n=>n-1):settings.hi,settings:JSON.stringify(settings),target_id:state.viewerFeedbackId}},
@@ -1157,6 +1159,7 @@ document.addEventListener('change',event=>{if(event.target.closest('#settings,.r
 window.addEventListener('creator-session-preference',event=>{for(const id of ['session-save-now','session-reload','session-valid-inputs'])$(id).disabled=state.busy||!event.detail;if(!event.detail){sessionStatus.textContent='编辑草稿自动保存与恢复已关闭';sessionStatus.classList.remove('session-error')}else editSession.schedule()})
 initCommandCenter({api,state:()=>state,selectTool,message:status})
 initStudioWorkspace({state:()=>state,gather})
+initArchitectTools({api,context:()=>state,getVisible:()=>projectManager.getVisible(),openModel:openProjectModel,refresh:initialize,compare:pair=>versionComparison.compare(pair),flush:()=>window.nbtFeedbackAutosave?.flush()})
 const feedbackSaveState=document.createElement('p');feedbackSaveState.id='feedback-save-state';feedbackSaveState.setAttribute('role','status');feedbackSaveState.textContent='标注会自动保存到当前建筑版本';$('feedback-text').after(feedbackSaveState)
 feedbackAutosave=createFeedbackAutosave({
  capture:()=>{
