@@ -51,6 +51,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m pip install numpy==2.4.2 Pillow==12.1.0
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build production frontend
+        run: npm run build:web
       - name: Validate source and contracts
         run: |
           npm run check:tools
@@ -69,8 +71,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Prepare pinned renderer for source regression
         run: |
-          npm run build:web
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify native Electron launch
@@ -176,8 +176,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python .agents/skills/minecraft-nbt-modeler/scripts/check_web_revision_fixtures.py --output (Join-Path $probeRoot 'web-revision')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Verify version 2 authoring contracts
+      - name: Verify authoring contracts
         run: |
+          npm run test:model-workflow
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:extensions
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/snbt-source.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/building-history.py
