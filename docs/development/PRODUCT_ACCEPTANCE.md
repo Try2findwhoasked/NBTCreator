@@ -1,12 +1,14 @@
 # 全流程产品验收
 
-目标来自本项目持续任务：改善从完整 NBT 构建到 Agent 协作的使用体验，并兼顾界面、美观、操作与反馈。验收覆盖《产品完善工作清单》和本轮用户提出的资产、效果、管理、评分及交付要求。不能仅因功能已经存在、某个局部测试通过或能够编译，就认为整个目标已达成。
+本文说明全流程产品验收的方法与证据边界，覆盖[产品完善清单](PRODUCT_IMPROVEMENTS.md)以及资产、效果、管理、评分和交付要求。末尾的历史执行记录保留当时发现的问题，不代表当前源码或目录包已完成验收。不能仅因功能已经存在、某个局部测试通过或能够编译，就认为整个目标已达成。
 
 `config/product-acceptance.json` 将要求对应到实际检查；`scripts/product-acceptance.mjs` 运行这些检查并生成带源文件哈希的证据。完整版必须先编译，测试不会边运行边重建前端，也不替用户批准建筑。
 
+从软件源码根目录执行，输出使用全新的目录：
+
 ```powershell
-npm run package:portable -- --directory-only --out dist/full-1.20.0-acceptance
-npm run test:product -- --directory dist/full-1.20.0-acceptance --workspace . --jobs 2
+mise exec -- npm run package:portable -- --directory-only --out dist/full-acceptance
+mise exec -- npm run test:product -- --directory dist/full-acceptance --workspace . --jobs 2
 ```
 
 ## 要求与证明范围
@@ -40,7 +42,7 @@ npm run test:product -- --directory dist/full-1.20.0-acceptance --workspace . --
 
 最终判定还应查看本轮生成的项目卡片、资产、工作台及小窗口图片，记录真实观察。测试点击和模拟回执不表示用户已经批准任何建筑。
 
-## 本轮发现与修正
+## 历史执行记录（1.20 阶段）
 
 首次执行因三个旧测试未使用目录版而中止，记录在 `build/product-acceptance-1793819080465/interruption.json`。补齐执行文件核对后，下一轮 70 组中 66 组通过，原始失败结果保存在 `build/product-acceptance-1793819636184/results.json`，不覆盖为成功。
 
@@ -53,3 +55,5 @@ npm run test:product -- --directory dist/full-1.20.0-acceptance --workspace . --
 房间评分仍是透明的辅助模型，未作经验校准；静态碰撞与通路检查不模拟全部游戏行为。实际建筑的审美、游玩及外部 API 供应商兼容性需在相应使用环境核对。这些限制不应被隐藏，也不能作为缩小已承诺软件流程的理由。
 
 原模组服务器的区块加载等待属于 SAODG 运行侧，不在此修改原工作区。全屏问题保留历史记录，并按用户已确认修复的状态处理，不在本轮触发全屏。旧原型分支的非祖先提交和主线已整合功能分别记录于分支审计，不以分支名称重复覆盖后续实现。
+
+返回[文档导航](../README.md)。

@@ -19,3 +19,5 @@
 私有仓库需要对本项目具有 Contents 只读权限的 GitHub 令牌，可在更新页单独加密保存或删除。应用不会复用 AI Key，也不会把令牌传到下载 CDN。公开可访问的发行版无需令牌。下载地址固定为本项目资产接口，重定向仅允许GitHub 资产域；校验文件也从同一 Release 读取。
 
 版本和下载协议参考 GitHub 官方接口：[Release](https://docs.github.com/en/rest/releases/releases#get-the-latest-release)、[Release asset](https://docs.github.com/en/rest/releases/assets#get-a-release-asset)。
+
+返回[文档导航](../README.md)。

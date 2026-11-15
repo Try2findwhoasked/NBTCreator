@@ -34,6 +34,6 @@ Electron主进程只接管生命周期和原生选择器；preload只暴露info/
 
 实际运行结果位于build独立目录，由测试输出记录，不能借用原SAODG的Java、游戏或多人结果。资料库校验与doctor只证明文件完整性和依赖可导入，不证明运行界面、模型或美术完成。
 
-首阶段开发版与打包版均已完成本机普通窗口端到端测试。具体数量、证据路径和未验证范围见 `docs/VALIDATION_2026-11-02.md`。
+首阶段开发版与打包版均已完成本机普通窗口端到端测试。具体数量、证据路径和未验证范围见 `docs/archive/validation/VALIDATION_2026-11-02.md`。
 
-0.2.0加入默认关闭的可选API助手与现代浅色界面，未引入自主Agent执行循环。服务协议、发送范围与操作边界见 `docs/API_INTEGRATION.md`；实际验证见 `docs/VALIDATION_0.2.0_2026-11-02.md`。
+0.2.0加入默认关闭的可选API助手与现代浅色界面，未引入自主Agent执行循环。服务协议、发送范围与操作边界见 `docs/development/API_INTEGRATION.md`；实际验证见 `docs/archive/validation/VALIDATION_0.2.0_2026-11-02.md`。

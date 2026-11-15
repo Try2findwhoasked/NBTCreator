@@ -22,4 +22,6 @@
 
 提示词列表从当前项目的归档恢复，不通过浏览器暂存跨项目复用内容。已交接任务保留当时的不可变修订，后续修改必须重新审查交接。生成中可停止批量编写，已经保存的草稿保留，未生成的建筑继续留在列表中。
 
-验证入口：`npm run test:architect`、`npm run test:studio`、`npm run test:feedback-autosave`、`npm run test:history`、`npm run test:desktop`。
+验证入口：`mise exec -- npm run test:architect`、`mise exec -- npm run test:studio`、`mise exec -- npm run test:feedback-autosave`、`mise exec -- npm run test:history`、`mise exec -- npm run test:desktop`。
+
+返回[文档导航](../README.md)。

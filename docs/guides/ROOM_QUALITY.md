@@ -59,3 +59,5 @@ python .agents/skills/nbtcreator-workspace/nbt.py room-score --request room-requ
 ## 后续校准
 
 积累同用途、同范围的修改前后样例、真实游戏通路结果和用户成对偏好，再调整各组权重与量表锚点。外观可扩展为多视角评审，但应保留逐项理由、图片/几何绑定和评审来源；不能仅凭 LLM 给出的印象总分替代量表或验证。
+
+返回[文档导航](../README.md)。

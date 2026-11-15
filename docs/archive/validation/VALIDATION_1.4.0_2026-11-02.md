@@ -22,4 +22,4 @@
 
 API使用本机模拟服务，未验证真实DeepSeek服务的设计质量。未生成真实项目的新建筑；首次建模仍按用户选择交给Agent执行。小型结构联调验证到候选采用与本地预览；常规NBT导出由桌面主流程单独验证。本轮没有重复完整Python引擎回归。未触发全屏，已知问题保持记录。
 
-输出：`dist/1.4.0-final/NBTCreator-win32-x64/NBTCreator.exe`。Python/NumPy/Pillow仍需外部环境。使用流程见 [首次创建说明](PROMPT_CREATION.md)。
+输出：`dist/1.4.0-final/NBTCreator-win32-x64/NBTCreator.exe`。Python/NumPy/Pillow仍需外部环境。使用流程见 [首次创建说明](../../guides/PROMPT_CREATION.md)。
