@@ -44,6 +44,8 @@ def finalize(workspace,source,validated=None,register_history=True):
     workspace=Path(workspace).resolve();source=Path(source)
     if not source.is_absolute():source=workspace/source
     source=source.resolve();target=release_path(workspace,source);source_hash=sha(source)
+    from nbt_working_model import managed_manifest
+    managed_manifest(source)
     receipt=target/'release.json'
     if receipt.is_file():
         result=json.loads(receipt.read_text(encoding='utf8'))

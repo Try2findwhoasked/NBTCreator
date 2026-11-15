@@ -28,11 +28,11 @@ def relative(workspace, file):
     return Path(file).resolve().relative_to(Path(workspace).resolve()).as_posix()
 
 @contextmanager
-def index_lock(workspace,directory):
+def index_lock(workspace,directory,timeout=2):
     target=inside(workspace,directory/'.write.lock')
     with target.open('a+b') as stream:
         if stream.seek(0,2)==0:stream.write(b'0');stream.flush()
-        deadline=time.monotonic()+2
+        deadline=time.monotonic()+timeout
         while True:
             try:
                 stream.seek(0)

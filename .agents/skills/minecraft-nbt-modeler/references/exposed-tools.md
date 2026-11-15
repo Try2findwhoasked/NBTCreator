@@ -45,7 +45,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 - regress → scripts/nbt_task.py
 - control → scripts/nbt_detail_control.py
 - refine → scripts/nbt_refine.py
-- model → scripts/nbt_tools.py
+- model → scripts/nbt_working_model.py
 - convert → scripts/nbt_web_revision.py
 - registry → scripts/nbt_registry.py
 - library → scripts/nbt_library.py

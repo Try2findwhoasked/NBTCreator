@@ -66,4 +66,6 @@ def engine_revision():
     # Python implementation updates still require restarting the process.
     directory=Path(__file__).resolve().parent
     files=[*directory.glob('*.py'),directory.parent/'tool-catalog.json',directory.parent/'references/block-registry-1.20.1.json']
-    return tuple((p.name,_file_digest(str(p),p.stat().st_size,p.stat().st_mtime_ns,p.stat().st_ctime_ns)) for p in sorted(files))
+    from nbt_extensions import revision_token
+    registrations=sha256(canonical(revision_token()).encode('utf8')).hexdigest()
+    return tuple((p.name,_file_digest(str(p),p.stat().st_size,p.stat().st_mtime_ns,p.stat().st_ctime_ns)) for p in sorted(files))+(('extension_registry',registrations),)

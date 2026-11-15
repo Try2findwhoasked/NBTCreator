@@ -140,7 +140,11 @@ def compile_object(workspace, arguments):
     identity=dict(generator='nbt_parametric',revision=8 if 'sample_shape_fit' in arguments.get('ornament',{}) else 6 if set(arguments.get('ornament',{})) & {'edge_trim','sample_repeat'} else 5 if set(arguments.get('ornament',{})) & {'sample','richness','highlight'} else 4 if 'form' in arguments or theme or set(arguments.get('ornament',{})) & {'layout','center_clear'} else 3,parameters=original_arguments,spec=spec)
     if kind=='pillar' and set(arguments.get('form',{}))&{'base_profile','capital_profile','base_curve','capital_curve','base_pattern','capital_pattern'}:identity['revision']=9
     if kind=='pillar' and ('order' in arguments.get('form',{}) or arguments.get('form',{}).get('section')=='round'):identity['revision']=10
+    interfaces=[]
+    if kind=='pillar':
+        interfaces=[dict(id='base',face='down',lo=[0,0,0],hi=[x,0,z]),
+                    dict(id='capital_top',face='up',lo=[0,y,0],hi=[x,y,z])]
     return dict(spec=spec,ornament=ornament,parts=parts,end_decorations=end_decorations,resolved_form=arguments.get('form',{}),revision=identity['revision'],recipe_sha256=hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest(),
                 content_sha256=data['content_sha256'],block_count=len(data['blocks']),mount=mount,
                 verification=dict(block_states=True,bounds=True,design='pending_visual_review',routes='not_checked',support='not_checked',game='not_checked'),
-                model_modified=False,approval_created=False)
+                interfaces=interfaces,model_modified=False,approval_created=False)

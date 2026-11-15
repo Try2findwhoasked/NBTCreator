@@ -9,7 +9,7 @@ def project_paths(source):
     parent=source.parent
     while parent.name in INFRA:parent=parent.parent
     match=VERSION.fullmatch(parent.name)
-    if parent.name.startswith(('版本_','v_')) and (parent/'room_description.json').is_file():return dict(workdir=parent.parent,version=parent,prefix=None,width=2)
+    if parent.name.startswith('v_model_') or parent.name.startswith(('版本_','v_')) and (parent/'room_description.json').is_file():return dict(workdir=parent.parent,version=parent,prefix=None,width=2)
     if match:return dict(workdir=parent.parent,version=parent,prefix=match[1],width=len(match[2]))
     if parent.parent.name=='versions':return dict(workdir=parent.parent.parent,version=parent,prefix=None,width=2)
     if parent.name=='refined':return dict(workdir=parent.parent,version=parent,prefix='refined_v',width=1)

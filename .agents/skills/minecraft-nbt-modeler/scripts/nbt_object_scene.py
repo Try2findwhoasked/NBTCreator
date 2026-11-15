@@ -76,10 +76,14 @@ def order(graph):
     if len(nodes)!=len(graph['objects']):raise ValueError('建筑对象编号重复')
     dependencies={}
     for key,node in nodes.items():
-        if ('lo' in node)==('attach' in node):raise ValueError('对象须在lo或attach中二选一：'+key)
-        deps=references(node['recipe'])|references(node.get('lo',[]))|references(node.get('attach',{}))|set(node.get('contacts',[]))
+        if sum(field in node for field in ('lo','attach','span'))!=1:raise ValueError('对象须在lo、attach或span中选择一种定位：'+key)
+        deps=references(node['recipe'])|references(node.get('lo',[]))|references(node.get('attach',{}))
         if 'attach' in node:deps.add(node['attach']['target'])
-        if deps-set(nodes):raise ValueError('建筑对象引用缺失：'+key+' → '+','.join(sorted(deps-set(nodes))))
+        if 'span' in node:deps.update(node['span'][end]['object'] for end in ('from','to'))
+        missing=(deps|set(node.get('contacts',[])))-set(nodes)
+        if missing:raise ValueError('建筑对象引用缺失：'+key+' → '+','.join(sorted(missing)))
+        if key in set(node.get('contacts',[])):
+            raise ValueError('对象不能声明与自己接触：'+key)
         dependencies[key]=deps
     pending=set(nodes);result=[]
     while pending:
@@ -115,7 +119,8 @@ def attached(a,b):
 
 
 def compile_scene(workspace,graph):
-    from nbt_structure_agent import _schema,definitions,dispatch,build
+    from nbt_structure_agent import _schema,definitions,build
+    from nbt_extensions import compile_recipe
     from nbt_components import placement
     _schema(graph,definitions()['scene_compile']['parameters']['properties']['graph'],'建筑对象图')
     if len(canonical(graph).encode())>512*1024:raise ValueError('建筑对象图超过512KiB')
@@ -126,12 +131,14 @@ def compile_scene(workspace,graph):
     nodes,deps,sequence=order(graph);completed={};occupancy={};operations=[];geometry={};clearances=[]
     for name in sequence:
         node=nodes[name];recipe=bind_patterns(resolve(node['recipe'],completed),bindings)
-        compiled={}
+        span_origin=None;span_interfaces=[]
+        if 'span' in node:
+            from nbt_scene_interfaces import span_recipe
+            recipe,span_origin,span_interfaces=span_recipe(node,recipe,completed)
+        elif recipe['tool']=='span_beam':raise ValueError('span_beam 配方须声明 span 装配关系')
         if recipe['tool']=='structure':
             if recipe['arguments'].get('include_air'):raise ValueError('建筑对象不接受显式空气清除')
-            data=build(workspace,recipe['arguments'])
-        else:
-            compiled=dispatch(workspace,recipe['tool'],recipe['arguments']);data=build(workspace,compiled['spec'])
+        data,compiled=compile_recipe(workspace,recipe)
         turns=node.get('quarter_turns',0)
         if 'attach' in node:
             arguments=recipe['arguments'];host=arguments.get('host',{})
@@ -147,9 +154,15 @@ def compile_scene(workspace,graph):
         shape=[a,sy,b];placed=placement(data,[ax,data['anchor'][1],az],shape,turns)
         local={tuple(v[:3]):(op['palette'][v[3]],op['classification']=='wall') for op in placed['operations'] for v in op['voxels'] if op['palette'][v[3]] not in AIR_NAMES}
         low=[min(p[i] for p in local) for i in range(3)];high=[max(p[i] for p in local) for i in range(3)]
-        if 'lo' in node:origin=resolve(node['lo'],completed)
+        if span_origin is not None:origin=span_origin
+        elif 'lo' in node:origin=resolve(node['lo'],completed)
         else:
             anchor=node['attach'];target=completed[anchor['target']]['bounds'];axis,sign=FACES[anchor['face']]
+            if anchor.get('interface'):
+                from nbt_scene_interfaces import selected_interface
+                surface=selected_interface(completed,dict(object=anchor['target'],interface=anchor['interface']))
+                if surface['face']!=anchor['face']:raise ValueError('贴附方向与具名接口法向不同：'+name)
+                target=dict(lo=[v//2 for v in surface['lo_half']],hi=[v//2 for v in surface['hi_half']])
             offset=resolve(anchor.get('offset',[0,0,0]),completed)
             if len(offset)!=3 or any(type(v) is not int or abs(v)>1024 for v in offset) or offset[axis]!=0:raise ValueError('贴附偏移须为切向整数，不能沿法向制造间隙')
             origin=[(target['lo'][i]+target['hi'][i]-low[i]-high[i])//2+offset[i] for i in range(3)]
@@ -162,7 +175,9 @@ def compile_scene(workspace,graph):
             for inset in range(anchor.get('max_inset',4)+1):
                 trial=list(origin);trial[axis]-=sign*inset
                 proposed={tuple(p[i]+trial[i] for i in range(3)):v for p,v in local.items()}
-                if not occupancy.keys()&proposed.keys() and attached(halfcells(proposed),other['cells']):origin=trial;break
+                from nbt_scene_interfaces import interface_contact
+                ok=interface_contact(halfcells(proposed),surface) if anchor.get('interface') else attached(halfcells(proposed),other['cells'])
+                if not occupancy.keys()&proposed.keys() and ok:origin=trial;break
             else:raise ValueError('对象贴附无法在限定深度内连接真实表面：'+name)
         voxels={tuple(p[i]+origin[i] for i in range(3)):value for p,value in local.items()}
         for constraint in compiled.get('clearance_constraints',[]):
@@ -176,12 +191,8 @@ def compile_scene(workspace,graph):
         if occupancy.keys()&voxels.keys():raise ValueError('建筑对象实际体素重叠：'+name)
         if any(inside(p,box) for p in voxels for box in graph.get('reserved_boxes',[])):raise ValueError('建筑对象占用保留空间：'+name)
         required=set(node.get('contacts',[]))|({node['attach']['target']} if 'attach' in node else set())
+        if 'span' in node:required.update(node['span'][end]['object'] for end in ('from','to'))
         cells=halfcells(voxels) if required else None
-        for target in sorted(required):
-            other=geometry[target]
-            if other['cells'] is None:other['cells']=halfcells(other['voxels'])
-            ok=attached(cells,other['cells']) if 'attach' in node and node['attach']['target']==target else touches(cells,other['cells'])
-            if not ok:raise ValueError('建筑对象未与声明支承面连接：'+name+' → '+target)
         for op in placed['operations']:
             op=deepcopy(op);op['voxels']=[v for v in op['voxels'] if op['palette'][v[3]] not in AIR_NAMES]
             if not op['voxels']:continue
@@ -191,8 +202,34 @@ def compile_scene(workspace,graph):
                              geometry_sha256=digest([[*p,*value] for p,value in sorted(voxels.items())]),contact_targets=sorted(required))
         completed[name]['surface_inset']=inset
         completed[name]['pattern_refs']=sorted(pattern_names(node['recipe']))
+        completed[name]['voxel_positions']=[list(p) for p in sorted(voxels)]
+        completed[name]['attach_target']=node.get('attach',{}).get('target')
+        completed[name]['attachment_interface']=node.get('attach',{}).get('interface')
+        from nbt_scene_interfaces import compile_interfaces
+        definitions=deepcopy(compiled.get('interfaces',[]))+resolve(node.get('interfaces',[]),completed)
+        completed[name]['interfaces']=compile_interfaces(definitions,local,data['size'],turns,origin)
+        completed[name]['span_interfaces']=span_interfaces
         geometry[name]=dict(voxels=voxels,cells=cells);occupancy.update(voxels)
         if len(occupancy)>graph.get('max_changed_blocks',65536):raise ValueError('建筑对象图超过实际方块预算')
+    # Contact is a symmetric validation relation, not a generation dependency.
+    # Check after every object's geometry exists, including reciprocal contacts.
+    for name in sequence:
+        node=nodes[name];required=set(completed[name]['contact_targets'])
+        current=geometry[name]
+        if required and current['cells'] is None:current['cells']=halfcells(current['voxels'])
+        for target in sorted(required):
+            other=geometry[target]
+            if other['cells'] is None:other['cells']=halfcells(other['voxels'])
+            ok=attached(current['cells'],other['cells']) if 'attach' in node and node['attach']['target']==target else touches(current['cells'],other['cells'])
+            if 'attach' in node and node['attach'].get('interface') and node['attach']['target']==target:
+                from nbt_scene_interfaces import interface_contact,selected_interface
+                surface=selected_interface(completed,dict(object=target,interface=node['attach']['interface']))
+                ok=interface_contact(current['cells'],surface)
+            if not ok:raise ValueError('建筑对象未与声明支承面连接：'+name+' → '+target)
+        if 'span' in node:
+            from nbt_scene_interfaces import interface_contact
+            for surface in completed[name]['span_interfaces']:
+                if not interface_contact(current['cells'],surface):raise ValueError('跨梁未接到指定承托接口：'+name+' → '+surface['id'])
     spec=dict(name=graph['name'],size=graph['size'],anchor=[0,0,0],operations=operations,max_changed_blocks=graph.get('max_changed_blocks',65536))
     data=build(workspace,spec);routes='not_checked'
     if clearances:
@@ -311,8 +348,10 @@ def update_scene(workspace,arguments):
         if key not in nodes or key in patched:raise ValueError('变更对象缺失或重复')
         patched.add(key)
         changed.add(key)
-        if 'lo' in patch:nodes[key].pop('attach',None)
-        if 'attach' in patch:nodes[key].pop('lo',None)
+        for field in ('lo','attach','span'):
+            if field in patch:
+                for other in ('lo','attach','span'):
+                    if other!=field:nodes[key].pop(other,None)
         nodes[key].update(deepcopy(patch))
     _,old_deps,_=order(before['graph']);_,new_deps,_=order(graph);affected=set(changed)
     while True:
@@ -324,9 +363,10 @@ def update_scene(workspace,arguments):
     for node in result['objects']:
         if node['id'] not in affected and node['geometry_sha256']!=old_receipts[node['id']]['geometry_sha256']:raise ValueError('未受影响的对象几何发生变化，请重新审阅完整图')
     writes=transition(workspace,before,result)
-    if not writes or len(writes)>arguments.get('max_changed_blocks',65536):raise ValueError('对象联动没有变化或超过修改预算')
+    if (not writes and result['graph_sha256']==before['graph_sha256']) or len(writes)>arguments.get('max_changed_blocks',65536):raise ValueError('对象联动没有变化或超过修改预算')
     return dict(result,parent=dict(id=saved['id'],revision=saved['revision'],version=saved['version']),changed_objects=sorted(changed),affected_objects=sorted(affected),
-                changed_patterns=sorted(changed_patterns),recompiled_objects=result['compile_order'],changed_blocks=len(writes),source_version_unchanged=True)
+                changed_patterns=sorted(changed_patterns),recompiled_objects=result['compile_order'],
+                revalidated_objects=result['compile_order'],changed_blocks=len(writes),source_version_unchanged=True)
 
 
 def dispatch_scene(workspace,tool,args):

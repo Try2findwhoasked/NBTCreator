@@ -163,8 +163,16 @@ class History:
             parent_node=self.lookup(state,parent)
             if parent_node['building']!=building or parent==identifier:raise ValueError('父版本必须属于同一建筑且不能是当前版本')
         if previous:
-            if parent and parent!=previous.get('parent'):raise ValueError('已有版本的父子关系不重写')
-            parent=previous.get('parent')
+            if parent and parent!=previous.get('parent'):
+                from nbt_working_model import managed_manifest
+                manifest = managed_manifest(source)
+                repair = (previous.get('parent') is None and manifest
+                    and manifest.get('parent_source') == parent_node['source']
+                    and manifest.get('parent_source_sha256') == parent_node['source_sha256'])
+                if not repair:
+                    raise ValueError('已有版本的父子关系不重写')
+            else:
+                parent=previous.get('parent')
         actor=request.get('actor',previous.get('actor') if previous else 'import')
         if actor not in {'human','internal_ai','external_agent','import'}:raise ValueError('版本来源无效')
         message=request.get('message',previous.get('message') if previous else '登记已有建筑版本')
@@ -209,15 +217,60 @@ class History:
     def summary(self,node,verify=True):
         source=model_file(self.workspace,node['source']);exists=source.is_file()
         return {k:node.get(k) for k in ['id','building','source','version','source_sha256','geometry_sha256','size','parent','actor','message','tasks','comments','created_at','updated_at','acceptance','release']}|dict(absolute_source=str(source),format=source.suffix.lower().lstrip('.'),file_count=len(node['files']),bytes=sum(item['bytes'] for item in node['files'].values()),source_exists=exists,source_matches=(exists and file_hash(source)==node['source_sha256']) if verify else None)
+    def snapshot_chain(self, state, source, expected=None):
+        """Fill managed ancestors in parent order, including interrupted records."""
+        from nbt_working_model import managed_manifest
+        pending, seen = [], set()
+        parent = None
+        while source:
+            source = model_file(self.workspace, source)
+            key = relative(self.workspace, source)
+            if key in seen:
+                raise ValueError('制作版本父链循环')
+            seen.add(key)
+            if expected:
+                identifier = 'v_' + digest((key + '\n' + expected).encode())[:24]
+                if identifier in state['versions'] and not source.is_file():
+                    parent = state['versions'][identifier]['id']
+                    break
+                if file_hash(source) != expected:
+                    raise ValueError('制作父版本源已变化')
+            manifest = managed_manifest(source)
+            pending.append(source)
+            if not manifest or not manifest.get('parent_source'):
+                break
+            ancestor = model_file(self.workspace, manifest['parent_source'])
+            if project_paths(ancestor)['workdir'] != project_paths(source)['workdir']:
+                raise ValueError('制作父版本必须属于同一建筑')
+            ancestor_manifest = managed_manifest(ancestor) if ancestor.is_file() else None
+            if ancestor_manifest and ancestor_manifest['revision'] != manifest.get('parent_revision'):
+                raise ValueError('制作父版本身份与清单不一致')
+            source, expected = ancestor, manifest.get('parent_source_sha256')
+        for file in reversed(pending):
+            node, changed = self.snapshot(state, dict(source=str(file), **({'parent':parent} if parent else {})))
+            parent = node['id']
+        return state['versions'][parent], bool(pending)
+
     def record(self,request):
         if 'set_current' in request and type(request['set_current']) is not bool:raise ValueError('当前工作版选项须为布尔值')
-        with self.lock():
+        from nbt_working_model import publication_lock, publish_head
+        building = project_paths(model_file(self.workspace, request['source']))['workdir']
+        with publication_lock(self.workspace, building), self.lock():
             state,head=self.state();before=encode(state)
-            if request.get('parent_source'):
-                parent,_=self.snapshot(state,dict(source=request['parent_source']));request=dict(request,parent=parent['id'])
+            # A managed draft carries its original parent even on a later retry.
+            from nbt_working_model import managed_manifest
+            manifest = managed_manifest(model_file(self.workspace, request['source']))
+            parent_source = manifest.get('parent_source') if manifest else request.get('parent_source')
+            if parent_source:
+                parent,_ = self.snapshot_chain(state,parent_source,manifest.get('parent_source_sha256') if manifest else None)
+                if request.get('parent') and request['parent'] != parent['id']:
+                    raise ValueError('父版本与制作清单不一致')
+                request = dict(request,parent=parent['id'])
             node,changed=self.snapshot(state,request)
             if request.get('set_current',False):state['current'][node['building']]=node['id']
             commit=self.commit(state,head,'版本记录：'+node['message']) if encode(state)!=before else head
+            if request.get('set_current',False):
+                publish_head(self.workspace, model_file(self.workspace,node['source']))
             return dict(version=self.summary(node),commit=commit,unchanged=commit==head,current=state['current'].get(node['building']))
     def list(self,source=None):
         state,head=self.state();building=None
@@ -231,13 +284,21 @@ class History:
             if not file.is_file() or file.stat().st_size!=item['bytes'] or file_hash(file)!=item['sha256']:raise ValueError('历史文件缺失或已损坏：'+name)
         return dict(version=self.summary(node),manifest=node,commit=head)
     def current(self,identifier):
-        with self.lock():
+        from nbt_working_model import publication_lock, publish_head, managed_manifest
+        initial,_=self.state();selected=self.lookup(initial,identifier)
+        with publication_lock(self.workspace,self.workspace/selected['workdir']), self.lock():
             state,head=self.state();node=self.lookup(state,identifier);summary=self.summary(node)
             if not summary['source_matches']:raise ValueError('该版本文件缺失或已变化，可从历史归档另存恢复')
-            if state['current'].get(node['building'])==identifier:return dict(current=identifier,commit=head,unchanged=True)
-            state['current'][node['building']]=identifier;return dict(current=identifier,commit=self.commit(state,head,'设为当前工作版：'+node['version']))
+            managed_manifest(model_file(self.workspace,node['source']))
+            unchanged=state['current'].get(node['building'])==identifier
+            state['current'][node['building']]=identifier
+            commit=head if unchanged else self.commit(state,head,'设为当前工作版：'+node['version'])
+            publish_head(self.workspace,model_file(self.workspace,node['source']))
+            return dict(current=identifier,commit=commit,unchanged=unchanged)
     def derive(self,identifier,message='从历史版本继续编辑'):
-        with self.lock():
+        from nbt_working_model import publication_lock, publish_head, digest as model_digest, write_json
+        initial,_=self.state();selected=self.lookup(initial,identifier)
+        with publication_lock(self.workspace,self.workspace/selected['workdir']), self.lock():
             state,head=self.state();node=self.lookup(state,identifier)
             # Verify every archived byte before allocating a new version.
             for name,item in [*node['files'].items(),*node.get('context',{}).items()]:
@@ -254,13 +315,37 @@ class History:
             if derived.suffix.lower()!='.snbt':
                 from nbt_snbt import save_snbt
                 model,walls=read_master(derived);derived=target/'master/model.snbt';save_snbt(derived,model,walls)
+            manifest_file=target/'model-version.json'
+            if manifest_file.is_file():
+                manifest=json.loads(manifest_file.read_text(encoding='utf8'))
+                manifest.pop('revision')
+                manifest.update(parent_source=node['source'],
+                    parent_source_sha256=node['source_sha256'],actor='human')
+                original=json.loads(self.object_file(node['files']['model-version.json']['sha256']).read_text(encoding='utf8'))
+                manifest['parent_revision']=original['revision']
+                write_json(target/'changes.json',dict(changes=[]))
+                manifest['files']['changes.json']=file_hash(target/'changes.json')
+                manifest['revision']=model_digest(manifest)
+                write_json(manifest_file,manifest)
             description=target/'room_description.json'
             if description.is_file():
                 from nbt_library import register_building
                 meta=json.loads(description.read_text(encoding='utf8'))
-                if meta.get('name_zh'):register_building(derived,meta['name_zh'],meta.get('cells'),mode=meta.get('mode') if meta.get('mode') in {'standalone','saodg'} else None)
+                if manifest_file.is_file():
+                    meta['model_revision']=manifest['revision']
+                    write_json(description,meta)
+                mode=meta.get('mode')
+                if mode not in {'standalone','saodg'} and (target/'coordinates.json').is_file():
+                    from nbt_library import canonical_context
+                    mode=canonical_context(target/'coordinates.json').get('mode')
+                if meta.get('name_zh'):
+                    register_building(derived,meta['name_zh'],meta.get('cells'),mode=mode if mode in {'standalone','saodg'} else None)
+            from nbt_working_model import managed_manifest
+            managed_manifest(derived)
             new,_=self.snapshot(state,dict(source=str(derived),parent=identifier,message=message,actor='human',tasks=[]));state['current'][node['building']]=new['id']
-            return dict(source=str(derived),version=self.summary(new),commit=self.commit(state,head,'派生版本：'+message),parent=identifier,source_unchanged=True,approval='not_granted_by_history')
+            commit=self.commit(state,head,'派生版本：'+message)
+            publish_head(self.workspace,derived)
+            return dict(source=str(derived),version=self.summary(new),commit=commit,parent=identifier,source_unchanged=True,approval='not_granted_by_history')
 
 def dispatch(workspace,action,request):
     history=History(workspace)

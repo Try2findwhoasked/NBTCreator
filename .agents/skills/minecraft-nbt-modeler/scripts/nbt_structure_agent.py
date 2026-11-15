@@ -10,10 +10,8 @@ from pathlib import Path
 import nbt_components as library
 
 ROOT=Path(__file__).resolve().parents[1]
-SUPPORTED_AGENT_TOOLS={'structure_list','structure_read','structure_view','structure_preview','structure_write','structure_place','structure_save','parametric_list','parametric_compile','parametric_preview','parametric_contract','parametric_validate','parametric_surface','parametric_mount','parametric_layout','parametric_compose','parametric_regenerate','pattern_list','pattern_compile','pattern_preview','pattern_mount','pattern_cylinder_mount','pattern_create','pattern_assets','pattern_microfit'}
-SUPPORTED_AGENT_TOOLS.update(('scene_compile','scene_save','scene_read','scene_update'))
-SUPPORTED_AGENT_TOOLS.update(('compute_info','field_compile','pattern_warp'))
-SUPPORTED_AGENT_TOOLS.update(('mount_batch','surface_decorate','pattern_filter','tracery_compile','vault_compile','bay_compile'))
+from nbt_extensions import AGENT_TOOLS
+SUPPORTED_AGENT_TOOLS=AGENT_TOOLS.keys()
 
 
 def _definitions():
@@ -142,134 +140,201 @@ def dispatch(workspace,tool,arguments):
     definition=_definitions().get(tool)
     if not definition:raise ValueError('未开放的结构Agent工具')
     _schema(arguments,definition['parameters'])
-    if tool=='compute_info':
-        from nbt_compute import info
-        return info()
-    if tool=='field_compile':
-        from nbt_field_compute import compile_field
-        return compile_field(workspace,arguments)
-    if tool=='pattern_warp':
-        from nbt_deform import create_warped
-        return create_warped(workspace,arguments)
-    if tool in ('tracery_compile','vault_compile','bay_compile'):
-        from nbt_architectural_bay import compile_tracery,compile_vault,compile_bay
-        return dict(tracery_compile=compile_tracery,vault_compile=compile_vault,bay_compile=compile_bay)[tool](workspace,arguments)
-    if tool in ('mount_batch','surface_decorate'):
-        from nbt_mount_batch import mount_batch,decorate
-        return (mount_batch if tool=='mount_batch' else decorate)(workspace,arguments)
-    if tool in ('scene_compile','scene_save','scene_read','scene_update'):
-        from nbt_object_scene import dispatch_scene
-        return dispatch_scene(workspace,tool,arguments)
-    if tool=='pattern_filter':
-        from nbt_spectral import create_filtered
-        return create_filtered(workspace,arguments)
-    if tool=='pattern_create':
-        from nbt_pattern_design import create
-        return create(workspace,arguments)
-    if tool=='pattern_assets':
-        from nbt_pattern_assets import dispatch as pattern_assets
-        return pattern_assets(workspace,arguments)
-    if tool=='pattern_cylinder_mount':
-        from nbt_cylinder_pattern import mount_cylinder
-        return mount_cylinder(workspace,arguments)
-    if tool in ('pattern_list','pattern_compile','pattern_preview','pattern_microfit'):
-        from nbt_pattern_panel import compile_panel,library as pattern_library
-        if tool=='pattern_list':
-            return dict(patterns=pattern_library(),micro_cylinder_policy=dict(source_surface='column',fit_mode='micro',geometry='actual_halfcube_corner_topology_and_backing_checks_required'))
-        result=compile_panel(workspace,dict(arguments,fit_mode='micro') if tool=='pattern_microfit' else arguments)
-        if tool=='pattern_preview' or tool=='pattern_microfit' and arguments.get('preview',False):
-            result.update(preview(workspace,build(workspace,result['spec']),result['spec']))
-            directory=Path(result['source']).parent
-            draft=directory/'draft.json';record=json.loads(draft.read_text(encoding='utf8'))
-            record['pattern_recipe']=dict(parameters=arguments,sample_sha256=result['sample_sha256'],fitting=result['fitting'])
-            if 'microfit' in result:record['pattern_recipe']['microfit']=result['microfit']
-            draft.write_text(json.dumps(record,ensure_ascii=False,separators=(',',':')),encoding='utf8')
-            result['preview_sha256']=_preview_fingerprint(directory)
-        return result
-    if tool in ('parametric_surface','parametric_mount','parametric_layout','pattern_mount'):
-        from nbt_surface_mount import dispatch as mount_dispatch
-        return mount_dispatch(workspace,tool,arguments)
-    if tool in ('parametric_compose','parametric_regenerate'):
-        from nbt_parametric_composition import compose, regenerate
-        return (compose if tool=='parametric_compose' else regenerate)(workspace,arguments)
-    if tool=='parametric_contract':
-        from nbt_parametric_contract import contract
-        return contract(arguments['constraints'])
-    if tool=='parametric_validate':
-        from nbt_parametric_contract import validate
-        return validate(workspace,arguments['proposal'],arguments['constraints'])
-    if tool=='parametric_list':
-        from nbt_parametric import listing
-        return listing(arguments)
-    if tool in ('parametric_compile','parametric_preview'):
-        from nbt_parametric import compile_object
-        result=compile_object(workspace,arguments)
-        if tool=='parametric_preview':
-            rendered=preview(workspace,build(workspace,result['spec']),result['spec'])
-            directory=Path(rendered['source']).parent
-            draft=directory/'draft.json';record=json.loads(draft.read_text(encoding='utf8'))
-            record['parametric_recipe']=dict(revision=result['revision'],parameters=arguments,recipe_sha256=result['recipe_sha256'],mount=result['mount'])
-            draft.write_text(json.dumps(record,ensure_ascii=False,separators=(',',':')),encoding='utf8')
-            rendered['preview_sha256']=_preview_fingerprint(directory)
-            result.update(rendered)
-        return result
-    if tool=='structure_save':
-        if 'batch_name' in arguments and not arguments['batch_name'].strip():raise ValueError('批次名称不能为空')
-        options=sum(key in arguments for key in ('spec','component','preview_id'))
-        if options!=1 or ('preview_sha256' in arguments)!=('preview_id' in arguments):raise ValueError('spec、component或绑定预览三选一，不能混用')
-        if 'spec' in arguments:
-            prepared=dispatch(workspace,'structure_preview',{k:v for k,v in arguments.items() if k in ('spec','reference_bundle')})
-        elif 'component' in arguments:
-            prepared=preview(workspace,library.validate(arguments['component']))
-        else:prepared={k:arguments[k] for k in ('preview_id','preview_sha256')}
-        root=_draft_root(workspace).resolve();directory=(root/prepared['preview_id']).resolve()
-        if not directory.is_relative_to(root) or _preview_fingerprint(directory)!=prepared['preview_sha256']:raise ValueError('预览已改变，请重新生成')
-        from nbt_prompts import index_lock
-        with index_lock(Path(workspace).resolve(),directory):
-            receipt=directory/'saved-asset.json'
-            if receipt.is_file():
-                if receipt.stat().st_size>library.MAX_BYTES:raise ValueError('保存回执过大')
-                previous=json.loads(receipt.read_text(encoding='utf8'));current=library.load(workspace,previous['id'])
-                if current['content_sha256']!=previous['content_sha256']:raise ValueError('已保存资产发生变化')
-                return dict({k:v for k,v in current.items() if k not in ('palette','blocks')},file=str(library.component_file(workspace,current['id'])),thumbnail=str(library.component_file(workspace,current['id']).with_suffix('.jpg')),block_count=len(current['blocks']),preview_id=prepared['preview_id'],preview_sha256=prepared['preview_sha256'],batch_id=previous['batch_id'],batch_manifest=previous['batch_manifest'],nbt_exported=False,approval_created=False)
-            if (directory/'draft.json').stat().st_size>library.MAX_BYTES:raise ValueError('预览资料过大')
-            if _preview_fingerprint(directory)!=prepared['preview_sha256']:raise ValueError('预览在保存期间变化')
-            draft=json.loads((directory/'draft.json').read_text(encoding='utf8'));item=library.store(workspace,dict(draft['component'],review_status='pending_visual_review'))
-            shutil.copyfile(directory/'thumbnail.jpg',Path(item['file']).with_suffix('.jpg'))
-            recipes=library.library_root(workspace)/'recipes';recipes.mkdir(exist_ok=True)
-            (recipes/(item['id']+'.json')).write_text(json.dumps(dict(spec=draft.get('spec'),parametric_recipe=draft.get('parametric_recipe'),pattern_recipe=draft.get('pattern_recipe'),reference_sources=draft.get('reference_sources',[]),preview_sha256=prepared['preview_sha256'],content_sha256=item['content_sha256'],verification=dict(design='pending_visual_review',game='not_checked')),ensure_ascii=False),encoding='utf8')
-            from nbt_asset_batches import register_components
-            batch=register_components(workspace,[item],arguments.get('batch_name',item['name']))
-            result=dict(item,preview_id=prepared['preview_id'],preview_sha256=prepared['preview_sha256'],batch_id=batch['id'],batch_manifest=batch['manifest'],nbt_exported=False,approval_created=False)
-            receipt.write_text(json.dumps(result,ensure_ascii=False),encoding='utf8');return result
-    if tool=='structure_list':return library.listing(workspace)
-    if tool=='structure_read':return library.load(workspace,arguments['id'])
-    if tool=='structure_view':
-        data=library.load(workspace,arguments['id']);sources=[]
-        recipe=library.library_root(workspace)/'recipes'/(arguments['id']+'.json')
-        if recipe.is_file():
-            if recipe.stat().st_size>library.MAX_BYTES:raise ValueError('资产来源记录过大')
-            record=json.loads(recipe.read_text(encoding='utf-8-sig'))
-            if record.get('content_sha256')!=data['content_sha256']:raise ValueError('资产来源记录与当前内容不一致')
-            sources=record.get('reference_sources',[])
-            if not isinstance(sources,list) or len(sources)>16:raise ValueError('资产来源记录无效')
-        result=preview(workspace,data,reference_sources=sources);result['reference_history']=True;return result
-    if tool=='structure_preview':
-        sources=[]
-        if arguments.get('reference_bundle'):
-            from nbt_retrieval import dispatch as retrieve
-            sources=retrieve(workspace,'read',dict(arguments['reference_bundle'],workflow='component'))['sources']
-        return preview(workspace,build(workspace,arguments['spec']),arguments['spec'],sources)
-    if tool=='structure_write':
-        root=_draft_root(workspace).resolve();directory=(root/arguments['preview_id']).resolve();draft=(directory/'draft.json').resolve()
-        if not directory.is_relative_to(root) or not draft.is_relative_to(root) or draft.stat().st_size>library.MAX_BYTES:raise ValueError('结构预览路径或大小无效')
-        raw=draft.read_bytes()
-        if _preview_fingerprint(directory)!=arguments['preview_sha256']:raise ValueError('预览已改变，请重新生成并查看')
-        data=json.loads(raw);result=library.store(workspace,data['component'])
-        shutil.copyfile(directory/'thumbnail.jpg',Path(result['file']).with_suffix('.jpg'))
+    return AGENT_TOOLS.resolve(tool)(workspace,arguments)
+
+
+def _handle_compute_info(workspace,tool,arguments):
+    from nbt_compute import info
+    return info()
+
+
+def _handle_field_compile(workspace,tool,arguments):
+    from nbt_field_compute import compile_field
+    return compile_field(workspace,arguments)
+
+
+def _handle_pattern_warp(workspace,tool,arguments):
+    from nbt_deform import create_warped
+    return create_warped(workspace,arguments)
+
+
+def _handle_architecture(workspace,tool,arguments):
+    from nbt_architectural_bay import compile_tracery,compile_vault,compile_bay
+    return dict(tracery_compile=compile_tracery,vault_compile=compile_vault,bay_compile=compile_bay)[tool](workspace,arguments)
+
+
+def _handle_mount_batch(workspace,tool,arguments):
+    from nbt_mount_batch import mount_batch,decorate
+    return (mount_batch if tool=='mount_batch' else decorate)(workspace,arguments)
+
+
+def _handle_scene(workspace,tool,arguments):
+    from nbt_object_scene import dispatch_scene
+    return dispatch_scene(workspace,tool,arguments)
+
+
+def _handle_pattern_filter(workspace,tool,arguments):
+    from nbt_spectral import create_filtered
+    return create_filtered(workspace,arguments)
+
+
+def _handle_pattern_create(workspace,tool,arguments):
+    from nbt_pattern_design import create
+    return create(workspace,arguments)
+
+
+def _handle_pattern_assets(workspace,tool,arguments):
+    from nbt_pattern_assets import dispatch as pattern_assets
+    return pattern_assets(workspace,arguments)
+
+
+def _handle_pattern_cylinder_mount(workspace,tool,arguments):
+    from nbt_cylinder_pattern import mount_cylinder
+    return mount_cylinder(workspace,arguments)
+
+
+def _handle_pattern(workspace,tool,arguments):
+    from nbt_pattern_panel import compile_panel,library as pattern_library
+    if tool=='pattern_list':
+        return dict(patterns=pattern_library(),micro_cylinder_policy=dict(source_surface='column',fit_mode='micro',geometry='actual_halfcube_corner_topology_and_backing_checks_required'))
+    result=compile_panel(workspace,dict(arguments,fit_mode='micro') if tool=='pattern_microfit' else arguments)
+    if tool=='pattern_preview' or tool=='pattern_microfit' and arguments.get('preview',False):
+        result.update(preview(workspace,build(workspace,result['spec']),result['spec']))
+        directory=Path(result['source']).parent
+        draft=directory/'draft.json';record=json.loads(draft.read_text(encoding='utf8'))
+        record['pattern_recipe']=dict(parameters=arguments,sample_sha256=result['sample_sha256'],fitting=result['fitting'])
+        if 'microfit' in result:record['pattern_recipe']['microfit']=result['microfit']
+        draft.write_text(json.dumps(record,ensure_ascii=False,separators=(',',':')),encoding='utf8')
+        result['preview_sha256']=_preview_fingerprint(directory)
+    return result
+
+
+def _handle_surface(workspace,tool,arguments):
+    from nbt_surface_mount import dispatch as mount_dispatch
+    return mount_dispatch(workspace,tool,arguments)
+
+
+def _handle_composition(workspace,tool,arguments):
+    from nbt_parametric_composition import compose, regenerate
+    return (compose if tool=='parametric_compose' else regenerate)(workspace,arguments)
+
+
+def _handle_contract(workspace,tool,arguments):
+    from nbt_parametric_contract import contract
+    return contract(arguments['constraints'])
+
+
+def _handle_parametric_validate(workspace,tool,arguments):
+    from nbt_parametric_contract import validate
+    return validate(workspace,arguments['proposal'],arguments['constraints'])
+
+
+def _handle_parametric_list(workspace,tool,arguments):
+    from nbt_parametric import listing
+    return listing(arguments)
+
+
+def _handle_parametric(workspace,tool,arguments):
+    from nbt_parametric import compile_object
+    result=compile_object(workspace,arguments)
+    if tool=='parametric_preview':
+        rendered=preview(workspace,build(workspace,result['spec']),result['spec'])
+        directory=Path(rendered['source']).parent
+        draft=directory/'draft.json';record=json.loads(draft.read_text(encoding='utf8'))
+        record['parametric_recipe']=dict(revision=result['revision'],parameters=arguments,recipe_sha256=result['recipe_sha256'],mount=result['mount'])
+        draft.write_text(json.dumps(record,ensure_ascii=False,separators=(',',':')),encoding='utf8')
+        rendered['preview_sha256']=_preview_fingerprint(directory)
+        result.update(rendered)
+    return result
+
+
+def _handle_structure_save(workspace,tool,arguments):
+    if 'batch_name' in arguments and not arguments['batch_name'].strip():raise ValueError('批次名称不能为空')
+
+    options=sum(key in arguments for key in ('spec','component','preview_id'))
+    if options!=1 or ('preview_sha256' in arguments)!=('preview_id' in arguments):raise ValueError('spec、component或绑定预览三选一，不能混用')
+
+    if 'spec' in arguments:
+        prepared=dispatch(workspace,'structure_preview',{k:v for k,v in arguments.items() if k in ('spec','reference_bundle')})
+    elif 'component' in arguments:
+        prepared=preview(workspace,library.validate(arguments['component']))
+    else:prepared={k:arguments[k] for k in ('preview_id','preview_sha256')}
+    root=_draft_root(workspace).resolve()
+    directory=(root/prepared['preview_id']).resolve()
+    if not directory.is_relative_to(root) or _preview_fingerprint(directory)!=prepared['preview_sha256']:raise ValueError('预览已改变，请重新生成')
+
+    from nbt_prompts import index_lock
+    with index_lock(Path(workspace).resolve(),directory):
+        receipt=directory/'saved-asset.json'
+        if receipt.is_file():
+            if receipt.stat().st_size>library.MAX_BYTES:raise ValueError('保存回执过大')
+            previous=json.loads(receipt.read_text(encoding='utf8'));current=library.load(workspace,previous['id'])
+            if current['content_sha256']!=previous['content_sha256']:raise ValueError('已保存资产发生变化')
+            return dict({k:v for k,v in current.items() if k not in ('palette','blocks')},file=str(library.component_file(workspace,current['id'])),thumbnail=str(library.component_file(workspace,current['id']).with_suffix('.jpg')),block_count=len(current['blocks']),preview_id=prepared['preview_id'],preview_sha256=prepared['preview_sha256'],batch_id=previous['batch_id'],batch_manifest=previous['batch_manifest'],nbt_exported=False,approval_created=False)
+        if (directory/'draft.json').stat().st_size>library.MAX_BYTES:raise ValueError('预览资料过大')
+        if _preview_fingerprint(directory)!=prepared['preview_sha256']:raise ValueError('预览在保存期间变化')
+        draft=json.loads((directory/'draft.json').read_text(encoding='utf8'));item=library.store(workspace,dict(draft['component'],review_status='pending_visual_review'))
+        shutil.copyfile(directory/'thumbnail.jpg',Path(item['file']).with_suffix('.jpg'))
         recipes=library.library_root(workspace)/'recipes';recipes.mkdir(exist_ok=True)
-        (recipes/(result['id']+'.json')).write_text(json.dumps(dict(spec=data.get('spec'),parametric_recipe=data.get('parametric_recipe'),pattern_recipe=data.get('pattern_recipe'),reference_sources=data.get('reference_sources',[]),preview_sha256=arguments['preview_sha256'],content_sha256=result['content_sha256']),ensure_ascii=False),encoding='utf8')
-        return result
+        (recipes/(item['id']+'.json')).write_text(json.dumps(dict(spec=draft.get('spec'),parametric_recipe=draft.get('parametric_recipe'),pattern_recipe=draft.get('pattern_recipe'),reference_sources=draft.get('reference_sources',[]),preview_sha256=prepared['preview_sha256'],content_sha256=item['content_sha256'],verification=dict(design='pending_visual_review',game='not_checked')),ensure_ascii=False),encoding='utf8')
+        from nbt_asset_batches import register_components
+        batch=register_components(workspace,[item],arguments.get('batch_name',item['name']))
+        result=dict(item,preview_id=prepared['preview_id'],preview_sha256=prepared['preview_sha256'],batch_id=batch['id'],batch_manifest=batch['manifest'],nbt_exported=False,approval_created=False)
+        receipt.write_text(json.dumps(result,ensure_ascii=False),encoding='utf8');return result
+
+
+def _handle_structure_list(workspace,tool,arguments):
+    return library.listing(workspace)
+
+
+def _handle_structure_read(workspace,tool,arguments):
+    return library.load(workspace,arguments['id'])
+
+
+def _handle_structure_view(workspace,tool,arguments):
+    data=library.load(workspace,arguments['id'])
+    sources=[]
+    recipe=library.library_root(workspace)/'recipes'/(arguments['id']+'.json')
+    if recipe.is_file():
+        if recipe.stat().st_size>library.MAX_BYTES:raise ValueError('资产来源记录过大')
+        record=json.loads(recipe.read_text(encoding='utf-8-sig'))
+        if record.get('content_sha256')!=data['content_sha256']:raise ValueError('资产来源记录与当前内容不一致')
+        sources=record.get('reference_sources',[])
+        if not isinstance(sources,list) or len(sources)>16:raise ValueError('资产来源记录无效')
+
+    result=preview(workspace,data,reference_sources=sources)
+    result['reference_history']=True
+    return result
+
+
+def _handle_structure_preview(workspace,tool,arguments):
+    sources=[]
+    if arguments.get('reference_bundle'):
+        from nbt_retrieval import dispatch as retrieve
+        sources=retrieve(workspace,'read',dict(arguments['reference_bundle'],workflow='component'))['sources']
+    return preview(workspace,build(workspace,arguments['spec']),arguments['spec'],sources)
+
+
+def _handle_structure_write(workspace,tool,arguments):
+    root=_draft_root(workspace).resolve()
+    directory=(root/arguments['preview_id']).resolve()
+    draft=(directory/'draft.json').resolve()
+    if not directory.is_relative_to(root) or not draft.is_relative_to(root) or draft.stat().st_size>library.MAX_BYTES:raise ValueError('结构预览路径或大小无效')
+
+    raw=draft.read_bytes()
+    if _preview_fingerprint(directory)!=arguments['preview_sha256']:raise ValueError('预览已改变，请重新生成并查看')
+
+    data=json.loads(raw)
+    result=library.store(workspace,data['component'])
+    shutil.copyfile(directory/'thumbnail.jpg',Path(result['file']).with_suffix('.jpg'))
+    recipes=library.library_root(workspace)/'recipes'
+    recipes.mkdir(exist_ok=True)
+    (recipes/(result['id']+'.json')).write_text(json.dumps(dict(spec=data.get('spec'),parametric_recipe=data.get('parametric_recipe'),pattern_recipe=data.get('pattern_recipe'),reference_sources=data.get('reference_sources',[]),preview_sha256=arguments['preview_sha256'],content_sha256=result['content_sha256']),ensure_ascii=False),encoding='utf8')
+    return result
+
+
+def _handle_structure_place(workspace,tool,arguments):
     data=library.load(workspace,arguments['id'])
     if arguments['content_sha256']!=data['content_sha256']:raise ValueError('构件内容已变化，请重新读取')
+
     return dict(library.placement(data,arguments['position'],arguments['size'],arguments.get('quarter_turns',0),arguments.get('mirror'),arguments.get('overwrite',False)),model_modified=False)

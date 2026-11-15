@@ -22,6 +22,10 @@ run = "python scripts/gpu-runtime.py python -B scripts/benchmark-compute.py"
 description = "Verify bulk writes, catalogue invalidation and strict validation"
 run = "python -B tests/materialization.py"
 
+[tasks."model:test"]
+description = "Verify whole-model composition, managed updates and assembly interfaces"
+run = "npm run test:model-workflow"
+
 [tasks."gpu:materialization"]
 description = "Benchmark CPU materialization with CPU and GPU field inputs"
 run = "python scripts/gpu-runtime.py python -B scripts/benchmark-materialization.py"

@@ -55,6 +55,8 @@ trace.close()
 
 ## 维护与回归
 
+复杂工具分派、构件配方及工作模型操作使用[扩展注册器](extensions.md)，不在调用方重复维护工具白名单。新增公共能力仍须声明 tool-catalog.json 并同步生成物；注册变更会使缓存和已运行会话失效。
+
 ```powershell
 python .agents/skills/minecraft-nbt-modeler/scripts/check_skill.py
 python .agents/skills/minecraft-nbt-modeler/scripts/nbt_task.py regress --output <全新的测试输出目录>

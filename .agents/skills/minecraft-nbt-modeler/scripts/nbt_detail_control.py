@@ -243,7 +243,7 @@ def inspect_source(source, image_limit=8):
         data = read_json(context) if context else {}
         if not isinstance(data,dict):data={}
     except (OSError,ValueError):data={}
-    readiness=context_readiness(model,context)
+    readiness=context_readiness(model,context,source)
     return dict(source=str(source), source_sha256=digest(source), workdir=str(project_paths(source)['workdir']), version_dir=str(project_paths(source)['version']), geometry_sha256=model.fingerprint(),
                 projections=projections,size=list(model.size), solid_blocks=len(model.blocks), wall_blocks=len(walls),
                 context=context, cameras=cameras, images=images, unknown_shapes=unknown,
@@ -254,13 +254,23 @@ def inspect_source(source, image_limit=8):
                 note='Controls describe a new pass from this baseline; existing details cannot be undone without an earlier baseline.')
 
 
-def context_readiness(model, context):
+def context_readiness(model, context, source=None):
     """Schema readiness only; never a seal, route or visual acceptance result."""
     from nbt_library import canonical_context
     missing=[];errors=[]
     if not context:return dict(ready=False,missing=['context'],errors=[],scope='schema_only')
     try:data=canonical_context(context)
     except (OSError,ValueError,TypeError) as error:return dict(ready=False,missing=[],errors=[str(error)],scope='schema_only')
+    if source:
+        try:
+            from nbt_working_model import managed_manifest, WorkingModel
+            from nbt_history import source_workspace
+            manifest=managed_manifest(source)
+            if manifest and (manifest['kind']=='component' or manifest['phase']!='opened'):
+                WorkingModel.open(source_workspace(source),source,context)
+                return dict(ready=True,missing=[],errors=[],scope='schema_only',kind=manifest['kind'],phase=manifest['phase'])
+        except (OSError,ValueError,TypeError) as error:
+            return dict(ready=False,missing=[],errors=[str(error)],scope='schema_only')
     mode=data.get('mode','saodg')
     if mode not in ('saodg','standalone'):errors.append('mode 必须为 saodg 或 standalone')
     for key in ('start','targets','interior_probes'):
@@ -561,7 +571,7 @@ def simulate_plan(model, walls, plan, config):
     from nbt_floors import auto_floor_plan
     walls=set(walls);source_walls=set(walls)
     virtual=Volume(model.size);virtual.blocks=dict(model.blocks);protected=protections(virtual,config)
-    write_owners={}
+    write_owners={};written_positions=0
     for operation in plan['operations']:
         from nbt_operation_scope import scoped_operation,enforce_scope
         operation,bounds=scoped_operation(operation,model.size)
@@ -569,6 +579,9 @@ def simulate_plan(model, walls, plan, config):
         elif operation['kind']=='weathering': edits,_=weathering_plan(virtual,operation,protected)
         elif operation['kind']=='auto_floor': edits,_=auto_floor_plan(virtual,operation,config,protected)
         else: edits=operation_candidates(virtual,operation,protected)
+        written_positions+=len(edits)
+        if 'max_written_positions' in config and written_positions>config['max_written_positions']:
+            raise ValueError('操作写入量超过上限')
         from nbt_change_policy import enforce_overwrite, clip_protected
         operation=enforce_scope(bounds,operation,edits)
         edits=clip_protected(operation,edits,protected)
@@ -592,6 +605,25 @@ def simulate_plan(model, walls, plan, config):
     return virtual,walls,difference
 
 
+def authoring_context(request, model, settings):
+    """Use the saved scope and stage for managed components and design drafts."""
+    from nbt_working_model import managed_manifest, WorkingModel
+    from nbt_history import source_workspace
+    source = Path(request['source']).resolve()
+    if not managed_manifest(source):
+        return normalize_context(model, request['context'], request.get('cameras',''), settings)
+    working = WorkingModel.open(source_workspace(source),source,request['context'],
+        source_sha256=request.get('source_sha256'))
+    config = working._protection_context()
+    config['max_changed_blocks'] = min(working._budget(), settings.get('max_changed_blocks',4096))
+    config['max_written_positions'] = working.limits['max_written_positions']
+    config['cameras'] = read_json(request['cameras']) if request.get('cameras') else working.context.get('cameras',[])
+    if not config['cameras']:
+        sx,sy,sz=model.size
+        config['cameras']=[dict(role='whole',eye=[sx*1.5,sy*1.5,-sz],target=[sx/2,sy/2,sz/2],cuts=[])]
+    return config
+
+
 def preview_effect(request, output):
     # User-requested visual experiment only: no master/NBT, approval or delivery.
     from nbt_assembly import Volume
@@ -602,7 +634,7 @@ def preview_effect(request, output):
     source=Path(request['source']).resolve(); baseline=digest(source)
     if request.get('source_sha256') and request['source_sha256']!=baseline: raise ValueError('原建筑已变化，请重新打开')
     model,walls=read_master(source);settings=request['settings'];plan=compile_plan(settings,model.size)
-    config=normalize_context(model,request['context'],request.get('cameras',''),settings)
+    config=authoring_context(request,model,settings)
     if 'wall_positions' in config:
         from nbt_refine import point
         walls={point(p) for p in config['wall_positions']}
@@ -681,11 +713,11 @@ def render_source(request, output):
 def source_snapshot(request, output):
     from nbt_task import write_snapshot
     source = Path(request['source']).resolve(); model, _ = read_master(source)
-    readiness=context_readiness(model,request.get('context'))
+    readiness=context_readiness(model,request.get('context'),source)
     context_warning=''
     if readiness['ready']:
         try:
-            config = normalize_context(model, request['context'], request.get('cameras', ''), request['settings'])
+            config = authoring_context(request,model,request['settings'])
             raw=read_json(request['cameras']) if request.get('cameras') else config['cameras']
         except (ValueError,KeyError,TypeError,OSError) as error:
             readiness=dict(readiness,ready=False,errors=[str(error)])

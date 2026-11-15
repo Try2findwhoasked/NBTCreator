@@ -19,9 +19,9 @@
 
 ## 对象与依赖
 
-graph 包含 schema_version=1、name、size 和 objects。每个对象有 id、recipe，并在 lo 与 attach 中二选一。lo 是**旋转后局部画布的最小角，即局部零点**，不同于 structure_place 的锚点坐标；构件带留白时，真实占用边界会内缩，以编译结果 bounds 为准。
+graph 包含 schema_version=1、name、size 和 objects。每个对象有 id、recipe，并在 lo、attach 与 span 中选择一种定位。lo 是**旋转后局部画布的最小角，即局部零点**，不同于 structure_place 的锚点坐标；构件带留白时，真实占用边界会内缩，以编译结果 bounds 为准。完整模型的安装和安全续版见[统一工作模型](working-model.md)。
 
-recipe.tool 可选 `parametric_compile`、`pattern_compile`、`pattern_microfit`、`surface_decorate`、`tracery_compile`、`vault_compile`、`bay_compile`、`field_compile` 或 `structure`；arguments 分别使用对应工具参数，structure 则接受已有结构 spec。surface_decorate 保留宿主配方和饰面安装参数，适合柱芯嵌纹、墙面与吊顶镶嵌，避免将拟合结果烘焙成失去纹样来源的纯结构。[联动跨间](architectural-bays.md)工具可作为单个对象保留内部柱拱墙顶和纹样配方，参数变化时一起重算。原参数 Schema、合法方块及工具限制继续生效。对象不支持用显式空气覆盖其他对象。
+recipe.tool 可选 `parametric_compile`、`pattern_compile`、`pattern_microfit`、`surface_decorate`、`tracery_compile`、`vault_compile`、`bay_compile`、`field_compile`、`span_beam` 或 `structure`；arguments 分别使用对应工具参数，structure 则接受已有结构 spec，span_beam 使用下文跨梁参数。surface_decorate 保留宿主配方和饰面安装参数，适合柱芯嵌纹、墙面与吊顶镶嵌，避免将拟合结果烘焙成失去纹样来源的纯结构。[联动跨间](architectural-bays.md)工具可作为单个对象保留内部柱拱墙顶和纹样配方，参数变化时一起重算。原参数 Schema、合法方块及工具限制继续生效。对象不支持用显式空气覆盖其他对象。
 
 ## 纹样资产与配方联动
 
@@ -51,9 +51,17 @@ calc 支持 add、subtract、min、max；subtract 恰好两个操作数，其余
 
 attach 接受 target、face（up/down/north/south/east/west），可选 offset 和 max_inset。它先对齐目标实际边界与切向中心，再沿法向向内探测真实接触面，默认最多4格，可设0～8格。offset 为切向整数，法向分量必须为0。每个真实半格面连通部件都须接到目标；碰撞、无法接触或未知碰撞形状均拒绝，不补造支撑或删除细节。
 
-侧面墙饰按 face 自动绕 Y 定向，楼梯和半砖状态随之变换，此时不叠加 quarter_turns。其他对象可用 quarter_turns=0～3 整体旋转。contacts 可额外声明必须实际面接触的对象，例如一根梁同时连接左右两根柱子；这些对象也计入依赖。没有声明关系的根对象不会自动获得支承或工程承载认证。
+侧面墙饰按 face 自动绕 Y 定向，楼梯和半砖状态随之变换，此时不叠加 quarter_turns。其他对象可用 quarter_turns=0～3 整体旋转。contacts 可额外声明必须实际面接触的对象，例如一根梁同时连接左右两根柱子；接触属于位置确定后的验证关系，不形成生成依赖，允许双向声明。没有声明关系的根对象不会自动获得支承或工程承载认证。
 
-对象数组无需人工排序。脚本依据尺寸引用、attach 和 contacts 建立依赖；缺失引用、重复 ID、循环依赖直接拒绝。无法联动的布局应明确修改关系，而非悄悄固定旧坐标。
+对象数组无需人工排序。脚本依据尺寸引用、attach 和 span 建立生成依赖；缺失引用、重复 ID、生成循环直接拒绝。完整几何形成后统一重验 contacts 和具名接口接触。scene_update 分别返回受影响对象与 revalidated_objects；当前仍重编译并检查整图。
+
+## 具名接口与跨梁
+
+柱生成器提供 `base` 与 `capital_top`。其他对象可用 `interfaces:[{"id":"roof_seat","face":"up","lo":[0,0,0],"hi":[12,0,2]}]` 声明原构件局部画布中的接口区域。编译器在实际半格碰撞几何上求真实暴露面，接口随对象旋转变换，并返回法向、半格面、面积与位置。空气区域、被实体遮住的假接口和未知形状拒绝认证。
+
+`attach` 可增加 `interface:"roof_seat"`，face 须与该接口实际方向一致。每个连接部件须沿接口法向接到声明面，不用与目标其他部位的接触冒充指定接口通过。
+
+对象图内部另支持 `recipe:{"tool":"span_beam","arguments":{"width":3,"height":1,"material":"stone_bricks"}}`，配合 `span:{"axis":"x","from":{"object":"left","interface":"capital_top"},"to":{"object":"right","interface":"capital_top"}}`。它按两个朝上承托面生成水平矩形梁，自动计算长度和高度，并重验两端实际接触。两端高度不一、偏离声明轴、截面无法整数居中或需要舍入半格支承时明确拒绝；不自动拉伸任意资产或改变楼梯状态。整体镜像/旋转安装使用工作模型，回执中的子对象和接口同步换算到宿主世界坐标。
 
 ## 最小联动例子
 
@@ -75,7 +83,7 @@ attach 接受 target、face（up/down/north/south/east/west），可选 offset �
 
 scene_compile 返回 graph_sha256、content_sha256 和 spec。scene_save 提交该 graph 及这两个哈希，保存位置为 `nbt_models/asset_library/object_scenes/<id>/`。head.json 指向当前版本；versions 中按文件哈希保存不可变配方和真实编译快照。
 
-scene_update 使用保存回执的 id / revision / version，并给 changes。每项以 id 定位，提供要替换的 recipe、lo、attach、quarter_turns 或 contacts；recipe 和 arguments 整体替换，不隐式深度合并旧参数。指定 lo 会移除旧 attach，反之亦然。此版 update 修改已有对象；增删对象可重新编译完整图，再绑定父版本保存。
+scene_update 使用保存回执的 id / revision / version，并给 changes。每项以 id 定位，提供要替换的 recipe、lo、attach、span、interfaces、quarter_turns 或 contacts；recipe 和 arguments 整体替换，不隐式深度合并旧参数。指定一种定位会移除其他定位。此版 update 修改已有对象；增删对象可重新编译完整图，再绑定父版本保存。只改配方或关系而未改变方块也可另存语义版本，不伪报方块变化。
 
 ```json
 {"id":"<场景ID>","revision":1,"version":"<版本哈希>","changes":[{"id":"pillar","recipe":{"tool":"parametric_compile","arguments":{"kind":"pillar","size":[3,8,3]}}}]}
