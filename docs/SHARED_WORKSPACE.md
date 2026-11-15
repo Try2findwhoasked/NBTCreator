@@ -1,26 +1,26 @@
 # 桌面与Agent共用工作区
 
-新制作源使用 SNBT，定稿 NBT 位于 `nbt_models/_exports/` 下与建筑／版本一致的镜像目录。专用 Git 历史位于 `.nbtcreator/history/`，与用户项目自己的 Git 独立。完整迁移需同时携带模型目录和历史归档；版本链、当前工作版、任务与批注关联通过 `history` CLI 与界面共用，真实批准和人工核对保持独立。
+新建制作版使用 SNBT，定稿 NBT 位于 `nbt_models/_exports/` 下与建筑／版本一致的镜像目录。专用 Git 历史位于 `.nbtcreator/history/`，与用户项目自己的 Git 独立。完整迁移需同时携带模型目录和历史归档。CLI 与界面通过 `history` 共用版本链、当前工作版及任务与批注的关联，真实批准和人工核对仍单独完成。
 
-NBTCreator继续使用原minecraft-nbt-modeler的模型与导出协议。主模型JSON.GZ、显式墙mask、room_description.json、coordinates/cameras、runtime分片、body/walls分层和delivery/validation清单不因Electron或AI接入而改为另一种格式。提示词方案的AI稿是额外文本元数据，不改变模型格式。
+NBTCreator 沿用原 minecraft-nbt-modeler 的模型与导出协议。主模型 JSON.GZ、显式墙 mask、room_description.json、coordinates/cameras、runtime 分片、body/walls 分层和 delivery/validation 清单的格式不因接入 Electron 或 AI 而改变。提示词方案的 AI 稿是额外的文本元数据，不改变模型格式。
 
 ## 对齐目录和工具版本
 
-建议Codex在当前项目目录工作，使用生成的 `.agents/skills/nbtcreator-workspace/SKILL.md` 和统一CLI；工具实现与清单位于NBTCreator的minecraft-nbt-modeler目录。原SAODG旧副本不自动双向同步，也不是新应用的活动接口。
+建议 Codex 在当前项目目录工作，使用生成的 `.agents/skills/nbtcreator-workspace/SKILL.md` 和统一CLI；工具实现与清单位于 NBTCreator 的 minecraft-nbt-modeler 目录。原 SAODG 旧副本不会自动双向同步，新应用也不再使用它作为调用接口。
 
-0.3.0默认使用调用Agent的项目根目录，资产为该目录的nbt_models。支持显式--workspace、NBTCREATOR_WORKSPACE及手动选择；应用不会默认把安装资源或系统目录当资产根目录。旧默认workspace和文档目录已弃用，旧用户资产应通过迁移命令转入新根目录。
+0.3.0 默认使用调用 Agent 的项目根目录，资产保存在该目录的 nbt_models 中。支持显式 --workspace、NBTCREATOR_WORKSPACE 及手动选择；应用不会默认把安装资源或系统目录当作资产根目录。旧的默认 workspace 和文档目录已弃用，旧用户资产应通过迁移命令转入新的根目录。
 
-当前项目根目录的 `.nbtcreator/skill-exposure.json` 保存知识组选择，AI助手配置页负责修改并同步生成入口。它是路由与阅读范围配置，不是文件访问权限控制，不删除资料库。所有知识组共享同一份18类工具能力；`tool-catalog.json`为源，`sync:tools`生成网页目录与工具接口文档，`check:tools`阻止版本漂移后打包。
+当前项目根目录的 `.nbtcreator/skill-exposure.json` 保存知识组选择，可在 AI 助手配置页修改，修改后会同步生成入口。这项配置控制知识路由与阅读范围，不控制文件访问权限，也不删除资料库。所有知识组共享同一份 18 类工具能力；`tool-catalog.json` 是定义源，`sync:tools` 生成网页目录与工具接口文档，`check:tools` 会在版本不一致时阻止打包。
 
-1.2可在AI设置导入自己的Markdown/TXT，文件复制到 `.nbtcreator/knowledge/`，选中的文档通过相对链接加入Agent入口。目标工作区没有配置时，切换携带自定义文档和开关；已有目标配置保持目标列表。知识只作为参考，不获得执行或批准权限，也不自动上传API。
+1.2 可在 AI 设置中导入自己的 Markdown/TXT，文件复制到 `.nbtcreator/knowledge/`，选中的文档通过相对链接加入 Agent 入口。切换到尚无配置的工作区时，会携带自定义文档和开关；目标已有配置时，保留目标的列表。知识仅供参考，不授予执行或批准权限，也不自动上传到 API。
 
-保存的request/settings文件尽量使用工作区相对source/context/cameras/review路径，room_description.master相对描述文件定位；旧绝对路径仍可读取。外部文件或跨盘引擎无法相对化时保留绝对定位，不宣称任意单文件都可独立搬迁。Agent应在项目根目录执行，或对统一CLI使用前置 `--workspace <根目录>`。
+保存的 request/settings 文件尽量使用相对于工作区的 source/context/cameras/review 路径，room_description.master 则相对于描述文件定位；旧绝对路径仍可读取。外部文件或跨盘引擎无法使用相对路径时，保留绝对路径，因此并非任意单文件都能独立搬迁。Agent 应在项目根目录执行命令，或为统一 CLI 指定前置参数 `--workspace <根目录>`。
 
-共用时选择一个明确的磁盘根目录（其中包含nbt_models），在桌面通过“选择工作区…”指定；误选nbt_models、缓存或房间子目录时会自动识别项目根目录。Agent在同一根目录调用，保存参数使用工作区相对引用；旧绝对路径保持兼容。
+共用工作区时，选择一个包含 nbt_models 的磁盘根目录，在桌面通过“选择工作区…”指定；误选 nbt_models、缓存或房间子目录时会自动识别项目根目录。Agent 在同一根目录调用，保存参数使用工作区相对引用；旧绝对路径保持兼容。
 
-切换工作区会取消并等待旧工作区的AI请求，拒绝迟到结果，再同步经哈希校验的skill脚本、资源、数据与知识库到目标 `.nbtcreator/runtimes/<内容哈希>/`。新工作区携带当前知识组，已有目标配置保留。旧工作区及旧运行时不删除；手动改过的生成入口先备份到 `.nbtcreator/skill-backups`。核心入口随工作区搬迁，渲染共享依赖需保持相对安装位置或重新同步/独立锁定安装。
+切换工作区时，会先取消旧工作区的 AI 请求并等待结束，拒绝迟到结果，再将经哈希校验的 Skill 脚本、资源、数据与知识库同步到目标 `.nbtcreator/runtimes/<内容哈希>/`。新工作区会携带当前知识组，已有目标配置则保留。旧工作区及旧运行时不删除；手动改过的生成入口先备份到 `.nbtcreator/skill-backups`。核心入口随工作区搬迁，渲染共享依赖需保持相对安装位置或重新同步/独立锁定安装。
 
-运行时副本不包含node_modules、Python缓存和任务产物。核心调用需要可用Python/NumPy/Pillow；完整便携包内置它们，源码环境按requirements安装。同步的 `.nbtcreator/render-runtime.json` 可关联应用的锁定Playwright、Node/Electron与浏览器，不必给每个工作区复制依赖。单独复制工作区不等于携带第三方环境。
+运行时副本不包含 node_modules、Python 缓存和任务产物。核心调用需要可用的 Python/NumPy/Pillow；完整便携包已内置，源码环境则按 requirements 安装。同步的 `.nbtcreator/render-runtime.json` 可关联应用锁定版本的 Playwright、Node/Electron 与浏览器，不必给每个工作区复制依赖。单独复制工作区不等于携带第三方环境。
 
 规范资产目录为 `nbt_models/<形状>/<中文建筑名>/<版本>/`；既有建筑从源目录按原版本规则另存下一版。临时预览与任务在 `_workspaces`，不把它们当正式交付。
 
@@ -34,16 +34,16 @@ NBTCreator继续使用原minecraft-nbt-modeler的模型与导出协议。主模�
 
 “Agent 精修审阅与执行”和“方案与运行详情”默认收起，用户主动展开或发生相关错误时显示详情。打开建筑自动查找与当前源路径/哈希匹配的审阅记录；执行仍检查保护配置与真实确认。手动指定旧审阅目录保留在可选执行入口。
 
-这里的审阅与确认是两边共用的工作流资料，不是必须再由应用执行一次。Agent已经交付下一版时，直接刷新即可。若希望由应用执行同一计划，才使用可选执行入口；该入口会另建源建筑工作目录下的精修版本，保留原稿。手动调参后直接“导出建筑下一版”仍可用。所有交接文档和界面操作均不自动产生批准，也不替代真实看图确认。
+审阅与确认资料由应用和 Agent 共用，无需两边各执行一次。Agent 已交付下一版时，在应用中刷新即可。若希望由应用执行同一计划，才使用可选执行入口；该入口会另建源建筑工作目录下的精修版本，保留原稿。手动调参后直接“导出建筑下一版”仍可用。所有交接文档和界面操作均不自动产生批准，也不替代真实看图确认。
 
 ## 协作边界
 
-两边可以读取同一版本，但当前没有桌面/CLI统一写锁或自动合并。对同一建筑应轮流修改和导出，完成后重新扫描/打开新版本；不要同时改同一源文件、覆盖已有版本或在另一边保留旧预览继续导出。源哈希和新目录分配能发现部分冲突，不能当作完整并发协作协议。
+应用和 Agent 可以读取同一版本，但桌面与 CLI 目前没有统一写锁，也不支持自动合并。对同一建筑应轮流修改和导出，完成后重新扫描/打开新版本；不要同时改同一源文件、覆盖已有版本或在另一边保留旧预览继续导出。源哈希和新目录分配能发现部分冲突，不能当作完整并发协作协议。
 
-Agent自主精修继续要求真实看图确认；用户手动调整的明确导出按原网页转换流程。AI建议、参数JSON、意见文件和界面标签都不代替批准或实际验证。
+Agent 自主精修仍需真实看图确认；用户手动调整后明确导出时，沿用原网页转换流程。AI 建议、参数 JSON、意见文件和界面标签都不能代替批准或实际验证。
 
 ## 评论和候选校验
 
 工作台在输入停顿后自动将文字和选点更新为正式标注，JSON、`修改意见/评论索引.json` 与哈希绑定的证据直接保存在被标注的结构版本目录内。继续输入更新同一条；“下一条标注”或 Ctrl+Enter 开始另一条。旧目录意见继续可读，首次修改时迁入版本目录并保留原文件。Agent 由人工手动触发 `nbt.py feedback scan/collect` 发现并验证意见；任务和批注接口保持分离。`nbt.py paths` 可查询当前工具API位置。
 
-预览后使用应用“检查当前效果”或 `nbt.py validate --request <参数JSON> --snapshot <after.json> --output <新目录>` 检查同一候选。计划planned、预览出图和候选通过是三个不同阶段；校验失败有独立报告，参数改变需重新检查。独立建筑使用显式mode/openings和XYZ真实边块，SAODG仍保留原cells/端口规则。
+预览后使用应用“检查当前效果”或 `nbt.py validate --request <参数JSON> --snapshot <after.json> --output <新目录>` 检查同一候选。计划 planned、预览出图和候选通过是三个不同阶段；校验失败会生成独立报告，参数改变后需重新检查。独立建筑使用显式 mode/openings 和 XYZ 真实边块，SAODG 仍保留原 cells/端口规则。
