@@ -12,8 +12,9 @@ def listing(arguments=None):
     from nbt_ornament import PROFILES
     from nbt_ornament_sample import ARCHITECTURAL_SAMPLES
     from nbt_object_forms import THEMES, FORM_FIELDS
+    from nbt_classical_column import ORDERS
     arguments=arguments or {}
-    return dict(schema_version=1,architectural_samples=ARCHITECTURAL_SAMPLES,themes=THEMES,form_fields=FORM_FIELDS,parameters=definitions()['parametric_compile']['parameters'],
+    return dict(schema_version=1,column_orders=ORDERS,architectural_samples=ARCHITECTURAL_SAMPLES,themes=THEMES,form_fields=FORM_FIELDS,parameters=definitions()['parametric_compile']['parameters'],
                 kinds=[dict(kind=k,name=v,styles=STYLES,mount='wall_back_z0' if k=='wall' else 'ceiling_top' if k=='ceiling' else 'floor') for k,v in KINDS.items() if not arguments.get('kind') or arguments['kind']==k],
                 ornament_profiles={k:v for k,v in PROFILES.items() if not arguments.get('ornament_profile') or arguments['ornament_profile']==k},
                 coordinates='局部XYZ，包含两端；墙饰背面Z=0，楼梯沿+Z上升；放置旋转、镜像由structure_place处理',
@@ -30,6 +31,11 @@ def compile_object(workspace, arguments):
         if arguments['kind']=='ceiling' and 'form' in arguments:
             arguments['form']={'pitch':arguments['spacing'],**arguments['form']}
     kind=arguments['kind'];style=arguments.get('style','classic');w,h,d=arguments['size'];x,y,z=w-1,h-1,d-1
+    if max(w,d)>32 or h>(64 if kind=='pillar' else 32):raise ValueError('柱子高度最多64格，其余构件和柱子宽深最多32格')
+    if kind=='pillar' and 'form' in arguments:
+        from nbt_classical_column import resolve
+        arguments=dict(arguments,form=resolve(arguments['form'],arguments['size']))
+        if arguments['form'].get('capital_profile') in ('tuscan','doric','ionic','corinthian','composite'):arguments['form'].setdefault('detail_material',arguments.get('material','stone_bricks'))
     spacing=arguments.get('spacing',3);t=arguments.get('thickness',1)
     if 2*t>=min(w,d):raise ValueError('厚度须小于宽度与深度的一半')
     primary=state(arguments.get('material','stone_bricks'));accent=state(arguments.get('accent','polished_andesite'))
@@ -126,9 +132,15 @@ def compile_object(workspace, arguments):
     from nbt_ornament import decorate
     ornament=decorate(spec,data,arguments,workspace)
     if ornament['added_or_recolored_blocks']:data=build(workspace,spec)
+    end_decorations={}
+    if kind=='pillar' and parts:
+        from nbt_pillar_ends import decorate_ends
+        spec,data,end_decorations=decorate_ends(workspace,spec,data,arguments,parts)
     mount='背面Z=0贴实墙；凸出方向+Z；不挖墙，不自动避让开口' if kind=='wall' else '顶面Y=max贴承托结构；向下悬挂，不自动证明支承' if kind=='ceiling' else '底部Y=0置于已有支撑面'
     identity=dict(generator='nbt_parametric',revision=8 if 'sample_shape_fit' in arguments.get('ornament',{}) else 6 if set(arguments.get('ornament',{})) & {'edge_trim','sample_repeat'} else 5 if set(arguments.get('ornament',{})) & {'sample','richness','highlight'} else 4 if 'form' in arguments or theme or set(arguments.get('ornament',{})) & {'layout','center_clear'} else 3,parameters=original_arguments,spec=spec)
-    return dict(spec=spec,ornament=ornament,parts=parts,revision=identity['revision'],recipe_sha256=hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest(),
+    if kind=='pillar' and set(arguments.get('form',{}))&{'base_profile','capital_profile','base_curve','capital_curve','base_pattern','capital_pattern'}:identity['revision']=9
+    if kind=='pillar' and ('order' in arguments.get('form',{}) or arguments.get('form',{}).get('section')=='round'):identity['revision']=10
+    return dict(spec=spec,ornament=ornament,parts=parts,end_decorations=end_decorations,resolved_form=arguments.get('form',{}),revision=identity['revision'],recipe_sha256=hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest(),
                 content_sha256=data['content_sha256'],block_count=len(data['blocks']),mount=mount,
                 verification=dict(block_states=True,bounds=True,design='pending_visual_review',routes='not_checked',support='not_checked',game='not_checked'),
                 model_modified=False,approval_created=False)

@@ -2,7 +2,9 @@
 
 新建筑制作源使用 `nbt_models/<形状>/<中文建筑名>/<版本>/master/model.snbt`。使用 Java 1.20.1 的 DataVersion 3465、标准 size/palette/blocks/entities 标签；`nbtcreator` 附属数据保存显式墙层与几何指纹。引擎仍以完整模型全局处理，不逐片重建。
 
-调用 `nbt_refine.save_master(<.snbt路径>, model, walls)` 或 `nbt_snbt.save_snbt` 写出后会实际解析回读，核对方块状态、尺寸与墙层。固定坐标排序和一块一行，已有材质表编号保留，新材质追加，减少 Git 中无关差异。旧 JSON.GZ、NBT 继续可读；原文件不会因打开或查看历史而被迁移或删除。
+调用 `nbt_refine.save_master(<.snbt路径>, model, walls)` 或 `nbt_snbt.save_snbt` 写出后会回读真实文件，核对解析后的方块状态、尺寸与墙层。固定坐标排序和一块一行，已有材质表编号保留，新材质追加，减少 Git 中无关差异。旧 JSON.GZ、NBT 继续可读；原文件不会因打开或查看历史而被迁移或删除。
+
+同一 Python 进程按实际 SNBT 字节的 SHA256 复用已解析内容，最多8项、估算驻留大小64MiB。保存时核验过的临时文件与改名后的相同内容共用解析结果，连续安装无需因路径变化再次解析整栋模型。每次打开仍读取真实文件、核对大小和内容；同尺寸或同时间戳不能复用不同内容。返回的方块、墙 mask、材质表和附加标签均与缓存隔离。此缓存不跨进程，不替代源/上下文哈希、保护、碰撞及看图检查。
 
 ```text
 python .agents/skills/nbtcreator-workspace/nbt.py snbt --source <旧主模型> --output <新的model.snbt>

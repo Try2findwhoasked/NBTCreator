@@ -16,7 +16,7 @@ GROUPS={
  'linked':('多空间与跨层联动',['linked-spaces']),
  'props':('细微道具',['micro-props']),
  'materials':('混材、地面与风化',['patterns','floors','weathering']),
- 'modelling':('通用建模工具',['modelling-tools','toolkit','parametric-components','object-scenes']),
+ 'modelling':('通用建模工具',['modelling-tools','toolkit','parametric-components','object-scenes','compute-transforms']),
  'rendering':('纹理预览与图像评审',['rendering']),
  'saodg':('可选：SAODG接入',['saodg-constraints','mod-structures']),
  'desktop':('桌面、提示词与网页转换',['nbtcreator','detail-control','prompt-console','web-revision']),

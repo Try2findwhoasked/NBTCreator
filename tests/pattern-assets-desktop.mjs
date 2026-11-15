@@ -21,7 +21,17 @@ try{
  await page.waitForFunction(count=>document.querySelectorAll('.pattern-asset-card').length===count,builtinCount)
  assert.equal(await page.locator('#pattern-assets-gallery').isVisible(),true)
  assert.equal(await page.locator('#effect-assets-gallery').isVisible(),false)
- assert.equal(await page.locator('[data-pattern-asset-id^="builtin:micro-"]').count(),12)
+ const builtinMicroCount=Object.keys(JSON.parse(await fs.readFile(path.join(skill,'assets/ornament-patterns/manifest.json'),'utf8'))).filter(key=>key.startsWith('micro-')).length
+ assert.equal(await page.locator('[data-pattern-asset-id^="builtin:micro-"]').count(),builtinMicroCount)
+ await page.locator('[data-pattern-asset-id="builtin:gothic-pointed-tracery"]').click()
+ await page.waitForFunction(()=>document.querySelector('#pattern-assets-name').value==='哥特尖拱窗棂')
+ assert.equal(await page.locator('#pattern-fit-micro').isChecked(),false)
+ assert.equal(await page.locator('#pattern-fit-width').inputValue(),'32')
+ await page.locator('#pattern-assets-fit').click()
+ await page.waitForFunction(()=>document.querySelector('#pattern-assets-status').textContent.includes('拟合预览已生成'))
+ await page.waitForFunction(()=>document.querySelector('#pattern-assets-viewer').contentWindow.nbtModeler?.status==='ready')
+ await page.locator('#pattern-assets-close').click()
+ checks.architectural_preset_uses_full_size_preview=true
  await page.locator('[data-pattern-asset-id="builtin:micro-link"]').click()
  await page.locator('#pattern-fit-width').fill('2');await page.locator('#pattern-fit-height').fill('2')
  await page.locator('#pattern-fit-repeat-u').fill('1');await page.locator('#pattern-fit-repeat-v').fill('1')

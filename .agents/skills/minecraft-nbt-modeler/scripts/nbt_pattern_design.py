@@ -7,7 +7,7 @@ from nbt_pattern_assets import load,store
 COMMON={'kind','blend','box','rotation','repeat','flip_x','flip_y','radial_count','opacity'}
 FIELDS={'bitmap':{'rows'},'rect':{'bounds','value','fill','stroke'},
         'ellipse':{'bounds','value','fill','stroke'},'polygon':{'points','value','fill','stroke'},
-        'polyline':{'points','value','stroke'},'bezier':{'points','value','stroke'},
+        'polyline':{'points','value','stroke'},'bezier':{'points','value','stroke','samples'},
         'preset':{'preset','crop','channel'},'asset':{'id','image_sha256','crop','channel'},'sample':{'sample'}}
 
 
@@ -58,8 +58,9 @@ def source(workspace,layer,size):
         points=[(x*(size[0]-1),y*(size[1]-1)) for x,y in points]
         if kind=='bezier':
             path=[]
-            for step in range(257):
-                t=step/256;s=1-t
+            samples=layer.get('samples',257)
+            for step in range(samples):
+                t=step/(samples-1);s=1-t
                 weights=(s**3,3*s*s*t,3*s*t*t,t**3)
                 path.append(tuple(sum(weights[j]*points[j][i] for j in range(4)) for i in range(2)))
             draw.line(path,fill=value,width=stroke,joint='curve')

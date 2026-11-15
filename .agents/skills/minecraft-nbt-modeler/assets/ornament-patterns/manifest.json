@@ -817,5 +817,205 @@
       "maximum_coverage_error": 0.15,
       "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
     }
+  },
+  "micro-fleur-de-lis": {
+    "file": "micro-fleur-de-lis.png",
+    "sha256": "fb398815b5b62b51d7526e9ef3bd3411852276ab477b729e3b8ca3a05ffdd501",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling"
+    ],
+    "size_uv": [
+      8,
+      8
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "百合莨苕花冠",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        16,
+        16
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          8,
+          8
+        ],
+        "column": [
+          8,
+          8
+        ],
+        "ceiling": [
+          8,
+          8
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "micro-rose-window": {
+    "file": "micro-rose-window.png",
+    "sha256": "0564eae1e8142268783193f0f81fc20b9e25dcbcbf52e3a900300b18ddf5f709",
+    "surfaces": [
+      "wall",
+      "column",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      12,
+      12
+    ],
+    "source": "NBTCreator original micro mask",
+    "label": "重瓣玫瑰窗花",
+    "microfit": {
+      "preferred": true,
+      "logical_pixels": [
+        12,
+        12
+      ],
+      "recommended_size_uv": {
+        "wall": [
+          12,
+          12
+        ],
+        "column": [
+          12,
+          12
+        ],
+        "ceiling": [
+          12,
+          12
+        ],
+        "floor": [
+          12,
+          12
+        ]
+      },
+      "material": "quartz_block",
+      "minimum_ink_overlap": 0.8,
+      "maximum_coverage_error": 0.15,
+      "size_policy": "Per-surface tested sizes; wall and column use automatic stairs/slabs, floor stays flush"
+    }
+  },
+  "roman-coffer": {
+    "file": "roman-coffer.png",
+    "sha256": "2f5fc7f59cedeedb124de38b50b9a8ef0b8c2470cc42bd7fd578a5bee625c0b9",
+    "surfaces": [
+      "ceiling",
+      "wall"
+    ],
+    "size_uv": [
+      32,
+      32
+    ],
+    "source": "NBTCreator original architectural stencil",
+    "label": "罗马层框藻井"
+  },
+  "byzantine-cross-mosaic": {
+    "file": "byzantine-cross-mosaic.png",
+    "sha256": "36db1c8e5c588d7028acd5e9f8fda6b6b24e905defbc7b8dc09b8b0d0fe27289",
+    "surfaces": [
+      "wall",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      32,
+      32
+    ],
+    "source": "NBTCreator original architectural stencil",
+    "label": "拜占庭十字马赛克"
+  },
+  "ottoman-eight-point-star": {
+    "file": "ottoman-eight-point-star.png",
+    "sha256": "1ef7553f465322729127033f10577cc76ec086072f2b574861eab85435ec7f12",
+    "surfaces": [
+      "wall",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      32,
+      32
+    ],
+    "source": "NBTCreator original architectural stencil",
+    "label": "奥斯曼八角星纹"
+  },
+  "egyptian-lotus-band": {
+    "file": "egyptian-lotus-band.png",
+    "sha256": "a68797522b5a2808cac2d8fecf1944f0e6afbe42422be9b3e20163638f76d9e1",
+    "surfaces": [
+      "wall",
+      "column",
+      "cylinder"
+    ],
+    "size_uv": [
+      32,
+      32
+    ],
+    "source": "NBTCreator original architectural stencil",
+    "label": "埃及莲花边带"
+  },
+  "chinese-window-lattice": {
+    "file": "chinese-window-lattice.png",
+    "sha256": "9fe55ef47e8d7b25a849fe5876a046d60327da267a722417e33ee56a48153335",
+    "surfaces": [
+      "wall",
+      "ceiling"
+    ],
+    "size_uv": [
+      32,
+      32
+    ],
+    "source": "NBTCreator original architectural stencil",
+    "label": "中式菱心窗格"
+  },
+  "japanese-asanoha-lattice": {
+    "file": "japanese-asanoha-lattice.png",
+    "sha256": "926b30fd083c91cae1051a8464979b7079ad2fb557ea8ce4a51c12d9a1fa8e5f",
+    "surfaces": [
+      "wall",
+      "ceiling",
+      "floor"
+    ],
+    "size_uv": [
+      32,
+      32
+    ],
+    "source": "NBTCreator original architectural stencil",
+    "label": "日式麻叶格纹"
+  },
+  "art-deco-sunburst": {
+    "file": "art-deco-sunburst.png",
+    "sha256": "bebc6992dca3174ad455e66df2a0bb50e1252d0e765ba1b502393b6a01dcb38c",
+    "surfaces": [
+      "wall",
+      "ceiling"
+    ],
+    "size_uv": [
+      32,
+      32
+    ],
+    "source": "NBTCreator original architectural stencil",
+    "label": "装饰艺术日芒纹"
+  },
+  "gothic-pointed-tracery": {
+    "file": "gothic-pointed-tracery.png",
+    "sha256": "e484d05900859ad3107af81a2169206add02b2ec0dc6c1a71662653e1b98cb59",
+    "surfaces": [
+      "wall"
+    ],
+    "size_uv": [
+      32,
+      32
+    ],
+    "source": "NBTCreator original architectural stencil",
+    "label": "哥特尖拱窗棂"
   }
 }

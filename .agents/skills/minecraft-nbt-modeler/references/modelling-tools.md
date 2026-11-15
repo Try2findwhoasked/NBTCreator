@@ -4,6 +4,8 @@
 
 与现有工具分工：自由形场/坐标扭曲/平滑融合用nbt_fields；混材用nbt_patterns；可走地面识别与半砖坑用nbt_floors；苔痕裂纹组合用nbt_weathering。新工具补齐通用编辑和效果，不取代建筑设计。
 
+需要连续扭转、弯曲、渐缩、剪切、波浪或复杂纹样映射时，见[计算与组合变换](compute-transforms.md)。field_compile从配方采样新构件，pattern_warp处理绑定图像；不任意扭曲已有楼梯/半砖状态。
+
 ## 共用参数与坐标
 
 - `kind`、`lo`、`hi`必填。lo/hi为全局整数XYZ、包含边界，限定操作域；每次最多规划200万格。复制/变换的lo/hi是源选区，目标另验整体边界。稀疏缺角由精修器再次检查。
@@ -122,3 +124,15 @@ geometry 新增三个 shape，仍经过相同布尔、裁剪、保护和预算�
 选区编辑全部点坐标以选区最小角为原点：种子、源/目标锚点、目标包围盒、阵列路径、屋顶 footprint、loft 的全局XZ顶点和高度由编译器平移。offset、半径、尺寸、up 向量、扫掠的局部UV截面和 revolve 的相对半径/高度 profile 不平移。应用保留 overwrite、write_bounds、write_group 和 max_writes 控制权，模型不能通过额外字段改变这些权限。
 
 运行 `npm run test:modelling` 检查工具和参数回归；桌面验证前运行 `npm run build:web`。复杂方块旋转继续受现有保守规则限制；本组工具不扩展旋转状态家族。
+
+## 贝塞尔曲线的三种参数入口
+
+三维实体用 geometry.shape=bezier，points 为至少2个连续XYZ控制点，samples=2～1024（默认64），radius 为管体半径（正数或每个采样点对应的半径数组）。例如将以下 geometry 放进原 geometry 操作；操作本身仍须给lo/hi、state、classification并遵守预算与保护。
+
+```json
+{"shape":"bezier","points":[[2.5,2.5,2.5],[2.5,20,8],[20,20,15],[20.5,2.5,20.5]],"samples":96,"radius":1.1}
+```
+
+二维纹样用 pattern_create 的 bezier 图层，4个归一化XY控制点、stroke及可选 samples=16～1024（默认257）；可用其他图层组合成卷草，再拟合楼梯/半砖。柱端线脚则用 form.base_curve / capital_curve 的4个半径比例控制值，见[柱端参数](parametric-components.md#柱础柱头和独立嵌纹)。这三者的坐标和含义不同，不混用。提高采样数不证明体素连续或建造支承，应按实际尺寸检查。
+
+FFT工具仅用于灰度图处理，见[频域滤波](pattern-spectral.md)。它不替代受保护选区、几何布尔、形状匹配或玩家碰撞检查。

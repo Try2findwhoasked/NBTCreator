@@ -185,6 +185,8 @@ python .agents/skills/nbtcreator-workspace/nbt.py feedback scan --workspace .
 
 ## 从源码运行与构建
 
+可选GPU计算和复杂变换见[计算与变换](.agents/skills/minecraft-nbt-modeler/references/compute-transforms.md)。从项目根目录用 `mise run gpu:setup / gpu:info / gpu:test / gpu:benchmark` 安装独立环境、探测和验证；CPU环境仍可直接使用，不强制下载CUDA组件。
+
 开发需要 Node.js 24、Python 及 NumPy/Pillow：
 
 ```powershell

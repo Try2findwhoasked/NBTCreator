@@ -12,12 +12,20 @@ import nbt_components as library
 ROOT=Path(__file__).resolve().parents[1]
 SUPPORTED_AGENT_TOOLS={'structure_list','structure_read','structure_view','structure_preview','structure_write','structure_place','structure_save','parametric_list','parametric_compile','parametric_preview','parametric_contract','parametric_validate','parametric_surface','parametric_mount','parametric_layout','parametric_compose','parametric_regenerate','pattern_list','pattern_compile','pattern_preview','pattern_mount','pattern_cylinder_mount','pattern_create','pattern_assets','pattern_microfit'}
 SUPPORTED_AGENT_TOOLS.update(('scene_compile','scene_save','scene_read','scene_update'))
+SUPPORTED_AGENT_TOOLS.update(('compute_info','field_compile','pattern_warp'))
+SUPPORTED_AGENT_TOOLS.update(('mount_batch','surface_decorate','pattern_filter','tracery_compile','vault_compile','bay_compile'))
+
+
+def _definitions():
+    from nbt_catalog import catalog
+    tools=catalog()['agent_tools']
+    if set(tools)!=SUPPORTED_AGENT_TOOLS:raise ValueError('结构Agent目录与Python实现不一致')
+    return tools
 
 
 def definitions():
-    tools=json.loads((ROOT/'tool-catalog.json').read_text(encoding='utf8'))['agent_tools']
-    if set(tools)!=SUPPORTED_AGENT_TOOLS:raise ValueError('结构Agent目录与Python实现不一致')
-    return tools
+    from copy import deepcopy
+    return deepcopy(_definitions())
 
 
 def _schema(value, schema, label='参数'):
@@ -48,10 +56,11 @@ def _schema(value, schema, label='参数'):
 def build(workspace, spec):
     from nbt_assembly import Volume
     from nbt_detail_control import compile_plan,default_settings,simulate_plan
-    schema=definitions()['structure_preview']['parameters']['properties']['spec']
+    schema=_definitions()['structure_preview']['parameters']['properties']['spec']
     _schema(spec,schema,'结构方案')
     size=library.vector(spec['size']);operations=[]
-    catalog=json.loads((ROOT/'tool-catalog.json').read_text(encoding='utf8'))
+    from nbt_catalog import catalog as read_catalog
+    catalog=read_catalog()
     group=str(uuid.uuid4())
     for op in spec.get('operations',[]):
         if not isinstance(op,dict) or op.get('kind') not in catalog['tools']:raise ValueError('未知结构工具')
@@ -97,7 +106,7 @@ def _preview_fingerprint(directory):
 
 
 def _camera(data,hint):
-    _schema(hint,definitions()['structure_preview']['parameters']['properties']['spec']['properties']['camera'],'相机')
+    _schema(hint,_definitions()['structure_preview']['parameters']['properties']['spec']['properties']['camera'],'相机')
     points=[b[:3] for b in data['blocks'] if data['palette'][b[3]] not in ('minecraft:air','minecraft:cave_air','minecraft:void_air')]
     lo=[min(p[i] for p in points) for i in range(3)] if points else [0,0,0]
     hi=[max(p[i] for p in points) for i in range(3)] if points else [n-1 for n in data['size']]
@@ -130,12 +139,30 @@ def preview(workspace,data,spec=None,reference_sources=None):
 
 
 def dispatch(workspace,tool,arguments):
-    definition=definitions().get(tool)
+    definition=_definitions().get(tool)
     if not definition:raise ValueError('未开放的结构Agent工具')
     _schema(arguments,definition['parameters'])
+    if tool=='compute_info':
+        from nbt_compute import info
+        return info()
+    if tool=='field_compile':
+        from nbt_field_compute import compile_field
+        return compile_field(workspace,arguments)
+    if tool=='pattern_warp':
+        from nbt_deform import create_warped
+        return create_warped(workspace,arguments)
+    if tool in ('tracery_compile','vault_compile','bay_compile'):
+        from nbt_architectural_bay import compile_tracery,compile_vault,compile_bay
+        return dict(tracery_compile=compile_tracery,vault_compile=compile_vault,bay_compile=compile_bay)[tool](workspace,arguments)
+    if tool in ('mount_batch','surface_decorate'):
+        from nbt_mount_batch import mount_batch,decorate
+        return (mount_batch if tool=='mount_batch' else decorate)(workspace,arguments)
     if tool in ('scene_compile','scene_save','scene_read','scene_update'):
         from nbt_object_scene import dispatch_scene
         return dispatch_scene(workspace,tool,arguments)
+    if tool=='pattern_filter':
+        from nbt_spectral import create_filtered
+        return create_filtered(workspace,arguments)
     if tool=='pattern_create':
         from nbt_pattern_design import create
         return create(workspace,arguments)
@@ -148,7 +175,7 @@ def dispatch(workspace,tool,arguments):
     if tool in ('pattern_list','pattern_compile','pattern_preview','pattern_microfit'):
         from nbt_pattern_panel import compile_panel,library as pattern_library
         if tool=='pattern_list':
-            return dict(patterns=pattern_library())
+            return dict(patterns=pattern_library(),micro_cylinder_policy=dict(source_surface='column',fit_mode='micro',geometry='actual_halfcube_corner_topology_and_backing_checks_required'))
         result=compile_panel(workspace,dict(arguments,fit_mode='micro') if tool=='pattern_microfit' else arguments)
         if tool=='pattern_preview' or tool=='pattern_microfit' and arguments.get('preview',False):
             result.update(preview(workspace,build(workspace,result['spec']),result['spec']))

@@ -38,11 +38,12 @@ def validate(data):
     if not isinstance(palette,list) or not 1<=len(palette)<=4096 or not isinstance(blocks,list) or not 1<=len(blocks)<=MAX_BLOCKS:
         raise ValueError('构件须包含有效材质与1～65536个方块')
     palette=[state(v) for v in palette];seen=set();normalized=[]
+    sx,sy,sz=size;palette_count=len(palette)
     for block in blocks:
         if not isinstance(block,list) or len(block)!=5:
             raise ValueError('构件方块格式须为[x,y,z,材质编号,是否墙层]')
-        p=tuple(vector(block[:3]));index,wall=block[3:]
-        if p in seen or any(not 0<=p[i]<size[i] for i in range(3)) or type(index) is not int or not 0<=index<len(palette) or type(wall) is not bool:
+        x,y,z,index,wall=block;p=(x,y,z)
+        if type(x) is not int or type(y) is not int or type(z) is not int or not (0<=x<sx and 0<=y<sy and 0<=z<sz) or p in seen or type(index) is not int or not 0<=index<palette_count or type(wall) is not bool:
             raise ValueError('构件包含重复、越界坐标或无效材质/墙层')
         seen.add(p);normalized.append([*p,index,wall and palette[index] not in AIR_NAMES])
     tags=data.get('tags',[])
@@ -252,14 +253,16 @@ def paste_plan(model, operation, protected):
     palette=operation.get('palette');voxels=operation.get('voxels');overwrite=operation.get('overwrite',False)
     if not isinstance(palette,list) or not 1<=len(palette)<=4096 or not isinstance(voxels,list) or not 1<=len(voxels)<=MAX_BLOCKS or type(overwrite) is not bool:raise ValueError('构件粘贴数据无效')
     palette=[state(value) for value in palette];edits={};protected=set(protected)
+    dx,dy,dz=(hi[i]-lo[i] for i in range(3));ox,oy,oz=lo;palette_count=len(palette);get_at=model.get
     for v in voxels:
         if not isinstance(v,list) or len(v)!=4:raise ValueError('构件体素须为[x,y,z,材质编号]')
-        p=vector(v[:3]);index=v[3]
-        if type(index) is not int or not 0<=index<len(palette) or any(p[i]<0 or p[i]>hi[i]-lo[i] for i in range(3)):raise ValueError('构件体素越界或材质编号无效')
-        target=tuple(p[i]+lo[i] for i in range(3));value=palette[index]
+        x,y,z,index=v
+        if type(x) is not int or type(y) is not int or type(z) is not int or not (0<=x<=dx and 0<=y<=dy and 0<=z<=dz) or type(index) is not int or not 0<=index<palette_count:raise ValueError('构件体素越界或材质编号无效')
+        target=(x+ox,y+oy,z+oz);value=palette[index]
         if target in edits:raise ValueError('构件体素重复')
-        if target in protected and value!=model.get(target):raise ValueError('构件触及保护区')
-        if not overwrite and model.get(target) not in AIR_NAMES and model.get(target)!=value:raise ValueError('构件与已有方块冲突；移动位置或明确勾选允许覆盖')
+        previous=get_at(target)
+        if target in protected and value!=previous:raise ValueError('构件触及保护区')
+        if not overwrite and previous not in AIR_NAMES and previous!=value:raise ValueError('构件与已有方块冲突；移动位置或明确勾选允许覆盖')
         edits[target]=value
     budget=operation.get('max_writes',100000)
     if type(budget) is not int or budget<0 or len(edits)>budget:raise ValueError('构件超过写入上限')

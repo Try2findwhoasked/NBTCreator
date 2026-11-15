@@ -441,8 +441,8 @@ def compile_plan(settings, size):
                 operations.append(op)
     extra=settings.get('operations',[])
     if not isinstance(extra,list) or len(extra)>128:raise ValueError('建模工具序列须为最多128项的数组')
-    from nbt_capabilities import capabilities
-    supported=set(capabilities()['tools'])
+    from nbt_capabilities import operation_names
+    supported=operation_names()
     for op in extra:
         if not isinstance(op,dict) or op.get('kind') not in supported or not isinstance(op.get('label'),str) or not op['label'].strip():raise ValueError('建模工具种类或说明无效')
         if type(op.get('enabled',True)) is not bool:raise ValueError('工具步骤的 enabled 开关须为布尔值')
@@ -580,8 +580,8 @@ def simulate_plan(model, walls, plan, config):
             from nbt_protection_view import ProtectionConflict
             raise ProtectionConflict(operation.get('label',operation['kind']),conflicts)
         moved_walls={tuple(p[i]+operation['offset'][i] for i in range(3)) for p in walls if all(operation['lo'][i]<=p[i]<=operation['hi'][i] for i in range(3))} if operation['kind']=='move_region' else set()
+        virtual.put_many(edits)
         for position,value in edits:
-            virtual.put(position,value)
             if operation['kind']=='move_region':
                 if position in moved_walls and value.split('[')[0] not in ('minecraft:air','minecraft:cave_air','minecraft:void_air'):walls.add(position)
                 else:walls.discard(position)

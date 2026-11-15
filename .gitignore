@@ -15,3 +15,5 @@ nbt_models/
 api-settings.json
 settings.pre-*.json
 **/web-dist/
+
+mise.local.toml

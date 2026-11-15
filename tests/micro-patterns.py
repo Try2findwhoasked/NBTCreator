@@ -159,7 +159,10 @@ class MicroPatterns(unittest.TestCase):
         request=dict(surface='wall',size_uv=[3,3],micro_alignment='fixed',sample=dict(path=path.name,sha256=sha(path),noise_strength=0))
         result=dispatch(self.root,'pattern_microfit',request);quality=result['microfit']
         self.assertEqual(quality['shape_search']['method'],'bounded_beam')
-        self.assertLessEqual(quality['shape_search']['candidates_evaluated'],105)
+        search=quality['shape_search'];refinement=search.get('refinement',{})
+        self.assertLessEqual(refinement.get('initial_candidates_evaluated',search['candidates_evaluated']),105)
+        self.assertLessEqual(refinement.get('proposals',0),384)
+        self.assertLessEqual(search['candidates_evaluated'],105+refinement.get('proposals',0))
         self.assertGreater(quality['ink_overlap'],quality['shape_search']['baseline_ink_overlap']+.03)
         self.assertLess(quality['contour_error'],quality['shape_search']['baseline_contour_error'])
         self.assertEqual(quality['result_topology'],dict(components=1,holes=0))

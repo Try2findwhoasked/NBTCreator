@@ -5,6 +5,7 @@ CATALOG=json.loads((Path(__file__).resolve().parents[1]/'tool-catalog.json').rea
 def validate_operation(op):
     schema=CATALOG['operation_parameters'][op['kind']]
     def check(value,s):
+        if not s:return  # An empty JSON Schema has no constraints.
         if 'anyOf' in s:
             for branch in s['anyOf']:
                 try:check(value,branch);return

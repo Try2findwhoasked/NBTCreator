@@ -1,0 +1,5 @@
+# Optional NVIDIA backend. Keep CUDA below the development driver's 13.4.
+# Only the runtime, kernel compiler and FFT library are used by this engine.
+cupy-cuda13x==14.2.0
+cuda-toolkit[cudart,cufft,nvrtc]==13.2.0
+nvidia-nvjitlink==13.2.51

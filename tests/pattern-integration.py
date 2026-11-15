@@ -24,6 +24,21 @@ class PatternIntegration(unittest.TestCase):
         temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup)
         self.root=Path(temporary.name)
 
+    def test_quality_gate_can_choose_a_second_real_geometric_candidate(self):
+        request=dict(surface='wall',preset='micro-scroll',size_uv=[6,6],quality_profile='ornate')
+        baseline=dispatch(self.root,'pattern_microfit',request)
+        self.assertLess(baseline['visual_quality']['score'],67.5)
+        result=dispatch(self.root,'pattern_microfit',dict(request,min_quality_score=67.5))
+        selection=result['microfit']['quality_selection']
+        self.assertGreater(result['visual_quality']['score'],67.5)
+        self.assertGreater(selection['selected_candidate_rank'],1)
+        self.assertFalse(selection['assessments'][0]['passed'])
+        self.assertTrue(result['microfit']['topology_preserved'])
+        self.assertEqual(selection['reference'],'original_mapped_image')
+        self.assertEqual(result['visual_quality']['minimum_score'],67.5)
+        with self.assertRaisesRegex(ValueError,'量化质量未达标'):
+            dispatch(self.root,'pattern_microfit',dict(request,min_quality_score=70))
+
     def ring(self):
         mask=Image.new('L',(8,8));ImageDraw.Draw(mask).rectangle((0,0,7,7),outline=255,width=2)
         image=Image.new('RGBA',(8,8),(255,0,0,255))

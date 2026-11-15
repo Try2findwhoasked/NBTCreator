@@ -26,7 +26,11 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 
 参数化构件用现有工具；需要柱、梁、吊顶、墙饰随参数一起变化时，用 [对象图](references/object-scenes.md) 保存稳定 ID、尺寸引用和接触关系。对象图编译成候选，不自动接管手工几何或修改当前建筑。
 
+多次安装可用 mount_batch 共用绑定源，在内存中统一检查后返回候选。纹样需要随对象更新时，保留 surface_decorate 宿主配方、安装参数和命名资产绑定；更新后重新拟合，不只保存失去来源的烘焙方块。接口及范围见[批量安装](references/parametric-components.md#批量安装与保留宿主配方)。
+
 纹样按构件的宽高、收边和观看距离组织，可显式拉伸图片后拟合，并按宿主厚度采用齐平镶嵌或浅槽嵌入，不默认做成突出的大块贴板。明确要求复杂或华丽主纹时，用 ornate 评估并设置本次任务的质量门槛，保留细节、留白、节奏等分项；窄边饰可单独用 border，但不能用边饰分数代替复杂主纹的结果。分数用于筛选，不替代实际看图。未达到复杂度目标时调整单元尺寸、区域或组合，不把换成简单图案当作复杂拟合成功。参数与评分边界见[参数化建模](references/parametric-components.md#拉伸嵌入与量化视觉质量)。
+
+按建筑室内参考设计时，先拆解空间、跨间、承重和纹样的层级，再选取可辨识的一跨进行尺寸试件；参照[室内纹样与建筑构造](references/architecture-knowledge-base.md#室内纹样与建筑构造)按部位选择预设、留白和收边。预设只是可拟合的二维遮罩；柱、拱券、墙窗、顶构和地砖需要统一比例时，可用[联动跨间](references/architectural-bays.md)生成构造试件。真实透空、曲面凹格及齐平多色地砖由对应几何工具生成，仍须看图，不视作历史复原。
 
 ## 完整建筑的制作顺序
 
@@ -52,6 +56,10 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 | 当前需要 | 阅读与入口 |
 | --- | --- |
 | 参数化构件、墙饰、植物、吊顶和纹样 | [参数化建模](references/parametric-components.md)；先查参数，再 compile / microfit / mount，安装和预览仍须验证 |
+| 石造跨间、连续拱套、曲面凹格和透空窗棂 | [联动跨间](references/architectural-bays.md)；bay / vault / tracery_compile 保留共同尺寸和纹样配方，检查实际接触与玩家视角 |
+| 罗马柱、柱式叶饰与涡卷 | [古典柱式](references/classical-columns.md)；form.order 保留圆柱身、柱础和柱头配方，细节仍按实际尺寸看图 |
+| 灰度纹样去噪、细节提取与FFT卷积 | [频域滤波](references/pattern-spectral.md)；生成新资产，不自动应用到建筑或放宽拟合门槛 |
+| GPU计算、扭转弯曲和纹样组合变换 | [计算与变换](references/compute-transforms.md)；compute_info查询后端，field_compile返回体场候选，pattern_warp生成独立资产，变换后重验拟合与接触 |
 | 对象依赖、参数联动和持久化 | [建筑对象图](references/object-scenes.md)；scene_compile/read/update 返回候选，scene_save 显式保存图谱版本 |
 | 批量连续候选调用 | [建模会话](references/parametric-components.md#建模会话与结果复用)；session 复用进程与缓存，预览和保存继续使用原入口 |
 | 领取任务、续期、批注与版本回传 | [机器接口](references/agent-protocol.md)、[任务回传](references/agent-task-return.md)；领取与提交保留租约、版本和幂等边界 |

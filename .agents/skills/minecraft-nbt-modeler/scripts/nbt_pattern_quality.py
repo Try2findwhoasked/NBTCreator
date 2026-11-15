@@ -6,6 +6,8 @@ from math import log2, pi
 import numpy as np
 from PIL import Image, ImageOps
 
+from nbt_bitmap_topology import component_sizes
+
 
 def groups(mask, diagonal=True):
     remaining=set(zip(*np.nonzero(mask)));result=[]
@@ -82,14 +84,14 @@ def features(mask):
     count,arms=skeleton_neighbours(skeleton)
     # Count separate outgoing arms, not merely adjacent pixels at a stair-step
     # corner. A square ring's four corners are not four branch junctions.
-    branches=len(groups(skeleton&(arms>=3)))
+    branches=len(component_sizes(skeleton&(arms>=3)))
     endpoints=int((skeleton&(count==1)).sum())
-    holes=[r for r in groups(~mask,False) if not any(y in (0,mask.shape[0]-1) or x in (0,mask.shape[1]-1) for y,x in r)]
+    holes=component_sizes(~mask,False,True)
     padded=np.pad(mask.astype(np.int8),1)
     perimeter=sum(float(np.abs(np.diff(padded,axis=axis)).sum()) for axis in (0,1))
     area=int(mask.sum());compactness=perimeter**2/max(1.,4*pi*area)
     units=2*len(holes)+branches+.5*endpoints+1.5*max(0.,log2(max(1.,compactness)))
-    return dict(components=len(groups(mask)),holes=len(holes),branch_junctions=branches,endpoints=endpoints,
+    return dict(components=len(component_sizes(mask)),holes=len(holes),branch_junctions=branches,endpoints=endpoints,
                 perimeter=perimeter,ink_area=area,compactness=compactness,detail_units=units)
 
 
@@ -149,8 +151,8 @@ def assess(actual,reference,profile='balanced',minimum=0):
         dst_hist=rendered.sum(axis=axis)/max(1,int(rendered.sum()))
         rhythm-=float(np.abs(src_hist-dst_hist).sum())/4
     rhythm=max(0.,rhythm)
-    regions=groups(actual,False)
-    fragments=sum(len(r) for r in regions if len(r)==1)/max(1,int(actual.sum()))
+    regions=component_sizes(actual,False)
+    fragments=sum(size for size in regions if size==1)/max(1,int(actual.sum()))
     coherence=1/(1+max(0,len(regions)-8)/8)
     density=float(actual.mean());density_score=min(1.,density/.15,(1-density)/.15)
     readability=max(0.,(density_score+1-fragments)/2)

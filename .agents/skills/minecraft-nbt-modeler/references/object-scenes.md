@@ -19,9 +19,21 @@
 
 ## 对象与依赖
 
-graph 包含 schema_version=1、name、size 和 objects。每个对象有 id、recipe，并在 lo 与 attach 中二选一。lo 是**旋转后局部包围盒的最小角**，不同于 structure_place 的锚点坐标。
+graph 包含 schema_version=1、name、size 和 objects。每个对象有 id、recipe，并在 lo 与 attach 中二选一。lo 是**旋转后局部画布的最小角，即局部零点**，不同于 structure_place 的锚点坐标；构件带留白时，真实占用边界会内缩，以编译结果 bounds 为准。
 
-recipe.tool 可选 `parametric_compile`、`pattern_compile`、`pattern_microfit` 或 `structure`；arguments 分别使用对应工具参数，structure 则接受已有结构 spec。原参数 Schema、合法方块及工具限制继续生效。对象不支持用显式空气覆盖其他对象。
+recipe.tool 可选 `parametric_compile`、`pattern_compile`、`pattern_microfit`、`surface_decorate`、`tracery_compile`、`vault_compile`、`bay_compile`、`field_compile` 或 `structure`；arguments 分别使用对应工具参数，structure 则接受已有结构 spec。surface_decorate 保留宿主配方和饰面安装参数，适合柱芯嵌纹、墙面与吊顶镶嵌，避免将拟合结果烘焙成失去纹样来源的纯结构。[联动跨间](architectural-bays.md)工具可作为单个对象保留内部柱拱墙顶和纹样配方，参数变化时一起重算。原参数 Schema、合法方块及工具限制继续生效。对象不支持用显式空气覆盖其他对象。
+
+## 纹样资产与配方联动
+
+graph 可带最多32项 `patterns`，每项为 `{"id":"scroll","asset":{"id":"工作区资产ID","image_sha256":"实际图像SHA256"}}`。纹样参数中用 `pattern_ref:"scroll"`，并用 asset_options 指定 fit/crop 等采样参数。编译时解析为带哈希的 pattern_asset，仍执行原微型拟合、质量门槛及安装检查；对象回执的 pattern_refs 列出所用绑定，图谱保留原引用。
+
+同一个绑定可供多根柱、墙面、地板和吊顶共用，各处仍有自己的尺寸、材质与拟合参数。`pattern_ref` 仅在对象图中解析；独立调用使用 pattern_asset。工作区纹样图像按不可变ID及SHA引用，修改图案应创建新资产，不能覆盖PNG后继续使用旧哈希，也不自动追随未指定的“最新图”。
+
+scene_update 可给 `pattern_changes:[{"id":"scroll","asset":新资产引用}]`，不必重复提交所有对象配方或逐块坐标；changes 可以省略，也可与对象参数修改一起提交。工具重新拟合所有引用对象，传播到尺寸/接触依赖，返回 changed_patterns、changed_objects、affected_objects 和实际重编译范围。原图范围、保护、留白、路线、总预算及配方内原有质量门槛仍生效。失败不保存头版本；成功仍只是候选，需要显式 scene_save，旧版本继续可读。
+
+surface_decorate 接收 host（structure 或 parametric_compile 配方）和 installations（见[批量安装](parametric-components.md#批量安装与保留宿主配方)），不递归嵌套任意宿主工具。局部安装面和锚点使用宿主画布坐标；宿主须为外贴预留空间，或明确采用嵌入。对象图编译结束时，会在旋转、平移后的完整占用中再次检查该配方声明的吊顶净空，不能只靠宿主单独通过就忽略其他对象。
+
+它不监控资产文件、不自动保存图谱，也不自动覆盖建筑。更新资产绑定、检查候选、保存图谱和写回建筑是不同动作；仍须真实看图及另存建筑版本。
 
 尺寸或位置中可使用以下受限数据表达式，不接受代码、eval、脚本路径或任意属性访问：
 

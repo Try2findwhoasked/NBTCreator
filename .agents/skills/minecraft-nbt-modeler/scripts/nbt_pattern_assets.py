@@ -45,7 +45,9 @@ def load(workspace,identifier):
         image=read_raster(raw)
         data=dict(id=identifier,asset_type='ornament_pattern',name=entry.get('label',key),tags=entry['surfaces'],
                   archived=False,builtin=True,resolution=list(image.size),image_sha256=entry['sha256'],
-                  recipe=dict(preset=key),fitting_input=dict(preset=key))
+                  recipe=dict(preset=key),fitting_input=dict(preset=key),
+                  fitting_defaults=dict(mode='micro' if entry.get('microfit',{}).get('preferred') else 'standard',
+                      size_uv=entry['size_uv'],recommended_size_uv=entry.get('microfit',{}).get('recommended_size_uv',{})))
         data['content_sha256']=digest(data)
         return dict(data,thumbnail=str(file),image=str(file),file=None)
     folder=folder_for(workspace,identifier);file=checked_file(folder,'pattern.json')

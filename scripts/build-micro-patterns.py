@@ -52,6 +52,15 @@ MOTIFS = {
         '..########..', '.##########.', '####....####', '###......###',
         '##...###..##', '##...#######', '##....#####.', '##..........',
         '###.........', '.####.......', '..##########', '...#########']),
+    'micro-fleur-de-lis': ('百合莨苕花冠', [
+        '.......##.......','......####......','.....##..##.....','..##.##..##.##..',
+        '.######..######.','##...######...##','##..###..###..##','.#####....#####.',
+        '..###..##..###..','...##.####.##...','....########....','...####..####...',
+        '..###.####.###..','..##...##...##..','.....######.....','.....######.....']),
+    'micro-rose-window': ('重瓣玫瑰窗花', [
+        '....####....','..###..###..','.##.####.##.','.#.##..##.#.',
+        '####.##.####','#.#.####.#.#','#.#.####.#.#','####.##.####',
+        '.#.##..##.#.','.##.####.##.','..###..###..','....####....']),
     'micro-rosette': ('八向花章', [
         '....####....', '....####....', '..########..', '..########..',
         '#####..#####', '####....####', '####....####', '#####..#####',
@@ -60,6 +69,8 @@ MOTIFS = {
 
 
 def recommended_sizes(key, size):
+    if key=='micro-fleur-de-lis':return dict(wall=[8,8],column=[8,8],ceiling=[8,8])
+    if key=='micro-rose-window':return dict(wall=[12,12],column=[12,12],ceiling=[12,12],floor=[12,12])
     floor = {'micro-diamond-ring': [8, 8], 'micro-quatrefoil': [8, 8],
              'micro-leaf': [6, 8], 'micro-bud': [6, 9],
              'micro-chevron': [8, 6], 'micro-link': [3, 3],
@@ -92,6 +103,14 @@ def update_catalog(value):
     return count
 
 
+def pillar_form_count(value):
+    if isinstance(value,dict):
+        properties=value.get('properties',{})
+        return int('base_pattern' in properties and 'capital_pattern' in properties)+sum(pillar_form_count(child) for child in value.values())
+    if isinstance(value,list):return sum(pillar_form_count(child) for child in value)
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
@@ -104,8 +123,8 @@ def main():
         raster(rows).save(buffer, format='PNG')
         content = buffer.getvalue()
         entry = dict(file=key + '.png', sha256=hashlib.sha256(content).hexdigest(),
-                     surfaces=['wall', 'column', 'ceiling', 'floor'],
-                     size_uv=[len(rows[0]) // 2, len(rows) // 2],
+                     surfaces=list(recommended_sizes(key,[len(rows[0])//2,len(rows)//2])),
+                     size_uv=recommended_sizes(key,[len(rows[0])//2,len(rows)//2])['wall'],
                      source='NBTCreator original micro mask', label=label,
                      microfit=dict(preferred=True, logical_pixels=[len(rows[0]), len(rows)],
                                    recommended_size_uv=recommended_sizes(key, [len(rows[0]) // 2, len(rows) // 2]),
@@ -121,7 +140,10 @@ def main():
     catalog = json.loads(CATALOG.read_text(encoding='utf8'))
     original = json.dumps(catalog, ensure_ascii=False, indent=2) + '\n'
     count = update_catalog(catalog)
-    assert count == 6, f'Unexpected number of preset schemas: {count}'
+    architectural=sum('preset' in value.get('properties',{}) for tool in ('vault_compile','bay_compile')
+        for key,value in catalog['agent_tools'].get(tool,{}).get('parameters',{}).get('properties',{}).items() if key.endswith('_pattern'))
+    expected=6+2*pillar_form_count(catalog)+architectural
+    assert count == expected, f'Unexpected number of preset schemas: {count}, expected {expected}'
     updated = json.dumps(catalog, ensure_ascii=False, indent=2) + '\n'
     if args.check:
         assert original == updated, 'preset schema drift'

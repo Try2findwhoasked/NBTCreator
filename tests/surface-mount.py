@@ -1,9 +1,10 @@
 import json,subprocess,sys,tempfile,unittest
+from unittest.mock import patch
 from pathlib import Path
 root=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(root/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
-from nbt_refine import save_master
+from nbt_refine import save_master,read_master
 from nbt_selection_edit import sha
 from nbt_structure_agent import dispatch
 from nbt_surface_mount import NORMALS
@@ -22,6 +23,67 @@ class Mount(unittest.TestCase):
         context=self.root/'coordinates.json';context.write_text(json.dumps(dict(mode='standalone',openings=[],protected_boxes=[dict(lo=[3,3,21],hi=[8,8,22])] if protected else [])))
         return dict(source=source.name,source_sha256=sha(source),geometry_sha256=model.fingerprint(),context=context.name,context_sha256=sha(context),lo=lo,hi=hi,normal=normal)
     def call(self,tool,**arguments):return dispatch(self.root,'parametric_'+tool,arguments)
+
+    def update_source(self,surface,model,walls):
+        save_master(self.root/surface['source'],model,walls)
+        return dict(surface,source_sha256=sha(self.root/surface['source']),geometry_sha256=model.fingerprint())
+
+    def test_surface_reports_host_outward_and_depth_protection_without_equating_them(self):
+        surface=self.fixture();model,walls=read_master(self.root/surface['source'])
+        model.box([3,3,17],[17,17,19],'stone_bricks');surface=self.update_source(surface,model,walls)
+        context=self.root/surface['context'];context.write_text(json.dumps(dict(mode='standalone',openings=[],protected_boxes=[
+            dict(lo=[5,5,20],hi=[6,6,20]),dict(lo=[9,9,21],hi=[10,10,21]),dict(lo=[12,12,18],hi=[13,13,18])])))
+        surface['context_sha256']=sha(context);query=self.call('surface',surface=surface)
+        cells={tuple(cell['uv']):cell for cell in query['cells']}
+        self.assertTrue(cells[2,2]['protected_surface']);self.assertFalse(cells[2,2]['protected_outward'])
+        self.assertTrue(cells[6,6]['protected_outward']);self.assertEqual(cells[9,9]['protected_depths'],[2])
+        self.assertEqual(query['diagnostics']['protected_surface_cells'],4)
+        self.assertEqual(query['diagnostics']['protected_outward_cells'],4)
+        # Protecting the host alone does not prohibit a valid external ornament.
+        result=self.call('mount',surface=surface,surface_sha256=query['surface_sha256'],
+            object=dict(kind='wall',size=[3,3,3]),anchor_uv=[3,3])
+        self.assertFalse(result['model_modified'])
+
+    def test_failed_surface_identifies_the_exact_obstruction(self):
+        surface=self.fixture();model,walls=read_master(self.root/surface['source'])
+        model.put((10,10,21),'gold_block');surface=self.update_source(surface,model,walls)
+        query=self.call('surface',surface=surface)
+        self.assertEqual(query['diagnostics']['status_counts']['outward_blocked'],1)
+        with self.assertRaises(ValueError) as failed:
+            self.call('mount',surface=surface,surface_sha256=query['surface_sha256'],
+                object=dict(kind='wall',size=[3,3,3]),anchor_uv=[7,6])
+        message=str(failed.exception);details=json.loads(message[message.index('{'):])
+        self.assertEqual(details['code'],'outward_blocked');self.assertEqual(details['position'],[10,10,21])
+        self.assertEqual(details['uv'],[7,7]);self.assertEqual(details['actual_state'],'minecraft:gold_block')
+
+    def test_wrong_opening_phase_fails_during_query_before_pattern_fitting(self):
+        surface=self.fixture();context=self.root/surface['context']
+        context.write_text(json.dumps(dict(mode='standalone',openings=[dict(id='gate',lo=[8,4,20],hi=[10,7,20],facing='south')])))
+        surface['context_sha256']=sha(context);before=sha(self.root/surface['source'])
+        with patch('nbt_surface_mount._object') as compiled:
+            with self.assertRaisesRegex(ValueError,'实际开洞阶段.*not open'):self.call('surface',surface=surface)
+            with self.assertRaisesRegex(ValueError,'实际开洞阶段.*not open'):
+                dispatch(self.root,'pattern_mount',dict(surface=surface,surface_sha256='0'*64,
+                    object=dict(surface='wall',preset='micro-link',size_uv=[2,2],fit_mode='micro'),anchor_uv=[7,6]))
+            compiled.assert_not_called()
+        self.assertEqual(sha(self.root/surface['source']),before)
+
+    def test_clearance_failure_names_the_block_instead_of_only_rejecting_the_height(self):
+        surface=self.fixture('down');model,walls=read_master(self.root/surface['source'])
+        model.put((10,6,10),'gold_block');surface=self.update_source(surface,model,walls)
+        query=self.call('surface',surface=surface)
+        # A block below the actual central opening does not obstruct the ring.
+        self.call('mount',surface=surface,surface_sha256=query['surface_sha256'],
+            object=dict(kind='ceiling',size=[3,3,3]),anchor_uv=[7,7],min_clearance=16)
+        model.put((9,6,9),'gold_block');surface=self.update_source(surface,model,walls)
+        query=self.call('surface',surface=surface)
+        with self.assertRaises(ValueError) as failed:
+            self.call('mount',surface=surface,surface_sha256=query['surface_sha256'],
+                object=dict(kind='ceiling',size=[3,3,3]),anchor_uv=[7,7],min_clearance=16)
+        message=str(failed.exception);details=json.loads(message[message.index('{'):])
+        self.assertEqual(details['code'],'clearance_obstruction');self.assertEqual(details['position'],[9,6,9])
+        self.assertEqual(details['requested_clearance'],16);self.assertEqual(details['actual_state'],'minecraft:gold_block')
+        self.assertEqual(details['free_blocks'],details['ornament_position'][1]-7)
     def test_six_normals_contact_correct_side(self):
         for normal,(axis,sign) in NORMALS.items():
             with self.subTest(normal=normal):

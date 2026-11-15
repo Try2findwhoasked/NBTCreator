@@ -14,6 +14,24 @@ def engine_hash():return digest(engine_revision())
 def inside(p,box):return all(a<=v<=b for a,v,b in zip(box['lo'],p,box['hi']))
 
 
+def pattern_names(value):
+    if isinstance(value,dict):return ({value['pattern_ref']} if 'pattern_ref' in value else set())|set().union(*(pattern_names(v) for v in value.values()))
+    if isinstance(value,list):return set().union(*(pattern_names(v) for v in value))
+    return set()
+
+
+def bind_patterns(value,bindings):
+    if isinstance(value,list):return [bind_patterns(v,bindings) for v in value]
+    if not isinstance(value,dict):return value
+    result={k:bind_patterns(v,bindings) for k,v in value.items() if k!='pattern_ref'}
+    if 'pattern_ref' in value:
+        key=value['pattern_ref']
+        if key not in bindings:raise ValueError('对象纹样绑定缺失：'+str(key))
+        if set(value)&{'preset','sample','pattern_asset'}:raise ValueError('pattern_ref 不能同时指定其他纹样来源')
+        result['pattern_asset']=deepcopy(bindings[key])
+    return result
+
+
 def references(value,depth=0):
     if depth>16:raise ValueError('对象表达式嵌套超过16层')
     result=set()
@@ -103,16 +121,23 @@ def compile_scene(workspace,graph):
     if len(canonical(graph).encode())>512*1024:raise ValueError('建筑对象图超过512KiB')
     for box in [*graph.get('reserved_boxes',[]),*graph.get('protected_boxes',[])]:
         if any(a>b or b>=n for a,b,n in zip(box['lo'],box['hi'],graph['size'])):raise ValueError('保留或保护区域超出对象图范围')
-    nodes,deps,sequence=order(graph);completed={};occupancy={};operations=[];geometry={}
+    patterns=graph.get('patterns',[]);bindings={row['id']:row['asset'] for row in patterns}
+    if len(bindings)!=len(patterns):raise ValueError('对象图纹样绑定ID重复')
+    nodes,deps,sequence=order(graph);completed={};occupancy={};operations=[];geometry={};clearances=[]
     for name in sequence:
-        node=nodes[name];recipe=resolve(node['recipe'],completed)
+        node=nodes[name];recipe=bind_patterns(resolve(node['recipe'],completed),bindings)
+        compiled={}
         if recipe['tool']=='structure':
             if recipe['arguments'].get('include_air'):raise ValueError('建筑对象不接受显式空气清除')
             data=build(workspace,recipe['arguments'])
-        else:data=build(workspace,dispatch(workspace,recipe['tool'],recipe['arguments'])['spec'])
+        else:
+            compiled=dispatch(workspace,recipe['tool'],recipe['arguments']);data=build(workspace,compiled['spec'])
         turns=node.get('quarter_turns',0)
         if 'attach' in node:
-            arguments=recipe['arguments'];wall=recipe['tool'].startswith('pattern_') and arguments.get('surface') in ('wall','column') or recipe['tool']=='parametric_compile' and arguments.get('kind')=='wall'
+            arguments=recipe['arguments'];host=arguments.get('host',{})
+            wall=(recipe['tool'].startswith('pattern_') and arguments.get('surface') in ('wall','column')
+                  or recipe['tool']=='parametric_compile' and arguments.get('kind')=='wall'
+                  or recipe['tool']=='surface_decorate' and host.get('tool')=='parametric_compile' and host.get('arguments',{}).get('kind')=='wall')
             face=node['attach']['face']
             if wall and face in ('south','west','north','east'):
                 if turns:raise ValueError('侧面墙饰由脚本按attach.face定向，不叠加quarter_turns')
@@ -140,6 +165,13 @@ def compile_scene(workspace,graph):
                 if not occupancy.keys()&proposed.keys() and attached(halfcells(proposed),other['cells']):origin=trial;break
             else:raise ValueError('对象贴附无法在限定深度内连接真实表面：'+name)
         voxels={tuple(p[i]+origin[i] for i in range(3)):value for p,value in local.items()}
+        for constraint in compiled.get('clearance_constraints',[]):
+            columns=[]
+            for x,y,z in constraint['columns']:
+                a,b=sx,sz
+                for _ in range(turns):x,z,a,b=b-1-z,x,b,a
+                columns.append([x+origin[0],y+origin[1],z+origin[2]])
+            clearances.append(dict(object=name,id=constraint['id'],min_clearance=constraint['min_clearance'],columns=columns))
         if any(not all(0<=p[i]<graph['size'][i] for i in range(3)) for p in voxels):raise ValueError('建筑对象超出总尺寸：'+name)
         if occupancy.keys()&voxels.keys():raise ValueError('建筑对象实际体素重叠：'+name)
         if any(inside(p,box) for p in voxels for box in graph.get('reserved_boxes',[])):raise ValueError('建筑对象占用保留空间：'+name)
@@ -158,10 +190,19 @@ def compile_scene(workspace,graph):
         completed[name]=dict(id=name,bounds=bounds,depends_on=sorted(deps[name]),resolved_recipe=recipe,quarter_turns=turns,origin=origin,
                              geometry_sha256=digest([[*p,*value] for p,value in sorted(voxels.items())]),contact_targets=sorted(required))
         completed[name]['surface_inset']=inset
+        completed[name]['pattern_refs']=sorted(pattern_names(node['recipe']))
         geometry[name]=dict(voxels=voxels,cells=cells);occupancy.update(voxels)
         if len(occupancy)>graph.get('max_changed_blocks',65536):raise ValueError('建筑对象图超过实际方块预算')
     spec=dict(name=graph['name'],size=graph['size'],anchor=[0,0,0],operations=operations,max_changed_blocks=graph.get('max_changed_blocks',65536))
     data=build(workspace,spec);routes='not_checked'
+    if clearances:
+        from nbt_assembly import Volume
+        from nbt_surface_mount import check_clearance
+        whole=Volume(graph['size']);whole.blocks={p:v[0] for p,v in occupancy.items()}
+        s=dict(request=dict(normal='down'),lo=[0,0,0],u=0,v=2)
+        for constraint in clearances:
+            try:check_clearance(s,whole,constraint['columns'],constraint['min_clearance'])
+            except ValueError as error:raise ValueError('对象图饰面净空 '+constraint['object']+'/'+constraint['id']+'：'+str(error)) from error
     if graph.get('routes'):
         from nbt_assembly import Volume
         from nbt_collision import check_routes
@@ -256,9 +297,19 @@ def update_scene(workspace,arguments):
     saved=read_scene(workspace,dict(id=arguments['id']))
     if saved['revision']!=arguments['revision'] or saved['version']!=arguments['version']:raise ValueError('建筑对象图版本冲突，请重新读取')
     before=saved['candidate'];graph=deepcopy(before['graph']);nodes={n['id']:n for n in graph['objects']};changed=set()
-    for patch in arguments['changes']:
+    pattern_changes=arguments.get('pattern_changes',[])
+    if not arguments.get('changes') and not pattern_changes:raise ValueError('对象或纹样绑定变更不能为空')
+    bindings={row['id']:row for row in graph.get('patterns',[])};changed_patterns=set()
+    for patch in pattern_changes:
+        if patch['id'] not in bindings or patch['id'] in changed_patterns:raise ValueError('变更纹样绑定缺失或重复')
+        bindings[patch['id']]['asset']=deepcopy(patch['asset']);changed_patterns.add(patch['id'])
+    for key,node in nodes.items():
+        if pattern_names(node['recipe'])&changed_patterns:changed.add(key)
+    patched=set()
+    for patch in arguments.get('changes',[]):
         key=patch['id']
-        if key not in nodes or key in changed:raise ValueError('变更对象缺失或重复')
+        if key not in nodes or key in patched:raise ValueError('变更对象缺失或重复')
+        patched.add(key)
         changed.add(key)
         if 'lo' in patch:nodes[key].pop('attach',None)
         if 'attach' in patch:nodes[key].pop('lo',None)
@@ -275,7 +326,7 @@ def update_scene(workspace,arguments):
     writes=transition(workspace,before,result)
     if not writes or len(writes)>arguments.get('max_changed_blocks',65536):raise ValueError('对象联动没有变化或超过修改预算')
     return dict(result,parent=dict(id=saved['id'],revision=saved['revision'],version=saved['version']),changed_objects=sorted(changed),affected_objects=sorted(affected),
-                recompiled_objects=result['compile_order'],changed_blocks=len(writes),source_version_unchanged=True)
+                changed_patterns=sorted(changed_patterns),recompiled_objects=result['compile_order'],changed_blocks=len(writes),source_version_unchanged=True)
 
 
 def dispatch_scene(workspace,tool,args):

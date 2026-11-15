@@ -54,6 +54,28 @@ class Model:
         else:
             self.blocks[p] = value
 
+    def put_many(self, edits):
+        """Validate a batch before writing; preserve custom put/provenance hooks."""
+        assert self.stage != 'sealed', 'Seal accepted: open_ports or explicitly begin a redesign first'
+        planned=[];states={};sx,sy,sz=self.size
+        for position,material in edits:
+            p=tuple(position)
+            assert len(p)==3 and type(p[0]) is int and type(p[1]) is int and type(p[2]) is int, 'Voxel coordinates must be integer x,y,z'
+            x,y,z=p
+            assert 0<=x<sx and 0<=y<sy and 0<=z<sz, f'Out of bounds: {p}'
+            if isinstance(material,str):
+                if material not in states:states[material]=state(material)
+                value=states[material]
+            else:value=state(material)
+            planned.append((p,value))
+        if 'put' in self.__dict__ or type(self).put is not Model.put:
+            for p,value in planned:self.put(p,value)
+        else:
+            blocks=self.blocks
+            for p,value in planned:
+                if value in AIR_NAMES:blocks.pop(p,None)
+                else:blocks[p]=value
+
     def box(self, lo, hi, material):
         assert all(lo[i] <= hi[i] for i in range(3))
         for x in range(lo[0],hi[0]+1):

@@ -34,6 +34,25 @@ class SessionTests(unittest.TestCase):
         self.sample=dict(path=image.name,sha256=sha(image),noise_strength=0)
         self.proposal=dict(surface='wall',size_uv=[2,2],sample=self.sample)
 
+    def test_unit_fit_is_reused_across_layouts_but_not_colours_or_changed_bytes(self):
+        with ModellingSession(self.root),patch.object(nbt_micro_alignment,'adaptive_fit',wraps=nbt_micro_alignment.adaptive_fit) as fitted:
+            single=dispatch(self.root,'pattern_microfit',self.proposal)
+            tiled=dispatch(self.root,'pattern_microfit',dict(self.proposal,name='另一个铺排',base='stone',tile_counts=[2,2],gap_uv=[2,1]))
+            self.assertEqual(fitted.call_count,1)
+            self.assertEqual(tiled['shape_counts']['full'],4*single['shape_counts']['full'])
+            tiled['microfit']['quality_selection']['assessments'][0]['score']=-1
+            another=dispatch(self.root,'pattern_microfit',dict(self.proposal,tile_counts=[3,1]))
+            self.assertGreater(another['microfit']['visual_quality']['score'],0)
+            for material in ('red_concrete','blue_concrete'):
+                sample=dict(self.sample,colors=[dict(rgb='#ffffff',material=material)])
+                result=dispatch(self.root,'pattern_microfit',dict(self.proposal,sample=sample))
+                self.assertIn('minecraft:'+material,result['spec']['operations'][0]['palette'])
+            self.assertEqual(fitted.call_count,3)
+            Image.new('L',(16,16),0).save(self.root/'source.png')
+            with self.assertRaisesRegex(ValueError,'SHA256'):
+                dispatch(self.root,'pattern_microfit',dict(self.proposal,tile_counts=[4,1]))
+            self.assertEqual(fitted.call_count,3)
+
     def test_fit_then_mount_reuses_compilation_without_mutable_aliases(self):
         model=Volume((16,12,16));model.box([2,2,8],[13,10,8],'stone')
         source=self.root/'wall.snbt';save_master(source,model,set());before=source.read_bytes()

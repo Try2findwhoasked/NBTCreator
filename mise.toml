@@ -1,0 +1,27 @@
+[tasks."gpu:setup"]
+description = "Install optional NVIDIA compute libraries in build/gpu-env using pip cache"
+run = "python scripts/gpu-runtime.py setup"
+
+[tasks."gpu:info"]
+description = "Probe the optional compute backend"
+run = "python scripts/gpu-runtime.py info"
+
+[tasks."gpu:cli"]
+description = "Run the shared CLI with the optional GPU Python runtime"
+run = "python scripts/gpu-runtime.py node scripts/cli.mjs"
+
+[tasks."gpu:test"]
+description = "Run CPU and real GPU compute/transform regressions"
+run = "python scripts/gpu-runtime.py python -B tests/compute-transforms.py --require-gpu"
+
+[tasks."gpu:benchmark"]
+description = "Measure transfers, cold/warm compute and full tool calls"
+run = "python scripts/gpu-runtime.py python -B scripts/benchmark-compute.py"
+
+[tasks."cpu:test"]
+description = "Verify bulk writes, catalogue invalidation and strict validation"
+run = "python -B tests/materialization.py"
+
+[tasks."gpu:materialization"]
+description = "Benchmark CPU materialization with CPU and GPU field inputs"
+run = "python scripts/gpu-runtime.py python -B scripts/benchmark-materialization.py"

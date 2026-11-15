@@ -2,9 +2,13 @@
 
 通过 `capabilities.agent_tools` 查询严格参数 Schema，使用 `components agent` 调用同一 Python 引擎；不依赖 Electron、GUI、浏览器端脚本或 API 服务商。工具定义以 `tool-catalog.json` 为准。
 
+柱、拱、窗墙、顶构与地砖需要共同调整时，见[联动跨间](architectural-bays.md)。bay_compile、vault_compile、tracery_compile 生成有体积和真实接触的构造候选；二维纹样拟合继续用于局部装饰。
+
 ## 纹样优先从微型单元开始
 
-纹样主流程使用 `pattern_microfit`，先做好2～8格的单个可辨单元，再铺排到墙、柱、地板和吊顶。它接收与 pattern_compile 相同的 preset / sample / preset_options，size_uv 表示**单元**宽高，范围1～12格；单格用于笔画和半砖条带，主纹优先2～8格。无需先画成一张大墙再整体缩小。
+纹样主流程使用 `pattern_microfit`，先做好2～8格的单个可辨单元，再铺排到墙、柱、地板和吊顶。它接收与 pattern_compile 相同的 preset / sample / pattern_asset 来源，预设用 preset_options，资产用 asset_options；size_uv 表示**单元**宽高，范围1～12格；单格用于笔画和半砖条带，主纹优先2～8格。无需先画成一张大墙再整体缩小。
+
+pattern_asset 为工作区资产的 `{"id":实际ID,"image_sha256":实际图像SHA256}`，可直接由 pattern_assets / pattern_create 回执组装，不必复制图片路径。preset、sample、pattern_asset 必须选择一种；asset_options 与预设采样选项相同，不能替换原图路径或SHA。名称/标签变化不改变图像绑定，PNG被篡改则拒绝，即使编译缓存已经命中。需要多对象共享并一起更新时，用[对象图命名绑定](object-scenes.md#纹样资产与配方联动)。
 
 ```json
 {"surface":"wall","size_uv":[4,4],"sample":{"path":"micro-ring.png","sha256":"<原图SHA256>","noise_strength":0},"tile_counts":[4,3],"gap_uv":[1,1],"preview":true}
@@ -86,11 +90,23 @@ request = {"surface": surface_request, "surface_sha256": surface_query["surface_
 
 复杂样本不达项目目标时，优先增加1～2格、裁取保留主题的局部，或组合基础单元形成更有组织的纹样。确需简化时记录损失；不能用简单徽记替换复杂卷草后声称原目标通过。模型仍须查看最终建筑中的玩家视角，检查是否像后贴的大块招牌、是否遮挡构造或挤占战斗空间。
 
+自动对齐按原有几何排名检查量化质量门槛；首选未达标时继续检查其余已通过拓扑与覆盖误差的有限候选，不改原图、不降低门槛。microfit.quality_selection 记录候选数量、排名、分数与实际选择；所有候选都与同一张原始映射图比较，不能通过改变参考图抬高分数。该评分仍是轮廓代理，不证明建筑风格或主观美感。
+
 ## 建模会话与结果复用
+
+微型拟合另缓存已经确定形状与颜色的单元，供不同名称、底板和铺排数量复用；尺寸、采样映射、形状选项、材质配色、误差及质量参数进入缓存身份，命中前仍读取真实图片验证SHA。世界安装、圆柱转角、保护、通路和最终预算继续逐次检查，不缓存上次安装通过的结论。
 
 同一 Python 进程默认复用纯编译结果和通路数据。显式会话入口为 `nbt_modeling_session.ModellingSession(workspace)`，通过 `session.call(tool, arguments)` 调用相同工具；返回值仍是候选，会话不自动应用、保存、批准或导出。也可在 `with ModellingSession(workspace):` 中继续使用已有 dispatch 调用。默认缓存最多32项、估算32MiB，超限淘汰；返回深拷贝，修改上次结果不会污染下次调用。
 
 先 pattern_microfit 再 pattern_mount / pattern_cylinder_mount 时，相同参数可复用拟合，不必让 Agent 重新计算。缓存区分工作区、原图SHA与采样参数、完整工具参数、引擎/目录/注册表版本；命中前仍核验实际图片SHA。碰撞索引按完整几何复用，路线结果另区分起终点及顺序、碰撞模式和搜索上限；每次重新计算几何指纹，模型改变后重新检查。安装面的原稿、快照、上下文哈希和保护检查保持执行。Python实现更新须重启进程。该缓存不跨进程，逐条启动CLI仍有启动开销；连续任务可在同一脚本或显式会话中运行。
+
+### 复杂微型纹样的细节补搜
+
+有限束搜索后，脚本会对仍有误差、且主拓扑可保留的单元重新检查合法楼梯/半砖组合。按原对称轨道调整，最多384次提案；不改原图、主纹极值、孔洞或调用方的覆盖误差预算。候选同时保留原结果的覆盖率与轮廓，再以同一张原始映射图核对量化分数和细节保留率；任一项变差就回退。补搜仍不能表达的复杂源应按真实失败裁取单元或增加尺寸，不放宽门槛。
+
+shape_search.refinement 记录原候选数、提案上限/实数、接受移动数、是否改善，以及 quality_guard 的前后分数、细节保留率和回退结果。初始候选与补搜候选的数目分开理解；完整 candidates_evaluated 包括新评估的投影。投影预打包仅减少重复统计，不减少候选或更换实际半格几何。连续安装仍可使用建模会话复用已拟合单元。
+
+surface=cylinder 且 fit_mode=micro（或直接 pattern_microfit）可复用支持 column 的预设；pattern_list.micro_cylinder_policy 会返回该规则。平面单元随后进入原有真实半格转角、环柄与柱芯接触检查；它不保证任意单元在任意直径都可环绕。普通非micro圆柱模式仍要求预设本身声明cylinder。
 
 ### 连续调用的 JSON 行会话
 
@@ -252,12 +268,28 @@ Agent 也可将 compile 返回的 spec.operations 合入整体主模型生成器
 三个接口均通过 `nbt.py components agent --tool <工具> --request <JSON>` 调用。
 
 1. `parametric_surface` 接收 `{"surface": {...}}`。surface 提供 source、source_sha256、geometry_sha256、context、context_sha256、lo、hi 和 normal。lo/hi 是单格厚度的支承平面，normal 是装饰伸出的方向，可选 north/south/east/west/up/down。可设 min_support（已确认的连续方块厚度，1～8）和 opening_margin（缺口四周保留格数，0～8）。如使用候选，另提供 snapshot 和 snapshot_sha256。
-2. 查询返回 surface_sha256、已确认安装格、厚度、遮挡、未知形状及连通空气缺口。侧墙的 UV 为 X/Y 或 Z/Y，地面与吊顶为 X/Z，从 lo 开始沿世界正轴计数。空气缺口保持未分类，薄形状、未知形状及其边距纳入避让。
+2. 查询返回 surface_sha256、已确认安装格、厚度、遮挡、未知形状及连通空气缺口。每格另有 protected_surface（宿主表层）、protected_outward（相邻外侧）和 protected_depths（向内0～7格的受保护深度），diagnostics 汇总几何状态及保护数量。usable_uv 只表示几何支承与开口边距可用，不代表完整饰件已经通过保护检查：表层受保护可阻止镶嵌，却不一定阻止未接触保护区的外贴。侧墙的 UV 为 X/Y 或 Z/Y，地面与吊顶为 X/Z，从 lo 开始沿世界正轴计数。空气缺口保持未分类，薄形状、未知形状及其边距纳入避让。
 3. `parametric_mount` 接收同一 surface、surface_sha256、`object`（原参数化构件请求）和 `anchor_uv:[u,v]`。侧墙用 wall，下挂面用 ceiling，其余构件从地面向上放置。例如在 `lo=[0,2,7]`、normal=south 的墙面上，`anchor_uv:[8,0]` 对应邻接安装格 `[8,2,8]`。侧墙按法向旋转构件。
 4. `parametric_layout` 接收同一组字段，使用 pattern 代替 anchor_uv。grid 为居中阵列，border 为阵列外圈，center 为单个居中对象。gap_uv 控制实例间距，edge_margin 控制边缘留量，reserved_boxes 指定额外留白，max_instances 和 max_changed_blocks 限制布局规模。on_conflict 默认 reject，设 skip 时返回每个跳过的锚点和原因，超出总预算仍会失败。
 
 安装规划要求每个写入点的投影都有可用支承，每个方块连通组接触安装面。保护区、留白和实际占用优先。结果包含 operations、源与上下文哈希及候选几何哈希。按同一源、同一上下文及同一预算进入现有 control preview/validate 流程。几何接触、保护和预算由工具验证，玩家路线、实际承重和设计效果仍需单独审阅。首版支持平直轴对齐安装面。
 
+查询阶段即检查保护上下文与实际源是否匹配，再进行构件拟合。开洞前使用独立的闭壳阶段上下文，将计划门洞、邻接喉道、门槛和顶边列入 protected_boxes；实际开洞后使用真实 openings 及原有保护。不能把尚未打开的门声明为已有开口，也不能为了消除错误删掉真实开口或保护。查询通过不等于整栋建筑已经密闭或通路通过。
+
+安装冲突的错误文字保留原因，并附带 JSON 事实：code、position、uv、normal、face_status 和 known_thickness。outward_blocked、opening_margin、protected、reserved、occupied 等代码用于定位失败点；嵌入厚度不足会补充 required_thickness、checked_depth 和 actual_state。吊顶 clearance_obstruction 指出实际挡住净空的方块，给出 ornament_position、requested_clearance、free_blocks 和 actual_state，避免只凭“净空不足”猜测障碍。根据这些证据调整尺寸、选区或安装方式后重新查询；报错不会自动挪动对象、降低门槛或应用候选。
+
+
+## 批量安装与保留宿主配方
+
+`mount_batch` 接收一个 target（source、source_sha256、geometry_sha256、context、context_sha256，可选成对的 snapshot / snapshot_sha256）和1～64项 installations。每项有唯一 id、tool（parametric_mount 或 pattern_mount）、局部安装面 surface（lo、hi、normal，可选 min_support / opening_margin）、object、anchor_uv，以及该安装方式适用的 embed_depth / min_clearance / surface_fit / reserved_boxes。每项不再传源或 surface_sha256；工具在内存中依序查询当前候选并返回各自回执。
+
+工具只读取一次完整源，按数组顺序处理，不为每项保存中间SNBT；后来项目可使用先前新增的真实支承，但任何两个项目的写入不得重叠。全部成功后复查每项的保留背衬、净空和图像绑定，完整重放操作核对方块及墙 mask，避免后装构件破坏先前背衬或侵入吊顶净空。失败整体拒绝，不返回部分成功的计划，也不修改源或保存资产。
+
+顶层 max_changed_blocks 控制整批唯一写入格数（包括浅槽空气），并取不超过绑定上下文 max_changed_blocks 的值；最多65536格、展开最多128个操作。顶层 reserved_boxes 对所有项目生效，require_routes / compare_routes 在最终组合上统一比较原声明路线。预算、保护、源/候选/上下文SHA与原质量门槛保持执行。它不会自动跳过失败项、降低门槛、挪动对象或批准候选。
+
+`surface_decorate` 使用同样的 installations，但以 host 配方代替文件 target。host.tool 仅为 structure 或 parametric_compile；其 arguments 使用原结构或参数化Schema。局部安装在宿主实际几何上完成，返回包含宿主和饰面的 spec、content_sha256、安装回执及净空约束，不写临时模型。max_changed_blocks 限制饰面变化；宿主和最终构件还受原结构尺寸/方块总量限制。
+
+需要持续联动时，把 surface_decorate 作为对象图 recipe，保留 host 和 installations。纹样对象可使用 graph.patterns 的 pattern_ref；更新绑定后重新拟合并编译整个配方，不把上次输出 spec 当作下次的唯一配方。只有已烘焙的纯结构不能自动恢复原纹样来源。
 
 ## 专用构造、组合与局部重生成
 
@@ -266,7 +298,7 @@ Agent 也可将 compile 返回的 spec.operations 合入整体主模型生成器
 | 构件 | form 参数 |
 | --- | --- |
 | 墙饰 | base_height、dado_height、cornice_height、panel_pitch、relief_depth 控制踢脚、墙裙、檐口、分格和凸出深度 |
-| 柱子 | base_height、capital_height、base_material、capital_material 控制柱础与柱头。section 选 square 或 cross。taper、inset、flutes 控制收分和槽纹 |
+| 柱子 | base_height、capital_height、base_material、capital_material 控制柱础与柱头。section 选 square、cross 或 round；form.order 可选古典柱式。taper、inset、flutes 控制收分和槽纹 |
 | 吊顶 | profile 选 grid 或 parallel。drop、pitch、border、light_strip 控制下吊、节奏、边框和灯带 |
 | 楼梯 | profile 选 straight、quarter_turn、switchback 或 spiral。run_width、rise、rail、tread 控制跑宽、高差、挡边与踏步材质。landing 适用于转角和折返，方形螺旋的平台宽度随跑宽 |
 | 植物 | profile 选 upright、trailing 或 climbing。pot_height、crown_height、radius、density、seed 控制盆器与叶冠的体素形态。climbing 生成贴平面的叶冠，实际贴墙位置由调用方确定 |
@@ -274,6 +306,33 @@ Agent 也可将 compile 返回的 spec.operations 合入整体主模型生成器
 吊顶安装可设 min_clearance 检查新增构件正下方连续净空。安装和布局可设 require_routes=true，按坐标资料中的起点和目标检查放置后模型。楼梯含原版踏步与转向平台，rail 生成实块挡边。旋转支持直形楼梯方块并变换朝向，有左右手性的转角楼梯状态维持拒绝。螺旋为方形多跑组合。
 
 装饰布局使用 ornament.layout 选择 continuous、centerpiece 或 corners。ornament.center_clear 给中心纹样留空，边框另由 border_layers 控制。已有主体方块保留。主题 theme 选 stone_hall、timber_room 或 deepslate_workshop，提供主体材质、收边材质和间距默认值，每个对象可显式覆盖。
+
+微型拟合候选与质量评分使用同一精确位图连通统计：主纹按8邻接、孔洞按4邻接，仅统计不触边的背景区域。位运算加速不缩小图片、不减少候选、不改变楼梯/半砖选择或质量阈值；真实安装仍检查接触、保护、占用和预算。
+
+### 柱础、柱头和独立嵌纹
+
+需要罗马柱时先用 form.order 的五种[古典柱式](classical-columns.md)，圆柱身、凹槽、涡卷、莨苕叶和颈饰由脚本生成。柱子高度可到64格，宽深仍最多32格。以下通用柱端造型与平面嵌纹可用于自定义方案。
+
+柱子的 form 可分别指定 `base_profile` / `capital_profile`：plain（原有整块端部）、stepped（层叠）、beveled（收坡）、torus（圆鼓线脚）、bell（钟形）、bezier（自定义曲线）。它们使用原 base_height / capital_height / base_material / capital_material，始终留在 size 中，不悄悄增大占地。非plain至少3格高，柱础与柱头总高须小于柱高。省略新参数时保持原有几何。
+
+bezier 须分别给 `base_curve` / `capital_curve`：4个0.2～1的半径比例控制值，按部件底部到顶部排列，例如 `[0.55,0.9,0.4,1]`。它控制中间线脚的三次曲线，最底/顶承台及连续中心仍保留；体素分层不会等同于光滑曲面。默认柱头轮廓相对柱础翻转，显式curve不自动翻转。
+
+上下端还可分别给 `base_pattern` / `capital_pattern`，其中 pattern 提供 preset 或 pattern_asset / pattern_ref、size_uv、材质、形状和微型质量参数；faces 可选 north/east/south/west，默认四面。工具自动居中、定向并齐平镶嵌，保留一格背衬；不手填每面坐标。纹样上下及四角各至少留1格，超出部件拒绝，不截断或降低质量门槛。脚本在装饰所在高度自动保留完整实面饰带，因此纹样较高时会减少可见的收分层数；需要更明显线脚时增加该端高度或使用更矮单元。
+
+```json
+{
+  "kind":"pillar", "size":[9,32,9], "material":"quartz_block", "accent":"light_gray_terracotta",
+  "form":{
+    "base_height":6,"capital_height":8,"base_profile":"torus","capital_profile":"bell","flutes":true,
+    "base_pattern":{"pattern":{"preset":"micro-scroll","size_uv":[4,2],"material":"quartz_block","quality_profile":"border","min_quality_score":85}},
+    "capital_pattern":{"pattern":{"preset":"micro-palmette","size_uv":[4,4],"material":"quartz_block","quality_profile":"border","min_quality_score":85}}
+  }
+}
+```
+
+end_decorations 分别返回上下端每面的真实拟合、朝向和局部放置回执，坐标仍为原柱子画布。完整柱子保持body归属，新增柱端不会被误记为建筑墙层。生成期间在内部留空气边界检查外侧格；已声明实面饰带按逐格支承检查，不把设计收分当作外墙未知门洞。写回建筑时仍须检查建筑自己的支承、保护、开口和通路。
+
+对象图的 pattern_ref 可放进这两个参数，更新绑定后重新生成柱端；parametric_regenerate 仍支持 base / capital 局部重生成并拒绝改变部件外的柱身。shape、材料、收分与纹样属于同一柱子配方，不需把上下端烘焙成失去来源的独立方块。
 
 ### 家具与构件组合
 
@@ -470,7 +529,7 @@ bitmap 的行数、每行宽度均为1～128，所有行等宽。`#` 或 `f` 为
 | rect / ellipse | bounds、value、fill、stroke，矩形/椭圆及边框 |
 | polygon | points 至少3点，填充或描边 |
 | polyline | points 至少2点，连续线条 |
-| bezier | points 恰好4个控制点，三次贝塞尔曲线 |
+| bezier | points 恰好4个二维控制点，三次贝塞尔曲线；samples=16～1024，默认257个含起终点的采样 |
 | preset | preset 图库 ID，可选 crop、channel |
 | asset | id 与 image_sha256，复用已保存图像，可选 crop、channel |
 | sample | sample 中的 path、sha256、crop、channel，使用工作区图片 |
@@ -500,3 +559,7 @@ bitmap 的行数、每行宽度均为1～128，所有行等宽。`#` 或 `f` 为
 内置 ID 为 `builtin:<图库ID>`，只读，可 copy 创建工作区副本。asset 图层使用 image_sha256 绑定像素，因此仅重命名不会破坏复用。界面在素材库的“纹样”分类中展示同一批资产，支持导入、裁取、组合、改名、回收、拟合预览和保存为建筑构件。纹样资产与拟合后的构件分别保存；不自动定稿 NBT。
 
 基础几何预设包括棋盘格 `checkerboard`、横条 `horizontal-stripes`、竖条 `vertical-stripes`、错缝砖 `running-bond`、编织格 `basket-weave`、人字折纹 `herringbone`、菱形格 `diamond-lattice`、回折纹 `greek-key`、之字带 `zigzag-band`、十字 `cross-tile`、阶梯菱形 `stepped-diamond` 和四瓣花 `four-petal`。建议从 16×16 格开始；不同预设支持的安装面以 `pattern_list` 为准。`repeat` 按面板宽高重复完整图样，建议在较大面板上使用，尺寸太小时细节可能合并。
+
+新增原生欧式微纹样 `micro-fleur-de-lis`（百合莨苕花冠）和 `micro-rose-window`（重瓣玫瑰窗花）。推荐尺寸由 pattern_list 返回：百合用于8×8墙/柱/吊顶，玫瑰窗花用12×12墙/柱/地板/吊顶；没有推荐的安装面不冒称已验证。纹样可复制进工作区资产后继续组合与命名绑定。
+
+纹样的FFT预处理用 `pattern_filter`，参数、适用规模与边界见[频域滤波](pattern-spectral.md)。滤波生成新资产，再交给微型拟合与原门槛；不能以滤波成功代替拓扑和实际看图。

@@ -22,6 +22,26 @@ class PatternAssets(unittest.TestCase):
 
     def call(self,tool,**args):return dispatch(self.root,tool,args)
 
+    def test_architectural_presets_are_visible_and_compile_on_each_advertised_surface(self):
+        presets = ('roman-coffer', 'byzantine-cross-mosaic', 'ottoman-eight-point-star',
+                   'egyptian-lotus-band', 'chinese-window-lattice', 'japanese-asanoha-lattice',
+                   'art-deco-sunburst', 'gothic-pointed-tracery')
+        manifest = self.call('pattern_list')['patterns']
+        listing = {item['id']: item for item in self.call('pattern_assets', action='list')['items']}
+        for key in presets:
+            with self.subTest(preset=key):
+                asset = listing['builtin:' + key]
+                self.assertEqual(asset['fitting_defaults']['mode'], 'standard')
+                self.assertEqual(asset['fitting_defaults']['size_uv'], [32, 32])
+                self.assertEqual(asset['image_sha256'], manifest[key]['sha256'])
+                for surface in manifest[key]['surfaces']:
+                    args = dict(preset=key, surface=surface, size_uv=[12, 24] if surface == 'cylinder' else [32, 32])
+                    result = self.call('pattern_compile', **args)
+                    self.assertGreater(result['block_count'], 0)
+                    self.assertEqual(result['sample_sha256'], asset['image_sha256'])
+        subprocess.run([sys.executable, str(ROOT / 'scripts/build-interior-patterns.py'), '--check'],
+                       cwd=ROOT, check=True, capture_output=True, text=True)
+
     def make(self,**patch):
         return self.call('pattern_create',**dict(dict(name='八瓣镂空花',resolution=[64,64],layers=[
             dict(kind='ellipse',bounds=[.4,.06,.6,.5],radial_count=8),

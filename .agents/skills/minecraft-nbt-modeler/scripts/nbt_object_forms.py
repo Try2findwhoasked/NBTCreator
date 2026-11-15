@@ -10,7 +10,7 @@ THEMES={
     'deepslate_workshop':dict(material='deepslate_bricks',accent='polished_blackstone',spacing=4),
 }
 FORM_FIELDS={
-    'pillar':('base_height','capital_height','inset','base_material','capital_material','section','taper','flutes'),
+    'pillar':('base_height','capital_height','inset','base_material','capital_material','section','taper','flutes','base_profile','capital_profile','base_curve','capital_curve','base_pattern','capital_pattern','order','shaft_ratio','flute_count','flute_depth','entasis','neck_pattern','leaf_count','leaf_layers','volute_scale','volute_turns','detail_material'),
     'wall':('base_height','dado_height','cornice_height','panel_pitch','relief_depth'),
     'ceiling':('profile','drop','pitch','border','light_strip'),
     'plant':('profile','pot_height','crown_height','radius','density','seed'),
@@ -35,9 +35,13 @@ def generate(kind, spec, size, box, primary, accent, foliage):
         inset=spec.get('inset',1)
         if base+cap>=h or 2*inset>=min(w,d):
             raise ValueError('柱础、柱头或柱身收分超过构件尺寸')
-        box([0,0,0],[x,base-1,z],state(spec.get('base_material',accent)))
-        box([0,h-cap,0],[x,y,z],state(spec.get('capital_material',accent)))
+        from nbt_pillar_ends import end_layers
+        end_layers(spec,'base',size,box,state(spec.get('base_material',accent)))
+        end_layers(spec,'capital',size,box,state(spec.get('capital_material',accent)))
         for level in range(base,h-cap):
+            if spec.get('section')=='round':
+                from nbt_classical_column import shaft_level
+                shaft_level(spec,size,level,base,cap,box,primary,accent);continue
             offset=inset if spec.get('taper',False) and level>=base+(h-base-cap)//2 else 0
             if 2*offset>=min(w-2,d-2):
                 raise ValueError('柱身收分后没有可用截面')

@@ -1,5 +1,6 @@
 from pathlib import Path
 import gzip,hashlib,json,subprocess,sys,tempfile,unittest
+from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_refine import read_master,save_master
@@ -7,6 +8,55 @@ from nbt_snbt import save_snbt,read_snbt,write_binary,root,convert,N
 from nbt_finalize import finalize
 from nbt_web_revision import convert_web_json
 from nbt_detail_control import default_settings,catalog
+import nbt_snbt
+
+class ParsedSourceCache(unittest.TestCase):
+ def setUp(self):
+  temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup);self.folder=Path(temporary.name)
+  nbt_snbt.clear_parsed_sources();self.addCleanup(nbt_snbt.clear_parsed_sources)
+  self.model=Volume((8,8,8));self.model.box([0,0,0],[7,0,7],'stone_bricks');self.walls={(0,0,0)}
+ def test_checked_save_rename_and_identical_copy_parse_once_without_shared_mutation(self):
+  file=self.folder/'model.snbt'
+  with patch.object(N,'parse_nbt',wraps=N.parse_nbt) as parsed:
+   save_snbt(file,self.model,self.walls);model,mask=read_snbt(file)
+   alias=self.folder/'copy.snbt';alias.write_bytes(file.read_bytes());copy,copy_mask=read_snbt(alias)
+   self.assertEqual(parsed.call_count,1)
+  model.put((0,0,0),'gold_block');mask.clear();model._snbt_palette.clear()
+  self.assertEqual(copy.blocks,self.model.blocks);self.assertEqual(copy_mask,self.walls)
+  self.assertEqual(read_snbt(file)[0].blocks,self.model.blocks)
+ def test_same_size_and_identical_file_stamps_cannot_hide_changed_bytes(self):
+  file=self.folder/'model.snbt';save_snbt(file,self.model,self.walls);stamp=file.stat()
+  raw=file.read_bytes();updated=raw.replace(b'stone_bricks',b'quartz_block');self.assertEqual(len(raw),len(updated))
+  file.write_bytes(updated)
+  with patch.object(Path,'stat',return_value=stamp):model,_=read_snbt(file)
+  self.assertNotEqual(model.fingerprint(),self.model.fingerprint());self.assertTrue(model._snbt_metadata_stale)
+  self.assertEqual(set(model.blocks.values()),{'minecraft:quartz_block'})
+ def test_cached_extras_are_deeply_isolated_and_invalid_changes_still_refuse(self):
+  file=self.folder/'model.snbt';self.model._snbt_extras={'custom':N.Compound({'label':N.String('original')})}
+  save_snbt(file,self.model,self.walls);model,_=read_snbt(file)
+  model._snbt_extras['custom']['label']=N.String('changed')
+  self.assertEqual(read_snbt(file)[0]._snbt_extras['custom']['label'],'original')
+  file.write_bytes(file.read_bytes().replace(b'3465',b'3466',1))
+  self.assertRaisesRegex(ValueError,'3465',read_snbt,file)
+ def test_count_and_byte_limits_evict_or_skip_without_changing_decoded_sources(self):
+  files=[]
+  for i,state in enumerate(('stone_bricks','gold_block','quartz_block')):
+   model=Volume((2,2,2));model.put((0,0,0),state);file=self.folder/f'{i}.snbt';save_snbt(file,model,set());files.append(file)
+  nbt_snbt.clear_parsed_sources()
+  with patch.object(nbt_snbt,'MAX_PARSED_ENTRIES',2),patch.object(N,'parse_nbt',wraps=N.parse_nbt) as parsed:
+   for file in files:read_snbt(file)
+   self.assertEqual(read_snbt(files[0])[0].get((0,0,0)),'minecraft:stone_bricks')
+   self.assertEqual(parsed.call_count,4)
+   self.assertLessEqual(len(nbt_snbt._parsed_sources),2)
+  nbt_snbt.clear_parsed_sources()
+  with patch.object(nbt_snbt,'MAX_PARSED_BYTES',1),patch.object(N,'parse_nbt',wraps=N.parse_nbt) as parsed:
+   first=read_snbt(files[0]);second=read_snbt(files[0])
+   self.assertEqual(first[0].blocks,second[0].blocks);self.assertEqual(parsed.call_count,2)
+   self.assertEqual(nbt_snbt._parsed_bytes,0)
+ def test_file_size_limit_is_rechecked_on_a_warm_content_hit(self):
+  file=self.folder/'model.snbt';save_snbt(file,self.model,self.walls)
+  with patch.object(nbt_snbt,'MAX_SOURCE_BYTES',file.stat().st_size-1):
+   self.assertRaisesRegex(ValueError,'256MiB',read_snbt,file)
 
 class SnbtSource(unittest.TestCase):
  def setUp(self):

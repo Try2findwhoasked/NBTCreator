@@ -36,7 +36,7 @@ def _validate(name, properties):
     return name + ('[' + ','.join(f'{k}={v}' for k, v in properties) + ']' if properties else '')
 
 
-def normalize(value):
+def _normalize(value):
     """Validate supplied properties without silently inserting defaults into old assets."""
     if isinstance(value, dict):
         if set(value) - {'Name', 'Properties'}:
@@ -62,6 +62,16 @@ def normalize(value):
     if any(not isinstance(k, str) or not isinstance(v, str) for k, v in props.items()):
         raise ValueError('Property names and values must be strings')
     return _validate(name, tuple(sorted(props.items())))
+
+
+@lru_cache(maxsize=8192)
+def _normalize_text(value):
+    return _normalize(value)
+
+
+def normalize(value):
+    # Strings are immutable; dictionaries must be validated on every call.
+    return _normalize_text(value) if isinstance(value,str) else _normalize(value)
 
 
 def effective(value):

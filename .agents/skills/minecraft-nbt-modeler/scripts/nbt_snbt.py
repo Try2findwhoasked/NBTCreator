@@ -1,7 +1,9 @@
 """Canonical Java 1.20.1 SNBT authoring sources with explicit wall ownership."""
 import argparse,gzip,hashlib,io,json,os,sys,uuid
-from functools import lru_cache
+from collections import OrderedDict
+from copy import deepcopy
 from pathlib import Path
+from threading import RLock
 WHEEL_SHA='38d571fbf2f7ebd640639461b47fc79919a8ea8e74633ffcc8aa6b2acfc9c889'
 try:import nbtlib as N
 except ModuleNotFoundError as error:
@@ -18,13 +20,27 @@ def state(tag):
     props=tag.get('Properties',{})
     if any(not isinstance(value,N.String) for value in props.values()):raise ValueError('SNBT 方块状态属性须为字符串')
     return normalize(str(tag['Name'])+('['+','.join(str(k)+'='+str(v) for k,v in sorted(props.items()))+']' if props else ''))
-def root(file):
+MAX_SOURCE_BYTES=256*1024*1024
+MAX_PARSED_ENTRIES=8
+MAX_PARSED_BYTES=64*1024*1024
+_parsed_sources=OrderedDict()
+_parsed_bytes=0
+_parsed_lock=RLock()
+
+def _source_bytes(file):
     file=Path(file)
-    if not file.is_file() or file.stat().st_size>256*1024*1024:raise ValueError('SNBT 文件缺失或超过256MiB')
-    try:value=N.parse_nbt(file.read_text(encoding='utf-8-sig'))
+    if not file.is_file() or file.stat().st_size>MAX_SOURCE_BYTES:raise ValueError('SNBT 文件缺失或超过256MiB')
+    with file.open('rb') as stream:raw=stream.read(MAX_SOURCE_BYTES+1)
+    if len(raw)>MAX_SOURCE_BYTES:raise ValueError('SNBT 文件缺失或超过256MiB')
+    return raw
+
+def _root_bytes(raw):
+    try:value=N.parse_nbt(raw.decode('utf-8-sig'))
     except (ValueError,TypeError,RecursionError) as error:raise ValueError('SNBT 语法无效：'+str(error)) from error
     if not isinstance(value,N.Compound):raise ValueError('SNBT 根节点须为 Compound')
     return value
+
+def root(file):return _root_bytes(_source_bytes(file))
 def decode(data):
     if type(data.get('DataVersion')) is not N.Int or int(data['DataVersion'])!=3465:raise ValueError('SNBT 必须使用 Minecraft Java 1.20.1 DataVersion 3465')
     if data.get('entities') or 'palettes' in data:raise ValueError('当前几何引擎不支持实体或多材质方案，未丢弃这些数据；请使用支持的结构源')
@@ -45,11 +61,40 @@ def decode(data):
     model._snbt_metadata_stale=bool(metadata.get('geometry_sha256') and str(metadata['geometry_sha256'])!=model.fingerprint())
     model._snbt_palette=palette;model._snbt_extras={k:v for k,v in data.items() if k not in {'DataVersion','size','palette','blocks','entities','nbtcreator'}}
     return model,walls
-@lru_cache(maxsize=8)
-def _parsed_source(file,size,mtime,ctime):return decode(root(file))
+def _retained_size(model,mask):
+    """Estimate retained Python/tag storage, counting shared objects once."""
+    pending=[vars(model),mask];seen=set();total=512
+    while pending:
+        value=pending.pop();identity=id(value)
+        if identity in seen:continue
+        seen.add(identity);total+=sys.getsizeof(value)
+        if isinstance(value,dict):pending.extend(value.keys());pending.extend(value.values())
+        elif isinstance(value,(list,tuple,set,frozenset)):pending.extend(value)
+        elif isinstance(value,(N.ByteArray,N.IntArray,N.LongArray)) and value.base is not None:pending.append(value.base)
+    return total
+
+def clear_parsed_sources():
+    global _parsed_bytes
+    with _parsed_lock:_parsed_sources.clear();_parsed_bytes=0
+
+def _parsed_source(raw):
+    global _parsed_bytes
+    # Hash exactly the bytes being parsed, not path/stat metadata. Identical
+    # checked temporary files and their final names share one decoded source.
+    key=hashlib.sha256(raw).digest()
+    with _parsed_lock:
+        if key in _parsed_sources:
+            _parsed_sources.move_to_end(key);return _parsed_sources[key][:2]
+        model,mask=decode(_root_bytes(raw));weight=_retained_size(model,mask)
+        if weight<=MAX_PARSED_BYTES:
+            _parsed_sources[key]=(model,mask,weight);_parsed_bytes+=weight
+            while len(_parsed_sources)>MAX_PARSED_ENTRIES or _parsed_bytes>MAX_PARSED_BYTES:
+                _parsed_bytes-=_parsed_sources.popitem(last=False)[1][2]
+        return model,mask
+
 def read_snbt(file):
-    file=Path(file).resolve();stamp=file.stat();base,mask=_parsed_source(str(file),stamp.st_size,stamp.st_mtime_ns,stamp.st_ctime_ns)
-    model=Volume(base.size);model.blocks=dict(base.blocks);model._snbt_palette=list(base._snbt_palette);model._snbt_extras=dict(base._snbt_extras);model._snbt_metadata_stale=base._snbt_metadata_stale
+    base,mask=_parsed_source(_source_bytes(file))
+    model=Volume(base.size);model.blocks=dict(base.blocks);model._snbt_palette=list(base._snbt_palette);model._snbt_extras=deepcopy(base._snbt_extras);model._snbt_metadata_stale=base._snbt_metadata_stale
     return model,set(mask)
 def read_binary(file):
     file=Path(file);model,walls=decode(N.load(file))

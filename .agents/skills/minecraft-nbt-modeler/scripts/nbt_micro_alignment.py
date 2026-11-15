@@ -51,8 +51,18 @@ def adaptive_fit(root,sample,width,height,options,factor,max_error,mode,*,qualit
     if mode not in ('auto','fixed'):raise ValueError('micro_alignment须为auto或fixed')
     image=sample_image(root,sample)
     original=reference(root,sample,width,height,factor,raster=image)
+    from nbt_pattern_quality import assess,source_bitmap
+    target=(width*factor*8,height*factor*8)
+    baseline_image=resize_sample(image,target,sample.get('fit','contain'))
+    quality_reference=source_bitmap(baseline_image,sample)
+    def refinement_accept(before,after):
+        reports=[assess(projected(unit,width,height,options,factor),quality_reference,quality_profile,0) for unit in (before,after)]
+        a,b=reports
+        accepted=(b['score']+1e-9>=a['score'] and b['metrics']['detail_retention']+1e-12>=a['metrics']['detail_retention'])
+        return dict(accepted=accepted,reference='original_mapped_image',previous_score=a['score'],candidate_score=b['score'],
+            previous_detail_retention=a['metrics']['detail_retention'],candidate_detail_retention=b['metrics']['detail_retention'])
     def solve(data,joint=True):
-        return fit_reference(data,sample,width,height,options,factor,max_error,joint=joint,strict=False)
+        return fit_reference(data,sample,width,height,options,factor,max_error,joint=joint,strict=False,refinement_accept=refinement_accept)
     baseline_failure=None
     try:base_unit,base_quality=solve(original)
     except ValueError as error:
@@ -61,8 +71,6 @@ def adaptive_fit(root,sample,width,height,options,factor,max_error,mode,*,qualit
         base_quality=dict(topology_preserved=False,raw_coverage_error=1.,ink_overlap=0.)
     valid=lambda q:q['topology_preserved'] and q['raw_coverage_error']<=max_error
     original_symmetry=symmetry(original[0])
-    target=(width*factor*8,height*factor*8)
-    baseline_image=resize_sample(image,target,sample.get('fit','contain'))
     identity=dict(ratio_mode=sample.get('fit','contain'),scale=1.,offset_pixels=[0,0],
                   offset_blocks_uv=[0.,0.],aspect_adjustment=(target[0]/target[1])/(image.width/image.height) if sample.get('fit')=='stretch' else 1.,
                   content_size_pixels=None,paste_origin_pixels=None)
@@ -142,8 +150,24 @@ def adaptive_fit(root,sample,width,height,options,factor,max_error,mode,*,qualit
             if mode=='fixed':raise
             raise ValueError(f'自动比例/半格对齐已探测{probed}个候选，仍未找到保留主拓扑的方案；{error}') from error
         raise ValueError('自动对齐未找到保留主拓扑的微型单元')
-    best=max(available,key=lambda item:item[4][0]);unit,quality,raster,change,metrics=best
-    quality=dict(quality,alignment=dict(mode=mode,algorithm_revision=1,applied=best is not candidates[0],
+    # Keep the existing bounded geometric ranking. A failed visual gate must
+    # try the remaining admissible fits before declaring the image impossible.
+    # All candidates are measured against the same original mapped image.
+    ranked=sorted(available,key=lambda item:item[4][0],reverse=True)
+    assessed=[]
+    for index,item in enumerate(ranked):
+        report=assess(projected(item[0],width,height,options,factor),quality_reference,quality_profile,0)
+        assessed.append(dict(rank=index+1,score=report['score'],passed=report['score']+1e-9>=min_quality_score))
+        if assessed[-1]['passed']:
+            best=item;report=dict(report,minimum_score=min_quality_score,passed=True);break
+    else:
+        # Raise the usual public report for the best measured failure. Do not
+        # lower the requested threshold, rewrite the source or invent a fit.
+        failure=max(range(len(assessed)),key=lambda i:assessed[i]['score'])
+        assess(projected(ranked[failure][0],width,height,options,factor),quality_reference,quality_profile,min_quality_score)
+        raise ValueError('纹样量化质量未达标')
+    unit,quality,raster,change,metrics=best
+    quality=dict(quality,alignment=dict(mode=mode,algorithm_revision=2,applied=best is not candidates[0],
         **change,source_size=list(image.size),target_sample_size=list(target),
         preserved_source_topology={k:original[3][k] for k in ('components','holes')},
         original_reference_ink_overlap=metrics[1],original_reference_contour_error=metrics[2],
@@ -157,7 +181,8 @@ def adaptive_fit(root,sample,width,height,options,factor,max_error,mode,*,qualit
     elif mode=='fixed' or best is candidates[0]:
         _,color_at=fit_sample(root,dict(sample,noise_strength=0),width,height,0,sample.get('mirror',False),subcells=factor==2)
     else:color_at=aligned_colors(raster,sample,width,height)
-    from nbt_pattern_quality import assess,source_bitmap
-    quality['visual_quality']=assess(projected(unit,width,height,options,factor),source_bitmap(baseline_image,sample),
-                                     quality_profile,min_quality_score)
+    quality['quality_selection']=dict(strategy='geometric_rank_then_original_reference_quality_gate',
+        selected_candidate_rank=index+1,candidates_evaluated=len(assessed),candidates_available=len(ranked),
+        assessments=assessed,threshold_relaxed=False,reference='original_mapped_image')
+    quality['visual_quality']=report
     return unit,quality,color_at

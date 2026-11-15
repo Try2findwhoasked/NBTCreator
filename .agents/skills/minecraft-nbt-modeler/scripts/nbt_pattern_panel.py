@@ -15,13 +15,22 @@ def library():
 
 
 def sample_input(workspace, args):
-    if ('preset' in args) == ('sample' in args):
-        raise ValueError('preset 和 sample 必须二选一')
+    if 'pattern_ref' in args:raise ValueError('pattern_ref 须由对象图 patterns 绑定解析')
+    if sum(key in args for key in ('preset','sample','pattern_asset'))!=1:
+        raise ValueError('preset、sample 和 pattern_asset 必须选择一种来源')
     if 'preset_options' in args and 'preset' not in args:
         raise ValueError('preset_options 仅用于图库预设；自定义样本请在 sample 中设置')
+    if 'asset_options' in args and 'pattern_asset' not in args:raise ValueError('asset_options 仅用于纹样资产')
+    if 'pattern_asset' in args:
+        from nbt_pattern_assets import load
+        reference=args['pattern_asset'];asset=load(workspace,reference['id'])
+        if asset['image_sha256']!=reference['image_sha256']:raise ValueError('纹样资产图像已变化，请重新读取绑定')
+        if asset['builtin']:raise ValueError('内置纹样请使用preset或先复制为工作区资产')
+        return workspace,dict(asset['fitting_input']['sample'],**args.get('asset_options',{}))
     if 'preset' in args:
         preset = library()[args['preset']]
-        if args['surface'] not in preset['surfaces']:
+        cyclic_micro=(args['surface']=='cylinder' and args.get('fit_mode')=='micro' and 'column' in preset['surfaces'])
+        if args['surface'] not in preset['surfaces'] and not cyclic_micro:
             raise ValueError('该纹样预设未配置此安装面')
         sample = {'path': preset['file'], 'sha256': preset['sha256'], 'noise_strength': 0}
         sample.update(args.get('preset_options', {}))

@@ -1746,7 +1746,7 @@ globalThis.NbtToolCatalog = {
             "items": {
               "type": "integer",
               "minimum": 3,
-              "maximum": 32
+              "maximum": 64
             },
             "minItems": 3,
             "maxItems": 3
@@ -1931,7 +1931,8 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "enum": [
                   "square",
-                  "cross"
+                  "cross",
+                  "round"
                 ]
               },
               "profile": {
@@ -1947,6 +1948,755 @@ globalThis.NbtToolCatalog = {
                   "switchback",
                   "spiral"
                 ]
+              },
+              "base_profile": {
+                "type": "string",
+                "enum": [
+                  "plain",
+                  "stepped",
+                  "beveled",
+                  "torus",
+                  "bell",
+                  "bezier",
+                  "attic"
+                ]
+              },
+              "base_curve": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number",
+                  "minimum": 0.2,
+                  "maximum": 1
+                },
+                "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+              },
+              "base_pattern": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "pattern"
+                ],
+                "properties": {
+                  "pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "size_uv"
+                    ],
+                    "properties": {
+                      "size_uv": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 64
+                        },
+                        "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                      },
+                      "preset": {
+                        "type": "string",
+                        "enum": [
+                          "cosmati-floor",
+                          "braided-shaft",
+                          "acanthus-capital",
+                          "coffer-rosette",
+                          "gothic-rose",
+                          "acanthus-frieze",
+                          "baroque-pilaster",
+                          "pointed-spandrel",
+                          "checkerboard",
+                          "horizontal-stripes",
+                          "vertical-stripes",
+                          "running-bond",
+                          "basket-weave",
+                          "herringbone",
+                          "diamond-lattice",
+                          "greek-key",
+                          "zigzag-band",
+                          "cross-tile",
+                          "stepped-diamond",
+                          "four-petal",
+                          "roman-coffer",
+                          "byzantine-cross-mosaic",
+                          "ottoman-eight-point-star",
+                          "egyptian-lotus-band",
+                          "chinese-window-lattice",
+                          "japanese-asanoha-lattice",
+                          "art-deco-sunburst",
+                          "gothic-pointed-tracery",
+                          "micro-diamond",
+                          "micro-diamond-ring",
+                          "micro-quatrefoil",
+                          "micro-crosslet",
+                          "micro-leaf",
+                          "micro-bud",
+                          "micro-chevron",
+                          "micro-key",
+                          "micro-link",
+                          "micro-palmette",
+                          "micro-scroll",
+                          "micro-fleur-de-lis",
+                          "micro-rose-window",
+                          "micro-rosette"
+                        ]
+                      },
+                      "shapes": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "slab": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "stairs": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          }
+                        }
+                      },
+                      "material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "preset_options": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "luminance",
+                              "alpha"
+                            ]
+                          },
+                          "fit": {
+                            "type": "string",
+                            "enum": [
+                              "contain",
+                              "cover",
+                              "stretch"
+                            ],
+                            "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                          },
+                          "threshold": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                          },
+                          "colors": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 8,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "rgb",
+                                "material"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "rgb": {
+                                  "type": "string",
+                                  "pattern": "^#[0-9a-fA-F]{6}$"
+                                },
+                                "material": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 160
+                                }
+                              }
+                            }
+                          },
+                          "noise_strength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100
+                          },
+                          "noise_scale": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 16
+                          },
+                          "invert": {
+                            "type": "boolean"
+                          },
+                          "mirror": {
+                            "type": "boolean"
+                          },
+                          "crop": {
+                            "type": "array",
+                            "minItems": 4,
+                            "maxItems": 4,
+                            "items": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            }
+                          }
+                        }
+                      },
+                      "micro_max_error": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "micro_alignment": {
+                        "type": "string",
+                        "enum": [
+                          "auto",
+                          "fixed"
+                        ],
+                        "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                      },
+                      "full_blocks_only": {
+                        "type": "boolean"
+                      },
+                      "quality_profile": {
+                        "type": "string",
+                        "enum": [
+                          "balanced",
+                          "ornate",
+                          "border"
+                        ],
+                        "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                      },
+                      "min_quality_score": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                      },
+                      "pattern_asset": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "image_sha256"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-f0-9]{32}"
+                          },
+                          "image_sha256": {
+                            "type": "string",
+                            "pattern": "[a-f0-9]{64}"
+                          }
+                        }
+                      },
+                      "pattern_ref": {
+                        "type": "string",
+                        "pattern": "[a-z][a-z0-9_-]{0,63}"
+                      },
+                      "asset_options": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "luminance",
+                              "alpha"
+                            ]
+                          },
+                          "fit": {
+                            "type": "string",
+                            "enum": [
+                              "contain",
+                              "cover",
+                              "stretch"
+                            ],
+                            "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                          },
+                          "threshold": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                          },
+                          "colors": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 8,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "rgb",
+                                "material"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "rgb": {
+                                  "type": "string",
+                                  "pattern": "^#[0-9a-fA-F]{6}$"
+                                },
+                                "material": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 160
+                                }
+                              }
+                            }
+                          },
+                          "noise_strength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100
+                          },
+                          "noise_scale": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 16
+                          },
+                          "invert": {
+                            "type": "boolean"
+                          },
+                          "mirror": {
+                            "type": "boolean"
+                          },
+                          "crop": {
+                            "type": "array",
+                            "minItems": 4,
+                            "maxItems": 4,
+                            "items": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "faces": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "east",
+                        "south",
+                        "west"
+                      ]
+                    }
+                  }
+                }
+              },
+              "capital_profile": {
+                "type": "string",
+                "enum": [
+                  "plain",
+                  "stepped",
+                  "beveled",
+                  "torus",
+                  "bell",
+                  "bezier",
+                  "tuscan",
+                  "doric",
+                  "ionic",
+                  "corinthian",
+                  "composite"
+                ]
+              },
+              "capital_curve": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number",
+                  "minimum": 0.2,
+                  "maximum": 1
+                },
+                "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+              },
+              "capital_pattern": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "pattern"
+                ],
+                "properties": {
+                  "pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "size_uv"
+                    ],
+                    "properties": {
+                      "size_uv": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 64
+                        },
+                        "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                      },
+                      "preset": {
+                        "type": "string",
+                        "enum": [
+                          "cosmati-floor",
+                          "braided-shaft",
+                          "acanthus-capital",
+                          "coffer-rosette",
+                          "gothic-rose",
+                          "acanthus-frieze",
+                          "baroque-pilaster",
+                          "pointed-spandrel",
+                          "checkerboard",
+                          "horizontal-stripes",
+                          "vertical-stripes",
+                          "running-bond",
+                          "basket-weave",
+                          "herringbone",
+                          "diamond-lattice",
+                          "greek-key",
+                          "zigzag-band",
+                          "cross-tile",
+                          "stepped-diamond",
+                          "four-petal",
+                          "roman-coffer",
+                          "byzantine-cross-mosaic",
+                          "ottoman-eight-point-star",
+                          "egyptian-lotus-band",
+                          "chinese-window-lattice",
+                          "japanese-asanoha-lattice",
+                          "art-deco-sunburst",
+                          "gothic-pointed-tracery",
+                          "micro-diamond",
+                          "micro-diamond-ring",
+                          "micro-quatrefoil",
+                          "micro-crosslet",
+                          "micro-leaf",
+                          "micro-bud",
+                          "micro-chevron",
+                          "micro-key",
+                          "micro-link",
+                          "micro-palmette",
+                          "micro-scroll",
+                          "micro-fleur-de-lis",
+                          "micro-rose-window",
+                          "micro-rosette"
+                        ]
+                      },
+                      "shapes": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "slab": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "stairs": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          }
+                        }
+                      },
+                      "material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "preset_options": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "luminance",
+                              "alpha"
+                            ]
+                          },
+                          "fit": {
+                            "type": "string",
+                            "enum": [
+                              "contain",
+                              "cover",
+                              "stretch"
+                            ],
+                            "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                          },
+                          "threshold": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                          },
+                          "colors": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 8,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "rgb",
+                                "material"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "rgb": {
+                                  "type": "string",
+                                  "pattern": "^#[0-9a-fA-F]{6}$"
+                                },
+                                "material": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 160
+                                }
+                              }
+                            }
+                          },
+                          "noise_strength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100
+                          },
+                          "noise_scale": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 16
+                          },
+                          "invert": {
+                            "type": "boolean"
+                          },
+                          "mirror": {
+                            "type": "boolean"
+                          },
+                          "crop": {
+                            "type": "array",
+                            "minItems": 4,
+                            "maxItems": 4,
+                            "items": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            }
+                          }
+                        }
+                      },
+                      "micro_max_error": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "micro_alignment": {
+                        "type": "string",
+                        "enum": [
+                          "auto",
+                          "fixed"
+                        ],
+                        "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                      },
+                      "full_blocks_only": {
+                        "type": "boolean"
+                      },
+                      "quality_profile": {
+                        "type": "string",
+                        "enum": [
+                          "balanced",
+                          "ornate",
+                          "border"
+                        ],
+                        "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                      },
+                      "min_quality_score": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                      },
+                      "pattern_asset": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "image_sha256"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-f0-9]{32}"
+                          },
+                          "image_sha256": {
+                            "type": "string",
+                            "pattern": "[a-f0-9]{64}"
+                          }
+                        }
+                      },
+                      "pattern_ref": {
+                        "type": "string",
+                        "pattern": "[a-z][a-z0-9_-]{0,63}"
+                      },
+                      "asset_options": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "luminance",
+                              "alpha"
+                            ]
+                          },
+                          "fit": {
+                            "type": "string",
+                            "enum": [
+                              "contain",
+                              "cover",
+                              "stretch"
+                            ],
+                            "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                          },
+                          "threshold": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                          },
+                          "colors": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 8,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "rgb",
+                                "material"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "rgb": {
+                                  "type": "string",
+                                  "pattern": "^#[0-9a-fA-F]{6}$"
+                                },
+                                "material": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 160
+                                }
+                              }
+                            }
+                          },
+                          "noise_strength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100
+                          },
+                          "noise_scale": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 16
+                          },
+                          "invert": {
+                            "type": "boolean"
+                          },
+                          "mirror": {
+                            "type": "boolean"
+                          },
+                          "crop": {
+                            "type": "array",
+                            "minItems": 4,
+                            "maxItems": 4,
+                            "items": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "faces": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "east",
+                        "south",
+                        "west"
+                      ]
+                    }
+                  }
+                }
+              },
+              "order": {
+                "type": "string",
+                "enum": [
+                  "tuscan",
+                  "roman_doric",
+                  "ionic",
+                  "corinthian",
+                  "composite"
+                ]
+              },
+              "shaft_ratio": {
+                "type": "number",
+                "minimum": 0.3,
+                "maximum": 1
+              },
+              "flute_count": {
+                "type": "integer",
+                "minimum": 4,
+                "maximum": 32
+              },
+              "flute_depth": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 1.5
+              },
+              "entasis": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 0.2
+              },
+              "neck_pattern": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "bead_reel",
+                  "egg_dart"
+                ]
+              },
+              "leaf_count": {
+                "type": "integer",
+                "minimum": 4,
+                "maximum": 16
+              },
+              "leaf_layers": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3
+              },
+              "volute_scale": {
+                "type": "number",
+                "minimum": 0.08,
+                "maximum": 0.3
+              },
+              "volute_turns": {
+                "type": "number",
+                "minimum": 0.5,
+                "maximum": 2.5
+              },
+              "detail_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
               }
             }
           },
@@ -2224,7 +2974,7 @@ globalThis.NbtToolCatalog = {
             "items": {
               "type": "integer",
               "minimum": 3,
-              "maximum": 32
+              "maximum": 64
             },
             "minItems": 3,
             "maxItems": 3
@@ -2409,7 +3159,8 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "enum": [
                   "square",
-                  "cross"
+                  "cross",
+                  "round"
                 ]
               },
               "profile": {
@@ -2425,6 +3176,755 @@ globalThis.NbtToolCatalog = {
                   "switchback",
                   "spiral"
                 ]
+              },
+              "base_profile": {
+                "type": "string",
+                "enum": [
+                  "plain",
+                  "stepped",
+                  "beveled",
+                  "torus",
+                  "bell",
+                  "bezier",
+                  "attic"
+                ]
+              },
+              "base_curve": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number",
+                  "minimum": 0.2,
+                  "maximum": 1
+                },
+                "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+              },
+              "base_pattern": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "pattern"
+                ],
+                "properties": {
+                  "pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "size_uv"
+                    ],
+                    "properties": {
+                      "size_uv": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 64
+                        },
+                        "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                      },
+                      "preset": {
+                        "type": "string",
+                        "enum": [
+                          "cosmati-floor",
+                          "braided-shaft",
+                          "acanthus-capital",
+                          "coffer-rosette",
+                          "gothic-rose",
+                          "acanthus-frieze",
+                          "baroque-pilaster",
+                          "pointed-spandrel",
+                          "checkerboard",
+                          "horizontal-stripes",
+                          "vertical-stripes",
+                          "running-bond",
+                          "basket-weave",
+                          "herringbone",
+                          "diamond-lattice",
+                          "greek-key",
+                          "zigzag-band",
+                          "cross-tile",
+                          "stepped-diamond",
+                          "four-petal",
+                          "roman-coffer",
+                          "byzantine-cross-mosaic",
+                          "ottoman-eight-point-star",
+                          "egyptian-lotus-band",
+                          "chinese-window-lattice",
+                          "japanese-asanoha-lattice",
+                          "art-deco-sunburst",
+                          "gothic-pointed-tracery",
+                          "micro-diamond",
+                          "micro-diamond-ring",
+                          "micro-quatrefoil",
+                          "micro-crosslet",
+                          "micro-leaf",
+                          "micro-bud",
+                          "micro-chevron",
+                          "micro-key",
+                          "micro-link",
+                          "micro-palmette",
+                          "micro-scroll",
+                          "micro-fleur-de-lis",
+                          "micro-rose-window",
+                          "micro-rosette"
+                        ]
+                      },
+                      "shapes": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "slab": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "stairs": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          }
+                        }
+                      },
+                      "material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "preset_options": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "luminance",
+                              "alpha"
+                            ]
+                          },
+                          "fit": {
+                            "type": "string",
+                            "enum": [
+                              "contain",
+                              "cover",
+                              "stretch"
+                            ],
+                            "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                          },
+                          "threshold": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                          },
+                          "colors": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 8,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "rgb",
+                                "material"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "rgb": {
+                                  "type": "string",
+                                  "pattern": "^#[0-9a-fA-F]{6}$"
+                                },
+                                "material": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 160
+                                }
+                              }
+                            }
+                          },
+                          "noise_strength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100
+                          },
+                          "noise_scale": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 16
+                          },
+                          "invert": {
+                            "type": "boolean"
+                          },
+                          "mirror": {
+                            "type": "boolean"
+                          },
+                          "crop": {
+                            "type": "array",
+                            "minItems": 4,
+                            "maxItems": 4,
+                            "items": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            }
+                          }
+                        }
+                      },
+                      "micro_max_error": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "micro_alignment": {
+                        "type": "string",
+                        "enum": [
+                          "auto",
+                          "fixed"
+                        ],
+                        "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                      },
+                      "full_blocks_only": {
+                        "type": "boolean"
+                      },
+                      "quality_profile": {
+                        "type": "string",
+                        "enum": [
+                          "balanced",
+                          "ornate",
+                          "border"
+                        ],
+                        "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                      },
+                      "min_quality_score": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                      },
+                      "pattern_asset": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "image_sha256"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-f0-9]{32}"
+                          },
+                          "image_sha256": {
+                            "type": "string",
+                            "pattern": "[a-f0-9]{64}"
+                          }
+                        }
+                      },
+                      "pattern_ref": {
+                        "type": "string",
+                        "pattern": "[a-z][a-z0-9_-]{0,63}"
+                      },
+                      "asset_options": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "luminance",
+                              "alpha"
+                            ]
+                          },
+                          "fit": {
+                            "type": "string",
+                            "enum": [
+                              "contain",
+                              "cover",
+                              "stretch"
+                            ],
+                            "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                          },
+                          "threshold": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                          },
+                          "colors": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 8,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "rgb",
+                                "material"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "rgb": {
+                                  "type": "string",
+                                  "pattern": "^#[0-9a-fA-F]{6}$"
+                                },
+                                "material": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 160
+                                }
+                              }
+                            }
+                          },
+                          "noise_strength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100
+                          },
+                          "noise_scale": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 16
+                          },
+                          "invert": {
+                            "type": "boolean"
+                          },
+                          "mirror": {
+                            "type": "boolean"
+                          },
+                          "crop": {
+                            "type": "array",
+                            "minItems": 4,
+                            "maxItems": 4,
+                            "items": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "faces": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "east",
+                        "south",
+                        "west"
+                      ]
+                    }
+                  }
+                }
+              },
+              "capital_profile": {
+                "type": "string",
+                "enum": [
+                  "plain",
+                  "stepped",
+                  "beveled",
+                  "torus",
+                  "bell",
+                  "bezier",
+                  "tuscan",
+                  "doric",
+                  "ionic",
+                  "corinthian",
+                  "composite"
+                ]
+              },
+              "capital_curve": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number",
+                  "minimum": 0.2,
+                  "maximum": 1
+                },
+                "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+              },
+              "capital_pattern": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "pattern"
+                ],
+                "properties": {
+                  "pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "size_uv"
+                    ],
+                    "properties": {
+                      "size_uv": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 64
+                        },
+                        "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                      },
+                      "preset": {
+                        "type": "string",
+                        "enum": [
+                          "cosmati-floor",
+                          "braided-shaft",
+                          "acanthus-capital",
+                          "coffer-rosette",
+                          "gothic-rose",
+                          "acanthus-frieze",
+                          "baroque-pilaster",
+                          "pointed-spandrel",
+                          "checkerboard",
+                          "horizontal-stripes",
+                          "vertical-stripes",
+                          "running-bond",
+                          "basket-weave",
+                          "herringbone",
+                          "diamond-lattice",
+                          "greek-key",
+                          "zigzag-band",
+                          "cross-tile",
+                          "stepped-diamond",
+                          "four-petal",
+                          "roman-coffer",
+                          "byzantine-cross-mosaic",
+                          "ottoman-eight-point-star",
+                          "egyptian-lotus-band",
+                          "chinese-window-lattice",
+                          "japanese-asanoha-lattice",
+                          "art-deco-sunburst",
+                          "gothic-pointed-tracery",
+                          "micro-diamond",
+                          "micro-diamond-ring",
+                          "micro-quatrefoil",
+                          "micro-crosslet",
+                          "micro-leaf",
+                          "micro-bud",
+                          "micro-chevron",
+                          "micro-key",
+                          "micro-link",
+                          "micro-palmette",
+                          "micro-scroll",
+                          "micro-fleur-de-lis",
+                          "micro-rose-window",
+                          "micro-rosette"
+                        ]
+                      },
+                      "shapes": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "slab": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "stairs": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          }
+                        }
+                      },
+                      "material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "preset_options": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "luminance",
+                              "alpha"
+                            ]
+                          },
+                          "fit": {
+                            "type": "string",
+                            "enum": [
+                              "contain",
+                              "cover",
+                              "stretch"
+                            ],
+                            "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                          },
+                          "threshold": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                          },
+                          "colors": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 8,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "rgb",
+                                "material"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "rgb": {
+                                  "type": "string",
+                                  "pattern": "^#[0-9a-fA-F]{6}$"
+                                },
+                                "material": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 160
+                                }
+                              }
+                            }
+                          },
+                          "noise_strength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100
+                          },
+                          "noise_scale": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 16
+                          },
+                          "invert": {
+                            "type": "boolean"
+                          },
+                          "mirror": {
+                            "type": "boolean"
+                          },
+                          "crop": {
+                            "type": "array",
+                            "minItems": 4,
+                            "maxItems": 4,
+                            "items": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            }
+                          }
+                        }
+                      },
+                      "micro_max_error": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "micro_alignment": {
+                        "type": "string",
+                        "enum": [
+                          "auto",
+                          "fixed"
+                        ],
+                        "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                      },
+                      "full_blocks_only": {
+                        "type": "boolean"
+                      },
+                      "quality_profile": {
+                        "type": "string",
+                        "enum": [
+                          "balanced",
+                          "ornate",
+                          "border"
+                        ],
+                        "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                      },
+                      "min_quality_score": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                      },
+                      "pattern_asset": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "image_sha256"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-f0-9]{32}"
+                          },
+                          "image_sha256": {
+                            "type": "string",
+                            "pattern": "[a-f0-9]{64}"
+                          }
+                        }
+                      },
+                      "pattern_ref": {
+                        "type": "string",
+                        "pattern": "[a-z][a-z0-9_-]{0,63}"
+                      },
+                      "asset_options": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "luminance",
+                              "alpha"
+                            ]
+                          },
+                          "fit": {
+                            "type": "string",
+                            "enum": [
+                              "contain",
+                              "cover",
+                              "stretch"
+                            ],
+                            "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                          },
+                          "threshold": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100
+                          },
+                          "colors": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 8,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "rgb",
+                                "material"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "rgb": {
+                                  "type": "string",
+                                  "pattern": "^#[0-9a-fA-F]{6}$"
+                                },
+                                "material": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 160
+                                }
+                              }
+                            }
+                          },
+                          "noise_strength": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100
+                          },
+                          "noise_scale": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 16
+                          },
+                          "invert": {
+                            "type": "boolean"
+                          },
+                          "mirror": {
+                            "type": "boolean"
+                          },
+                          "crop": {
+                            "type": "array",
+                            "minItems": 4,
+                            "maxItems": 4,
+                            "items": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "faces": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "east",
+                        "south",
+                        "west"
+                      ]
+                    }
+                  }
+                }
+              },
+              "order": {
+                "type": "string",
+                "enum": [
+                  "tuscan",
+                  "roman_doric",
+                  "ionic",
+                  "corinthian",
+                  "composite"
+                ]
+              },
+              "shaft_ratio": {
+                "type": "number",
+                "minimum": 0.3,
+                "maximum": 1
+              },
+              "flute_count": {
+                "type": "integer",
+                "minimum": 4,
+                "maximum": 32
+              },
+              "flute_depth": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 1.5
+              },
+              "entasis": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 0.2
+              },
+              "neck_pattern": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "bead_reel",
+                  "egg_dart"
+                ]
+              },
+              "leaf_count": {
+                "type": "integer",
+                "minimum": 4,
+                "maximum": 16
+              },
+              "leaf_layers": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3
+              },
+              "volute_scale": {
+                "type": "number",
+                "minimum": 0.08,
+                "maximum": 0.3
+              },
+              "volute_turns": {
+                "type": "number",
+                "minimum": 0.5,
+                "maximum": 2.5
+              },
+              "detail_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
               }
             }
           },
@@ -2705,7 +4205,7 @@ globalThis.NbtToolCatalog = {
                 "items": {
                   "type": "integer",
                   "minimum": 3,
-                  "maximum": 32
+                  "maximum": 64
                 },
                 "minItems": 3,
                 "maxItems": 3
@@ -2828,7 +4328,7 @@ globalThis.NbtToolCatalog = {
                 "items": {
                   "type": "integer",
                   "minimum": 3,
-                  "maximum": 32
+                  "maximum": 64
                 },
                 "minItems": 3,
                 "maxItems": 3
@@ -3013,7 +4513,8 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "enum": [
                       "square",
-                      "cross"
+                      "cross",
+                      "round"
                     ]
                   },
                   "profile": {
@@ -3029,6 +4530,755 @@ globalThis.NbtToolCatalog = {
                       "switchback",
                       "spiral"
                     ]
+                  },
+                  "base_profile": {
+                    "type": "string",
+                    "enum": [
+                      "plain",
+                      "stepped",
+                      "beveled",
+                      "torus",
+                      "bell",
+                      "bezier",
+                      "attic"
+                    ]
+                  },
+                  "base_curve": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0.2,
+                      "maximum": 1
+                    },
+                    "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+                  },
+                  "base_pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "pattern"
+                    ],
+                    "properties": {
+                      "pattern": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "size_uv"
+                        ],
+                        "properties": {
+                          "size_uv": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 64
+                            },
+                            "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                          },
+                          "preset": {
+                            "type": "string",
+                            "enum": [
+                              "cosmati-floor",
+                              "braided-shaft",
+                              "acanthus-capital",
+                              "coffer-rosette",
+                              "gothic-rose",
+                              "acanthus-frieze",
+                              "baroque-pilaster",
+                              "pointed-spandrel",
+                              "checkerboard",
+                              "horizontal-stripes",
+                              "vertical-stripes",
+                              "running-bond",
+                              "basket-weave",
+                              "herringbone",
+                              "diamond-lattice",
+                              "greek-key",
+                              "zigzag-band",
+                              "cross-tile",
+                              "stepped-diamond",
+                              "four-petal",
+                              "roman-coffer",
+                              "byzantine-cross-mosaic",
+                              "ottoman-eight-point-star",
+                              "egyptian-lotus-band",
+                              "chinese-window-lattice",
+                              "japanese-asanoha-lattice",
+                              "art-deco-sunburst",
+                              "gothic-pointed-tracery",
+                              "micro-diamond",
+                              "micro-diamond-ring",
+                              "micro-quatrefoil",
+                              "micro-crosslet",
+                              "micro-leaf",
+                              "micro-bud",
+                              "micro-chevron",
+                              "micro-key",
+                              "micro-link",
+                              "micro-palmette",
+                              "micro-scroll",
+                              "micro-fleur-de-lis",
+                              "micro-rose-window",
+                              "micro-rosette"
+                            ]
+                          },
+                          "shapes": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "slab": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              },
+                              "stairs": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              }
+                            }
+                          },
+                          "material": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "preset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          },
+                          "micro_max_error": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "micro_alignment": {
+                            "type": "string",
+                            "enum": [
+                              "auto",
+                              "fixed"
+                            ],
+                            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                          },
+                          "full_blocks_only": {
+                            "type": "boolean"
+                          },
+                          "quality_profile": {
+                            "type": "string",
+                            "enum": [
+                              "balanced",
+                              "ornate",
+                              "border"
+                            ],
+                            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                          },
+                          "min_quality_score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                          },
+                          "pattern_asset": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "image_sha256"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{32}"
+                              },
+                              "image_sha256": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{64}"
+                              }
+                            }
+                          },
+                          "pattern_ref": {
+                            "type": "string",
+                            "pattern": "[a-z][a-z0-9_-]{0,63}"
+                          },
+                          "asset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "faces": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 4,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "north",
+                            "east",
+                            "south",
+                            "west"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "capital_profile": {
+                    "type": "string",
+                    "enum": [
+                      "plain",
+                      "stepped",
+                      "beveled",
+                      "torus",
+                      "bell",
+                      "bezier",
+                      "tuscan",
+                      "doric",
+                      "ionic",
+                      "corinthian",
+                      "composite"
+                    ]
+                  },
+                  "capital_curve": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0.2,
+                      "maximum": 1
+                    },
+                    "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+                  },
+                  "capital_pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "pattern"
+                    ],
+                    "properties": {
+                      "pattern": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "size_uv"
+                        ],
+                        "properties": {
+                          "size_uv": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 64
+                            },
+                            "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                          },
+                          "preset": {
+                            "type": "string",
+                            "enum": [
+                              "cosmati-floor",
+                              "braided-shaft",
+                              "acanthus-capital",
+                              "coffer-rosette",
+                              "gothic-rose",
+                              "acanthus-frieze",
+                              "baroque-pilaster",
+                              "pointed-spandrel",
+                              "checkerboard",
+                              "horizontal-stripes",
+                              "vertical-stripes",
+                              "running-bond",
+                              "basket-weave",
+                              "herringbone",
+                              "diamond-lattice",
+                              "greek-key",
+                              "zigzag-band",
+                              "cross-tile",
+                              "stepped-diamond",
+                              "four-petal",
+                              "roman-coffer",
+                              "byzantine-cross-mosaic",
+                              "ottoman-eight-point-star",
+                              "egyptian-lotus-band",
+                              "chinese-window-lattice",
+                              "japanese-asanoha-lattice",
+                              "art-deco-sunburst",
+                              "gothic-pointed-tracery",
+                              "micro-diamond",
+                              "micro-diamond-ring",
+                              "micro-quatrefoil",
+                              "micro-crosslet",
+                              "micro-leaf",
+                              "micro-bud",
+                              "micro-chevron",
+                              "micro-key",
+                              "micro-link",
+                              "micro-palmette",
+                              "micro-scroll",
+                              "micro-fleur-de-lis",
+                              "micro-rose-window",
+                              "micro-rosette"
+                            ]
+                          },
+                          "shapes": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "slab": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              },
+                              "stairs": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              }
+                            }
+                          },
+                          "material": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "preset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          },
+                          "micro_max_error": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "micro_alignment": {
+                            "type": "string",
+                            "enum": [
+                              "auto",
+                              "fixed"
+                            ],
+                            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                          },
+                          "full_blocks_only": {
+                            "type": "boolean"
+                          },
+                          "quality_profile": {
+                            "type": "string",
+                            "enum": [
+                              "balanced",
+                              "ornate",
+                              "border"
+                            ],
+                            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                          },
+                          "min_quality_score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                          },
+                          "pattern_asset": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "image_sha256"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{32}"
+                              },
+                              "image_sha256": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{64}"
+                              }
+                            }
+                          },
+                          "pattern_ref": {
+                            "type": "string",
+                            "pattern": "[a-z][a-z0-9_-]{0,63}"
+                          },
+                          "asset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "faces": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 4,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "north",
+                            "east",
+                            "south",
+                            "west"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "order": {
+                    "type": "string",
+                    "enum": [
+                      "tuscan",
+                      "roman_doric",
+                      "ionic",
+                      "corinthian",
+                      "composite"
+                    ]
+                  },
+                  "shaft_ratio": {
+                    "type": "number",
+                    "minimum": 0.3,
+                    "maximum": 1
+                  },
+                  "flute_count": {
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 32
+                  },
+                  "flute_depth": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 1.5
+                  },
+                  "entasis": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 0.2
+                  },
+                  "neck_pattern": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "bead_reel",
+                      "egg_dart"
+                    ]
+                  },
+                  "leaf_count": {
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 16
+                  },
+                  "leaf_layers": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "volute_scale": {
+                    "type": "number",
+                    "minimum": 0.08,
+                    "maximum": 0.3
+                  },
+                  "volute_turns": {
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 2.5
+                  },
+                  "detail_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
                   }
                 }
               },
@@ -3299,7 +5549,7 @@ globalThis.NbtToolCatalog = {
                 "items": {
                   "type": "integer",
                   "minimum": 3,
-                  "maximum": 32
+                  "maximum": 64
                 },
                 "minItems": 3,
                 "maxItems": 3
@@ -3385,7 +5635,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "parametric_surface": {
-      "description": "查询真实完整方块平面、缺口候选、未知形状与安装厚度；绑定源、候选和保护上下文，不推断门窗语义。",
+      "description": "查询真实完整方块平面、缺口、遮挡与厚度，汇总几何状态并区分宿主表层、相邻外侧及向内各层保护；先校验实际开洞上下文，绑定源和候选，不推断门窗语义。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -3657,7 +5907,7 @@ globalThis.NbtToolCatalog = {
                 "items": {
                   "type": "integer",
                   "minimum": 3,
-                  "maximum": 32
+                  "maximum": 64
                 },
                 "minItems": 3,
                 "maxItems": 3
@@ -3842,7 +6092,8 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "enum": [
                       "square",
-                      "cross"
+                      "cross",
+                      "round"
                     ]
                   },
                   "profile": {
@@ -3858,6 +6109,755 @@ globalThis.NbtToolCatalog = {
                       "switchback",
                       "spiral"
                     ]
+                  },
+                  "base_profile": {
+                    "type": "string",
+                    "enum": [
+                      "plain",
+                      "stepped",
+                      "beveled",
+                      "torus",
+                      "bell",
+                      "bezier",
+                      "attic"
+                    ]
+                  },
+                  "base_curve": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0.2,
+                      "maximum": 1
+                    },
+                    "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+                  },
+                  "base_pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "pattern"
+                    ],
+                    "properties": {
+                      "pattern": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "size_uv"
+                        ],
+                        "properties": {
+                          "size_uv": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 64
+                            },
+                            "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                          },
+                          "preset": {
+                            "type": "string",
+                            "enum": [
+                              "cosmati-floor",
+                              "braided-shaft",
+                              "acanthus-capital",
+                              "coffer-rosette",
+                              "gothic-rose",
+                              "acanthus-frieze",
+                              "baroque-pilaster",
+                              "pointed-spandrel",
+                              "checkerboard",
+                              "horizontal-stripes",
+                              "vertical-stripes",
+                              "running-bond",
+                              "basket-weave",
+                              "herringbone",
+                              "diamond-lattice",
+                              "greek-key",
+                              "zigzag-band",
+                              "cross-tile",
+                              "stepped-diamond",
+                              "four-petal",
+                              "roman-coffer",
+                              "byzantine-cross-mosaic",
+                              "ottoman-eight-point-star",
+                              "egyptian-lotus-band",
+                              "chinese-window-lattice",
+                              "japanese-asanoha-lattice",
+                              "art-deco-sunburst",
+                              "gothic-pointed-tracery",
+                              "micro-diamond",
+                              "micro-diamond-ring",
+                              "micro-quatrefoil",
+                              "micro-crosslet",
+                              "micro-leaf",
+                              "micro-bud",
+                              "micro-chevron",
+                              "micro-key",
+                              "micro-link",
+                              "micro-palmette",
+                              "micro-scroll",
+                              "micro-fleur-de-lis",
+                              "micro-rose-window",
+                              "micro-rosette"
+                            ]
+                          },
+                          "shapes": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "slab": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              },
+                              "stairs": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              }
+                            }
+                          },
+                          "material": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "preset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          },
+                          "micro_max_error": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "micro_alignment": {
+                            "type": "string",
+                            "enum": [
+                              "auto",
+                              "fixed"
+                            ],
+                            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                          },
+                          "full_blocks_only": {
+                            "type": "boolean"
+                          },
+                          "quality_profile": {
+                            "type": "string",
+                            "enum": [
+                              "balanced",
+                              "ornate",
+                              "border"
+                            ],
+                            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                          },
+                          "min_quality_score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                          },
+                          "pattern_asset": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "image_sha256"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{32}"
+                              },
+                              "image_sha256": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{64}"
+                              }
+                            }
+                          },
+                          "pattern_ref": {
+                            "type": "string",
+                            "pattern": "[a-z][a-z0-9_-]{0,63}"
+                          },
+                          "asset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "faces": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 4,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "north",
+                            "east",
+                            "south",
+                            "west"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "capital_profile": {
+                    "type": "string",
+                    "enum": [
+                      "plain",
+                      "stepped",
+                      "beveled",
+                      "torus",
+                      "bell",
+                      "bezier",
+                      "tuscan",
+                      "doric",
+                      "ionic",
+                      "corinthian",
+                      "composite"
+                    ]
+                  },
+                  "capital_curve": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0.2,
+                      "maximum": 1
+                    },
+                    "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+                  },
+                  "capital_pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "pattern"
+                    ],
+                    "properties": {
+                      "pattern": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "size_uv"
+                        ],
+                        "properties": {
+                          "size_uv": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 64
+                            },
+                            "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                          },
+                          "preset": {
+                            "type": "string",
+                            "enum": [
+                              "cosmati-floor",
+                              "braided-shaft",
+                              "acanthus-capital",
+                              "coffer-rosette",
+                              "gothic-rose",
+                              "acanthus-frieze",
+                              "baroque-pilaster",
+                              "pointed-spandrel",
+                              "checkerboard",
+                              "horizontal-stripes",
+                              "vertical-stripes",
+                              "running-bond",
+                              "basket-weave",
+                              "herringbone",
+                              "diamond-lattice",
+                              "greek-key",
+                              "zigzag-band",
+                              "cross-tile",
+                              "stepped-diamond",
+                              "four-petal",
+                              "roman-coffer",
+                              "byzantine-cross-mosaic",
+                              "ottoman-eight-point-star",
+                              "egyptian-lotus-band",
+                              "chinese-window-lattice",
+                              "japanese-asanoha-lattice",
+                              "art-deco-sunburst",
+                              "gothic-pointed-tracery",
+                              "micro-diamond",
+                              "micro-diamond-ring",
+                              "micro-quatrefoil",
+                              "micro-crosslet",
+                              "micro-leaf",
+                              "micro-bud",
+                              "micro-chevron",
+                              "micro-key",
+                              "micro-link",
+                              "micro-palmette",
+                              "micro-scroll",
+                              "micro-fleur-de-lis",
+                              "micro-rose-window",
+                              "micro-rosette"
+                            ]
+                          },
+                          "shapes": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "slab": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              },
+                              "stairs": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              }
+                            }
+                          },
+                          "material": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "preset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          },
+                          "micro_max_error": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "micro_alignment": {
+                            "type": "string",
+                            "enum": [
+                              "auto",
+                              "fixed"
+                            ],
+                            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                          },
+                          "full_blocks_only": {
+                            "type": "boolean"
+                          },
+                          "quality_profile": {
+                            "type": "string",
+                            "enum": [
+                              "balanced",
+                              "ornate",
+                              "border"
+                            ],
+                            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                          },
+                          "min_quality_score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                          },
+                          "pattern_asset": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "image_sha256"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{32}"
+                              },
+                              "image_sha256": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{64}"
+                              }
+                            }
+                          },
+                          "pattern_ref": {
+                            "type": "string",
+                            "pattern": "[a-z][a-z0-9_-]{0,63}"
+                          },
+                          "asset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "faces": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 4,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "north",
+                            "east",
+                            "south",
+                            "west"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "order": {
+                    "type": "string",
+                    "enum": [
+                      "tuscan",
+                      "roman_doric",
+                      "ionic",
+                      "corinthian",
+                      "composite"
+                    ]
+                  },
+                  "shaft_ratio": {
+                    "type": "number",
+                    "minimum": 0.3,
+                    "maximum": 1
+                  },
+                  "flute_count": {
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 32
+                  },
+                  "flute_depth": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 1.5
+                  },
+                  "entasis": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 0.2
+                  },
+                  "neck_pattern": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "bead_reel",
+                      "egg_dart"
+                    ]
+                  },
+                  "leaf_count": {
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 16
+                  },
+                  "leaf_layers": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "volute_scale": {
+                    "type": "number",
+                    "minimum": 0.08,
+                    "maximum": 0.3
+                  },
+                  "volute_turns": {
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 2.5
+                  },
+                  "detail_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
                   }
                 }
               },
@@ -4336,7 +7336,7 @@ globalThis.NbtToolCatalog = {
                 "items": {
                   "type": "integer",
                   "minimum": 3,
-                  "maximum": 32
+                  "maximum": 64
                 },
                 "minItems": 3,
                 "maxItems": 3
@@ -4521,7 +7521,8 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "enum": [
                       "square",
-                      "cross"
+                      "cross",
+                      "round"
                     ]
                   },
                   "profile": {
@@ -4537,6 +7538,755 @@ globalThis.NbtToolCatalog = {
                       "switchback",
                       "spiral"
                     ]
+                  },
+                  "base_profile": {
+                    "type": "string",
+                    "enum": [
+                      "plain",
+                      "stepped",
+                      "beveled",
+                      "torus",
+                      "bell",
+                      "bezier",
+                      "attic"
+                    ]
+                  },
+                  "base_curve": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0.2,
+                      "maximum": 1
+                    },
+                    "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+                  },
+                  "base_pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "pattern"
+                    ],
+                    "properties": {
+                      "pattern": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "size_uv"
+                        ],
+                        "properties": {
+                          "size_uv": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 64
+                            },
+                            "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                          },
+                          "preset": {
+                            "type": "string",
+                            "enum": [
+                              "cosmati-floor",
+                              "braided-shaft",
+                              "acanthus-capital",
+                              "coffer-rosette",
+                              "gothic-rose",
+                              "acanthus-frieze",
+                              "baroque-pilaster",
+                              "pointed-spandrel",
+                              "checkerboard",
+                              "horizontal-stripes",
+                              "vertical-stripes",
+                              "running-bond",
+                              "basket-weave",
+                              "herringbone",
+                              "diamond-lattice",
+                              "greek-key",
+                              "zigzag-band",
+                              "cross-tile",
+                              "stepped-diamond",
+                              "four-petal",
+                              "roman-coffer",
+                              "byzantine-cross-mosaic",
+                              "ottoman-eight-point-star",
+                              "egyptian-lotus-band",
+                              "chinese-window-lattice",
+                              "japanese-asanoha-lattice",
+                              "art-deco-sunburst",
+                              "gothic-pointed-tracery",
+                              "micro-diamond",
+                              "micro-diamond-ring",
+                              "micro-quatrefoil",
+                              "micro-crosslet",
+                              "micro-leaf",
+                              "micro-bud",
+                              "micro-chevron",
+                              "micro-key",
+                              "micro-link",
+                              "micro-palmette",
+                              "micro-scroll",
+                              "micro-fleur-de-lis",
+                              "micro-rose-window",
+                              "micro-rosette"
+                            ]
+                          },
+                          "shapes": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "slab": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              },
+                              "stairs": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              }
+                            }
+                          },
+                          "material": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "preset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          },
+                          "micro_max_error": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "micro_alignment": {
+                            "type": "string",
+                            "enum": [
+                              "auto",
+                              "fixed"
+                            ],
+                            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                          },
+                          "full_blocks_only": {
+                            "type": "boolean"
+                          },
+                          "quality_profile": {
+                            "type": "string",
+                            "enum": [
+                              "balanced",
+                              "ornate",
+                              "border"
+                            ],
+                            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                          },
+                          "min_quality_score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                          },
+                          "pattern_asset": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "image_sha256"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{32}"
+                              },
+                              "image_sha256": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{64}"
+                              }
+                            }
+                          },
+                          "pattern_ref": {
+                            "type": "string",
+                            "pattern": "[a-z][a-z0-9_-]{0,63}"
+                          },
+                          "asset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "faces": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 4,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "north",
+                            "east",
+                            "south",
+                            "west"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "capital_profile": {
+                    "type": "string",
+                    "enum": [
+                      "plain",
+                      "stepped",
+                      "beveled",
+                      "torus",
+                      "bell",
+                      "bezier",
+                      "tuscan",
+                      "doric",
+                      "ionic",
+                      "corinthian",
+                      "composite"
+                    ]
+                  },
+                  "capital_curve": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0.2,
+                      "maximum": 1
+                    },
+                    "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+                  },
+                  "capital_pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "pattern"
+                    ],
+                    "properties": {
+                      "pattern": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "size_uv"
+                        ],
+                        "properties": {
+                          "size_uv": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 64
+                            },
+                            "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                          },
+                          "preset": {
+                            "type": "string",
+                            "enum": [
+                              "cosmati-floor",
+                              "braided-shaft",
+                              "acanthus-capital",
+                              "coffer-rosette",
+                              "gothic-rose",
+                              "acanthus-frieze",
+                              "baroque-pilaster",
+                              "pointed-spandrel",
+                              "checkerboard",
+                              "horizontal-stripes",
+                              "vertical-stripes",
+                              "running-bond",
+                              "basket-weave",
+                              "herringbone",
+                              "diamond-lattice",
+                              "greek-key",
+                              "zigzag-band",
+                              "cross-tile",
+                              "stepped-diamond",
+                              "four-petal",
+                              "roman-coffer",
+                              "byzantine-cross-mosaic",
+                              "ottoman-eight-point-star",
+                              "egyptian-lotus-band",
+                              "chinese-window-lattice",
+                              "japanese-asanoha-lattice",
+                              "art-deco-sunburst",
+                              "gothic-pointed-tracery",
+                              "micro-diamond",
+                              "micro-diamond-ring",
+                              "micro-quatrefoil",
+                              "micro-crosslet",
+                              "micro-leaf",
+                              "micro-bud",
+                              "micro-chevron",
+                              "micro-key",
+                              "micro-link",
+                              "micro-palmette",
+                              "micro-scroll",
+                              "micro-fleur-de-lis",
+                              "micro-rose-window",
+                              "micro-rosette"
+                            ]
+                          },
+                          "shapes": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "slab": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              },
+                              "stairs": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              }
+                            }
+                          },
+                          "material": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "preset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          },
+                          "micro_max_error": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "micro_alignment": {
+                            "type": "string",
+                            "enum": [
+                              "auto",
+                              "fixed"
+                            ],
+                            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                          },
+                          "full_blocks_only": {
+                            "type": "boolean"
+                          },
+                          "quality_profile": {
+                            "type": "string",
+                            "enum": [
+                              "balanced",
+                              "ornate",
+                              "border"
+                            ],
+                            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                          },
+                          "min_quality_score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                          },
+                          "pattern_asset": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "image_sha256"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{32}"
+                              },
+                              "image_sha256": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{64}"
+                              }
+                            }
+                          },
+                          "pattern_ref": {
+                            "type": "string",
+                            "pattern": "[a-z][a-z0-9_-]{0,63}"
+                          },
+                          "asset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "faces": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 4,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "north",
+                            "east",
+                            "south",
+                            "west"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "order": {
+                    "type": "string",
+                    "enum": [
+                      "tuscan",
+                      "roman_doric",
+                      "ionic",
+                      "corinthian",
+                      "composite"
+                    ]
+                  },
+                  "shaft_ratio": {
+                    "type": "number",
+                    "minimum": 0.3,
+                    "maximum": 1
+                  },
+                  "flute_count": {
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 32
+                  },
+                  "flute_depth": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 1.5
+                  },
+                  "entasis": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 0.2
+                  },
+                  "neck_pattern": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "bead_reel",
+                      "egg_dart"
+                    ]
+                  },
+                  "leaf_count": {
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 16
+                  },
+                  "leaf_layers": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "volute_scale": {
+                    "type": "number",
+                    "minimum": 0.08,
+                    "maximum": 0.3
+                  },
+                  "volute_turns": {
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 2.5
+                  },
+                  "detail_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
                   }
                 }
               },
@@ -4949,7 +8699,7 @@ globalThis.NbtToolCatalog = {
                       "items": {
                         "type": "integer",
                         "minimum": 3,
-                        "maximum": 32
+                        "maximum": 64
                       },
                       "minItems": 3,
                       "maxItems": 3
@@ -5134,7 +8884,8 @@ globalThis.NbtToolCatalog = {
                           "type": "string",
                           "enum": [
                             "square",
-                            "cross"
+                            "cross",
+                            "round"
                           ]
                         },
                         "profile": {
@@ -5150,6 +8901,755 @@ globalThis.NbtToolCatalog = {
                             "switchback",
                             "spiral"
                           ]
+                        },
+                        "base_profile": {
+                          "type": "string",
+                          "enum": [
+                            "plain",
+                            "stepped",
+                            "beveled",
+                            "torus",
+                            "bell",
+                            "bezier",
+                            "attic"
+                          ]
+                        },
+                        "base_curve": {
+                          "type": "array",
+                          "minItems": 4,
+                          "maxItems": 4,
+                          "items": {
+                            "type": "number",
+                            "minimum": 0.2,
+                            "maximum": 1
+                          },
+                          "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+                        },
+                        "base_pattern": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "pattern"
+                          ],
+                          "properties": {
+                            "pattern": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "size_uv"
+                              ],
+                              "properties": {
+                                "size_uv": {
+                                  "type": "array",
+                                  "minItems": 2,
+                                  "maxItems": 2,
+                                  "items": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 64
+                                  },
+                                  "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                                },
+                                "preset": {
+                                  "type": "string",
+                                  "enum": [
+                                    "cosmati-floor",
+                                    "braided-shaft",
+                                    "acanthus-capital",
+                                    "coffer-rosette",
+                                    "gothic-rose",
+                                    "acanthus-frieze",
+                                    "baroque-pilaster",
+                                    "pointed-spandrel",
+                                    "checkerboard",
+                                    "horizontal-stripes",
+                                    "vertical-stripes",
+                                    "running-bond",
+                                    "basket-weave",
+                                    "herringbone",
+                                    "diamond-lattice",
+                                    "greek-key",
+                                    "zigzag-band",
+                                    "cross-tile",
+                                    "stepped-diamond",
+                                    "four-petal",
+                                    "roman-coffer",
+                                    "byzantine-cross-mosaic",
+                                    "ottoman-eight-point-star",
+                                    "egyptian-lotus-band",
+                                    "chinese-window-lattice",
+                                    "japanese-asanoha-lattice",
+                                    "art-deco-sunburst",
+                                    "gothic-pointed-tracery",
+                                    "micro-diamond",
+                                    "micro-diamond-ring",
+                                    "micro-quatrefoil",
+                                    "micro-crosslet",
+                                    "micro-leaf",
+                                    "micro-bud",
+                                    "micro-chevron",
+                                    "micro-key",
+                                    "micro-link",
+                                    "micro-palmette",
+                                    "micro-scroll",
+                                    "micro-fleur-de-lis",
+                                    "micro-rose-window",
+                                    "micro-rosette"
+                                  ]
+                                },
+                                "shapes": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "slab": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    },
+                                    "stairs": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                },
+                                "material": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 160
+                                },
+                                "preset_options": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "channel": {
+                                      "type": "string",
+                                      "enum": [
+                                        "luminance",
+                                        "alpha"
+                                      ]
+                                    },
+                                    "fit": {
+                                      "type": "string",
+                                      "enum": [
+                                        "contain",
+                                        "cover",
+                                        "stretch"
+                                      ],
+                                      "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                                    },
+                                    "threshold": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 100
+                                    },
+                                    "colors": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "maxItems": 8,
+                                      "items": {
+                                        "type": "object",
+                                        "required": [
+                                          "rgb",
+                                          "material"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "rgb": {
+                                            "type": "string",
+                                            "pattern": "^#[0-9a-fA-F]{6}$"
+                                          },
+                                          "material": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 160
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "noise_strength": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 100
+                                    },
+                                    "noise_scale": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 16
+                                    },
+                                    "invert": {
+                                      "type": "boolean"
+                                    },
+                                    "mirror": {
+                                      "type": "boolean"
+                                    },
+                                    "crop": {
+                                      "type": "array",
+                                      "minItems": 4,
+                                      "maxItems": 4,
+                                      "items": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      }
+                                    }
+                                  }
+                                },
+                                "micro_max_error": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                },
+                                "micro_alignment": {
+                                  "type": "string",
+                                  "enum": [
+                                    "auto",
+                                    "fixed"
+                                  ],
+                                  "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                                },
+                                "full_blocks_only": {
+                                  "type": "boolean"
+                                },
+                                "quality_profile": {
+                                  "type": "string",
+                                  "enum": [
+                                    "balanced",
+                                    "ornate",
+                                    "border"
+                                  ],
+                                  "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                                },
+                                "min_quality_score": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 100,
+                                  "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                                },
+                                "pattern_asset": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "image_sha256"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "pattern": "[a-f0-9]{32}"
+                                    },
+                                    "image_sha256": {
+                                      "type": "string",
+                                      "pattern": "[a-f0-9]{64}"
+                                    }
+                                  }
+                                },
+                                "pattern_ref": {
+                                  "type": "string",
+                                  "pattern": "[a-z][a-z0-9_-]{0,63}"
+                                },
+                                "asset_options": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "channel": {
+                                      "type": "string",
+                                      "enum": [
+                                        "luminance",
+                                        "alpha"
+                                      ]
+                                    },
+                                    "fit": {
+                                      "type": "string",
+                                      "enum": [
+                                        "contain",
+                                        "cover",
+                                        "stretch"
+                                      ],
+                                      "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                                    },
+                                    "threshold": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 100
+                                    },
+                                    "colors": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "maxItems": 8,
+                                      "items": {
+                                        "type": "object",
+                                        "required": [
+                                          "rgb",
+                                          "material"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "rgb": {
+                                            "type": "string",
+                                            "pattern": "^#[0-9a-fA-F]{6}$"
+                                          },
+                                          "material": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 160
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "noise_strength": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 100
+                                    },
+                                    "noise_scale": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 16
+                                    },
+                                    "invert": {
+                                      "type": "boolean"
+                                    },
+                                    "mirror": {
+                                      "type": "boolean"
+                                    },
+                                    "crop": {
+                                      "type": "array",
+                                      "minItems": 4,
+                                      "maxItems": 4,
+                                      "items": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "faces": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 4,
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "north",
+                                  "east",
+                                  "south",
+                                  "west"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "capital_profile": {
+                          "type": "string",
+                          "enum": [
+                            "plain",
+                            "stepped",
+                            "beveled",
+                            "torus",
+                            "bell",
+                            "bezier",
+                            "tuscan",
+                            "doric",
+                            "ionic",
+                            "corinthian",
+                            "composite"
+                          ]
+                        },
+                        "capital_curve": {
+                          "type": "array",
+                          "minItems": 4,
+                          "maxItems": 4,
+                          "items": {
+                            "type": "number",
+                            "minimum": 0.2,
+                            "maximum": 1
+                          },
+                          "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+                        },
+                        "capital_pattern": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "pattern"
+                          ],
+                          "properties": {
+                            "pattern": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "size_uv"
+                              ],
+                              "properties": {
+                                "size_uv": {
+                                  "type": "array",
+                                  "minItems": 2,
+                                  "maxItems": 2,
+                                  "items": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 64
+                                  },
+                                  "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                                },
+                                "preset": {
+                                  "type": "string",
+                                  "enum": [
+                                    "cosmati-floor",
+                                    "braided-shaft",
+                                    "acanthus-capital",
+                                    "coffer-rosette",
+                                    "gothic-rose",
+                                    "acanthus-frieze",
+                                    "baroque-pilaster",
+                                    "pointed-spandrel",
+                                    "checkerboard",
+                                    "horizontal-stripes",
+                                    "vertical-stripes",
+                                    "running-bond",
+                                    "basket-weave",
+                                    "herringbone",
+                                    "diamond-lattice",
+                                    "greek-key",
+                                    "zigzag-band",
+                                    "cross-tile",
+                                    "stepped-diamond",
+                                    "four-petal",
+                                    "roman-coffer",
+                                    "byzantine-cross-mosaic",
+                                    "ottoman-eight-point-star",
+                                    "egyptian-lotus-band",
+                                    "chinese-window-lattice",
+                                    "japanese-asanoha-lattice",
+                                    "art-deco-sunburst",
+                                    "gothic-pointed-tracery",
+                                    "micro-diamond",
+                                    "micro-diamond-ring",
+                                    "micro-quatrefoil",
+                                    "micro-crosslet",
+                                    "micro-leaf",
+                                    "micro-bud",
+                                    "micro-chevron",
+                                    "micro-key",
+                                    "micro-link",
+                                    "micro-palmette",
+                                    "micro-scroll",
+                                    "micro-fleur-de-lis",
+                                    "micro-rose-window",
+                                    "micro-rosette"
+                                  ]
+                                },
+                                "shapes": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "slab": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    },
+                                    "stairs": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                },
+                                "material": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 160
+                                },
+                                "preset_options": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "channel": {
+                                      "type": "string",
+                                      "enum": [
+                                        "luminance",
+                                        "alpha"
+                                      ]
+                                    },
+                                    "fit": {
+                                      "type": "string",
+                                      "enum": [
+                                        "contain",
+                                        "cover",
+                                        "stretch"
+                                      ],
+                                      "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                                    },
+                                    "threshold": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 100
+                                    },
+                                    "colors": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "maxItems": 8,
+                                      "items": {
+                                        "type": "object",
+                                        "required": [
+                                          "rgb",
+                                          "material"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "rgb": {
+                                            "type": "string",
+                                            "pattern": "^#[0-9a-fA-F]{6}$"
+                                          },
+                                          "material": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 160
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "noise_strength": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 100
+                                    },
+                                    "noise_scale": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 16
+                                    },
+                                    "invert": {
+                                      "type": "boolean"
+                                    },
+                                    "mirror": {
+                                      "type": "boolean"
+                                    },
+                                    "crop": {
+                                      "type": "array",
+                                      "minItems": 4,
+                                      "maxItems": 4,
+                                      "items": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      }
+                                    }
+                                  }
+                                },
+                                "micro_max_error": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                },
+                                "micro_alignment": {
+                                  "type": "string",
+                                  "enum": [
+                                    "auto",
+                                    "fixed"
+                                  ],
+                                  "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                                },
+                                "full_blocks_only": {
+                                  "type": "boolean"
+                                },
+                                "quality_profile": {
+                                  "type": "string",
+                                  "enum": [
+                                    "balanced",
+                                    "ornate",
+                                    "border"
+                                  ],
+                                  "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                                },
+                                "min_quality_score": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 100,
+                                  "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                                },
+                                "pattern_asset": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "image_sha256"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string",
+                                      "pattern": "[a-f0-9]{32}"
+                                    },
+                                    "image_sha256": {
+                                      "type": "string",
+                                      "pattern": "[a-f0-9]{64}"
+                                    }
+                                  }
+                                },
+                                "pattern_ref": {
+                                  "type": "string",
+                                  "pattern": "[a-z][a-z0-9_-]{0,63}"
+                                },
+                                "asset_options": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "channel": {
+                                      "type": "string",
+                                      "enum": [
+                                        "luminance",
+                                        "alpha"
+                                      ]
+                                    },
+                                    "fit": {
+                                      "type": "string",
+                                      "enum": [
+                                        "contain",
+                                        "cover",
+                                        "stretch"
+                                      ],
+                                      "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                                    },
+                                    "threshold": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 100
+                                    },
+                                    "colors": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "maxItems": 8,
+                                      "items": {
+                                        "type": "object",
+                                        "required": [
+                                          "rgb",
+                                          "material"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "rgb": {
+                                            "type": "string",
+                                            "pattern": "^#[0-9a-fA-F]{6}$"
+                                          },
+                                          "material": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 160
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "noise_strength": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 100
+                                    },
+                                    "noise_scale": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 16
+                                    },
+                                    "invert": {
+                                      "type": "boolean"
+                                    },
+                                    "mirror": {
+                                      "type": "boolean"
+                                    },
+                                    "crop": {
+                                      "type": "array",
+                                      "minItems": 4,
+                                      "maxItems": 4,
+                                      "items": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "faces": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 4,
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "north",
+                                  "east",
+                                  "south",
+                                  "west"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "order": {
+                          "type": "string",
+                          "enum": [
+                            "tuscan",
+                            "roman_doric",
+                            "ionic",
+                            "corinthian",
+                            "composite"
+                          ]
+                        },
+                        "shaft_ratio": {
+                          "type": "number",
+                          "minimum": 0.3,
+                          "maximum": 1
+                        },
+                        "flute_count": {
+                          "type": "integer",
+                          "minimum": 4,
+                          "maximum": 32
+                        },
+                        "flute_depth": {
+                          "type": "number",
+                          "minimum": 0.1,
+                          "maximum": 1.5
+                        },
+                        "entasis": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 0.2
+                        },
+                        "neck_pattern": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "bead_reel",
+                            "egg_dart"
+                          ]
+                        },
+                        "leaf_count": {
+                          "type": "integer",
+                          "minimum": 4,
+                          "maximum": 16
+                        },
+                        "leaf_layers": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 3
+                        },
+                        "volute_scale": {
+                          "type": "number",
+                          "minimum": 0.08,
+                          "maximum": 0.3
+                        },
+                        "volute_turns": {
+                          "type": "number",
+                          "minimum": 0.5,
+                          "maximum": 2.5
+                        },
+                        "detail_material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
                         }
                       }
                     },
@@ -5502,7 +10002,7 @@ globalThis.NbtToolCatalog = {
                 "items": {
                   "type": "integer",
                   "minimum": 3,
-                  "maximum": 32
+                  "maximum": 64
                 },
                 "minItems": 3,
                 "maxItems": 3
@@ -5687,7 +10187,8 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "enum": [
                       "square",
-                      "cross"
+                      "cross",
+                      "round"
                     ]
                   },
                   "profile": {
@@ -5703,6 +10204,755 @@ globalThis.NbtToolCatalog = {
                       "switchback",
                       "spiral"
                     ]
+                  },
+                  "base_profile": {
+                    "type": "string",
+                    "enum": [
+                      "plain",
+                      "stepped",
+                      "beveled",
+                      "torus",
+                      "bell",
+                      "bezier",
+                      "attic"
+                    ]
+                  },
+                  "base_curve": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0.2,
+                      "maximum": 1
+                    },
+                    "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+                  },
+                  "base_pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "pattern"
+                    ],
+                    "properties": {
+                      "pattern": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "size_uv"
+                        ],
+                        "properties": {
+                          "size_uv": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 64
+                            },
+                            "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                          },
+                          "preset": {
+                            "type": "string",
+                            "enum": [
+                              "cosmati-floor",
+                              "braided-shaft",
+                              "acanthus-capital",
+                              "coffer-rosette",
+                              "gothic-rose",
+                              "acanthus-frieze",
+                              "baroque-pilaster",
+                              "pointed-spandrel",
+                              "checkerboard",
+                              "horizontal-stripes",
+                              "vertical-stripes",
+                              "running-bond",
+                              "basket-weave",
+                              "herringbone",
+                              "diamond-lattice",
+                              "greek-key",
+                              "zigzag-band",
+                              "cross-tile",
+                              "stepped-diamond",
+                              "four-petal",
+                              "roman-coffer",
+                              "byzantine-cross-mosaic",
+                              "ottoman-eight-point-star",
+                              "egyptian-lotus-band",
+                              "chinese-window-lattice",
+                              "japanese-asanoha-lattice",
+                              "art-deco-sunburst",
+                              "gothic-pointed-tracery",
+                              "micro-diamond",
+                              "micro-diamond-ring",
+                              "micro-quatrefoil",
+                              "micro-crosslet",
+                              "micro-leaf",
+                              "micro-bud",
+                              "micro-chevron",
+                              "micro-key",
+                              "micro-link",
+                              "micro-palmette",
+                              "micro-scroll",
+                              "micro-fleur-de-lis",
+                              "micro-rose-window",
+                              "micro-rosette"
+                            ]
+                          },
+                          "shapes": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "slab": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              },
+                              "stairs": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              }
+                            }
+                          },
+                          "material": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "preset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          },
+                          "micro_max_error": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "micro_alignment": {
+                            "type": "string",
+                            "enum": [
+                              "auto",
+                              "fixed"
+                            ],
+                            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                          },
+                          "full_blocks_only": {
+                            "type": "boolean"
+                          },
+                          "quality_profile": {
+                            "type": "string",
+                            "enum": [
+                              "balanced",
+                              "ornate",
+                              "border"
+                            ],
+                            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                          },
+                          "min_quality_score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                          },
+                          "pattern_asset": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "image_sha256"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{32}"
+                              },
+                              "image_sha256": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{64}"
+                              }
+                            }
+                          },
+                          "pattern_ref": {
+                            "type": "string",
+                            "pattern": "[a-z][a-z0-9_-]{0,63}"
+                          },
+                          "asset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "faces": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 4,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "north",
+                            "east",
+                            "south",
+                            "west"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "capital_profile": {
+                    "type": "string",
+                    "enum": [
+                      "plain",
+                      "stepped",
+                      "beveled",
+                      "torus",
+                      "bell",
+                      "bezier",
+                      "tuscan",
+                      "doric",
+                      "ionic",
+                      "corinthian",
+                      "composite"
+                    ]
+                  },
+                  "capital_curve": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0.2,
+                      "maximum": 1
+                    },
+                    "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+                  },
+                  "capital_pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "pattern"
+                    ],
+                    "properties": {
+                      "pattern": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "size_uv"
+                        ],
+                        "properties": {
+                          "size_uv": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 64
+                            },
+                            "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                          },
+                          "preset": {
+                            "type": "string",
+                            "enum": [
+                              "cosmati-floor",
+                              "braided-shaft",
+                              "acanthus-capital",
+                              "coffer-rosette",
+                              "gothic-rose",
+                              "acanthus-frieze",
+                              "baroque-pilaster",
+                              "pointed-spandrel",
+                              "checkerboard",
+                              "horizontal-stripes",
+                              "vertical-stripes",
+                              "running-bond",
+                              "basket-weave",
+                              "herringbone",
+                              "diamond-lattice",
+                              "greek-key",
+                              "zigzag-band",
+                              "cross-tile",
+                              "stepped-diamond",
+                              "four-petal",
+                              "roman-coffer",
+                              "byzantine-cross-mosaic",
+                              "ottoman-eight-point-star",
+                              "egyptian-lotus-band",
+                              "chinese-window-lattice",
+                              "japanese-asanoha-lattice",
+                              "art-deco-sunburst",
+                              "gothic-pointed-tracery",
+                              "micro-diamond",
+                              "micro-diamond-ring",
+                              "micro-quatrefoil",
+                              "micro-crosslet",
+                              "micro-leaf",
+                              "micro-bud",
+                              "micro-chevron",
+                              "micro-key",
+                              "micro-link",
+                              "micro-palmette",
+                              "micro-scroll",
+                              "micro-fleur-de-lis",
+                              "micro-rose-window",
+                              "micro-rosette"
+                            ]
+                          },
+                          "shapes": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "slab": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              },
+                              "stairs": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              }
+                            }
+                          },
+                          "material": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "preset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          },
+                          "micro_max_error": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "micro_alignment": {
+                            "type": "string",
+                            "enum": [
+                              "auto",
+                              "fixed"
+                            ],
+                            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                          },
+                          "full_blocks_only": {
+                            "type": "boolean"
+                          },
+                          "quality_profile": {
+                            "type": "string",
+                            "enum": [
+                              "balanced",
+                              "ornate",
+                              "border"
+                            ],
+                            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                          },
+                          "min_quality_score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                          },
+                          "pattern_asset": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "image_sha256"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{32}"
+                              },
+                              "image_sha256": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{64}"
+                              }
+                            }
+                          },
+                          "pattern_ref": {
+                            "type": "string",
+                            "pattern": "[a-z][a-z0-9_-]{0,63}"
+                          },
+                          "asset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "faces": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 4,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "north",
+                            "east",
+                            "south",
+                            "west"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "order": {
+                    "type": "string",
+                    "enum": [
+                      "tuscan",
+                      "roman_doric",
+                      "ionic",
+                      "corinthian",
+                      "composite"
+                    ]
+                  },
+                  "shaft_ratio": {
+                    "type": "number",
+                    "minimum": 0.3,
+                    "maximum": 1
+                  },
+                  "flute_count": {
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 32
+                  },
+                  "flute_depth": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 1.5
+                  },
+                  "entasis": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 0.2
+                  },
+                  "neck_pattern": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "bead_reel",
+                      "egg_dart"
+                    ]
+                  },
+                  "leaf_count": {
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 16
+                  },
+                  "leaf_layers": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "volute_scale": {
+                    "type": "number",
+                    "minimum": 0.08,
+                    "maximum": 0.3
+                  },
+                  "volute_turns": {
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 2.5
+                  },
+                  "detail_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
                   }
                 }
               },
@@ -5977,7 +11227,7 @@ globalThis.NbtToolCatalog = {
                 "items": {
                   "type": "integer",
                   "minimum": 3,
-                  "maximum": 32
+                  "maximum": 64
                 },
                 "minItems": 3,
                 "maxItems": 3
@@ -6162,7 +11412,8 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "enum": [
                       "square",
-                      "cross"
+                      "cross",
+                      "round"
                     ]
                   },
                   "profile": {
@@ -6178,6 +11429,755 @@ globalThis.NbtToolCatalog = {
                       "switchback",
                       "spiral"
                     ]
+                  },
+                  "base_profile": {
+                    "type": "string",
+                    "enum": [
+                      "plain",
+                      "stepped",
+                      "beveled",
+                      "torus",
+                      "bell",
+                      "bezier",
+                      "attic"
+                    ]
+                  },
+                  "base_curve": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0.2,
+                      "maximum": 1
+                    },
+                    "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+                  },
+                  "base_pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "pattern"
+                    ],
+                    "properties": {
+                      "pattern": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "size_uv"
+                        ],
+                        "properties": {
+                          "size_uv": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 64
+                            },
+                            "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                          },
+                          "preset": {
+                            "type": "string",
+                            "enum": [
+                              "cosmati-floor",
+                              "braided-shaft",
+                              "acanthus-capital",
+                              "coffer-rosette",
+                              "gothic-rose",
+                              "acanthus-frieze",
+                              "baroque-pilaster",
+                              "pointed-spandrel",
+                              "checkerboard",
+                              "horizontal-stripes",
+                              "vertical-stripes",
+                              "running-bond",
+                              "basket-weave",
+                              "herringbone",
+                              "diamond-lattice",
+                              "greek-key",
+                              "zigzag-band",
+                              "cross-tile",
+                              "stepped-diamond",
+                              "four-petal",
+                              "roman-coffer",
+                              "byzantine-cross-mosaic",
+                              "ottoman-eight-point-star",
+                              "egyptian-lotus-band",
+                              "chinese-window-lattice",
+                              "japanese-asanoha-lattice",
+                              "art-deco-sunburst",
+                              "gothic-pointed-tracery",
+                              "micro-diamond",
+                              "micro-diamond-ring",
+                              "micro-quatrefoil",
+                              "micro-crosslet",
+                              "micro-leaf",
+                              "micro-bud",
+                              "micro-chevron",
+                              "micro-key",
+                              "micro-link",
+                              "micro-palmette",
+                              "micro-scroll",
+                              "micro-fleur-de-lis",
+                              "micro-rose-window",
+                              "micro-rosette"
+                            ]
+                          },
+                          "shapes": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "slab": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              },
+                              "stairs": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              }
+                            }
+                          },
+                          "material": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "preset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          },
+                          "micro_max_error": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "micro_alignment": {
+                            "type": "string",
+                            "enum": [
+                              "auto",
+                              "fixed"
+                            ],
+                            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                          },
+                          "full_blocks_only": {
+                            "type": "boolean"
+                          },
+                          "quality_profile": {
+                            "type": "string",
+                            "enum": [
+                              "balanced",
+                              "ornate",
+                              "border"
+                            ],
+                            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                          },
+                          "min_quality_score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                          },
+                          "pattern_asset": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "image_sha256"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{32}"
+                              },
+                              "image_sha256": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{64}"
+                              }
+                            }
+                          },
+                          "pattern_ref": {
+                            "type": "string",
+                            "pattern": "[a-z][a-z0-9_-]{0,63}"
+                          },
+                          "asset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "faces": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 4,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "north",
+                            "east",
+                            "south",
+                            "west"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "capital_profile": {
+                    "type": "string",
+                    "enum": [
+                      "plain",
+                      "stepped",
+                      "beveled",
+                      "torus",
+                      "bell",
+                      "bezier",
+                      "tuscan",
+                      "doric",
+                      "ionic",
+                      "corinthian",
+                      "composite"
+                    ]
+                  },
+                  "capital_curve": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0.2,
+                      "maximum": 1
+                    },
+                    "description": "从部件自身底部到顶部的四个三次贝塞尔半径控制值，比例相对画布最大半径；须与bezier轮廓成对使用。"
+                  },
+                  "capital_pattern": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "pattern"
+                    ],
+                    "properties": {
+                      "pattern": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "size_uv"
+                        ],
+                        "properties": {
+                          "size_uv": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 64
+                            },
+                            "description": "平面宽高；cylinder时为柱芯直径(4～30)与高度，脚本自动计算周长。"
+                          },
+                          "preset": {
+                            "type": "string",
+                            "enum": [
+                              "cosmati-floor",
+                              "braided-shaft",
+                              "acanthus-capital",
+                              "coffer-rosette",
+                              "gothic-rose",
+                              "acanthus-frieze",
+                              "baroque-pilaster",
+                              "pointed-spandrel",
+                              "checkerboard",
+                              "horizontal-stripes",
+                              "vertical-stripes",
+                              "running-bond",
+                              "basket-weave",
+                              "herringbone",
+                              "diamond-lattice",
+                              "greek-key",
+                              "zigzag-band",
+                              "cross-tile",
+                              "stepped-diamond",
+                              "four-petal",
+                              "roman-coffer",
+                              "byzantine-cross-mosaic",
+                              "ottoman-eight-point-star",
+                              "egyptian-lotus-band",
+                              "chinese-window-lattice",
+                              "japanese-asanoha-lattice",
+                              "art-deco-sunburst",
+                              "gothic-pointed-tracery",
+                              "micro-diamond",
+                              "micro-diamond-ring",
+                              "micro-quatrefoil",
+                              "micro-crosslet",
+                              "micro-leaf",
+                              "micro-bud",
+                              "micro-chevron",
+                              "micro-key",
+                              "micro-link",
+                              "micro-palmette",
+                              "micro-scroll",
+                              "micro-fleur-de-lis",
+                              "micro-rose-window",
+                              "micro-rosette"
+                            ]
+                          },
+                          "shapes": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "slab": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              },
+                              "stairs": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              }
+                            }
+                          },
+                          "material": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "preset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          },
+                          "micro_max_error": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "micro_alignment": {
+                            "type": "string",
+                            "enum": [
+                              "auto",
+                              "fixed"
+                            ],
+                            "description": "默认auto：自动适配图片比例与半格采样相位；fixed保持原比例适配和居中采样。只用于微型拟合。"
+                          },
+                          "full_blocks_only": {
+                            "type": "boolean"
+                          },
+                          "quality_profile": {
+                            "type": "string",
+                            "enum": [
+                              "balanced",
+                              "ornate",
+                              "border"
+                            ],
+                            "description": "微型拟合的量化视觉质量配置；ornate要求可辨的复合细节，不是主观审美认证。"
+                          },
+                          "min_quality_score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+                          },
+                          "pattern_asset": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "image_sha256"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{32}"
+                              },
+                              "image_sha256": {
+                                "type": "string",
+                                "pattern": "[a-f0-9]{64}"
+                              }
+                            }
+                          },
+                          "pattern_ref": {
+                            "type": "string",
+                            "pattern": "[a-z][a-z0-9_-]{0,63}"
+                          },
+                          "asset_options": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": {
+                                "type": "string",
+                                "enum": [
+                                  "luminance",
+                                  "alpha"
+                                ]
+                              },
+                              "fit": {
+                                "type": "string",
+                                "enum": [
+                                  "contain",
+                                  "cover",
+                                  "stretch"
+                                ],
+                                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                              },
+                              "threshold": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100
+                              },
+                              "colors": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 8,
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "rgb",
+                                    "material"
+                                  ],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "rgb": {
+                                      "type": "string",
+                                      "pattern": "^#[0-9a-fA-F]{6}$"
+                                    },
+                                    "material": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160
+                                    }
+                                  }
+                                }
+                              },
+                              "noise_strength": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 100
+                              },
+                              "noise_scale": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 16
+                              },
+                              "invert": {
+                                "type": "boolean"
+                              },
+                              "mirror": {
+                                "type": "boolean"
+                              },
+                              "crop": {
+                                "type": "array",
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "faces": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 4,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "north",
+                            "east",
+                            "south",
+                            "west"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "order": {
+                    "type": "string",
+                    "enum": [
+                      "tuscan",
+                      "roman_doric",
+                      "ionic",
+                      "corinthian",
+                      "composite"
+                    ]
+                  },
+                  "shaft_ratio": {
+                    "type": "number",
+                    "minimum": 0.3,
+                    "maximum": 1
+                  },
+                  "flute_count": {
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 32
+                  },
+                  "flute_depth": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 1.5
+                  },
+                  "entasis": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 0.2
+                  },
+                  "neck_pattern": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "bead_reel",
+                      "egg_dart"
+                    ]
+                  },
+                  "leaf_count": {
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 16
+                  },
+                  "leaf_layers": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "volute_scale": {
+                    "type": "number",
+                    "minimum": 0.08,
+                    "maximum": 0.3
+                  },
+                  "volute_turns": {
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 2.5
+                  },
+                  "detail_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
                   }
                 }
               },
@@ -6511,6 +12511,14 @@ globalThis.NbtToolCatalog = {
               "cross-tile",
               "stepped-diamond",
               "four-petal",
+              "roman-coffer",
+              "byzantine-cross-mosaic",
+              "ottoman-eight-point-star",
+              "egyptian-lotus-band",
+              "chinese-window-lattice",
+              "japanese-asanoha-lattice",
+              "art-deco-sunburst",
+              "gothic-pointed-tracery",
               "micro-diamond",
               "micro-diamond-ring",
               "micro-quatrefoil",
@@ -6522,6 +12530,8 @@ globalThis.NbtToolCatalog = {
               "micro-link",
               "micro-palmette",
               "micro-scroll",
+              "micro-fleur-de-lis",
+              "micro-rose-window",
               "micro-rosette"
             ]
           },
@@ -6819,6 +12829,105 @@ globalThis.NbtToolCatalog = {
             "minimum": 0,
             "maximum": 100,
             "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+          },
+          "pattern_asset": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "image_sha256"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "[a-f0-9]{32}"
+              },
+              "image_sha256": {
+                "type": "string",
+                "pattern": "[a-f0-9]{64}"
+              }
+            }
+          },
+          "pattern_ref": {
+            "type": "string",
+            "pattern": "[a-z][a-z0-9_-]{0,63}"
+          },
+          "asset_options": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "channel": {
+                "type": "string",
+                "enum": [
+                  "luminance",
+                  "alpha"
+                ]
+              },
+              "fit": {
+                "type": "string",
+                "enum": [
+                  "contain",
+                  "cover",
+                  "stretch"
+                ],
+                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "colors": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rgb",
+                    "material"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "rgb": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                }
+              },
+              "noise_strength": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "noise_scale": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "invert": {
+                "type": "boolean"
+              },
+              "mirror": {
+                "type": "boolean"
+              },
+              "crop": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
           }
         }
       }
@@ -6877,6 +12986,14 @@ globalThis.NbtToolCatalog = {
               "cross-tile",
               "stepped-diamond",
               "four-petal",
+              "roman-coffer",
+              "byzantine-cross-mosaic",
+              "ottoman-eight-point-star",
+              "egyptian-lotus-band",
+              "chinese-window-lattice",
+              "japanese-asanoha-lattice",
+              "art-deco-sunburst",
+              "gothic-pointed-tracery",
               "micro-diamond",
               "micro-diamond-ring",
               "micro-quatrefoil",
@@ -6888,6 +13005,8 @@ globalThis.NbtToolCatalog = {
               "micro-link",
               "micro-palmette",
               "micro-scroll",
+              "micro-fleur-de-lis",
+              "micro-rose-window",
               "micro-rosette"
             ]
           },
@@ -7185,6 +13304,105 @@ globalThis.NbtToolCatalog = {
             "minimum": 0,
             "maximum": 100,
             "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+          },
+          "pattern_asset": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "image_sha256"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "[a-f0-9]{32}"
+              },
+              "image_sha256": {
+                "type": "string",
+                "pattern": "[a-f0-9]{64}"
+              }
+            }
+          },
+          "pattern_ref": {
+            "type": "string",
+            "pattern": "[a-z][a-z0-9_-]{0,63}"
+          },
+          "asset_options": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "channel": {
+                "type": "string",
+                "enum": [
+                  "luminance",
+                  "alpha"
+                ]
+              },
+              "fit": {
+                "type": "string",
+                "enum": [
+                  "contain",
+                  "cover",
+                  "stretch"
+                ],
+                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "colors": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rgb",
+                    "material"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "rgb": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                }
+              },
+              "noise_strength": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "noise_scale": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "invert": {
+                "type": "boolean"
+              },
+              "mirror": {
+                "type": "boolean"
+              },
+              "crop": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
           }
         }
       }
@@ -7366,6 +13584,14 @@ globalThis.NbtToolCatalog = {
                   "cross-tile",
                   "stepped-diamond",
                   "four-petal",
+                  "roman-coffer",
+                  "byzantine-cross-mosaic",
+                  "ottoman-eight-point-star",
+                  "egyptian-lotus-band",
+                  "chinese-window-lattice",
+                  "japanese-asanoha-lattice",
+                  "art-deco-sunburst",
+                  "gothic-pointed-tracery",
                   "micro-diamond",
                   "micro-diamond-ring",
                   "micro-quatrefoil",
@@ -7377,6 +13603,8 @@ globalThis.NbtToolCatalog = {
                   "micro-link",
                   "micro-palmette",
                   "micro-scroll",
+                  "micro-fleur-de-lis",
+                  "micro-rose-window",
                   "micro-rosette"
                 ]
               },
@@ -7674,6 +13902,105 @@ globalThis.NbtToolCatalog = {
                 "minimum": 0,
                 "maximum": 100,
                 "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+              },
+              "pattern_asset": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "image_sha256"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "[a-f0-9]{32}"
+                  },
+                  "image_sha256": {
+                    "type": "string",
+                    "pattern": "[a-f0-9]{64}"
+                  }
+                }
+              },
+              "pattern_ref": {
+                "type": "string",
+                "pattern": "[a-z][a-z0-9_-]{0,63}"
+              },
+              "asset_options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
               }
             }
           },
@@ -7930,6 +14257,14 @@ globalThis.NbtToolCatalog = {
                   "cross-tile",
                   "stepped-diamond",
                   "four-petal",
+                  "roman-coffer",
+                  "byzantine-cross-mosaic",
+                  "ottoman-eight-point-star",
+                  "egyptian-lotus-band",
+                  "chinese-window-lattice",
+                  "japanese-asanoha-lattice",
+                  "art-deco-sunburst",
+                  "gothic-pointed-tracery",
                   "micro-diamond",
                   "micro-diamond-ring",
                   "micro-quatrefoil",
@@ -7941,6 +14276,8 @@ globalThis.NbtToolCatalog = {
                   "micro-link",
                   "micro-palmette",
                   "micro-scroll",
+                  "micro-fleur-de-lis",
+                  "micro-rose-window",
                   "micro-rosette"
                 ]
               },
@@ -8238,6 +14575,105 @@ globalThis.NbtToolCatalog = {
                 "minimum": 0,
                 "maximum": 100,
                 "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+              },
+              "pattern_asset": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "image_sha256"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "[a-f0-9]{32}"
+                  },
+                  "image_sha256": {
+                    "type": "string",
+                    "pattern": "[a-f0-9]{64}"
+                  }
+                }
+              },
+              "pattern_ref": {
+                "type": "string",
+                "pattern": "[a-z][a-z0-9_-]{0,63}"
+              },
+              "asset_options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
               }
             }
           }
@@ -8432,6 +14868,14 @@ globalThis.NbtToolCatalog = {
                     "cross-tile",
                     "stepped-diamond",
                     "four-petal",
+                    "roman-coffer",
+                    "byzantine-cross-mosaic",
+                    "ottoman-eight-point-star",
+                    "egyptian-lotus-band",
+                    "chinese-window-lattice",
+                    "japanese-asanoha-lattice",
+                    "art-deco-sunburst",
+                    "gothic-pointed-tracery",
                     "micro-diamond",
                     "micro-diamond-ring",
                     "micro-quatrefoil",
@@ -8443,6 +14887,8 @@ globalThis.NbtToolCatalog = {
                     "micro-link",
                     "micro-palmette",
                     "micro-scroll",
+                    "micro-fleur-de-lis",
+                    "micro-rose-window",
                     "micro-rosette"
                   ]
                 },
@@ -8506,6 +14952,13 @@ globalThis.NbtToolCatalog = {
                       "maxItems": 4
                     }
                   }
+                },
+                "samples": {
+                  "type": "integer",
+                  "minimum": 16,
+                  "maximum": 1024,
+                  "default": 257,
+                  "description": "仅bezier图层使用，包含起终点的曲线采样数。"
                 }
               }
             }
@@ -8731,6 +15184,14 @@ globalThis.NbtToolCatalog = {
               "cross-tile",
               "stepped-diamond",
               "four-petal",
+              "roman-coffer",
+              "byzantine-cross-mosaic",
+              "ottoman-eight-point-star",
+              "egyptian-lotus-band",
+              "chinese-window-lattice",
+              "japanese-asanoha-lattice",
+              "art-deco-sunburst",
+              "gothic-pointed-tracery",
               "micro-diamond",
               "micro-diamond-ring",
               "micro-quatrefoil",
@@ -8742,6 +15203,8 @@ globalThis.NbtToolCatalog = {
               "micro-link",
               "micro-palmette",
               "micro-scroll",
+              "micro-fleur-de-lis",
+              "micro-rose-window",
               "micro-rosette"
             ]
           },
@@ -9031,6 +15494,105 @@ globalThis.NbtToolCatalog = {
             "minimum": 0,
             "maximum": 100,
             "description": "微型拟合最低量化质量分；不达标拒绝候选，默认0只报告，不放宽拓扑与覆盖限制。"
+          },
+          "pattern_asset": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "image_sha256"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "[a-f0-9]{32}"
+              },
+              "image_sha256": {
+                "type": "string",
+                "pattern": "[a-f0-9]{64}"
+              }
+            }
+          },
+          "pattern_ref": {
+            "type": "string",
+            "pattern": "[a-z][a-z0-9_-]{0,63}"
+          },
+          "asset_options": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "channel": {
+                "type": "string",
+                "enum": [
+                  "luminance",
+                  "alpha"
+                ]
+              },
+              "fit": {
+                "type": "string",
+                "enum": [
+                  "contain",
+                  "cover",
+                  "stretch"
+                ],
+                "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "colors": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rgb",
+                    "material"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "rgb": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                }
+              },
+              "noise_strength": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "noise_scale": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "invert": {
+                "type": "boolean"
+              },
+              "mirror": {
+                "type": "boolean"
+              },
+              "crop": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 4,
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
           }
         }
       }
@@ -9088,7 +15650,12 @@ globalThis.NbtToolCatalog = {
                             "structure",
                             "parametric_compile",
                             "pattern_compile",
-                            "pattern_microfit"
+                            "pattern_microfit",
+                            "surface_decorate",
+                            "tracery_compile",
+                            "vault_compile",
+                            "bay_compile",
+                            "field_compile"
                           ]
                         },
                         "arguments": {
@@ -9282,6 +15849,42 @@ globalThis.NbtToolCatalog = {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 65536
+              },
+              "patterns": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "asset": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "image_sha256"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "[a-f0-9]{32}"
+                        },
+                        "image_sha256": {
+                          "type": "string",
+                          "pattern": "[a-f0-9]{64}"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "asset"
+                  ]
+                }
               }
             },
             "required": [
@@ -9350,7 +15953,12 @@ globalThis.NbtToolCatalog = {
                             "structure",
                             "parametric_compile",
                             "pattern_compile",
-                            "pattern_microfit"
+                            "pattern_microfit",
+                            "surface_decorate",
+                            "tracery_compile",
+                            "vault_compile",
+                            "bay_compile",
+                            "field_compile"
                           ]
                         },
                         "arguments": {
@@ -9544,6 +16152,42 @@ globalThis.NbtToolCatalog = {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 65536
+              },
+              "patterns": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "asset": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "image_sha256"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "[a-f0-9]{32}"
+                        },
+                        "image_sha256": {
+                          "type": "string",
+                          "pattern": "[a-f0-9]{64}"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "asset"
+                  ]
+                }
               }
             },
             "required": [
@@ -9670,7 +16314,12 @@ globalThis.NbtToolCatalog = {
                         "structure",
                         "parametric_compile",
                         "pattern_compile",
-                        "pattern_microfit"
+                        "pattern_microfit",
+                        "surface_decorate",
+                        "tracery_compile",
+                        "vault_compile",
+                        "bay_compile",
+                        "field_compile"
                       ]
                     },
                     "arguments": {
@@ -9751,20 +16400,2321 @@ globalThis.NbtToolCatalog = {
                 "id"
               ]
             },
-            "minItems": 1,
+            "minItems": 0,
             "maxItems": 32
           },
           "max_changed_blocks": {
             "type": "integer",
             "minimum": 1,
             "maximum": 65536
+          },
+          "pattern_changes": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "[a-z][a-z0-9_-]{0,63}"
+                },
+                "asset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "image_sha256"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-f0-9]{32}"
+                    },
+                    "image_sha256": {
+                      "type": "string",
+                      "pattern": "[a-f0-9]{64}"
+                    }
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "asset"
+              ]
+            }
           }
         },
         "required": [
           "id",
           "revision",
-          "version",
-          "changes"
+          "version"
+        ]
+      }
+    },
+    "mount_batch": {
+      "description": "从一次绑定的完整源顺序规划最多64次安装，不反复落盘；整体复核覆盖、总预算、最终背衬、净空和路线后原子返回候选，不写入或批准。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "target": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source",
+              "source_sha256",
+              "geometry_sha256",
+              "context",
+              "context_sha256"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "source_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "geometry_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "context": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "context_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "snapshot": {
+                "type": "string",
+                "maxLength": 2048
+              },
+              "snapshot_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "installations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "surface_fit": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "max_gap"
+                  ],
+                  "properties": {
+                    "max_gap": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                },
+                "object": {
+                  "type": "object"
+                },
+                "reserved_boxes": {
+                  "type": "array",
+                  "maxItems": 64,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "lo",
+                      "hi"
+                    ],
+                    "properties": {
+                      "lo": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "hi": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      }
+                    }
+                  }
+                },
+                "anchor_uv": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4096
+                  }
+                },
+                "min_clearance": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 16
+                },
+                "embed_depth": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 6,
+                  "description": "0保留外贴；1嵌入原表层且不外凸；2～6在笔画位置浅开槽后嵌入。墙/平面柱饰/吊顶须保留min_support格完整背衬；地板已平齐，不设置本项。"
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "[a-z][a-z0-9_-]{0,63}"
+                },
+                "tool": {
+                  "type": "string",
+                  "enum": [
+                    "parametric_mount",
+                    "pattern_mount"
+                  ]
+                },
+                "surface": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lo",
+                    "hi",
+                    "normal"
+                  ],
+                  "properties": {
+                    "lo": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "hi": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "normal": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down"
+                      ]
+                    },
+                    "min_support": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8,
+                      "default": 1
+                    },
+                    "opening_margin": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8,
+                      "default": 1
+                    }
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "tool",
+                "surface",
+                "object",
+                "anchor_uv"
+              ]
+            }
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536,
+            "default": 4096
+          },
+          "reserved_boxes": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lo",
+                "hi"
+              ],
+              "properties": {
+                "lo": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "hi": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              }
+            }
+          },
+          "require_routes": {
+            "type": "boolean"
+          },
+          "compare_routes": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "target",
+          "installations"
+        ]
+      }
+    },
+    "surface_decorate": {
+      "description": "保留宿主配方与批量饰面参数，在内存中重新编译嵌纹构件；支持工作区纹样资产绑定，可作为对象图配方，不烘焙掉纹样来源。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "installations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "surface_fit": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "max_gap"
+                  ],
+                  "properties": {
+                    "max_gap": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                },
+                "object": {
+                  "type": "object"
+                },
+                "reserved_boxes": {
+                  "type": "array",
+                  "maxItems": 64,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "lo",
+                      "hi"
+                    ],
+                    "properties": {
+                      "lo": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "hi": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      }
+                    }
+                  }
+                },
+                "anchor_uv": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4096
+                  }
+                },
+                "min_clearance": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 16
+                },
+                "embed_depth": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 6,
+                  "description": "0保留外贴；1嵌入原表层且不外凸；2～6在笔画位置浅开槽后嵌入。墙/平面柱饰/吊顶须保留min_support格完整背衬；地板已平齐，不设置本项。"
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "[a-z][a-z0-9_-]{0,63}"
+                },
+                "tool": {
+                  "type": "string",
+                  "enum": [
+                    "parametric_mount",
+                    "pattern_mount"
+                  ]
+                },
+                "surface": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "lo",
+                    "hi",
+                    "normal"
+                  ],
+                  "properties": {
+                    "lo": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "hi": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "normal": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down"
+                      ]
+                    },
+                    "min_support": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8,
+                      "default": 1
+                    },
+                    "opening_margin": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8,
+                      "default": 1
+                    }
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "tool",
+                "surface",
+                "object",
+                "anchor_uv"
+              ]
+            }
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536,
+            "default": 4096
+          },
+          "reserved_boxes": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lo",
+                "hi"
+              ],
+              "properties": {
+                "lo": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "hi": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              }
+            }
+          },
+          "host": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "tool": {
+                "type": "string",
+                "enum": [
+                  "structure",
+                  "parametric_compile"
+                ]
+              },
+              "arguments": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "tool",
+              "arguments"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "protected_boxes": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lo",
+                "hi"
+              ],
+              "properties": {
+                "lo": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "hi": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "host",
+          "installations"
+        ]
+      }
+    },
+    "pattern_filter": {
+      "description": "读取带图像SHA的纹样资产，用实数FFT或空间滤波生成新的灰度资产；支持低通、高通和双尺度带通。auto对小核/高斯采用空间或可分离算法，对较大非分离圆盘核估算FFT；不加速体素匹配或通路搜索，不自动应用到建筑。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "source"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "image_sha256"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^(?:[a-f0-9]{32}|builtin:[a-z0-9-]+)$"
+              },
+              "image_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "filter": {
+            "type": "string",
+            "enum": [
+              "lowpass",
+              "highpass",
+              "bandpass"
+            ],
+            "default": "lowpass"
+          },
+          "kernel": {
+            "type": "string",
+            "enum": [
+              "gaussian",
+              "disk"
+            ],
+            "default": "gaussian"
+          },
+          "radius": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "default": 4
+          },
+          "outer_radius": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 128
+          },
+          "boundary": {
+            "type": "string",
+            "enum": [
+              "reflect",
+              "wrap",
+              "zero"
+            ],
+            "default": "reflect"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "spatial",
+              "fft"
+            ],
+            "default": "auto"
+          },
+          "normalize": {
+            "type": "boolean",
+            "default": false
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "luminance",
+              "alpha"
+            ],
+            "default": "luminance"
+          },
+          "resolution": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 8,
+              "maximum": 512
+            }
+          },
+          "crop": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "backend": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "cpu",
+              "gpu"
+            ],
+            "default": "auto"
+          }
+        }
+      }
+    },
+    "tracery_compile": {
+      "description": "生成真实透空拱窗、成对分栏拱、圆窗与可选分区玻璃；不生成不透明背板。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "size_uv": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 11,
+              "maximum": 40
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "trim": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "glazing": {
+            "type": "boolean"
+          },
+          "glass_palette": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "minItems": 1,
+            "maxItems": 8
+          },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "pointed",
+              "round"
+            ]
+          }
+        },
+        "required": [
+          "size_uv"
+        ]
+      }
+    },
+    "vault_compile": {
+      "description": "按共享拱曲面生成半格券顶、真实递进凹格及相连对角肋架；参数与源图绑定保留。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "size_xz": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 8,
+              "maximum": 48
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "spring_y": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 32
+          },
+          "rise": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 20
+          },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "pointed",
+              "round"
+            ]
+          },
+          "thickness": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 4
+          },
+          "recess_depth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "coffer_counts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "coffer_pattern": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "preset": {
+                "type": "string",
+                "enum": [
+                  "cosmati-floor",
+                  "braided-shaft",
+                  "acanthus-capital",
+                  "coffer-rosette",
+                  "gothic-rose",
+                  "acanthus-frieze",
+                  "baroque-pilaster",
+                  "pointed-spandrel",
+                  "checkerboard",
+                  "horizontal-stripes",
+                  "vertical-stripes",
+                  "running-bond",
+                  "basket-weave",
+                  "herringbone",
+                  "diamond-lattice",
+                  "greek-key",
+                  "zigzag-band",
+                  "cross-tile",
+                  "stepped-diamond",
+                  "four-petal",
+                  "roman-coffer",
+                  "byzantine-cross-mosaic",
+                  "ottoman-eight-point-star",
+                  "egyptian-lotus-band",
+                  "chinese-window-lattice",
+                  "japanese-asanoha-lattice",
+                  "art-deco-sunburst",
+                  "gothic-pointed-tracery",
+                  "micro-diamond",
+                  "micro-diamond-ring",
+                  "micro-quatrefoil",
+                  "micro-crosslet",
+                  "micro-leaf",
+                  "micro-bud",
+                  "micro-chevron",
+                  "micro-key",
+                  "micro-link",
+                  "micro-palmette",
+                  "micro-scroll",
+                  "micro-fleur-de-lis",
+                  "micro-rose-window",
+                  "micro-rosette"
+                ]
+              },
+              "preset_options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
+              },
+              "pattern_asset": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "image_sha256"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "[a-f0-9]{32}"
+                  },
+                  "image_sha256": {
+                    "type": "string",
+                    "pattern": "[a-f0-9]{64}"
+                  }
+                }
+              },
+              "asset_options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
+              },
+              "pattern_ref": {
+                "type": "string",
+                "pattern": "[A-Za-z0-9_-]{1,64}"
+              }
+            },
+            "required": []
+          },
+          "material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "slab_material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "rib_material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "ribs": {
+            "type": "boolean"
+          },
+          "recess_material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "recess_slab_material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "size_xz",
+          "spring_y",
+          "rise"
+        ]
+      }
+    },
+    "bay_compile": {
+      "description": "由统一跨宽、跨深、起拱和拱高联动柱、连续拱套、墙窗、曲面凹格与多色齐平地砖。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "span": {
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 32
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 12,
+            "maximum": 32
+          },
+          "pier_width": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 9
+          },
+          "spring_height": {
+            "type": "integer",
+            "minimum": 8,
+            "maximum": 24
+          },
+          "rise": {
+            "type": "integer",
+            "minimum": 6,
+            "maximum": 18
+          },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "pointed",
+              "round"
+            ]
+          },
+          "vault_thickness": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 4
+          },
+          "recess_depth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "coffer_counts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "coffer_pattern": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "preset": {
+                "type": "string",
+                "enum": [
+                  "cosmati-floor",
+                  "braided-shaft",
+                  "acanthus-capital",
+                  "coffer-rosette",
+                  "gothic-rose",
+                  "acanthus-frieze",
+                  "baroque-pilaster",
+                  "pointed-spandrel",
+                  "checkerboard",
+                  "horizontal-stripes",
+                  "vertical-stripes",
+                  "running-bond",
+                  "basket-weave",
+                  "herringbone",
+                  "diamond-lattice",
+                  "greek-key",
+                  "zigzag-band",
+                  "cross-tile",
+                  "stepped-diamond",
+                  "four-petal",
+                  "roman-coffer",
+                  "byzantine-cross-mosaic",
+                  "ottoman-eight-point-star",
+                  "egyptian-lotus-band",
+                  "chinese-window-lattice",
+                  "japanese-asanoha-lattice",
+                  "art-deco-sunburst",
+                  "gothic-pointed-tracery",
+                  "micro-diamond",
+                  "micro-diamond-ring",
+                  "micro-quatrefoil",
+                  "micro-crosslet",
+                  "micro-leaf",
+                  "micro-bud",
+                  "micro-chevron",
+                  "micro-key",
+                  "micro-link",
+                  "micro-palmette",
+                  "micro-scroll",
+                  "micro-fleur-de-lis",
+                  "micro-rose-window",
+                  "micro-rosette"
+                ]
+              },
+              "preset_options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
+              },
+              "pattern_asset": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "image_sha256"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "[a-f0-9]{32}"
+                  },
+                  "image_sha256": {
+                    "type": "string",
+                    "pattern": "[a-f0-9]{64}"
+                  }
+                }
+              },
+              "asset_options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
+              },
+              "pattern_ref": {
+                "type": "string",
+                "pattern": "[A-Za-z0-9_-]{1,64}"
+              }
+            },
+            "required": []
+          },
+          "floor_pattern": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "preset": {
+                "type": "string",
+                "enum": [
+                  "cosmati-floor",
+                  "braided-shaft",
+                  "acanthus-capital",
+                  "coffer-rosette",
+                  "gothic-rose",
+                  "acanthus-frieze",
+                  "baroque-pilaster",
+                  "pointed-spandrel",
+                  "checkerboard",
+                  "horizontal-stripes",
+                  "vertical-stripes",
+                  "running-bond",
+                  "basket-weave",
+                  "herringbone",
+                  "diamond-lattice",
+                  "greek-key",
+                  "zigzag-band",
+                  "cross-tile",
+                  "stepped-diamond",
+                  "four-petal",
+                  "roman-coffer",
+                  "byzantine-cross-mosaic",
+                  "ottoman-eight-point-star",
+                  "egyptian-lotus-band",
+                  "chinese-window-lattice",
+                  "japanese-asanoha-lattice",
+                  "art-deco-sunburst",
+                  "gothic-pointed-tracery",
+                  "micro-diamond",
+                  "micro-diamond-ring",
+                  "micro-quatrefoil",
+                  "micro-crosslet",
+                  "micro-leaf",
+                  "micro-bud",
+                  "micro-chevron",
+                  "micro-key",
+                  "micro-link",
+                  "micro-palmette",
+                  "micro-scroll",
+                  "micro-fleur-de-lis",
+                  "micro-rose-window",
+                  "micro-rosette"
+                ]
+              },
+              "preset_options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
+              },
+              "pattern_asset": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "image_sha256"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "[a-f0-9]{32}"
+                  },
+                  "image_sha256": {
+                    "type": "string",
+                    "pattern": "[a-f0-9]{64}"
+                  }
+                }
+              },
+              "asset_options": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "luminance",
+                      "alpha"
+                    ]
+                  },
+                  "fit": {
+                    "type": "string",
+                    "enum": [
+                      "contain",
+                      "cover",
+                      "stretch"
+                    ],
+                    "description": "contain等比留白；cover等比裁切；stretch按目标宽高分别拉伸，不裁切，颜色与轮廓共用映射。"
+                  },
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "colors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "rgb",
+                        "material"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "rgb": {
+                          "type": "string",
+                          "pattern": "^#[0-9a-fA-F]{6}$"
+                        },
+                        "material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      }
+                    }
+                  },
+                  "noise_strength": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "noise_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "invert": {
+                    "type": "boolean"
+                  },
+                  "mirror": {
+                    "type": "boolean"
+                  },
+                  "crop": {
+                    "type": "array",
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
+              },
+              "pattern_ref": {
+                "type": "string",
+                "pattern": "[A-Za-z0-9_-]{1,64}"
+              }
+            },
+            "required": []
+          },
+          "materials": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "stone": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "trim": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "accent": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "wall": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "vault": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "floor": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            },
+            "required": []
+          },
+          "inlay_palette": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "minItems": 1,
+            "maxItems": 8
+          },
+          "glazing": {
+            "type": "boolean"
+          },
+          "glass_palette": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "minItems": 1,
+            "maxItems": 8
+          }
+        },
+        "required": []
+      }
+    },
+    "compute_info": {
+      "description": "检查CPU/CuPy CUDA后端，执行真实设备探测；不安装依赖、不修改模型。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      }
+    },
+    "field_compile": {
+      "description": "在显式画布采样有界体场图；支持CSG、超椭球、gyroid及组合扭转/弯曲/渐缩/剪切/波浪/仿射，CPU/GPU返回纯候选。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "size": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "root": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                },
+                "shape": {
+                  "type": "string",
+                  "enum": [
+                    "box",
+                    "ellipsoid",
+                    "cylinder",
+                    "torus",
+                    "superellipsoid",
+                    "gyroid",
+                    "union",
+                    "intersection",
+                    "difference",
+                    "smooth_union"
+                  ]
+                },
+                "centre": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": -1024,
+                    "maximum": 1024
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "min": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": -1024,
+                    "maximum": 1024
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "max": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": -1024,
+                    "maximum": 1024
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "radii": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": 0.001,
+                    "maximum": 1024
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "radius": {
+                  "type": "number",
+                  "minimum": 0.001,
+                  "maximum": 1024
+                },
+                "height": {
+                  "type": "number",
+                  "minimum": 0.001,
+                  "maximum": 1024
+                },
+                "axis": {
+                  "type": "string",
+                  "enum": [
+                    "x",
+                    "y",
+                    "z"
+                  ]
+                },
+                "major_radius": {
+                  "type": "number",
+                  "minimum": 0.001,
+                  "maximum": 1024
+                },
+                "minor_radius": {
+                  "type": "number",
+                  "minimum": 0.001,
+                  "maximum": 1024
+                },
+                "power": {
+                  "type": "number",
+                  "minimum": 0.25,
+                  "maximum": 16
+                },
+                "wavelength": {
+                  "type": "number",
+                  "minimum": 0.01,
+                  "maximum": 1024
+                },
+                "thickness": {
+                  "type": "number",
+                  "minimum": 0.001,
+                  "maximum": 2
+                },
+                "children": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                  },
+                  "minItems": 2,
+                  "maxItems": 8
+                },
+                "blend": {
+                  "type": "number",
+                  "minimum": 0.001,
+                  "maximum": 64
+                },
+                "transforms": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "affine",
+                          "twist",
+                          "bend",
+                          "taper",
+                          "shear",
+                          "wave"
+                        ]
+                      },
+                      "centre": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": -1024,
+                          "maximum": 1024
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "offset": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": -1024,
+                          "maximum": 1024
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "matrix": {
+                        "type": "array",
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "number",
+                            "minimum": -64,
+                            "maximum": 64
+                          },
+                          "minItems": 3,
+                          "maxItems": 3
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "axis": {
+                        "type": "string",
+                        "enum": [
+                          "x",
+                          "y",
+                          "z"
+                        ]
+                      },
+                      "driver": {
+                        "type": "string",
+                        "enum": [
+                          "x",
+                          "y",
+                          "z"
+                        ]
+                      },
+                      "plane": {
+                        "type": "string",
+                        "enum": [
+                          "xy",
+                          "yz",
+                          "xz"
+                        ]
+                      },
+                      "degrees": {
+                        "type": "number",
+                        "minimum": -1440,
+                        "maximum": 1440
+                      },
+                      "length": {
+                        "type": "number",
+                        "minimum": 0.01,
+                        "maximum": 1024
+                      },
+                      "radius": {
+                        "type": "number",
+                        "minimum": 0.01,
+                        "maximum": 1024
+                      },
+                      "amount": {
+                        "type": "number",
+                        "minimum": -8,
+                        "maximum": 8
+                      },
+                      "amplitude": {
+                        "type": "number",
+                        "minimum": -64,
+                        "maximum": 64
+                      },
+                      "wavelength": {
+                        "type": "number",
+                        "minimum": 0.01,
+                        "maximum": 1024
+                      },
+                      "phase": {
+                        "type": "number",
+                        "minimum": -360,
+                        "maximum": 360
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ]
+                  },
+                  "minItems": 0,
+                  "maxItems": 8
+                }
+              },
+              "required": [
+                "id",
+                "shape"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 32
+          },
+          "transforms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "affine",
+                    "twist",
+                    "bend",
+                    "taper",
+                    "shear",
+                    "wave"
+                  ]
+                },
+                "centre": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": -1024,
+                    "maximum": 1024
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "offset": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": -1024,
+                    "maximum": 1024
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "matrix": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": -64,
+                      "maximum": 64
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "axis": {
+                  "type": "string",
+                  "enum": [
+                    "x",
+                    "y",
+                    "z"
+                  ]
+                },
+                "driver": {
+                  "type": "string",
+                  "enum": [
+                    "x",
+                    "y",
+                    "z"
+                  ]
+                },
+                "plane": {
+                  "type": "string",
+                  "enum": [
+                    "xy",
+                    "yz",
+                    "xz"
+                  ]
+                },
+                "degrees": {
+                  "type": "number",
+                  "minimum": -1440,
+                  "maximum": 1440
+                },
+                "length": {
+                  "type": "number",
+                  "minimum": 0.01,
+                  "maximum": 1024
+                },
+                "radius": {
+                  "type": "number",
+                  "minimum": 0.01,
+                  "maximum": 1024
+                },
+                "amount": {
+                  "type": "number",
+                  "minimum": -8,
+                  "maximum": 8
+                },
+                "amplitude": {
+                  "type": "number",
+                  "minimum": -64,
+                  "maximum": 64
+                },
+                "wavelength": {
+                  "type": "number",
+                  "minimum": 0.01,
+                  "maximum": 1024
+                },
+                "phase": {
+                  "type": "number",
+                  "minimum": -360,
+                  "maximum": 360
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "minItems": 0,
+            "maxItems": 8
+          },
+          "material": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "body",
+              "wall"
+            ]
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          },
+          "backend": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "cpu",
+              "gpu"
+            ],
+            "default": "auto"
+          }
+        },
+        "required": [
+          "size",
+          "root",
+          "nodes"
+        ]
+      }
+    },
+    "pattern_warp": {
+      "description": "对绑定纹样进行逆采样透视/旋涡/波浪/放射重复，保留RGBA配色、创建独立资产；不修改原图，变换后须重新拟合和检查拓扑。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "image_sha256"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^(?:[a-f0-9]{32}|builtin:[a-z0-9-]+)$"
+              },
+              "image_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "crop": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "resolution": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 8,
+              "maximum": 1024
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "transforms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "affine",
+                    "swirl",
+                    "wave",
+                    "polar_repeat"
+                  ]
+                },
+                "centre": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "minimum": -2,
+                    "maximum": 3
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "matrix": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "minimum": -64,
+                      "maximum": 64
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "axis": {
+                  "type": "string",
+                  "enum": [
+                    "x",
+                    "y"
+                  ]
+                },
+                "degrees": {
+                  "type": "number",
+                  "minimum": -1440,
+                  "maximum": 1440
+                },
+                "radius": {
+                  "type": "number",
+                  "minimum": 0.001,
+                  "maximum": 4
+                },
+                "amplitude": {
+                  "type": "number",
+                  "minimum": -1,
+                  "maximum": 1
+                },
+                "wavelength": {
+                  "type": "number",
+                  "minimum": 0.001,
+                  "maximum": 4
+                },
+                "phase": {
+                  "type": "number",
+                  "minimum": -360,
+                  "maximum": 360
+                },
+                "sectors": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 64
+                },
+                "rotation": {
+                  "type": "number",
+                  "minimum": -360,
+                  "maximum": 360
+                },
+                "mirror": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 8
+          },
+          "boundary": {
+            "type": "string",
+            "enum": [
+              "zero",
+              "clamp",
+              "wrap"
+            ]
+          },
+          "backend": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "cpu",
+              "gpu"
+            ],
+            "default": "auto"
+          }
+        },
+        "required": [
+          "name",
+          "source",
+          "transforms"
         ]
       }
     }
@@ -12322,7 +21272,14 @@ globalThis.NbtToolCatalog = {
       "structure_place",
       "scene_compile",
       "scene_read",
-      "scene_update"
+      "scene_update",
+      "mount_batch",
+      "surface_decorate",
+      "tracery_compile",
+      "vault_compile",
+      "bay_compile",
+      "compute_info",
+      "field_compile"
     ],
     "candidate_only": true,
     "automatic_retry": false

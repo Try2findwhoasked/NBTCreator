@@ -1,11 +1,13 @@
 """Fit small ornament units before placement; preserve visible topology."""
 from collections import deque
 from math import prod
+from pathlib import Path
 
 import numpy as np
 from PIL import Image,ImageOps
 
 from nbt_collision import collision_cells
+from nbt_bitmap_topology import topology as bitmap_topology
 from nbt_model import state
 from nbt_ornament_sample import sample_image,silhouette_options,resize_sample
 from nbt_registry import effective
@@ -154,7 +156,7 @@ def fit_unit(root,sample,width,height,options,factor,max_error):
     return fit_reference(reference(root,sample,width,height,factor),sample,width,height,options,factor,max_error)
 
 
-def fit_reference(data,sample,width,height,options,factor,max_error,*,joint=True,strict=True):
+def fit_reference(data,sample,width,height,options,factor,max_error,*,joint=True,strict=True,refinement_accept=None):
     coverage,ink,void,topology=data
     symmetry=[]
     if np.allclose(coverage,np.fliplr(coverage),atol=1e-9):symmetry.append('x')
@@ -201,18 +203,25 @@ def fit_reference(data,sample,width,height,options,factor,max_error,*,joint=True
         if not assignments:raise ValueError('该微型尺寸无法同时保留主纹、孔洞和对称性，请增加1～2格或裁取更简单的单元')
         orbits.append(assignments)
     candidates=[];seen=set()
+    stride=coverage.shape[1];pixel_count=coverage.size;byte_count=(pixel_count+7)//8
+    # Candidate assignments use the same legal local projections. Pack each
+    # once, then accumulate bitmasks rather than recounting four pixels and
+    # four Python sums for every block of every refinement proposal.
+    option_bits={(x,y,value):sum(1<<(v*stride+u) for (v,u),occupied in zip(pixels,shape) if occupied)
+        for (x,y),(pixels,allowed) in choices.items() for value,shape in allowed}
+    threshold_masks={threshold:(coverage>=threshold)&(coverage>0) for threshold in thresholds}
     def evaluate(assignments,threshold,baseline=False):
-        rendered=np.zeros(coverage.shape,dtype=bool);states={};requested=matched=missing=extra=0
-        for x,y,pixels,(value,shape) in assignments:
-            mask=tuple(bool(coverage[p]>=threshold and coverage[p]>0) for p in pixels)
-            for pixel,occupied in zip(pixels,shape):rendered[pixel]=occupied
+        bits=0;states={}
+        for x,y,_,(value,_) in assignments:
+            bits|=option_bits[x,y,value]
             if value is not None:states[x,y]=value
-            requested+=sum(mask);matched+=sum(a and b for a,b in zip(mask,shape))
-            missing+=sum(a and not b for a,b in zip(mask,shape));extra+=sum(b and not a for a,b in zip(mask,shape))
-        key=rendered.tobytes()
+        key=bits
         if key in seen and not baseline:return
         seen.add(key)
-        actual=dict(components=len(regions(rendered)),holes=len(regions(rendered,False)))
+        rendered=np.unpackbits(np.frombuffer(bits.to_bytes(byte_count,'little'),dtype=np.uint8),bitorder='little')[:pixel_count].reshape(coverage.shape).astype(bool)
+        mask=threshold_masks[threshold];requested=int(mask.sum());matched=int((mask&rendered).sum())
+        missing=requested-matched;extra=int(rendered.sum())-matched
+        actual=bitmap_topology(rendered)
         topology_error=4*abs(actual['components']-topology['components'])+8*abs(actual['holes']-topology['holes'])
         error=float(np.abs(rendered.astype(float)-coverage).mean())
         overlap=float(np.minimum(rendered,coverage).sum()/max(1e-9,float(np.maximum(rendered,coverage).sum())))
@@ -220,6 +229,7 @@ def fit_reference(data,sample,width,height,options,factor,max_error,*,joint=True
             ink_overlap=overlap,contour_error=contour_error(rendered,coverage),
             selection_method='coverage_threshold' if baseline else 'joint_shapes',
             source_ink_area=float(coverage.sum()),fitted_ink_area=int(rendered.sum()))))
+        return candidates[-1]
     def rank(item):
         return (item[0],1-item[5]['ink_overlap'],item[5]['contour_error'],item[1],
                 item[5]['missing']+item[5]['extra'],abs(item[2]-.5))
@@ -251,6 +261,55 @@ def fit_reference(data,sample,width,height,options,factor,max_error,*,joint=True
     combinations,search=joint_candidates(coverage,orbits) if joint else ([],dict(method='threshold_probe',beam_width=None))
     for assignments in combinations:evaluate(assignments,.5)
     best=best_available(baseline=baseline)
+    refinement=None
+    if joint and best[0]==0 and best[5]['ink_overlap']<1-1e-12:
+        # A finite IoU beam can discard a useful fine edge early. Revisit legal
+        # symmetry-orbit choices around its best solutions, without changing
+        # source extrema/holes, shape families or the existing acceptance gate.
+        initial_candidates_evaluated=len(seen)
+        seeds=[];seed_states=set()
+        for item in sorted((item for item in candidates if item[0]==0),key=rank):
+            signature=tuple(sorted(item[3].items()))
+            if signature not in seed_states:seeds.append(item);seed_states.add(signature)
+            if len(seeds)==2:break
+        proposals=accepted=0;budget=384
+        for seed in seeds:
+            current=seed
+            path=[]
+            for orbit in orbits:
+                path.append(next(i for i,assignment in enumerate(orbit)
+                    if all(current[3].get((x,y))==option[0] for x,y,_,option in assignment)))
+            for _ in range(2):
+                changed=False
+                def uncertainty(index):
+                    return -sum(abs(float(coverage[p])-occupied) for _,_,pixels,(_,shape) in orbits[index][path[index]] for p,occupied in zip(pixels,shape))
+                for index in sorted(range(len(orbits)),key=uncertainty):
+                    winner=current;choice=path[index]
+                    for alternative in range(len(orbits[index])):
+                        if alternative==path[index]:continue
+                        if proposals>=budget:break
+                        trial=path.copy();trial[index]=alternative;proposals+=1
+                        assignments=[entry for orbit,selected in zip(orbits,trial) for entry in orbit[selected]]
+                        item=evaluate(assignments,.5)
+                        if item is not None and item[0]==0 and item[1]<=max(max_error,current[1]) and rank(item)<rank(winner) and item[5]['contour_error']<=current[5]['contour_error']+1e-12:
+                            winner=item;choice=alternative
+                    if winner is not current:
+                        current=winner;path[index]=choice;accepted+=1;changed=True
+                    if proposals>=budget:break
+                if not changed or proposals>=budget:break
+            if proposals>=budget:break
+        eligible=[item for item in candidates if item[0]==0 and item[1]<=max_error
+            and item[5]['ink_overlap']+1e-12>=best[5]['ink_overlap']
+            and item[5]['contour_error']<=best[5]['contour_error']+1e-12]
+        refined=min(eligible,key=rank) if eligible else best
+        guard=None
+        if rank(refined)<rank(best) and refinement_accept is not None:
+            guard=refinement_accept(best[3],refined[3])
+            if not guard['accepted']:refined=best
+        refinement=dict(method='bounded_topology_preserving_orbit_refinement',initial_candidates_evaluated=initial_candidates_evaluated,proposal_budget=budget,proposals=proposals,
+            accepted_moves=accepted,improved=rank(refined)<rank(best),previous_ink_overlap=best[5]['ink_overlap'],
+            previous_contour_error=best[5]['contour_error'],quality_guard=guard,source_modified=False)
+        best=refined
     topology_error,error,threshold,states,actual,counts=best
     if strict and (topology_error or error>max_error):
         raise ValueError(f'微型单元{width}×{height}未保留可辨认轮廓（孔洞{topology["holes"]}→{actual["holes"]}，连通分量{topology["components"]}→{actual["components"]}，覆盖误差{error:.3f}）；请裁取单个基础图形或尝试增加1～2格，仍建议控制在8格以内')
@@ -262,10 +321,36 @@ def fit_reference(data,sample,width,height,options,factor,max_error,*,joint=True
                           baseline_contour_error=baseline[5]['contour_error'],
                           baseline_raw_coverage_error=baseline[1],
                           baseline_topology_preserved=baseline[0]==0,
-                          improved=rank(best)[:4]<rank(baseline)[:4]),
+                          improved=rank(best)[:4]<rank(baseline)[:4],**({'refinement':refinement} if refinement else {})),
         topology_preserved=topology_error==0,raw_coverage_error=error,
         stylized=error>.15 or counts['ink_overlap']<.75 or bool(topology['discarded_ink_components']+topology['discarded_small_holes']),
         max_error=max_error,placement='fit_once_then_copy',threshold_candidates=len(thresholds),**counts)
+
+
+def fit_colored_unit(root,sample,width,height,options,factor,ornament,args):
+    from nbt_modeling_session import current,canonical,engine_revision
+    # Reuse the solved unit across names, backing materials and tile layouts.
+    # Verify real image bytes before a hit; store only detached data, not a
+    # closure or transformed/world geometry from an earlier installation.
+    sample_image(root,sample)
+    settings={key:args.get(key,default) for key,default in (
+        ('micro_max_error',.65),('micro_alignment','auto'),('quality_profile','balanced'),('min_quality_score',0))}
+    key=(str(Path(root).resolve()),engine_revision(),canonical(sample),width,height,
+         canonical(options),factor,ornament,canonical(settings))
+    cache=current();hit=cache.get('micro_unit',key)
+    if hit is not None:return {(u,v):value for u,v,value in hit['unit']},hit['quality']
+    from nbt_micro_alignment import adaptive_fit
+    unit,quality,color_at=adaptive_fit(root,sample,width,height,options,factor,
+                                     args.get('micro_max_error',.65),args.get('micro_alignment','auto'),
+                                     quality_profile=args.get('quality_profile','balanced'),min_quality_score=args.get('min_quality_score',0))
+    for (u,v),value in list(unit.items()):
+        if value==ornament:
+            value=color_at(u,v) or ornament
+            cells,reason=collision_cells(value)
+            if reason or len(cells)!=8:raise ValueError('微型样本配色须使用完整方块')
+            unit[u,v]=value
+    cache.put('micro_unit',key,dict(unit=[[*p,value] for p,value in sorted(unit.items())],quality=quality))
+    return unit,quality
 
 
 def compile_microfit(workspace,args):
@@ -279,16 +364,7 @@ def compile_microfit(workspace,args):
     if args.get('full_blocks_only') and 'shapes' in args:raise ValueError('full_blocks_only不能同时指定shapes')
     shapes=None if args.get('full_blocks_only') else companions(ornament,surface,args.get('shapes'))
     options,factor=options_for(ornament,shapes,surface)
-    from nbt_micro_alignment import adaptive_fit
-    unit,quality,color_at=adaptive_fit(root,sample,width,height,options,factor,
-                                     args.get('micro_max_error',.65),args.get('micro_alignment','auto'),
-                                     quality_profile=args.get('quality_profile','balanced'),min_quality_score=args.get('min_quality_score',0))
-    for (u,v),value in list(unit.items()):
-        if value==ornament:
-            value=color_at(u,v) or ornament
-            cells,reason=collision_cells(value)
-            if reason or len(cells)!=8:raise ValueError('微型样本配色须使用完整方块')
-            unit[u,v]=value
+    unit,quality=fit_colored_unit(root,sample,width,height,options,factor,ornament,args)
     columns,rows=args.get('tile_counts',[1,1]);gap_u,gap_v=args.get('gap_uv',[1,1])
     blocks={};counts={};stairs={};slabs={}
     def decorate(point,value,turns=0):

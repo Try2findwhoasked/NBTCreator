@@ -73,7 +73,7 @@ class MicroPresets(unittest.TestCase):
                          if key.startswith('micro-')}
 
     def test_assets_are_reproducible_binary_masks_and_discoverable(self):
-        self.assertEqual(len(self.patterns), 12)
+        self.assertEqual(len(self.patterns), 14)
         subprocess.run([sys.executable, str(ROOT / 'scripts/build-micro-patterns.py'), '--check'],
                        cwd=ROOT, check=True, capture_output=True, text=True)
         for key, item in self.patterns.items():
@@ -89,7 +89,7 @@ class MicroPresets(unittest.TestCase):
                 for tool in ('pattern_compile', 'pattern_preview', 'pattern_microfit'):
                     self.assertIn(key, definitions()[tool]['parameters']['properties']['preset']['enum'])
 
-    def test_all_48_recommended_surface_sizes_retain_topology_and_shape(self):
+    def test_recommended_surface_sizes_retain_topology_and_shape(self):
         for key, item in self.patterns.items():
             with Image.open(LIBRARY / item['file']) as image:
                 source_topology = topology(np.asarray(image) > 127)
