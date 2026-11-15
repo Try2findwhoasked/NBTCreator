@@ -215,7 +215,12 @@ class WorkingModel:
                 raise ModelConflict('CONTEXT_CONSTRAINT_MISMATCH', [dict(version=str(version))])
         if 'wall_positions' in data:
             declared = {point(p) for p in data['wall_positions']}
-            if declared != walls:
+            if any(not model.in_bounds(p) or p not in model.blocks for p in declared):
+                raise ValueError('显式墙层归属越界或指向空气')
+            # Legacy binary structures have no intrinsic wall-ownership layer.
+            if not manifest and source.suffix.lower() == '.nbt' and not walls and not (source.parent/'wall_mask.json').exists():
+                walls = declared
+            elif declared != walls:
                 raise ModelConflict('WALL_SOURCE_MISMATCH', [dict(source_walls=len(walls), context_walls=len(declared))])
             data.pop('wall_positions')
         working = cls(workspace, model.size, data, **options)

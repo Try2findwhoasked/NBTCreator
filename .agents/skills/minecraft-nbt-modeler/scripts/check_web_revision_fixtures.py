@@ -25,17 +25,30 @@ def main():
     checks['three_runtime_slices_no_missing_cell']=len(list((released/'runtime/parts').glob('*.nbt')))==3 and not list((released/'runtime/parts').glob('*p11.nbt'))
     delivery=verify_delivery(released/'delivery');checks['exact_layered_delivery']=delivery['actual_nbt_files']==6 and delivery['exact_solid_reconstruction']
     checks['complete_master_and_metadata']=(target/'master/model.snbt').is_file() and (released/'master/model.nbt').is_file() and all((target/name).is_file() for name in ['coordinates.json','settings.json','cameras.json','changes.json','conversion.json','validation/whole_model.json'])
-    job=out/'job';job.mkdir();write_json(job/'request.json',request);preview=preview_effect(request,job/'result')
-    next_result=convert_web_json(preview['snapshot']);checks['after_json_goes_to_v03']=Path(next_result['output'])==project/'v03'
-    tampered=read_json(preview['snapshot']);tampered['blocks'][0][1]='minecraft:dirt';write_json(job/'result/after.json',tampered)
+    try:convert_web_json(file);checks['stale_parent_refused']=False
+    except ValueError as error:checks['stale_parent_refused']='STALE_PARENT' in str(error) and not (project/'v03').exists()
+    current=dict(request,source=result['master'],source_sha256=digest(result['master']),context=str(target/'coordinates.json'),cameras=str(target/'cameras.json'))
+    job=out/'job';job.mkdir();write_json(job/'request.json',current);preview=preview_effect(current,job/'result')
+    original_preview=read_json(preview['snapshot']);tampered=copy.deepcopy(original_preview)
+    tampered['blocks'][0][1]='minecraft:dirt';write_json(job/'result/after.json',tampered)
     try:convert_web_json(job/'result/after.json');checks['tampered_preview_refused']=False
-    except ValueError:checks['tampered_preview_refused']=not (project/'v04').exists()
+    except ValueError as error:checks['tampered_preview_refused']='预览JSON' in str(error) and not (project/'v03').exists()
+    write_json(job/'result/after.json',original_preview)
+    next_result=convert_web_json(preview['snapshot']);checks['after_json_goes_to_v03']=Path(next_result['output'])==project/'v03'
     isolated=out/'after.json';write_json(isolated,tampered)
     try:convert_web_json(isolated);checks['isolated_snapshot_refused']=False
     except ValueError:checks['isolated_snapshot_refused']=True
-    bad=copy.deepcopy(request);bad['settings']['max_changed_blocks']=1;write_json(out/'limited.json',bad)
+    bad=copy.deepcopy(current)
+    latest=Path(next_result['output'])
+    bad.update(source=next_result['master'],source_sha256=digest(next_result['master']),
+        context=str(latest/'coordinates.json'),cameras=str(latest/'cameras.json'))
+    bad['settings']['pattern']['enabled']=False
+    bad['settings']['max_changed_blocks']=1
+    bad['settings']['operations']=[dict(kind='box',label='超预算的两个实体格',classification='body',
+        lo=[10,3,10],hi=[11,3,10],state='stone_bricks')]
+    write_json(out/'limited.json',bad)
     try:convert_web_json(out/'limited.json');checks['budget_refusal_does_not_allocate_version']=False
-    except ValueError:checks['budget_refusal_does_not_allocate_version']=not (project/'v04').exists()
+    except ValueError as error:checks['budget_refusal_does_not_allocate_version']='上限' in str(error) and not (project/'v04').exists()
     checks['no_fake_approval_or_runtime_acceptance']=not list(project.rglob('approval.json')) and not result['runtime_verified']
     assert all(checks.values()),checks;write_json(out/'results.json',dict(passed=True,checks=checks));print(json.dumps(dict(passed=True,checks=len(checks))))
 if __name__=='__main__':main()

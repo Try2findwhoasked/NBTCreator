@@ -174,7 +174,10 @@ class Standalone(unittest.TestCase):
         self.assertEqual(first['runtime_parts'],1);self.assertEqual(first['delivery_nbt'],2)
         self.assertEqual(json.loads((target/'room_description.json').read_text(encoding='utf8'))['shape'],'standalone')
         self.assertEqual(verify_standalone(Path(first['release_dir']))['source_geometry_sha256'],first['geometry_sha256'])
-        job=out/'job';job.mkdir();write(job/'request.json',request);preview=preview_effect(request,job/'result')
+        with self.assertRaisesRegex(ValueError,'STALE_PARENT'):convert_web_json(file)
+        current=dict(request,source=first['master'],source_sha256=hashlib.sha256(Path(first['master']).read_bytes()).hexdigest(),
+            context=str(target/'coordinates.json'),cameras=str(target/'cameras.json'))
+        job=out/'job';job.mkdir();write(job/'request.json',current);preview=preview_effect(current,job/'result')
         second=convert_web_json(preview['snapshot']);self.assertEqual(Path(second['output']).name,'v03')
         self.assertFalse(list(target.rglob('approval.json')))
         result=audit_unit(target,[target/'master/model.snbt'],{},{});self.assertTrue(result['valid'],result)
