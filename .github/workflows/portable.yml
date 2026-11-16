@@ -178,6 +178,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify authoring contracts
         run: |
+          npm run test:architecture-workflow
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:architecture-preview
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run test:model-workflow
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run test:extensions
@@ -199,7 +203,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Remove-Item Env:NBTCREATOR_TEST_SNBT
       - name: Build self-contained portable ZIP
-        run: npm run package:portable -- --out dist/portable
+        run: |
+          npm run package:portable -- --out dist/portable
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $notes = Join-Path $PWD "docs/archive/releases/RELEASE_$version.md"
+          if (Test-Path -LiteralPath $notes) { Copy-Item -LiteralPath $notes -Destination dist/portable/release-notes.md }
       - name: Verify extracted package without system Python or Node
         run: npm run test:portable -- --archive-dir dist/portable
       - name: Packaged Electron regression
@@ -239,6 +248,7 @@ jobs:
             dist/portable/*.zip
             dist/portable/*.sha256
             dist/portable/*.manifest.json
+            dist/portable/release-notes.md
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
@@ -272,7 +282,8 @@ jobs:
           set -euo pipefail
           cd assets
           sha256sum --check ./*.sha256
-          args=(--verify-tag --title "NBTCreator $RELEASE_TAG" --generate-notes)
+          args=(--verify-tag --title "NBTCreator $RELEASE_TAG")
+          if [[ -f release-notes.md ]]; then args+=(--notes-file release-notes.md); else args+=(--generate-notes); fi
           if [[ "$RELEASE_TAG" == *-* ]]; then args+=(--prerelease); fi
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             echo 'Release already exists; refusing to replace published assets.' >&2
