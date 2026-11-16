@@ -27,6 +27,12 @@ def definitions():
 
 
 def _schema(value, schema, label='参数'):
+    if 'anyOf' in schema:
+        for alternative in schema['anyOf']:
+            try:_schema(value,alternative,label)
+            except ValueError:continue
+            break
+        else:raise ValueError(label+' 不符合允许的参数形式')
     kind=schema.get('type')
     if isinstance(kind,list):
         if value is None and 'null' in kind:return

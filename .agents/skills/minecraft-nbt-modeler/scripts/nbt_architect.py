@@ -114,6 +114,10 @@ def versions(workspace,request):
 def dispatch(workspace,action,request):
     workspace=Path(workspace).resolve()
     if not isinstance(request,dict):raise ValueError('工具参数须为对象')
+    from nbt_catalog import catalog
+    if action in catalog().get('architecture',{}).get('actions',{}):
+        from nbt_architecture import dispatch as architectural_workflow
+        return architectural_workflow(workspace,action,request)
     if action in ('standards-get','standards-save'):return standards(workspace,action,request)
     if action=='deliveries':
         sources=request.get('sources',[])
@@ -136,7 +140,8 @@ def dispatch(workspace,action,request):
     raise ValueError('未知建筑师工具')
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['standards-get','standards-save','deliveries','continue','cross-list','cross-save']);parser.add_argument('--request',type=Path);args=parser.parse_args()
+    from nbt_catalog import catalog
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['standards-get','standards-save','deliveries','continue','cross-list','cross-save',*catalog().get('architecture',{}).get('actions',{})]);parser.add_argument('--request',type=Path);args=parser.parse_args()
     try:print(json.dumps(dispatch(args.workspace,args.action,read(args.request,{}) if args.request else {}),ensure_ascii=False));return 0
     except (ValueError,OSError,KeyError,TypeError) as error:print(json.dumps(dict(error=str(error)),ensure_ascii=False));return 1
 

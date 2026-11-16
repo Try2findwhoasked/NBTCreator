@@ -159,6 +159,7 @@ class WorkingModel:
         if any(type(v) is not int or v < 1 for v in self.limits.values()):
             raise ValueError('模型预算须为正整数')
         self.instances = {}
+        self._architecture = None
         self.phase, self.preopening = 'design', None
         self._baseline_phase = 'design'
         self.source, self.source_sha256, self.context_binding = None, None, context_binding
@@ -240,6 +241,7 @@ class WorkingModel:
                 raise ValueError('制作版本主模型与清单不一致')
             record = json.loads((version / 'model-instances.json').read_text(encoding='utf8'))
             working.instances = record['instances']
+            working._architecture = record.get('architecture')
             from nbt_refine import box_points
             for instance in working.instances.values():
                 if instance['recipe']['tool'] == 'scene_compile' and 'policy' not in instance['compiled']:
@@ -627,6 +629,11 @@ class WorkingModel:
             report['preopening'] = self.preopening
         else:
             report['whole_model'] = 'not_checked_in_design_phase' if self.kind == 'building' else 'not_applicable_to_component'
+        if self._architecture is not None:
+            from nbt_architecture_plan import check_model
+            report['architecture'] = check_model(self,self._architecture)
+            if self.phase == 'opened' and not report['architecture']['passed']:
+                raise ModelConflict('DESIGN_INVALID',[item for item in report['architecture']['checks'] if not item['passed']])
         return report
 
     def seal(self):
@@ -659,6 +666,10 @@ class WorkingModel:
         self.model, self.phase, self.preopening, self._closed = candidate, 'opened', proof, closed
         return report
 
+    @property
+    def architecture(self):
+        return deepcopy(self._architecture)
+
     def inspect(self, identifier=None, positions=None):
         self._unchanged()
         items = self.instances if identifier is None else {identifier: self.instances[identifier]}
@@ -671,7 +682,7 @@ class WorkingModel:
             samples.append(dict(pos=list(p), value=value_at(self.model,self.walls,p), owner=owners.get(p)))
         return dict(size=list(self.model.size), phase=self.phase, kind=self.kind,
             geometry_sha256=self.model.fingerprint(), model_sha256=model_hash(self.model, self.walls),
-            working_sha256=self._content_token(),
+            working_sha256=self._content_token(), architecture_sha256=(self._architecture or {}).get('sha256'),
             block_count=len(self.model.blocks), wall_blocks=len(self.walls),
             instances={name: dict(recipe=deepcopy(row['recipe']), transform=deepcopy(row['transform']),
                 footprint_positions=len(row['baseline']), owned_positions=sum(p['owned'] for p in row['baseline']),
@@ -732,7 +743,7 @@ class WorkingModel:
         return head, history_source
 
     def _content_token(self):
-        return digest([model_hash(self.model, self.walls), self.instances, self.context, self.phase, self.preopening, self.kind])
+        return digest([model_hash(self.model, self.walls), self.instances, self.context, self.phase, self.preopening, self.kind, self._architecture])
 
     def _history_receipt(self, target, manifest, building):
         source = target / 'master/model.snbt'
@@ -802,7 +813,7 @@ class WorkingModel:
             disk, mask = read_master(stage / 'master/model.snbt')
             if model_hash(disk, mask) != model_hash(self.model, self.walls):
                 raise ValueError('制作版回读不一致')
-            write_json(stage / 'model-instances.json', dict(instances=self.instances, preopening=self.preopening, limits=self.limits))
+            write_json(stage / 'model-instances.json', dict(instances=self.instances, preopening=self.preopening, limits=self.limits, architecture=self._architecture))
             write_json(stage / 'coordinates.json', self.context)
             write_json(stage / 'validation/working-model.json', report)
             changed, layers = change_sets(self._baseline.blocks, self.model.blocks, self._baseline_walls, self.walls)

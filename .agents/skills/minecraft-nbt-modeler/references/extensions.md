@@ -7,6 +7,9 @@
 | `AGENT_TOOLS` | `(workspace, arguments) -> dict` | 高层工具分派；内置实现按工具族组织并延迟导入可选依赖 |
 | `RECIPE_COMPILERS` | `(workspace, arguments) -> RecipeCompilation` | 工作模型与对象图共用的构件配方编译 |
 | `MODEL_ACTIONS` | `(working_model, arguments) -> dict` | 工作模型命令操作；新增操作无需在 CLI 中增加分支 |
+| `ARCHITECT_ACTIONS` | `(workspace, request) -> dict` | 建筑方案、三层审阅与游戏观察入口；公共动作在 architecture.actions 声明 |
+| `CONSTRUCTION_SYSTEMS` | `(volume, specification, budget) -> (voxels, receipt)` | 全局围护、梯段与连接件；返回几何候选，统一受工作模型政策检查 |
+| `DESIGN_CHECKS` | `(working_model, binding, resolved_plan, rule) -> dict` | 用当前几何和实例重新核对设计规则，不能返回用户批准 |
 | `FIT_SHAPES` | `(material, surface) -> list[FitShape]` | 微型拟合的1/16或1/32格几何候选；公共 JSON 形状仍须声明 Schema |
 
 `register(name, handler)` 和 `@register(name)` 均可使用。重复名称默认报错；替换必须显式给 `replace=True`，`unregister(name)` 可用于测试清理或受控注销。`resolve(name)` 查询处理器，未知名称报错；注册器可迭代，可用 `keys()` 检查已注册名称。注册器不是授权系统，扩展处理器仍需遵守源绑定、保护、预算、真实看图和显式定稿流程。
@@ -55,6 +58,8 @@ model.install("marker", {
 ## 细粒度拟合形状
 
 拟合形状的扩展实现放在 `nbt_fit_shapes.py` 或可信启动代码中，通过 `FIT_SHAPES.register` 登记。每个 `FitShape(value, boxes)` 指定合法1.20.1状态与0～16整数或半像素XYZ盒体（每盒为 xmin,ymin,zmin,xmax,ymax,zmax）。共用投影层验证边界、完整候选的背板连接与下方支承，并合并相同轮廓；每个提供器最多256个候选，每个候选最多32个盒体。需下方支承的形状设置 requires_below=True；包络近似设置 approximate=True。内置 slab/stairs/trapdoor/wall/pane/bars/fence/snow/carpet/pressure_plate/end_rod/chain 已接入。盒体只用于静态拟合，不注册碰撞支撑，也不授权导出。运行 `mise run fit:test` 验证形状、方向和真实保存回读；注册变化同样纳入引擎身份和缓存失效。
+
+建筑流程注册器分别位于 `nbt_architecture.py`、`nbt_construction_systems.py` 和 `nbt_architecture_plan.py`。公开新构造/规则时同步 `architecture.plan` 及 plan-save/plan-build 的嵌入契约，添加适用字段和复检逻辑；构造回执不能代替每次的实际几何复检。三者均参与引擎版本摘要。
 
 ## 缓存、进程与版本
 

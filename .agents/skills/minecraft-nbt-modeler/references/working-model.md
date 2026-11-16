@@ -6,6 +6,8 @@
 
 在创作项目根目录运行 `mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py capabilities --model` 查询请求契约；执行 `mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py model --request request.json`。软件源码维护时使用 `mise exec -- node scripts/cli.mjs --workspace <隔离工作区> model --request <JSON>`。引擎位置仍由工作区 `paths` 返回，不写死安装路径，不在软件源码生成创作入口。
 
+复杂建筑可由[可执行建筑方案](architecture-workflow.md)编排同一个工作模型。方案绑定随制作版保存，普通 `validate` 也复检实际空间、梯段、承托和风格规则；不改变用户看图与定稿边界。
+
 ## Python 制作脚本
 
 ```python
@@ -51,7 +53,7 @@ receipt = model.save_draft(name_zh="本次建筑", shape="standalone")
 `save_draft` 只发布 SNBT 制作版。先在工作区 `.nbtcreator/model-staging/` 写齐并回读，再在建筑锁内核对父版本并发布完整目录：
 
 - `master/model.snbt`：实际方块与显式墙层；有真实开洞前证据时另存 `master/preopening.snbt`。
-- `model-instances.json`：配方、实例安装基线与底材。
+- `model-instances.json`：配方、实例安装基线与底材，以及可选建筑方案绑定。
 - `coordinates.json`：有效上下文。
 - `validation/working-model.json`：本次实际检查及未验范围。
 - `changes.json`：相对父制作版的方块状态与墙层实际变化。

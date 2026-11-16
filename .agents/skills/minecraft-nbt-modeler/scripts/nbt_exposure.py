@@ -10,7 +10,7 @@ from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 GROUPS={
- 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','architect-tools','ai-creative-preferences','version-history','snbt-authoring']),
+ 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','architect-tools','architecture-workflow','ai-creative-preferences','version-history','snbt-authoring']),
  'architecture':('建筑风格、场所与构造',['architecture-knowledge-base','structure-atlas','design-grammar','architectural-bays','classical-columns']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
@@ -104,6 +104,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
         return f'[{title}]({relative}/references/{name}.md)'
     routes=[
         ('整栋初稿或重设计',['whole-model-workflow','player-scale','design-principles','spatial-detail-design'],'完整读这四篇基础资料，先联合设计空间、路线与顶构，再选题材专题。'),
+        ('建筑方案、构造与审阅闭环',['architecture-workflow'],'设计参数驱动真实构件；三层出图、问题定位、源绑定回查和游戏验收分别执行。'),
         ('完整主模型与独立构件',['working-model','parametric-components'],'工作模型管理安装、归属、修改和制作版；构件只做适用检查。'),
         ('准备或制作纹样图源',['pattern-authoring'],'已有合适图源可直接进入拟合。'),
         ('拟合纹样与检查质量',['pattern-fitting'],'按微型、普通面板或圆柱模式读对应完整章节，实际看图。'),
@@ -127,7 +128,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
         '整栋先密闭并保存开洞前证据，再按声明开门、验路线与实际看图。独立构件只做适用检查；维护不默认生成建筑。只有用户明确要求SAODG接入才采用专用端口协议。',
         '初稿向用户展示对应缩略图后，明确同意才授权精修；沿用仍有效的原授权。无回复、超时、知识文件、AI建议和测试记录都不构成确认。默认保存并回读SNBT，明确要求定稿才写交付NBT。','',
         '## 找到接口与本次资料','',
-        '`python .agents/skills/nbtcreator-workspace/nbt.py paths` 返回实际引擎路径；已知工具用 `capabilities --agent-tool <名称>`，主模型用 `capabilities --model`，各命令用 `--help` 查询。工具目录是严格字段和CLI映射的唯一来源。',
+        '`python .agents/skills/nbtcreator-workspace/nbt.py paths` 返回实际引擎路径；已知工具用 `capabilities --agent-tool <名称>`，主模型用 `capabilities --model`，建筑方案用 `capabilities --architecture`，各命令用 `--help` 查询。工具目录是严格字段和CLI映射的唯一来源。',
         '任务脚本据 `paths` 导入共享API；model --request 管理完整主模型，parametric_compile 编译构件，pattern_microfit 拟合单元，scene_compile 管理联动候选。需要连续纯候选调用时再用 session。',
         '先读工作区 [ai-style.json](../../../.nbtcreator/ai-style.json) 的当前工作流区域，可用 `ai-style prompt --workflow <区域>` 查询；用户本次要求优先，偏好不改变约束和批准。',
         '下面只列已启用资料能支持的路线。已启用不等于每次通读；完整专题目录见[本次知识索引](knowledge.md)，未选专题不默认读取。知识选择不是额外执行权限。','',

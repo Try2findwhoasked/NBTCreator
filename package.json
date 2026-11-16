@@ -19,6 +19,8 @@
     "test:fitting-shapes": "python -B tests/fitting-shapes.py && python -B tests/ornament-reference.py && python -B tests/fine-collision-envelopes.py",
     "test:object-scenes": "python -B tests/object-scenes.py",
     "test:model-workflow": "python -B tests/working-model.py && python -B tests/scene-interfaces.py && python -B tests/object-scenes.py",
+    "test:architecture-workflow": "python -B tests/architecture-workflow.py",
+    "test:architecture-preview": "npm run build:web && node tests/architecture-preview.mjs",
     "test:extensions": "python -B tests/extensions.py",
     "test:model-preview": "npm run build:web && node tests/working-model-render.mjs",
     "test:engine-session": "node --test tests/engine-session.test.mjs",

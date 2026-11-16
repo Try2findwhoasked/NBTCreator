@@ -13,7 +13,7 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 
 | 当前任务 | 先读与执行范围 |
 | --- | --- |
-| 完整建筑新建或重设计 | 完整读[整体流程](references/whole-model-workflow.md)、[玩家尺度](references/player-scale.md)、[创作原则](references/design-principles.md)、[空间细节](references/spatial-detail-design.md)。从用途、站位、路线与顶构联合设计完整主模型，再选题材专题。 |
+| 完整建筑新建或重设计 | 完整读[整体流程](references/whole-model-workflow.md)、[玩家尺度](references/player-scale.md)、[创作原则](references/design-principles.md)、[空间细节](references/spatial-detail-design.md)。从用途、站位、路线与顶构联合设计完整主模型，再用[建筑方案闭环](references/architecture-workflow.md)绑定共享风格参数、构造、三层看图与问题回查。 |
 | 独立构件或主模型装配 | [工作模型](references/working-model.md)、[参数化构件](references/parametric-components.md)；需要稳定 ID、尺寸引用和联动时读[对象图](references/object-scenes.md)。只做适用的尺寸、状态、占用、接触和预览检查。 |
 | 纹样来源与拟合 | 准备图源读[纹样来源](references/pattern-authoring.md)；已有图源读[纹样拟合](references/pattern-fitting.md)的对应模式。复杂主纹采用 ornate 和明确门槛，分数不代替实际看图。 |
 | 安装到已有建筑 | [贴面安装](references/surface-mounting.md)；先绑定真实源、上下文与安装面，再生成候选。持续组合、修改与制作版保存回到工作模型。 |
@@ -25,7 +25,7 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 
 ## 工具与设计入口
 
-- `tool-catalog.json` 是工具字段和 CLI 映射的唯一来源。已知工具用 `capabilities --agent-tool <名称>` 查询对应 Schema，完整主模型用 `capabilities --model`；各命令用 `--help` 查询。创作工作区的 `paths` 返回实际引擎路径，不猜安装目录。
+- `tool-catalog.json` 是工具字段和 CLI 映射的唯一来源。已知工具用 `capabilities --agent-tool <名称>` 查询对应 Schema，完整主模型用 `capabilities --model`，建筑方案用 `capabilities --architecture`；各命令用 `--help` 查询。创作工作区的 `paths` 返回实际引擎路径，不猜安装目录。
 - 先按[创作偏好](references/ai-creative-preferences.md)读取工作区 `.nbtcreator/ai-style.json` 的当前区域；无配置用默认值。用户本次要求优先，偏好不改变保护、预算、阶段与批准。
 - 用自然中文表达空间、构件和连接关系，再推导实现参数。48格是存储尺度，不是日常房间的默认跨度。初稿落实主要支承、顶构、围护层次、收边和可辨主题节点；留白和克制都可成立。
 - 需要具体构造时按用途选[建筑知识](references/architecture-knowledge-base.md)、[空间语法](references/design-grammar.md)或[场所原型](references/structure-atlas.md)。它们提供推演资料，不是模板白名单。批量候选复用见[建模会话](references/modeling-sessions.md)。

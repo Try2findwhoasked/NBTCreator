@@ -57,7 +57,10 @@ mise exec -- npm run doctor
 mise exec -- npm run check:tools
 mise exec -- npm run test:api
 mise exec -- npm run test:desktop
+mise run architecture:test
 ```
+
+复杂整栋的 Agent 入口与源绑定审阅流程见[建筑方案闭环](.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md)；`mise run architecture:preview` 在隔离项目中验证公共 CLI、冻结入口与真实出图。
 
 ## 反馈
 

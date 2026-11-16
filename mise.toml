@@ -33,3 +33,11 @@ run = "npm run test:fitting-shapes"
 [tasks."gpu:materialization"]
 description = "Benchmark CPU materialization with CPU and GPU field inputs"
 run = "python scripts/gpu-runtime.py python -B scripts/benchmark-materialization.py"
+
+[tasks."architecture:test"]
+description = "Verify executable building plans, source protection and review bindings"
+run = "npm run test:architecture-workflow"
+
+[tasks."architecture:preview"]
+description = "Build three full buildings through CLI/frozen entry and render three-scale reviews"
+run = "npm run test:architecture-preview"

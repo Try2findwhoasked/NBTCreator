@@ -7,7 +7,7 @@
 | 当前要解决的问题 | 先读 | 需要时再展开 |
 | --- | --- | --- |
 | 从用途形成整栋初稿 | [整体流程](whole-model-workflow.md)、[玩家尺度](player-scale.md)、[创作原则](design-principles.md)、[空间细节](spatial-detail-design.md) | [空间语法](design-grammar.md)、[建筑知识](architecture-knowledge-base.md)、[场所原型](structure-atlas.md)中的适用章节 |
-| 把设计落实为完整主模型 | [工作模型](working-model.md) | [参数化构件](parametric-components.md)、[对象图](object-scenes.md)、[通用几何](modelling-tools.md) |
+| 把设计落实为完整主模型 | [建筑方案闭环](architecture-workflow.md)、[工作模型](working-model.md) | [参数化构件](parametric-components.md)、[对象图](object-scenes.md)、[通用几何](modelling-tools.md) |
 | 制作或准备图案来源 | [纹样来源与制作](pattern-authoring.md) | [频域预处理](pattern-spectral.md)；已有合适图源时直接拟合 |
 | 将图案拟合成方块 | [纹样拟合与质量](pattern-fitting.md)的适用模式 | 扩展形状、圆柱及复杂主纹验收章节 |
 | 把构件装到现有建筑 | [贴面安装](surface-mounting.md) | [对象图](object-scenes.md)中的依赖联动；持续修改仍回到工作模型 |

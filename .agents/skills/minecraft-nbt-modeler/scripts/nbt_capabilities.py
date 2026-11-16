@@ -13,6 +13,8 @@ def _checked_catalog():
     if set(data.get('agent_tools',{}))!=SUPPORTED_AGENT_TOOLS:raise ValueError('Structure agent tools and catalogue differ')
     from nbt_walk_view import SUPPORTED_INSPECTION_TOOLS
     if set(data.get('inspection_tools',{}))!=SUPPORTED_INSPECTION_TOOLS:raise ValueError('Inspection tools and catalogue differ')
+    from nbt_architecture import ARCHITECT_ACTIONS
+    if set(data.get('architecture',{}).get('actions',{}))!=set(ARCHITECT_ACTIONS):raise ValueError('Architecture workflow and catalogue differ')
     return data,digest
 
 
@@ -31,8 +33,10 @@ if __name__=='__main__':
     data=capabilities();parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--agent-tool',choices=sorted(data['agent_tools']),help='只读取指定高层工具的完整参数Schema')
     parser.add_argument('--model',action='store_true',help='只读取统一工作模型的请求契约')
+    parser.add_argument('--architecture',action='store_true',help='只读取建筑方案与评审工作流契约')
     args=parser.parse_args()
-    if args.model and args.agent_tool:parser.error('--model 与 --agent-tool 二选一')
+    if sum(map(bool,(args.model,args.agent_tool,args.architecture)))>1:parser.error('--model、--architecture 与 --agent-tool 只能选一个')
+    if args.architecture:data=dict(architecture=data['architecture'],capabilities_sha256=data['capabilities_sha256'],gui_required=False)
     if args.model:data=dict(working_model=data['working_model'],capabilities_sha256=data['capabilities_sha256'],gui_required=False)
     if args.agent_tool:
         data=dict(agent_tools={args.agent_tool:data['agent_tools'][args.agent_tool]},
