@@ -19,3 +19,13 @@ test('legacy five-region preferences gain independent assets identically in nati
  await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/ai-style.json'),JSON.stringify(old))
  const native=await styles.context('component'),run=spawnSync('python',[path.join(skill,'scripts/nbt_ai_style.py'),'--workspace',workspace,'prompt','--workflow','component'],{encoding:'utf8',windowsHide:true});assert.equal(run.status,0,run.stderr);const cli=JSON.parse(run.stdout).result;assert.equal(native.values.creativity,88);assert.deepEqual(cli.values,native.values);assert.equal(cli.prompt,native.prompt)
 })
+
+
+test('internal prose detail is role-specific while external construction preferences stay intact',async t=>{
+ const workspace=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-prose-style-'));t.after(()=>fs.rm(workspace,{recursive:true,force:true}))
+ const styles=createAIStyle({workspace:()=>workspace,skill}),config=await styles.load();config.workflows.draft.detail=95;await styles.save(config)
+ const native=await styles.context('draft'),run=spawnSync('python',[path.join(skill,'scripts/nbt_ai_style.py'),'--workspace',workspace,'prompt','--workflow','draft'],{encoding:'utf8',windowsHide:true})
+ assert.equal(run.status,0,run.stderr);assert.equal(JSON.parse(run.stdout).result.prompt,native.prompt)
+ const {createInternalAI}=require('../desktop/internal-ai.cjs');const internal=await createInternalAI({workspace:()=>workspace,skill}).context('draft');assert.deepEqual(internal.style,native.values);assert.ok(internal.style_prompt.includes('执行Agent推导'));assert.ok(native.prompt.includes('操作步骤'))
+ assert.equal((await styles.context('component')).values.detail,config.workflows.component.detail)
+})

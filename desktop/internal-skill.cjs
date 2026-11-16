@@ -27,7 +27,11 @@ const registry=require('../.agents/skills/minecraft-nbt-modeler/references/block
 const materialChoices=['air','stone','stone_bricks','cracked_stone_bricks','mossy_stone_bricks','cobblestone','mossy_cobblestone','andesite','polished_andesite','deepslate_bricks','deepslate_tiles','sandstone','chiseled_sandstone','smooth_sandstone','oak_planks','spruce_planks','oak_log','spruce_log','stone_brick_slab','stone_brick_stairs','sandstone_slab'].filter(name=>registry.blocks['minecraft:'+name])
 function buildInternalPrompt(mode,context={},options={}){
  if(!['prompt','structure','small_structure','component','selection_edit','workbench'].includes(mode))throw Error('未知内部Skill工作流')
- if(mode==='workbench'&&context.task==='brief')return read('references/brief.md')+'\nbuilding_shapes：'+JSON.stringify(Object.keys(catalog.building_shapes))
+ if(mode==='workbench'&&context.task==='brief'){
+  const names=context.brief_scope?.editable_fields??Object.keys(catalog.prompt_design.fields)
+  const labels=Object.fromEntries(names.map(key=>[key,catalog.prompt_design.fields[key].label]))
+  return read('references/brief.md')+'\n本次允许修改的设计项：'+JSON.stringify(labels)+(names.includes('buildingShape')?'\nbuilding_shapes：'+JSON.stringify(Object.keys(catalog.building_shapes)):'')
+ }
  const parts=mode==='prompt'?[read('references/prompt.md')]:[read('SKILL.md').split('## 维护路由')[0].trim(),read('references/'+mode+'.md')]
  if(['component','selection_edit','workbench'].includes(mode)){
   const contract=toolContract(options.fullTools?undefined:selectTools(options.instruction??'',context))

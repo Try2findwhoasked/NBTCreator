@@ -15,6 +15,20 @@ class Prompts(unittest.TestCase):
   self.payload=dict(session_id='a'*32,document=dict(project=dict(name='测试厅',stage='draft',buildingShape='single',source=''),operations=[]),text='完整提示词：不要把方案当作批准。',plan={'operations':[]},context={'start':None})
  def test_first_creation_goes_under_building_root_and_scan_is_only_index_metadata(self):
   r=save(self.workspace,self.payload);self.assertTrue(r['prompt'].startswith('nbt_models/single/测试厅/提示词方案/'));items=scan(self.workspace)['items'];self.assertEqual(len(items),1);self.assertNotIn('text',items[0]);self.assertEqual(read_prompt(self.workspace,r['index'],r['id'])['text'],self.payload['text']);self.assertFalse(any((self.workspace/'nbt_models').rglob('room_description.json')))
+ def test_human_design_and_edit_scope_are_frozen_in_the_published_handoff(self):
+  fields=dict(size=[61,29,43],size_policy='fixed',spatial_character='穿过低廊进入挑高主厅',materials='石砖承重，木构用于廊架',atmosphere='安静的侧向采光',avoid='不要中央圆环',preserve='保留东侧院落')
+  self.payload['document']['project'].update(fields);self.payload['document']['workbench']={'brief_fields':['layout','style']}
+  first=save(self.workspace,self.payload);task=publish(self.workspace,first['index'],first['id'],first['revision'])
+  frozen=read_task(self.workspace,task['id'])
+  for key,value in fields.items():self.assertEqual(frozen['document']['project'][key],value)
+  self.assertEqual(frozen['document']['workbench']['brief_fields'],['layout','style'])
+  self.payload['document']['project']['avoid']='新的要求';save(self.workspace,self.payload)
+  self.assertEqual(read_task(self.workspace,task['id'])['document']['project']['avoid'],'不要中央圆环')
+ def test_invalid_human_fields_and_edit_scope_are_rejected_before_archiving(self):
+  for value in ({'project':{'materials':['stone']}},{'project':{'size_policy':'guess'}},{'workbench':{'brief_fields':['layout','layout']}},{'workbench':{'brief_fields':['source']}}):
+   p=copy.deepcopy(self.payload)
+   for key,fields in value.items():p['document'].setdefault(key,{}).update(fields)
+   with self.subTest(value=value),self.assertRaises(ValueError):save(self.workspace,p)
  def test_deleted_prompt_stays_hidden_after_rename_and_preserves_archive_and_published_task(self):
   old=save(self.workspace,self.payload);self.payload['document']['project']['name']='改名后的测试厅';current=save(self.workspace,self.payload)
   task=publish(self.workspace,current['index'],current['id'],current['revision'])

@@ -29,7 +29,7 @@
   function edited(doc){
    if(silent||loading)return
    const initial=C.defaults();initial.project.output=C.outputPath(initial.project);initial.design_standard=doc.design_standard;initial.design_override=doc.design_override
-   if(!active&&!items.length&&!doc.workbench&&signature(doc)===signature(initial))return
+   if(!active&&!items.length&&signature(doc)===signature(initial)&&JSON.stringify(doc.workbench)===JSON.stringify(initial.workbench))return
    pristine=false
    if(!doc.export_id)doc.export_id=crypto.randomUUID().replaceAll('-','')
    if(!active||active.id!==doc.export_id){active=items.find(i=>i.id===doc.export_id);if(!active){active={id:doc.export_id};items.push(active)}}
@@ -48,7 +48,7 @@
   async function guard(fn){if(loading||working||hooks.isGenerating())return;working=true;render();try{return await fn()}catch(error){hooks.message(error.message,true)}finally{working=false;document.body.classList.remove('prompt-processing');render()}}
   async function appendDocument(doc,instruction='',standard){
    standard??=await hooks.bridge?.standards?.();if(standard?.revision)doc.design_standard=C.clone(standard)
-   doc.export_id=crypto.randomUUID().replaceAll('-','');doc.workbench={status:'pending',generated:false,instruction,created_at:Date.now()};const item={id:doc.export_id,name:doc.project.name,document:doc};items.push(item);await select(item,{skipFlush:true,tab:'ai'});hooks.update();await hooks.flush();return item
+   doc.export_id=crypto.randomUUID().replaceAll('-','');doc.workbench={...doc.workbench,status:'pending',generated:false,instruction,created_at:Date.now()};const item={id:doc.export_id,name:doc.project.name,document:doc};items.push(item);await select(item,{skipFlush:true,tab:'ai'});hooks.update();await hooks.flush();return item
   }
   async function addBlank(){return guard(async()=>{await hooks.flush();return appendDocument(C.defaults())})}
   async function confirmCurrent(){
@@ -84,7 +84,12 @@
    let requested;try{requested=batchItems()}catch(error){$('prompt-batch-status').textContent=error.message;return}
    return guard(async()=>{
     await hooks.flush();$('prompt-batch-dialog').close();const added=[],standard=await hooks.bridge?.standards?.();cancelled=false
-    for(const request of requested){const doc=C.defaults();doc.project.name=request.name;added.push(await appendDocument(doc,request.instruction,standard))}
+    const template=C.clone(hooks.document()),inherit=$('prompt-batch-inherit').checked;
+    for(const request of requested){
+     const doc=C.defaults();
+     if(inherit){if(C.buildingShapes[template.project.buildingShape])C.applyShape(doc.project,template.project.buildingShape);for(const key of [...Object.keys(C.designContract.fields),'size_policy'])if(key!=='name'&&template.project[key]!==undefined)doc.project[key]=C.clone(template.project[key]);doc.workbench.brief_fields=C.clone(template.workbench?.brief_fields??C.designContract.default_editable_fields);}
+     doc.project.name=request.name;doc.project.output=C.outputPath(doc.project);added.push(await appendDocument(doc,request.instruction,standard));
+    }
     if(!generate){await select(added[0],{skipFlush:true,tab:'ai'});hooks.message(`已添加 ${added.length} 座建筑。点击“生成下一条”依次编写。`);return}
     await runBatch(added)
    })

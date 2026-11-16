@@ -66,10 +66,16 @@ def save(workspace, payload):
         from nbt_architect import validate_standard
         validate_standard(document['design_standard'])
     if not isinstance(document.get('design_override',''),str) or len(document.get('design_override',''))>4000:raise ValueError('建筑规范例外最多4000字')
+    catalog=json.loads((Path(__file__).resolve().parents[1]/'tool-catalog.json').read_text(encoding='utf8'))
+    design=catalog['prompt_design'];project=document['project']
+    for key in design['fields']:
+        if key!='size' and key in project and (not isinstance(project[key],str) or len(project[key])>4000):raise ValueError('设计参数文字无效：'+key)
+    if 'size_policy' in project and (not isinstance(project['size_policy'],str) or project['size_policy'] not in design['size_policies']):raise ValueError('尺寸约束方式无效')
+    scope=document.get('workbench',{}).get('brief_fields') if isinstance(document.get('workbench',{}),dict) else None
+    if scope is not None and (not isinstance(scope,list) or any(not isinstance(key,str) or key not in design['fields'] for key in scope) or len(set(scope))!=len(scope)):raise ValueError('AI改写范围无效')
     document=copy.deepcopy(document);project=document['project'];stage=project.get('stage');source=None;source_hash=None
     if stage not in ('draft','plan','refine'):raise ValueError('提示词阶段无效')
     if stage=='draft':
-        catalog=json.loads((Path(__file__).resolve().parents[1]/'tool-catalog.json').read_text(encoding='utf8'))
         shape=project.get('buildingShape');name=project.get('name','')
         if shape not in catalog['building_shapes'] or not isinstance(name,str) or not name.strip():raise ValueError('填写建筑名称与有效形状')
         name=re.sub(r'[<>:"/\\|?*\x00-\x1f]','_',name).rstrip('. ')[:70] or '未命名建筑'

@@ -20,3 +20,29 @@ test('design briefs describe objects and relations while deferring construction 
  assert.ok(brief.includes('用户明确给出的坐标、尺寸与约束可以保留'))
  assert.ok(brief.includes('不返回operations'))
 })
+
+
+test('partial prose suggestions respect human scope and need no geometry worker',async t=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-partial-brief-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));const calls=[]
+ const api=createApiService({directory,safeStorage:{},validateCandidate:createCandidateValidator({root:path.resolve(__dirname,'..'),python:'missing-python.exe',directory,getWorkspace:()=>directory}),fetchImpl:async(_u,o)=>{
+  calls.push(JSON.parse(o.body));const patch=calls.length===1?{layout:'沿坡展开',materials:'擅自替换'}:{layout:'沿坡展开'}
+  return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify({project_patch:patch})}}]}))
+ }})
+ await api.save({enabled:true})
+ const result=await api.generate({mode:'workbench',instruction:'只补布局',context:{task:'brief',project:{size:[32,18,40],name:'人工名',style:'石木结构',materials:'铜只用于接头',size_policy:'fixed'},brief_scope:{editable_fields:['layout']},operations:[]}})
+ assert.equal(calls.length,2);assert.deepEqual(result.project_patch,{layout:'沿坡展开'})
+ assert.ok(calls[1].messages.at(-1).content.includes('未勾选'))
+ for(const call of calls)assert.ok(!call.messages[0].content.includes('geometry_parameters'))
+ assert.equal((await fs.readdir(directory)).includes('ai-validation'),false)
+})
+
+test('length recovery for a brief stays prose-only and retains its edit scope',async t=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-brief-length-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));const calls=[]
+ const api=createApiService({directory,safeStorage:{},fetchImpl:async(_u,o)=>{
+  calls.push(JSON.parse(o.body));return new Response(JSON.stringify({choices:[{finish_reason:calls.length===1?'length':'stop',message:{content:calls.length===1?'{"project_patch":':JSON.stringify({project_patch:{style:'厚石基座与轻木构'}})}}]}))
+ }})
+ await api.save({enabled:true});const result=await api.generate({mode:'workbench',instruction:'写设计意图',context:{task:'brief',project:{size:[48,24,48]},brief_scope:{editable_fields:['style']}}})
+ assert.equal(result.project_patch.style,'厚石基座与轻木构');assert.equal(calls.length,2)
+ const feedback=calls[1].messages.at(-1).content;assert.ok(!feedback.includes('box/beam/frame'));assert.ok(feedback.includes('设计文字'))
+ assert.deepEqual(JSON.parse(calls[0].messages[1].content).context.brief_scope,JSON.parse(calls[1].messages[1].content).context.brief_scope)
+})

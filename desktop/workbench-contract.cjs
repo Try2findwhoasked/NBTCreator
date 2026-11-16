@@ -2,7 +2,7 @@ const {validateOperation,validateParameter}=require('./operation-parameters.cjs'
 const {isDeepStrictEqual}=require('node:util')
 const catalog=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json')
 const {createHash}=require('node:crypto')
-const fields=['buildingShape','layout','circulation','name','theme','purpose','footprint','style','ceiling','floor','wall','props','preserve','extras']
+const fields=Object.keys(catalog.prompt_design.fields).filter(key=>key!=='size')
 const SHA=/^[a-f0-9]{64}$/
 const own=(value,allowed)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).every(key=>allowed.includes(key))
 function fingerprint(value){
@@ -12,13 +12,21 @@ function fingerprint(value){
 function cleanContext(input){
  if(!input||!input.project||!Array.isArray(input.project.size))throw Error('需要当前提示词方案')
  const project={size:[...input.project.size]}
- for(const key of fields)if(typeof input.project[key]==='string')project[key]=input.project[key].slice(0,4000)
+ for(const key of fields)if(input.project[key]!==undefined){if(typeof input.project[key]!=='string'||input.project[key].length>4000)throw Error('设计参数须为不超过4000字的文字：'+key);project[key]=input.project[key]}
+ if(input.project.size_policy!==undefined){if(!Object.hasOwn(catalog.prompt_design.size_policies,input.project.size_policy))throw Error('尺寸约束方式无效');project.size_policy=input.project.size_policy}
+ if(input.project.integration!==undefined){if(!['standalone','saodg'].includes(input.project.integration))throw Error('使用场景无效');project.integration=input.project.integration}
  if(!project.size||project.size.length!==3||!project.size.every(v=>Number.isInteger(v)&&v>0&&v<=4096))throw Error('设计尺寸无效');
  if(['draft','brief'].includes(input.task)&&input.existing_model)throw Error('完整初稿必须是新建任务');
  if(input.baseline_binding!==undefined&&!SHA.test(input.baseline_binding))throw Error('方案绑定指纹无效')
  if(input.operations!==undefined&&(!Array.isArray(input.operations)||input.operations.length>128))throw Error('当前工具序列最多128项，不能静默截断')
  if(input.project_standard!==undefined&&(typeof input.project_standard!=='string'||input.project_standard.length>40000))throw Error('项目规范文本无效或超过40000字')
- return {...(input.project_standard?{project_standard:input.project_standard}:{}),project,task:['draft','brief'].includes(input.task)?input.task:'controls',existing_model:input.existing_model===true,operations:input.task==='brief'?[]:structuredClone(input.operations??[]),...(input.baseline_binding?{baseline_binding:input.baseline_binding}:{})}
+ let brief_scope
+ if(input.brief_scope!==undefined){
+  const scope=input.brief_scope
+  if(input.task!=='brief'||!own(scope,['editable_fields'])||!Array.isArray(scope.editable_fields)||!scope.editable_fields.length||scope.editable_fields.length>fields.length+1||new Set(scope.editable_fields).size!==scope.editable_fields.length||scope.editable_fields.some(key=>!Object.hasOwn(catalog.prompt_design.fields,key)))throw Error('AI修改范围无效，请选择允许修改的设计项')
+  brief_scope={editable_fields:[...scope.editable_fields]}
+ }
+ return {...(input.project_standard?{project_standard:input.project_standard}:{}),project,task:['draft','brief'].includes(input.task)?input.task:'controls',existing_model:input.existing_model===true,operations:input.task==='brief'?[]:structuredClone(input.operations??[]),...(brief_scope?{brief_scope}:{}),...(input.baseline_binding?{baseline_binding:input.baseline_binding}:{})}
 }
 function operationBase(context){return {baseline:fingerprint(context),steps:context.operations.map((op,i)=>({step:i+1,expected:fingerprint(op)}))}}
 function mergeOperationPatch(result,context){
@@ -55,7 +63,13 @@ function validateWorkbench(result,context){
  if(patch.buildingShape){if(!catalog.building_shapes[patch.buildingShape])throw Error('建筑形状无效');if(context.existing_model&&patch.buildingShape!==context.project.buildingShape)throw Error('已有模型形状不可由AI改写')}
  if(context.task==='draft'){for(const key of ['name','theme','purpose','layout','circulation','style','ceiling','floor','wall','props'])if(typeof patch[key]!=='string'||!patch[key].trim())throw Error('完整初稿缺少设计字段：'+key);if(!Array.isArray(result.operations)||!result.operations.length)throw Error('完整初稿需要初始构造工具步骤')}
  if(context.task==='brief'){
-  for(const key of ['name','theme','purpose','layout','circulation','style','ceiling','floor','wall','props'])if(typeof patch[key]!=='string'||!patch[key].trim())throw Error('交接要求缺少设计字段：'+key)
+  const editable=new Set(context.brief_scope?.editable_fields??Object.keys(catalog.prompt_design.fields))
+  if(!Object.keys(patch).length)throw Error('交接要求需要至少一项设计文字建议')
+  if(!Object.keys(patch).some(key=>editable.has(key)))throw Error('至少返回一项允许修改的设计建议')
+  for(const [key,value]of Object.entries(patch)){
+   if(!editable.has(key)&&!isDeepStrictEqual(value,context.project[key]))throw Error('AI不能修改未勾选的设计项：'+key)
+   if(key!=='size'&&!value.trim())throw Error('设计建议不能为空白；未修改的字段请省略：'+key)
+  }
   if(result.operations!==undefined&&(!Array.isArray(result.operations)||result.operations.length))throw Error('当前为提示词编写，仅返回project_patch设计文字，不生成具体工具步骤；工具操作由下一个Agent按真实模型编写')
  }
  if(patch.size){if(!Array.isArray(patch.size)||patch.size.length!==3||!patch.size.every(v=>Number.isInteger(v)&&v>0&&v<=4096))throw Error('设计尺寸无效');if(context.existing_model&&JSON.stringify(patch.size)!==JSON.stringify(context.project.size))throw Error('已有模型尺寸不可由AI改写')}
@@ -79,6 +93,6 @@ function validateWorkbench(result,context){
    if(op.kind!=='auto_floor'&&op.kind!=='beam'){for(const key of ['lo','hi'])if(!Array.isArray(op[key])||op[key].length!==3||!op[key].every(Number.isInteger))throw Error('工具需要整数XYZ选区');if(op.lo.some((v,i)=>v<0||v>op.hi[i]||op.hi[i]>=size[i]))throw Error('AI工具超出方案尺寸')}
   }
  }
- return context.task==='brief'?{summary:result.summary,project_patch:patch}:result
+ return context.task==='brief'?{summary:result.summary,project_patch:Object.fromEntries(Object.entries(patch).filter(([key])=>!context.brief_scope||context.brief_scope.editable_fields.includes(key)))}:result
 }
 module.exports={cleanContext,validateWorkbench,operationBase}

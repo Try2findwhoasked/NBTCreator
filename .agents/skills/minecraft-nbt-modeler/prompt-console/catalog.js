@@ -26477,5 +26477,85 @@ globalThis.NbtToolCatalog = {
         ]
       }
     }
+  },
+  "prompt_design": {
+    "schema_version": 1,
+    "fields": {
+      "name": {
+        "label": "建筑名称"
+      },
+      "buildingShape": {
+        "label": "建筑形状"
+      },
+      "size": {
+        "label": "整体尺寸（X × Y × Z，格）"
+      },
+      "footprint": {
+        "label": "占地与周边关系"
+      },
+      "theme": {
+        "label": "建筑主题"
+      },
+      "purpose": {
+        "label": "用途与使用方式"
+      },
+      "spatial_character": {
+        "label": "空间特色与体验"
+      },
+      "layout": {
+        "label": "空间分区与层次"
+      },
+      "circulation": {
+        "label": "动线与连接"
+      },
+      "style": {
+        "label": "建筑风格与构造语汇"
+      },
+      "materials": {
+        "label": "材质倾向与分工"
+      },
+      "atmosphere": {
+        "label": "光线与空间氛围"
+      },
+      "ceiling": {
+        "label": "屋顶与顶构意图"
+      },
+      "floor": {
+        "label": "地面与平台意图"
+      },
+      "wall": {
+        "label": "墙面与开口意图"
+      },
+      "props": {
+        "label": "陈设与装饰"
+      },
+      "avoid": {
+        "label": "希望避免的设计"
+      },
+      "preserve": {
+        "label": "必须保留的部分"
+      },
+      "extras": {
+        "label": "其他设计要求"
+      }
+    },
+    "default_editable_fields": [
+      "theme",
+      "purpose",
+      "spatial_character",
+      "layout",
+      "circulation",
+      "style",
+      "materials",
+      "atmosphere",
+      "ceiling",
+      "floor",
+      "wall",
+      "props"
+    ],
+    "size_policies": {
+      "reference": "参考尺寸，执行 Agent 可按用途调整并说明",
+      "fixed": "固定尺寸，执行 Agent 必须满足"
+    }
   }
 };

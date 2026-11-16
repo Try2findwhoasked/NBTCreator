@@ -59,3 +59,14 @@ test('full baselines are cloned rather than truncated, allowing a small patch on
  assert.throws(()=>cleanContext({...input,operations:Array(129).fill(step)}),/不能静默截断/)
  assert.throws(()=>validateWorkbench({summary:'完整替换',operations:ctx.operations},ctx),/64/)
 })
+
+
+test('brief patches are incremental while human-only policy and unselected fields stay immutable',()=>{
+ const ctx=cleanContext({task:'brief',project:{name:'人工名',style:'旧风格',theme:'人工主题',materials:'石砖与铜',size:[48,24,48],size_policy:'fixed'},brief_scope:{editable_fields:['layout']}})
+ const before=JSON.stringify(ctx)
+ assert.deepEqual(validateWorkbench({summary:'补布局',project_patch:{layout:'沿坡展开',name:'人工名'}},ctx).project_patch,{layout:'沿坡展开'})
+ for(const patch of [{theme:'改主题'},{size:[96,24,48]},{size_policy:'reference'},{source:'private'}])assert.throws(()=>validateWorkbench({summary:'错误',project_patch:patch},ctx))
+ for(const editable_fields of [[],['source'],['layout','layout'],['size_policy']])assert.throws(()=>cleanContext({task:'brief',project:{size:[48,24,48]},brief_scope:{editable_fields}}))
+ assert.throws(()=>cleanContext({task:'brief',project:{...ctx.project,avoid:'x'.repeat(4001)}}),/4000/)
+ assert.equal(JSON.stringify(ctx),before)
+})

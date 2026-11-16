@@ -1,7 +1,7 @@
 const {createAIStyle}=require('./ai-style.cjs')
 const fs=require('node:fs/promises'),path=require('node:path'),crypto=require('node:crypto')
 const flows={
- draft:{label:'提示词方案 · 交接要求',steps:'整理设计要求 → 用户审阅 → 保存任务与提示词 → 下一个Agent读取后制作',rules:'只编写设计要求和交接文字；以关键空间、构件与环境为对象，描述用途、特征、包含和连接关系及共同约束；默认不预定数量、间距、方块配方或施工顺序，用户明确给定的细节保留。具体建模步骤由接收任务的Agent编写，不在提示词编写阶段实施模型。'},
+ draft:{label:'提示词方案 · 交接要求',steps:'整理设计要求 → 用户审阅 → 保存任务与提示词 → 下一个Agent读取后制作',rules:'只辅助人编写和批量整理建筑提示词。围绕用途、核心空间特色、风格与氛围简明表达；仅修改本次允许的设计项，未返回字段保留人工值。用户硬条件优先，具体构件、数量、配方、坐标和施工由执行Agent推导。'},
  workbench:{label:'提示词方案 · 配置控件',steps:'读取当前表单 → 提议设计字段和工具序列 → 校验 → 用户采用',rules:'保留不需修改的字段与步骤；已有模型尺寸、路径、阶段和保护保持本地值。'},
  prompt:{label:'提示词方案 / 模型编辑 · 文字编写',steps:'读取本次文字要求 → 补充设计说明 → 返回候选正文 → 用户采用或复制',rules:'使用简体中文描述建筑对象、职责和关系，保留实现自由，不声称已执行、已看图或已获批准。'},
  structure:{label:'模型编辑 · 局部编辑',steps:'读取局部选区与材质 → 生成填充/换块候选 → 本地校验 → 预览 → 用户导出',rules:'严格留在选区内；保护必要路线和承重，不能降低验证要求。'},
@@ -10,16 +10,30 @@ const flows={
 flows.component={label:'资产管理 · 独立结构',steps:'读取资产与创作要求 → 返回共用结构参数 → 本地引擎生成独立预览 → 用户保存新资产 → 按参数放置候选',rules:'使用共用结构Agent协议、建模工具目录和局部整数XYZ坐标。独立结构不依赖已打开建筑；已有资产用编号与内容哈希引用。返回一个结构名称和一个相机角度，由脚本补齐镜头。保存资产不等于设计批准，放置仍需保护、预算、真实预览与显式导出。'}
 flows.selection_edit={label:'模型编辑 · 选区自然语言工具编辑',steps:'读取现有候选的完整选区方块摘要 → 返回相对坐标工具步骤 → 用户审阅 → 同一引擎限制实际写入范围并预览 → 操作历史可撤销 → 用户显式导出',rules:'按完整选区的实际方块与墙层规划，保留不需改变的内容。使用局部原点与共用工具目录，选择适用步骤，最多32步；不得猜选区外环境或返回执行代码。覆盖由用户控制，保护、预算及墙层规则仍由引擎检查。不能把计划或预览称为已导出或已批准。'}
 flows.small_structure.rules+='\n优先合并相邻同材质体积，通常不超过48个操作；只对零散装饰逐块描述。返回紧凑完整JSON，summary简短，不重复列出每个方块。允许覆盖只作用于实际写入位置，不能放宽保护和预算。'
-flows.draft.rules+='\n声明整体尺寸与有效占地；闭合外壳后检查全部腔体，再按声明开洞；初稿已有顶构承托、墙面/地板层次和主题节点。安排实际主模型/图片/验证交付，等待对应看图确认后才精修。'
+flows.draft.rules+='\n尺寸、占地、保留项和避免事项依人工参数；未限定的实现细节留给执行Agent。通用制作、验证和交付边界由软件附加，不在每项设计文字里重复，不声称已建模或已获批准。'
 flows.workbench.rules+='\n坐标和工具步骤只是候选，按真实模型核对；只改用户需要的设计字段，保持未调整步骤。发现缺参数时明确列出，不捏造验证。'
 flows.prompt.rules+='\n明确用途、玩家活动、空间关系、构造连接和交付阶段。区分已有事实、设计建议与待验证项，输出可修改的中文说明。'
 flows.structure.rules+='\n局部编辑只允许已开放的结构/换块参数，移动目标也必须界内。候选必须通过源哈希、合法状态、保护和预算检查后预览；保存建筑由用户另行导出。'
+const legacyDraftRules="只编写设计要求和交接文字；以关键空间、构件与环境为对象，描述用途、特征、包含和连接关系及共同约束；默认不预定数量、间距、方块配方或施工顺序，用户明确给定的细节保留。具体建模步骤由接收任务的Agent编写，不在提示词编写阶段实施模型。\n声明整体尺寸与有效占地；闭合外壳后检查全部腔体，再按声明开洞；初稿已有顶构承托、墙面/地板层次和主题节点。安排实际主模型/图片/验证交付，等待对应看图确认后才精修。"
 const builtins=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').knowledge_sources
 function createInternalAI({workspace,skill,retrieve}){
  const styles=createAIStyle({workspace,skill})
+ async function styleContext(key){
+  const original=await styles.context(key)
+  if(!['draft','prompt'].includes(key))return original
+  const detail={low:'用短句保留主题、用途和用户硬条件，提出一个主要空间特点。',middle:'说明空间连接关系、风格与氛围，保留具体构造实现自由。',high:'充分描述用途、空间体验、风格理由与重点关系；人工明确的细节保留，其余施工数量、坐标与方块配方由执行Agent推导。'}
+  const lines=[`使用区域：${flows[key].label}。以下为创作偏好；用户本次明确要求优先。`]
+  for(const [name,definition]of Object.entries(styles.schema.dimensions)){
+   const value=original.values[name],band=value<34?'low':value>66?'high':'middle'
+   lines.push(`${definition.label} ${value}/100（${definition.left} ↔ ${definition.right}）：${name==='detail'?detail[band]:definition[band]}`)
+  }
+  lines.push('创作偏好不改变选区、源文件、保护、预算、返回格式及真实看图确认要求；不得据此声称已执行或已通过验收。')
+  return {values:original.values,prompt:lines.join('\n')}
+ }
+
  const base=()=>path.join(workspace(),'.nbtcreator','internal-ai'),file=()=>path.join(base(),'config.json')
  const defaults=()=>({schema_version:1,workflows:Object.fromEntries(Object.entries(flows).map(([key,value])=>[key,{rules:value.rules,instruction:'',knowledge:[],attachViewport:false}])),documents:[]})
- async function load(){try{const data=JSON.parse(await fs.readFile(file(),'utf8'));if(data.schema_version===1&&data.workflows&&!data.workflows.component&&Object.keys(data.workflows).length===5&&Object.keys(data.workflows).every(key=>flows[key]))data.workflows.component=defaults().workflows.component;if(data.schema_version===1&&data.workflows&&[5,6].includes(Object.keys(data.workflows).length)&&Object.keys(data.workflows).every(key=>flows[key])&&['draft','workbench','prompt','structure','small_structure'].every(key=>data.workflows[key])){if(!data.workflows.component)data.workflows.component=defaults().workflows.component;if(!data.workflows.selection_edit)data.workflows.selection_edit=defaults().workflows.selection_edit}return data}catch(e){if(e.code==='ENOENT')return defaults();throw e}}
+ async function load(){try{const data=JSON.parse(await fs.readFile(file(),'utf8'));if(data.schema_version===1&&data.workflows?.draft?.rules===legacyDraftRules)data.workflows.draft.rules=defaults().workflows.draft.rules;if(data.schema_version===1&&data.workflows&&!data.workflows.component&&Object.keys(data.workflows).length===5&&Object.keys(data.workflows).every(key=>flows[key]))data.workflows.component=defaults().workflows.component;if(data.schema_version===1&&data.workflows&&[5,6].includes(Object.keys(data.workflows).length)&&Object.keys(data.workflows).every(key=>flows[key])&&['draft','workbench','prompt','structure','small_structure'].every(key=>data.workflows[key])){if(!data.workflows.component)data.workflows.component=defaults().workflows.component;if(!data.workflows.selection_edit)data.workflows.selection_edit=defaults().workflows.selection_edit}return data}catch(e){if(e.code==='ENOENT')return defaults();throw e}}
  function validate(c){
   if(!c||c.schema_version!==1||!c.workflows||!Array.isArray(c.documents)||c.documents.length>100)throw Error('内部AI配置无效')
   const ids=new Set(Object.keys(builtins))
@@ -39,14 +53,14 @@ function createInternalAI({workspace,skill,retrieve}){
  const documentPath=(c,id)=>{const b=builtins[id],d=c.documents.find(d=>d.id===id);return b?path.join(skill,'references',b.file):path.join(base(),d.path)}
  async function capture(key,request={}){
   if(!flows[key])throw Error('未知AI工作流')
-  const c=validate(await load()),preference=await styles.context(key),documents={}
+  const c=validate(await load()),preference=await styleContext(key),documents={}
   for(const id of request.retrieval?[]:c.workflows[key].knowledge){const file=documentPath(c,id);documents[id]={file,stamp:await stamp(file)}}
   return {key,workspace:path.resolve(workspace()),config:c,preference,documents}
  }
  async function context(key,request={},snapshot){if(!flows[key])throw Error('未知AI工作流');if(snapshot&&(snapshot.key!==key||snapshot.workspace!==path.resolve(workspace())))throw Error('AI资料快照属于其他工作区或工作流');const c=snapshot?.config??validate(await load()),flow=c.workflows[key],knowledge=[];let total=0
   let bundle;if(request.retrieval){if(!retrieve)throw Error('当前环境无法校验参考集合');bundle=await retrieve({...request.retrieval,workflow:key});if(bundle.workflow!==key||!Array.isArray(bundle.sources)||!Array.isArray(bundle.knowledge)||!Array.isArray(bundle.references))throw Error('参考集合工作流或内容无效');knowledge.push(...bundle.knowledge)}
   for(const id of request.retrieval?[]:flow.knowledge){const b=builtins[id],d=c.documents.find(d=>d.id===id),saved=snapshot?.documents[id],file=saved?.file??documentPath(c,id);if(saved&&await stamp(file)!==saved.stamp)throw Error('排队期间AI参考资料已变化，请重新生成');const content=await fs.readFile(file,'utf8');if(saved&&await stamp(file)!==saved.stamp)throw Error('读取期间AI参考资料已变化，请重新生成');total+=content.length;if(total>48000)throw Error('本工作流资料总量超过48000字，请减少选中的文档');knowledge.push({label:b?.label??d.label,content})}
-  const preference=snapshot?.preference??await styles.context(key)
+  const preference=snapshot?.preference??await styleContext(key)
   return {style:preference.values,style_prompt:preference.prompt,attachViewport:flow.attachViewport===true,workflow:key,workflow_steps:flows[key].steps,base_rules:flows[key].rules,...(flow.rules===flows[key].rules?{}:{rules:flow.rules}),instruction:flow.instruction,knowledge,...(bundle?{reference_sources:bundle.sources,retrieved_assets:bundle.references}:{})}
  }
  async function preview(id){const c=validate(await load()),b=builtins[id],d=c.documents.find(d=>d.id===id);if(!b&&!d)throw Error('未知内部资料');return {title:b?.label??d.label,recipient:'仅在勾选并保存后，默认随对应工作流发送全文；使用本地检索集合后只发送所选片段给已配置的 API。',text:await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8')}}

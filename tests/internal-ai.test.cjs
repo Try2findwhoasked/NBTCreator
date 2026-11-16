@@ -33,6 +33,16 @@ test('legacy workflow settings keep their rules and viewport choice while gainin
  await fs.mkdir(path.join(root,'.nbtcreator/internal-ai'),{recursive:true});await fs.writeFile(path.join(root,'.nbtcreator/internal-ai/config.json'),JSON.stringify(old));const loaded=await service.show();assert.equal(Object.keys(loaded.workflows).length,7);assert.equal(loaded.workflows.small_structure.rules,'custom-local-rules');assert.equal(loaded.workflows.small_structure.attachViewport,true);assert.equal(loaded.workflows.component.attachViewport,false);assert.equal(loaded.workflows.selection_edit.attachViewport,false)
 })
 
+test('only the old factory draft rules migrate to prompt assistance while human settings survive',async t=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-brief-migration-'));t.after(()=>fs.rm(root,{recursive:true,force:true}))
+ const service=createInternalAI({workspace:()=>root,skill:path.resolve(__dirname,'../.agents/skills/minecraft-nbt-modeler')}),config=await service.show(),factory=config.workflows.draft.rules
+ config.workflows.draft.rules='只编写设计要求和交接文字；以关键空间、构件与环境为对象，描述用途、特征、包含和连接关系及共同约束；默认不预定数量、间距、方块配方或施工顺序，用户明确给定的细节保留。具体建模步骤由接收任务的Agent编写，不在提示词编写阶段实施模型。\n声明整体尺寸与有效占地；闭合外壳后检查全部腔体，再按声明开洞；初稿已有顶构承托、墙面/地板层次和主题节点。安排实际主模型/图片/验证交付，等待对应看图确认后才精修。'
+ config.workflows.draft.instruction='保留院落和主厅关系';config.workflows.draft.knowledge=['builtin:design'];config.workflows.draft.attachViewport=true
+ const file=path.join(root,'.nbtcreator/internal-ai/config.json');await fs.mkdir(path.dirname(file),{recursive:true});await fs.writeFile(file,JSON.stringify(config))
+ const migrated=await service.show();assert.equal(migrated.workflows.draft.rules,factory);assert.equal(migrated.workflows.draft.instruction,'保留院落和主厅关系');assert.deepEqual(migrated.workflows.draft.knowledge,['builtin:design']);assert.equal(migrated.workflows.draft.attachViewport,true)
+ migrated.workflows.draft.rules='人工规则：用途和动线优先';await service.save({workflows:migrated.workflows});assert.equal((await service.context('draft')).rules,'人工规则：用途和动线优先')
+})
+
 
 test('focused built-in topics stay optional and only the selected stage is sent',async t=>{
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-knowledge-stages-'));t.after(()=>fs.rm(root,{recursive:true,force:true}))

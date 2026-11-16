@@ -220,7 +220,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
      api_metrics.expanded_tool_contract=true
     }
     if(reason==='length'){compactRetries++;api_metrics.retried_compact=true}
-    const feedback=reason==='length'?'上次输出达到长度上限。重新给出完整精简答案，不续写；小构件只保留最多24个box/beam/frame操作。':('本地校验未通过：'+error.message.replace(/[\r\n]/g,' ').slice(0,300)+'。仅修正格式、长度或错误参数，保持原任务和原上下文，不扩大权限。')
+    const feedback=reason==='length'?(input.mode==='workbench'&&context.task==='brief'?'上次输出达到长度上限。重新给出完整精简的project_patch，仅包含本次允许修改的设计文字；不续写、不生成工具步骤，保留人工硬条件。':input.mode==='prompt'?'上次文字达到长度上限。重新给出完整精简的设计说明，保留用户硬条件，不续写或生成工具步骤。':'上次输出达到长度上限。重新给出完整精简答案，不续写；小构件只保留最多24个box/beam/frame操作。'):('本地校验未通过：'+error.message.replace(/[\r\n]/g,' ').slice(0,300)+'。仅修正格式、长度或错误参数，保持原任务和原上下文，不扩大权限。')
     payload.messages=structuredClone(originalMessages)
     if(reason!=='length'&&typeof text==='string'&&text.length<=48000&&Array.from(text).length<=Math.min(config.outputCharLimit?config.outputCharLimit*2:24000,24000))payload.messages.push({role:'assistant',content:text})
     else payload.messages.push({role:'assistant',content:'（本地已省略上一次不完整或过长的输出，不能视为已完成的候选。）'})
