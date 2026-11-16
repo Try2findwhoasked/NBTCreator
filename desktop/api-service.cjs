@@ -1,3 +1,4 @@
+const {buildOutputSchema,providerSchema,decodeOutput}=require('./ai-output-schema.cjs')
 const fs=require('node:fs/promises')
 const path=require('node:path')
 const {performance}=require('node:perf_hooks')
@@ -8,12 +9,14 @@ const {cleanContext,validateWorkbench}=require('./workbench-contract.cjs')
 const {validateRequestOptions}=require('./api-options.cjs')
 const {cleanSelectionContext,validateSelectionResult}=require('./selection-edit.cjs')
 const {createAiScheduler}=require('./ai-scheduler.cjs')
-const defaults={maxConcurrent:2,enabled:false,provider:'deepseek',baseUrl:'https://api.deepseek.com',model:'deepseek-flash',jsonMode:true,outputCharLimit:0,timeoutMs:90000,tokenParameter:'max_tokens',requestOptions:{}}
+const defaults={maxConcurrent:2,enabled:false,provider:'deepseek',baseUrl:'https://api.deepseek.com',model:'deepseek-flash',jsonMode:true,strictSchema:false,outputCharLimit:0,timeoutMs:90000,tokenParameter:'max_tokens',requestOptions:{}}
 const own=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).every(k=>keys.includes(k))
 function configOf(input){
- if(!own(input,['maxConcurrent','enabled','provider','baseUrl','model','jsonMode','key','clearKey','outputCharLimit','timeoutMs','tokenParameter','requestOptions']))throw Error('API 配置字段无效')
+ if(!own(input,['maxConcurrent','enabled','provider','baseUrl','model','jsonMode','strictSchema','key','clearKey','outputCharLimit','timeoutMs','tokenParameter','requestOptions']))throw Error('API 配置字段无效')
  const c={...defaults,...input};if(!Number.isInteger(c.maxConcurrent)||c.maxConcurrent<1||c.maxConcurrent>4)throw Error('AI 并发数须为1～4');delete c.key;delete c.clearKey
- if(typeof c.enabled!=='boolean'||typeof c.jsonMode!=='boolean'||!['deepseek','compatible'].includes(c.provider))throw Error('API 配置无效')
+ if(typeof c.enabled!=='boolean'||typeof c.jsonMode!=='boolean'||typeof c.strictSchema!=='boolean'||!['deepseek','compatible'].includes(c.provider))throw Error('API 配置无效')
+ if(c.strictSchema&&!c.jsonMode)throw Error('严格Schema要求启用JSON模式')
+ if(c.strictSchema&&c.provider==='deepseek')throw Error('当前DeepSeek Chat Completions仅支持JSON模式；严格Schema需使用支持它的兼容接口')
  const u=new URL(c.baseUrl)
  if(u.username||u.password||u.search||u.hash||!['https:','http:'].includes(u.protocol)||u.protocol==='http:'&&!['127.0.0.1','localhost','[::1]'].includes(u.hostname))throw Error('API 地址须为 HTTPS，或本机 HTTP 地址')
  if(typeof c.model!=='string'||!c.model.trim()||c.model.length>150)throw Error('填写模型 ID')
@@ -139,7 +142,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   let system=(config.outputCharLimit?`最终结果限制为 ${config.outputCharLimit} 字（Unicode字符，含空白和JSON标点）；不计可分离的思考与说明。`:'最终结果不设应用字数限制。')+'返回完整最终结果，不输出思考。JSON任务返回一个完整对象；文字任务可用单独的<final>与</final>包围正文。保留必要设计，超长时先合并重复内容。\n'+taskPrompt
   const internal=await token.workflowPromise;if(token.cancelled)throw Error('API 请求已取消')
   if(internal?.retrieved_assets?.length&&input.mode==='component'){const references=[...context.references];for(const item of internal.retrieved_assets){const old=references.find(ref=>ref.id===item.id);if(old&&old.content_sha256!==item.content_sha256)throw Error('引用资产已变化，请重新选择');if(!old)references.push(item)}context=componentContext({...context,references})}
-  const {retrieved_assets,base_rules,workflow_steps,...providerWorkflow}=internal??{}
+  const {retrieved_assets,attachViewport,base_rules,workflow_steps,...providerWorkflow}=internal??{}
   if(internal?.reference_sources)system+=' 本次提供了编号参考来源；需要引用时使用其citation编号，不编造来源或声称已验证。引用资产仅可使用context.references里实际提供的id与内容哈希，可按结构协议旋转、镜像和material_map换材质。'
   const apiContext=input.mode==='selection_edit'?{size:context.selection.size,lo:[0,0,0],hi:context.selection.size.map(n=>n-1),allow_overwrite:context.allow_overwrite,selection:{palette:context.selection.palette,runs:context.selection.runs,air_omitted:true}}:input.mode==='small_structure'?{...context,size:context.hi.map((v,i)=>v-context.lo[i]+1),lo:[0,0,0],hi:context.hi.map((v,i)=>v-context.lo[i])}:input.mode==='workbench'?Object.fromEntries(Object.entries(context).filter(([key])=>key!=='baseline_binding')):context
   let image
@@ -149,12 +152,23 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     if(!own(v,['dataUrl','width','height'])||typeof v.dataUrl!=='string'||!/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(v.dataUrl)||v.dataUrl.length>3*1024*1024||![v.width,v.height].every(n=>Number.isInteger(n)&&n>0&&n<=1280))throw Error('视口截图格式或尺寸无效')
     image=v.dataUrl
   }else if(internal?.attachViewport)throw Error('该工作流需要视口截图，请先打开建筑画面或关闭截图开关')
+  const outputSchema=config.strictSchema?buildOutputSchema(input.mode,context):null
+  if(outputSchema){
+   const geometryTask=['workbench','component','selection_edit'].includes(input.mode)&&context?.task!=='brief'
+   if(geometryTask){
+    const hints=Object.fromEntries(Object.entries(require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').tools).map(([kind,[,,hint]])=>[kind,hint]))
+    system+=' 工具语义：'+JSON.stringify(hints)
+   }
+   system+=' 严格按response_format的JSON Schema返回，summary最多160字。可选字段不使用时返回null；material_map和slab_overrides用[{key:原状态,value:目标状态}]表示。只返回完整紧凑JSON。Schema不取代本地保护、预算、源哈希、真实预览或用户显式导出。'
+  }
   const payload={model:config.model,messages:[{role:'system',content:system},{role:'user',content:JSON.stringify({instruction:input.instruction,context:apiContext,...(internal?{internal_workflow:providerWorkflow}:{})})}],max_tokens:input.mode==='prompt'?6144:12288,stream:false}
   if(new URL(config.baseUrl).hostname==='api.deepseek.com'&&['deepseek-flash','deepseek-v4-pro'].includes(config.model)&&config.requestOptions.thinking===undefined&&config.requestOptions.reasoning_effort===undefined)payload.thinking={type:'disabled'}
   Object.assign(payload,config.requestOptions)
   if(config.tokenParameter==='max_completion_tokens'){payload.max_completion_tokens=payload.max_tokens;delete payload.max_tokens}
   if(image)payload.messages[1].content=[{type:'text',text:payload.messages[1].content+'\n附图是当前建模视口，仅用于理解外观；坐标以本地上下文为准，不能从图片推定已验证或已批准。'},{type:'image_url',image_url:{url:image,detail:'auto'}}]
-  if(input.mode!=='prompt'&&config.jsonMode)payload.response_format={type:'json_object'}
+  if(outputSchema)payload.response_format={type:'json_schema',json_schema:{name:'nbt_'+input.mode,strict:true,schema:providerSchema(outputSchema)}}
+  else if(input.mode!=='prompt'&&config.jsonMode)payload.response_format={type:'json_object'}
+  api_metrics.output_format=payload.response_format?.type??'text'
   api_metrics.prepare_ms=Math.round(performance.now()-token.started)
   const textChars=()=>payload.messages.reduce((n,message)=>n+(typeof message.content==='string'?message.content.length:message.content.filter(item=>item.type==='text').reduce((sum,item)=>sum+item.text.length,0)),0)
   api_metrics.input_text_chars=textChars()
@@ -171,7 +185,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     if(Number.isSafeInteger(reasoning)&&reasoning>=0){measurement.reasoning_tokens=reasoning;api_metrics.reasoning_tokens=(api_metrics.reasoning_tokens??0)+reasoning}
     api_metrics.finish_reason=measurement.finish_reason
     return value
-   }catch(e){if(image&&/HTTP (400|415|422)/.test(e.message))throw Error(e.message+'；本次附带视口截图，请确认模型支持图像输入，或关闭工作流截图开关');throw e}
+   }catch(e){if(outputSchema&&/HTTP (400|415|422)/.test(e.message))throw Error(e.message+'；本次启用了严格Schema，请确认模型支持json_schema及该Schema，或在连接设置关闭严格Schema；未自动降级重试');if(image&&/HTTP (400|415|422)/.test(e.message))throw Error(e.message+'；本次附带视口截图，请确认模型支持图像输入，或关闭工作流截图开关');throw e}
   }
   let compactRetries=0
   const originalMessages=structuredClone(payload.messages)
@@ -191,6 +205,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    if(input.mode==='prompt')return {mode:'prompt',text,api_metrics,...(internal?.reference_sources?{reference_sources:internal.reference_sources}:{})}
    const referenceFields=internal?.reference_sources?{reference_sources:internal.reference_sources}:{}
    let parsed=extracted.parsed
+   if(outputSchema)parsed=decodeOutput(parsed,outputSchema)
    if(['structure','small_structure','component','selection_edit','workbench'].includes(input.mode))parsed=normalizeReply(parsed,input.mode,context)
    if(input.mode==='selection_edit'){const result={mode:'selection_edit',...validateSelectionResult(parsed,context),api_metrics,...referenceFields};await validateCandidate({mode:input.mode,result,context,signal:token.controller.signal});return result}
    if(input.mode==='component'){
@@ -220,6 +235,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
      api_metrics.expanded_tool_contract=true
     }
     if(reason==='length'){compactRetries++;api_metrics.retried_compact=true}
+    if(reason==='length'&&input.mode==='small_structure'&&outputSchema){outputSchema.properties.settings_patch.properties.operations.maxItems=24;outputSchema.properties.summary.maxLength=80;payload.response_format.json_schema.schema=providerSchema(outputSchema)}
     const feedback=reason==='length'?(input.mode==='workbench'&&context.task==='brief'?'上次输出达到长度上限。重新给出完整精简的project_patch，仅包含本次允许修改的设计文字；不续写、不生成工具步骤，保留人工硬条件。':input.mode==='prompt'?'上次文字达到长度上限。重新给出完整精简的设计说明，保留用户硬条件，不续写或生成工具步骤。':'上次输出达到长度上限。重新给出完整精简答案，不续写；小构件只保留最多24个box/beam/frame操作。'):('本地校验未通过：'+error.message.replace(/[\r\n]/g,' ').slice(0,300)+'。仅修正格式、长度或错误参数，保持原任务和原上下文，不扩大权限。')
     payload.messages=structuredClone(originalMessages)
     if(reason!=='length'&&typeof text==='string'&&text.length<=48000&&Array.from(text).length<=Math.min(config.outputCharLimit?config.outputCharLimit*2:24000,24000))payload.messages.push({role:'assistant',content:text})
@@ -232,7 +248,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   if(modelBusy||saving)throw Error('API 连接测试或配置保存进行中，请稍后重试')
   const frozen=structuredClone(input)
   const workflowKey=frozen.mode==='workbench'&&['draft','brief'].includes(frozen.context?.task)?'draft':frozen.mode
-  const reference={retrieval:frozen.retrieval}
+  const reference={retrieval:frozen.retrieval,instruction:frozen.instruction}
   return scheduler.run(options.requestId,async token=>{
    token.workflowPromise=token.prepared
    try{return await generateCore(frozen,token)}catch(error){error.api_metrics=token.metrics;throw error}

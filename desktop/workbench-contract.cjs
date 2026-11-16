@@ -72,7 +72,7 @@ function validateWorkbench(result,context){
   }
   if(result.operations!==undefined&&(!Array.isArray(result.operations)||result.operations.length))throw Error('当前为提示词编写，仅返回project_patch设计文字，不生成具体工具步骤；工具操作由下一个Agent按真实模型编写')
  }
- if(patch.size){if(!Array.isArray(patch.size)||patch.size.length!==3||!patch.size.every(v=>Number.isInteger(v)&&v>0&&v<=4096))throw Error('设计尺寸无效');if(context.existing_model&&JSON.stringify(patch.size)!==JSON.stringify(context.project.size))throw Error('已有模型尺寸不可由AI改写')}
+ if(patch.size){if(!Array.isArray(patch.size)||patch.size.length!==3||!patch.size.every(v=>Number.isInteger(v)&&v>0&&v<=4096))throw Error('设计尺寸无效');if((context.existing_model||context.project.size_policy==='fixed')&&JSON.stringify(patch.size)!==JSON.stringify(context.project.size))throw Error(context.existing_model?'已有模型尺寸不可由AI改写':'固定尺寸不可由AI改写')}
  if(result.operations!==undefined){
   const limit=incremental?128:64
   if(!Array.isArray(result.operations)||result.operations.length>limit)throw Error('工具序列最多'+limit+'项')

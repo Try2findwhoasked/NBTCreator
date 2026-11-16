@@ -1,3 +1,4 @@
+const {excerpts}=require('./ai-knowledge.cjs')
 const {createAIStyle}=require('./ai-style.cjs')
 const fs=require('node:fs/promises'),path=require('node:path'),crypto=require('node:crypto')
 const flows={
@@ -53,17 +54,33 @@ function createInternalAI({workspace,skill,retrieve}){
  const documentPath=(c,id)=>{const b=builtins[id],d=c.documents.find(d=>d.id===id);return b?path.join(skill,'references',b.file):path.join(base(),d.path)}
  async function capture(key,request={}){
   if(!flows[key])throw Error('未知AI工作流')
-  const c=validate(await load()),preference=await styleContext(key),documents={}
+  const loaded=await Promise.allSettled([load(),styleContext(key)]);for(const value of loaded)if(value.status==='rejected')throw value.reason
+  const [raw,preference]=loaded.map(value=>value.value),c=validate(raw),documents={}
   for(const id of request.retrieval?[]:c.workflows[key].knowledge){const file=documentPath(c,id);documents[id]={file,stamp:await stamp(file)}}
   return {key,workspace:path.resolve(workspace()),config:c,preference,documents}
  }
- async function context(key,request={},snapshot){if(!flows[key])throw Error('未知AI工作流');if(snapshot&&(snapshot.key!==key||snapshot.workspace!==path.resolve(workspace())))throw Error('AI资料快照属于其他工作区或工作流');const c=snapshot?.config??validate(await load()),flow=c.workflows[key],knowledge=[];let total=0
+ async function context(key,request={},snapshot){
+  if(!flows[key])throw Error('未知AI工作流')
+  if(snapshot&&(snapshot.key!==key||snapshot.workspace!==path.resolve(workspace())))throw Error('AI资料快照属于其他工作区或工作流')
+  const loaded=snapshot?null:await Promise.allSettled([load(),styleContext(key)])
+  for(const value of loaded??[])if(value.status==='rejected')throw value.reason
+  const c=snapshot?.config??validate(loaded[0].value),preference=snapshot?.preference??loaded[1].value,flow=c.workflows[key],knowledge=[];let total=0
   let bundle;if(request.retrieval){if(!retrieve)throw Error('当前环境无法校验参考集合');bundle=await retrieve({...request.retrieval,workflow:key});if(bundle.workflow!==key||!Array.isArray(bundle.sources)||!Array.isArray(bundle.knowledge)||!Array.isArray(bundle.references))throw Error('参考集合工作流或内容无效');knowledge.push(...bundle.knowledge)}
-  for(const id of request.retrieval?[]:flow.knowledge){const b=builtins[id],d=c.documents.find(d=>d.id===id),saved=snapshot?.documents[id],file=saved?.file??documentPath(c,id);if(saved&&await stamp(file)!==saved.stamp)throw Error('排队期间AI参考资料已变化，请重新生成');const content=await fs.readFile(file,'utf8');if(saved&&await stamp(file)!==saved.stamp)throw Error('读取期间AI参考资料已变化，请重新生成');total+=content.length;if(total>48000)throw Error('本工作流资料总量超过48000字，请减少选中的文档');knowledge.push({label:b?.label??d.label,content})}
-  const preference=snapshot?.preference??await styleContext(key)
+  const documents=[],ids=request.retrieval?[]:[...new Set(flow.knowledge)]
+  for(let at=0;at<ids.length;at+=4){
+   const reads=await Promise.allSettled(ids.slice(at,at+4).map(async id=>{
+    const b=builtins[id],d=c.documents.find(d=>d.id===id),saved=snapshot?.documents[id],file=saved?.file??documentPath(c,id)
+    if(saved&&await stamp(file)!==saved.stamp)throw Error('排队期间AI参考资料已变化，请重新生成')
+    const content=await fs.readFile(file,'utf8')
+    if(saved&&await stamp(file)!==saved.stamp)throw Error('读取期间AI参考资料已变化，请重新生成')
+    return {label:b?.label??d.label,content}
+   }))
+   for(const value of reads){if(value.status==='rejected')throw value.reason;total+=value.value.content.length;if(total>48000)throw Error('本工作流资料总量超过48000字，请减少选中的文档');documents.push(value.value)}
+  }
+  if(!request.retrieval)knowledge.push(...excerpts(documents,request.instruction))
   return {style:preference.values,style_prompt:preference.prompt,attachViewport:flow.attachViewport===true,workflow:key,workflow_steps:flows[key].steps,base_rules:flows[key].rules,...(flow.rules===flows[key].rules?{}:{rules:flow.rules}),instruction:flow.instruction,knowledge,...(bundle?{reference_sources:bundle.sources,retrieved_assets:bundle.references}:{})}
  }
- async function preview(id){const c=validate(await load()),b=builtins[id],d=c.documents.find(d=>d.id===id);if(!b&&!d)throw Error('未知内部资料');return {title:b?.label??d.label,recipient:'仅在勾选并保存后，默认随对应工作流发送全文；使用本地检索集合后只发送所选片段给已配置的 API。',text:await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8')}}
+ async function preview(id){const c=validate(await load()),b=builtins[id],d=c.documents.find(d=>d.id===id);if(!b&&!d)throw Error('未知内部资料');return {title:b?.label??d.label,recipient:'仅在勾选并保存后，默认随对应工作流发送短文全文或相关片段（总预算12000字）；使用本地检索集合后保留所选片段给已配置的 API。',text:await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8')}}
  return {show,save,importDocuments,capture,context,preview}
 }
 module.exports={createInternalAI,flows}

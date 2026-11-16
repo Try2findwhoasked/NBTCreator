@@ -52,7 +52,7 @@ test('focused built-in topics stay optional and only the selected stage is sent'
  for(const flow of Object.values(config.workflows))assert.deepEqual(flow.knowledge,[])
  config.workflows.component.knowledge=['builtin:pattern-fit'];await service.save({workflows:config.workflows})
  const selected=await service.context('component')
- assert.equal(selected.knowledge.length,1);assert.ok(selected.knowledge[0].content.startsWith('# 纹样拟合与质量检查'))
+ assert.equal(selected.knowledge.length,1);assert.ok(selected.knowledge[0].content.includes('# 纹样拟合与质量检查'));if(selected.knowledge[0].excerpted){assert.match(selected.knowledge[0].content,/^\[L1-\d+\]/);assert.equal(selected.knowledge[0].omitted,true)}
  assert.ok(!selected.knowledge[0].content.includes('## 小纹样生成、区域采样与组合资产'))
  assert.deepEqual((await service.context('draft')).knowledge,[])
  await assert.rejects(fs.access(path.join(root,'.nbtcreator/skill-exposure.json')))
