@@ -55,7 +55,7 @@ assert not reports['full_block_requires_jump']['passed']
 assert reports['full_block_requires_jump']['targets'][0]['standing']
 
 unknown = corridor()
-unknown.put((4, 0, 1), 'oak_fence')
+unknown.put((4, 0, 1), 'anvil')
 reports['unknown_shape_cannot_certify'] = check_routes(unknown, (1.5, 1, 1.5), [(8.5, 1, 1.5)])
 assert not reports['unknown_shape_cannot_certify']['passed']
 assert reports['unknown_shape_cannot_certify']['unknown_shapes']
@@ -93,7 +93,7 @@ reports['bounded_proxy_cannot_support_start'] = check_routes(proxy_floor, (1.5, 
 assert not reports['bounded_proxy_cannot_support_start']['start_standing']
 
 # Unsupported out-of-unit shapes and invalid states must not enter the proof.
-assert not bounded_obstacle('oak_fence')
+assert not bounded_obstacle('anvil')
 assert not bounded_obstacle('chain[axis=bad]')
 assert not bounded_obstacle('example:chain')
 

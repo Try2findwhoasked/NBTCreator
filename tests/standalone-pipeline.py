@@ -141,7 +141,7 @@ class Standalone(unittest.TestCase):
         self.assertNotEqual(model.fingerprint(),before)
 
     def test_unsupported_shape_and_required_connection_failure_are_not_hidden(self):
-        model,_,config=room();model.put((15,3,18),'oak_fence')
+        model,_,config=room();model.put((15,3,18),'anvil')
         with self.assertRaisesRegex(ValueError,'route validation failed'):validate(model,config)
         model,_,config=room();config['route_legs']=[dict(name='blocked entry connection',start=config['start'],targets={'outside':config['targets']['outside']},validation_only_barriers=[dict(lo=[6,2,2],hi=[8,5,2])])]
         with self.assertRaisesRegex(ValueError,'Required standalone route leg failed'):validate(model,config)

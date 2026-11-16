@@ -75,13 +75,36 @@ FULL_CUBES.update(('nether_gold_ore', 'nether_quartz_ore', 'ancient_debris'))
 # static collision contained within their own unit block, including dripstone's
 # <=1/8 horizontal offset. This is NOT a full-cube collision/support allowlist.
 # See references/collision-envelopes.md for the source and proof boundary.
-BOUNDED_OBSTACLES = frozenset(('chain', 'iron_bars', 'iron_trapdoor',
-                              'spruce_trapdoor', 'lever', 'pointed_dripstone',
-                              'stone_button'))
-# FenceBlock's collision is 24/16 blocks high, unlike IronBarsBlock. Never
-# silently classify it as a unit-height obstacle or allow it to support a floor.
-TALL_OBSTACLES = frozenset(('spruce_fence',))
-ENVELOPE_VERSION = 'minecraft-java-1.20.1-bounded-obstacles-v2'
+# Explicit vanilla names verified against Blocks constructors and the mapped
+# 1.20.1 shape classes; no suffix inference or unverified mod-state admission.
+# A wall/fence's 24-pixel collision must never become a unit-height proxy.
+BOUNDED_OBSTACLES = frozenset('''
+acacia_pressure_plate acacia_trapdoor bamboo_pressure_plate bamboo_trapdoor birch_pressure_plate
+birch_trapdoor black_carpet black_stained_glass_pane blue_carpet blue_stained_glass_pane
+brown_carpet brown_stained_glass_pane chain cherry_pressure_plate cherry_trapdoor
+crimson_pressure_plate crimson_trapdoor cyan_carpet cyan_stained_glass_pane dark_oak_pressure_plate
+dark_oak_trapdoor end_rod glass_pane gray_carpet gray_stained_glass_pane
+green_carpet green_stained_glass_pane heavy_weighted_pressure_plate iron_bars iron_trapdoor
+jungle_pressure_plate jungle_trapdoor lever light_blue_carpet light_blue_stained_glass_pane
+light_gray_carpet light_gray_stained_glass_pane light_weighted_pressure_plate lime_carpet lime_stained_glass_pane
+magenta_carpet magenta_stained_glass_pane mangrove_pressure_plate mangrove_trapdoor moss_carpet
+oak_pressure_plate oak_trapdoor orange_carpet orange_stained_glass_pane pink_carpet
+pink_stained_glass_pane pointed_dripstone polished_blackstone_pressure_plate purple_carpet purple_stained_glass_pane
+red_carpet red_stained_glass_pane snow spruce_pressure_plate spruce_trapdoor
+stone_button stone_pressure_plate warped_pressure_plate warped_trapdoor white_carpet
+white_stained_glass_pane yellow_carpet yellow_stained_glass_pane
+'''.split())
+TALL_OBSTACLES = frozenset('''
+acacia_fence andesite_wall bamboo_fence birch_fence blackstone_wall
+brick_wall cherry_fence cobbled_deepslate_wall cobblestone_wall crimson_fence
+dark_oak_fence deepslate_brick_wall deepslate_tile_wall diorite_wall end_stone_brick_wall
+granite_wall jungle_fence mangrove_fence mossy_cobblestone_wall mossy_stone_brick_wall
+mud_brick_wall nether_brick_fence nether_brick_wall oak_fence polished_blackstone_brick_wall
+polished_blackstone_wall polished_deepslate_wall prismarine_wall red_nether_brick_wall red_sandstone_wall
+sandstone_wall spruce_fence stone_brick_wall warped_fence
+'''.split())
+ENVELOPE_VERSION = 'minecraft-java-1.20.1-bounded-obstacles-v3'
+
 
 
 @lru_cache(maxsize=4096)
