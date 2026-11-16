@@ -53,14 +53,25 @@ def transformed_state(value, turns, mirror):
         allowed.update(('half','shape'))
     if name.endswith('_slab'):
         allowed.add('type')
+    if name.endswith('_trapdoor'):
+        allowed.update(('half','open','powered'))
+    connected = name.endswith(('_wall','_fence','_pane')) or name=='minecraft:iron_bars'
+    if connected:
+        allowed.update(('up','north','east','south','west'))
+    if name=='minecraft:snow':allowed.add('layers')
+    if name.endswith('_pressure_plate'):allowed.update(('powered','power'))
     if set(props)-allowed:
         raise ValueError('Transform does not support this state family: '+value)
     directions = ['north', 'east', 'south', 'west']
-    if props.get('facing') in directions:
-        direction = props['facing']
+    def transform_direction(direction):
         if mirror == 'x': direction = {'east': 'west', 'west': 'east'}.get(direction, direction)
         if mirror == 'z': direction = {'north': 'south', 'south': 'north'}.get(direction, direction)
-        props['facing'] = directions[(directions.index(direction)+turns)%4]
+        return directions[(directions.index(direction)+turns)%4]
+    if props.get('facing') in directions:
+        props['facing'] = transform_direction(props['facing'])
+    if connected:
+        connections = {transform_direction(direction): props[direction] for direction in directions}
+        props.update(connections)
     if turns%2 and props.get('axis') in ('x', 'z'):
         props['axis'] = 'z' if props['axis'] == 'x' else 'x'
     return state(dict(Name=name, Properties=props))

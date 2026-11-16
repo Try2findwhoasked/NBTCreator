@@ -14,21 +14,33 @@ class OrnateFitting(unittest.TestCase):
     def fit(self,size,**extra):
         return dispatch(self.root,'pattern_microfit',dict(surface='wall',preset='gothic-rose',size_uv=[size,size],micro_alignment='fixed',quality_profile='ornate',**extra))
     def test_complex_rose_edges_and_detail_improve_at_the_same_size(self):
-        for size,iou,contour,score,detail in [(8,.5281022904976543,1.1962555066079295,84.863,.8521994290086794),
-            (10,.5714921388312073,1.1012377850162867,85.904,.8115249925795968)]:
+        for size in (8,10):
             with self.subTest(size=size):
-                result=self.fit(size,min_quality_score=86);q=result['microfit'];trace=q['shape_search']['refinement']
-                self.assertGreater(q['ink_overlap'],iou);self.assertLess(q['contour_error'],contour)
-                self.assertGreater(q['visual_quality']['score'],score);self.assertGreaterEqual(q['visual_quality']['metrics']['detail_retention'],detail)
+                result=self.fit(size);q=result['microfit'];trace=q['shape_search']['refinement']
+                guard=trace['quality_guard']
+                self.assertGreater(q['ink_overlap'],trace['previous_ink_overlap'])
+                self.assertLess(q['contour_error'],trace['previous_contour_error'])
+                self.assertGreater(q['visual_quality']['score'],guard['previous_score'])
+                self.assertGreaterEqual(guard['candidate_detail_retention'],guard['previous_detail_retention'])
                 self.assertTrue(q['topology_preserved']);self.assertEqual(q['source_topology']['holes'],q['result_topology']['holes'])
-                self.assertTrue(trace['improved']);self.assertTrue(trace['quality_guard']['accepted']);self.assertLessEqual(trace['proposals'],384)
+                self.assertTrue(trace['improved']);self.assertTrue(guard['accepted']);self.assertLessEqual(trace['proposals'],384)
                 self.assertGreater(result['shape_counts'].get('stairs',0),0);self.assertGreater(result['shape_counts'].get('slab',0),0)
-                current().clear();self.assertEqual(result['content_sha256'],self.fit(size,min_quality_score=86)['content_sha256'])
-    def test_better_coverage_cannot_replace_a_better_ornate_score(self):
-        result=self.fit(12);q=result['microfit'];guard=q['shape_search']['refinement']['quality_guard']
-        self.assertFalse(guard['accepted']);self.assertLess(guard['candidate_score'],guard['previous_score'])
-        self.assertEqual(q['visual_quality']['score'],89.14)
-        self.assertEqual(result['content_sha256'],'f526f0b119ca828dcbb646bd7671c724f336e7b1476c55d65779c849357185af')
+                current().clear();self.assertEqual(result['content_sha256'],self.fit(size)['content_sha256'])
+                with self.assertRaisesRegex(ValueError,'纹样量化质量未达标'):
+                    self.fit(size,min_quality_score=q['visual_quality']['score']+1)
+
+    def test_better_coverage_cannot_replace_preserved_detail(self):
+        result=self.fit(12,min_quality_score=80);q=result['microfit'];guard=q['shape_search']['refinement']['quality_guard']
+        self.assertFalse(guard['accepted'])
+        self.assertTrue(guard['candidate_score']<guard['previous_score'] or
+            guard['candidate_detail_retention']<guard['previous_detail_retention'])
+        self.assertEqual(q['visual_quality']['score'],guard['previous_score'])
+        repair=q['shape_search']['repair']
+        self.assertGreater(repair['initial_error'],repair['final_error'])
+        self.assertTrue(repair['feasible']);self.assertLessEqual(repair['proposals'],repair['proposal_budget'])
+        self.assertEqual(q['result_topology']['holes'],17)
+        current().clear();self.assertEqual(result['content_sha256'],self.fit(12,min_quality_score=80)['content_sha256'])
+
     def test_original_area_budget_is_retained_even_when_local_search_can_repair_it(self):
         result=self.fit(10,micro_max_error=.218);self.assertLessEqual(result['microfit']['raw_coverage_error'],.218)
         with self.assertRaisesRegex(ValueError,'覆盖误差'):self.fit(10,micro_max_error=.21)

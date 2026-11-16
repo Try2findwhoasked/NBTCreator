@@ -1,12 +1,13 @@
 # 处理器与配方注册器
 
-共享引擎的 `nbt_extensions.py` 提供三个显式注册器，减少扩展时修改多处分支的需要。它们由可信 Python 代码在进程启动时配置，不扫描插件目录，也不接受 JSON 中的模块路径、代码或注册指令。
+共享引擎的 `nbt_extensions.py` 提供工具、配方和操作注册器；`nbt_fit_shapes.py` 提供拟合形状注册器，减少扩展时修改多处分支的需要。它们由可信 Python 代码在进程启动时配置，不扫描插件目录，也不接受 JSON 中的模块路径、代码或注册指令。
 
 | 注册器 | 处理器签名 | 用途 |
 | --- | --- | --- |
 | `AGENT_TOOLS` | `(workspace, arguments) -> dict` | 高层工具分派；内置实现按工具族组织并延迟导入可选依赖 |
 | `RECIPE_COMPILERS` | `(workspace, arguments) -> RecipeCompilation` | 工作模型与对象图共用的构件配方编译 |
 | `MODEL_ACTIONS` | `(working_model, arguments) -> dict` | 工作模型命令操作；新增操作无需在 CLI 中增加分支 |
+| `FIT_SHAPES` | `(material, surface) -> list[FitShape]` | 微型拟合的1/16或1/32格几何候选；公共 JSON 形状仍须声明 Schema |
 
 `register(name, handler)` 和 `@register(name)` 均可使用。重复名称默认报错；替换必须显式给 `replace=True`，`unregister(name)` 可用于测试清理或受控注销。`resolve(name)` 查询处理器，未知名称报错；注册器可迭代，可用 `keys()` 检查已注册名称。注册器不是授权系统，扩展处理器仍需遵守源绑定、保护、预算、真实看图和显式定稿流程。
 
@@ -50,6 +51,10 @@ model.install("marker", {
 5. 从软件项目根目录运行 `mise exec -- npm run sync:tools`、`mise exec -- npm run check:tools` 和 `mise exec -- npm run test:extensions`，再运行适用建模回归。已有创作工作区通过应用重新同步 Skill。
 
 新工作模型操作的处理器应调用 `patch`、`install` 等现有受检方法，避免直接修改 `model.blocks` 绕过变更政策。原来的内置操作也通过注册器调用；CLI 不再以任意 `getattr` 解析请求方法。
+
+## 细粒度拟合形状
+
+拟合形状的扩展实现放在 `nbt_fit_shapes.py` 或可信启动代码中，通过 `FIT_SHAPES.register` 登记。每个 `FitShape(value, boxes)` 指定合法1.20.1状态与0～16整数或半像素XYZ盒体（每盒为 xmin,ymin,zmin,xmax,ymax,zmax）。共用投影层验证边界、完整候选的背板连接与下方支承，并合并相同轮廓；每个提供器最多256个候选，每个候选最多32个盒体。需下方支承的形状设置 requires_below=True；包络近似设置 approximate=True。内置 slab/stairs/trapdoor/wall/pane/bars/fence/snow/carpet/pressure_plate/end_rod/chain 已接入。盒体只用于静态拟合，不注册碰撞支撑，也不授权导出。运行 `mise run fit:test` 验证形状、方向和真实保存回读；注册变化同样纳入引擎身份和缓存失效。
 
 ## 缓存、进程与版本
 

@@ -45,10 +45,15 @@ def companions(material,surface,provided):
              'polished_blackstone_bricks':'polished_blackstone_brick','purpur_block':'purpur'}
     stem=aliases.get(short,short.removesuffix('_planks'))
     result={}
-    for family in ('stairs','slab'):
+    for family in ('stairs','slab','wall'):
         if surface=='ceiling' and family=='slab':continue
+        if family=='wall' and surface not in ('wall','column'):continue
         try:
-            value=state(stem+'_'+family);cells,reason=collision_cells(value)
+            value=state(stem+'_'+family)
+            if family=='wall':
+                result[family]=value
+                continue
+            cells,reason=collision_cells(value)
             if cells and not reason:result[family]=value
         except (ValueError,KeyError):pass
     return result or None
@@ -56,6 +61,8 @@ def companions(material,surface,provided):
 
 def options_for(material,shapes,surface):
     if shapes is None:return [(None,(False,)),(material,(True,))],1
+    from nbt_fit_shapes import fine_options
+    if set(shapes)-{'slab','stairs'}:return fine_options(material,shapes,surface)
     if surface!='ceiling':return silhouette_options(material,shapes),2
     if 'slab' in shapes or 'stairs' not in shapes:raise ValueError('微型吊顶使用顶半楼梯细分，半砖不能细分水平轮廓')
     name,props=effective(shapes['stairs'])
@@ -69,41 +76,58 @@ def options_for(material,shapes,surface):
 
 
 def reference(root,sample,width,height,factor,*,raster=None):
+    """One physical source analysis, shared by every block-palette resolution."""
+    from hashlib import sha256
+    from nbt_bitmap_topology import component_masks
+    from nbt_modeling_session import current,canonical,engine_revision
     if sample.get('noise_strength',0):raise ValueError('微型单元优先保留主轮廓，请设noise_strength=0')
+    if type(factor) is not int or factor not in (1,2,16,32):raise ValueError('不支持的拟合采样精度')
     image=sample_image(root,sample) if raster is None else raster
-    mask=image.getchannel('A') if sample.get('channel')=='alpha' else image.convert('L')
-    if sample.get('invert'):mask=ImageOps.invert(mask)
-    oversample=8;size=(width*factor*oversample,height*factor*oversample)
-    mask=resize_sample(mask,size,sample.get('fit','contain'))
-    alpha=resize_sample(image.getchannel('A'),size,sample.get('fit','contain'))
-    gray=np.flipud(np.asarray(mask,dtype=float)/255)*np.flipud(np.asarray(alpha)>0)
-    if sample.get('mirror'):
-        gray=gray[:,np.minimum(np.arange(size[0]),size[0]-1-np.arange(size[0]))]
-    binary=gray>=sample.get('threshold',50)/100
-    coverage=binary.reshape(height*factor,oversample,width*factor,oversample).mean(axis=(1,3))
-    all_ink=regions(binary);all_holes=regions(binary,False)
-    ink=[g for g in all_ink if len(g)>=oversample**2/2]
-    holes=[g for g in all_holes if len(g)>=oversample**2/2]
-    if not ink:raise ValueError('微型单元内没有可辨认主纹，请裁取单个基础图形或加粗源纹样')
-    required_ink=set();required_void=set()
-    for group in ink:
-        # Retain each component's four extrema, preventing a thin glyph from
-        # collapsing to an isolated dot while keeping the same component count.
-        for axis,reverse in ((0,False),(0,True),(1,False),(1,True)):
-            edge=(max if reverse else min)(p[axis] for p in group)
-            candidates=[p for p in group if p[axis]==edge]
-            center=sum(p[1-axis] for p in candidates)/len(candidates)
-            point=min(candidates,key=lambda p:abs(p[1-axis]-center))
-            required_ink.add((point[0]//oversample,point[1]//oversample))
-    for group in holes:
-        center=np.mean(group,axis=0)
-        cells={(y//oversample,x//oversample) for y,x in group}
-        members=set(group)
-        interior=[p for p in cells if (int((p[0]+.5)*oversample),int((p[1]+.5)*oversample)) in members]
-        point=min(interior or cells,key=lambda p:(coverage[p],sum(((p[i]+.5)*oversample-center[i])**2 for i in range(2)),p))
-        required_void.add(point)
-    return coverage,required_ink,required_void,dict(components=len(ink),holes=len(holes),
-        discarded_ink_components=len(all_ink)-len(ink),discarded_small_holes=len(all_holes)-len(holes))
+    resolution=64;stride=resolution//factor
+    key=(engine_revision(),width,height,resolution,image.size,image.mode,
+         sha256(image.tobytes()).hexdigest(),canonical(sample))
+    cache=current();analysis=cache.get('ornament_reference',key)
+    if analysis is None:
+        mask=image.getchannel('A') if sample.get('channel')=='alpha' else image.convert('L')
+        if sample.get('invert'):mask=ImageOps.invert(mask)
+        size=(width*resolution,height*resolution)
+        mask=resize_sample(mask,size,sample.get('fit','contain'))
+        alpha=resize_sample(image.getchannel('A'),size,sample.get('fit','contain'))
+        gray=np.flipud(np.asarray(mask,dtype=float)/255)*np.flipud(np.asarray(alpha)>0)
+        if sample.get('mirror'):
+            gray=gray[:,np.minimum(np.arange(size[0]),size[0]-1-np.arange(size[0]))]
+        binary=gray>=sample.get('threshold',50)/100
+        byte_count=(binary.size+7)//8;feature_area=resolution**2/8
+        ink_points=set();void_points=set();counts={}
+        for label,foreground in (('ink',True),('void',False)):
+            retained=discarded=0
+            for bits in component_masks(binary if foreground else ~binary,foreground,not foreground):
+                if bits.bit_count()<feature_area:discarded+=1;continue
+                retained+=1
+                flat=np.unpackbits(np.frombuffer(bits.to_bytes(byte_count,'little'),dtype=np.uint8),bitorder='little')[:binary.size]
+                yy,xx=np.nonzero(flat.reshape(binary.shape));points=np.column_stack((yy,xx))
+                if foreground:
+                    for axis,reverse in ((0,False),(0,True),(1,False),(1,True)):
+                        edge=(np.max if reverse else np.min)(points[:,axis])
+                        candidates=points[points[:,axis]==edge]
+                        center=float(candidates[:,1-axis].mean())
+                        point=candidates[np.argmin(np.abs(candidates[:,1-axis]-center))]
+                        ink_points.add(tuple(int(n) for n in point))
+                else:
+                    center=points.mean(axis=0)
+                    point=points[np.argmin(np.square(points-center).sum(axis=1))]
+                    void_points.add(tuple(int(n) for n in point))
+            counts[label]=(retained,discarded)
+        if not counts['ink'][0]:raise ValueError('微型单元内没有可辨认主纹，请裁取单个基础图形或加粗源纹样')
+        analysis=dict(binary=binary,ink=ink_points,void=void_points,topology=dict(
+            components=counts['ink'][0],holes=counts['void'][0],
+            discarded_ink_components=counts['ink'][1],discarded_small_holes=counts['void'][1]))
+        cache.put('ornament_reference',key,analysis,weight=binary.nbytes+128*(len(ink_points)+len(void_points))+1024)
+    binary=analysis['binary']
+    coverage=binary.reshape(height*factor,stride,width*factor,stride).mean(axis=(1,3))
+    ink={(y//stride,x//stride) for y,x in analysis['ink']}
+    void={(y//stride,x//stride) for y,x in analysis['void']}
+    return coverage,ink,void,analysis['topology']
 
 
 def joint_candidates(coverage,orbits):
@@ -215,7 +239,9 @@ def fit_reference(data,sample,width,height,options,factor,max_error,*,joint=True
         for x,y,_,(value,_) in assignments:
             bits|=option_bits[x,y,value]
             if value is not None:states[x,y]=value
-        key=bits
+        from nbt_fit_shapes import unsupported_positions
+        unsupported=unsupported_positions(states,options,getattr(options,'surface','wall'))
+        key=(bits,unsupported)
         if key in seen and not baseline:return
         seen.add(key)
         rendered=np.unpackbits(np.frombuffer(bits.to_bytes(byte_count,'little'),dtype=np.uint8),bitorder='little')[:pixel_count].reshape(coverage.shape).astype(bool)
@@ -223,12 +249,15 @@ def fit_reference(data,sample,width,height,options,factor,max_error,*,joint=True
         missing=requested-matched;extra=int(rendered.sum())-matched
         actual=bitmap_topology(rendered)
         topology_error=4*abs(actual['components']-topology['components'])+8*abs(actual['holes']-topology['holes'])
+        topology_error+=100*unsupported
         error=float(np.abs(rendered.astype(float)-coverage).mean())
         overlap=float(np.minimum(rendered,coverage).sum()/max(1e-9,float(np.maximum(rendered,coverage).sum())))
         candidates.append((topology_error,error,threshold,states,actual,dict(requested=requested,matched=matched,missing=missing,extra=extra,
             ink_overlap=overlap,contour_error=contour_error(rendered,coverage),
             selection_method='coverage_threshold' if baseline else 'joint_shapes',
             source_ink_area=float(coverage.sum()),fitted_ink_area=int(rendered.sum()))))
+        if hasattr(options,'geometry'):
+            candidates[-1][5].update(unsupported_positions=unsupported,geometry_constraints_passed=unsupported==0)
         return candidates[-1]
     def rank(item):
         return (item[0],1-item[5]['ink_overlap'],item[5]['contour_error'],item[1],
@@ -256,11 +285,55 @@ def fit_reference(data,sample,width,height,options,factor,max_error,*,joint=True
                         if item[5]['ink_overlap']+1e-12>=baseline[5]['ink_overlap']
                         and item[5]['contour_error']<=baseline[5]['contour_error']+1e-12]
         return min(admissible or candidates,key=key)
+    seeded=0
+    for seed in getattr(options,'seeds',()):
+        assignments=[]
+        for (x,y),(pixels,allowed) in choices.items():
+            match=next((option for option in allowed if option[0]==seed.get((x,y))),None)
+            if match is None:break
+            assignments.append((x,y,pixels,match))
+        else:
+            evaluate(assignments,.5);seeded+=1
     baseline=best_available(lambda item:(item[0],1-item[5]['ink_overlap'],item[1],
                             item[5]['missing']+item[5]['extra'],abs(item[2]-.5)))
     combinations,search=joint_candidates(coverage,orbits) if joint else ([],dict(method='threshold_probe',beam_width=None))
     for assignments in combinations:evaluate(assignments,.5)
     best=best_available(baseline=baseline)
+    repair=None
+    if joint and best[0]:
+        # A coverage beam can discard the last open channel of a hole. Repair
+        # complete legal assignments before requiring a feasible topology; the
+        # ordinary visual refinement below starts only after feasibility.
+        proposals=accepted=0;budget=512;initial_error=best[0]
+        repair_seeds=[];seen_states=set()
+        for item in sorted(candidates,key=rank):
+            signature=tuple(sorted(item[3].items()))
+            if signature not in seen_states:repair_seeds.append(item);seen_states.add(signature)
+            if len(repair_seeds)==3:break
+        for seed in repair_seeds:
+            current=seed
+            path=[next(i for i,assignment in enumerate(orbit)
+                if all(current[3].get((x,y))==option[0] for x,y,_,option in assignment)) for orbit in orbits]
+            for _ in range(2):
+                changed=False
+                def uncertainty(index):
+                    return -sum(abs(float(coverage[p])-occupied) for _,_,pixels,(_,shape) in orbits[index][path[index]] for p,occupied in zip(pixels,shape))
+                for index in sorted(range(len(orbits)),key=uncertainty):
+                    winner=current;choice=path[index]
+                    for alternative in range(len(orbits[index])):
+                        if alternative==path[index]:continue
+                        if proposals>=budget:break
+                        trial=path.copy();trial[index]=alternative;proposals+=1
+                        item=evaluate([entry for orbit,selected in zip(orbits,trial) for entry in orbit[selected]],.5)
+                        if item is not None and item[1]<=max_error and rank(item)<rank(winner):winner=item;choice=alternative
+                    if winner is not current:
+                        current=winner;path[index]=choice;accepted+=1;changed=True
+                    if not current[0] or proposals>=budget:break
+                if not changed or not current[0] or proposals>=budget:break
+            if not current[0] or proposals>=budget:break
+        best=best_available(baseline=baseline)
+        repair=dict(method='bounded_topology_orbit_repair',proposal_budget=budget,proposals=proposals,
+            accepted_moves=accepted,initial_error=initial_error,final_error=best[0],feasible=best[0]==0)
     refinement=None
     if joint and best[0]==0 and best[5]['ink_overlap']<1-1e-12:
         # A finite IoU beam can discard a useful fine edge early. Revisit legal
@@ -312,16 +385,18 @@ def fit_reference(data,sample,width,height,options,factor,max_error,*,joint=True
         best=refined
     topology_error,error,threshold,states,actual,counts=best
     if strict and (topology_error or error>max_error):
+        if counts.get('unsupported_positions'):raise ValueError('微型拟合存在缺少支撑或未连接背板的方块，请增加实体承托或更换形状')
         raise ValueError(f'微型单元{width}×{height}未保留可辨认轮廓（孔洞{topology["holes"]}→{actual["holes"]}，连通分量{topology["components"]}→{actual["components"]}，覆盖误差{error:.3f}）；请裁取单个基础图形或尝试增加1～2格，仍建议控制在8格以内')
-    return states,dict(unit_size_uv=[width,height],subcells_per_block=factor**2,
+    return states,dict(unit_size_uv=[width,height],subcells_per_block=factor**2,source_sampling_resolution=64,
         selected_coverage_threshold=threshold,source_threshold=sample.get('threshold',50)/100,source_topology=topology,result_topology=actual,
         preserved_symmetry_axes=symmetry,
         shape_search=dict(search,candidates_evaluated=len(seen),
+                          seed_candidates_evaluated=seeded,
                           baseline_ink_overlap=baseline[5]['ink_overlap'],
                           baseline_contour_error=baseline[5]['contour_error'],
                           baseline_raw_coverage_error=baseline[1],
                           baseline_topology_preserved=baseline[0]==0,
-                          improved=rank(best)[:4]<rank(baseline)[:4],**({'refinement':refinement} if refinement else {})),
+                          improved=rank(best)[:4]<rank(baseline)[:4],**({'repair':repair} if repair else {}),**({'refinement':refinement} if refinement else {})),
         topology_preserved=topology_error==0,raw_coverage_error=error,
         stylized=error>.15 or counts['ink_overlap']<.75 or bool(topology['discarded_ink_components']+topology['discarded_small_holes']),
         max_error=max_error,placement='fit_once_then_copy',threshold_candidates=len(thresholds),**counts)
@@ -340,6 +415,17 @@ def fit_colored_unit(root,sample,width,height,options,factor,ornament,args):
     cache=current();hit=cache.get('micro_unit',key)
     if hit is not None:return {(u,v):value for u,v,value in hit['unit']},hit['quality']
     from nbt_micro_alignment import adaptive_fit
+    if factor>=16:
+        # Adding choices must not discard a representable old solution merely
+        # because the bounded beam spends its slots on new local silhouettes.
+        coarse_shapes={key:value for key,value in getattr(options,'materials',args.get('shapes',{})).items() if key in ('slab','stairs')}
+        coarse_options,coarse_factor=options_for(ornament,coarse_shapes or None,args['surface'])
+        try:
+            seed,_,_=adaptive_fit(root,sample,width,height,coarse_options,coarse_factor,
+                args.get('micro_max_error',.65),'fixed',quality_profile=args.get('quality_profile','balanced'),min_quality_score=0)
+            options.seeds=(seed,)
+        except ValueError:
+            options.seeds=()
     unit,quality,color_at=adaptive_fit(root,sample,width,height,options,factor,
                                      args.get('micro_max_error',.65),args.get('micro_alignment','auto'),
                                      quality_profile=args.get('quality_profile','balanced'),min_quality_score=args.get('min_quality_score',0))
@@ -364,13 +450,27 @@ def compile_microfit(workspace,args):
     if args.get('full_blocks_only') and 'shapes' in args:raise ValueError('full_blocks_only不能同时指定shapes')
     shapes=None if args.get('full_blocks_only') else companions(ornament,surface,args.get('shapes'))
     options,factor=options_for(ornament,shapes,surface)
-    unit,quality=fit_colored_unit(root,sample,width,height,options,factor,ornament,args)
+    auto_wall=bool(shapes and 'wall' in shapes and 'shapes' not in args)
+    try:
+        unit,quality=fit_colored_unit(root,sample,width,height,options,factor,ornament,args)
+    except ValueError as error:
+        if not auto_wall:raise
+        fallback={key:value for key,value in shapes.items() if key!='wall'}
+        options,factor=options_for(ornament,fallback or None,surface)
+        unit,quality=fit_colored_unit(root,sample,width,height,options,factor,ornament,args)
+        quality['auto_wall_search']=dict(attempted=True,fallback=True,reason=str(error))
+    else:
+        if auto_wall:quality['auto_wall_search']=dict(attempted=True,fallback=False)
+    if factor>=16:
+        quality.update(projection_resolution=factor,geometry_basis='static_shape_envelopes_texture_alpha_excluded',
+                       state_policy='explicit_states_no_neighbor_or_redstone_simulation',collision_validated=False)
+        quality['approximate_states']=sorted({value for value in unit.values() if getattr(options,'geometry',{}).get(value) and options.geometry[value].approximate})
     columns,rows=args.get('tile_counts',[1,1]);gap_u,gap_v=args.get('gap_uv',[1,1])
     blocks={};counts={};stairs={};slabs={}
     def decorate(point,value,turns=0):
         value=transformed_state(value,turns,None) if turns else value
         blocks[point]=value;name,props=effective(value)
-        family='stairs' if name.endswith('_stairs') else 'slab' if name.endswith('_slab') else 'full'
+        family=next((family for family in ('stairs','slab','trapdoor','wall','pane','bars','fence','carpet','pressure_plate','end_rod','chain','snow') if name.endswith('_'+family) or name=='minecraft:'+family),'full')
         counts[family]=counts.get(family,0)+1
         if family=='stairs':key=props['facing']+'/'+props['half'];stairs[key]=stairs.get(key,0)+1
         if family=='slab':key=props['type'];slabs[key]=slabs.get(key,0)+1

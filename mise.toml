@@ -26,6 +26,10 @@ run = "python -B tests/materialization.py"
 description = "Verify whole-model composition, managed updates and assembly interfaces"
 run = "npm run test:model-workflow"
 
+[tasks."fit:test"]
+description = "Verify fine block silhouettes, state transforms and recipe roundtrips"
+run = "npm run test:fitting-shapes"
+
 [tasks."gpu:materialization"]
 description = "Benchmark CPU materialization with CPU and GPU field inputs"
 run = "python scripts/gpu-runtime.py python -B scripts/benchmark-materialization.py"

@@ -81,7 +81,8 @@ def fit_sample(workspace, settings, width, height, seed, symmetry, repeat=(1, 1)
     columns, rows = repeat
     if columns > width or rows > height:
         raise ValueError('重复次数超过装饰面格数')
-    factor = 2 if subcells else 1
+    factor = 2 if subcells is True else subcells if type(subcells) is int else 1
+    if factor not in (1,2,16,32):raise ValueError('采样细分须为1、2、16或32')
     size = (factor * (width // columns), factor * (height // rows))
     mask = resize_sample(mask, size, settings.get('fit', 'contain'))
     alpha = resize_sample(alpha, size, settings.get('fit', 'contain'))
@@ -132,11 +133,11 @@ def fit_sample(workspace, settings, width, height, seed, symmetry, repeat=(1, 1)
         return value>0 and value>=threshold
 
     def coverage(u,v):
-        return tuple(max(0,min(1,.5+strength(u+x/2,v+y/2)-threshold))
-                     for x,y in ((0,0),(1,0),(0,1),(1,1)))
+        return tuple(max(0,min(1,.5+strength(u+x/factor,v+y/factor)-threshold))
+                     for y in range(factor) for x in range(factor))
 
     if subcells:
-        result=(lambda u,v:tuple(sample(u+x/2,v+y/2) for x,y in ((0,0),(1,0),(0,1),(1,1)))),material_at
+        result=(lambda u,v:tuple(sample(u+x/factor,v+y/factor) for y in range(factor) for x in range(factor))),material_at
         return (*result,coverage) if return_coverage else result
     if return_coverage:
         return sample,material_at,lambda u,v:(max(0,min(1,.5+strength(u,v)-threshold)),)

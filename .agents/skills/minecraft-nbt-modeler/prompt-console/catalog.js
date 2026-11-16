@@ -2057,6 +2057,66 @@ globalThis.NbtToolCatalog = {
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 160
+                          },
+                          "trapdoor": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                          },
+                          "wall": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                          },
+                          "pane": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "bars": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "fence": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "snow": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "carpet": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "pressure_plate": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "end_rod": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "chain": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                           }
                         }
                       },
@@ -2402,6 +2462,66 @@ globalThis.NbtToolCatalog = {
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 160
+                          },
+                          "trapdoor": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                          },
+                          "wall": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                          },
+                          "pane": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "bars": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "fence": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "snow": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "carpet": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "pressure_plate": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "end_rod": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "chain": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                           }
                         }
                       },
@@ -3285,6 +3405,66 @@ globalThis.NbtToolCatalog = {
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 160
+                          },
+                          "trapdoor": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                          },
+                          "wall": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                          },
+                          "pane": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "bars": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "fence": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "snow": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "carpet": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "pressure_plate": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "end_rod": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "chain": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                           }
                         }
                       },
@@ -3630,6 +3810,66 @@ globalThis.NbtToolCatalog = {
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 160
+                          },
+                          "trapdoor": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                          },
+                          "wall": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                          },
+                          "pane": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "bars": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "fence": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "snow": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "carpet": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "pressure_plate": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "end_rod": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                          },
+                          "chain": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160,
+                            "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                           }
                         }
                       },
@@ -4639,6 +4879,66 @@ globalThis.NbtToolCatalog = {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 160
+                              },
+                              "trapdoor": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                              },
+                              "wall": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                              },
+                              "pane": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "bars": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "fence": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "snow": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "carpet": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "pressure_plate": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "end_rod": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "chain": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                               }
                             }
                           },
@@ -4984,6 +5284,66 @@ globalThis.NbtToolCatalog = {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 160
+                              },
+                              "trapdoor": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                              },
+                              "wall": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                              },
+                              "pane": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "bars": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "fence": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "snow": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "carpet": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "pressure_plate": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "end_rod": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "chain": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                               }
                             }
                           },
@@ -6218,6 +6578,66 @@ globalThis.NbtToolCatalog = {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 160
+                              },
+                              "trapdoor": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                              },
+                              "wall": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                              },
+                              "pane": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "bars": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "fence": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "snow": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "carpet": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "pressure_plate": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "end_rod": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "chain": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                               }
                             }
                           },
@@ -6563,6 +6983,66 @@ globalThis.NbtToolCatalog = {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 160
+                              },
+                              "trapdoor": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                              },
+                              "wall": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                              },
+                              "pane": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "bars": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "fence": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "snow": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "carpet": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "pressure_plate": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "end_rod": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "chain": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                               }
                             }
                           },
@@ -7647,6 +8127,66 @@ globalThis.NbtToolCatalog = {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 160
+                              },
+                              "trapdoor": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                              },
+                              "wall": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                              },
+                              "pane": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "bars": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "fence": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "snow": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "carpet": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "pressure_plate": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "end_rod": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "chain": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                               }
                             }
                           },
@@ -7992,6 +8532,66 @@ globalThis.NbtToolCatalog = {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 160
+                              },
+                              "trapdoor": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                              },
+                              "wall": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                              },
+                              "pane": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "bars": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "fence": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "snow": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "carpet": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "pressure_plate": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "end_rod": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "chain": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                               }
                             }
                           },
@@ -9010,6 +9610,66 @@ globalThis.NbtToolCatalog = {
                                       "type": "string",
                                       "minLength": 1,
                                       "maxLength": 160
+                                    },
+                                    "trapdoor": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                                    },
+                                    "wall": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                                    },
+                                    "pane": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "bars": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "fence": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "snow": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "carpet": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "pressure_plate": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "end_rod": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "chain": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                                     }
                                   }
                                 },
@@ -9355,6 +10015,66 @@ globalThis.NbtToolCatalog = {
                                       "type": "string",
                                       "minLength": 1,
                                       "maxLength": 160
+                                    },
+                                    "trapdoor": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                                    },
+                                    "wall": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                                    },
+                                    "pane": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "bars": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "fence": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "snow": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "carpet": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "pressure_plate": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "end_rod": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                                    },
+                                    "chain": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 160,
+                                      "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                                     }
                                   }
                                 },
@@ -10313,6 +11033,66 @@ globalThis.NbtToolCatalog = {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 160
+                              },
+                              "trapdoor": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                              },
+                              "wall": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                              },
+                              "pane": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "bars": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "fence": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "snow": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "carpet": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "pressure_plate": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "end_rod": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "chain": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                               }
                             }
                           },
@@ -10658,6 +11438,66 @@ globalThis.NbtToolCatalog = {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 160
+                              },
+                              "trapdoor": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                              },
+                              "wall": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                              },
+                              "pane": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "bars": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "fence": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "snow": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "carpet": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "pressure_plate": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "end_rod": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "chain": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                               }
                             }
                           },
@@ -11538,6 +12378,66 @@ globalThis.NbtToolCatalog = {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 160
+                              },
+                              "trapdoor": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                              },
+                              "wall": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                              },
+                              "pane": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "bars": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "fence": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "snow": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "carpet": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "pressure_plate": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "end_rod": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "chain": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                               }
                             }
                           },
@@ -11883,6 +12783,66 @@ globalThis.NbtToolCatalog = {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 160
+                              },
+                              "trapdoor": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                              },
+                              "wall": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                              },
+                              "pane": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "bars": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "fence": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "snow": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "carpet": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "pressure_plate": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "end_rod": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                              },
+                              "chain": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160,
+                                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                               }
                             }
                           },
@@ -12646,6 +13606,66 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 160
+              },
+              "trapdoor": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+              },
+              "wall": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+              },
+              "pane": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "bars": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "fence": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "snow": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "carpet": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "pressure_plate": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "end_rod": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "chain": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
               }
             }
           },
@@ -13121,6 +14141,66 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 160
+              },
+              "trapdoor": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+              },
+              "wall": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+              },
+              "pane": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "bars": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "fence": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "snow": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "carpet": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "pressure_plate": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "end_rod": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "chain": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
               }
             }
           },
@@ -13719,6 +14799,66 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 160
+                  },
+                  "trapdoor": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                  },
+                  "wall": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                  },
+                  "pane": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "bars": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "fence": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "snow": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "carpet": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "pressure_plate": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "end_rod": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "chain": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                   }
                 }
               },
@@ -14392,6 +15532,66 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 160
+                  },
+                  "trapdoor": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+                  },
+                  "wall": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+                  },
+                  "pane": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "bars": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "fence": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "snow": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "carpet": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "pressure_plate": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "end_rod": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+                  },
+                  "chain": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
                   }
                 }
               },
@@ -15131,7 +16331,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "pattern_microfit": {
-      "description": "先拟合可辨纹样单元，再铺排；支持显式拉伸和量化视觉质量报告/门槛，保留楼梯半砖细节与硬拓扑约束。",
+      "description": "先拟合可辨纹样单元，再铺排；支持质量门槛与硬拓扑约束，可选活版门、石墙、玻璃板、铁栏杆、栅栏、雪层、地毯、压力板、末地烛、链条等精细形状。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -15319,6 +16519,66 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 160
+              },
+              "trapdoor": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "活版门材质；仅微型拟合，按1/16格盒体选择开合与朝向，纹理透明及红石变化不计入评分"
+              },
+              "wall": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "石墙材质；仅墙面/柱饰微型拟合，保留显式连接状态，游戏邻接更新另验"
+              },
+              "pane": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "玻璃板；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "bars": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "铁栏杆；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "fence": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "栅栏；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "snow": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "雪层，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "carpet": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "地毯，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "pressure_plate": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "未触发压力板，需下方实体承托；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "end_rod": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "末地烛；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
+              },
+              "chain": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "链条，按1/32格包络近似；仅微型拟合，邻接更新、纹理透明与游戏碰撞另验"
               }
             }
           },

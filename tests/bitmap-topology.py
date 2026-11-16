@@ -8,7 +8,7 @@ import numpy as np
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_bitmap_topology import component_sizes,topology
+from nbt_bitmap_topology import component_sizes,component_masks,topology
 from nbt_structure_agent import dispatch
 
 
@@ -67,27 +67,32 @@ class BitmapTopology(unittest.TestCase):
             self.assertEquivalent(np.full((13,9),value,dtype=bool))
         with self.assertRaises(ValueError):component_sizes(np.zeros(3))
 
-    def test_existing_stair_slab_geometry_and_complete_quality_receipts_are_identical(self):
-        # Captured before optimization, including original candidate selection,
-        # half-block orientations, topology and all fitted/visual-quality fields.
-        # Search diagnostics may expand when a new bounded refinement is added.
-        cases=[('micro-fleur-de-lis','wall',[8,8],
-            '82e98d61339a08bb59394c5852e576f99284cc445a623e74915ed43ea9aa3fa1',
-            '223f8cd724d5942ba925707afe3143b06ce5f456486a6d0f5687edd708ff359e'),
-            ('micro-palmette','ceiling',[4,4],
-            '4c52a68537b6feac4fe90083f7673bf86304293f77ea00ac9b3c2065e6cb2ef9',
-            '67a69518f6b1f4160f9cae222a691aee44dc2d25e2c9f9d818c7f72d8defb18b'),
-            ('micro-rose-window','wall',[12,12],
-            '455d71645fc10a74959a144bc22820702374f89b369a6d461424aca85f955f20',
-            '8602463d99315c907b1d12210429f71c20885085f6ef6934b270e5481417228b')]
+    def test_discrete_presets_preserve_geometry_and_use_versioned_physical_quality(self):
+        cases=[('micro-fleur-de-lis','wall',[8,8],'82e98d61339a08bb59394c5852e576f99284cc445a623e74915ed43ea9aa3fa1'),
+            ('micro-palmette','ceiling',[4,4],'4c52a68537b6feac4fe90083f7673bf86304293f77ea00ac9b3c2065e6cb2ef9'),
+            ('micro-rose-window','wall',[12,12],'455d71645fc10a74959a144bc22820702374f89b369a6d461424aca85f955f20')]
         with tempfile.TemporaryDirectory() as directory:
-            for preset,surface,size,content,quality in cases:
+            for preset,surface,size,content in cases:
                 with self.subTest(preset=preset):
                     result=dispatch(Path(directory),'pattern_microfit',dict(preset=preset,surface=surface,size_uv=size))
                     self.assertEqual(result['content_sha256'],content)
-                    fitted_quality={k:v for k,v in result['microfit'].items() if k!='shape_search'}
-                    actual=sha256(json.dumps(fitted_quality,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
-                    self.assertEqual(actual,quality)
+                    quality=result['microfit']['visual_quality']
+                    self.assertEqual(quality['evaluation_grid']['pixels_per_block'],32)
+                    self.assertEqual(quality['evaluation_grid']['edge_tolerance_blocks'],1/32)
+                    self.assertTrue(quality['method'].startswith('physical_32px_'))
+                    self.assertTrue(result['microfit']['topology_preserved'])
+
+    def test_component_masks_partition_real_pixels_without_row_wrap(self):
+        for shape in ((3,7),(8,5),(1,9)):
+            mask=np.indices(shape).sum(axis=0)%3==0
+            expected=int.from_bytes(np.packbits(mask.ravel(),bitorder='little').tobytes(),'little')
+            for diagonal in (False,True):
+                groups=list(component_masks(mask,diagonal))
+                combined=0
+                for group in groups:
+                    self.assertEqual(combined&group,0);combined|=group
+                self.assertEqual(combined,expected)
+                self.assertEqual(sorted(group.bit_count() for group in groups),reference(mask,diagonal,False))
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

@@ -1,5 +1,6 @@
 """Bounded image-to-half-grid adaptation, without rewriting source patterns."""
 from math import log
+import json
 
 import numpy as np
 from PIL import Image,ImageOps
@@ -54,10 +55,23 @@ def adaptive_fit(root,sample,width,height,options,factor,max_error,mode,*,qualit
     from nbt_pattern_quality import assess,source_bitmap
     target=(width*factor*8,height*factor*8)
     baseline_image=resize_sample(image,target,sample.get('fit','contain'))
-    quality_reference=source_bitmap(baseline_image,sample)
+    # Compare every palette at the same physical resolution and edge tolerance.
+    # Upsampling the actual mask first prevents coarse blocks from receiving a
+    # more forgiving contour tolerance than identical fine-block geometry.
+    quality_image=resize_sample(image,(width*32,height*32),sample.get('fit','contain'))
+    quality_reference=source_bitmap(quality_image,sample)
+    def assess_unit(unit,minimum=0):
+        pixels=projected(unit,width,height,options,factor)
+        scale=32//factor
+        pixels=np.repeat(np.repeat(pixels,scale,axis=0),scale,axis=1)
+        report=assess(pixels,quality_reference,quality_profile,0)
+        report.update(minimum_score=minimum,passed=report['score']+1e-9>=minimum,quality_protocol_version=3,
+            evaluation_grid=dict(pixels_per_block=32,edge_tolerance_blocks=1/32),
+            method='physical_32px_'+report['method'])
+        if not report['passed']:raise ValueError('纹样量化质量未达标：'+json.dumps(report,ensure_ascii=False,separators=(',',':')))
+        return report
     def refinement_accept(before,after):
-        reports=[assess(projected(unit,width,height,options,factor),quality_reference,quality_profile,0) for unit in (before,after)]
-        a,b=reports
+        a,b=(assess_unit(unit) for unit in (before,after))
         accepted=(b['score']+1e-9>=a['score'] and b['metrics']['detail_retention']+1e-12>=a['metrics']['detail_retention'])
         return dict(accepted=accepted,reference='original_mapped_image',previous_score=a['score'],candidate_score=b['score'],
             previous_detail_retention=a['metrics']['detail_retention'],candidate_detail_retention=b['metrics']['detail_retention'])
@@ -156,7 +170,7 @@ def adaptive_fit(root,sample,width,height,options,factor,max_error,mode,*,qualit
     ranked=sorted(available,key=lambda item:item[4][0],reverse=True)
     assessed=[]
     for index,item in enumerate(ranked):
-        report=assess(projected(item[0],width,height,options,factor),quality_reference,quality_profile,0)
+        report=assess_unit(item[0])
         assessed.append(dict(rank=index+1,score=report['score'],passed=report['score']+1e-9>=min_quality_score))
         if assessed[-1]['passed']:
             best=item;report=dict(report,minimum_score=min_quality_score,passed=True);break
@@ -164,7 +178,7 @@ def adaptive_fit(root,sample,width,height,options,factor,max_error,mode,*,qualit
         # Raise the usual public report for the best measured failure. Do not
         # lower the requested threshold, rewrite the source or invent a fit.
         failure=max(range(len(assessed)),key=lambda i:assessed[i]['score'])
-        assess(projected(ranked[failure][0],width,height,options,factor),quality_reference,quality_profile,min_quality_score)
+        assess_unit(ranked[failure][0],min_quality_score)
         raise ValueError('纹样量化质量未达标')
     unit,quality,raster,change,metrics=best
     quality=dict(quality,alignment=dict(mode=mode,algorithm_revision=2,applied=best is not candidates[0],
@@ -179,10 +193,11 @@ def adaptive_fit(root,sample,width,height,options,factor,max_error,mode,*,qualit
         search='bounded_ratio_scale_phase',source_modified=False))
     if not sample.get('colors'):color_at=lambda u,v:None
     elif mode=='fixed' or best is candidates[0]:
-        _,color_at=fit_sample(root,dict(sample,noise_strength=0),width,height,0,sample.get('mirror',False),subcells=factor==2)
+        _,color_at=fit_sample(root,dict(sample,noise_strength=0),width,height,0,sample.get('mirror',False),subcells=factor)
     else:color_at=aligned_colors(raster,sample,width,height)
     quality['quality_selection']=dict(strategy='geometric_rank_then_original_reference_quality_gate',
         selected_candidate_rank=index+1,candidates_evaluated=len(assessed),candidates_available=len(ranked),
         assessments=assessed,threshold_relaxed=False,reference='original_mapped_image')
     quality['visual_quality']=report
+    quality['quality_sampling_resolution']=32
     return unit,quality,color_at

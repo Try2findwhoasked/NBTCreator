@@ -30,7 +30,7 @@ pattern_asset 为工作区资产的 `{"id":实际ID,"image_sha256":实际图像S
 
 microfit.shape_search 返回搜索方式 method（exhaustive / bounded_beam）、候选数量 candidates_evaluated、原逐格方案的 baseline_ink_overlap / baseline_contour_error / baseline_raw_coverage_error 和 improved；selection_method 表示最终使用 coverage_threshold 或 joint_shapes。contour_error 比较实际半格轮廓与样本覆盖率的相邻边界（包含外框及内部留白），以样本边界总量归一化，越低越好，可大于1，不是百分比。联合搜索方案的 selected_coverage_threshold=0.5 仅用于 requested / missing / extra 的半格统计，实际形状直接比较原覆盖率，不先把各格压成同一阈值掩模。ink_overlap 与 contour_error 均描述几何投影，不代表材质或游戏内光照效果。
 
-脚本根据 material 自动寻找同材质楼梯和半砖，也可在 shapes 指定材料。朝向与上下状态自动选择。无同材质半砖/楼梯时使用整块，不自动换成别的颜色。full_blocks_only=true 可限制整块。平齐地板只用整块，吊顶只在可用楼梯的下半层细分；无法在给定尺寸保留主纹和孔洞时会拒绝。例如细线环可用四个楼梯拟合成2×2格墙饰，平齐地板的2×2格无法容纳中孔，需用更大的单元。
+脚本根据 material 自动寻找同材质楼梯、半砖和石墙，也可在 shapes 指定材料。朝向与上下状态自动选择。无同材质变体时使用整块，不自动换成别的颜色。full_blocks_only=true 可限制整块。平齐地板只用整块，吊顶只在可用楼梯的下半层细分；无法在给定尺寸保留主纹和孔洞时会拒绝。例如细线环可用四个楼梯拟合成2×2格墙饰，平齐地板的2×2格无法容纳中孔，需用更大的单元。
 
 | 参数 | 用途 |
 | --- | --- |
@@ -563,3 +563,43 @@ bitmap 的行数、每行宽度均为1～128，所有行等宽。`#` 或 `f` 为
 新增原生欧式微纹样 `micro-fleur-de-lis`（百合莨苕花冠）和 `micro-rose-window`（重瓣玫瑰窗花）。推荐尺寸由 pattern_list 返回：百合用于8×8墙/柱/吊顶，玫瑰窗花用12×12墙/柱/地板/吊顶；没有推荐的安装面不冒称已验证。纹样可复制进工作区资产后继续组合与命名绑定。
 
 纹样的FFT预处理用 `pattern_filter`，参数、适用规模与边界见[频域滤波](pattern-spectral.md)。滤波生成新资产，再交给微型拟合与原门槛；不能以滤波成功代替拓扑和实际看图。
+
+
+## 扩展方块与物理参考协议
+
+需要更细的笔画时，在 `pattern_microfit`（或 `fit_mode=micro`）的 `shapes` 显式加入 `trapdoor`、`wall`，可与 slab/stairs 混用。例如：
+
+```json
+{"surface":"wall","size_uv":[4,4],"preset":"micro-diamond","shapes":{"slab":"stone_brick_slab","stairs":"stone_brick_stairs","trapdoor":"spruce_trapdoor","wall":"stone_brick_wall"}}
+```
+
+精细形状通常采用16×16投影；含半像素边界的链条使用32×32。`microfit.projection_resolution` 返回实际精度，`subcells_per_block` 为256或1024。活版门的开合、朝向与上下状态由拟合器选择；石墙、玻璃板、铁栏杆及栅栏保存显式连接状态，安装旋转和镜像会同步变换方向。全部装饰连通部件须接到背板，雪层、地毯、压力板还须在拟合单元内找到下方完整支撑面，不额外添加源图中没有的承托。
+
+| shapes 字段 | 材质示例 | 适合的静态形状 |
+| --- | --- | --- |
+| trapdoor | spruce_trapdoor | 3/16格条带、上下薄板 |
+| wall | stone_brick_wall | 中央柱、low/tall连接臂 |
+| pane | white_stained_glass_pane | 细竖线、板状连接 |
+| bars | iron_bars | 镂空栏杆的近似包络 |
+| fence | oak_fence | 细立柱、双横杆格栅 |
+| snow | snow | layers=1～8的浅层形状 |
+| carpet | white_carpet | 1/16格薄层 |
+| pressure_plate | stone_pressure_plate | 未触发的1/16格薄板 |
+| end_rod | end_rod | 六向细杆及底座 |
+| chain | chain | 三轴细线的近似包络 |
+
+每次只选与材质和纹样相关的类别，避免自动混用颜色或不必要地扩大搜索。墙面/柱饰会自动寻找同材质半砖、楼梯和石墙；自动石墙搜索未通过时保留原有半砖/楼梯方案，`auto_wall_search` 记录是否回退及原因。其他精细类别仍显式选择。精细形状用于 wall/column；吊顶可选不要求下方支撑的适用类别，石墙除外。圆柱继续使用原有楼梯/半砖的三维转角检查，平齐地板继续使用整块。
+
+`shape_counts` 记录实际选中的类型；`geometry_constraints_passed` 和 `unsupported_positions` 记录静态连接与支承检查。`geometry_basis=static_shape_envelopes_texture_alpha_excluded` 表示评分不包含纹理透明孔洞；铁栏杆、链条会列入 `approximate_states`。玻璃透明度、游戏邻接重算、红石、碰撞和游戏效果另验，`collision_validated=false` 不得改写成游戏验收通过。
+
+从软件根目录执行 `mise run fit:test` 验证方块、方向、支撑与保存回读。效果对比使用 `mise exec -- python -B tests/fitting-shapes-benchmark.py --output build/<全新目录> --render`，输出同一原图在1/32格基准下的对照分数、耗时、启用材质及真实预览；该脚本只生成合成试件，不定稿或导出NBT。
+
+这项评分比较静态模型盒体投影，不计算活版门纹理中的透明孔，也不模拟红石与游戏邻接更新；石墙侧臂保存的状态需在目标布局中复查。报告用 `geometry_basis`、`state_policy` 和 `collision_validated=false` 明确这个范围。新增候选不扩大玩家通路的精确碰撞支持范围，不能当作游戏内通行或放置稳定性的证明。墙面与柱饰支持两种新形状；吊顶可用活版门，平齐地板和圆柱环绕继续使用原有形状。标准整图拟合不接受这两项，需先拟合微型单元再铺排。
+
+## 原图分析与评分的口径
+
+原图的主纹、孔洞、定位点和小特征面积阈值在固定的每格64像素参考上识别；改变楼梯、石墙或链条候选精度不再改变这组目标。`source_sampling_resolution=64` 记录该口径，省略的小特征计数仍保留，不以减少孔洞来冒称成功。
+
+质量协议版本 `quality_protocol_version=3` 将实际几何与原图统一到每格32像素、1/32格边界容差。`visual_quality.evaluation_grid` 和 `quality_sampling_resolution` 记录实际尺度；相同物理几何不因候选类别而获得不同分数。旧协议分数不能直接与新协议比较，调用方要求的门槛不会自动调低。
+
+`shape_search.repair` 记录有界拓扑修复：尝试次数、预算、初始/最终误差与是否找到可行解。`seed_candidates_evaluated` 记录满足当前约束的原解种子。搜索到上限仍失败时保留失败信息，不能据此断言所有尺寸和构造都不可能。

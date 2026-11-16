@@ -17,7 +17,7 @@ def _geometry(height,width):
     return full,full^left,full^right,left|right|row|(row<<((height-1)*width))
 
 
-def component_sizes(mask,diagonal=True,interior=False):
+def component_masks(mask,diagonal=True,interior=False):
     """Return exact sizes; optionally omit every border-touching component.
 
     Ink uses eight neighbours, voids use four. No dilation, thresholding or
@@ -26,7 +26,7 @@ def component_sizes(mask,diagonal=True,interior=False):
     mask=np.asarray(mask,dtype=bool)
     if mask.ndim!=2:raise ValueError('纹样连通检查须为二维位图')
     height,width=mask.shape
-    if not height or not width:return []
+    if not height or not width:return
     _,not_left,not_right,border=_geometry(height,width)
     remaining=int.from_bytes(np.packbits(mask.ravel(),bitorder='little').tobytes(),'little')
 
@@ -44,10 +44,11 @@ def component_sizes(mask,diagonal=True,interior=False):
     # Multiple outside components may be flooded together because all are
     # omitted, irrespective of whether the border itself connects them.
     if interior:flood(remaining&border)
-    sizes=[]
-    while remaining:sizes.append(flood(remaining&-remaining).bit_count())
-    return sizes
+    while remaining:yield flood(remaining&-remaining)
 
+
+def component_sizes(mask,diagonal=True,interior=False):
+    return [region.bit_count() for region in component_masks(mask,diagonal,interior)]
 
 def topology(mask):
     mask=np.asarray(mask,dtype=bool)

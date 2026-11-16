@@ -188,7 +188,8 @@ for _method in ('install', 'update', 'remove', 'detach', 'patch', 'apply_operati
 
 
 def revision_token():
-    return tuple(registry.revision() for registry in (AGENT_TOOLS, RECIPE_COMPILERS, MODEL_ACTIONS))
+    from nbt_fit_shapes import FIT_SHAPES
+    return tuple(registry.revision() for registry in (AGENT_TOOLS, RECIPE_COMPILERS, MODEL_ACTIONS, FIT_SHAPES))
 
 
 def compile_recipe(workspace, recipe):

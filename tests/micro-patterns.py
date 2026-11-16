@@ -62,13 +62,15 @@ class MicroPatterns(unittest.TestCase):
             layers=[dict(kind='bitmap',rows=rows)]))
         return asset,np.array([[c=='#' for c in row] for row in reversed(rows)])
 
-    def test_auto_alignment_recovers_original_native_scroll_without_editing(self):
+    def test_native_scroll_keeps_topology_in_fixed_and_automatic_modes_without_editing(self):
         asset=self.native_scroll();sample=asset['fitting_input']['sample'];file=self.root/sample['path']
         before=file.read_bytes();request=dict(surface='wall',size_uv=[8,8],sample=sample)
-        with self.assertRaisesRegex(ValueError,'孔洞0→1'):
-            dispatch(self.root,'pattern_microfit',dict(request,micro_alignment='fixed'))
+        fixed=dispatch(self.root,'pattern_microfit',dict(request,micro_alignment='fixed'))
+        self.assertTrue(fixed['microfit']['topology_preserved'])
+        self.assertEqual(fixed['microfit']['result_topology'],dict(components=1,holes=0))
         result=dispatch(self.root,'pattern_microfit',request);quality=result['microfit'];alignment=quality['alignment']
-        self.assertTrue(alignment['applied']);self.assertFalse(alignment['baseline_accepted'])
+        self.assertTrue(alignment['baseline_accepted'])
+        self.assertGreaterEqual(quality['visual_quality']['score'],fixed['microfit']['visual_quality']['score'])
         self.assertEqual(quality['result_topology'],dict(components=1,holes=0))
         self.assertEqual(len(regions(self.fitted_pixels(result),False)),0)
         self.assertLessEqual(alignment['candidates_solved'],7)

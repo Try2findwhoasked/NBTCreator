@@ -69,6 +69,8 @@ def _compile_panel(workspace, args):
     if args.get('fit_mode')=='micro':
         from nbt_microfit import compile_microfit
         return compile_microfit(workspace,args)
+    if set(args.get('shapes',{}))-{'slab','stairs'}:
+        raise ValueError('精细方块形状请使用 pattern_microfit 或 fit_mode=micro')
     if set(args)&{'quality_profile','min_quality_score'}:
         raise ValueError('量化质量配置用于pattern_microfit或fit_mode=micro，按单元评估后再铺排')
     if set(args)&{'tile_counts','gap_uv','micro_max_error','micro_alignment','diameter','full_blocks_only'}:
