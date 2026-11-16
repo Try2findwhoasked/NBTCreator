@@ -4,7 +4,9 @@
 
 ## 版本与证据
 
-规则版本为 `minecraft-java-1.20.1-bounded-obstacles-v3`。名单是固定的原版方块名，不按运行时名字后缀推断，也不接纳模组同名方块；每个状态继续通过1.20.1注册表校验。
+规则版本为 `minecraft-java-1.20.1-bounded-obstacles-v4`。名单是固定的原版方块名，不按运行时名字后缀推断，也不接纳模组同名方块；每个状态继续通过1.20.1注册表校验。
+
+v4 增加 lantern 的单格保守包络，已核对 LanternBlock 的两种形状均在单格内。allium 和 lilac 单列为空碰撞花植，依据 Blocks 中的 noCollission 构造设置及 FlowerBlock、TallFlowerBlock 到 BlockBehaviour 的碰撞继承关系。两种花植不提供支撑。核对使用同一下方指纹的 Java 1.20.1 服务端，证据保存在本次藤袴创作项目的 `nbt_models/_workspaces/fujibakama/collision-evidence/`。植物存活条件、邻块更新、灯光和流体行为继续按实际游戏环境验证。
 
 v3 核对 Mojang Java 1.20.1 服务端经 VanillaGradle 官方映射的类字节码：先从 `Blocks` 构造器核对具体方块所属类，再检查继承、碰撞方法、形状常量与偏移。映射后服务端 SHA256 为 `35a85fd83ec0054b602a73079918b46d669027ba5b26ea27818a98c119746aac`。本次证据保存在 `build/goal-collision-evidence/`，包括类检查日志、来源版本及方块到类的表；不作为运行依赖，也不分发 Minecraft 类。
 

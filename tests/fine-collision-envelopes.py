@@ -12,6 +12,15 @@ from nbt_registry import registry
 
 
 class FineEnvelopes(unittest.TestCase):
+    def test_verified_flowers_are_passable_and_never_provide_support(self):
+        for value in ('allium', 'lilac[half=lower]', 'lilac[half=upper]'):
+            self.assertEqual(collision_cells(value), ((), None))
+            model=Model((5,5,5));model.box((0,0,0),(4,0,4),'dirt')
+            model.put((2,1,2),value)
+            self.assertTrue(check_routes(model,(1.5,1,2.5),[(3.5,1,2.5)],conservative_obstacles=False)['passed'])
+            empty=Model((3,4,3));empty.put((1,0,1),value)
+            self.assertFalse(_Space(empty).supported((1.5,1,1.5)))
+
     def test_all_whitelisted_state_combinations_are_valid_and_have_no_exact_collision_claim(self):
         for short in sorted(BOUNDED_OBSTACLES|TALL_OBSTACLES):
             entry=registry()['blocks']['minecraft:'+short];keys=sorted(entry['properties'])

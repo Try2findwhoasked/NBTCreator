@@ -24,6 +24,8 @@ EPS = 1e-8
 RADIUS = 0.3
 PLAYER_HEIGHT = 1.8
 AIR_NAMES = {'air', 'cave_air', 'void_air'}
+# Constructors and collision inheritance verified in the pinned 1.20.1 server.
+NO_COLLISION_PLANTS = frozenset({'allium', 'lilac'})
 FACING = {'east': (1, 0), 'west': (-1, 0),
           'south': (0, 1), 'north': (0, -1)}
 # These collision shapes are full unit cubes. Do not broaden this to "anything
@@ -84,7 +86,7 @@ birch_trapdoor black_carpet black_stained_glass_pane blue_carpet blue_stained_gl
 brown_carpet brown_stained_glass_pane chain cherry_pressure_plate cherry_trapdoor
 crimson_pressure_plate crimson_trapdoor cyan_carpet cyan_stained_glass_pane dark_oak_pressure_plate
 dark_oak_trapdoor end_rod glass_pane gray_carpet gray_stained_glass_pane
-green_carpet green_stained_glass_pane heavy_weighted_pressure_plate iron_bars iron_trapdoor
+green_carpet green_stained_glass_pane heavy_weighted_pressure_plate iron_bars iron_trapdoor lantern
 jungle_pressure_plate jungle_trapdoor lever light_blue_carpet light_blue_stained_glass_pane
 light_gray_carpet light_gray_stained_glass_pane light_weighted_pressure_plate lime_carpet lime_stained_glass_pane
 magenta_carpet magenta_stained_glass_pane mangrove_pressure_plate mangrove_trapdoor moss_carpet
@@ -103,7 +105,7 @@ mud_brick_wall nether_brick_fence nether_brick_wall oak_fence polished_blackston
 polished_blackstone_wall polished_deepslate_wall prismarine_wall red_nether_brick_wall red_sandstone_wall
 sandstone_wall spruce_fence stone_brick_wall warped_fence
 '''.split())
-ENVELOPE_VERSION = 'minecraft-java-1.20.1-bounded-obstacles-v3'
+ENVELOPE_VERSION = 'minecraft-java-1.20.1-bounded-obstacles-v4'
 
 
 
@@ -135,7 +137,7 @@ def collision_cells(value):
     except ValueError:
         return full, 'invalid_minecraft_1_20_1_state'
     name = name.removeprefix('minecraft:')
-    if name in AIR_NAMES:
+    if name in AIR_NAMES or name in NO_COLLISION_PLANTS:
         return (), None
     if name.endswith('_slab'):
         kind = props.get('type', 'bottom')
