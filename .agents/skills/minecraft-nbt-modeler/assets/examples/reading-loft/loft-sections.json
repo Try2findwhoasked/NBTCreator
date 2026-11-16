@@ -1,0 +1,17 @@
+[
+  {
+    "id": "lower_plan", "role": "一层收卷台、入口与梯脚",
+    "eye": [10.5, 43, 14], "target": [10.5, 2, 14], "up": [0, 0, -1], "fov": 42,
+    "cuts": [{"axis": "y", "position": 4, "removed_side": "above"}]
+  },
+  {
+    "id": "loft_plan", "role": "夹层、梯顶出口与后排书柜",
+    "eye": [10.5, 43, 14], "target": [10.5, 5, 14], "up": [0, 0, -1], "fov": 42,
+    "cuts": [{"axis": "y", "position": 6, "removed_side": "above"}]
+  },
+  {
+    "id": "stair_section", "role": "沿梯段观察踏步高差及平台交接",
+    "eye": [39, 7.5, 14], "target": [5, 4, 14], "fov": 47,
+    "cuts": [{"axis": "x", "position": 6, "removed_side": "above"}]
+  }
+]

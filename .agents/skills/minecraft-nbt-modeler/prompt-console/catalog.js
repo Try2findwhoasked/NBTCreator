@@ -852,7 +852,7 @@ globalThis.NbtToolCatalog = {
         "overwrite": false,
         "max_writes": 4096
       },
-      "roof=gable/hip/gambrel/dome；lo.y为檐口底层，footprint可指定两个XZ角点，eaves向外扩展但不得超选区。finish=blocks/slabs/stairs；生成顶皮不自动补墙、梁柱或认证密闭。"
+      "roof=gable/hip/gambrel/dome/curved_hip。curved_hip 使用 curve_power、eave_lift、corner_lift 调整曲面、起翘与翼角，并连接相邻顶皮。footprint 为XZ角点，eaves 不得超选区。finish=blocks/slabs/stairs。屋面与宿主的梁柱支承、密闭和游戏表现另验。"
     ]
   },
   "labels": {
@@ -1717,7 +1717,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "parametric_list": {
-      "description": "查询参数化构件类型、样式、默认参数及安装边界；只读，不生成资产。",
+      "description": "查询16类模块、可直接编译的对象配方库、柱式与扶手样式、参数及安装边界；只读。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -1734,7 +1734,13 @@ globalThis.NbtToolCatalog = {
               "shelf",
               "bench",
               "planter",
-              "lantern"
+              "lantern",
+              "railing",
+              "beam",
+              "bracket",
+              "arch",
+              "frame",
+              "pedestal"
             ]
           },
           "ornament_profile": {
@@ -1753,7 +1759,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "parametric_compile": {
-      "description": "将柱、楼梯、桌子、墙饰、吊顶、植物和小型物品编译为共享结构spec；确定性校验，不写建筑。",
+      "description": "编译参数化模块候选：柱式、外置楼梯扶手、独立栏杆、梁、托架、拱框、门窗框、基座及家具。配方见parametric_list.object_library；不改当前建筑。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -1774,7 +1780,13 @@ globalThis.NbtToolCatalog = {
               "shelf",
               "bench",
               "planter",
-              "lantern"
+              "lantern",
+              "railing",
+              "beam",
+              "bracket",
+              "arch",
+              "frame",
+              "pedestal"
             ]
           },
           "size": {
@@ -1968,7 +1980,9 @@ globalThis.NbtToolCatalog = {
                 "enum": [
                   "square",
                   "cross",
-                  "round"
+                  "round",
+                  "octagonal",
+                  "bundled"
                 ]
               },
               "profile": {
@@ -1982,7 +1996,24 @@ globalThis.NbtToolCatalog = {
                   "straight",
                   "quarter_turn",
                   "switchback",
-                  "spiral"
+                  "spiral",
+                  "baluster",
+                  "panel",
+                  "lattice",
+                  "horizontal",
+                  "solid",
+                  "coffered",
+                  "braced",
+                  "stepped",
+                  "curved",
+                  "diagonal",
+                  "round",
+                  "pointed",
+                  "flat",
+                  "rectangular",
+                  "crosslight",
+                  "mullioned",
+                  "square"
                 ]
               },
               "base_profile": {
@@ -2853,6 +2884,73 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 160
+              },
+              "slope": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 24,
+                "description": "独立栏杆沿+X的总坡升；尺寸Y须至少为坡升+3。"
+              },
+              "band_spacing": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 16,
+                "description": "柱身分带间距；不改变柱端边界。"
+              },
+              "rail_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "post_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "handrail": {
+                "type": "object",
+                "additionalProperties": false,
+                "minProperties": 1,
+                "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                "properties": {
+                  "side": {
+                    "type": "string",
+                    "enum": [
+                      "both",
+                      "left",
+                      "right"
+                    ]
+                  },
+                  "style": {
+                    "type": "string",
+                    "enum": [
+                      "baluster",
+                      "panel",
+                      "lattice",
+                      "horizontal"
+                    ]
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 5
+                  },
+                  "post_spacing": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "cap_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  }
+                }
               }
             }
           },
@@ -3122,7 +3220,13 @@ globalThis.NbtToolCatalog = {
               "shelf",
               "bench",
               "planter",
-              "lantern"
+              "lantern",
+              "railing",
+              "beam",
+              "bracket",
+              "arch",
+              "frame",
+              "pedestal"
             ]
           },
           "size": {
@@ -3316,7 +3420,9 @@ globalThis.NbtToolCatalog = {
                 "enum": [
                   "square",
                   "cross",
-                  "round"
+                  "round",
+                  "octagonal",
+                  "bundled"
                 ]
               },
               "profile": {
@@ -3330,7 +3436,24 @@ globalThis.NbtToolCatalog = {
                   "straight",
                   "quarter_turn",
                   "switchback",
-                  "spiral"
+                  "spiral",
+                  "baluster",
+                  "panel",
+                  "lattice",
+                  "horizontal",
+                  "solid",
+                  "coffered",
+                  "braced",
+                  "stepped",
+                  "curved",
+                  "diagonal",
+                  "round",
+                  "pointed",
+                  "flat",
+                  "rectangular",
+                  "crosslight",
+                  "mullioned",
+                  "square"
                 ]
               },
               "base_profile": {
@@ -4201,6 +4324,73 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 160
+              },
+              "slope": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 24,
+                "description": "独立栏杆沿+X的总坡升；尺寸Y须至少为坡升+3。"
+              },
+              "band_spacing": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 16,
+                "description": "柱身分带间距；不改变柱端边界。"
+              },
+              "rail_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "post_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "handrail": {
+                "type": "object",
+                "additionalProperties": false,
+                "minProperties": 1,
+                "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                "properties": {
+                  "side": {
+                    "type": "string",
+                    "enum": [
+                      "both",
+                      "left",
+                      "right"
+                    ]
+                  },
+                  "style": {
+                    "type": "string",
+                    "enum": [
+                      "baluster",
+                      "panel",
+                      "lattice",
+                      "horizontal"
+                    ]
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 5
+                  },
+                  "post_spacing": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "cap_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  }
+                }
               }
             }
           },
@@ -4473,7 +4663,13 @@ globalThis.NbtToolCatalog = {
                   "shelf",
                   "bench",
                   "planter",
-                  "lantern"
+                  "lantern",
+                  "railing",
+                  "beam",
+                  "bracket",
+                  "arch",
+                  "frame",
+                  "pedestal"
                 ]
               },
               "size": {
@@ -4596,7 +4792,13 @@ globalThis.NbtToolCatalog = {
                   "shelf",
                   "bench",
                   "planter",
-                  "lantern"
+                  "lantern",
+                  "railing",
+                  "beam",
+                  "bracket",
+                  "arch",
+                  "frame",
+                  "pedestal"
                 ]
               },
               "size": {
@@ -4790,7 +4992,9 @@ globalThis.NbtToolCatalog = {
                     "enum": [
                       "square",
                       "cross",
-                      "round"
+                      "round",
+                      "octagonal",
+                      "bundled"
                     ]
                   },
                   "profile": {
@@ -4804,7 +5008,24 @@ globalThis.NbtToolCatalog = {
                       "straight",
                       "quarter_turn",
                       "switchback",
-                      "spiral"
+                      "spiral",
+                      "baluster",
+                      "panel",
+                      "lattice",
+                      "horizontal",
+                      "solid",
+                      "coffered",
+                      "braced",
+                      "stepped",
+                      "curved",
+                      "diagonal",
+                      "round",
+                      "pointed",
+                      "flat",
+                      "rectangular",
+                      "crosslight",
+                      "mullioned",
+                      "square"
                     ]
                   },
                   "base_profile": {
@@ -5675,6 +5896,73 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 160
+                  },
+                  "slope": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 24,
+                    "description": "独立栏杆沿+X的总坡升；尺寸Y须至少为坡升+3。"
+                  },
+                  "band_spacing": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 16,
+                    "description": "柱身分带间距；不改变柱端边界。"
+                  },
+                  "rail_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "post_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "handrail": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                    "properties": {
+                      "side": {
+                        "type": "string",
+                        "enum": [
+                          "both",
+                          "left",
+                          "right"
+                        ]
+                      },
+                      "style": {
+                        "type": "string",
+                        "enum": [
+                          "baluster",
+                          "panel",
+                          "lattice",
+                          "horizontal"
+                        ]
+                      },
+                      "height": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 5
+                      },
+                      "post_spacing": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 8
+                      },
+                      "material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "cap_material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
                   }
                 }
               },
@@ -5937,7 +6225,13 @@ globalThis.NbtToolCatalog = {
                   "shelf",
                   "bench",
                   "planter",
-                  "lantern"
+                  "lantern",
+                  "railing",
+                  "beam",
+                  "bracket",
+                  "arch",
+                  "frame",
+                  "pedestal"
                 ]
               },
               "size": {
@@ -6295,7 +6589,13 @@ globalThis.NbtToolCatalog = {
                   "shelf",
                   "bench",
                   "planter",
-                  "lantern"
+                  "lantern",
+                  "railing",
+                  "beam",
+                  "bracket",
+                  "arch",
+                  "frame",
+                  "pedestal"
                 ]
               },
               "size": {
@@ -6489,7 +6789,9 @@ globalThis.NbtToolCatalog = {
                     "enum": [
                       "square",
                       "cross",
-                      "round"
+                      "round",
+                      "octagonal",
+                      "bundled"
                     ]
                   },
                   "profile": {
@@ -6503,7 +6805,24 @@ globalThis.NbtToolCatalog = {
                       "straight",
                       "quarter_turn",
                       "switchback",
-                      "spiral"
+                      "spiral",
+                      "baluster",
+                      "panel",
+                      "lattice",
+                      "horizontal",
+                      "solid",
+                      "coffered",
+                      "braced",
+                      "stepped",
+                      "curved",
+                      "diagonal",
+                      "round",
+                      "pointed",
+                      "flat",
+                      "rectangular",
+                      "crosslight",
+                      "mullioned",
+                      "square"
                     ]
                   },
                   "base_profile": {
@@ -7374,6 +7693,73 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 160
+                  },
+                  "slope": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 24,
+                    "description": "独立栏杆沿+X的总坡升；尺寸Y须至少为坡升+3。"
+                  },
+                  "band_spacing": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 16,
+                    "description": "柱身分带间距；不改变柱端边界。"
+                  },
+                  "rail_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "post_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "handrail": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                    "properties": {
+                      "side": {
+                        "type": "string",
+                        "enum": [
+                          "both",
+                          "left",
+                          "right"
+                        ]
+                      },
+                      "style": {
+                        "type": "string",
+                        "enum": [
+                          "baluster",
+                          "panel",
+                          "lattice",
+                          "horizontal"
+                        ]
+                      },
+                      "height": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 5
+                      },
+                      "post_spacing": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 8
+                      },
+                      "material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "cap_material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
                   }
                 }
               },
@@ -7844,7 +8230,13 @@ globalThis.NbtToolCatalog = {
                   "shelf",
                   "bench",
                   "planter",
-                  "lantern"
+                  "lantern",
+                  "railing",
+                  "beam",
+                  "bracket",
+                  "arch",
+                  "frame",
+                  "pedestal"
                 ]
               },
               "size": {
@@ -8038,7 +8430,9 @@ globalThis.NbtToolCatalog = {
                     "enum": [
                       "square",
                       "cross",
-                      "round"
+                      "round",
+                      "octagonal",
+                      "bundled"
                     ]
                   },
                   "profile": {
@@ -8052,7 +8446,24 @@ globalThis.NbtToolCatalog = {
                       "straight",
                       "quarter_turn",
                       "switchback",
-                      "spiral"
+                      "spiral",
+                      "baluster",
+                      "panel",
+                      "lattice",
+                      "horizontal",
+                      "solid",
+                      "coffered",
+                      "braced",
+                      "stepped",
+                      "curved",
+                      "diagonal",
+                      "round",
+                      "pointed",
+                      "flat",
+                      "rectangular",
+                      "crosslight",
+                      "mullioned",
+                      "square"
                     ]
                   },
                   "base_profile": {
@@ -8923,6 +9334,73 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 160
+                  },
+                  "slope": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 24,
+                    "description": "独立栏杆沿+X的总坡升；尺寸Y须至少为坡升+3。"
+                  },
+                  "band_spacing": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 16,
+                    "description": "柱身分带间距；不改变柱端边界。"
+                  },
+                  "rail_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "post_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "handrail": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                    "properties": {
+                      "side": {
+                        "type": "string",
+                        "enum": [
+                          "both",
+                          "left",
+                          "right"
+                        ]
+                      },
+                      "style": {
+                        "type": "string",
+                        "enum": [
+                          "baluster",
+                          "panel",
+                          "lattice",
+                          "horizontal"
+                        ]
+                      },
+                      "height": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 5
+                      },
+                      "post_spacing": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 8
+                      },
+                      "material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "cap_material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
                   }
                 }
               },
@@ -9327,7 +9805,13 @@ globalThis.NbtToolCatalog = {
                         "shelf",
                         "bench",
                         "planter",
-                        "lantern"
+                        "lantern",
+                        "railing",
+                        "beam",
+                        "bracket",
+                        "arch",
+                        "frame",
+                        "pedestal"
                       ]
                     },
                     "size": {
@@ -9521,7 +10005,9 @@ globalThis.NbtToolCatalog = {
                           "enum": [
                             "square",
                             "cross",
-                            "round"
+                            "round",
+                            "octagonal",
+                            "bundled"
                           ]
                         },
                         "profile": {
@@ -9535,7 +10021,24 @@ globalThis.NbtToolCatalog = {
                             "straight",
                             "quarter_turn",
                             "switchback",
-                            "spiral"
+                            "spiral",
+                            "baluster",
+                            "panel",
+                            "lattice",
+                            "horizontal",
+                            "solid",
+                            "coffered",
+                            "braced",
+                            "stepped",
+                            "curved",
+                            "diagonal",
+                            "round",
+                            "pointed",
+                            "flat",
+                            "rectangular",
+                            "crosslight",
+                            "mullioned",
+                            "square"
                           ]
                         },
                         "base_profile": {
@@ -10406,6 +10909,73 @@ globalThis.NbtToolCatalog = {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 160
+                        },
+                        "slope": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 24,
+                          "description": "独立栏杆沿+X的总坡升；尺寸Y须至少为坡升+3。"
+                        },
+                        "band_spacing": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 16,
+                          "description": "柱身分带间距；不改变柱端边界。"
+                        },
+                        "rail_material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "post_material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "handrail": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "minProperties": 1,
+                          "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                          "properties": {
+                            "side": {
+                              "type": "string",
+                              "enum": [
+                                "both",
+                                "left",
+                                "right"
+                              ]
+                            },
+                            "style": {
+                              "type": "string",
+                              "enum": [
+                                "baluster",
+                                "panel",
+                                "lattice",
+                                "horizontal"
+                              ]
+                            },
+                            "height": {
+                              "type": "integer",
+                              "minimum": 2,
+                              "maximum": 5
+                            },
+                            "post_spacing": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 8
+                            },
+                            "material": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            },
+                            "cap_material": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            }
+                          }
                         }
                       }
                     },
@@ -10750,7 +11320,13 @@ globalThis.NbtToolCatalog = {
                   "shelf",
                   "bench",
                   "planter",
-                  "lantern"
+                  "lantern",
+                  "railing",
+                  "beam",
+                  "bracket",
+                  "arch",
+                  "frame",
+                  "pedestal"
                 ]
               },
               "size": {
@@ -10944,7 +11520,9 @@ globalThis.NbtToolCatalog = {
                     "enum": [
                       "square",
                       "cross",
-                      "round"
+                      "round",
+                      "octagonal",
+                      "bundled"
                     ]
                   },
                   "profile": {
@@ -10958,7 +11536,24 @@ globalThis.NbtToolCatalog = {
                       "straight",
                       "quarter_turn",
                       "switchback",
-                      "spiral"
+                      "spiral",
+                      "baluster",
+                      "panel",
+                      "lattice",
+                      "horizontal",
+                      "solid",
+                      "coffered",
+                      "braced",
+                      "stepped",
+                      "curved",
+                      "diagonal",
+                      "round",
+                      "pointed",
+                      "flat",
+                      "rectangular",
+                      "crosslight",
+                      "mullioned",
+                      "square"
                     ]
                   },
                   "base_profile": {
@@ -11829,6 +12424,73 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 160
+                  },
+                  "slope": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 24,
+                    "description": "独立栏杆沿+X的总坡升；尺寸Y须至少为坡升+3。"
+                  },
+                  "band_spacing": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 16,
+                    "description": "柱身分带间距；不改变柱端边界。"
+                  },
+                  "rail_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "post_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "handrail": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                    "properties": {
+                      "side": {
+                        "type": "string",
+                        "enum": [
+                          "both",
+                          "left",
+                          "right"
+                        ]
+                      },
+                      "style": {
+                        "type": "string",
+                        "enum": [
+                          "baluster",
+                          "panel",
+                          "lattice",
+                          "horizontal"
+                        ]
+                      },
+                      "height": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 5
+                      },
+                      "post_spacing": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 8
+                      },
+                      "material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "cap_material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
                   }
                 }
               },
@@ -12095,7 +12757,13 @@ globalThis.NbtToolCatalog = {
                   "shelf",
                   "bench",
                   "planter",
-                  "lantern"
+                  "lantern",
+                  "railing",
+                  "beam",
+                  "bracket",
+                  "arch",
+                  "frame",
+                  "pedestal"
                 ]
               },
               "size": {
@@ -12289,7 +12957,9 @@ globalThis.NbtToolCatalog = {
                     "enum": [
                       "square",
                       "cross",
-                      "round"
+                      "round",
+                      "octagonal",
+                      "bundled"
                     ]
                   },
                   "profile": {
@@ -12303,7 +12973,24 @@ globalThis.NbtToolCatalog = {
                       "straight",
                       "quarter_turn",
                       "switchback",
-                      "spiral"
+                      "spiral",
+                      "baluster",
+                      "panel",
+                      "lattice",
+                      "horizontal",
+                      "solid",
+                      "coffered",
+                      "braced",
+                      "stepped",
+                      "curved",
+                      "diagonal",
+                      "round",
+                      "pointed",
+                      "flat",
+                      "rectangular",
+                      "crosslight",
+                      "mullioned",
+                      "square"
                     ]
                   },
                   "base_profile": {
@@ -13174,6 +13861,73 @@ globalThis.NbtToolCatalog = {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 160
+                  },
+                  "slope": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 24,
+                    "description": "独立栏杆沿+X的总坡升；尺寸Y须至少为坡升+3。"
+                  },
+                  "band_spacing": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 16,
+                    "description": "柱身分带间距；不改变柱端边界。"
+                  },
+                  "rail_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "post_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "handrail": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                    "properties": {
+                      "side": {
+                        "type": "string",
+                        "enum": [
+                          "both",
+                          "left",
+                          "right"
+                        ]
+                      },
+                      "style": {
+                        "type": "string",
+                        "enum": [
+                          "baluster",
+                          "panel",
+                          "lattice",
+                          "horizontal"
+                        ]
+                      },
+                      "height": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 5
+                      },
+                      "post_spacing": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 8
+                      },
+                      "material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "cap_material": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    }
                   }
                 }
               },
@@ -16952,7 +17706,8 @@ globalThis.NbtToolCatalog = {
                             "vault_compile",
                             "bay_compile",
                             "field_compile",
-                            "span_beam"
+                            "span_beam",
+                            "facade_compile"
                           ]
                         },
                         "arguments": {
@@ -17377,7 +18132,8 @@ globalThis.NbtToolCatalog = {
                             "vault_compile",
                             "bay_compile",
                             "field_compile",
-                            "span_beam"
+                            "span_beam",
+                            "facade_compile"
                           ]
                         },
                         "arguments": {
@@ -17860,7 +18616,8 @@ globalThis.NbtToolCatalog = {
                         "vault_compile",
                         "bay_compile",
                         "field_compile",
-                        "span_beam"
+                        "span_beam",
+                        "facade_compile"
                       ]
                     },
                     "arguments": {
@@ -20379,6 +21136,80 @@ globalThis.NbtToolCatalog = {
           "transforms"
         ]
       }
+    },
+    "facade_compile": {
+      "description": "生成真实凹窗、窗台与层带的参数化立面候选，返回开口坐标，支持对象图和完整工作模型。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "bays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "storeys": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "opening": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 12
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "pier_width": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "sill_height": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "lintel_height": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "recess": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "material": {
+            "type": "string"
+          },
+          "trim": {
+            "type": "string"
+          },
+          "glass": {
+            "type": "string"
+          },
+          "sill_material": {
+            "type": "string"
+          },
+          "glazing": {
+            "type": "boolean"
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          }
+        }
+      }
     }
   },
   "agent_contract": {
@@ -22315,7 +23146,8 @@ globalThis.NbtToolCatalog = {
             "gable",
             "hip",
             "gambrel",
-            "dome"
+            "dome",
+            "curved_hip"
           ]
         },
         "ridge_axis": {
@@ -22380,6 +23212,21 @@ globalThis.NbtToolCatalog = {
         },
         "break_height": {
           "type": "number"
+        },
+        "curve_power": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "eave_lift": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "corner_lift": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8
         }
       },
       "additionalProperties": false,
@@ -22941,7 +23788,8 @@ globalThis.NbtToolCatalog = {
       "vault_compile",
       "bay_compile",
       "compute_info",
-      "field_compile"
+      "field_compile",
+      "facade_compile"
     ],
     "candidate_only": true,
     "automatic_retry": false
@@ -23112,7 +23960,8 @@ globalThis.NbtToolCatalog = {
                   "vault_compile",
                   "tracery_compile",
                   "field_compile",
-                  "scene_compile"
+                  "scene_compile",
+                  "facade_compile"
                 ]
               },
               "arguments": {
@@ -23193,7 +24042,8 @@ globalThis.NbtToolCatalog = {
                   "vault_compile",
                   "tracery_compile",
                   "field_compile",
-                  "scene_compile"
+                  "scene_compile",
+                  "facade_compile"
                 ]
               },
               "arguments": {
@@ -23794,7 +24644,8 @@ globalThis.NbtToolCatalog = {
                       "vault_compile",
                       "tracery_compile",
                       "field_compile",
-                      "scene_compile"
+                      "scene_compile",
+                      "facade_compile"
                     ]
                   },
                   "arguments": {
@@ -24284,6 +25135,219 @@ globalThis.NbtToolCatalog = {
           },
           "minItems": 3,
           "maxItems": 16
+        },
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                "maxLength": 32
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "origin": {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "design"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "spaces": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                  "maxLength": 32
+                },
+                "minItems": 0,
+                "maxItems": 128
+              },
+              "parts": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                  "maxLength": 32
+                },
+                "minItems": 0,
+                "maxItems": 128
+              },
+              "review_locations": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                  "maxLength": 32
+                },
+                "minItems": 0,
+                "maxItems": 128
+              }
+            },
+            "required": [
+              "id",
+              "text",
+              "origin",
+              "reason"
+            ]
+          },
+          "maxItems": 128
+        },
+        "activities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                "maxLength": 32
+              },
+              "actor": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "purpose": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "stops": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "space": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "feet": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 294
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "use_face": {
+                      "type": "object",
+                      "description": "活动脚位正对的竖向操作面。height 为脚位以上的操作高度，max_distance 为正对该面的最大水平距离，单位为格。",
+                      "additionalProperties": false,
+                      "properties": {
+                        "part": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                          "maxLength": 32
+                        },
+                        "object": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                          "maxLength": 32
+                        },
+                        "interface": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                          "maxLength": 32
+                        },
+                        "height": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 294
+                        },
+                        "max_distance": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 294
+                        }
+                      },
+                      "required": [
+                        "part",
+                        "interface",
+                        "height",
+                        "max_distance"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "space",
+                    "feet"
+                  ]
+                },
+                "maxItems": 32,
+                "minItems": 2
+              }
+            },
+            "required": [
+              "id",
+              "actor",
+              "purpose",
+              "stops"
+            ]
+          },
+          "maxItems": 32
+        },
+        "review_locations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                "maxLength": 32
+              },
+              "purpose": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "position": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 294
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "views": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                  "maxLength": 32
+                },
+                "minItems": 1,
+                "maxItems": 128
+              }
+            },
+            "required": [
+              "id",
+              "purpose",
+              "position",
+              "views"
+            ]
+          },
+          "maxItems": 128
         }
       },
       "required": [
@@ -24695,7 +25759,8 @@ globalThis.NbtToolCatalog = {
                             "vault_compile",
                             "tracery_compile",
                             "field_compile",
-                            "scene_compile"
+                            "scene_compile",
+                            "facade_compile"
                           ]
                         },
                         "arguments": {
@@ -25185,6 +26250,219 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 16
+              },
+              "requirements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "origin": {
+                      "type": "string",
+                      "enum": [
+                        "user",
+                        "design"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "spaces": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "minItems": 0,
+                      "maxItems": 128
+                    },
+                    "parts": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "minItems": 0,
+                      "maxItems": 128
+                    },
+                    "review_locations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "minItems": 0,
+                      "maxItems": 128
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "text",
+                    "origin",
+                    "reason"
+                  ]
+                },
+                "maxItems": 128
+              },
+              "activities": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "actor": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "purpose": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "stops": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "space": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "feet": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 294
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "use_face": {
+                            "type": "object",
+                            "description": "活动脚位正对的竖向操作面。height 为脚位以上的操作高度，max_distance 为正对该面的最大水平距离，单位为格。",
+                            "additionalProperties": false,
+                            "properties": {
+                              "part": {
+                                "type": "string",
+                                "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                                "maxLength": 32
+                              },
+                              "object": {
+                                "type": "string",
+                                "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                                "maxLength": 32
+                              },
+                              "interface": {
+                                "type": "string",
+                                "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                                "maxLength": 32
+                              },
+                              "height": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 294
+                              },
+                              "max_distance": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 294
+                              }
+                            },
+                            "required": [
+                              "part",
+                              "interface",
+                              "height",
+                              "max_distance"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "space",
+                          "feet"
+                        ]
+                      },
+                      "maxItems": 32,
+                      "minItems": 2
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "actor",
+                    "purpose",
+                    "stops"
+                  ]
+                },
+                "maxItems": 32
+              },
+              "review_locations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "purpose": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "position": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 294
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "views": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "purpose",
+                    "position",
+                    "views"
+                  ]
+                },
+                "maxItems": 128
               }
             },
             "required": [
@@ -25630,7 +26908,8 @@ globalThis.NbtToolCatalog = {
                             "vault_compile",
                             "tracery_compile",
                             "field_compile",
-                            "scene_compile"
+                            "scene_compile",
+                            "facade_compile"
                           ]
                         },
                         "arguments": {
@@ -26120,6 +27399,219 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 16
+              },
+              "requirements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "origin": {
+                      "type": "string",
+                      "enum": [
+                        "user",
+                        "design"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "spaces": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "minItems": 0,
+                      "maxItems": 128
+                    },
+                    "parts": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "minItems": 0,
+                      "maxItems": 128
+                    },
+                    "review_locations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "minItems": 0,
+                      "maxItems": 128
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "text",
+                    "origin",
+                    "reason"
+                  ]
+                },
+                "maxItems": 128
+              },
+              "activities": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "actor": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "purpose": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "stops": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "space": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "feet": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 294
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "use_face": {
+                            "type": "object",
+                            "description": "活动脚位正对的竖向操作面。height 为脚位以上的操作高度，max_distance 为正对该面的最大水平距离，单位为格。",
+                            "additionalProperties": false,
+                            "properties": {
+                              "part": {
+                                "type": "string",
+                                "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                                "maxLength": 32
+                              },
+                              "object": {
+                                "type": "string",
+                                "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                                "maxLength": 32
+                              },
+                              "interface": {
+                                "type": "string",
+                                "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                                "maxLength": 32
+                              },
+                              "height": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 294
+                              },
+                              "max_distance": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 294
+                              }
+                            },
+                            "required": [
+                              "part",
+                              "interface",
+                              "height",
+                              "max_distance"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "space",
+                          "feet"
+                        ]
+                      },
+                      "maxItems": 32,
+                      "minItems": 2
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "actor",
+                    "purpose",
+                    "stops"
+                  ]
+                },
+                "maxItems": 32
+              },
+              "review_locations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "purpose": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    "position": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 294
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    },
+                    "views": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "purpose",
+                    "position",
+                    "views"
+                  ]
+                },
+                "maxItems": 128
               }
             },
             "required": [
@@ -26261,6 +27753,16 @@ globalThis.NbtToolCatalog = {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 4000
+                },
+                "locations": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                    "maxLength": 32
+                  },
+                  "minItems": 0,
+                  "maxItems": 128
                 }
               },
               "required": [

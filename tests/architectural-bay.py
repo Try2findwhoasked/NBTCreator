@@ -39,6 +39,39 @@ class ArchitecturalBay(unittest.TestCase):
     def graph(self,args,**extra):
         return dict(schema_version=1,name='联动单跨',size=[48,48,48],objects=[dict(id='bay',lo=[0,0,0],recipe=dict(tool='bay_compile',arguments=args))],**extra)
 
+    def test_facade_openings_are_recessed_and_remain_open_without_glass(self):
+        args = dict(bays=2, storeys=2, opening=[3, 4], recess=2)
+        unglazed = self.call('facade_compile', **args, glazing=False)
+        glazed = self.call('facade_compile', **args)
+        a, b = self.voxels(unglazed), self.voxels(glazed)
+        self.assertEqual(len(unglazed['openings']), 4)
+        for opening in unglazed['openings']:
+            x, y, _ = opening['lo']
+            self.assertTrue(all((x, y, z) not in a for z in range(4)))
+            self.assertNotIn((x, y, 0), b)
+            self.assertNotIn((x, y, 1), b)
+            self.assertIn('glass', b[x, y, 2])
+            self.assertIn('slab', b[x, y - 1, 0])
+        self.assertEqual(components(self.solid(a)), 1)
+        larger = self.call('facade_compile', **dict(args, bays=3))
+        self.assertGreater(larger['spec']['size'][0], unglazed['spec']['size'][0])
+        self.assertEqual(larger['spec']['size'][1:], unglazed['spec']['size'][1:])
+
+    def test_facade_recipe_uses_the_shared_scene_and_working_model_entry(self):
+        from nbt_working_model import WorkingModel
+        recipe = dict(tool='facade_compile', arguments=dict(bays=2, storeys=1))
+        graph = dict(schema_version=1, name='窗墙试件', size=[32, 16, 8],
+                     objects=[dict(id='front', lo=[0, 0, 0], recipe=recipe)])
+        candidate = self.call('scene_compile', graph=graph)
+        self.assertGreater(candidate['block_count'], 0)
+        model = WorkingModel(self.root, [32, 16, 8], context=dict(mode='standalone', openings=[]))
+        model.install('facade', recipe, position=[6, 0, 0])
+        self.assertGreater(model.inspect('facade')['block_count'], 0)
+        with self.assertRaises(ValueError):
+            self.call('facade_compile', bays=8, opening=[12, 12])
+        with self.assertRaises(ValueError):
+            self.call('facade_compile', sill_material='stone')
+
     def test_real_open_tracery_and_glazing_do_not_create_opaque_backing(self):
         for profile in ('round','pointed'):
             for depth in (1,3):

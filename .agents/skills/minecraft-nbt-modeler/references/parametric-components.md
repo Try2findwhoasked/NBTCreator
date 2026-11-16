@@ -56,12 +56,55 @@
 | shelf | 立柱、层板和可选背板 | 底面支撑 |
 | bench | 凳面、支腿和可选靠背 | 底面支撑 |
 | lantern | 基座、灯杆与灯头 | 底面支撑 |
+| railing | 立柱、实心、格构或横档栏杆；可设坡升 | 沿 +X 展开，端点 start/end；安装后检查承托 |
+| beam | 整梁、格构梁、加腋梁 | 沿 +X 跨接；须绑定真实承托 |
+| bracket | 叠涩、弧形或斜撑托架 | 背面 Z=0，顶面承托，突出 +Z |
+| arch | 圆拱、尖拱、平拱的有厚度拱框 | 框内留空；不挖已有墙，不放入通路冒充可通行 |
+| frame | 素面、十字或竖梃门窗框 | 局部 XY 洞口，深度沿 Z；不生成玻璃或门扇 |
+| pedestal | 方形、层叠或圆形基座 | 底面支撑 |
 
 必需参数 `kind`、`size:[X,Y,Z]`，每轴 3～32。默认 `style=classic`（框架收边）；`stepped` 增加层叠、加厚或侧边；`open` 减少围合、背板或填充。样式按对象解释，不能将它们视作统一风格的完成建筑模板。
 
 `material` 控制主体，`accent` 控制收边；必须是 Java 1.20.1 合法状态且非空气。`spacing=3`（2～8）控制墙饰分格、吊顶梁格、架层与植物阵列；`thickness=1`（1～3，须小于 X/Z 的一半）控制框边、柱体留边和家具支腿；不影响不使用这些构造的对象。`foliage` 控制盆栽/花槽叶片，默认持久橡树叶。`stair_material` 单独控制阶面，必须为朝 south、bottom、straight、waterlogged=false 的原版楼梯，默认石砖楼梯；material 不替换阶面。name 可选，max_changed_blocks 默认65536，可降低预算。
 
 size 是整体设计包围空间，部分对象为薄浮雕或悬挂构造，不填满整个体积；不自动拉伸到墙面。墙饰仅添加，不挖墙、不猜开口、不破坏外壳。吊顶不凭预览证明连接或承重。楼梯的底部直阶提供半格碰撞形状，仍需放置后核对连续支撑、净空与真实玩家路线，不能仅凭几何认证通行。
+
+## 模块对象库与楼梯扶手
+
+`parametric_list` 的 `object_library` 返回54条具名配方，每项包含稳定 `id`、中文 `name`、分类 `category` 及可直接传给 `parametric_compile` 的完整 `arguments`。传 `kind` 可筛选；返回值复制后可改尺寸、材质及 form，不会创建资产或批准。应用的“资产管理 → 让 Agent 生成资产 → 参数化模块库”读取同一份库；选择配方会填入建议尺寸，预览后再保存新资产。不同配方有独立尺寸需求，缩小到无法表达时明确拒绝。
+
+库覆盖11种柱配方、12种楼梯扶手组合、5种独立栏杆，以及梁、托架、拱框、门窗框、基座、家具、植物、墙裙和吊顶。五种古典柱式沿用已有实现，新增 `form.section=octagonal/bundled`（八角、束柱）；`band_spacing=2..16` 在柱身按间距换成 accent，保持原截面占用。柱础、柱身、柱头仍保留各自部件边界及原有局部重生成。古典造型是方块适配，不是历史复原。
+
+新的楼梯 `form.handrail` 与旧布尔 `form.rail` 分开；旧调用保留原几何。新扶手示例：
+
+```json
+{
+  "kind":"stairs", "size":[18,12,15],
+  "material":"stone_bricks", "accent":"polished_andesite",
+  "form":{
+    "profile":"spiral", "run_width":3, "rise":8, "landing":3,
+    "handrail":{
+      "side":"both", "style":"baluster", "height":3, "post_spacing":3,
+      "material":"stone_bricks", "cap_material":"polished_andesite"
+    }
+  }
+}
+```
+
+- `profile` 继续支持 straight、quarter_turn、switchback、spiral；新方形旋梯至少4级，包含分隔上下入口的延长平台。
+- `run_width` 是踏步净宽。扶手在踏步外侧，画布需额外容纳一格边距、转角平台和扶手高度；不会从踏步宽度中扣除栏杆。`rise` 为阶数，每级一格高；不是整段画布高度。
+- `side` 为 left/right/both（默认 both），左右以从下向上行进为准；平台衔接同侧上下端点，双侧不会合并。`style` 为 baluster/panel/lattice/horizontal（默认 baluster）。
+- `height` 为踏步顶面以上2～5格（默认3），`post_spacing` 为沿栏杆网格相邻列的节奏1～8（默认3）。顶栏在坡升和转角以真实共面接触的方块连接；不宣称光滑斜杆。
+- `material` 为立柱/栏板材质，`cap_material` 为顶栏和底档材质，分别默认主体与收边。新扶手、平台与支承使用引擎已知的完整方块；细栅栏、玻璃板等形状继续使用纹样拟合工具。游戏更新和安装承托另验。
+- `tread` 接受裸楼梯 ID 或底部、直形、未含水的状态；跑段决定朝向。显式 facing 只允许 south 作为规范输入，拒绝静默丢弃 top、转角或其他朝向属性。
+
+新楼梯返回 `construction`，包含实际 `walk_columns`、`rail_bases`、`entrance`、`exit`（均为局部 XYZ）、踏步净宽及实际栏杆列数。它是构造回执；`routes/support` 仍为 `not_checked`，安装后用最终模型核对碰撞路线、净空和真实接触。
+
+独立栏杆沿 +X 放在深度中线。`form.profile` 使用同样四种栏体名，`pitch=2..8` 控制立柱间距，`slope=0..24` 为整段坡升；尺寸 Y 至少为 slope+3。`rail_material/post_material` 分别控制顶底档与立柱，必须是已知完整方块；`start/end` 提供带真实端部边界的装配接口。其他新模块的 profile 可从 `parametric_list.form_profiles` 查询，`pitch` 控制构造节奏，`border` 控制边框或收边厚度。
+
+梁提供底部两端的 `support_start/support_end` 接口；托架提供 `back/top`，侧装托架须显式设置 `quarter_turns`。这些接口绑定实际实体，但不自动证明整段梁或上方荷载得到支承。
+
+在软件仓库根目录执行 `mise run modular:test`，验证全库编译、扶手两侧与平台、顶栏材质连续、净宽、四向旋转、SNBT回读、旧调用兼容及公共对象图/CLI；这些测试不构成用户资产的看图批准或游戏验收。
 
 ## 装饰风格与纹样参数
 

@@ -115,6 +115,10 @@ geometry 新增三个 shape，仍经过相同布尔、裁剪、保护和预算�
 
 ## 参数化屋顶
 
+`roof=curved_hip` 生成连续曲面四坡。`curve_power` 调整从檐部到脊线的曲率，`eave_lift` 提升四边檐口，`corner_lift` 使四角另行渐变起翘。三项默认分别为2、0、0。曲面在实际边列取样，生成时连接相邻顶皮高度差，可选择 blocks、slabs 或 stairs。檐口与翼角参数仅用于此模式。
+
+例如在 `[0,0,0]` 到 `[32,15,28]` 的选区内，使用 `footprint=[[3,3],[29,25]]`、`eaves=2`、`rise=9`、`curve_power=2`、`eave_lift=1`、`corner_lift=2` 试搭。检查起翘是否逐步展开，并按实际尺寸调整。该工具继续通过结构 Agent 的 `structure_preview`、工作模型配方和原建模工具入口调用，保护、已有占用及方块预算适用。
+
 `auto_roof` 的 roof=gable/hip/gambrel/dome 分别人字、四坡、折线与椭圆穹顶；ridge_axis 指定人字或折线屋脊沿X/Z。lo.y 为檐口底层，rise 为正高度，footprint 为两个全局XZ角点（默认选区投影）；eaves=0..8 向外扩展且须完整容纳于选区。thickness=1..8 指每列垂直厚度，不是法向壳厚。finish=slabs 将表面向上量化到半格，以底半砖与完整块组合；blocks 使用完整块；stairs 在向高处的坡面放置朝内底楼梯，双向坡角为 outer_left/right，脊线使用完整块。屋脊和转角基于离散高度，是体素近似。gambrel 的 break_fraction/break_height 默认 .5/.75 控制折点。它只生成顶皮，不自动补山墙、檐下梁柱、承重和密闭检查。
 
 ## 外部模型参数协议

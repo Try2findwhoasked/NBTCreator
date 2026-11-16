@@ -53,9 +53,47 @@ def visibility(model,eye,targets,look_at,fov):
         scope='sampled_halfcell_geometry_with_glass_exceptions; not material_alpha_or_game_light')
 
 
+def delivery_summary(validation, pack, observed, covered, issues):
+    """Describe the evidence available at this revision, including gaps in coverage."""
+    whole = validation['whole_model']
+    routes = whole['routes']
+    targets = [row['name'] for row in routes['targets'] if row['reachable']]
+    lines = [f"静态通路可达 {len(targets)}/{len(routes['targets'])} 个目标（{'、'.join(targets)}）。"]
+    legs = [row['name'] for row in whole.get('route_legs', []) if row['report']['passed']]
+    if legs:
+        lines.append('专项通路已复验 ' + '、'.join(legs) + '。')
+    if routes.get('conservative_obstacles'):
+        lines.append('部分细件采用保守障碍包络。')
+    activities = [row for row in validation['architecture']['checks'] if row['kind'] == 'activity_routes']
+    for activity in activities:
+        faces = [f"第{f['stop_index'] + 1}站 {f['part']}.{f['interface']}" for f in activity['use_faces'] if f['passed']]
+        result = '已核对操作侧与净距（' + '、'.join(faces) + '）' if faces else '未声明操作面'
+        segments = activity['segments']
+        lines.append(f"活动 {activity['id']} 可达 {sum(s['passed'] for s in segments)}/{len(segments)} 段，{result}。")
+    if not activities:
+        lines.append('本方案未声明分段活动与操作面。')
+    views = [row['id'] for row in pack['views']]
+    locations = [row['id'] for row in pack.get('review_locations', [])]
+    for label, names, seen in [('机位', views, observed), ('审阅位置', locations, covered)]:
+        if not names:
+            lines.append('本方案未声明' + label + '。')
+            continue
+        missing = [name for name in names if name not in seen]
+        suffix = '，待看 ' + '、'.join(missing) if missing else ''
+        lines.append(f"{label}已记录观察 {len(names) - len(missing)}/{len(names)}{suffix}。")
+    failed = [row['id'] for row in pack['views'] + pack.get('review_locations', []) if not row['passed']]
+    if failed:
+        lines.append('取景检查未通过 ' + '、'.join(failed) + '。')
+    if observed:
+        lines.append('本次观察有待回查问题 ' + '、'.join(row['id'] for row in issues) + '。' if issues
+                     else '本次观察未登记问题。')
+    lines.append('搬运净空与游戏内操作未在本次静态检查中验证。')
+    return lines
+
+
 def prepare(workspace,request):
     from nbt_collision import _Space
-    model=load_model(workspace,request);model.validate();binding=model.architecture;plan=resolve(binding['plan']);space=_Space(model.model)
+    model=load_model(workspace,request);validation=model.validate();binding=model.architecture;plan=resolve(binding['plan']);space=_Space(model.model)
     output=inside(workspace,request['output'])
     if output.is_relative_to(model.source.parent.parent):raise ValueError('审阅包不能写入已发布制作版目录')
     cameras=[];checks=[]
@@ -74,13 +112,17 @@ def prepare(workspace,request):
         passed=(eye_clear and standing is not False and seen['visible_fraction']>=view.get('minimum_visible',.2))
         checks.append(dict(id=view['id'],layer=view['layer'],part=view.get('target_part'),feet=pose,standing=standing,eye_clear=eye_clear,passed=passed,visibility=seen))
         cameras.append(dict(id=view['id'],role=view['layer'],eye=eye,target=target,fov=view.get('fov',60)))
+    from nbt_architecture_intent import prepare_locations
+    locations = prepare_locations(model.model, plan, cameras, checks)
     output.mkdir(parents=True,exist_ok=False)
     write(output/'cameras.json',cameras)
     data=dict(schema_version=1,source=relative(workspace,model.source),source_sha256=model.source_sha256,
         model_sha256=model.inspect()['model_sha256'],plan_sha256=binding['sha256'],
         cameras='cameras.json',cameras_sha256=file_hash(output/'cameras.json'),views=checks,
-        coverage_passed=all(row['passed'] for row in checks),required_layers=['massing','structure','detail'],
+        coverage_passed=all(row['passed'] for row in checks) and all(row['passed'] for row in locations),
+        review_locations=locations,required_layers=['massing','structure','detail'],
         visual_status='awaiting_actual_images_and_observations',aesthetics='not_certified',approval_created=False)
+    data['delivery_summary'] = delivery_summary(validation, data, set(), set(), [])
     write(output/'review-pack.json',data)
     return dict(pack=relative(workspace,output/'review-pack.json'),pack_sha256=file_hash(output/'review-pack.json'),
         source=str(model.source),cameras=str(output/'cameras.json'),coverage=data,
@@ -125,6 +167,8 @@ def record(workspace,request):
     observed={row['image'] for row in request['observations']}
     if len(observed)!=len(request['observations']):raise ValueError('图像观察重复')
     if not observed<=set(images):raise ValueError('观察记录引用了不存在的实际图像')
+    from nbt_architecture_intent import observed_locations
+    covered_locations, missing_locations = observed_locations(pack, request['observations'])
     if len({row['id'] for row in request['issues']})!=len(request['issues']):raise ValueError('问题ID重复')
     model=load_model(workspace,dict(source=pack['source'],source_sha256=pack['source_sha256']));binding=model.architecture
     if snapshot.get('geometry_sha256')!=model.model.fingerprint() or manifest.get('geometry_sha256')!=snapshot['geometry_sha256']:raise ValueError('渲染几何指纹与制作源不符')
@@ -137,6 +181,7 @@ def record(workspace,request):
             _,points=actual_part(model,binding,issue['part']);row['part_bounds']=bounds(points)
         if any(any(not 0<=p[i]<model.model.size[i] for i in range(3)) for p in issue.get('positions',[])):raise ValueError('问题坐标越界')
         issues.append(row)
+    summary = delivery_summary(model.validate(), pack, observed, covered_locations, issues)
     notes_file=file.parent/'review-notes.json'
     load_pack(workspace,request)
     for row in images.values():
@@ -147,7 +192,8 @@ def record(workspace,request):
         layers={views[name]['layer'] for name in observed}
         data=dict(schema_version=1,revision=old['revision']+1,pack_sha256=request['pack_sha256'],source=pack['source'],source_sha256=pack['source_sha256'],plan_sha256=pack['plan_sha256'],
             observations=request['observations'],images=images,issues=issues,covered_layers=sorted(layers),
-            coverage_complete=set(pack['required_layers'])<=layers and pack['coverage_passed'],
+            covered_locations=covered_locations,missing_locations=missing_locations,delivery_summary=summary,
+            coverage_complete=set(pack['required_layers'])<=layers and pack['coverage_passed'] and not missing_locations,
             status='observations_recorded',aesthetics='requires_agent_and_user_judgment',approval_created=False,game='not_checked')
         history=file.parent/'observations'/f"{data['revision']}-{fingerprint(data)}.json"
         if history.exists():raise ValueError('观察修订已存在，未覆盖')

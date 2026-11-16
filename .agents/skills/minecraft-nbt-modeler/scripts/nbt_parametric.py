@@ -5,6 +5,8 @@ from nbt_model import state, AIR_NAMES
 
 KINDS = {'pillar':'装饰柱','stairs':'楼梯','table':'桌子','wall':'墙面装饰','ceiling':'吊顶装饰',
          'plant':'盆栽','shelf':'置物架','bench':'长凳','planter':'长花槽','lantern':'灯架'}
+from nbt_modular_objects import KINDS as MODULAR_KINDS
+KINDS.update(MODULAR_KINDS)
 STYLES = {'classic':'框架与收边','stepped':'层叠与加厚','open':'减少封闭面并保留骨架'}
 
 def listing(arguments=None):
@@ -13,9 +15,11 @@ def listing(arguments=None):
     from nbt_ornament_sample import ARCHITECTURAL_SAMPLES
     from nbt_object_forms import THEMES, FORM_FIELDS
     from nbt_classical_column import ORDERS
+    from nbt_object_library import library
+    from nbt_object_forms import PROFILES as FORM_PROFILES
     arguments=arguments or {}
-    return dict(schema_version=1,column_orders=ORDERS,architectural_samples=ARCHITECTURAL_SAMPLES,themes=THEMES,form_fields=FORM_FIELDS,parameters=definitions()['parametric_compile']['parameters'],
-                kinds=[dict(kind=k,name=v,styles=STYLES,mount='wall_back_z0' if k=='wall' else 'ceiling_top' if k=='ceiling' else 'floor') for k,v in KINDS.items() if not arguments.get('kind') or arguments['kind']==k],
+    return dict(schema_version=1,column_orders=ORDERS,object_library=library(arguments.get('kind')),form_profiles=FORM_PROFILES,architectural_samples=ARCHITECTURAL_SAMPLES,themes=THEMES,form_fields=FORM_FIELDS,parameters=definitions()['parametric_compile']['parameters'],
+                kinds=[dict(kind=k,name=v,styles=STYLES,mount='wall_back_z0' if k=='wall' else 'back_z0_top_support' if k=='bracket' else 'span_end_supports' if k=='beam' else 'ceiling_top' if k=='ceiling' else 'floor') for k,v in KINDS.items() if not arguments.get('kind') or arguments['kind']==k],
                 ornament_profiles={k:v for k,v in PROFILES.items() if not arguments.get('ornament_profile') or arguments['ornament_profile']==k},
                 coordinates='局部XYZ，包含两端；墙饰背面Z=0，楼梯沿+Z上升；放置旋转、镜像由structure_place处理',
                 model_modified=False)
@@ -53,7 +57,8 @@ def compile_object(workspace, arguments):
     def legs(top):
         for a,b in [(0,0),(w-t,0),(0,d-t),(w-t,d-t)]:box([a,0,b],[a+t-1,top,b+t-1])
     parts={}
-    if 'form' in arguments:
+    modular_receipt={}
+    if 'form' in arguments or kind in MODULAR_KINDS:
         from nbt_object_forms import generate
         from itertools import product
         blocks={}
@@ -64,7 +69,11 @@ def compile_object(workspace, arguments):
             if value in AIR_NAMES:raise ValueError('专用构造材质不能是空气')
             for point in product(*(range(a,b+1) for a,b in zip(lo,hi))):
                 blocks[point]=value
-        parts=generate(kind,arguments['form'],arguments['size'],paint,primary,accent,foliage)
+        if kind=='stairs' and 'handrail' in arguments.get('form',{}):
+            from nbt_modular_objects import stairs
+            modular_receipt=stairs(arguments['form'],arguments['size'],paint,primary,accent)
+        else:
+            parts=generate(kind,arguments.get('form',{}),arguments['size'],paint,primary,accent,foliage,style)
         palette=sorted(set(blocks.values()))
         index={value:i for i,value in enumerate(palette)}
         ops.append(dict(kind='paste_component',label=KINDS[kind],classification='wall' if kind=='wall' else 'body',
@@ -137,14 +146,27 @@ def compile_object(workspace, arguments):
         from nbt_pillar_ends import decorate_ends
         spec,data,end_decorations=decorate_ends(workspace,spec,data,arguments,parts)
     mount='背面Z=0贴实墙；凸出方向+Z；不挖墙，不自动避让开口' if kind=='wall' else '顶面Y=max贴承托结构；向下悬挂，不自动证明支承' if kind=='ceiling' else '底部Y=0置于已有支撑面'
+    if kind=='beam':mount='沿+X跨接；两端底部须贴真实承托，安装后另验接触'
+    if kind=='bracket':mount='背面Z=0贴承托，顶面Y=max承接上部；侧装须显式设置quarter_turns'
     identity=dict(generator='nbt_parametric',revision=8 if 'sample_shape_fit' in arguments.get('ornament',{}) else 6 if set(arguments.get('ornament',{})) & {'edge_trim','sample_repeat'} else 5 if set(arguments.get('ornament',{})) & {'sample','richness','highlight'} else 4 if 'form' in arguments or theme or set(arguments.get('ornament',{})) & {'layout','center_clear'} else 3,parameters=original_arguments,spec=spec)
     if kind=='pillar' and set(arguments.get('form',{}))&{'base_profile','capital_profile','base_curve','capital_curve','base_pattern','capital_pattern'}:identity['revision']=9
     if kind=='pillar' and ('order' in arguments.get('form',{}) or arguments.get('form',{}).get('section')=='round'):identity['revision']=10
+    if kind in MODULAR_KINDS or 'handrail' in arguments.get('form',{}) or arguments.get('form',{}).get('section') in ('octagonal','bundled') or 'band_spacing' in arguments.get('form',{}):identity['revision']=11
+    if kind=='railing' or 'handrail' in arguments.get('form',{}):identity['revision']=12
     interfaces=[]
     if kind=='pillar':
         interfaces=[dict(id='base',face='down',lo=[0,0,0],hi=[x,0,z]),
                     dict(id='capital_top',face='up',lo=[0,y,0],hi=[x,y,z])]
-    return dict(spec=spec,ornament=ornament,parts=parts,end_decorations=end_decorations,resolved_form=arguments.get('form',{}),revision=identity['revision'],recipe_sha256=hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest(),
+    if kind=='railing':
+        from nbt_collision import collision_cells
+        slope=arguments.get('form',{}).get('slope',0)
+        if all(collision_cells(value)[1] is None for value in data['palette']):
+            interfaces=[dict(id='start',face='west',lo=[0,0,cz],hi=[0,h-slope-1,cz]),dict(id='end',face='east',lo=[x,slope,cz],hi=[x,y,cz])]
+    if kind=='beam':
+        interfaces=[dict(id='support_start',face='down',lo=[0,0,cz],hi=[0,0,cz]),dict(id='support_end',face='down',lo=[x,0,cz],hi=[x,0,cz])]
+    if kind=='bracket':
+        interfaces=[dict(id='back',face='north',lo=[0,0,0],hi=[x,y,0]),dict(id='top',face='up',lo=[0,y,0],hi=[x,y,z])]
+    return dict(spec=spec,ornament=ornament,parts=parts,construction=modular_receipt,end_decorations=end_decorations,resolved_form=arguments.get('form',{}),revision=identity['revision'],recipe_sha256=hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest(),
                 content_sha256=data['content_sha256'],block_count=len(data['blocks']),mount=mount,
                 verification=dict(block_states=True,bounds=True,design='pending_visual_review',routes='not_checked',support='not_checked',game='not_checked'),
-                interfaces=interfaces,model_modified=False,approval_created=False)
+                interfaces=interfaces,interface_scope='fine_rail_faces_not_halfcell_certified' if kind=='railing' and not interfaces else 'exact_halfcells',model_modified=False,approval_created=False)

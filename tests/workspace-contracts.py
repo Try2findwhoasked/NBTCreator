@@ -1,5 +1,5 @@
 """Synthetic checks for shared catalogue, relocation and non-destructive migration."""
-import json,sys,tempfile,unittest,shutil,subprocess
+import json,sys,tempfile,unittest,shutil,subprocess,os
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];ENGINE=ROOT/'.agents/skills/minecraft-nbt-modeler';sys.path.insert(0,str(ENGINE/'scripts'))
 from nbt_capabilities import capabilities
@@ -111,5 +111,29 @@ class Contracts(unittest.TestCase):
    run=subprocess.run([sys.executable,str(root/'.agents/skills/nbtcreator-workspace/nbt.py'),'capabilities','--agent-tool','parametric_surface'],cwd=root,capture_output=True,text=True,encoding='utf8')
    self.assertEqual(run.returncode,0,run.stderr)
    self.assertIn('parametric_surface',run.stdout)
+
+ def test_core_facade_exposes_both_draft_routes_and_the_blocked_landing_example(self):
+  with tempfile.TemporaryDirectory() as temp:
+   root = Path(temp).resolve()
+   expose(root, dict(schema_version=1, enabled_groups=['core']))
+   facade = root / '.agents/skills/nbtcreator-workspace'
+   entry = (facade / 'SKILL.md').read_text(encoding='utf8')
+   self.assertIn('整栋初稿：纯文字', entry)
+   self.assertIn('整栋初稿：有参考图', entry)
+   paths = subprocess.check_output([sys.executable, str(facade / 'nbt.py'), 'paths'], cwd=root)
+   example = Path(json.loads(paths)['engine']) / 'assets/examples/reading-loft'
+   self.assertIn(os.path.relpath(example / 'README.md', facade).replace(os.sep, '/'), entry)
+   result = subprocess.run([sys.executable, '-B', str(example / 'run.py'), 'blocked'], cwd=root, capture_output=True)
+   self.assertEqual(result.returncode, 1)
+   receipt, = root.glob('nbt_models/_workspaces/examples/*/plan-build-result.json')
+   error = json.loads(receipt.read_bytes())['error']
+   code, payload = error.split(': ', 1)
+   self.assertEqual(code, 'ROUTE_FAILED')
+   targets = {row['name']: row for row in json.loads(payload)[0]['targets']}
+   self.assertTrue(targets['return_desk']['reachable'])
+   self.assertEqual(targets['stair_landing']['feet'], [5.5, 5, 19.5])
+   self.assertEqual(targets['stair_landing']['reason'], 'invalid_or_obstructed_feet_pose')
+   self.assertFalse(targets['archive_shelf']['reachable'])
+   self.assertFalse(list(root.rglob('model.snbt')))
 
 if __name__=='__main__':unittest.main(verbosity=2)

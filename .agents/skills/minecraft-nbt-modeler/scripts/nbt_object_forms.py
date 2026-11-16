@@ -15,17 +15,24 @@ FORM_FIELDS={
     'ceiling':('profile','drop','pitch','border','light_strip'),
     'plant':('profile','pot_height','crown_height','radius','density','seed'),
     'planter':('profile','pot_height','crown_height','radius','density','seed'),
-    'stairs':('profile','run_width','rise','landing','tread','rail'),
+    'stairs':('profile','run_width','rise','landing','tread','rail','handrail'),
 }
+from nbt_modular_objects import FIELDS as MODULAR_FIELDS, PROFILES as MODULAR_PROFILES
+FORM_FIELDS.update(MODULAR_FIELDS)
+FORM_FIELDS['pillar'] += ('band_spacing',)
 PROFILES={'ceiling':('grid','parallel'),'plant':('upright','trailing','climbing'),
           'planter':('upright','trailing','climbing'),'stairs':('straight','quarter_turn','switchback','spiral')}
+PROFILES.update(MODULAR_PROFILES)
 
 
-def generate(kind, spec, size, box, primary, accent, foliage):
+def generate(kind, spec, size, box, primary, accent, foliage, style='classic'):
     if kind not in FORM_FIELDS or set(spec)-set(FORM_FIELDS[kind]):
         raise ValueError('form 含不适用于该构件的参数')
     if 'profile' in spec and spec['profile'] not in PROFILES.get(kind,()):
         raise ValueError('form.profile 不适用于该构件')
+    if kind in MODULAR_FIELDS:
+        from nbt_modular_objects import generate as modular_generate
+        return modular_generate(kind,spec,size,box,primary,accent,style)
     w,h,d=size
     x,y,z=w-1,h-1,d-1
     cx,cz=x//2,z//2
@@ -41,16 +48,28 @@ def generate(kind, spec, size, box, primary, accent, foliage):
         for level in range(base,h-cap):
             if spec.get('section')=='round':
                 from nbt_classical_column import shaft_level
-                shaft_level(spec,size,level,base,cap,box,primary,accent);continue
+                band=spec.get('band_spacing') and (level-base)%spec['band_spacing']==0
+                shaft_level(spec,size,level,base,cap,box,accent if band else primary,accent);continue
             offset=inset if spec.get('taper',False) and level>=base+(h-base-cap)//2 else 0
             if 2*offset>=min(w-2,d-2):
                 raise ValueError('柱身收分后没有可用截面')
             lo=[1+offset,level,1+offset];hi=[x-1-offset,level,z-1-offset]
-            if spec.get('section','square')=='cross':
-                box([cx,level,lo[2]],[cx,level,hi[2]],primary)
-                box([lo[0],level,cz],[hi[0],level,cz],primary)
+            section=spec.get('section','square')
+            shaft_material=accent if spec.get('band_spacing') and (level-base)%spec['band_spacing']==0 else primary
+            if section in ('octagonal','bundled'):
+                rx,rz=(hi[0]-lo[0])/2,(hi[2]-lo[2])/2
+                mx,mz=(lo[0]+hi[0])/2,(lo[2]+hi[2])/2
+                if min(rx,rz)<1:raise ValueError('八角或束柱截面至少需要5格宽深')
+                for a in range(lo[0],hi[0]+1):
+                    for b in range(lo[2],hi[2]+1):
+                        dx,dz=abs(a-mx)/rx,abs(b-mz)/rz
+                        keep=dx+dz<=1.5 if section=='octagonal' else dx<=.4 or dz<=.4 or (dx<=.8 and dz<=.8)
+                        if keep:box([a,level,b],[a,level,b],shaft_material)
+            elif section=='cross':
+                box([cx,level,lo[2]],[cx,level,hi[2]],shaft_material)
+                box([lo[0],level,cz],[hi[0],level,cz],shaft_material)
             else:
-                box(lo,hi,primary)
+                box(lo,hi,shaft_material)
             if spec.get('flutes',False):
                 box([cx,level,lo[2]],[cx,level,lo[2]],accent)
                 box([cx,level,hi[2]],[cx,level,hi[2]],accent)
@@ -108,7 +127,10 @@ def generate(kind, spec, size, box, primary, accent, foliage):
                 box([center-1,pot,cz],[center-1,crown_y,cz],foliage)
         parts={'container':([0,0,0],[x,pot-1,z]),'crown':([0,crown_y,0],[x,y,z])}
     elif kind=='stairs':
-        _stairs(spec,size,box,accent)
+        if 'handrail' in spec:
+            from nbt_modular_objects import stairs
+            stairs(spec,size,box,primary,accent)
+        else:_stairs(spec,size,box,accent)
     else:
         raise ValueError('此类构件没有专用form参数')
     return {name:dict(lo=lo,hi=hi) for name,(lo,hi) in parts.items()}

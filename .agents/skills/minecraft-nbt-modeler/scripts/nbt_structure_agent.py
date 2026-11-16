@@ -165,8 +165,8 @@ def _handle_pattern_warp(workspace,tool,arguments):
 
 
 def _handle_architecture(workspace,tool,arguments):
-    from nbt_architectural_bay import compile_tracery,compile_vault,compile_bay
-    return dict(tracery_compile=compile_tracery,vault_compile=compile_vault,bay_compile=compile_bay)[tool](workspace,arguments)
+    from nbt_architectural_bay import compile_tracery,compile_vault,compile_bay,compile_facade
+    return dict(tracery_compile=compile_tracery,vault_compile=compile_vault,bay_compile=compile_bay,facade_compile=compile_facade)[tool](workspace,arguments)
 
 
 def _handle_mount_batch(workspace,tool,arguments):

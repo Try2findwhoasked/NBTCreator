@@ -103,7 +103,10 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
         title=next((line.lstrip('# ').strip() for line in file.read_text(encoding='utf8').splitlines() if line.startswith('# ')),name)
         return f'[{title}]({relative}/references/{name}.md)'
     routes=[
-        ('整栋初稿或重设计',['whole-model-workflow','player-scale','design-principles','spatial-detail-design'],'完整读这四篇基础资料，先联合设计空间、路线与顶构，再选题材专题。'),
+        ('整栋初稿：纯文字',['architecture-workflow'],'从使用者的一次活动推导空间和细部。例：收卷、登梯、归架决定柜台的操作侧、梯顶转身位和书格高度。'),
+        ('整栋初稿：有参考图',['architecture-workflow'],'从图中标出轮廓及可辨节点，再读进深、材料交接与支承。例：对照窗洞内退、窗台出挑和柱梁落点；背面与室内的补全单记理由。'),
+        ('两条路线共用的初稿步骤',['whole-model-workflow','player-scale','design-principles','spatial-detail-design'],'完整读这四篇，再把代表节点做进主模型。从玩家站位看整体、入口、使用面与构造交接，改动细部后复验相邻通路。'),
+        ('室内用途与建筑群验收',['architecture-workflow'],'室内用 use_face 查操作侧、工作高度与净距；街区沿主街、支路、门槛走到室内，按用途查公共与服务路线。多层布局可另出逐层平面与纵剖。'),
         ('建筑方案、构造与审阅闭环',['architecture-workflow'],'设计参数驱动真实构件；三层出图、问题定位、源绑定回查和游戏验收分别执行。'),
         ('完整主模型与独立构件',['working-model','parametric-components'],'工作模型管理安装、归属、修改和制作版；构件只做适用检查。'),
         ('准备或制作纹样图源',['pattern-authoring'],'已有合适图源可直接进入拟合。'),
@@ -133,12 +136,13 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
         '先读工作区 [ai-style.json](../../../.nbtcreator/ai-style.json) 的当前工作流区域，可用 `ai-style prompt --workflow <区域>` 查询；用户本次要求优先，偏好不改变约束和批准。',
         '下面只列已启用资料能支持的路线。已启用不等于每次通读；完整专题目录见[本次知识索引](knowledge.md)，未选专题不默认读取。知识选择不是额外执行权限。','',
         '## 选择当前任务','',
+        f'整栋初稿按下面两种输入开工。可直接运行[归卷阁与归卷院样例]({relative}/assets/examples/reading-loft/README.md)，对照堵梯口、站错侧、逐层剖视与街道到案前的通路。','',
         '| 当前任务 | 先读 | 下一步与范围 |','| --- | --- | --- |']
     for label,names,action in routes:
         if all(name in enabled for name in names):lines.append('| '+label+' | '+'、'.join(link(name) for name in names)+' | '+action+' |')
     lines+=['',
         '接手工作台提示词时，先 `prompts tasks --status pending` 发现，再 `prompts task --id <id>` 读取正文、方案、任务目录和 source_matches；登记状态使用任务租约，状态不等于验收。',
-        '结束给真实源、预览和验证的绝对路径；静态碰撞、保守包络与游戏实测分别报告。实际查看最终落盘图像，不把已生成图片或检查字段当作设计通过。']
+        '交付时给真实源、图像与验证路径。用 review-record 的 delivery_summary 说明已查通路、已看与待看的位置、待回查问题；再写实际观察和相应的游戏实测情况。']
     index=['# 本次已启用知识','',
         '这是按工作区选择生成的目录，供按任务查找；不用从第一篇读到最后一篇。先按 SKILL.md 选择任务阶段，再读对应完整章节。严格工具字段仍从 capabilities 查询。','']
     for group in config['enabled_groups']:
