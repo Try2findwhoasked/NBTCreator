@@ -31,7 +31,7 @@
 | array_region | 环形 / 沿路径阵列 | lo/hi为源；source_anchor默认lo。path按折线弧长布置；radial用centre/radius/count/start_angle/sweep_angle。cardinal朝向取最近90°，不支持任意角度状态旋转；位置量化碰撞和预算均预检。 |
 | auto_stairs | 半格楼梯 / 坡道 / 平台 | start/end是玩家脚位，end.y必须高于start.y。straight须沿X或Z轴，水平路程L至少2*(end.y-start.y)+2*width+1，给两端平平台留白；放不下时改为明确box阶梯或另设计折返。不能自动清头顶或补支撑；须实际预览通行。 |
 | terrain_road | 地形道路 / 避障 / 有限填挖 | A*按真实地表绕开非地形障碍；端点Y为真实地表格。高度差最多1，自动楼梯并逐段通行检查；仅允许列出的地形材质填挖。桥段需显式max_bridge_span，不认证承重。 |
-| auto_roof | 屋顶 / 屋脊 / 屋檐 | roof=gable/hip/gambrel/dome；lo.y为檐口底层，footprint可指定两个XZ角点，eaves向外扩展但不得超选区。finish=blocks/slabs/stairs；生成顶皮不自动补墙、梁柱或认证密闭。 |
+| auto_roof | 屋顶 / 屋脊 / 屋檐 | roof=gable/hip/gambrel/dome/curved_hip。curved_hip 使用 curve_power、eave_lift、corner_lift 调整曲面、起翘与翼角，并连接相邻顶皮。footprint 为XZ角点，eaves 不得超选区。finish=blocks/slabs/stairs。屋面与宿主的梁柱支承、密闭和游戏表现另验。 |
 
 GUI的“建模工具”支持同样的有序operations。每步 enabled 为可选布尔开关，省略等于 true；false 保留在设置/计划中，但编译与执行跳过，不写任何方块。名称由 label 保存，数组顺序决定执行顺序。Agent使用control plan/preview或原refine流程调用，旧的专用API保持兼容。计划、预览、应用、导出和精修确认是不同阶段；能力清单不授予任何批准。
 
@@ -128,6 +128,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | compute_info | 检查CPU/CuPy CUDA后端，执行真实设备探测；不安装依赖、不修改模型。 |
 | field_compile | 在显式画布采样有界体场图；支持CSG、超椭球、gyroid及组合扭转/弯曲/渐缩/剪切/波浪/仿射，CPU/GPU返回纯候选。 |
 | pattern_warp | 对绑定纹样进行逆采样透视/旋涡/波浪/放射重复，保留RGBA配色、创建独立资产；不修改原图，变换后须重新拟合和检查拓扑。 |
+| facade_compile | 生成真实凹窗、窗台与层带的参数化立面候选，返回开口坐标，支持对象图和完整工作模型。 |
 
 
 ## 外部 Agent 机器接口

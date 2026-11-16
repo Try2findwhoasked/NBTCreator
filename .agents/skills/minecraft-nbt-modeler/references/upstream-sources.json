@@ -34,6 +34,49 @@
         "feedback tied to source version"
       ],
       "scope": "Design reference only; no source, assets, guides or simulator copied."
+    },
+    {
+      "repository": "https://github.com/ldtteam/minecolonies",
+      "commit": "0df80c8652a5bdcc094fc7f4da66437f6cecaff2",
+      "snapshot_date": "2022-08-23",
+      "license": "GPL-3.0",
+      "reused": [],
+      "design_reference": [
+        "tiered roof and gallery relationships in Asian Town Hall 5",
+        "timber frame, masonry base, openings and chimney in Medieval Oak Tavern 3",
+        "steep gable, repeated frames and lower side roofs in Nordic Town Hall 5"
+      ],
+      "inspected_files": [
+        {
+          "upstream": "src/main/resources/assets/minecolonies/schematics/asian/townhall5.blueprint",
+          "source_sha256": "dbd6d3d1373bb3bdf3448ec5c3a63e422a874be5fb73e395f7f329c2c547d582"
+        },
+        {
+          "upstream": "src/main/resources/assets/minecolonies/schematics/medievaloak/tavern3.blueprint",
+          "source_sha256": "e15e540342e66b2d01231808bbe30e3ef7452e0780a66919e7440fc8fd19e52a"
+        },
+        {
+          "upstream": "src/main/resources/assets/minecolonies/schematics/nordic/townhall5.blueprint",
+          "source_sha256": "ad25675171b35688953867b8bc9885561b3ccfe9ec4ec4471405c5005f2bc8b0"
+        }
+      ],
+      "inspection_scope": "Source block data, whole-building diagnostic views and floor cuts. Custom mod shapes and entities recorded as preview limitations. Design observations inform independent parametric geometry."
+    },
+    {
+      "repository": "https://github.com/ERGeorgiev/minecraft-schematics-world-structures",
+      "commit": "b3387000ee745d06bd54825340fcb24c98574826",
+      "license": "MIT",
+      "reused": [],
+      "design_reference": [
+        "repeated window openings, horizontal bands and vertical facade accents"
+      ],
+      "inspected_files": [
+        {
+          "upstream": "earth/bulgaria/sofia/natsionalna-gimnazia-za-prilojni-izkustva_2015.schem",
+          "source_sha256": "5f74519b88e72b87dc19cec9832fe486e7bab07385a62c10b78d738205e58e9d"
+        }
+      ],
+      "inspection_scope": "Source palette, dimensions and blocks plus the published exterior and interior montage. Represented year in filename is 2015."
     }
   ]
 }

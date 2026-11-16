@@ -1,4 +1,4 @@
-"""Parametric gable, hip, gambrel and elliptical dome roof skins."""
+"""Parametric roof skins, including curved hip profiles and lifted eave corners."""
 import math
 from nbt_model import AIR_NAMES,state
 from nbt_placement import finish_plan
@@ -13,7 +13,18 @@ def roof_plan(model,op,protected=()):
     if not isinstance(footprint,list) or len(footprint)!=2 or any(not isinstance(p,list) or len(p)!=2 or any(type(v) is not int for v in p) for p in footprint):raise ValueError('Roof footprint needs two integer XZ corners')
     eaves=op.get('eaves',0);thickness=op.get('thickness',1);rise=op.get('rise',4);axis=op.get('ridge_axis','z');kind=op.get('roof','gable');finish=op.get('finish','slabs')
     if type(eaves) is not int or not 0<=eaves<=8 or type(thickness) is not int or not 1<=thickness<=8 or type(rise) not in (int,float) or not math.isfinite(rise) or rise<=0:raise ValueError('Invalid roof eaves/thickness/rise')
-    if axis not in ('x','z') or kind not in ('gable','hip','gambrel','dome') or finish not in ('blocks','slabs','stairs'):raise ValueError('Invalid roof profile or finish')
+    if axis not in ('x','z') or kind not in ('gable','hip','gambrel','dome','curved_hip') or finish not in ('blocks','slabs','stairs'):raise ValueError('Invalid roof profile or finish')
+    curve_power = op.get('curve_power', 2)
+    eave_lift = op.get('eave_lift', 0)
+    corner_lift = op.get('corner_lift', 0)
+    for name, value, minimum, maximum in (
+        ('curve_power', curve_power, 1, 4), ('eave_lift', eave_lift, 0, 8),
+        ('corner_lift', corner_lift, 0, 8),
+    ):
+        if type(value) not in (int, float) or not math.isfinite(value) or not minimum <= value <= maximum:
+            raise ValueError('Invalid curved roof parameter: ' + name)
+    if kind != 'curved_hip' and any(key in op for key in ('curve_power', 'eave_lift', 'corner_lift')):
+        raise ValueError('Curved eave parameters require curved_hip')
     x0,z0=footprint[0];x1,z1=footprint[1]
     if x0>=x1 or z0>=z1:raise ValueError('Roof footprint must have positive area')
     x0-=eaves;z0-=eaves;x1+=eaves;z1+=eaves
@@ -31,6 +42,15 @@ def roof_plan(model,op,protected=()):
     for x in range(x0,x1+1):
         for z in range(z0,z1+1):
             nx,nz=abs((x+.5-cx)/rx),abs((z+.5-cz)/rz)
+            if kind == 'curved_hip':
+                # Normalize to the actual outer column centres. Edge lift and
+                # corner lift taper into the same continuous surface.
+                nx, nz = abs((x+.5-cx)/(rx-.5)), abs((z+.5-cz)/(rz-.5))
+                edge = max(nx, nz)
+                height = lo[1] + 1 + rise * (1-edge)**curve_power
+                height += eave_lift * edge**4 + corner_lift * (nx*nz)**4
+                tops[x,z] = math.ceil(height) if finish in ('blocks','stairs') else math.ceil(height*2)/2
+                continue
             if kind=='dome':
                 d=nx*nx+nz*nz
                 if d>1:continue
@@ -54,7 +74,13 @@ def roof_plan(model,op,protected=()):
                 if len(higher)==2:shape='outer_left' if higher[1]==(index-1)%4 else 'outer_right'
                 value=state(dict(Name=stair_name,Properties=dict(stair_props,facing=directions[index][0],half='bottom',shape=shape,waterlogged='false')))
         edits[x,y,z]=value
-        for depth in range(1,thickness):edits[x,y-depth,z]=cube
+        bottom = y - thickness + 1
+        if kind == 'curved_hip':
+            # Join adjacent roof columns at their real occupied Y. A thin
+            # sampled shell can otherwise leave gaps on steep profile steps.
+            adjacent = [tops[x+dx,z+dz] for _,dx,dz in directions if (x+dx,z+dz) in tops]
+            bottom = min(bottom, math.ceil(min(adjacent))-1)
+        for level in range(bottom,y):edits[x,level,z]=cube
     if any(any(not lo[i]<=p[i]<=hi[i] for i in range(3)) for p in edits):raise ValueError('Complete roof exceeds selection height')
     overwrite=op.get('overwrite',False)
     if type(overwrite) is not bool:raise ValueError('Roof overwrite must be boolean')

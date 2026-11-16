@@ -257,6 +257,141 @@ class ArchitectureWorkflow(unittest.TestCase):
         self.assertEqual(set(contract['plan']['properties']['rules']['items']['properties']['kind']['enum']),set(DESIGN_CHECKS))
         for action in ('plan-save','plan-build'):self.assertEqual(contract['actions'][action]['properties']['plan'],contract['plan'])
 
+    def test_requirements_and_ordered_activities_bind_to_real_geometry(self):
+        from nbt_architecture_plan import check_model
+        spec = plan()
+        spec['requirements'] = [dict(id='display', text='入口旁有可用展陈区', origin='user',
+                                     reason='本次展馆用途', spaces=['hall'], parts=['left'])]
+        spec['activities'] = [dict(id='visitor', actor='访客', purpose='进入后查看展品', stops=[
+            dict(space='hall', feet=[15.5, 2, 8.5]), dict(space='hall', feet=[18.5, 2, 8.5]),
+        ])]
+        result = dispatch(self.workspace, 'plan-build', dict(plan=spec, save_draft={}))
+        model = WorkingModel.open(self.workspace, result['saved']['source'])
+        checks = check_model(model, model.architecture)['checks']
+        self.assertTrue(next(row for row in checks if row['kind'] == 'activity_routes')['passed'])
+        binding = model.architecture
+        binding['plan']['activities'][0]['stops'][1]['feet'] = [11.5, 2, 12.5]
+        binding['sha256'] = fingerprint(binding['plan'])
+        checks = check_model(model, binding)['checks']
+        self.assertFalse(next(row for row in checks if row['kind'] == 'activity_routes')['passed'])
+        for x in range(11, 14):
+            for y in range(2, 5):
+                for z in range(12, 15):
+                    model.model.put((x, y, z), 'air')
+        checks = check_model(model, model.architecture)['checks']
+        self.assertFalse(next(row for row in checks if row['kind'] == 'requirement_targets')['passed'])
+
+    def test_invalid_intent_references_fail_before_publication(self):
+        for extras in (
+            dict(requirements=[dict(id='r', text='用途', origin='user', reason='要求', parts=['missing'])]),
+            dict(activities=[dict(id='a', actor='访客', purpose='查看', stops=[
+                dict(space='hall', feet=[15.5, 2, 8.5]), dict(space='hall', feet=[28, 2, 8.5])])]),
+            dict(review_locations=[dict(id='entry', purpose='门口', position=[14, 3, 1], views=['missing'])]),
+        ):
+            with self.subTest(extras=extras), self.assertRaises(ValueError):
+                normalize(dict(plan(), **extras))
+        self.assertFalse(list(self.workspace.rglob('model-version.json')))
+
+    def test_activity_uses_the_rotated_real_face_at_working_height(self):
+        from nbt_architecture_intent import check_use_face
+        from nbt_collision import _Space
+        spec = plan()
+        shelf = box_part('desk', [18, 2, 6], [1, 2, 1])
+        shelf.update(quarter_turns=1, interfaces=[dict(id='service', face='north', lo=[0, 0, 0], hi=[0, 1, 0])])
+        spec['parts'].append(shelf)
+        face = dict(part='desk', interface='service', height=1.25, max_distance=2)
+        stop = dict(space='hall', feet=[20.5, 2, 6.5], use_face=face)
+        spec['activities'] = [dict(id='return', actor='访客', purpose='交卷',
+                                   stops=[dict(space='hall', feet=[15.5, 2, 8.5]), stop])]
+        draft = dispatch(self.workspace, 'plan-build', dict(plan=spec, save_draft={}))
+        model = WorkingModel.open(self.workspace, draft['saved']['source'])
+        space = _Space(model.model)
+        result = check_use_face(model, model.architecture, space, stop)
+        self.assertTrue(result['passed'])
+        self.assertEqual((result['face'], result['distance']), ('east', 1.5))
+        for feet, reason in [([17.5, 2, 6.5], 'wrong_side'), ([21.5, 2, 6.5], 'too_far'),
+                             ([20.5, 2, 8.5], 'outside_working_face')]:
+            with self.subTest(feet=feet):
+                self.assertEqual(check_use_face(model, model.architecture, space, dict(stop, feet=feet))['reason'], reason)
+        for fields, reason in [(dict(height=2.5), 'outside_working_face'),
+                               (dict(interface='absent'), 'missing_or_unverified_interface')]:
+            self.assertEqual(check_use_face(model, model.architecture, space, dict(stop, use_face=dict(face, **fields)))['reason'], reason)
+        model.model.put((19, 3, 6), 'glass')
+        self.assertEqual(check_use_face(model, model.architecture, _Space(model.model), stop)['reason'], 'approach_obstructed')
+
+    def test_location_coverage_requires_the_assigned_image_observation(self):
+        from nbt_architecture_intent import observed_locations, visible_location
+        from nbt_assembly import Volume
+        model = Volume([12, 8, 12])
+        eye, target = [5.5, 3.5, 1.5], [5.5, 3.5, 8.5]
+        self.assertTrue(visible_location(model, eye, target, target, 60)['passed'])
+        model.put((5, 3, 5), 'stone')
+        self.assertFalse(visible_location(model, eye, target, target, 60)['passed'])
+        self.assertFalse(visible_location(model, eye, [10.5, 3.5, 1.5], target, 60)['passed'])
+        pack = dict(review_locations=[dict(id='entry', views=['entry_view'],
+                    candidates=[dict(view='entry_view', passed=True)])])
+        self.assertEqual(observed_locations(pack, [dict(image='entry_view', note='fixture')]), ([], ['entry']))
+        covered = [dict(image='entry_view', note='fixture', locations=['entry'])]
+        self.assertEqual(observed_locations(pack, covered), (['entry'], []))
+        with self.assertRaises(ValueError):
+            observed_locations(pack, [dict(image='other', note='fixture', locations=['entry'])])
+
+    def test_declared_openings_update_authored_shell_part_baselines_for_rebuild(self):
+        from nbt_assembly import Volume
+        from nbt_construction_systems import enclosure
+        spec = plan()
+        voxels, _ = enclosure(Volume(spec['size']), resolve(spec)['envelope'], 30000)
+        palette = sorted({value for value, _ in voxels.values()})
+        indices = {value: index for index, value in enumerate(palette)}
+        operations = []
+        for wall in (False, True):
+            rows = [[*position, indices[value]] for position, (value, is_wall) in voxels.items() if is_wall == wall]
+            operations.append(dict(kind='paste_component', label='Authored enclosure',
+                classification='wall' if wall else 'body', lo=[0,0,0], hi=[27,17,29], palette=palette, voxels=rows))
+        spec.pop('envelope')
+        spec['connections'] = spec['connections'][:1]
+        spec['parts'].insert(0, dict(id='shell', role='envelope', position=[0,0,0],
+            interfaces=[dict(id='base',face='down',lo=[2,1,2],hi=[2,1,2])],
+            recipe=dict(tool='structure',arguments=dict(name='Authored shell',size=spec['size'],
+                anchor=[0,0,0],operations=operations))))
+        first = dispatch(self.workspace,'plan-build',dict(plan=spec,save_draft={}))
+        source = first['saved']['source']
+        model = WorkingModel.open(self.workspace,source)
+        carved = [row for row in model.instances['part_shell']['baseline']
+                  if 14 <= row['pos'][0] <= 16 and 2 <= row['pos'][1] <= 5 and row['pos'][2] == 1]
+        self.assertTrue(carved)
+        self.assertTrue(all(row['after'] == ['minecraft:air',False] for row in carved))
+        rebuilt = dispatch(self.workspace,'plan-build',dict(plan=spec,source=source,
+            source_sha256=file_hash(source),expected_plan_sha256=first['plan_sha256'],save_draft={}))
+        self.assertTrue(rebuilt['checks']['architecture']['passed'])
+
+    def test_public_review_flow_tracks_missing_location_observations(self):
+        spec = plan()
+        spec['views'].append(dict(spec['views'][2], id='second_detail'))
+        spec['review_locations'] = [dict(id='hall_operation', purpose='Transport fixture target',
+                                        position=[15.65, 3.858, 9], views=['beam'])]
+        result = dispatch(self.workspace, 'plan-build', dict(plan=spec, save_draft={}))
+        source = result['saved']['source']
+        prepared = dispatch(self.workspace, 'review-prepare', dict(source=source,
+            source_sha256=file_hash(source), output='nbt_models/_workspaces/reviews/locations'))
+        self.assertTrue(prepared['coverage']['review_locations'][0]['passed'])
+        manifest = self.synthetic_render(prepared)
+        observations = [dict(image=row['id'], note='Blank transport fixture only.')
+                        for row in prepared['coverage']['views'] if row['id'] != 'second_detail']
+        request = dict(pack=prepared['pack'], pack_sha256=prepared['pack_sha256'],
+                       render_manifest=str(manifest), observations=observations, issues=[], revision=0)
+        missing = dispatch(self.workspace, 'review-record', request)
+        self.assertFalse(missing['coverage_complete'])
+        self.assertEqual(missing['missing_locations'], ['hall_operation'])
+        self.assertIn('待看 hall_operation', ' '.join(missing['delivery_summary']))
+        self.assertIn('机位已记录观察 0/4', ' '.join(prepared['coverage']['delivery_summary']))
+        next(row for row in observations if row['image'] == 'beam')['locations'] = ['hall_operation']
+        recorded = dispatch(self.workspace, 'review-record', dict(request, revision=1))
+        self.assertTrue(recorded['coverage_complete'])
+        self.assertFalse(recorded['approval_created'])
+        self.assertIn('审阅位置已记录观察 1/1', ' '.join(recorded['delivery_summary']))
+        self.assertIn('机位已记录观察 3/4，待看 second_detail', ' '.join(recorded['delivery_summary']))
+
     def test_scene_policies_survive_plan_rebuild_and_cannot_be_dropped(self):
         spec=plan();part=spec['parts'][2];recipe=deepcopy(part['recipe'])
         part['recipe']=dict(tool='scene_compile',arguments=dict(graph=dict(schema_version=1,name='受保护柱',size=[3,3,3],

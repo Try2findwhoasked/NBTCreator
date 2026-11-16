@@ -41,3 +41,7 @@ run = "npm run test:architecture-workflow"
 [tasks."architecture:preview"]
 description = "Build three full buildings through CLI/frozen entry and render three-scale reviews"
 run = "npm run test:architecture-preview"
+
+[tasks."roof:test"]
+description = "Verify curved roof contact, protection and shared structure entry points"
+run = "python -B tests/roof-curves.py"

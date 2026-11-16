@@ -13,7 +13,10 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 
 | 当前任务 | 先读与执行范围 |
 | --- | --- |
-| 完整建筑新建或重设计 | 完整读[整体流程](references/whole-model-workflow.md)、[玩家尺度](references/player-scale.md)、[创作原则](references/design-principles.md)、[空间细节](references/spatial-detail-design.md)。从用途、站位、路线与顶构联合设计完整主模型，再用[建筑方案闭环](references/architecture-workflow.md)绑定共享风格参数、构造、三层看图与问题回查。 |
+| 整栋初稿：纯文字 | 从一次活动推导站位、物件使用侧和相邻空间，再决定平台边缘、操作面、采光和顶构如何表达用途。[归卷阁样例](assets/examples/reading-loft/README.md)用同一只书柜演示细部与通行。 |
+| 整栋初稿：有参考图 | 先读轮廓和开间，再选图上能指认的窗洞、檐口或材质交接，推导深度、支承和方块朝向。标出背面与室内的补全依据，保存接近原图方向的对照视角。 |
+| 两条路线共用的初稿步骤 | 完整读[整体流程](references/whole-model-workflow.md)、[玩家尺度](references/player-scale.md)、[创作原则](references/design-principles.md)、[空间细节](references/spatial-detail-design.md)。用[建筑方案闭环](references/architecture-workflow.md)绑定空间、构件、活动路线和近景回查。屋面与飞檐按[建筑知识](references/architecture-knowledge-base.md#屋面与飞檐的方块构造)选读。 |
+| 判断室内用途或建筑群的通行关系 | 室内从真实脚位核对[操作面与使用侧](references/architecture-workflow.md#操作面与使用侧)。多栋从总览走到街口、支路、门槛和室内，按[建筑群与多层选图](references/architecture-workflow.md#建筑群与多层选图)实测。交付时摘取当前审阅记录中的覆盖摘要。 |
 | 独立构件或主模型装配 | [工作模型](references/working-model.md)、[参数化构件](references/parametric-components.md)；需要稳定 ID、尺寸引用和联动时读[对象图](references/object-scenes.md)。只做适用的尺寸、状态、占用、接触和预览检查。 |
 | 纹样来源与拟合 | 准备图源读[纹样来源](references/pattern-authoring.md)；已有图源读[纹样拟合](references/pattern-fitting.md)的对应模式。复杂主纹采用 ornate 和明确门槛，分数不代替实际看图。 |
 | 安装到已有建筑 | [贴面安装](references/surface-mounting.md)；先绑定真实源、上下文与安装面，再生成候选。持续组合、修改与制作版保存回到工作模型。 |

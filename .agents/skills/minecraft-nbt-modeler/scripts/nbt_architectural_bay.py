@@ -140,6 +140,64 @@ def compile_tracery(workspace,args):
     return result
 
 
+def compile_facade(workspace, args):
+    """A repeated facade with real recessed apertures and projecting sills."""
+    bays, storeys = args.get('bays', 3), args.get('storeys', 2)
+    opening_width, opening_height = args.get('opening', [3, 4])
+    pier = args.get('pier_width', 2)
+    sill_height = args.get('sill_height', 2)
+    lintel_height = args.get('lintel_height', 1)
+    recess = args.get('recess', 1)
+    pitch = sill_height + opening_height + lintel_height
+    width = bays * opening_width + (bays + 1) * pier
+    height = storeys * pitch
+    depth = recess + 2
+    if max(width, height) > 64:
+        raise ValueError('单个窗墙构件宽高最多64格，请按实际跨间组合')
+    material = full(args.get('material', 'bricks'))
+    trim = full(args.get('trim', 'smooth_sandstone'))
+    glass = full(args.get('glass', 'glass'))
+    if 'glass' not in glass:
+        raise ValueError('窗墙玻璃须为已知完整玻璃方块')
+    sill = state(args.get('sill_material', 'sandstone_slab[type=bottom]'))
+    occupied, reason = collision_cells(sill)
+    if reason or set(occupied) != {(x, 0, z) for x in (0, 1) for z in (0, 1)}:
+        raise ValueError('窗台材质须为受支持的下半砖')
+    writer = Writer([width, height, depth])
+    openings = []
+    for storey in range(storeys):
+        base = storey * pitch
+        for bay in range(bays):
+            left = pier + bay * (opening_width + pier)
+            bottom = base + sill_height
+            openings.append(dict(
+                id=f'window_{storey}_{bay}',
+                lo=[left, bottom, 0],
+                hi=[left + opening_width - 1, bottom + opening_height - 1, depth - 1],
+            ))
+        for x in range(width):
+            inside_window = x >= pier and (x - pier) // (opening_width + pier) < bays
+            inside_window = inside_window and (x - pier) % (opening_width + pier) < opening_width
+            for y in range(base, base + pitch):
+                if inside_window and base + sill_height <= y < base + sill_height + opening_height:
+                    continue
+                writer.box([x, y, 1], [x, y, depth - 1], material, 'wall', True)
+        writer.box([0, base, 0], [width - 1, base, 0], trim, 'storey_bands', True)
+    for opening in openings:
+        left, bottom, _ = opening['lo']
+        right, top, _ = opening['hi']
+        for x in (left - 1, right + 1):
+            writer.box([x, bottom, 0], [x, top, 0], trim, 'jambs', True)
+        writer.box([left - 1, top + 1, 0], [right + 1, top + 1, 0], trim, 'lintels', True)
+        writer.box([left - 1, bottom - 1, 0], [right + 1, bottom - 1, 0], sill, 'sills', True)
+        if args.get('glazing', True):
+            writer.box([left, bottom, recess], [right, top, recess], glass, 'glazing', True)
+    return finish(workspace, writer, args, '凹窗与层带立面', kind='facade',
+                  openings=openings, front='north_-z', glazing=args.get('glazing', True),
+                  resolved_form=dict(bays=bays, storeys=storeys, opening=[opening_width, opening_height],
+                                     pier_width=pier, storey_pitch=pitch, recess=recess))
+
+
 def vault_field(w,d,spring,rise,profile):
     return {(x,z):spring+rise*max(curve(2*x/(w-1)-1,profile),curve(2*z/(d-1)-1,profile)) for x in range(w) for z in range(d)}
 

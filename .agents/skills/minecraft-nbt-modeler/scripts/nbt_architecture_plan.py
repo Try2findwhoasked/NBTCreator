@@ -67,6 +67,8 @@ def normalize(plan):
         if rule['kind'] in ('ratio','proportion') and rule['minimum']>rule['maximum']:raise ValueError('比例规则上下限倒置')
     for row in plan['parts']:
         if row.get('space') and row['space'] not in spaces:raise ValueError('构件引用的功能空间不存在：'+row['id'])
+    from nbt_architecture_intent import validate_intent
+    validate_intent(plan, valid_parts)
     return plan
 
 
@@ -311,12 +313,11 @@ def build(workspace,request):
         if identifier not in previous_ids:
             scratch.instances[identifier]['compiled']['policy']=deepcopy(instance['compiled'].get('policy',{}))
     scratch.seal();scratch.open_declared()
-    # Engine-declared carving is part of the generated envelope's current baseline.
+    # Engine-declared carving updates every generated part's current baseline.
     # Retain owned-air records so the next rebuild can safely remove the same group.
     for identifier in binding['generated_instances']:
-        if identifier.startswith('env_'):
-            for row in scratch.instances[identifier]['baseline']:
-                row['after']=value_at(scratch.model,scratch.walls,tuple(row['pos']))
+        for row in scratch.instances[identifier]['baseline']:
+            row['after']=value_at(scratch.model,scratch.walls,tuple(row['pos']))
     positions=set(original.model.blocks)|set(scratch.model.blocks)|original.walls|scratch.walls
     edits=[dict(pos=list(p),before=value_at(original.model,original.walls,p),after=value_at(scratch.model,scratch.walls,p)) for p in sorted(positions)
         if value_at(original.model,original.walls,p)!=value_at(scratch.model,scratch.walls,p)]
@@ -432,6 +433,8 @@ def check_model(model,binding):
             clear=space.standing(pose) and space.clear_box((pose[0]-.3,pose[1],pose[2]-.3),(pose[0]+.3,pose[1]+clearance,pose[2]+.3))
             if not clear:bad.append(pose)
         checks.append(dict(id=room['id'],kind='space_samples',passed=not bad,failed_samples=bad,extent='declared',net_clearance='sampled'))
+    from nbt_architecture_intent import check_intent
+    checks.extend(check_intent(model, binding, resolved, space))
     for part in resolved['parts']:
         try:
             _,positions=actual_part(model,binding,part['id']);ok=bool(positions)

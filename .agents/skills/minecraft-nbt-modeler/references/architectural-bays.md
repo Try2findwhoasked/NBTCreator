@@ -2,13 +2,26 @@
 
 当柱、拱、墙窗、顶构和地砖需要共用比例时，先做一个可辨识的单跨试件。`bay_compile` 是一种可选的石造回廊构造，不是所有建筑的默认布局；其他布局仍用对象图与自由几何。它不依据截图自动复原历史建筑，也不将二维花纹解释为承托结构。
 
-这三个工具通过 `components agent --tool <名称> --request <JSON>` 返回纯候选 spec，不写源、不记录批准、不导出 NBT。完整字段和范围查询 `capabilities --agent-tool <名称>`，不要将下面的尺寸作为创作限制。工作区使用冻结引擎时，先在 AI 知识设置同步这些工具，再由该工作区入口调用。
+这些工具通过 `components agent --tool <名称> --request <JSON>` 返回纯候选 spec。完整字段和范围查询 `capabilities --agent-tool <名称>`，示例尺寸供本次试搭调整。工作区使用冻结引擎时，先在 AI 知识设置同步这些工具，再由该工作区入口调用。
 
 | 工具 | 实际生成的几何 | 主要参数 |
 | --- | --- | --- |
 | `bay_compile` | 四束柱、四面连续拱套、对角肋与凹格交叉券顶、低墙裙、后墙拱窗和齐平多色地砖 | span、depth、pier_width、spring_height、rise、profile、materials、floor_pattern、coffer_pattern |
 | `vault_compile` | 跟随统一拱形参数场的实体壳体、递进凹格、可选对角肋及底面顶半砖 | size_xz、spring_y、rise、profile、thickness、recess_depth、coffer_counts、coffer_pattern |
 | `tracery_compile` | 外拱框、双分栏、中心圆窗、连接杆和可选玻璃；无不透明背板 | size_uv、depth、profile、material、trim、glazing、glass_palette |
+| `facade_compile` | 窗间墩、逐层水平层带、窗框、下半砖窗台及后退玻璃，返回各实际开口范围 | bays、storeys、opening、pier_width、sill_height、lintel_height、recess、material、trim、glass |
+
+## 凹窗与层带立面
+
+`facade_compile` 适用于成组矩形窗的立面片段。先按活动区净尺寸决定开间、层高和窗台，再选需要重复的跨数。候选正面朝北（-Z），外侧框位于 Z=0，玻璃沿 +Z 后退 recess 格。opening 指真实窗洞宽高，层间节距由 sill_height、窗高和 lintel_height 相加得到，窗间墩宽控制整体宽度。每个构件宽高最多64格，较长立面可按实际跨间通过对象图组合。
+
+```json
+{"bays":3,"storeys":2,"opening":[3,4],"pier_width":2,"sill_height":2,"lintel_height":1,"recess":1,"material":"bricks","trim":"smooth_sandstone","glass":"glass","sill_material":"sandstone_slab[type=bottom]"}
+```
+
+glazing=false 保留贯通候选深度的真实窗孔。候选中的空位置在安装时保持宿主原状，已有墙体上的开洞通过完整工作模型的受检修改处理。按 `openings` 回执核对窗的内外侧，查看墙厚、框的投影、窗台连接及室内使用面。尺寸、玻璃退进和材料可按设计更改，平齐玻璃、通高幕墙或无玻璃开口可另用自由几何表达。
+
+构造观察来自公开的索菲亚应用艺术学校蓝图及其立面、室内图。重复开窗、水平层带与局部竖向强调被提炼为可调构造，来源与版本见[上游记录](upstream-sources.json)。屋面曲线使用[参数化屋顶](modelling-tools.md#参数化屋顶)。
 
 ## 共享比例与真实接触
 
