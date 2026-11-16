@@ -37,7 +37,7 @@ export function initAppSettings(){
 ${info.platform} ${info.arch} · ${info.packaged?'Portable桌面版':'源码开发版'}
 Electron ${info.electron} · Node ${info.node}
 Python：${info.python}`;const access=await bridge.updateAccess();$('update-access-state').textContent=access.hasToken?'已加密保存更新访问令牌':'尚未配置访问令牌'}
- button.onclick=async()=>{if(dialog.open)return;const controls=[...dialog.querySelectorAll('button,input,select')].filter(e=>e.id!=='close-settings'),disabled=new Map(controls.map(e=>[e,e.disabled]));for(const control of controls)control.disabled=true;dialog.showModal();message('正在读取当前工作区配置…');try{await load();await window.nbtCommands?.settingsOpened();message('')}catch(e){message(e.message)}finally{for(const [control,value]of disabled)control.disabled=value}}
+ button.onclick=async()=>{if(dialog.open)return;const controls=[...dialog.querySelectorAll('button,input,select')].filter(e=>e.id!=='close-settings'),disabled=new Map(controls.map(e=>[e,e.disabled]));for(const control of controls)control.disabled=true;dialog.showModal();message('正在读取当前工作区配置…');try{await load();await window.nbtCommands?.settingsOpened();message('')}catch(e){message(e.message)}finally{for(const [control,value]of disabled)control.disabled=value;updateControls()}}
  $('close-settings').onclick=()=>dialog.close()
  $('settings-system-view').onclick=()=>bridge.systemMenu('view')
  for(const tab of dialog.querySelectorAll('[data-settings-tab]'))tab.onclick=()=>{dialog.querySelectorAll('[data-settings-page]').forEach(p=>p.hidden=p.dataset.settingsPage!==tab.dataset.settingsTab);dialog.querySelectorAll('[data-settings-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b===tab)))}
@@ -46,10 +46,30 @@ Python：${info.python}`;const access=await bridge.updateAccess();$('update-acce
  $('settings-skill-preview').onclick=()=>previewKnowledge({scope:'external',entry:true})
  $('settings-skill-copy').onclick=async()=>{try{await bridge.copyAgentPlan('请在当前项目根目录工作，先完整阅读 .agents/skills/nbtcreator-workspace/SKILL.md，按任务条件读取其中启用的知识组和相关完整章节。不要默认读取所有未启用专题。工具清单以该入口链接为准，可调用 python .agents/skills/nbtcreator-workspace/nbt.py capabilities 查询；遵守原模型保留、保护范围、真实看图确认和新版本输出规则。');message('已复制外部Agent接入说明')}catch(e){message(e.message)}}
  $('setting-workspace-pick').onclick=async()=>{try{await window.nbtFeedbackAutosave?.flush();await bridge.chooseWorkspace()}catch(error){message(error.message)}}
- $('update-token-save').onclick=async()=>{try{await bridge.updateAccessSave({token:$('update-token').value});$('update-token').value='';await load();message('更新访问令牌已加密保存')}catch(e){message(e.message)}}
- $('update-token-clear').onclick=async()=>{try{await bridge.updateAccessSave({clear:true});await load();message('更新访问令牌已删除')}catch(e){message(e.message)}}
- $('update-check').onclick=async()=>{try{$('update-check').disabled=true;message('正在检查更新…');const r=await bridge.updateCheck();$('update-notes').textContent=r.notes;for(const o of $('update-kind').options)o.disabled=!r.assets.includes(o.value);if(!r.assets.includes($('update-kind').value)&&r.assets.length)$('update-kind').value=r.assets[0];$('update-download').disabled=!r.available;message(r.available?`发现 ${r.latest}，当前 ${r.current}，可一键下载`:`当前 ${r.current}，最新稳定版 ${r.latest}`)}catch(e){message(e.message)}finally{$('update-check').disabled=false}}
- $('update-download').onclick=async()=>{let timer;try{$('update-download').disabled=true;timer=setInterval(async()=>{const s=await bridge.updateStatus();$('update-progress').textContent=`${(s.received/1048576).toFixed(1)} / ${(s.total/1048576).toFixed(1)} MiB`},500);const r=await bridge.updateDownload($('update-kind').value);message('下载及SHA256校验完成：'+r.path+'。关闭程序后解压，不需要再次下载。')}catch(e){message(e.message)}finally{clearInterval(timer);$('update-download').disabled=false}}
+ let updateBusy=false,updateResult=null
+ function updateControls(){
+  for(const id of ['update-check','update-kind','update-token','update-token-save','update-token-clear'])$(id).disabled=updateBusy
+  $('update-download').disabled=updateBusy||!updateResult?.available||!updateResult.assets.includes($('update-kind').value)
+ }
+ async function updateAction(action){if(updateBusy)return;updateBusy=true;updateControls();try{await action()}catch(e){message(e.message)}finally{updateBusy=false;updateControls()}}
+ $('update-kind').onchange=updateControls
+ $('update-token-save').onclick=()=>updateAction(async()=>{await bridge.updateAccessSave({token:$('update-token').value});$('update-token').value='';updateResult=null;await load();message('更新访问令牌已加密保存，请重新检查更新')})
+ $('update-token-clear').onclick=()=>updateAction(async()=>{await bridge.updateAccessSave({clear:true});updateResult=null;await load();message('更新访问令牌已删除，请重新检查更新')})
+ $('update-check').onclick=()=>updateAction(async()=>{
+  updateResult=null;$('update-notes').textContent='';$('update-progress').textContent='';message('正在检查更新…')
+  const r=await bridge.updateCheck();updateResult=r;$('update-notes').textContent=r.notes
+  for(const o of $('update-kind').options)o.disabled=!r.assets.includes(o.value)
+  if(!r.assets.includes($('update-kind').value)&&r.assets.length)$('update-kind').value=r.assets[0]
+  message(!r.available?`当前 ${r.current}，最新稳定版 ${r.latest}`:r.assets.length?`发现 ${r.latest}，当前 ${r.current}，可一键下载`:`发现 ${r.latest}，发行包或校验文件尚不完整，请稍后重新检查`)
+ })
+ $('update-download').onclick=()=>updateAction(async()=>{
+  let stopped=false,polling=false;const progress=s=>`${(s.received/1048576).toFixed(1)} / ${(s.total/1048576).toFixed(1)} MiB`
+  $('update-progress').textContent='正在准备下载…';message('正在下载更新…')
+  const timer=setInterval(async()=>{if(polling)return;polling=true;try{const s=await bridge.updateStatus();if(!stopped)$('update-progress').textContent=progress(s)}catch{}finally{polling=false}},500)
+  try{const r=await bridge.updateDownload($('update-kind').value);$('update-progress').textContent=progress(r);message('下载及SHA256校验完成：'+r.path+'。关闭程序后解压，不需要再次下载。')}
+  catch(e){$('update-progress').textContent='下载失败，可重试';throw e}
+  finally{stopped=true;clearInterval(timer)}
+ })
  $('update-folder').onclick=()=>bridge.updateFolder()
  return bridge.appSettings().then(p=>apply(p,true)).catch(()=>{})
 }

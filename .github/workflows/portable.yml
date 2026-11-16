@@ -208,6 +208,8 @@ jobs:
           Remove-Item Env:NBTCREATOR_PYTHON -ErrorAction SilentlyContinue
           npm run test:desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/updater-desktop.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run test:api-desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node tests/protection-desktop.mjs

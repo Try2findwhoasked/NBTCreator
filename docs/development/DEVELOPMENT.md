@@ -55,6 +55,7 @@ mise exec -- node scripts/cli.mjs --workspace "D:\MyMinecraftProject" capabiliti
 | 冻结迁移资料 | `mise exec -- npm run verify:archive` |
 | API 与本地协议 | `mise exec -- npm run test:api` |
 | 桌面冒烟 | `mise exec -- npm run test:desktop` |
+| 更新检查、下载校验与失败重试（本地模拟） | `mise exec -- npm run test:updates` |
 | CPU 批量写入与严格校验 | `mise run cpu:test` |
 | 完整主模型、对象关系与接口 | `mise run model:test` |
 | 实际主模型预览 | `mise exec -- npm run test:model-preview` |
