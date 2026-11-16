@@ -77,4 +77,39 @@ class Contracts(unittest.TestCase):
    root=Path(temp);workspace=root/'project';doc=root/'建筑规范.md';doc.write_text('梁端需要承托。',encoding='utf8')
    result=import_knowledge(workspace,[doc]);item=result['custom_knowledge'][0];self.assertTrue((workspace/'.nbtcreator'/item['path']).is_file());self.assertIn('建筑规范',(workspace/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8'))
    item['enabled']=False;expose(workspace,dict(schema_version=1,enabled_groups=['core'],custom_knowledge=[item]));self.assertNotIn('建筑规范',(workspace/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8'));self.assertTrue(doc.is_file());self.assertTrue((workspace/'.nbtcreator'/item['path']).is_file())
+ def test_task_entry_and_selected_inventory_have_separate_filtered_responsibilities(self):
+  with tempfile.TemporaryDirectory() as temp:
+   root=Path(temp);expose(root,dict(schema_version=1,enabled_groups=['modelling']))
+   facade=root/'.agents/skills/nbtcreator-workspace'
+   entry=(facade/'SKILL.md').read_text(encoding='utf8');index=(facade/'knowledge.md').read_text(encoding='utf8')
+   for name in ('pattern-fitting.md','pattern-authoring.md','surface-mounting.md','modeling-sessions.md'):
+    self.assertIn(name,index)
+   self.assertIn('pattern-fitting.md',entry);self.assertIn('knowledge.md',entry)
+   self.assertNotIn('micro-props.md',entry);self.assertNotIn('micro-props.md',index)
+   self.assertNotIn(str(ENGINE),entry+index)
+   marker=json.loads((root/'.nbtcreator/facade-manifest.json').read_text(encoding='utf8'))
+   self.assertEqual(set(marker),{'SKILL.md','knowledge.md','nbt.py'})
+   self.assertLess(len(entry),8000)
+
+ def test_resynchronizing_backs_up_a_user_edited_generated_inventory(self):
+  with tempfile.TemporaryDirectory() as temp:
+   root=Path(temp);config=dict(schema_version=1,enabled_groups=['core']);expose(root,config)
+   index=root/'.agents/skills/nbtcreator-workspace/knowledge.md'
+   edited=index.read_text(encoding='utf8')+'\n用户补充的索引注记\n';index.write_text(edited,encoding='utf8')
+   expose(root,config)
+   backups=list((root/'.nbtcreator/skill-backups').glob('*/knowledge.md'))
+   self.assertEqual(len(backups),1);self.assertEqual(backups[0].read_text(encoding='utf8'),edited)
+   self.assertNotIn('用户补充的索引注记',index.read_text(encoding='utf8'))
+
+ def test_core_only_retains_maintenance_route_without_optional_extension_guidance(self):
+  with tempfile.TemporaryDirectory() as temp:
+   root=Path(temp);expose(root,dict(schema_version=1,enabled_groups=['core']))
+   entry=(root/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8')
+   self.assertIn('| 单工具检查与维护 |',entry)
+   self.assertIn('state-and-maintenance.md',entry)
+   self.assertNotIn('extensions.md',entry)
+   run=subprocess.run([sys.executable,str(root/'.agents/skills/nbtcreator-workspace/nbt.py'),'capabilities','--agent-tool','parametric_surface'],cwd=root,capture_output=True,text=True,encoding='utf8')
+   self.assertEqual(run.returncode,0,run.stderr)
+   self.assertIn('parametric_surface',run.stdout)
+
 if __name__=='__main__':unittest.main(verbosity=2)

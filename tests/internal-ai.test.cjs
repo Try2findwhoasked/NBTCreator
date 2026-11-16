@@ -32,3 +32,18 @@ test('legacy workflow settings keep their rules and viewport choice while gainin
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-internal-migration-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));const skill=path.resolve(__dirname,'../.agents/skills/minecraft-nbt-modeler'),service=createInternalAI({workspace:()=>root,skill}),old=await service.show();delete old.workflows.component;delete old.workflows.selection_edit;old.workflows.small_structure.rules='custom-local-rules';old.workflows.small_structure.attachViewport=true
  await fs.mkdir(path.join(root,'.nbtcreator/internal-ai'),{recursive:true});await fs.writeFile(path.join(root,'.nbtcreator/internal-ai/config.json'),JSON.stringify(old));const loaded=await service.show();assert.equal(Object.keys(loaded.workflows).length,7);assert.equal(loaded.workflows.small_structure.rules,'custom-local-rules');assert.equal(loaded.workflows.small_structure.attachViewport,true);assert.equal(loaded.workflows.component.attachViewport,false);assert.equal(loaded.workflows.selection_edit.attachViewport,false)
 })
+
+
+test('focused built-in topics stay optional and only the selected stage is sent',async t=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-knowledge-stages-'));t.after(()=>fs.rm(root,{recursive:true,force:true}))
+ const skill=path.resolve(__dirname,'../.agents/skills/minecraft-nbt-modeler'),service=createInternalAI({workspace:()=>root,skill})
+ const config=await service.show()
+ for(const id of ['builtin:parametric','builtin:pattern-source','builtin:pattern-fit','builtin:surface-mount','builtin:object-scenes'])assert.ok(config.builtins[id],id)
+ for(const flow of Object.values(config.workflows))assert.deepEqual(flow.knowledge,[])
+ config.workflows.component.knowledge=['builtin:pattern-fit'];await service.save({workflows:config.workflows})
+ const selected=await service.context('component')
+ assert.equal(selected.knowledge.length,1);assert.ok(selected.knowledge[0].content.startsWith('# 纹样拟合与质量检查'))
+ assert.ok(!selected.knowledge[0].content.includes('## 小纹样生成、区域采样与组合资产'))
+ assert.deepEqual((await service.context('draft')).knowledge,[])
+ await assert.rejects(fs.access(path.join(root,'.nbtcreator/skill-exposure.json')))
+})

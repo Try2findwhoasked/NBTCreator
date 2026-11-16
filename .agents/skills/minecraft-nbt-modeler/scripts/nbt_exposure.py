@@ -10,15 +10,15 @@ from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 GROUPS={
- 'core':('基础工作流与验收（按任务读取）',['whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','architect-tools','ai-creative-preferences','version-history','snbt-authoring']),
- 'architecture':('建筑风格与场所',['architecture-knowledge-base','structure-atlas','design-grammar']),
+ 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','architect-tools','ai-creative-preferences','version-history','snbt-authoring']),
+ 'architecture':('建筑风格、场所与构造',['architecture-knowledge-base','structure-atlas','design-grammar','architectural-bays','classical-columns']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
  'props':('细微道具',['micro-props']),
  'materials':('混材、地面与风化',['patterns','floors','weathering']),
- 'modelling':('通用建模工具',['working-model','modelling-tools','toolkit','parametric-components','object-scenes','compute-transforms']),
+ 'modelling':('构件、纹样与模型装配',['working-model','modelling-tools','toolkit','parametric-components','pattern-authoring','pattern-fitting','surface-mounting','modeling-sessions','object-scenes','compute-transforms','pattern-spectral','extensions']),
  'rendering':('纹理预览与图像评审',['rendering']),
- 'saodg':('可选：SAODG接入',['saodg-constraints','mod-structures']),
+ 'saodg':('可选：SAODG接入',['saodg-constraints','mod-structures','SAOartguide','room-examples','sealed-examples']),
  'desktop':('桌面、提示词与网页转换',['nbtcreator','detail-control','prompt-console','web-revision']),
  'library':('建筑库与选择器',['library-archive','structure-selector','component-assets','reusable-recipes','project-batch']),
  'handoff':('委派阅读记录',['delegation-and-review']),
@@ -93,6 +93,66 @@ def show(workspace):
     return dict(config,groups=[dict(id=key,label=label,required=key=='core',files=[p+'.md' for p in files]) for key,(label,files) in GROUPS.items()],
                 facade='.agents/skills/nbtcreator-workspace/SKILL.md',tool_count=len(caps['tools']),capabilities_sha256=caps['capabilities_sha256'])
 
+
+def facade_knowledge(runtime, facade, workspace, relative, config):
+    """Keep task selection in the entrypoint and the selected inventory separate."""
+    enabled={name for group in config['enabled_groups'] for name in GROUPS[group][1]}
+    def link(name):
+        file=runtime/'references'/(name+'.md')
+        if not file.is_file():raise ValueError('缺少知识文件：'+name)
+        title=next((line.lstrip('# ').strip() for line in file.read_text(encoding='utf8').splitlines() if line.startswith('# ')),name)
+        return f'[{title}]({relative}/references/{name}.md)'
+    routes=[
+        ('整栋初稿或重设计',['whole-model-workflow','player-scale','design-principles','spatial-detail-design'],'完整读这四篇基础资料，先联合设计空间、路线与顶构，再选题材专题。'),
+        ('完整主模型与独立构件',['working-model','parametric-components'],'工作模型管理安装、归属、修改和制作版；构件只做适用检查。'),
+        ('准备或制作纹样图源',['pattern-authoring'],'已有合适图源可直接进入拟合。'),
+        ('拟合纹样与检查质量',['pattern-fitting'],'按微型、普通面板或圆柱模式读对应完整章节，实际看图。'),
+        ('安装到已有建筑',['surface-mounting'],'先绑定真实源、上下文和安装面，再生成候选。'),
+        ('参数引用和对象联动',['object-scenes'],'使用稳定ID和关系，不靠手工猜测多个构件如何拼合。'),
+        ('空间和风格推演',['design-grammar','architecture-knowledge-base'],'按用途选适用完整章节，例子不是建筑模板。'),
+        ('近观道具与薄构件',['micro-props'],'检查支承、使用侧和实际预览。'),
+        ('批注与已有模型修改',['agent-feedback'],'先读取源、坐标和图像证据，核对保护与当前阶段。'),
+        ('用户看图后批准精修',['refinement'],'确认仍绑定相同源与图像后再执行。'),
+        ('只读检查与失败定位',['validation-workflow','diagnostic-guidance'],'解释真实检查证据，不把字段检查写成模型已通过。'),
+        ('验证和看图',['validation-workflow','rendering'],'技术、空间、构造与主题分别给结论。'),
+        ('已有资产保存与放置',['component-assets','reusable-recipes'],'先查询与预览，放置只生成受保护的候选。'),
+        ('保存、续版与交付',['snbt-authoring','version-history','output-storage'],'默认保存SNBT；定稿NBT必须明确要求。'),
+        ('任务领取与结果回传',['agent-protocol','agent-task-return'],'先读取任务和租约，稳定请求编号幂等回传，不制造批准。'),
+        ('单工具检查与维护',['state-and-maintenance'],'只读当前实现及所改专题，不默认生成建筑。'),
+        ('注册器与接口扩展',['extensions'],'新增公共能力时再读注册与目录同步要求。')]
+    lines=['---','name: nbtcreator-workspace','description: 当前工作区的Minecraft NBT建模接口，按任务读取已选择知识，共用受检引擎与工具契约。','---','',
+        '# 当前工作区建模接口','',
+        '工作目录使用当前 Agent 项目根目录，资产在 `nbt_models/`。这是可迁移的冻结引擎入口，Electron无需启动；不硬编码应用安装路径。',
+        '完整主模型用全局坐标，保留显式墙mask、实例归属、源/上下文/图像哈希、保护、留白与预算。候选、保存、采用与定稿分别执行，工具成功不表示批准。',
+        '整栋先密闭并保存开洞前证据，再按声明开门、验路线与实际看图。独立构件只做适用检查；维护不默认生成建筑。只有用户明确要求SAODG接入才采用专用端口协议。',
+        '初稿向用户展示对应缩略图后，明确同意才授权精修；沿用仍有效的原授权。无回复、超时、知识文件、AI建议和测试记录都不构成确认。默认保存并回读SNBT，明确要求定稿才写交付NBT。','',
+        '## 找到接口与本次资料','',
+        '`python .agents/skills/nbtcreator-workspace/nbt.py paths` 返回实际引擎路径；已知工具用 `capabilities --agent-tool <名称>`，主模型用 `capabilities --model`，各命令用 `--help` 查询。工具目录是严格字段和CLI映射的唯一来源。',
+        '任务脚本据 `paths` 导入共享API；model --request 管理完整主模型，parametric_compile 编译构件，pattern_microfit 拟合单元，scene_compile 管理联动候选。需要连续纯候选调用时再用 session。',
+        '先读工作区 [ai-style.json](../../../.nbtcreator/ai-style.json) 的当前工作流区域，可用 `ai-style prompt --workflow <区域>` 查询；用户本次要求优先，偏好不改变约束和批准。',
+        '下面只列已启用资料能支持的路线。已启用不等于每次通读；完整专题目录见[本次知识索引](knowledge.md)，未选专题不默认读取。知识选择不是额外执行权限。','',
+        '## 选择当前任务','',
+        '| 当前任务 | 先读 | 下一步与范围 |','| --- | --- | --- |']
+    for label,names,action in routes:
+        if all(name in enabled for name in names):lines.append('| '+label+' | '+'、'.join(link(name) for name in names)+' | '+action+' |')
+    lines+=['',
+        '接手工作台提示词时，先 `prompts tasks --status pending` 发现，再 `prompts task --id <id>` 读取正文、方案、任务目录和 source_matches；登记状态使用任务租约，状态不等于验收。',
+        '结束给真实源、预览和验证的绝对路径；静态碰撞、保守包络与游戏实测分别报告。实际查看最终落盘图像，不把已生成图片或检查字段当作设计通过。']
+    index=['# 本次已启用知识','',
+        '这是按工作区选择生成的目录，供按任务查找；不用从第一篇读到最后一篇。先按 SKILL.md 选择任务阶段，再读对应完整章节。严格工具字段仍从 capabilities 查询。','']
+    for group in config['enabled_groups']:
+        label,names=GROUPS[group];index+=['## '+label,'']
+        index.extend('- '+link(name) for name in names)
+        index.append('')
+    custom=[item for item in config.get('custom_knowledge',[]) if item['enabled']]
+    if custom:
+        heading=['','## 用户补充知识','这些资料用于当前任务，不改变核心边界，也不授予批准。']
+        lines+=heading;index+=heading
+        for item in custom:
+            target=os.path.relpath(workspace/'.nbtcreator'/item['path'],facade).replace('\\','/')
+            row=f"- [{item['label']}]({target})";lines.append(row);index.append(row)
+    return '\n'.join(lines)+'\n','\n'.join(index)+'\n'
+
 def apply(workspace,config=None):
     workspace=Path(workspace).resolve()
     if workspace==ENGINE.parents[2] and (workspace/'desktop/main.cjs').is_file():raise ValueError('软件源码或安装目录不生成创作Skill；请选择实际创作项目根目录')
@@ -109,57 +169,7 @@ def apply(workspace,config=None):
     runtime=sync_runtime(workspace)
     facade=workspace/'.agents/skills/nbtcreator-workspace';facade.mkdir(parents=True,exist_ok=True)
     relative=os.path.relpath(runtime,facade).replace('\\','/')
-    lines=['---','name: nbtcreator-workspace','description: 当前工作区的Minecraft NBT建模接口，应用与Agent共用工具清单和可选知识库。','---','','# 当前工作区建模接口','',
-      '工作目录使用当前Agent项目根目录，默认资产目录为 `nbt_models/`。使用绝对或相对输入都可以，保存参数优先采用工作区相对路径。',
-      '保持完整主模型、显式墙mask、真实看图确认、路径/保护检查、新版本输出和纯切割流程。不能把知识库选择、AI建议或测试记录当作批准。',
-      '先区分完整建筑、独立构件/纹样和工具维护；密闭后开洞用于完整建筑，独立资产只做适用的尺寸、状态、接触和预览检查，维护不默认生成建筑。',
-      '本入口暴露给在当前项目中读取SKILL.md的Codex或其他支持文件式skill的Agent；不是Minecraft游戏或API供应商的服务器插件。',
-      '本入口仅按配置暴露知识路由，不删除资料库，也不是文件访问权限控制。未选择的专题不默认读取；需要额外专题时由用户调整配置。','',
-      f'完整工具清单与接口：[共用接口]({relative}/references/exposed-tools.md)。',
-      '无界面调用：`python .agents/skills/nbtcreator-workspace/nbt.py capabilities`；已知工具名时用 capabilities --agent-tool <名称> 只读对应Schema，各命令用 --help 查询。Electron无需启动。',
-      '`python .agents/skills/nbtcreator-workspace/nbt.py paths` 返回当前冻结引擎、scripts、references 和 Python 的实际路径。任务脚本据此导入 API，无需读包装器猜目录，不硬编码应用安装路径。',
-      '完整主模型组合使用 model --request <JSON>，capabilities --model 查询契约；统一安装配方、宿主增删改、实例更新及显式SNBT制作版保存。保存不生成定稿NBT，不授予精修批准。',
-      '工具能力与应用保持一致，AI结构建议按工作流开放相应子集。已有批准/预览均绑定源哈希；不要并发写出同一建筑。',
-      f'项目规范、交付清单、从定稿版继续制作与跨版本批注核对见 [建筑师工具]({relative}/references/architect-tools.md)。接手提示词时沿用任务内的设计规范快照；跨版本核对不复制旧坐标或自动解决原批注。',
-      f'对外任务与批注使用 [机器接口]({relative}/references/agent-protocol.md)：machine --schema 获取统一契约；先领取、定期续期，以稳定请求编号幂等提交。任务与批注分开读取，仍由人手动触发Skill。',
-      '提示词任务由工作台“保存任务到工作区”创建目录并保存完整提示词。先 `python .agents/skills/nbtcreator-workspace/nbt.py prompts tasks --status pending` 发现新增任务，或用 `--after <上次cursor>` 增量列出；再 `prompts task --id <id>` 获取任务文件夹、正文、方案和源校验。处理前核对当前用户要求与source_matches，领取后用 `machine` 的 `prompts.task-status` 携带 lease_token 与 fence 登记进度；任务状态不等于验收或批准。',
-      '工具效果配置使用 effect-assets list/save/get/preview/compile，由Agent直接写入原生效果库；预览只运行独立样例，compile只返回候选，正式NBT仍须明确导出。',
-      '参数化构件用 parametric_compile，微型纹样用 pattern_microfit，对象联动用 scene_compile；严格参数见 capabilities.agent_tools。先生成候选并实际预览；保存资产、放置建筑和定稿分别执行，不从工具成功推定批准。',
-      '连续候选调用可用 session JSON行会话复用进程与缓存；开放工具见 agent_session，预览、审阅出图和保存继续使用原单次入口。',
-      (f'参数化构件、微型纹样和贴面安装见 [参数化建模]({relative}/references/parametric-components.md)；跨对象的尺寸引用、接触和持久化联动见 [建筑对象图]({relative}/references/object-scenes.md)。用 scene_compile/read/update 生成候选，scene_save 显式保存新版本。' if 'modelling' in config['enabled_groups'] else '参数化和纹样工具可先按 capabilities.agent_tools 查询。需要建模专题指导时，可在AI设置的通用建模工具知识组中选择相应路由。'),
-      '', '## 各区域 AI 创作偏好', '先读工作区共用配置 [ai-style.json](../../../.nbtcreator/ai-style.json)，按当前任务选择 draft（完整初稿）、workbench（控件配置）、prompt（文字）、structure（局部编辑）、small_structure（小型构件）、component（资产管理独立结构）或 selection_edit（选区自然语言工具编辑）。',
-      '可调用 `python .agents/skills/nbtcreator-workspace/nbt.py ai-style prompt --workflow small_structure` 获取本区域参数与通俗提示词。偏好控制创意、详略、装饰与变化，用户本次明确要求优先；不得改变选区、保护、预算、返回格式或真实看图确认规则。',
-      '', '## 按任务进入', '',
-      '已启用表示资料可用，不要求每次把全部目录读完。完整阅读下面当前阶段所列文件；专题按用途选适用完整章节，长建筑原型库无需遍读。', '',
-      '| 当前任务 | 先读与下一步 |','| --- | --- |',
-      f'| 接手工作台提示词 | 读 [提示词归档]({relative}/references/prompt-archive.md)；先 prompts tasks 发现新增任务、prompts task --id <id> 读取；旧归档用 prompts scan/read。核对source_matches，归档不构成批准。 |',
-      f'| 批量创作与任务交付 | 读 [制作批次]({relative}/references/batch-workspaces.md)，先 batches create 在 nbt_models/_workspaces/batches 分配过程目录；用 record 关联正式模型和图册，list/get/locate 扫描接手。批次目录不是新的项目根，登记不授予批准。 |',
-      f'| Agent完成修改后的版本回传 | 读 [任务回传]({relative}/references/agent-task-return.md)，agent-tasks get/record 登记同一建筑新版本与逐条处理声明，应用同镜头对比并单独保存人工核对；不改原评论或制造批准。 |',
-      f'| 检查失败解释与定位 | 读 [检查说明]({relative}/references/diagnostic-guidance.md)，原检查附带 diagnostics；diagnostics --kind walk/candidate/protection --report 解释已保存证据，不重新验证或自动修复。 |',
-      f'| 按任务检索资料或复用构件 | 读 [本地参考检索]({relative}/references/reference-retrieval.md)，retrieve search/bundle/read 共用应用的工作流资料选择与哈希校验；结构复用使用 placements 和可选 material_map，先真实预览再保存新资产。 |',
-      f'| 选区自然语言工具编辑 | 读 [选区编辑]({relative}/references/selection-edit.md)，selection-edit context 读取真实局部方块，compile 转换相对坐标；实际写入边界、保护与预算由预览／导出引擎检查，先审阅再采用。 |',
-      f'| 整理标注与跟进任务 | 读 [意见任务]({relative}/references/comment-tasks.md)，使用feedback-tasks list/create/update/merge/evidence；分组、任务状态与原评论证据分别保留，任务完成不表示模型验收或新增批准。 |',
-      (f'| 独立构件创建、读写与放置 | 读 [构件资产]({relative}/references/component-assets.md) 和共用接口中的结构Agent协议；使用component偏好，先实际预览再保存新资产。结构放置产生候选，NBT仍须显式导出。 |' if 'library' in config['enabled_groups'] else '| 独立构件创建、读写与放置 | 读共用接口中的结构Agent协议及components agent --help；使用component偏好，先实际预览再保存新资产。 |'),
-      f'| 完整建筑首次创建或重设计 | 完整读 [整体流程]({relative}/references/whole-model-workflow.md)、[玩家尺度]({relative}/references/player-scale.md)、[创作原则]({relative}/references/design-principles.md)、[空间细节]({relative}/references/spatial-detail-design.md)。写本任务生成器；自定义独立入口使用 toolkit 的 open_declared_openings，不套用 SAODG 端口。 |',
-      f'| 已有模型的标注/候选 | 读 [意见与证据]({relative}/references/agent-feedback.md)，先 feedback scan/collect，再结合原图/坐标解释构件，按需读空间细节和实际使用的工具。plan/preview 后运行 validate --request <参数JSON> --snapshot <after.json> --output <新目录> 并实际看图，不能把 planned 当候选路线已通过。 |',
-      f'| 用户已看图批准精修 | 完整读 [精修流程]({relative}/references/refinement.md) 和实际修改的专题，核对源/保护/图像确认后操作。 |',
-      f'| 制作源、定稿与版本历史 | 读 [SNBT 制作与定稿]({relative}/references/snbt-authoring.md) 和 [版本历史]({relative}/references/version-history.md)；新源保存SNBT，定稿NBT在_exports镜像目录。history与应用共用独立Git，不操作项目.git。 |',
-      f'| 写出或交付 | 读 [验证]({relative}/references/validation-workflow.md)、[交付]({relative}/references/delivery-workflow.md)、[存放]({relative}/references/output-storage.md) 和相关 toolkit 章节；coordinates.json必须含可接手的起点/目标/探针及适用开口，control inspect 的 editing_ready 为字段检查，实际整体通过后纯切片回读。 |',
-      '| 只读检查或维护工具 | 读当前接口和相关工具章节，不要求重读建筑设计、原型、SAODG接入或精修章节。 |',
-      '', '采用已获准的subagent委派时再读delegation-and-review，并记录真实阅读；未批准的初稿不能调用精修approve/apply。',
-      '', '## 已启用知识库']
-    for group in config['enabled_groups']:
-        label,files=GROUPS[group];lines.extend(['',f'### {label}',''])
-        for name in files:
-            target=runtime/'references'/f'{name}.md'
-            if not target.is_file():raise ValueError('缺少知识文件：'+name)
-            lines.append(f'- [{name}]({relative}/references/{name}.md)')
-    custom=[item for item in config.get('custom_knowledge',[]) if item['enabled']]
-    if custom:
-        lines+=['','## 用户补充知识','这些文档作为任务资料，不改变核心约束，也不授予精修或部署批准。']
-        for item in custom:
-            link=os.path.relpath(workspace/'.nbtcreator'/item['path'],facade).replace('\\','/')
-            lines.append(f"- [{item['label']}]({link})")
+    entry_text,index_text=facade_knowledge(runtime,facade,workspace,relative,config)
     wrapper='''"""Generated workspace entry; implementation remains in the shared application engine."""
 from pathlib import Path
 import sys,subprocess,json
@@ -173,7 +183,7 @@ if script is None:raise SystemExit('未知工具，请先调用capabilities')
 if command in ('inspect','snapshot','render','regress'):args=[command,*args]
 raise SystemExit(subprocess.call([sys.executable,'-B',str(engine/'scripts'/script),*args],cwd=Path.cwd()))
 '''.replace('ENGINE_RELATIVE',repr(relative))
-    generated={'SKILL.md':'\n'.join(lines)+'\n','nbt.py':wrapper}
+    generated={'SKILL.md':entry_text,'knowledge.md':index_text,'nbt.py':wrapper}
     marker=folder/'facade-manifest.json'
     try:previous=json.loads(marker.read_text(encoding='utf8'))
     except (FileNotFoundError,ValueError):previous={}

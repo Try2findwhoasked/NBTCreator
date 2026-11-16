@@ -961,6 +961,36 @@
       "file": "output-storage.md",
       "summary": "nbt_models形状归档、中文描述、日期版本命名及master/runtime/delivery等分区。",
       "use": "完整任务交付规划；小型结构的NBT封装由脚本负责"
+    },
+    "builtin:parametric": {
+      "label": "参数化构件与配方",
+      "file": "parametric-components.md",
+      "summary": "构件类型、对象参数、约束验收和局部重生成。",
+      "use": "构件编译与方案；不扩大当前工具权限"
+    },
+    "builtin:pattern-source": {
+      "label": "纹样来源与制作",
+      "file": "pattern-authoring.md",
+      "summary": "预设、图片裁取、配色、小位图和命名组合资产。",
+      "use": "准备图源，已有来源时可跳过"
+    },
+    "builtin:pattern-fit": {
+      "label": "纹样拟合与质量",
+      "file": "pattern-fitting.md",
+      "summary": "微型单元、普通面板、圆柱和实际几何质量边界。",
+      "use": "纹样拟合、材质选择与失败定位"
+    },
+    "builtin:surface-mount": {
+      "label": "贴面安装与宿主绑定",
+      "file": "surface-mounting.md",
+      "summary": "真实面查询、哈希、嵌入、保护、占用和候选安装。",
+      "use": "已有模型的贴面与局部候选"
+    },
+    "builtin:object-scenes": {
+      "label": "对象关系与联动",
+      "file": "object-scenes.md",
+      "summary": "稳定ID、尺寸引用、命名接口、接触与版本化联动。",
+      "use": "跨对象参数方案；仍按已开放接口执行"
     }
   },
   "commands": {

@@ -29,7 +29,7 @@ def documents(workspace,flow):
     config=read(file)
     if config.get('schema_version')!=1:raise ValueError('内部资料配置无效')
     selected=config.get('workflows',{}).get(flow,{}).get('knowledge',[])
-    if not isinstance(selected,list) or len(selected)>105:raise ValueError('资料选择无效')
+    if not isinstance(selected,list) or len(selected)>100+len(CATALOG['knowledge_sources']):raise ValueError('资料选择无效')
     custom={item['id']:item for item in config.get('documents',[])};result=[]
     for identifier in dict.fromkeys(selected):
         if identifier in CATALOG['knowledge_sources']:

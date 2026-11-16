@@ -15,7 +15,7 @@
 | scene_read | 读取 id 的当前版本；给 version 可读取历史快照，校验不可变文件哈希 |
 | scene_update | 绑定 id / revision / version，修改已有对象、联动重算并返回候选；须另用 scene_save 保存 |
 
-其中三个纯查询/候选动作 `scene_compile`、`scene_read`、`scene_update` 也可通过 `session` 连续调用；`scene_save` 使用单次命令，保留明确的保存边界。会话与参数化工具入口见 [参数化建模](parametric-components.md#建模会话与结果复用)。
+其中三个纯查询/候选动作 `scene_compile`、`scene_read`、`scene_update` 也可通过 `session` 连续调用；`scene_save` 使用单次命令，保留明确的保存边界。会话与参数化工具入口见 [参数化建模](modeling-sessions.md#建模会话与结果复用)。
 
 ## 对象与依赖
 
@@ -31,7 +31,7 @@ graph 可带最多32项 `patterns`，每项为 `{"id":"scroll","asset":{"id":"�
 
 scene_update 可给 `pattern_changes:[{"id":"scroll","asset":新资产引用}]`，不必重复提交所有对象配方或逐块坐标；changes 可以省略，也可与对象参数修改一起提交。工具重新拟合所有引用对象，传播到尺寸/接触依赖，返回 changed_patterns、changed_objects、affected_objects 和实际重编译范围。原图范围、保护、留白、路线、总预算及配方内原有质量门槛仍生效。失败不保存头版本；成功仍只是候选，需要显式 scene_save，旧版本继续可读。
 
-surface_decorate 接收 host（structure 或 parametric_compile 配方）和 installations（见[批量安装](parametric-components.md#批量安装与保留宿主配方)），不递归嵌套任意宿主工具。局部安装面和锚点使用宿主画布坐标；宿主须为外贴预留空间，或明确采用嵌入。对象图编译结束时，会在旋转、平移后的完整占用中再次检查该配方声明的吊顶净空，不能只靠宿主单独通过就忽略其他对象。
+surface_decorate 接收 host（structure 或 parametric_compile 配方）和 installations（见[批量安装](surface-mounting.md#批量安装与保留宿主配方)），不递归嵌套任意宿主工具。局部安装面和锚点使用宿主画布坐标；宿主须为外贴预留空间，或明确采用嵌入。对象图编译结束时，会在旋转、平移后的完整占用中再次检查该配方声明的吊顶净空，不能只靠宿主单独通过就忽略其他对象。
 
 它不监控资产文件、不自动保存图谱，也不自动覆盖建筑。更新资产绑定、检查候选、保存图谱和写回建筑是不同动作；仍须真实看图及另存建筑版本。
 
