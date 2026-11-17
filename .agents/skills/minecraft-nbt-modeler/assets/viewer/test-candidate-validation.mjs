@@ -59,7 +59,7 @@ try{
   await page.waitForFunction(()=>document.querySelectorAll('.task-entry').length>0)
   await page.locator('#task-filter').selectOption('failed')
   assert.ok((await page.locator('#task-list').textContent()).includes('检查候选效果'))
-  assert.ok((await page.locator('.task-state.failed').first().textContent()).includes('未通过'))
+  assert.ok((await page.locator('.task-state.failed').first().textContent()).includes('需改参数'))
   checks.task_filter_and_verdict_are_consistent=true
   await page.locator('button[data-workspace=model]').click()
   await page.locator('.result-panel').evaluate(e=>e.open=false)
