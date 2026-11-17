@@ -15,7 +15,7 @@ concurrency:
   group: portable-${{ github.ref }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 jobs:
-  build:
+  source-contracts:
     runs-on: windows-2025
     timeout-minutes: 60
     defaults:
@@ -53,6 +53,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build production frontend
         run: npm run build:web
+      - name: Prepare pinned renderer for source regression
+        run: |
+          node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Validate source and contracts
         run: |
           npm run check:tools
@@ -79,16 +83,114 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/engine/window-frames.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Prepare pinned renderer for source regression
-        run: |
-          node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify native Electron launch
         env:
           ELECTRON_ENABLE_LOGGING: '1'
         run: node tests/desktop/electron-launch.mjs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: test-diagnostics-source-contracts
+          path: |
+            build/**/results.json
+            build/**/electron.log
+            build/**/*.png
+          retention-days: 7
+  asset-desktop:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            .agents/skills/minecraft-nbt-modeler/assets/viewer/package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.14'
+      - name: Check tag version
+        env:
+          BUILD_REF: ${{ github.ref }}
+        run: |
+          if ($env:BUILD_REF.StartsWith('refs/tags/')) {
+            $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+            if ($env:BUILD_REF -ne "refs/tags/v$version") { throw 'Tag must match package.json version' }
+          }
+      - name: Install locked dependencies
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install numpy==2.4.2 Pillow==12.1.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build production frontend
+        run: npm run build:web
+      - name: Prepare pinned renderer for source regression
+        run: |
+          node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify unified asset library desktop flow
         run: node tests/desktop/unified-assets-desktop.mjs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: test-diagnostics-asset-desktop
+          path: |
+            build/**/results.json
+            build/**/electron.log
+            build/**/*.png
+          retention-days: 7
+  model-pipelines:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            .agents/skills/minecraft-nbt-modeler/assets/viewer/package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.14'
+      - name: Check tag version
+        env:
+          BUILD_REF: ${{ github.ref }}
+        run: |
+          if ($env:BUILD_REF.StartsWith('refs/tags/')) {
+            $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+            if ($env:BUILD_REF -ne "refs/tags/v$version") { throw 'Tag must match package.json version' }
+          }
+      - name: Install locked dependencies
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install numpy==2.4.2 Pillow==12.1.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build production frontend
+        run: npm run build:web
+      - name: Prepare pinned renderer for source regression
+        run: |
+          node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify Agent evidence and whole-model pipelines
         env:
           DEBUG: 'pw:browser'
@@ -188,6 +290,57 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python .agents/skills/minecraft-nbt-modeler/scripts/check_web_revision_fixtures.py --output (Join-Path $probeRoot 'web-revision')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: test-diagnostics-model-pipelines
+          path: |
+            build/**/results.json
+            build/**/electron.log
+            build/**/*.png
+          retention-days: 7
+  authoring-contracts:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            .agents/skills/minecraft-nbt-modeler/assets/viewer/package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.14'
+      - name: Check tag version
+        env:
+          BUILD_REF: ${{ github.ref }}
+        run: |
+          if ($env:BUILD_REF.StartsWith('refs/tags/')) {
+            $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+            if ($env:BUILD_REF -ne "refs/tags/v$version") { throw 'Tag must match package.json version' }
+          }
+      - name: Install locked dependencies
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install numpy==2.4.2 Pillow==12.1.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build production frontend
+        run: npm run build:web
+      - name: Prepare pinned renderer for source regression
+        run: |
+          node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify authoring contracts
         run: |
           python -B tests/engine/roof-curves.py
@@ -218,6 +371,53 @@ jobs:
           node tests/desktop/desktop-smoke.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Remove-Item Env:NBTCREATOR_TEST_SNBT
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: failure()
+        with:
+          name: test-diagnostics-authoring-contracts
+          path: |
+            build/**/results.json
+            build/**/electron.log
+            build/**/*.png
+          retention-days: 7
+  portable-package:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            .agents/skills/minecraft-nbt-modeler/assets/viewer/package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.14'
+      - name: Check tag version
+        env:
+          BUILD_REF: ${{ github.ref }}
+        run: |
+          if ($env:BUILD_REF.StartsWith('refs/tags/')) {
+            $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+            if ($env:BUILD_REF -ne "refs/tags/v$version") { throw 'Tag must match package.json version' }
+          }
+      - name: Install locked dependencies
+        run: |
+          npm ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install numpy==2.4.2 Pillow==12.1.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build production frontend
+        run: npm run build:web
       - name: Build self-contained portable ZIP
         run: |
           npm run package:portable -- --out dist/portable
@@ -271,12 +471,29 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
         with:
-          name: test-diagnostics
+          name: test-diagnostics-portable-package
           path: |
             build/**/results.json
             build/**/electron.log
             build/**/*.png
           retention-days: 7
+  # Preserve the existing required check; skipped/failed prerequisites must fail it.
+  build:
+    needs: [source-contracts, asset-desktop, model-pipelines, authoring-contracts, portable-package]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all validation and package jobs
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json, os
+          results = json.loads(os.environ['JOB_RESULTS'])
+          failed = {name: job['result'] for name, job in results.items() if job['result'] != 'success'}
+          if failed:
+              raise SystemExit(f'Required jobs did not succeed: {failed}')
+          PY
   release:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
