@@ -1,11 +1,12 @@
 import './asset-workspace.css'
+import {createComparison} from './library-comparison.js'
 import {semanticTags} from './asset-categories.js'
 import {initAssetBatches} from './asset-batches.js'
 import {initLibraryBrowser} from './library-browser.js'
 import {createAssetTree} from './asset-tree.js'
 import {initComponentAuthor} from './component-author.js'
 
-export function initAssetWorkspace({api,context,apply,pickPosition,interactive,decorateTree=()=>{}}){
+export function initAssetWorkspace({api,context,apply,pickPosition,interactive,chooseTarget,decorateTree=()=>{}}){
  const host=document.createElement('section');host.id='asset-workspace';host.hidden=true
  host.innerHTML=`<header class="asset-heading"><div><h1>资产管理</h1><p>把选区保存为可复用构件，在当前工作区中搜索、整理和放置。</p></div><button id="asset-save-selection">保存当前选区</button></header>
  <div class="asset-toolbar"><label>搜索构件<input id="asset-search" type="search" placeholder="名称、标签或尺寸"></label><label class="inline"><input id="asset-trash" type="checkbox">查看回收站</label><button id="asset-refresh">刷新</button><button id="asset-import">导入构件</button><input id="asset-import-file" type="file" accept="application/json,.json" hidden></div>
@@ -24,41 +25,116 @@ export function initAssetWorkspace({api,context,apply,pickPosition,interactive,d
  document.body.append(save)
  const $=id=>document.getElementById(id),message=(text,error=false)=>{$('asset-status').textContent=text;$('asset-status').classList.toggle('error',error);inspectorStatus.textContent=text;inspectorStatus.classList.toggle('error',error);inspectorStatus.hidden=!text}
  let items=[],selected=null,limit=24,pending=false,saveContext=null,loaded=false,category='all'
- const treeView=createAssetTree({container:tree,onCategory:value=>{category=value;limit=24;render()},onOpen:item=>{if(pending)return;selected=item;message('');details(true);try{useRange()}catch{}render()},onRender:decorateTree})
+ browser.scope.innerHTML='<label>审阅状态<select id="asset-review-filter"><option value="all">全部构件</option><option value="pending">待看图审阅</option></select></label><label>排列方式<select id="asset-sort"><option value="library">库内顺序</option><option value="name">按名称</option><option value="blocks">方块数从少到多</option></select></label><button type="button" id="asset-reset-view">恢复默认视图</button>'
+ const reviewFilter=$('asset-review-filter'),sort=$('asset-sort')
+ function resetView(){reviewFilter.value='all';sort.value='library';category='all';$('asset-search').value='';$('asset-trash').checked=false;selected=null;limit=24;details();$('asset-search').dispatchEvent(new Event('input'));$('asset-search').focus()}
+ $('asset-reset-view').onclick=resetView
+ for(const field of [reviewFilter,sort])field.onchange=()=>{limit=24;render()}
+ function inspectItem(item){if(pending)return;selected=item;message('');details(true);try{useRange()}catch{}render()}
+ const compare=createComparison({host,grid:$('asset-grid'),kind:'构件',key:item=>item.id,name:item=>item.name,
+  fields:[['尺寸（格）',item=>item.size.join(' × ')],['方块数',item=>String(item.block_count)],['锚点 XYZ',item=>item.anchor.join(', ')],['标签',item=>item.tags.join('、')],['存放位置',item=>item.archived?'回收站':'构件库']],
+  preview:item=>item.thumbnail,openLabel:'查看与放置',open:inspectItem})
+ const treeView=createAssetTree({container:tree,onCategory:value=>{category=value;limit=24;render()},onOpen:inspectItem,onRender:decorateTree})
  window.addEventListener('creator-assets-organized',()=>refresh().catch(error=>message(error.message)))
  const tags=text=>text.split(/[,，]/).map(v=>v.trim()).filter(Boolean)
- function target(){try{const c=context();$('asset-target').textContent=c?.name?`当前建筑：${c.name} · ${c.size.join(' × ')}`:'请先从项目管理打开一座建筑';return c}catch{$('asset-target').textContent='当前建筑参数尚未填写完整，请先回到模型编辑修正';return null}}
+ const chooseBuilding=document.createElement('button')
+ chooseBuilding.type='button';chooseBuilding.id='asset-choose-building';chooseBuilding.textContent='去建筑库选择建筑'
+ chooseBuilding.onclick=()=>{
+  if(!selected)return
+  const id=selected.id,originalHash=selected.content_sha256
+  inspectorDialog.close()
+  const resume=async opened=>{
+   window.creatorWorkspace.select('assets')
+   await refresh()
+   const item=items.find(entry=>entry.id===id)
+   if(!item||item.archived){message('目标建筑已打开。原构件已移出构件库，请重新选择。',true);return}
+   inspectItem(item)
+   if(opened)message(item.content_sha256===originalHash?'目标建筑已打开。请确认锚点和朝向，然后预览放置。':'构件内容已更新。请重新查看预览，再确认放置位置。')
+  }
+  chooseTarget(selected.name,()=>resume(true).catch(error=>message(error.message,true)),()=>resume(false).catch(error=>message(error.message,true)))
+ }
+ $('asset-target').after(chooseBuilding)
+ const placement=inspector.querySelector('fieldset')
+ const targetGroup=document.createElement('div')
+ targetGroup.className='placement-target'
+ placement.querySelector('legend').after(targetGroup)
+ targetGroup.append($('asset-target'),chooseBuilding)
+ placement.querySelector('legend').textContent='放置设置'
+ placement.lastElementChild.textContent='预览后可继续调参，满意时再保存制作版。'
+ const assetFigure=document.createElement('figure');assetFigure.className='asset-detail-figure'
+ $('asset-image').before(assetFigure);assetFigure.append($('asset-image'))
+ const caption=document.createElement('figcaption');assetFigure.append(caption);caption.append($('asset-meta'))
+ const captionNote=inspector.querySelector(':scope > p.muted')
+ if(captionNote)caption.append(captionNote)
+ function target(){try{const c=context();$('asset-target').textContent=c?.name?`当前建筑：${c.name} · ${c.size.join(' × ')}`:'请先选择目标建筑。打开后会返回这个构件。';chooseBuilding.hidden=!!selected?.archived;chooseBuilding.textContent=c?'更换目标建筑':'去建筑库选择建筑';return c}catch{chooseBuilding.hidden=true;$('asset-target').textContent='当前建筑的参数尚未填全，请回到建筑编辑补齐。';return null}}
  function controls(){let c=null;try{c=context()}catch{}const locked=pending||!!c?.busy;for(const card of $('asset-grid').querySelectorAll('.asset-card'))card.disabled=pending;inspectorDialog.setAttribute('aria-busy',String(pending));for(const e of inspector.querySelectorAll('input,select,button'))e.disabled=locked||!selected;for(const id of ['asset-place','asset-pick','asset-use-range','asset-adjust-3d'])$(id).disabled=locked||!selected||!!selected.archived||!c;$('asset-inspector-close').disabled=false}
- function coordinates(position){for(const [i,axis]of ['x','y','z'].entries())$('asset-position-'+axis).value=position[i]}
+ const placementSummary=document.createElement('p');placementSummary.className='asset-placement-summary'
+ $('asset-place').before(placementSummary)
+ function describePlacement(){
+  const values=['x','y','z'].map(axis=>$('asset-position-'+axis).value.trim())
+  const angle=Number($('asset-rotation').value)*90,mirror=$('asset-mirror').value
+  placementSummary.textContent=values.some(v=>!v||!Number.isInteger(Number(v)))?'填写整数锚点，或在建筑上选点。':
+   '锚点 ('+values.join(', ')+')，旋转 '+angle+'°'+(mirror?'，沿 '+mirror.toUpperCase()+' 轴镜像':'')+'。'
+ }
+ inspector.addEventListener('input',describePlacement)
+ function coordinates(position){for(const [i,axis]of ['x','y','z'].entries())$('asset-position-'+axis).value=position[i];describePlacement()}
  function useRange(){const c=target();if(!c)throw Error('请先打开建筑');coordinates(c.lo.map((n,i)=>i===1?n:Math.floor((n+c.hi[i])/2)))}
  function details(reveal=false){
   $('asset-detail').hidden=!selected;if(!selected){if(inspectorDialog.open)inspectorDialog.close();return}
   $('asset-image').src=selected.thumbnail||'';$('asset-name').textContent=selected.name;$('asset-meta').textContent=`${selected.size.join(' × ')} · ${selected.block_count} 格 · 锚点 ${selected.anchor.join(', ')}`
   $('asset-edit-name').value=selected.name;$('asset-edit-tags').value=selected.tags.join(', ');$('asset-export').href=selected.download;$('asset-export').download=selected.name+'.component.json';$('asset-archive').textContent=selected.archived?'恢复构件':'移入回收站'
-  controls()
+  if(reveal)inspector.querySelector('.asset-management').open=!!selected.archived
+  controls();describePlacement()
   target();refreshThemes().catch(error=>message(error.message))
   if(reveal&&document.body.dataset.workspace==='assets'&&!inspectorDialog.open)inspectorDialog.showModal()
  }
  function render(){
   const query=$('asset-search').value.toLocaleLowerCase(),trash=$('asset-trash').checked,scroll=browser.main.scrollTop,browsing=items.filter(item=>!!item.archived===trash)
   treeView.render(browsing,category,selected);$('asset-breadcrumb').textContent=category==='all'?'全部构件':category==='untagged'?'未分类':category.slice(4)
-  const visible=browsing.filter(item=>(category==='all'||category==='untagged'&&!item.tags.length||category.startsWith('tag:')&&semanticTags(item).includes(category.slice(4)))&&(!query||[item.name,...item.tags,item.size.join('x')].join(' ').toLocaleLowerCase().includes(query)))
+  const visible=browsing.filter(item=>(reviewFilter.value==='all'||item.review_status==='pending_visual_review')&&(category==='all'||category==='untagged'&&!item.tags.length||category.startsWith('tag:')&&semanticTags(item).includes(category.slice(4)))&&(!query||[item.name,...item.tags,item.size.join('x')].join(' ').toLocaleLowerCase().includes(query)))
+  if(sort.value==='name')visible.sort((a,b)=>a.name.localeCompare(b.name,'zh-CN'))
+  if(sort.value==='blocks')visible.sort((a,b)=>a.block_count-b.block_count||a.name.localeCompare(b.name,'zh-CN'))
+  const criteria=[reviewFilter.value==='pending'?'待看图审阅':'',sort.value==='blocks'?'方块数从少到多':sort.value==='name'?'按名称排列':'',trash?'回收站':''].filter(Boolean)
+  const activeScope=browser.scope.querySelector('.scope-summary')??document.createElement('span')
+  activeScope.className='scope-summary';activeScope.textContent=criteria.join(' / ');browser.scope.append(activeScope);browser.scope.hidden=!criteria.length
   $('asset-count').textContent=`${visible.length} 个${trash?'已回收':'可用'}构件`;$('asset-grid').replaceChildren();$('asset-more').hidden=visible.length<=limit
   for(const item of visible.slice(0,limit)){
    const card=document.createElement('button');card.type='button';card.className='asset-card';card.dataset.assetId=item.id;card.disabled=pending;card.setAttribute('aria-pressed',String(selected?.id===item.id))
    const cover=document.createElement('span');cover.className='project-cover';if(item.thumbnail){const image=document.createElement('img');image.src=item.thumbnail;image.loading='lazy';image.decoding='async';image.alt=item.name;cover.append(image)}else cover.textContent='构件预览'
    const name=document.createElement('strong'),meta=document.createElement('span'),labels=document.createElement('small');name.textContent=item.name;meta.className='project-card-meta';meta.textContent=`${item.size.join(' × ')} · ${item.block_count} 格`;labels.textContent=[semanticTags(item).join(' · '),item.review_status==='pending_visual_review'?'待审阅':''].filter(Boolean).join(' · ');labels.hidden=!labels.textContent;card.append(cover,name,meta,labels);const duplicates=browsing.filter(other=>other.id!==item.id&&other.content_sha256===item.content_sha256);if(duplicates.length){const note=document.createElement('small');note.className='asset-duplicate-note';note.textContent='与 '+duplicates.length+' 项构件内容相同';note.title=duplicates.map(v=>v.name).join('、');card.append(note)}
-   const wrapper=document.createElement('article');wrapper.className='project-card';wrapper.append(card);card.onclick=()=>{if(pending)return;selected=item;message('');details(true);try{useRange()}catch{}render()};$('asset-grid').append(wrapper)
+   const wrapper=document.createElement('article');wrapper.className='project-card';wrapper.append(card);card.onclick=()=>inspectItem(item);compare.decorate(wrapper,item);$('asset-grid').append(wrapper)
   }
-  if(!visible.length){const empty=document.createElement('p');empty.className='asset-empty';empty.textContent=trash?'回收站为空。':query?'没有匹配构件，试试其他名称或标签。':'构件库还没有内容。打开建筑、选择局部范围后，保存当前选区；也可导入构件 JSON。';$('asset-grid').append(empty)}
+  if(!visible.length){
+   const empty=document.createElement('section'),hint=document.createElement('p'),next=document.createElement('button')
+   empty.className='asset-empty';next.type='button'
+   if(query||category!=='all'||reviewFilter.value!=='all'){
+    hint.textContent='当前条件下没有匹配的构件。';next.textContent='恢复默认视图';next.onclick=resetView
+   }else if(trash){
+    hint.textContent='回收站为空。';next.textContent='返回可用构件';next.onclick=()=>{$('asset-trash').click()}
+   }else{
+    hint.textContent='构件库还没有内容。可以导入构件 JSON，也可以打开建筑，将局部选区保存为构件。';next.textContent='导入构件 JSON';next.onclick=()=>$('asset-import').click()
+   }
+   empty.append(hint,next);$('asset-grid').append(empty)
+  }
   browser.main.scrollTop=scroll
  }
- async function refresh(reveal=false){const result=await api('components');items=result.items;loaded=true;selected=items.find(item=>item.id===selected?.id)||null;render();details(reveal);if(result.errors.length)message(`${result.errors.length} 个构件文件无法读取，其余内容已加载`)}
+ async function refresh(reveal=false){const result=await api('components');items=result.items;compare.reconcile(items);loaded=true;selected=items.find(item=>item.id===selected?.id)||null;render();details(reveal);if(result.errors.length)message(`${result.errors.length} 个构件文件无法读取，其余内容已加载`)}
  async function refreshThemes(){const {items}=await api('recipes'),select=$('asset-theme'),value=select.value;select.replaceChildren(new Option('保留原材质',''));for(const item of items.filter(v=>v.asset_type==='theme'&&!v.archived))select.add(new Option(item.name,item.id));if([...select.options].some(o=>o.value===value))select.value=value}
  window.addEventListener('creator-reusable-change',()=>refreshThemes().catch(error=>message(error.message)))
  async function perform(action){if(pending)throw Error('请等待当前构件任务完成');pending=true;if(inspectorDialog.open&&inspectorStatus.classList.contains('error'))message('正在处理…');controls();try{return await action()}finally{pending=false;controls()}}
  const author=initComponentAuthor({actions,api,created:async item=>{selected=item;await refresh(true);message('独立结构已保存为新资产，可查看、整理和按参数放置')}})
- const viewIndependent=document.createElement('button');viewIndependent.id='asset-view-independent';viewIndependent.type='button';viewIndependent.textContent='独立3D查看';$('asset-export').after(viewIndependent);viewIndependent.onclick=async()=>{try{if(!selected)throw Error('请选择构件');await author.view(selected.id)}catch(error){message(error.message)}}
+ const transforms=document.createElement('div');transforms.className='placement-transforms'
+ $('asset-rotation').closest('label').before(transforms);transforms.append($('asset-rotation').closest('label'),$('asset-mirror').closest('label'))
+ const spatialMethods=document.createElement('details'),spatialTitle=document.createElement('summary')
+ spatialMethods.className='placement-methods';spatialTitle.textContent='在 3D 画面中定位'
+ $('asset-pick').before(spatialMethods);spatialMethods.append(spatialTitle,$('asset-pick'),$('asset-adjust-3d'))
+ const management=document.createElement('details');management.className='asset-management'
+ const manageTitle=document.createElement('summary');manageTitle.textContent='管理构件资料'
+ management.append(manageTitle,$('asset-edit-name').closest('label'),$('asset-edit-tags').closest('label'),$('asset-update'),$('asset-export'),$('asset-archive'))
+ inspector.append(management)
+ const overview=document.createElement('section');overview.className='asset-overview'
+ inspector.prepend(overview);overview.append(assetFigure,management)
+ const viewIndependent=document.createElement('button');viewIndependent.id='asset-view-independent';viewIndependent.type='button';viewIndependent.textContent='独立3D查看';assetFigure.after(viewIndependent);viewIndependent.onclick=async()=>{try{if(!selected)throw Error('请选择构件');await author.view(selected.id)}catch(error){message(error.message)}}
  function openSave(){
   const c=context();if(!c?.target_id)throw Error('请先打开3D，并在修改范围中选择要保存的局部选区')
   if(c.whole)throw Error('请先在“修改范围”关闭整座建筑并指定构件选区')

@@ -156,7 +156,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     const id = randomUUID()
     const directory = path.join(outputRoot, 'jobs', id)
     const requestPath = path.join(directory, 'request.json')
-    const job = { id, kind, status: 'running', created_at: new Date().toISOString(), directory }
+    const job = { id, kind, status: 'running', created_at: new Date().toISOString(), directory, source:request.source, source_sha256:request.source_sha256 }
     jobs.set(id, job); activeJob = job
     job[jobFinished]=(async () => {
       try {

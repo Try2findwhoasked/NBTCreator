@@ -34,7 +34,7 @@ try{
  assert.ok((await page.locator('#asset-target').textContent()).includes('请先'))
  checks.no_target_disables_placement_and_keeps_library_management=true
 
- await page.locator('#asset-edit-name').fill('');await click('asset-update')
+ await page.locator('.asset-management > summary').click();await page.locator('#asset-edit-name').fill('');await click('asset-update')
  await page.waitForFunction(()=>!document.querySelector('#asset-update').disabled&&document.querySelector('#asset-detail-status').classList.contains('error'))
  assert.equal(await page.locator('#asset-detail-status').isVisible(),true)
  assert.ok((await page.locator('#asset-detail-status').textContent()).length>0)

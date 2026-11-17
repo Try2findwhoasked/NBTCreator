@@ -15,7 +15,14 @@ export function minimizedScreenshots(app,page){
    // Wake Chromium's compositor for capture without restoring the native window.
    // Keeping the page itself hidden can stall after resizing a minimized window.
    let timer
-   const image=await Promise.race([win.webContents.capturePage(clip,{stayHidden:false,stayAwake:true}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Minimized capture timed out')),15000)})]).finally(()=>clearTimeout(timer))
+   const image=await Promise.race([(async()=>{
+    // A first capture can be the compositor frame preceding a resize or a
+    // workspace change. Wake it, request a fresh paint, then capture again.
+    await win.webContents.capturePage(clip,{stayHidden:false,stayAwake:true})
+    win.webContents.invalidate()
+    await win.webContents.executeJavaScript('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))')
+    return win.webContents.capturePage(clip,{stayHidden:false,stayAwake:true})
+   })(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Minimized capture timed out')),15000)})]).finally(()=>clearTimeout(timer))
    // Capture may briefly change the native minimized flag on Windows. Settle it
    // before returning so the test cannot continue in a restored window.
    if(!win.isMinimized()){

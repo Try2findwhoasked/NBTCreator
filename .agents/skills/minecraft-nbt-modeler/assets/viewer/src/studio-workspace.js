@@ -1,10 +1,13 @@
 import './studio-workspace.css'
 import {floatingDetails,chevron} from './floating-panel.js'
 import {applyStudioCopy} from './studio-copy.js'
+import {initAuthoringJourney} from './authoring-journey.js'
+import {initStudioContext} from './studio-context.js'
+import './studio-design.css'
 
 // One inspector and one canvas. All authoring inputs retain their original
 // nodes, event handlers, selection, validation and export contracts.
-export function initStudioWorkspace({state,gather}){
+export function initStudioWorkspace({state,gather,openModel}){
  const $=id=>document.getElementById(id),workspace=document.querySelector('.workspace'),sidebar=document.querySelector('.sidebar'),stage=document.querySelector('.stage'),actions=document.querySelector('.action-bar'),viewport=document.querySelector('.viewport-card')
  document.body.dataset.shell='studio';workspace.id='studio-workspace';sidebar.id='studio-inspector';stage.id='studio-stage';actions.id='studio-actions';viewport.id='studio-viewport'
  const appHeader=document.querySelector('.creator-header');new ResizeObserver(()=>document.documentElement.style.setProperty('--studio-header',appHeader.getBoundingClientRect().height+'px')).observe(appHeader)
@@ -28,7 +31,7 @@ export function initStudioWorkspace({state,gather}){
  const currentStep=document.createElement('span');currentStep.id='studio-step';currentStep.setAttribute('role','status')
  actions.replaceChildren(toggle,sourceMenu,currentStep,primary);workspace.prepend(actions)
  if($('open-building-history'))actions.insertBefore($('open-building-history'),currentStep)
- const saveDraft=button('save-authoring-version','保存制作版',async()=>{try{await window.detailControl.saveAuthoringVersion()}catch(error){$('studio-show-status')?.click();document.getElementById('status').textContent=error.message}});saveDraft.title='将当前候选保存为新的 SNBT 制作版本，不生成定稿 NBT';primary.insertBefore(saveDraft,$('export-revision'))
+ const saveDraft=button('save-authoring-version','保存制作版',async()=>{try{await window.detailControl.saveAuthoringVersion()}catch(error){showPanel('checks');$('status').textContent='制作版未保存：'+error.message;$('status-badge').textContent='保存失败';$('status-badge').className='badge error';saveDraft.focus()}});saveDraft.title='将当前候选保存为新的 SNBT 制作版本，不生成定稿 NBT';primary.insertBefore(saveDraft,$('export-revision'))
 
  const inspectorNav=document.createElement('nav');inspectorNav.id='studio-inspector-nav';inspectorNav.setAttribute('aria-label','编辑面板')
  const pages={}
@@ -54,6 +57,10 @@ export function initStudioWorkspace({state,gather}){
  const diagnosticTools=document.createElement('div');diagnosticTools.className='studio-secondary-actions'
  for(const id of ['room-score-open','open-version-compare'])if($(id))diagnosticTools.append($(id))
  pages.checks.append(heading('本次修改的检查结果'),checks,heading('进一步检查'),diagnosticTools)
+ const previewCommands=document.createElement('div');previewCommands.id='studio-preview-commands';previewCommands.append($('update-preview'));pages.tools.append(previewCommands)
+ const checkCommands=document.createElement('div');checkCommands.id='studio-check-commands';checkCommands.append($('validate-preview'));checks.before(checkCommands)
+ const delivery=document.createElement('section');delivery.id='studio-delivery';delivery.innerHTML='<h3>保存与交付</h3><p>预览和检查不会保存建筑。制作版用于继续编辑，定稿 NBT 用于游戏。</p><dl><dt>目标</dt><dd id="studio-delivery-target"></dd><dt>保存位置</dt><dd id="studio-delivery-location"></dd><dt>制作版</dt><dd>新版本 / model.snbt</dd><dt>定稿文件</dt><dd>_exports / 对应建筑版本 / NBT</dd></dl><div id="studio-delivery-actions"></div><p id="studio-delivery-receipt" role="status"></p>'
+ delivery.querySelector('#studio-delivery-actions').append(saveDraft,$('export-revision'));pages.checks.append(delivery)
  const result=document.querySelector('.result-panel');result.open=true
  const fileMenu=document.querySelector('.output-card');fileMenu.querySelector('summary').textContent='参数文件的保存位置'
  const agent=document.createElement('section');agent.className='studio-more-section';pages.more.append(agent);agent.append(heading('与 Agent 协作'),$('plan'),$('copy-agent-plan'),$('agent-return-open'),document.querySelector('.review-advanced-shell'))
@@ -64,7 +71,7 @@ export function initStudioWorkspace({state,gather}){
  sidebar.replaceChildren(inspectorNav,...Object.values(pages))
 
  const splitter=document.createElement('div');splitter.id='studio-panel-resize';splitter.tabIndex=0;splitter.setAttribute('role','separator');splitter.setAttribute('aria-orientation','vertical');splitter.setAttribute('aria-label','调整操作面板宽度');splitter.title='左右拖动调整面板宽度，双击恢复默认；方向键也可调整';sidebar.after(splitter)
- let preferredWidth=400
+ let preferredWidth=384
  try{const saved=Number(localStorage.getItem('nbt-studio-panel-width'));if(saved>=320&&saved<=720)preferredWidth=saved}catch{}
  function panelWidth(value,persist=false){const max=Math.min(720,Math.max(320,innerWidth-360)),width=Math.round(Math.min(max,Math.max(320,value)));workspace.style.setProperty('--studio-panel',width+'px');splitter.setAttribute('aria-valuemin','320');splitter.setAttribute('aria-valuemax',String(max));splitter.setAttribute('aria-valuenow',String(width));if(persist){preferredWidth=width;try{localStorage.setItem('nbt-studio-panel-width',String(width))}catch{}}return width}
  panelWidth(preferredWidth);window.addEventListener('resize',()=>panelWidth(preferredWidth))
@@ -73,8 +80,8 @@ export function initStudioWorkspace({state,gather}){
  splitter.onpointermove=event=>{if(drag)panelWidth(drag.width+event.clientX-drag.x)}
  const endResize=()=>{if(!drag)return;panelWidth(sidebar.getBoundingClientRect().width,true);drag=null;document.body.classList.remove('studio-resizing')}
  splitter.onpointerup=endResize;splitter.onpointercancel=endResize;splitter.onlostpointercapture=endResize
- splitter.ondblclick=()=>panelWidth(400,true)
- splitter.onkeydown=event=>{const current=Number(splitter.getAttribute('aria-valuenow'));if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();panelWidth(event.key==='Home'?400:event.key==='End'?720:current+(event.key==='ArrowLeft'?-20:20),true)}}
+ splitter.ondblclick=()=>panelWidth(384,true)
+ splitter.onkeydown=event=>{const current=Number(splitter.getAttribute('aria-valuenow'));if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();panelWidth(event.key==='Home'?384:event.key==='End'?720:current+(event.key==='ArrowLeft'?-20:20),true)}}
 
  // The viewport toolbar contains only viewing/pointing controls. Secondary
  // display settings are in a popover and never wrap into extra canvas rows.
@@ -104,13 +111,13 @@ export function initStudioWorkspace({state,gather}){
  const emptyActions=document.createElement('div');emptyActions.className='studio-empty-actions';emptyActions.append(button('studio-browse-projects','打开项目',()=>window.creatorWorkspace.select('project')),button('studio-new-design','新建设计方案',()=>window.creatorWorkspace.select('prompt')));emptyActions.firstChild.className='primary';empty.append(emptyActions)
 
  const statusbar=document.createElement('footer');statusbar.id='studio-statusbar'
- const statusLink=button('studio-show-status','就绪',()=>showPanel('more'));statusLink.title='查看完整运行记录'
+ const statusLink=button('studio-show-status','就绪',()=>window.creatorWorkspace.select('tasks'));statusLink.title='查看完整运行记录'
  statusbar.append($('status-badge'),statusLink,$('operation-count'),$('session-status'));workspace.append(statusbar)
  pages.more.append(...retained.childNodes);retained.remove()
 
  let inspectorOpen=true,active='tools'
  function setInspector(open){inspectorOpen=open;workspace.classList.toggle('inspector-closed',!open);toggle.textContent=open?'收起面板':'展开面板';toggle.setAttribute('aria-expanded',String(open))}
- function showPanel(name){if(!pages[name])return;active=name;for(const [key,page]of Object.entries(pages))page.hidden=key!==name;for(const b of inspectorNav.children)b.setAttribute('aria-pressed',String(b.dataset.studioPanel===name));setInspector(true);window.dispatchEvent(new CustomEvent('creator-studio-panel',{detail:name}))}
+ function showPanel(name){if(!pages[name])return;active=name;workspace.dataset.view=name==='checks'?'inspect':'prepare';for(const [key,page]of Object.entries(pages))page.hidden=key!==name;for(const b of inspectorNav.children)b.setAttribute('aria-pressed',String(b.dataset.studioPanel===name));setInspector(true);window.dispatchEvent(new CustomEvent('creator-studio-panel',{detail:name}))}
  showPanel('tools')
  window.addEventListener('creator-tool-select',()=>{toolChooser.open=false;if(tools.matches(':popover-open'))tools.hidePopover();const chosen=tools.querySelector('[aria-pressed=true]');toolChooser.querySelector('summary span').textContent=chosen?.textContent??'选择工具';showPanel('tools')})
  $('pick-material').addEventListener('click',()=>{if($('pick-material').getAttribute('aria-pressed')==='true'){const b=tools.querySelector('[data-tool-index="6"]');b.click()}})
@@ -137,6 +144,9 @@ export function initStudioWorkspace({state,gather}){
  window.addEventListener('creator-editor-state',sync);window.addEventListener('creator-workspace-change',sync);sync()
  for(const event of ['input','change'])$('settings').addEventListener(event,()=>queueMicrotask(sync))
  const newDesign=button('studio-project-new','新建设计方案',()=>window.creatorWorkspace.select('prompt'));newDesign.className='primary';$('project-native-actions').append(newDesign)
+ const promptFiles=document.createElement('div');promptFiles.append($('prompt-import'),$('prompt-save'),$('prompt-reset'));$('close-prompt').before(menu('studio-prompt-files','方案文件',promptFiles,230))
  applyStudioCopy()
+ initStudioContext({state,gather,showPanel,setInspector})
+ initAuthoringJourney({state,gather,showPanel,openModel})
  window.creatorStudio=Object.freeze({showPanel,setInspector,current:()=>active})
 }

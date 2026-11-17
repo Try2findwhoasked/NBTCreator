@@ -3,9 +3,9 @@
 export function applyStudioCopy(){
  const $=id=>document.getElementById(id)
  const texts={
-  'update-preview':'更新修改预览','validate-preview':'检查这次修改','export-revision':'定稿导出 NBT',
-  'compare-before':'原始建筑','compare-after':'本次修改','studio-ai-settings':'AI 与知识库',
-  'studio-panel-tools':'建造','studio-panel-notes':'标注','studio-panel-checks':'检查','studio-panel-more':'交接',
+  'update-preview':'更新预览','validate-preview':'检查修改','export-revision':'定稿导出 NBT',
+  'compare-before':'原稿','compare-after':'候选预览','studio-ai-settings':'AI 连接',
+  'studio-panel-tools':'建造','studio-panel-notes':'标注','studio-panel-checks':'检查','studio-panel-more':'文件',
   'studio-project-new':'打开创作方案','studio-new-design':'编写创作方案','studio-browse-projects':'打开建筑库',
   'plan':'整理建筑修改任务','copy-agent-plan':'复制给建造助手','agent-return-open':'查看助手完成的版本',
   'save-preset':'保存这组效果设置','load-preset':'读取效果设置','open-settings-history':'查看本次编辑记录',
@@ -13,7 +13,7 @@ export function applyStudioCopy(){
   'save-feedback':'开始下一条标注','refresh-reference':'刷新参考文件','comment-tasks-open':'整理这些修改意见',
   'project-refresh':'刷新列表','project-generate-thumbnails':'补齐预览图','asset-refresh':'刷新列表',
   'project-preview-edit':'打开编辑器','project-preview-render':'查看 3D','project-preview-close':'返回列表',
-  'asset-place':'放入当前建筑','asset-pick':'在建筑上选择位置','asset-use-range':'使用当前选区',
+  'asset-place':'预览放置效果','asset-pick':'在建筑上选择位置','asset-use-range':'使用当前选区',
   'asset-adjust-3d':'用手柄调整','asset-inspector-close':'返回素材库','open-assets':'从素材库选择',
   'save-selection-asset':'将选区保存为素材','copy-selection-3d':'复制选区并调整','move-selection-3d':'移动选区并调整',
   'prompt-new':'新增提示词','sync-prompt':'为当前建筑写修改要求','prompt-save':'下载方案','prompt-import':'导入方案','prompt-reset':'另起一份',
@@ -56,9 +56,9 @@ export function applyStudioCopy(){
  const modelHelp=$('model-info').querySelector('.info-popover'),advanced=$('source').closest('details'),stats=[$('catalog-summary'),$('model-summary')]
  modelHelp.innerHTML='<h3>打开哪座建筑？</h3><p>在建筑库里选择一座建筑进入编辑器，也可以用“打开 NBT”选择单个文件。这里的搜索用于切换当前工作区内的建筑。</p><h3>当前文件</h3><p>尺寸单位为方块，顺序是 X × Y × Z。每次预览都从当前原始文件重新计算；参数改变不会覆盖原稿。</p>'
  modelHelp.append(...stats);advanced.querySelector('summary').textContent='手动指定源文件与坐标配置';modelHelp.append(advanced)
- help('#image-toolbar .info-popover','<h3>图片与 3D</h3><p>图片是固定视角，适合标注；3D 可旋转、选取方块和剖切。切换显示不会修改建筑。</p><p>在“交接”面板生成原建筑的多角度图片。修改工具设置后，点击顶部“更新修改预览”查看效果。</p>',['workspace-context','image-count'])
+ help('#image-toolbar .info-popover','<h3>图片与 3D</h3><p>图片是固定视角，适合标注；3D 可旋转、选取方块和剖切。切换显示不会修改建筑。</p><p>在“文件”面板生成原建筑的多角度图片。修改工具设置后，点击顶部“更新预览”查看效果。</p>',['workspace-context','image-count'])
  help('#feedback-card .info-popover','<h3>标注会自动保存</h3><p>在图片或 3D 上选择位置并填写修改要求。停下输入后，文字和位置会自动写入当前建筑版本的“修改意见”目录，供外部 Agent 读取。</p><p>继续输入会更新同一条标注；点击“开始下一条标注”或按 Ctrl+Enter 开始另一条。点击列表中的“编辑”可以修改已有标注。保存标注不会修改建筑，也不代表批准精修。</p><h3>引用与导出</h3><p>输入 @ 可以引用已保存的效果文件。“标注工具”中可刷新引用、下载标注或将多条标注整理为任务。</p>',['feedback-file'])
- help('.action-info','<h3>手动编辑</h3><p>选择工具并调参 → 更新预览 → 对比原始建筑与本次修改 → 另存新版本。预览不会生成正式建筑。</p><h3>检查这次修改</h3><p>“检查这次修改”核对参数、改动上限、保护区和结构约束。检查通过后仍请查看预览；游戏中的实际表现需要另行确认。</p><h3>交给 Agent</h3><p>在“交接”面板整理修改任务并复制给 Agent。Agent 完成后，在建筑库刷新并打开新版本。</p><h3>文件位置</h3><p>新建筑版本保存在原建筑的工作目录。参数文件使用“输出位置”里的文件夹；任务说明与审阅图放在该建筑的 Agent交接 文件夹。实际路径见运行记录。</p>')
+ help('.action-info','<h3>手动编辑</h3><p>选择工具并调参 → 更新预览 → 对比原始建筑与本次修改 → 另存新版本。预览不会生成正式建筑。</p><h3>检查这次修改</h3><p>“检查这次修改”核对参数、改动上限、保护区和结构约束。检查通过后仍请查看预览；游戏中的实际表现需要另行确认。</p><h3>交给 Agent</h3><p>在“文件”面板整理修改任务并复制给 Agent。Agent 完成后，在建筑库刷新并打开新版本。</p><h3>文件位置</h3><p>新建筑版本保存在原建筑的工作目录。参数文件使用“输出位置”里的文件夹；任务说明与审阅图放在该建筑的 Agent交接 文件夹。实际路径见运行记录。</p>')
  const review=$('review-help-dialog'),reviewHeader=review.querySelector('.review-help-heading');review.replaceChildren(reviewHeader);review.insertAdjacentHTML('beforeend','<h3>什么时候用这个流程？</h3><p>当 Agent 要继续精修已有建筑时，先准备审阅图，让你确认它看到的是哪一版建筑。普通手动调参可以直接预览，再另存新版本。</p><h3>如何继续精修？</h3><ol><li>点击“准备审阅图”，打开并查看生成的图片。</li><li>在 Agent 对话中明确确认这份图和修改范围。Agent 根据你的真实回复记录确认。</li><li>整理修改任务并交给 Agent。完成后回到建筑库，刷新并打开新版本。</li></ol><p>如果希望由应用执行已确认的计划，再展开“执行已确认计划”。保存评论、采用 AI 建议、检查通过，都不会自动生成精修批准。</p><details><summary>文件与校验细节</summary><p>审阅目录中的 review.json 绑定原建筑和图片；approval.json 记录真实看图确认。源文件、参数或保护范围改变后，旧确认不再适用，需要重新准备图片和确认。普通手动调参不需要填写这个目录。</p></details>')
  reviewHeader.querySelector('h2').textContent='与建造助手协作'
  const helpTexts=[

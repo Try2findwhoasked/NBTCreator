@@ -1,4 +1,5 @@
 import './project-manager.css'
+import {createComparison} from './library-comparison.js'
 import {initProjectOrganization} from './project-organization.js'
 import {initBatchWorkspaces} from './batch-workspaces.js'
 import {filterProjects,latestSources,projectStage,DEFAULT_PROJECT_STAGES,includesDiscarded} from './project-catalog.js'
@@ -24,16 +25,42 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh,history
  let thumbnailRun=null
  let treeModels=null,treeShowDiscarded=false,batch=null,workspaces=null,visibleModels=[]
  let models=[],workspace='',limit=24,generation=0,selected=null,previewGeneration=0,previewBusy=false,object='',catalogLoading=true,latest=new Set(),coverQueue=[],activeCovers=0,searchTimer
+ let treeSelection=null
  const message=text=>{$('project-status').textContent=text;const note=document.getElementById('project-manage-status');if(note)note.textContent=text}
  const coverTargets=new WeakMap()
  const coverObserver=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){const task=coverTargets.get(entry.target);coverObserver.unobserve(entry.target);if(task)coverQueue.push(task)}pumpCovers()},{root:host,rootMargin:'160px'})
  const stageLabels={unrefined:'未精修',refined:'已精修',finalized:'已定稿',discarded:'废稿'}
  const change=()=>{object='';limit=24;render()}
- const addFilter=(id,label,options,defaults)=>checkboxFilter({host:$('project-filter-controls'),id,label,options,defaults,onChange:change})
+ const addFilter=(id,label,options,defaults)=>checkboxFilter({host:$('project-filter-controls'),id,label,options,defaults,onChange:()=>{if(id==='project-filter'||id==='project-shape')treeSelection=null;change()}})
  const filters={project:addFilter('project-filter','项目',[],['all']),shape:addFilter('project-shape','形状',[],['all']),stage:addFilter('project-stage','创作阶段',Object.entries(stageLabels),DEFAULT_PROJECT_STAGES),version:addFilter('project-version','版本范围',[['latest','最新版本'],['older','历史版本'],['intermediate','中间稿']],['latest']),readability:addFilter('project-readability','文件状态',[['readable','已检查可打开'],['unverified','待检查'],['unreadable','无法读取']],['all'])}
  $('project-filter-controls').append($('project-clear'))
  const native=$('project-native-actions'),workspaceMenu=document.createElement('details');workspaceMenu.id='project-workspace-menu';workspaceMenu.className='library-filter-menu';workspaceMenu.innerHTML='<summary>工作区'+chevron+'</summary><div id="project-workspace-menu-content" class="library-workspace-panel"><p>切换整个项目目录。当前目录中的建筑、构件、Skill 与应用配置一起使用。</p></div>';native.append(workspaceMenu)
  const library=initLibraryBrowser({host,prefix:'project',title:'建筑库',description:'点击建筑卡片，在同一窗口预览、管理，或进入编辑。左侧切换项目，顶部可搜索名称和筛选版本；已弃用的草稿默认隐藏。“工作区”用于选择另一整个项目文件夹。',search:$('project-search'),refresh:$('project-refresh'),actions:native,filters:$('project-filter-controls'),tree:$('project-tree'),main:host.querySelector('.project-library'),count:$('project-count'),breadcrumb:$('project-breadcrumb'),loading:$('project-loading')})
+ const displayName=item=>item.object_name||item.name_zh||item.name||item.label
+ const compare=createComparison({
+  host,grid:$('project-grid'),kind:'建筑版本',key:item=>item.source,name:item=>[displayName(item),item.version].filter(Boolean).join(' / '),
+  fields:[['版本',item=>item.version],['项目',item=>item.project_name],['形状',item=>item.shape_group_zh],['尺寸（格）',item=>item.size?.join(' × ')],['创作阶段',item=>stageLabels[projectStage(item)]],['文件位置',item=>item.relative_path]],
+  preview:async item=>item.unreadable?null:(await cover(item,true)).thumbnail,
+  canComparePair:()=>!targetIntent,available:item=>!item.unreadable,openLabel:'打开建筑',open:edit,
+  pairAction:async(reference,item)=>{
+   try{if(await edit(item,{resumeTarget:false}))await historyCompare({reference_source:reference.source,source:item.source,source_sha256:historyContext()?.source_sha256})}
+   catch(error){message(error.message)}
+  }
+ })
+ library.scope.innerHTML='<label>显示版本<select id="project-quick-version"><option value="latest">最新版本</option><option value="older">历史版本</option><option value="all">全部版本</option><option value="custom" disabled>自定义范围</option></select></label><span class="scope-summary"></span><button type="button" id="project-reset-view">恢复默认视图</button>'
+ $('project-quick-version').onchange=event=>{filters.version.set([event.target.value]);change()}
+ $('project-reset-view').onclick=()=>{$('project-clear').click();$('project-search').focus()}
+ const targetRequest=document.createElement('section');targetRequest.className='library-target-request';targetRequest.hidden=true
+ const targetHint=document.createElement('strong'),cancelTarget=document.createElement('button')
+ cancelTarget.type='button';cancelTarget.textContent='取消选择';targetRequest.append(targetHint,cancelTarget);library.header.after(targetRequest)
+ let targetIntent=null,openingTarget=false
+ function clearTarget(){targetIntent=null;targetRequest.hidden=true}
+ function chooseTarget(name,onOpen,onCancel){
+  compare.reset()
+  targetIntent={onOpen,onCancel};targetHint.textContent='为“'+name+'”选择目标建筑';targetRequest.hidden=false
+  window.creatorWorkspace.select('project')
+ }
+ cancelTarget.onclick=()=>{const cancel=targetIntent?.onCancel;clearTarget();cancel?.()}
  const thumbnails=document.createElement('button');thumbnails.id='project-generate-thumbnails';thumbnails.type='button';thumbnails.textContent='生成缩略图';library.toolbar.append(thumbnails)
  thumbnails.onclick=async()=>{
   if(thumbnailRun){thumbnailRun.cancelled=true;thumbnails.textContent='正在停止…';return}
@@ -46,15 +73,23 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh,history
  const autoMore=document.createElement('label');autoMore.className='inline';autoMore.innerHTML='<input id="project-auto-more" type="checkbox" checked>自动加载更多';library.toolbar.append(autoMore)
  const moreObserver=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)&&document.body.dataset.workspace==='project'&&$('project-auto-more').checked&&!$('project-more').hidden){limit+=24;render(true)}},{root:library.main,rootMargin:'240px'});moreObserver.observe($('project-more'))
  $('project-refresh').textContent='刷新';floatingDetails(workspaceMenu,$('project-workspace-menu-content'),{minimum:360})
- const treeView=createProjectTree({container:$('project-tree'),api,onStatus:message,onOrderChange:render,onOpen:edit,onSelect:value=>{filters.project.set(value.project==='*'?['all']:[value.project]);filters.shape.set(value.shape==='*'?['all']:[value.shape]);object=value.object;$('project-search').value='';limit=24;render()}})
- const organization=initProjectOrganization({api,container:$('project-tree'),message,changed:()=>{object='';filters.project.reset();filters.shape.reset();limit=24;treeModels=null;populateFilters();render()}})
+ function selectTreeFolder(value){
+  treeSelection=value
+  filters.project.set(value.project==='*'?['all']:[value.project]);filters.shape.set(value.shape==='*'?['all']:[value.shape])
+  object=value.object;$('project-search').value='';limit=24;render()
+ }
+ const treeView=createProjectTree({container:$('project-tree'),api,onStatus:message,onOrderChange:render,onOpen:edit,onSelect:selectTreeFolder})
+ const organization=initProjectOrganization({api,container:$('project-tree'),message,changed:()=>{treeSelection=null;object='';filters.project.reset();filters.shape.reset();limit=24;treeModels=null;populateFilters();render()}})
  batch=initProjectBatch({host,api,library,getVisible:()=>visibleModels,getModels:()=>models,render,isBusy,setBusy,refresh,message})
  workspaces=initBatchWorkspaces({host,api,getModels:()=>models,openModel:edit,previewModel:showPreview,render})
- async function edit(item){
+ async function edit(item,{resumeTarget=true}={}){
   if(item.effect_file)return showEffect(item)
   let opening=false
-  try{if(isBusy()||previewBusy)throw Error('请等待当前任务完成');if(item.unreadable)throw Error(item.error||'此模型文件无法读取');opening=true;if(dialog.open)dialog.close();const info=await openModel(item);if(info){item.unverified=false;item.geometry_sha256=info.geometry_sha256;item.size=info.size}if(dialog.open)dialog.close();await workspaces?.seen(item.source).catch(error=>message('模型已打开；批次标记未更新：'+error.message));return true}
+  try{if(isBusy()||previewBusy)throw Error('请等待当前任务完成');if(item.unreadable)throw Error(item.error||'此模型文件无法读取');opening=true;if(dialog.open)dialog.close();openingTarget=!!targetIntent&&resumeTarget;const info=await openModel(item);if(info){item.unverified=false;item.geometry_sha256=info.geometry_sha256;item.size=info.size}if(dialog.open)dialog.close();await workspaces?.seen(item.source).catch(error=>message('模型已打开；批次标记未更新：'+error.message))
+   if(resumeTarget&&targetIntent&&info){const resume=targetIntent.onOpen;clearTarget();opening=false;await resume(info)}
+   return true}
   catch(e){if(opening&&item.unverified&&!(e instanceof TypeError)){item.unverified=false;item.unreadable=true;item.error=e.message;latest=latestSources(models);render()}if(dialog.open)$('project-preview-status').textContent=e.message;else message(e.message);return false}
+  finally{openingTarget=false}
  }
  function cover(item,generate=false){
   const key=JSON.stringify([item.source,item.geometry_sha256,item.modified_ns,item.file_size,generate])
@@ -87,8 +122,14 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh,history
   const order=new Map(treeView.orderedObjects().map((key,index)=>[key,index]))
   visible.sort((a,b)=>(order.get(a.object_key||a.group||a.source)??Infinity)-(order.get(b.object_key||b.group||b.source)??Infinity)||Number(a.is_delivery)-Number(b.is_delivery)||Number(latest.has(b.source))-Number(latest.has(a.source)))
   visibleModels=visible
-  treeView.select({project:filters.project.get().length===1?filters.project.get()[0]:'*',shape:filters.shape.get().length===1?filters.shape.get()[0]:'*',object})
-  $('project-count').textContent=`${visible.length} 个版本 · 建筑库共 ${latest.size} 个对象 / ${models.length} 个版本 · ${models.filter(item=>item.bugged).length} 个 bugged 版本`
+  treeView.select({...treeSelection,project:treeSelection?.project??'*',shape:treeSelection?.shape??'*',object})
+  const versions=filters.version.get()
+  $('project-quick-version').value=versions.length===3?'all':versions.length===1&&['latest','older'].includes(versions[0])?versions[0]:'custom'
+  const summary=Object.values(filters).map(filter=>filter.description()).filter(Boolean)
+  if($('project-search').value.trim())summary.unshift('搜索“'+$('project-search').value.trim()+'”')
+  library.scope.querySelector('.scope-summary').textContent=summary.join(' / ')
+  library.scope.hidden=!summary.length&&!treeSelection&&!object&&!$('project-tree').querySelector('[data-custom-menu][aria-pressed=true]')
+  $('project-count').textContent=`${visible.length} 个版本 / 库内共 ${models.length} 个版本`
   const selectedObject=models.find(item=>(item.object_key||item.group||item.source)===object)
   $('project-breadcrumb').textContent=[selectedObject?.project_name,selectedObject?.shape_group_zh,selectedObject?.object_name||selectedObject?.name_zh||selectedObject?.name].filter(Boolean).join(' / ')
   const start=append?$('project-grid').querySelectorAll('.project-card').length:0
@@ -96,18 +137,26 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh,history
   const entries=[]
   for(const item of visible.slice(start,limit)){
    const card=document.createElement('article');card.className='project-card';card.dataset.source=item.source
-   const main=document.createElement('button');main.type='button';main.className='project-card-open';main.title=(batch?.active?'选择版本：':'查看与管理：')+item.source;main.onclick=()=>batch?.active?batch.toggle(item):showPreview(item)
+   const main=document.createElement('button');main.type='button';main.className='project-card-open project-card-preview project-card-manage';main.title=(batch?.active?'选择版本：':'查看与管理：')+item.source;main.onclick=()=>batch?.active?batch.toggle(item):showPreview(item)
    const thumb=document.createElement('span');thumb.className='project-cover';thumb.textContent='NBT · 点击查看与管理'
    const title=document.createElement('strong');title.textContent=item.object_name||item.name_zh||item.name||item.label
-   const meta=document.createElement('span');meta.className='project-card-meta';meta.textContent=[item.size?.join(' × '),item.bugged||item.unreadable?'待修复':stageLabels[projectStage(item)],latest.has(item.source)?'最新版本':'历史版本',item.is_delivery?'交付副本':''].filter(Boolean).join(' · ');meta.title=[item.shape_group_zh,item.version,item.relative_path].filter(Boolean).join(' · ')
+   const meta=document.createElement('span');meta.className='project-card-meta';meta.textContent=[item.size?.join(' × '),item.bugged||item.unreadable?'待修复':stageLabels[projectStage(item)],item.version,latest.has(item.source)?'最新版本':'历史版本',item.is_delivery?'交付副本':''].filter(Boolean).join(' · ');meta.title=[item.shape_group_zh,item.version,item.relative_path].filter(Boolean).join(' · ')
    const location=document.createElement('span');location.className='project-card-path';location.textContent=item.relative_path||item.label;location.title=item.source
    main.append(thumb,title,meta,location)
-   const preview=document.createElement('button');preview.type='button';preview.className='project-card-preview project-card-manage';preview.textContent='查看与管理';preview.onclick=()=>showPreview(item)
+   const preview=document.createElement('button');preview.type='button';preview.className='project-card-edit';preview.textContent=targetIntent?'选为目标建筑':'打开建筑';preview.disabled=!!item.unreadable||!!batch?.active;preview.onclick=()=>edit(item)
    if(item.unreadable){thumb.textContent='文件无法读取';location.textContent=item.error;location.title=item.error;card.classList.add('project-unreadable')}
-   const footer=document.createElement('div');footer.className='project-card-footer';const controls=document.createElement('div');controls.className='project-card-actions';controls.append(preview);card.append(main,footer);footer.append(controls)
+   const footer=document.createElement('div');footer.className='project-card-footer';const controls=document.createElement('div');controls.className='project-card-actions';controls.append(preview);card.append(main,footer);footer.append(controls);compare.decorate(card,item)
 batch?.decorate(card,item);workspaces?.decorate(card,item);$('project-grid').append(card);entries.push({item,node:thumb,card,token})
   }
-  if(!visible.length){const empty=document.createElement('p');empty.className='project-empty';empty.textContent=catalogLoading&&!models.length?'正在扫描建筑库，可先切换到其他工作区。':models.length?'没有匹配的建筑，试试清空搜索或重置筛选。':`当前工作区还没有建筑。可打开 NBT，或前往“提示词方案”为首次建模编写方案。建筑库按 Skill 规范保存在工作区的 nbt_models 中。`;if(!models.length&&!catalogLoading){const create=document.createElement('button');create.type='button';create.textContent='编写首次建模方案';create.onclick=()=>window.creatorWorkspace?.select('prompt');empty.append(document.createElement('br'),create)}$('project-grid').append(empty)}
+  if(!visible.length){
+   const empty=document.createElement('section');empty.className='project-empty'
+   const title=document.createElement('strong'),hint=document.createElement('p'),actions=document.createElement('div');actions.className='project-empty-actions'
+   title.textContent=catalogLoading&&!models.length?'正在读取建筑':'还没有'+(models.length?'匹配的建筑':'第一座建筑')
+   hint.textContent=catalogLoading&&!models.length?'可以先编写创作方案，建筑列表会在读取完成后更新。':models.length?'尝试换一个名称，或清除搜索和筛选条件。':'已有建筑可以用“打开 NBT”载入。想从头创作，先写下建筑要求，再交给建造助手。'
+   const next=document.createElement('button');next.type='button';next.className='primary';next.textContent=models.length?'清除搜索与筛选':'编写创作方案';next.onclick=()=>{if(models.length){$('project-search').value='';$('project-clear').click()}else window.creatorWorkspace?.select('prompt')}
+   if(!catalogLoading||models.length)actions.append(next)
+   empty.append(title,hint,actions);$('project-grid').append(empty)
+  }
   for(const task of entries){if(task.item.effect_file)continue;if(task.item.unreadable){task.node.textContent='文件无法读取';continue}coverTargets.set(task.card,task);if(document.body.dataset.workspace==='project')coverObserver.observe(task.card)}
   library.main.scrollTop=scrollTop
  }
@@ -131,6 +180,7 @@ batch?.decorate(card,item);workspaces?.decorate(card,item);$('project-grid').app
 
   if(isBusy()||previewBusy){message('请等待当前任务完成');return false}
   selected=item;const token=++previewGeneration
+  $('project-preview-edit').textContent=targetIntent?'使用这座建筑并返回构件':'打开建筑编辑'
   $('project-preview-management').replaceChildren(managementFor(item));$('project-preview-location').textContent=[item.source,item.version].filter(Boolean).join(' · ');$('project-manage-status').textContent='';$('project-preview-edit').disabled=!!item.unreadable;$('project-preview-render').disabled=!!item.unreadable;$('project-preview-render').hidden=false
   let taskLink=dialog.querySelector('#project-preview-task-link');if(!taskLink){taskLink=document.createElement('div');taskLink.id='project-preview-task-link';dialog.querySelector('footer').prepend(taskLink)}taskLink.replaceChildren();const batchLink=workspaces?.previewLink(item.source);if(batchLink)taskLink.append(batchLink)
   $('project-preview-title').textContent=item.object_name||item.name_zh||item.name||item.label;$('project-preview-meta').textContent=[item.size?.join(' × '),stageLabels[projectStage(item)],item.version].filter(Boolean).join(' · ')
@@ -164,11 +214,11 @@ batch?.decorate(card,item);workspaces?.decorate(card,item);$('project-grid').app
   for(const [filter,entries]of [[filters.project,projects],[filters.shape,shapes]])filter.options([...entries].sort((a,b)=>Number(a[0]==='bugged')-Number(b[0]==='bugged')||a[1].localeCompare(b[1],'zh-CN')))
  }
  $('project-search').oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{limit=24;render()},120)}
- $('project-clear').onclick=()=>{organization.reset();for(const filter of Object.values(filters))filter.reset();$('project-search').value='';object='';limit=24;render()}
+ $('project-clear').onclick=()=>{organization.reset();for(const filter of Object.values(filters))filter.reset();$('project-search').value='';treeSelection=null;object='';limit=24;render()}
  $('project-more').onclick=()=>{limit+=24;render(true)}
  $('project-refresh').onclick=async()=>{try{message('正在刷新建筑库…');covers.clear();await refresh();await workspaces?.refresh();message('建筑库已刷新')}catch(e){message(e.message)}}
  $('project-preview-close').onclick=()=>dialog.close();$('project-preview-render').onclick=render3D;$('project-preview-edit').onclick=()=>edit(selected)
  dialog.addEventListener('close',()=>{previewGeneration++;$('project-preview-3d').src='about:blank';$('project-preview-3d').hidden=true;$('project-preview-image').removeAttribute('src')})
- window.addEventListener('creator-workspace-change',event=>{if(event.detail==='project'){render()}else{if(thumbnailRun)thumbnailRun.cancelled=true;generation++;coverObserver.disconnect();coverQueue=[];if(dialog.open)dialog.close()}})
- return {getVisible:()=>visibleModels,checked(info){for(const item of models)if(item.source===info.source){item.unverified=false;item.unreadable=false;item.geometry_sha256=info.geometry_sha256;item.size=info.size}latest=latestSources(models);if(document.body.dataset.workspace==='project')render()},setLoading(text){catalogLoading=!!text;$('project-loading').textContent=text;$('project-refresh').disabled=catalogLoading;host.setAttribute('aria-busy',String(catalogLoading&&!models.length))},update(items,root){models=items;batch?.update();latest=latestSources(models);workspace=root;workspaces?.update(workspace);host.dataset.workspaceRoot=workspace;populateFilters();render()}}
+ window.addEventListener('creator-workspace-change',event=>{if(event.detail==='project'){render()}else{if(!openingTarget)clearTarget();if(thumbnailRun)thumbnailRun.cancelled=true;generation++;coverObserver.disconnect();coverQueue=[];if(dialog.open)dialog.close()}})
+ return {chooseTarget,openFile:source=>targetIntent?edit({source}):openModel({source}),getVisible:()=>visibleModels,checked(info){for(const item of models)if(item.source===info.source){item.unverified=false;item.unreadable=false;item.geometry_sha256=info.geometry_sha256;item.size=info.size}latest=latestSources(models);if(document.body.dataset.workspace==='project')render()},setLoading(text){catalogLoading=!!text;$('project-loading').textContent=text;$('project-refresh').disabled=catalogLoading;host.setAttribute('aria-busy',String(catalogLoading&&!models.length))},update(items,root){if(root!==workspace){compare.reset();clearTarget()}models=items;compare.reconcile(items);batch?.update();latest=latestSources(models);workspace=root;workspaces?.update(workspace);host.dataset.workspaceRoot=workspace;populateFilters();render();}}
 }

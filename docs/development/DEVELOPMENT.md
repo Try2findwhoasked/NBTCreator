@@ -28,7 +28,7 @@ mise exec -- npm run build:web
 mise exec -- npm start
 ```
 
-生产模式使用预构建前端，由受管 Node utility process 提供 loopback 静态服务。明确需要 Vite 开发回退时使用 `mise exec -- npm run start:dev`。前端测试前先构建；打包流程会自动构建前端。
+生产模式使用预构建前端，由受管 Node utility process 提供 loopback 静态服务。明确需要 Vite 开发回退时使用 `mise exec -- npm run start:dev`。前端测试前先构建；打包流程会自动构建前端。修改源码后先关闭测试实例，再重建前端，避免运行中的实例继续请求旧哈希资源。
 
 无界面 CLI 与 UI 使用相同的活动 Python 引擎，可直接查看能力，不需要启动 Electron：
 
@@ -55,6 +55,7 @@ mise exec -- node scripts/cli.mjs --workspace "D:\MyMinecraftProject" capabiliti
 | 冻结迁移资料 | `mise exec -- npm run verify:archive` |
 | API 与本地协议 | `mise exec -- npm run test:api` |
 | 桌面冒烟 | `mise exec -- npm run test:desktop` |
+| 工作台旅程、焦点、真实交付与六页窗口/缩放矩阵 | `mise run ui:test` |
 | 更新检查、下载校验与失败重试（本地模拟） | `mise exec -- npm run test:updates` |
 | CPU 批量写入与严格校验 | `mise run cpu:test` |
 | 完整主模型、对象关系与接口 | `mise run model:test` |

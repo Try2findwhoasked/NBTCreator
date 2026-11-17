@@ -94,7 +94,7 @@
  for(const [kind,[label]]of Object.entries(C.catalog)){const o=element('option',label);o.value=kind;$('kind').append(o);}
  $('add').onclick=()=>{if(pending.size){notify('请先修复未完成的参数',true);return;}state.operations.push(C.operation($('kind').value));renderOperations();update();};
  $('prompt-advanced-toggle').onclick=()=>{const open=$('prompt-advanced-tabs').hidden;$('prompt-advanced-tabs').hidden=!open;$('prompt-advanced-toggle').setAttribute('aria-expanded',String(open));$('prompt-ai-mode').querySelector('[value=controls]').hidden=!open;if(!open){if($('prompt-ai-mode').value==='controls')$('prompt-ai-mode').value=state.project.stage==='draft'?'draft':'text';if(['tools','context'].some(id=>!$(id).hidden))document.querySelector('[data-tab=project]').click()}};
- document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab').forEach(x=>x.hidden=x.id!==b.dataset.tab);});
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b))});document.querySelectorAll('.tab').forEach(x=>x.hidden=x.id!==b.dataset.tab);});
  $('context-json').oninput=()=>{try{const v=JSON.parse($('context-json').value);if(!v||typeof v!=='object'||Array.isArray(v))throw Error('上下文须为对象');state.project.context=v;pending.delete('context');$('context-error').textContent='';}catch(e){pending.set('context','上下文JSON无效：'+e.message);$('context-error').textContent=e.message;}update();};
  $('save').onclick=()=>download('nbt_prompt_settings.json',state);
  $('left-read').onclick=()=>$('import').click();
@@ -225,5 +225,11 @@
  window.NbtPromptUI.standards=()=>({snapshot:state.design_standard?C.clone(state.design_standard):null,override:state.design_override??''});
  const norms=document.createElement('button');norms.id='prompt-project-standards';norms.type='button';norms.textContent='项目设计规范';$('prompt-batch-open').after(norms);norms.onclick=()=>parent.dispatchEvent(new Event('architect-standards'));
  window.NbtPromptUI.flushExport=()=>autosave.flush();
+ // Keep one document navigation. Batch commands belong to the list rather
+ // than competing with the current document's next action.
+ const listTools=document.createElement('details');listTools.id='prompt-list-tools';listTools.innerHTML='<summary>列表工具</summary><div></div>';$('prompt-queue-list').before(listTools);listTools.querySelector('div').append($('prompt-batch-open'),$('prompt-batch-retry'),norms,$('prompt-publish-reviewed'));
+ $('prompt-add').textContent='新建方案';document.querySelector('.queue-heading h2').textContent='我的方案';document.querySelector('.queue-intro').textContent='每份方案独立保存。选择一份继续编辑。';
+ document.querySelector('[data-planning-step=write]').textContent='起草要求';document.querySelector('[data-planning-step=review]').textContent='编辑与审查';document.querySelector('[data-planning-step=handoff]').textContent='交接结果';
+ $('prompt-advanced-toggle').textContent='建造与约束';$('prompt-more').querySelector('summary').textContent='方案操作';
  renderProject();renderOperations();update();window.NbtPromptUI.ready=studio.load();window.NbtPromptUI.ready.catch(()=>{});
 })();

@@ -7,23 +7,25 @@
 </head>
 <body>
  <header><div><h1>创作方案</h1><p>把建筑想法写成提示词，审查后交给建造助手。</p></div><div class="actions"><button id="import">导入方案</button><input id="file" type="file" accept=".json" hidden><button id="save">下载方案</button><button id="reset">另起一份</button></div></header>
- <div id="planning-heading"><div><strong>创作方案</strong><span>描述想法 <i>›</i> AI 编写 <i>›</i> 审查修改 <i>›</i> 交接制作</span></div><button id="prompt-output-toggle" type="button" aria-expanded="false">查看完整提示词</button></div>
+ <div id="planning-heading"><div><strong>创作方案</strong><nav id="planning-steps" aria-label="创作方案步骤"><button type="button" data-planning-step="write">1 写下要求</button><button type="button" data-planning-step="review">2 审查方案</button><button type="button" data-planning-step="handoff">3 查看交接</button></nav></div><button id="prompt-queue-toggle" type="button" aria-expanded="false" aria-controls="prompt-queue">方案列表</button><button id="prompt-output-toggle" type="button" aria-expanded="false">查看完整提示词</button></div>
  <main>
   <aside id="prompt-queue" aria-label="提示词列表">
    <div class="queue-heading"><h2>提示词列表</h2><span id="prompt-queue-count">0 条</span></div>
    <div class="queue-actions"><button id="prompt-add" type="button">＋ 新增一条</button><button id="prompt-batch-open" type="button">批量编写</button><button id="prompt-ai-cancel" type="button" hidden disabled>终止生成</button></div>
    <p class="queue-intro">每条提示词对应一座建筑，可以分别修改和交接。</p>
    <div id="prompt-queue-list" role="list"></div>
-   <footer class="queue-footer"><p id="prompt-queue-progress" role="status"></p><button id="prompt-publish-reviewed" type="button">交接已审查的提示词</button><p>交接后，由你在外部助手中手动触发 Skill，批量读取任务。</p></footer>
+   <footer class="queue-footer"><p id="prompt-queue-progress" role="status"></p><button id="prompt-publish-reviewed" type="button">交接已审查的提示词</button><p>交接后，请在外部建造助手中调用工作区 Skill 读取任务。建筑完成后回到建筑库查看。</p></footer>
   </aside>
   <section class="editor">
    <div class="document-heading"><div><small id="prompt-document-number">当前提示词</small><h2 id="prompt-document-title">编写建筑要求</h2></div><div class="document-actions"><span id="prompt-review-state" class="review-state">待审查</span><details id="prompt-more"><summary>更多</summary><div><button id="prompt-review" type="button">仅标记已审查，稍后批量交接</button><button id="prompt-delete" type="button" class="danger">删除这条方案</button></div></details></div></div>
    <nav aria-label="提示词编辑"><button data-tab="ai" class="active">AI 编写</button><button data-tab="project">审查与修改</button><button id="prompt-advanced-toggle" type="button" aria-expanded="false">高级选项</button></nav>
    <nav id="prompt-advanced-tabs" hidden><button data-tab="tools">建造步骤 <span id="count">0</span></button><button data-tab="context">保护与通行</button></nav>
+   <p id="planning-next" role="status">可以让 AI 起草，也可以直接填写建筑要求。</p>
    <div id="ai" class="tab">
     <section id="prompt-ai-panel" class="ai-workbench">
      <div class="ai-workbench-heading"><h2>先说说你想建什么</h2><span id="prompt-ai-indicator">正在读取 AI 连接</span></div>
-     <p class="muted">提出用途、核心空间特点、风格与氛围。AI给出简明文字建议，你可调整全部设计参数，再审查交接。</p>
+     <p class="muted">描述用途、空间、风格与氛围。AI 起草后，你可以逐项修改设计参数，审查完再交接。</p>
+     <button id="prompt-write-manually" type="button">手动填写要求</button>
      <label>编写方式<select id="prompt-ai-mode"><option value="draft">编写一座新建筑的设计要求</option><option value="controls" hidden>高级：调整建造步骤</option><option value="text">润色当前建筑的设计说明</option></select></label>
      <label>建筑想法<textarea id="prompt-ai-instruction" rows="5" maxlength="4000" placeholder="例如：一座依山而建的旧水渠工坊。底层有水轮和加工区，上层有检修平台；入口能看到主工作台，石墙局部长苔，保留顺畅的参观动线。"></textarea></label>
      <details id="prompt-ai-scope"><summary id="prompt-ai-fields-title">AI可修改的参数</summary><p class="muted">只让AI修改勾选项，其余人工参数保持原样。所有字段仍可在方案表单中手工修改；尺寸、名称和硬条件默认由人控制。</p><div id="prompt-ai-fields" class="brief-field-options"></div><button id="prompt-ai-fields-default" type="button">恢复默认范围</button></details>
