@@ -1,0 +1,30 @@
+{
+  "arguments": {
+    "accent": "quartz_bricks",
+    "form": {
+      "border": 2,
+      "glass_palette": [
+        "light_blue_stained_glass",
+        "cyan_stained_glass"
+      ],
+      "lights": 2,
+      "profile": "round_arch_window",
+      "recess": 3,
+      "sill_material": "smooth_quartz_slab[type=top]"
+    },
+    "kind": "frame",
+    "material": "smooth_quartz",
+    "name": "双光圆拱石窗",
+    "size": [
+      15,
+      23,
+      4
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

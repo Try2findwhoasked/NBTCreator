@@ -1,0 +1,18 @@
+{
+  "arguments": {
+    "form": {
+      "pitch": 3,
+      "profile": "baluster",
+      "slope": 4
+    },
+    "kind": "railing",
+    "name": "斜坡扶手段",
+    "size": [
+      13,
+      9,
+      3
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

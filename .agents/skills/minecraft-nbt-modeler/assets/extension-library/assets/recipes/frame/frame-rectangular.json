@@ -1,0 +1,16 @@
+{
+  "arguments": {
+    "form": {
+      "profile": "rectangular"
+    },
+    "kind": "frame",
+    "name": "素面门窗框",
+    "size": [
+      11,
+      13,
+      3
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

@@ -1,0 +1,23 @@
+{
+  "arguments": {
+    "accent": "gray_concrete",
+    "form": {
+      "border": 1,
+      "profile": "angle_bracket"
+    },
+    "kind": "bracket",
+    "material": "gray_concrete",
+    "name": "简洁直角托架",
+    "size": [
+      3,
+      5,
+      5
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

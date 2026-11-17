@@ -1,0 +1,16 @@
+{
+  "arguments": {
+    "form": {
+      "profile": "round"
+    },
+    "kind": "pedestal",
+    "name": "圆形基座",
+    "size": [
+      9,
+      5,
+      9
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

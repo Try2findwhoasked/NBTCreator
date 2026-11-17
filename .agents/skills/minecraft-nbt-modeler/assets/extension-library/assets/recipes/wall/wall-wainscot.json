@@ -1,0 +1,19 @@
+{
+  "arguments": {
+    "form": {
+      "base_height": 2,
+      "cornice_height": 2,
+      "dado_height": 5,
+      "panel_pitch": 4
+    },
+    "kind": "wall",
+    "name": "墙裙与檐口",
+    "size": [
+      15,
+      12,
+      3
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

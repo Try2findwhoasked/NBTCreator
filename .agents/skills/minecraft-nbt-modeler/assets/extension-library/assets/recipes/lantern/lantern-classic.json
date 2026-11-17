@@ -1,0 +1,13 @@
+{
+  "arguments": {
+    "kind": "lantern",
+    "name": "落地灯架",
+    "size": [
+      5,
+      9,
+      5
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

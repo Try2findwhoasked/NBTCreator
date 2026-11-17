@@ -1,0 +1,20 @@
+{
+  "arguments": {
+    "form": {
+      "base_height": 3,
+      "base_profile": "stepped",
+      "capital_height": 3,
+      "capital_profile": "beveled",
+      "section": "bundled"
+    },
+    "kind": "pillar",
+    "name": "束柱",
+    "size": [
+      9,
+      18,
+      9
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

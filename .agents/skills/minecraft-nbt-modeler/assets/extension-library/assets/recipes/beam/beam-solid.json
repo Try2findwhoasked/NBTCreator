@@ -1,0 +1,16 @@
+{
+  "arguments": {
+    "form": {
+      "profile": "solid"
+    },
+    "kind": "beam",
+    "name": "整梁",
+    "size": [
+      13,
+      4,
+      5
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

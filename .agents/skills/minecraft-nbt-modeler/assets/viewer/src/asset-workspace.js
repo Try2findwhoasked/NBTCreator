@@ -4,6 +4,7 @@ import {initAssetBatches} from './asset-batches.js'
 import {initLibraryBrowser} from './library-browser.js'
 import {createAssetTree} from './asset-tree.js'
 import {initComponentAuthor} from './component-author.js'
+import {initAssetLibraries} from './asset-libraries.js'
 
 export function initAssetWorkspace({api,context,apply,pickPosition,interactive,decorateTree=()=>{}}){
  const host=document.createElement('section');host.id='asset-workspace';host.hidden=true
@@ -58,6 +59,7 @@ export function initAssetWorkspace({api,context,apply,pickPosition,interactive,d
  window.addEventListener('creator-reusable-change',()=>refreshThemes().catch(error=>message(error.message)))
  async function perform(action){if(pending)throw Error('请等待当前构件任务完成');pending=true;if(inspectorDialog.open&&inspectorStatus.classList.contains('error'))message('正在处理…');controls();try{return await action()}finally{pending=false;controls()}}
  const author=initComponentAuthor({actions,api,created:async item=>{selected=item;await refresh(true);message('独立结构已保存为新资产，可查看、整理和按参数放置')}})
+ initAssetLibraries({actions,api,author,refresh})
  const viewIndependent=document.createElement('button');viewIndependent.id='asset-view-independent';viewIndependent.type='button';viewIndependent.textContent='独立3D查看';$('asset-export').after(viewIndependent);viewIndependent.onclick=async()=>{try{if(!selected)throw Error('请选择构件');await author.view(selected.id)}catch(error){message(error.message)}}
  function openSave(){
   const c=context();if(!c?.target_id)throw Error('请先打开3D，并在修改范围中选择要保存的局部选区')

@@ -1,0 +1,18 @@
+{
+  "arguments": {
+    "accent": "smooth_sandstone",
+    "form": {
+      "order": "roman_doric"
+    },
+    "kind": "pillar",
+    "material": "quartz_block",
+    "name": "罗马多立克启发柱",
+    "size": [
+      13,
+      48,
+      13
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

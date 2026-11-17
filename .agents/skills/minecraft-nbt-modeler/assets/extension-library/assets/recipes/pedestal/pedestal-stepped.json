@@ -1,0 +1,16 @@
+{
+  "arguments": {
+    "form": {
+      "profile": "stepped"
+    },
+    "kind": "pedestal",
+    "name": "层叠基座",
+    "size": [
+      9,
+      5,
+      9
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

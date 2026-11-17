@@ -418,6 +418,10 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         try{result=await invoke(['effect-assets','--workspace',workspace,'--action',action,'--request',file])}finally{await fs.unlink(file).catch(()=>{})}
         if(action==='list')for(const item of result.items)if(item.thumbnail)item.thumbnail=asset(item.thumbnail)
         if(action==='preview'){for(const side of ['before','after']){const key=randomUUID();snapshots.set(key,result[side+'_snapshot']);result[side+'_model_key']=key}if(result.thumbnail)result.thumbnail=asset(result.thumbnail)}json(res,result)
+      } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/asset-libraries/')){
+        const action=url.pathname.split('/').at(-1);if(!['list','discover','add','refresh','enable','remove','rollback','read','import'].includes(action))throw Error('未知拓展库操作')
+        const input=await body(req,64*1024),folder=path.join(outputRoot,'system');await fs.mkdir(folder,{recursive:true});const file=path.join(folder,'asset-library-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input))
+        try{json(res,await invoke(['asset-libraries','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/asset-batches/')){
         const action=url.pathname.split('/').at(-1)
         if(!['list','import','generate','read','save','organize'].includes(action))throw Error('未知资产批量操作')

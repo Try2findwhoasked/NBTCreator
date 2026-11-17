@@ -35,6 +35,7 @@
 | 编写方案、审阅与交接建筑任务 | [建筑师工作流](docs/guides/ARCHITECT_WORKFLOW.md) · [首次创作](docs/guides/PROMPT_CREATION.md) |
 | 让应用与 Agent 使用同一项目 | [共享工作区](docs/guides/SHARED_WORKSPACE.md) |
 | 使用 AI 选点、截图和构件移动 | [AI 放置](docs/guides/AI_PLACEMENT.md) · [AI 工作流](docs/guides/AI_WORKFLOW.md) |
+| 连接或维护本地、远端拓展资产库 | [拓展资产库协议](.agents/skills/minecraft-nbt-modeler/references/asset-libraries.md) |
 | 配置开发环境、运行检查或打包 | [开发指南](docs/development/DEVELOPMENT.md) · [构建与发布](docs/development/CI_CD.md) |
 | 查询问题或过去的验证结果 | [已知问题](docs/KNOWN_ISSUES.md) · [历史归档](docs/archive/README.md) |
 

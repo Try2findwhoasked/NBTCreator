@@ -1,0 +1,13 @@
+{
+  "arguments": {
+    "kind": "planter",
+    "name": "连续花槽",
+    "size": [
+      15,
+      8,
+      5
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

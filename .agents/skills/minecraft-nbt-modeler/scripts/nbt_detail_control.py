@@ -762,6 +762,7 @@ def main():
     cmd = sub.add_parser('inspect'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--image-limit',type=int,default=8)
     cmd = sub.add_parser('effect-assets');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','save','get','preview','compile','archive','organize'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('room-score');cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path);cmd.add_argument('--output',type=Path,required=True)
+    cmd = sub.add_parser('asset-libraries');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','discover','add','refresh','enable','remove','rollback','read','import'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('asset-batches');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','import','generate','read','save','organize'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('project-repair');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--source',required=True);cmd.add_argument('--category',default='auto');cmd.add_argument('--source-sha256')
     cmd = sub.add_parser('cover'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--geometry', default=''); cmd.add_argument('--cache',type=Path,required=True); cmd.add_argument('--generate-missing',action='store_true')
@@ -807,6 +808,9 @@ def main():
         elif args.command == 'cover':
             from nbt_cover import section_cover
             result = section_cover(args.source,args.geometry,args.cache,generate=args.generate_missing)
+        elif args.command == 'asset-libraries':
+            from nbt_asset_libraries import dispatch
+            result=dispatch(args.workspace,args.action,read_json(args.request))
         elif args.command == 'recipes':
             from nbt_recipes import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request) if args.request else {})

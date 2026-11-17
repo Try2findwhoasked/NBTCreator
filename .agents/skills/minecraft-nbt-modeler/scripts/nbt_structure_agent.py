@@ -237,7 +237,7 @@ def _handle_parametric_validate(workspace,tool,arguments):
 
 def _handle_parametric_list(workspace,tool,arguments):
     from nbt_parametric import listing
-    return listing(arguments)
+    return listing(arguments, workspace=workspace)
 
 
 def _handle_parametric(workspace,tool,arguments):

@@ -1,0 +1,21 @@
+{
+  "arguments": {
+    "accent": "white_concrete",
+    "form": {
+      "base_height": 1,
+      "capital_height": 1,
+      "section": "square",
+      "shaft_inset": 0
+    },
+    "kind": "pillar",
+    "material": "white_concrete",
+    "name": "现代通体方柱",
+    "size": [
+      3,
+      16,
+      3
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}
