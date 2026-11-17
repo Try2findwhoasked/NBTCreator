@@ -1,16 +1,23 @@
 export function initWorkspaceShell(){
  const $=id=>document.getElementById(id),model=document.querySelector('.workspace'),actions=document.querySelector('.action-bar'),result=document.querySelector('.result-panel')
  const marker=document.createComment('runtime-panel-home');result.before(marker)
- let active='model',moving=false,returnFromAI='model'
+ const pageNames={project:'建筑库',assets:'素材库',model:'建筑编辑',tasks:'运行记录',ai:'AI 设置',prompt:'创作方案'}
+ let active='model',moving=false,trail=[]
  function select(name){
   if(moving||!['project','assets','model','prompt','ai','tasks'].includes(name))return
-  if(name==='ai'&&active!=='ai')returnFromAI=active
+  if(name!=='prompt'&&name!=='ai')trail=[]
+  else if(name!==active){
+   const previous=trail.indexOf(name)
+   if(previous>=0)trail=trail.slice(0,previous)
+   else trail.push(active)
+  }
   moving=true
   try{
    if(name!=='prompt'&&$('prompt-dialog').open)$('prompt-dialog').close()
    if(name!=='ai'&&$('api-dialog').open)$('api-dialog').close()
    if(name==='prompt'&&!$('prompt-dialog').open)$('open-prompt').click()
    if(name==='ai'&&!$('api-dialog').open)$('open-api').click()
+   if(name==='ai'||name==='prompt')$(name==='ai'?'close-api':'close-prompt').textContent='返回'+pageNames[trail.at(-1)??'model']
    active=name;document.body.dataset.workspace=name
    model.inert=name!=='model';actions.inert=name==='prompt'||name==='ai'||name==='project'||name==='assets'
    $('project-workspace').hidden=name!=='project'
@@ -22,8 +29,8 @@ export function initWorkspaceShell(){
   }finally{moving=false}
  }
  for(const button of document.querySelectorAll('button[data-workspace]'))button.onclick=()=>select(button.dataset.workspace)
- $('prompt-dialog').addEventListener('close',()=>{if(!moving&&active==='prompt'&&!$('prompt-dialog').open)select('model')})
- $('api-dialog').addEventListener('close',()=>{if(!moving&&active==='ai'&&!$('api-dialog').open)select(returnFromAI)})
+ $('prompt-dialog').addEventListener('close',()=>{if(!moving&&active==='prompt'&&!$('prompt-dialog').open)select(trail.at(-1)??'model')})
+ $('api-dialog').addEventListener('close',()=>{if(!moving&&active==='ai'&&!$('api-dialog').open)select(trail.at(-1)??'model')})
  window.creatorWorkspace=Object.freeze({select,opened:select,current:()=>active})
  select('model')
 }

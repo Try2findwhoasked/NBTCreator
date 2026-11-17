@@ -1,0 +1,23 @@
+{
+  "arguments": {
+    "accent": "gray_concrete",
+    "form": {
+      "border": 1,
+      "profile": "i_section"
+    },
+    "kind": "beam",
+    "material": "gray_concrete",
+    "name": "工字截面梁",
+    "size": [
+      19,
+      3,
+      3
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

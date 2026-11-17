@@ -36,4 +36,4 @@ v3 核对 Mojang Java 1.20.1 服务端经 VanillaGradle 官方映射的类字节
 
 `conservative_obstacles=False` 保留严格模式，细件继续作为未知形状拒绝通过。低层 `collision_cells` 仍返回 unsupported，避免把上包络当成混材等价、接触接口或可靠地面。
 
-从项目根目录运行 `mise exec -- python -B tests/fine-collision-envelopes.py`，覆盖全部接纳状态、1.5格高度、不可支撑、绕行及严格拒绝。正式工作模型、refine和网页转换沿用同一检查报告，不将代理路线证明写成游戏实测。
+从项目根目录运行 `mise exec -- python -B tests/engine/fine-collision-envelopes.py`，覆盖全部接纳状态、1.5格高度、不可支撑、绕行及严格拒绝。正式工作模型、refine和网页转换沿用同一检查报告，不将代理路线证明写成游戏实测。

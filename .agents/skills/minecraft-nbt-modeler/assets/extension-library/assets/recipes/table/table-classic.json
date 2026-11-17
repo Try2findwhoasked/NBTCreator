@@ -1,0 +1,13 @@
+{
+  "arguments": {
+    "kind": "table",
+    "name": "工作桌",
+    "size": [
+      7,
+      4,
+      5
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

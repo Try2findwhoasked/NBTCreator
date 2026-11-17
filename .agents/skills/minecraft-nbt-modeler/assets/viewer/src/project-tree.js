@@ -6,8 +6,8 @@ const collator=new Intl.Collator('zh-CN',{numeric:true})
 
 export function createProjectTree({container,api,onSelect,onOpen,onStatus,onOrderChange}){
  const heading=document.createElement('div');heading.className='project-tree-heading'
- const title=document.createElement('strong');title.textContent='项目文件'
- const reset=document.createElement('button');reset.type='button';reset.className='project-tree-reset';reset.textContent='↺';reset.title='恢复默认排序（bugged 放最后）';reset.setAttribute('aria-label','恢复默认排序')
+ const title=document.createElement('strong');title.textContent='项目文件夹'
+ const reset=document.createElement('button');reset.type='button';reset.id='project-tree-sort-reset';reset.className='project-tree-reset';reset.textContent='恢复文件夹排序';reset.title='恢复默认排序（bugged 放最后）';reset.setAttribute('aria-label','恢复默认排序')
  heading.append(title,reset)
  const hint=document.createElement('p');hint.className='project-tree-hint';hint.textContent='拖动排序 · Alt + ↑ / ↓ 移动'
  const tree=document.createElement('div');tree.className='project-tree-list';tree.setAttribute('role','tree');tree.setAttribute('aria-label','项目文件')
@@ -84,19 +84,28 @@ export function createProjectTree({container,api,onSelect,onOpen,onStatus,onOrde
   tree.scrollTop=scrollTop
   const active=visible.find(row=>row.dataset.nodeId===focused)||visible[0];if(active){active.tabIndex=0;if(wasFocused)active.focus({preventScroll:true})}
  }
- function update(items){
+ function update(items,folders=[]){
   models=items;nodes=new Map();roots=[];invalidate();const latest=latestSources(models)
+  function addProject(project,label){
+   const id=idFor('project',project)
+   if(!nodes.has(id)){const node={id,kind:'project',project,label,parent:'root',children:[],count:0};nodes.set(id,node);roots.push(node)}
+   return nodes.get(id)
+  }
+  function addShape(parent,shape,label){
+   const id=idFor('shape',parent.project,shape)
+   if(!nodes.has(id)){const node={id,kind:'shape',project:parent.project,shape,label,parent:parent.id,children:[],count:0};nodes.set(id,node);parent.children.push(node)}
+   return nodes.get(id)
+  }
   for(const item of models){
-   const projectId=idFor('project',item.project_key),shapeId=idFor('shape',item.project_key,item.shape_group),objectKey=item.object_key||item.group||item.source,objectId=idFor('object',objectKey)
-   if(!nodes.has(projectId)){const node={id:projectId,kind:'project',project:item.project_key,label:item.project_name,parent:'root',children:[],count:0};nodes.set(projectId,node);roots.push(node)}
-   if(!nodes.has(shapeId)){const node={id:shapeId,kind:'shape',project:item.project_key,shape:item.shape_group,label:item.shape_group_zh,parent:projectId,children:[],count:0};nodes.set(shapeId,node);nodes.get(projectId).children.push(node)}
-   if(!nodes.has(objectId)){const node={id:objectId,kind:'object',project:item.project_key,shape:item.shape_group,object:objectKey,label:item.object_name||item.name_zh||item.name||item.label,parent:shapeId,children:[],count:0,item};nodes.set(objectId,node);nodes.get(shapeId).children.push(node);nodes.get(projectId).count++;nodes.get(shapeId).count++}
+   const project=addProject(item.project_key,item.project_name),shape=addShape(project,item.shape_group,item.shape_group_zh),objectKey=item.object_key||item.group||item.source,objectId=idFor('object',objectKey)
+   if(!nodes.has(objectId)){const node={id:objectId,kind:'object',project:item.project_key,shape:item.shape_group,object:objectKey,label:item.object_name||item.name_zh||item.name||item.label,parent:shape.id,children:[],count:0,item};nodes.set(objectId,node);shape.children.push(node);project.count++;shape.count++}
    const node=nodes.get(objectId);node.count++;if(latest.has(item.source))node.item=item
   }
+  for(const folder of folders){const project=addProject(folder.project,folder.projectLabel);if(folder.shape)addShape(project,folder.shape,folder.shapeLabel)}
   if(!initialized&&roots.length){if(roots.length===1)expanded.add(roots[0].id);initialized=true}
   render()
  }
  reset.onclick=()=>{orders={};invalidate();render();onOrderChange();save()}
  api('project-layout').then(value=>{orders=value.orders||{};invalidate();render();onOrderChange()}).catch(error=>onStatus('无法读取项目排序：'+error.message))
- return {update,orderedObjects(){if(objectOrder)return objectOrder;const result=[];function visit(children,parent){for(const node of sorted(children,parent)){if(node.kind==='object')result.push(node.object);else visit(node.children,node.id)}}visit(roots,'root');objectOrder=result;return result},select(value){selected=value;for(const row of tree.querySelectorAll('[role=treeitem]'))row.setAttribute('aria-selected',String(isSelected(nodes.get(row.dataset.nodeId))))}}
+ return {update,revealProject(project){const id=idFor('project',project);if(!expanded.has(id)){expanded.add(id);render()}},orderedObjects(){if(objectOrder)return objectOrder;const result=[];function visit(children,parent){for(const node of sorted(children,parent)){if(node.kind==='object')result.push(node.object);else visit(node.children,node.id)}}visit(roots,'root');objectOrder=result;return result},select(value){selected=value;for(const row of tree.querySelectorAll('[role=treeitem]'))row.setAttribute('aria-selected',String(isSelected(nodes.get(row.dataset.nodeId))))}}
 }

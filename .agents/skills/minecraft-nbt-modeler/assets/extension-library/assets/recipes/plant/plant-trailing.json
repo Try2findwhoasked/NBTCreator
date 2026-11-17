@@ -1,0 +1,19 @@
+{
+  "arguments": {
+    "form": {
+      "crown_height": 5,
+      "pot_height": 2,
+      "profile": "trailing",
+      "radius": 2
+    },
+    "kind": "plant",
+    "name": "垂挂盆栽",
+    "size": [
+      7,
+      10,
+      7
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

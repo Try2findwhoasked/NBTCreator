@@ -8,7 +8,7 @@ export function floatingDetails(root,panel,{minimum=210}={}){
  document.addEventListener('pointerdown',event=>{if(root.open&&!root.contains(event.target))close()})
  document.addEventListener('keydown',event=>{if(root.open&&event.key==='Escape'){event.preventDefault();close();summary.focus({preventScroll:true})}})
  window.addEventListener('nbt-floating-open',event=>{if(event.detail!==root&&!root.contains(event.detail)&&!event.detail.contains(root))close()});window.addEventListener('resize',close)
- document.addEventListener('scroll',event=>{if(root.open&&!panel.contains(event.target))close()},true)
+ document.addEventListener('scroll',event=>{if(!root.open||panel.contains(event.target))return;const box=summary.getBoundingClientRect(),host=event.target instanceof Element&&event.target.contains(summary)?event.target.getBoundingClientRect():{top:0,bottom:innerHeight};if(box.bottom<=Math.max(0,host.top)||box.top>=Math.min(innerHeight,host.bottom))close();else place()},true)
  window.addEventListener('creator-workspace-change',close)
  return {close}
 }

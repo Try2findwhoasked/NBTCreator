@@ -1,0 +1,18 @@
+{
+  "arguments": {
+    "accent": "smooth_sandstone",
+    "form": {
+      "order": "composite"
+    },
+    "kind": "pillar",
+    "material": "quartz_block",
+    "name": "复合柱式启发柱",
+    "size": [
+      13,
+      48,
+      13
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

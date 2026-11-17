@@ -1,0 +1,28 @@
+{
+  "arguments": {
+    "accent": "white_concrete",
+    "form": {
+      "handrail": {
+        "height": 2,
+        "post_spacing": 3,
+        "side": "both",
+        "style": "horizontal"
+      },
+      "landing": 3,
+      "profile": "spiral",
+      "rise": 8,
+      "run_width": 3,
+      "tread": "oak_stairs"
+    },
+    "kind": "stairs",
+    "material": "oak_planks",
+    "name": "方形旋梯 · 横档扶手",
+    "size": [
+      18,
+      12,
+      15
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

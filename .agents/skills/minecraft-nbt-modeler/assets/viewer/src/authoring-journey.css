@@ -1,0 +1,39 @@
+/* The guide belongs to the inspector; the canvas keeps its full height. */
+#authoring-journey { flex:none; padding:12px 14px; border-bottom:1px solid var(--ui-line); background:var(--ui-input); }
+.journey-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+#journey-title { font-size:13px; line-height:1.6; }
+#journey-hint { margin:5px 0 0; color:var(--ui-muted); font-size:12px; line-height:1.65; overflow-wrap:anywhere; }
+body[data-shell=studio] #journey-result { margin-top:8px; }
+#authoring-journey[data-tone=warning] #journey-title { color:#8a4d14; }
+#authoring-journey[data-tone=success] #journey-title { color:#246346; }
+body[data-shell=studio] .library-heading-title { flex-wrap:wrap; }
+.library-orientation { flex-basis:100%; margin:2px 0 0; font-size:12px; color:var(--ui-muted); }
+body[data-shell=studio] .project-tree-heading { flex-wrap:wrap; gap:6px; }
+body[data-shell=studio] .project-tree-heading>strong { flex:1 0 auto; white-space:nowrap; }
+body[data-shell=studio] .project-empty { grid-column:1/-1; max-width:560px; margin:36px auto; padding:28px; text-align:left; border:1px dashed var(--ui-line); border-radius:8px; }
+.project-empty strong { display:block; margin-bottom:8px; font-size:20px; color:var(--ui-text); }
+.project-empty p { line-height:1.8; margin:8px 0 18px; }
+.project-empty-actions { display:flex; gap:8px; flex-wrap:wrap; }
+body[data-shell=studio] :is(button,input,select,textarea,summary):focus-visible { outline:2px solid var(--ui-accent); outline-offset:3px; }
+body[data-shell=studio] button:disabled { cursor:not-allowed; }
+@media(max-height:700px) {
+ #authoring-journey { padding:8px 12px; }
+ #journey-hint { font-size:11px; }
+}
+@media(max-width:600px) {
+ body[data-shell=studio] .creator-header { flex-wrap:wrap; height:auto; min-height:76px; padding-block:6px; gap:4px; }
+ body[data-shell=studio] .creator-brand { margin-right:auto; }
+ body[data-shell=studio] .creator-workspaces { order:2; flex-basis:100%; overflow:auto; }
+ body[data-shell=studio] #studio-ai-settings { display:block; }
+ body[data-shell=studio] #studio-actions { height:auto; flex-wrap:wrap; }
+ #studio-workspace { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr) var(--studio-status); }
+ #studio-workspace.inspector-closed { grid-template-columns:minmax(0,1fr); }
+ #studio-panel-resize { display:none; }
+ #studio-inspector { grid-column:1; grid-row:2; z-index:4; width:min(100%,400px); box-shadow:8px 0 24px #0002; }
+ #studio-stage { grid-column:1; grid-row:2; }
+ .studio-primary-actions { flex-basis:100%; justify-content:flex-end; flex-wrap:wrap; }
+ body[data-shell=studio] .library-layout { grid-template-columns:110px minmax(0,1fr); gap:8px; }
+ body[data-shell=studio] .library-heading { flex-wrap:wrap; gap:8px; }
+ body[data-shell=studio] .library-browser .project-grid { grid-template-columns:minmax(0,1fr); }
+ .library-orientation { max-width:36em; }
+}

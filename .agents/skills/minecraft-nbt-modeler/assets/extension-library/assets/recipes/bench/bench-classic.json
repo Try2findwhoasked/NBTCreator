@@ -1,0 +1,13 @@
+{
+  "arguments": {
+    "kind": "bench",
+    "name": "靠背长凳",
+    "size": [
+      9,
+      5,
+      4
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

@@ -1,0 +1,27 @@
+{
+  "arguments": {
+    "accent": "cut_sandstone",
+    "form": {
+      "border": 2,
+      "detail_material": "chiseled_sandstone",
+      "lights": 1,
+      "profile": "round_arch_window",
+      "recess": 3,
+      "sill_material": "smooth_sandstone_slab[type=top]"
+    },
+    "kind": "frame",
+    "material": "smooth_sandstone",
+    "name": "圆拱券与楔石窗",
+    "size": [
+      15,
+      23,
+      4
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

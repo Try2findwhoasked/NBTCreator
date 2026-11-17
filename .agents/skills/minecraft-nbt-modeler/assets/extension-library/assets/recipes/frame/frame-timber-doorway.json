@@ -1,0 +1,24 @@
+{
+  "arguments": {
+    "accent": "stripped_dark_oak_log",
+    "form": {
+      "border": 1,
+      "frame_depth": 1,
+      "profile": "doorway"
+    },
+    "kind": "frame",
+    "material": "stripped_dark_oak_log",
+    "name": "无门槛木门框",
+    "size": [
+      3,
+      3,
+      3
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

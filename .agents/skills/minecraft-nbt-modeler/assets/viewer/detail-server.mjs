@@ -90,7 +90,13 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     if(closing)throw new Error('建模服务正在关闭')
     checkpoint(job)
     return new Promise((resolve, reject) => {
-      const child = spawn(python, ['-B', backend, ...args], { cwd: workspace, windowsHide: true, shell: false })
+      const backgroundThumbnail=args[0]==='asset-libraries'&&args[args.indexOf('--action')+1]==='thumbnail'
+      const environment=backgroundThumbnail?{
+        ...process.env,
+        OPENBLAS_NUM_THREADS:process.env.OPENBLAS_NUM_THREADS??'1',
+        OMP_NUM_THREADS:process.env.OMP_NUM_THREADS??'1',
+      }:process.env
+      const child = spawn(python, ['-B', backend, ...args], { cwd: workspace, windowsHide: true, shell: false, env:environment })
       ownedChildren.add(child)
       const sourceIndex=args.indexOf('--source');workerInfo.set(child,{phase:args[0],...(sourceIndex>=0?{source:args[sourceIndex+1]}:{})})
       child[childStopped]=new Promise(done=>child.once('close',()=>{ownedChildren.delete(child);done()}))
@@ -156,7 +162,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     const id = randomUUID()
     const directory = path.join(outputRoot, 'jobs', id)
     const requestPath = path.join(directory, 'request.json')
-    const job = { id, kind, status: 'running', created_at: new Date().toISOString(), directory }
+    const job = { id, kind, status: 'running', created_at: new Date().toISOString(), directory, source:request.source, source_sha256:request.source_sha256 }
     jobs.set(id, job); activeJob = job
     job[jobFinished]=(async () => {
       try {
@@ -334,8 +340,8 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         json(res,{project_catalog:projectCatalog,catalog:{...projectCatalog,models:projectCatalog.models.filter(item=>!item.bugged&&!item.unreadable)}})
       } else if (req.method === 'GET' && url.pathname.startsWith('/__detail__/prompt/')) {
         const name=url.pathname.slice('/__detail__/prompt/'.length)
-        if(!['index.html','core.js','ai-input.js','autosave.js','workspace.js','app.js','style.css','design-tokens.css','theme.css','catalog.js'].includes(name))throw new Error('Unknown prompt asset')
-        res.setHeader('Content-Type',name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.js')?'text/javascript; charset=utf-8':'text/css; charset=utf-8')
+        if(!['index.html','core.js','constraint-contract.cjs','ai-input.js','autosave.js','workspace.js','app.js','style.css','design-tokens.css','theme.css','catalog.js'].includes(name))throw new Error('Unknown prompt asset')
+        res.setHeader('Content-Type',name.endsWith('.html')?'text/html; charset=utf-8':/\.c?js$/.test(name)?'text/javascript; charset=utf-8':'text/css; charset=utf-8')
         res.setHeader('Cache-Control','no-store')
         res.end(await fs.readFile(path.join(skillRoot,'prompt-console',name)))
       } else if(req.method==='POST'&&['/__detail__/prompt-save','/__detail__/prompt-publish','/__detail__/prompt-library'].includes(url.pathname)){
@@ -418,6 +424,25 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         try{result=await invoke(['effect-assets','--workspace',workspace,'--action',action,'--request',file])}finally{await fs.unlink(file).catch(()=>{})}
         if(action==='list')for(const item of result.items)if(item.thumbnail)item.thumbnail=asset(item.thumbnail)
         if(action==='preview'){for(const side of ['before','after']){const key=randomUUID();snapshots.set(key,result[side+'_snapshot']);result[side+'_model_key']=key}if(result.thumbnail)result.thumbnail=asset(result.thumbnail)}json(res,result)
+      } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/asset-libraries/')){
+        const action=url.pathname.split('/').at(-1)
+        if(!['list','browse','discover','add','refresh','enable','remove','rollback','read','import','thumbnail','preview','resolve','place','copy'].includes(action))throw Error('未知拓展库操作')
+        const input=await body(req,64*1024)
+        if(action==='place'){
+          const info=openedSource(localPath(input.source))
+          if(!info||input.source_sha256!==info.source_sha256)throw Error('当前模型版本已改变，请重新打开')
+          if(createHash('sha256').update(await fs.readFile(info.source)).digest('hex')!==info.source_sha256)throw Error('源文件已改变，请刷新模型')
+          input.size=info.size
+        }
+        const folder=path.join(outputRoot,'system');await fs.mkdir(folder,{recursive:true})
+        const file=path.join(folder,'asset-library-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input))
+        let result
+        try{result=await invoke(['asset-libraries','--workspace',workspace,'--action',action,'--request',file])}finally{await fs.unlink(file).catch(()=>{})}
+        if(result.items)result.items=result.items.map(item=>({...item,thumbnail:item.thumbnail?asset(item.thumbnail):null}))
+        if(result.item)result.item={...result.item,thumbnail:result.item.thumbnail?asset(result.item.thumbnail):null,download:result.item.file?asset(result.item.file):null}
+        if(result.thumbnail)result.thumbnail=asset(result.thumbnail)
+        if(result.snapshot){const key=randomUUID();snapshots.set(key,result.snapshot);result.model_key=key}
+        json(res,result)
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/asset-batches/')){
         const action=url.pathname.split('/').at(-1)
         if(!['list','import','generate','read','save','organize'].includes(action))throw Error('未知资产批量操作')
@@ -453,7 +478,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/batches/')){
         const action=url.pathname.split('/').at(-1);if(!['list','get','create','import','ack','locate'].includes(action))throw Error('未知批次操作');const input=await body(req,256*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'batches-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['batches','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/architect/')){
-        const action=url.pathname.split('/').at(-1);if(!['standards-get','standards-save','deliveries','continue','cross-list','cross-save'].includes(action))throw Error('未知建筑师工具');const input=await body(req,1024*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'architect-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['architect','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
+        const action=url.pathname.split('/').at(-1);if(!['standards-get','standards-save','constraints-list','constraints-save','constraints-delete','deliveries','continue','cross-list','cross-save'].includes(action))throw Error('未知建筑师工具');const input=await body(req,1024*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'architect-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['architect','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/history/')){
         const action=url.pathname.split('/').at(-1);if(!['list','get','record','current','derive','finalize'].includes(action))throw Error('未知版本历史操作')
         const input=await body(req);const directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'history-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['history','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}

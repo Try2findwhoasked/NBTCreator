@@ -1,0 +1,13 @@
+{
+  "arguments": {
+    "kind": "shelf",
+    "name": "多层书架",
+    "size": [
+      9,
+      11,
+      4
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

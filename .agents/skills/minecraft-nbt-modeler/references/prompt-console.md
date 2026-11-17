@@ -28,6 +28,6 @@ AI 编写默认不要求建筑师阅读 JSON。工具步骤、坐标保护配置
 
 `core.js` 是设计字段、提示词编译和校验的共用实现；`workspace.js` 管理独立提示词队列，`autosave.js` 复用后端归档。工具定义以 `tool-catalog.json` 为准，修改目录后运行项目 `sync:tools`。
 
-`npm run test:architect` 覆盖批量生成、人工修改、逐条审查、交接、关闭恢复、易读 AI 结果和面板尺寸。`npm run test:studio` 检查画布、可调面板和原控制流程。`tests/prompt-task-desktop.mjs` 与 `tests/prompt-archive.py` 检查真实 Skill 增量读取、修订、幂等交接和边界。测试不代替真实建筑的设计审阅或游戏验证。
+`npm run test:architect` 覆盖批量生成、人工修改、逐条审查、交接、关闭恢复、易读 AI 结果和面板尺寸。`npm run test:studio` 检查画布、可调面板和原控制流程。`tests/desktop/prompt-task-desktop.mjs` 与 `tests/engine/prompt-archive.py` 检查真实 Skill 增量读取、修订、幂等交接和边界。测试不代替真实建筑的设计审阅或游戏验证。
 
 桌面桥接仅提供固定的生成、保存、读取与交接操作，静态服务白名单列出确定的提示词资源；继续保留 Host/Origin、源哈希与本机路径边界检查。

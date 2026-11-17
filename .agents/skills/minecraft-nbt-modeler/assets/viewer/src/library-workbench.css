@@ -1,0 +1,84 @@
+.library-browser .library-tray { order:10; flex:none; display:flex; align-items:center; gap:8px; padding:9px 12px; border:1px solid var(--ui-accent); border-bottom:0; background:var(--ui-panel); color:var(--ui-text); }
+.library-tray[hidden],#asset-workspace:not([data-kind=components]) [data-library-kind="构件"],#asset-workspace:not([data-kind=effects]) [data-library-kind="效果预设"],#asset-workspace:not([data-kind=patterns]) [data-library-kind="纹样"] { display:none; }
+.library-tray-items { display:flex; flex:1; min-width:0; gap:6px; }
+.library-tray-items button { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.library-tray>span { font-weight:600; }
+body[data-shell=studio] .library-tray>button:last-child:enabled { background:var(--ui-accent); color:white; }
+.library-browser article.project-card { position:relative; background:var(--ui-panel); }
+.library-browser .project-card:has(.comparison-selected) { outline:2px solid var(--ui-accent); outline-offset:-2px; }
+body[data-shell=studio] .library-browser .project-card-open { display:flex; flex-direction:column; align-items:stretch; padding:0; width:100%; text-align:start; }
+.library-browser .project-card-footer { background:var(--ui-input); }
+body[data-shell=studio] .project-card-edit { color:var(--ui-accent); font-weight:600; }
+#asset-detail .asset-detail-figure { grid-column:1; align-self:start; margin:0 0 8px; border:1px solid var(--ui-line); border-radius:8px; overflow:hidden; }
+#asset-detail .asset-detail-figure img { display:block; width:100%; height:180px; object-fit:contain; background:var(--ui-input); }
+#asset-detail .asset-detail-figure figcaption { padding:7px 12px; }
+#asset-detail .placement-target { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:8px 10px; border-inline-start:3px solid var(--ui-accent); background:var(--ui-accent-soft); }
+#asset-detail .placement-target p { flex:1 1 140px; overflow-wrap:anywhere; }
+#asset-detail .asset-placement-summary { padding:6px 0; font-variant-numeric:tabular-nums; color:var(--ui-text); }
+#asset-detail #asset-place { width:100%; }
+#asset-detail legend { color:var(--ui-text); font-weight:600; }
+.project-organization .organization-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+body[data-shell=studio] .organization-heading button { font-size:11px; color:var(--ui-muted); }
+.project-organization:not(.managing) #project-menu-create,.project-organization:not(.managing) .project-menu-row button:not([data-custom-menu]) { display:none; }
+#asset-detail .asset-overview { grid-column:1; align-self:start; min-width:0; }
+#asset-detail>.asset-overview~fieldset { grid-row:1; }
+#asset-detail .placement-transforms { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+#asset-detail .placement-methods { padding:8px 0; }
+#asset-detail .placement-methods summary { color:var(--ui-accent); cursor:pointer; }
+@media(max-width:700px){
+ #asset-detail>.asset-overview~fieldset { grid-column:1; grid-row:auto; }
+}
+.library-choice-mark { position:absolute; top:8px; right:8px; padding:3px 9px; background:var(--ui-panel); color:var(--ui-text); border:1px solid var(--ui-line); border-radius:4px; pointer-events:none; }
+.comparison-selected .library-choice-mark { background:var(--ui-accent); color:white; }
+.choosing-comparison .project-card-footer { display:none; }
+.library-choice-mark[hidden],.library-scope-bar[hidden],.asset-type-help[hidden] { display:none; }
+.library-toolbar>label:has(#project-quick-version) { display:flex; align-items:center; gap:5px; color:var(--ui-muted); }
+.library-toolbar #project-quick-version { width:auto; }
+.library-command-panel[popover] { position:fixed; inset:auto; margin:0; padding:6px 12px; color:var(--ui-text); background:var(--ui-panel); border:1px solid var(--ui-line); border-radius:8px; box-shadow:0 8px 24px #142b4024; overflow:auto; }
+.library-command-panel section { display:grid; gap:2px; padding:8px 0; }
+.library-command-panel section+section { border-top:1px solid var(--ui-line); }
+.library-command-panel section>strong { font-size:11px; color:var(--ui-muted); margin:0 8px 3px; }
+body[data-shell=studio] .library-command-panel section>button,.library-command-panel section>details>summary { width:100%; text-align:left; justify-content:space-between; font-weight:400; color:var(--ui-text); background:var(--ui-panel); border:0; min-height:30px; }
+body[data-shell=studio] .library-command-panel section>button:hover { background:var(--ui-accent-soft); }
+.library-command-panel label { padding:5px 8px; }
+#asset-workspace:not([data-kind=effects]) [data-tool-kind=effects],#asset-workspace:not([data-kind=patterns]) [data-tool-kind=patterns] { display:none; }
+#asset-workspace:not([data-kind=components]) [data-tool-kind=components] { display:none; }
+#asset-filters-menu .library-filter-panel>label { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px; }
+#asset-filters-menu select { width:60%; }
+#asset-detail .asset-management { grid-column:1; border-top:1px solid var(--ui-line); margin:8px 0 0; padding:10px 0; }
+.asset-management>summary { cursor:pointer; font-weight:600; }
+.asset-management a { display:inline-block; margin:6px; }
+body[data-shell=studio] .library-browser .project-tree-heading { height:auto; min-height:30px; }
+.library-comparison { width:min(760px,94vw); max-height:90dvh; padding:0; border:1px solid var(--ui-line); border-radius:10px; color:var(--ui-text); background:var(--ui-panel); }
+.library-comparison[open] { display:flex; flex-direction:column; }
+.library-comparison::backdrop { background:#20384d70; }
+.library-comparison>header,.library-comparison>footer { display:flex; flex:none; align-items:center; justify-content:space-between; gap:10px; padding:12px 18px; }
+.library-comparison h2 { margin:0; font-size:18px; }
+.comparison-content { overflow:auto; }
+.library-comparison table { width:100%; table-layout:fixed; border-collapse:collapse; }
+.library-comparison :is(th,td) { text-align:left; overflow-wrap:anywhere; padding:9px 14px; border-block-start:1px solid var(--ui-line); }
+.library-comparison th:first-child { width:20%; color:var(--ui-muted); font-size:12px; }
+.library-comparison td { border-inline-start:1px solid var(--ui-line); }
+.library-comparison tr[data-different=true] td { background:var(--ui-input); font-weight:600; }
+.comparison-image { height:120px; color:var(--ui-muted); }
+.comparison-image img { display:block; width:100%; height:120px; object-fit:contain; }
+.library-scope-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:6px 0; border-bottom:1px solid var(--ui-line); }
+.library-scope-bar select { width:auto; min-width:0; max-width:100%; }
+.library-scope-bar label { display:flex; align-items:center; gap:6px; margin:0; }
+.library-scope-bar .scope-summary { color:var(--ui-muted); overflow-wrap:anywhere; }
+.library-target-request { padding:10px 12px; border-inline-start:3px solid var(--ui-accent); background:var(--ui-accent-soft); }
+.library-target-request button { margin-inline-start:12px; }
+.library-browser .library-orientation { margin:0; }
+body[data-shell=studio] .library-browser .library-heading { padding:10px 14px; border-inline-start:4px solid var(--ui-accent); gap:12px; }
+.library-tree-toggle { display:none; }
+@media(max-width:800px){
+ body[data-shell=studio] .library-browser .library-heading { padding:6px 8px; }
+ body[data-shell=studio] .library-browser .library-orientation { display:none; }
+ body[data-shell=studio][data-workspace] .library-browser .library-layout { grid-template-columns:minmax(0,1fr); position:relative; }
+ :is(#project-workspace,#asset-workspace).library-browser:not(.tree-expanded) .library-tree { display:none; }
+ body[data-shell=studio] .library-browser.tree-expanded .library-tree { position:absolute; inset:0 auto 0 0; z-index:4; width:min(270px,90%); background:var(--ui-panel); border:1px solid var(--ui-line); overflow:auto; }
+ .library-tree-toggle { display:inline-block; }
+ .library-tray { flex-wrap:wrap; }
+ .library-tray-items { flex-basis:45%; }
+ .library-comparison :is(th,td) { padding:6px; }
+}

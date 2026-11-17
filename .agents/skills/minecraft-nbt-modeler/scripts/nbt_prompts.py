@@ -65,6 +65,9 @@ def save(workspace, payload):
     if document.get('design_standard') is not None:
         from nbt_architect import validate_standard
         validate_standard(document['design_standard'])
+    if 'constraints' in document:
+        from nbt_constraints import validate_selection
+        validate_selection(document['constraints'],document['project'])
     if not isinstance(document.get('design_override',''),str) or len(document.get('design_override',''))>4000:raise ValueError('建筑规范例外最多4000字')
     catalog=json.loads((Path(__file__).resolve().parents[1]/'tool-catalog.json').read_text(encoding='utf8'))
     design=catalog['prompt_design'];project=document['project']

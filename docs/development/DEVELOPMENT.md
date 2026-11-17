@@ -10,6 +10,7 @@
 
 ```powershell
 mise tasks
+mise install
 mise exec -- node --version
 mise exec -- python --version
 mise exec -- npm ci
@@ -17,7 +18,7 @@ mise exec -- npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
 mise exec -- python -m pip install -r .agents/skills/minecraft-nbt-modeler/requirements.txt
 ```
 
-当前 [mise.toml](../../mise.toml)提供 CPU、GPU 和主模型测试任务，未声明工具版本，也不会自动安装 Node.js / Python。`mise exec` 使用可用环境启动命令，不依赖交互式 shell 的自动激活。
+当前 [mise.toml](../../mise.toml)固定 Python 3.14.7，并提供 CPU、GPU、主模型、资产及 UI 测试任务；`mise install` 准备已声明的工具。Node.js 24 仍使用可用环境。`mise exec` 不依赖交互式 shell 的自动激活。
 
 沿用 npm 和两份 package-lock.json，不混用包管理器。个人环境配置写入已被 Git 忽略的 `mise.local.toml`，不要提交密钥。普通离线编辑和自动化测试无需配置外部 AI 服务。
 
@@ -28,7 +29,7 @@ mise exec -- npm run build:web
 mise exec -- npm start
 ```
 
-生产模式使用预构建前端，由受管 Node utility process 提供 loopback 静态服务。明确需要 Vite 开发回退时使用 `mise exec -- npm run start:dev`。前端测试前先构建；打包流程会自动构建前端。
+生产模式使用预构建前端，由受管 Node utility process 提供 loopback 静态服务。明确需要 Vite 开发回退时使用 `mise exec -- npm run start:dev`。前端测试前先构建；打包流程会自动构建前端。修改源码后先关闭测试实例，再重建前端，避免运行中的实例继续请求旧哈希资源。
 
 无界面 CLI 与 UI 使用相同的活动 Python 引擎，可直接查看能力，不需要启动 Electron：
 
@@ -55,6 +56,7 @@ mise exec -- node scripts/cli.mjs --workspace "D:\MyMinecraftProject" capabiliti
 | 冻结迁移资料 | `mise exec -- npm run verify:archive` |
 | API 与本地协议 | `mise exec -- npm run test:api` |
 | 桌面冒烟 | `mise exec -- npm run test:desktop` |
+| 工作台旅程、焦点、真实交付与六页窗口/缩放矩阵 | `mise run ui:test` |
 | 更新检查、下载校验与失败重试（本地模拟） | `mise exec -- npm run test:updates` |
 | CPU 批量写入与严格校验 | `mise run cpu:test` |
 | 完整主模型、对象关系与接口 | `mise run model:test` |
@@ -62,7 +64,7 @@ mise exec -- node scripts/cli.mjs --workspace "D:\MyMinecraftProject" capabiliti
 | 外部 Agent 机器接口 | `mise exec -- npm run test:agent-protocol` |
 | Agent 离线模拟全流程 | `mise exec -- npm run test:agent-simulation` |
 
-更细的检查以 [package.json](../../package.json) 的 scripts 和 [mise.toml](../../mise.toml) 为准。修改 `tool-catalog.json` 后先运行 `mise exec -- npm run sync:tools`，再执行 `check:tools`。
+测试分层、单文件运行方法与特殊前置条件见[测试导航](../../tests/README.md)。更细的检查以 [package.json](../../package.json) 的 scripts 和 [mise.toml](../../mise.toml) 为准。修改 `tool-catalog.json` 后先运行 `mise exec -- npm run sync:tools`，再执行 `check:tools`。
 
 桌面自动测试使用隔离的合成工作区，窗口默认最小化，不触发已记录的全屏问题。真实 API 检查会使用指定连接并产生实际请求，入口和边界见[使用指南](../guides/USER_GUIDE.md#ai-与-agent-协作)；常规自动测试使用本机模拟服务。
 

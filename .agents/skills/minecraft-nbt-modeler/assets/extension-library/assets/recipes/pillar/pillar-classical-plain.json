@@ -1,0 +1,22 @@
+{
+  "arguments": {
+    "accent": "smooth_quartz",
+    "form": {
+      "entasis": 0,
+      "inset": 0,
+      "order": "tuscan",
+      "shaft_ratio": 0.85,
+      "taper": false
+    },
+    "kind": "pillar",
+    "material": "quartz_block",
+    "name": "素面古典圆柱",
+    "size": [
+      9,
+      40,
+      9
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

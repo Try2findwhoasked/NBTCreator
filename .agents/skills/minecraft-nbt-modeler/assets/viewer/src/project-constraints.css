@@ -1,0 +1,16 @@
+.project-constraints-dialog{width:min(920px,94vw);max-height:90dvh;padding:0;border:1px solid var(--ui-line);border-radius:8px;background:var(--ui-panel);color:var(--ui-text);overflow:hidden;box-sizing:border-box}
+.project-constraints-dialog[open]{display:flex;flex-direction:column}
+.project-constraints-dialog>header,.project-constraints-dialog>footer{padding:12px 16px;flex:none}
+.project-constraints-dialog>header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.project-constraints-dialog>header>div{min-width:0;flex:1}
+.project-constraints-dialog>header label{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.project-constraints-dialog>header select{min-width:0;max-width:100%}
+#constraint-file{font-size:12px;overflow-wrap:anywhere}
+.project-constraints-dialog h2{margin:0 0 6px}.project-constraints-dialog p{margin:6px 0;color:var(--ui-muted)}
+.constraint-body{display:grid;grid-template-columns:200px minmax(0,1fr);min-height:0;overflow:auto;border-block:1px solid var(--ui-line)}
+#open-project-constraints{margin-inline-start:auto;font-size:11px;padding:2px 6px;min-height:24px;white-space:nowrap}
+.constraint-body>aside{padding:16px;border-right:1px solid var(--ui-line)}
+#constraint-library{display:grid;gap:8px;margin-top:12px}#constraint-library button{text-align:left;white-space:normal;overflow-wrap:anywhere}#constraint-library [aria-pressed=true]{border-color:var(--ui-accent)}
+.constraint-editor{padding:16px;display:grid;gap:12px;min-width:0}.constraint-editor label{display:grid;gap:5px;min-width:0}.constraint-editor input,.constraint-editor select,.constraint-editor textarea{width:100%;box-sizing:border-box;min-width:0}.constraint-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.constraint-editor details>label{margin:12px 0}
+#constraint-status{overflow-wrap:anywhere}.project-constraints-dialog footer>div{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:650px){.constraint-body{grid-template-columns:1fr}.constraint-body>aside{border-right:0;border-bottom:1px solid var(--ui-line)}#constraint-library{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.constraint-fields{grid-template-columns:1fr}}

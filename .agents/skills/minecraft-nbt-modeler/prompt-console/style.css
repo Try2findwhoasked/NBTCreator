@@ -22,3 +22,5 @@ body.prompt-processing .editor,body.prompt-processing #prompt-queue-list{opacity
 @media(max-width:800px){.document-heading{align-items:flex-start}.document-actions{gap:4px}.output{bottom:106px}.editor-storage>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.review-state{padding-inline:6px}}
 
 .brief-field-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin:14px 0}.brief-field-options label{font-size:12px;margin:0}#prompt-ai-scope>p{margin-top:10px}
+
+.constraint-actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.constraint-choice{padding:10px 0;border-top:1px solid var(--ui-line)}.constraint-choice>label{margin-bottom:6px}.constraint-choice pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.7}.constraint-choice summary{font-size:12px;color:var(--ui-muted);cursor:pointer}

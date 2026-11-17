@@ -36,6 +36,7 @@ import {initProjectManager} from './project-manager.js'
 import {filterProjects} from './project-catalog.js'
 import {initTaskRecords} from './task-records.js'
 import {initHelpDialogs} from './help-dialogs.js'
+import {arrangeLibraryActions} from './library-actions.js'
 import {initStudioWorkspace} from './studio-workspace.js'
 import {createFeedbackAutosave} from './feedback-autosave.js'
 import { createOrthographic } from './orthographic.js'
@@ -192,7 +193,7 @@ async function captureViewport(isCancelled=()=>false){
 }
 let promptLoaded=false
 initReferencePicker({api})
-window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload),publish:payload=>api('prompt-publish',payload),library:payload=>api('prompt-library',payload),standards:()=>api('architect/standards-get',{})})
+window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload),publish:payload=>api('prompt-publish',payload),library:payload=>api('prompt-library',payload),standards:()=>api('architect/standards-get',{}),constraints:folder=>api('architect/constraints-list',folder?{folder}:{}),constraintFolders:()=>projectManager.constraintFolders(),constraintFolder:()=>projectManager.constraintFolder()})
 // The iframe gets only prompt generation, never the native API/key management bridge.
 window.nbtPromptAI=Object.freeze({
  config:()=>window.nbtDesktop?.apiConfig?.()??Promise.resolve({enabled:false,available:false}),
@@ -208,7 +209,8 @@ async function syncPrompt(){
     label.textContent='正在读取当前建筑、参数和保护配置…'
     const req=request(),result=await api('prompt-export',req)
     const selected=state.models.find(m=>m.source===result.source)
-    await $('prompt-frame').contentWindow.NbtPromptUI.receive({...result,name:selected?.name,buildingShape:selected?.shape,
+    const folder=projectManager.constraintFolders().find(entry=>entry.project===selected?.project_key&&entry.shape===selected?.shape_group)?.folder
+    await $('prompt-frame').contentWindow.NbtPromptUI.receive({...result,name:selected?.name,buildingShape:selected?.shape,constraintFolder:folder,
       contextPath:req.context,reviewPath:req.review,output:state.info?.workdir??state.output,budget:req.settings.max_changed_blocks})
     label.textContent='已载入当前建筑与参数；面板修改只用于生成提示词'
   }catch(error){label.textContent=error.message}
@@ -268,7 +270,7 @@ function updateCount() {
 const taskControlStates=new Map(),readonlyControlStates=new Map()
 function syncVersionReadonly(){
  const locked=!!(state.versionComparing||state.transforming)
- const sidebar=document.querySelector('.sidebar'),pages=[...sidebar.querySelectorAll(':scope>.studio-inspector-page')];sidebar.inert=locked&&!(state.versionComparing&&pages.length);for(const page of pages)page.inert=locked&&(state.transforming||page.id!=='studio-review')
+ const sidebar=document.querySelector('.sidebar'),pages=[...sidebar.querySelectorAll(':scope>.studio-inspector-page')];sidebar.inert=locked&&!pages.length;for(const page of pages)page.inert=locked&&(state.transforming||page.id!=='studio-review')
  const disable=control=>{if(!control)return;if(!readonlyControlStates.has(control))readonlyControlStates.set(control,taskControlStates.has(control)?taskControlStates.get(control):control.disabled);control.disabled=true}
  if(locked){document.querySelector('.action-bar').inert=!!state.versionComparing||!state.previewBusy;$('feedback-card').hidden=true
   for(const button of document.querySelectorAll('.action-bar button'))if(button.id!=='cancel')disable(button)
@@ -497,11 +499,12 @@ async function runJob(kind, overrides = {}) {
     if (result.images?.length) { imageMode(); gallery(result.images) }
     if (result.model_key) await loadViewer(result, Boolean(overrides.source))
     if(kind==='validate'){
-      let host=document.querySelector('#candidate-diagnostics');if(!host){host=document.createElement('section');host.id='candidate-diagnostics';host.className='diagnostic-guidance';$('candidate-check-state').closest('.preview-controls').after(host)}renderDiagnostics(host,result.diagnostics,{isCurrent:()=>state.candidateValidation===result&&state.previewSettings===JSON.stringify(gather()),status:(text,error)=>status(text,error?'error':'')})
+      let host=document.querySelector('#candidate-diagnostics');if(!host){host=document.createElement('section');host.id='candidate-diagnostics';host.className='diagnostic-guidance';$('candidate-check-state').closest('.preview-controls').after(host)}renderDiagnostics(host,result.diagnostics,{isCurrent:()=>state.candidateValidation===result&&state.previewSettings===JSON.stringify(gather()),status:(text,error)=>status(text,error?'error':''),focus:async bounds=>{await showComparison('after');await $('viewer').contentWindow.nbtModeler.focusDifference(bounds);const v=$('viewer').contentWindow.nbtModeler;syncComparisonViewControls(v.snapshot,v.metadata());editSession?.schedule()}})
       state.candidateValidation=result
       $('candidate-check-state').textContent=result.passed?'检查通过；请查看预览后另存新版本。':'检查未通过，请按下方报告处理后重新预览。'
       status(result.passed?'检查通过。预览尚未保存为建筑，请看图确认后另存新版本。':'检查未通过，请根据报告调整参数。原稿保持不变。',result.passed?'':'error')
     }else status(result.warning ? '方案已保存，建筑检查未通过：'+result.warning : ({plan:`Agent 交接方案已生成：${result.operations} 项操作。点击“复制给 Agent”继续，原建筑未改变。`,prepare:'建筑审阅图已保存到本建筑的 Agent交接 文件夹，目录已自动关联。请看图后，在 Agent 对话中明确是否同意继续精修。',render:'原建筑的多角度预览图已保存。',apply:'新建筑已另存，原建筑保留。',revision:result.draft_only?'SNBT 制作版已保存；原稿与原标注保留。':'下一版建筑已保存，定稿 NBT 位于 _exports 的镜像目录。原稿已保留。',snapshot:state.mode==='3d'?'3D 预览已打开。':'已切换到图片预览。'}[kind] ?? '完成'), result.warning ? 'warn' : '')
+    if(kind==='revision')window.dispatchEvent(new CustomEvent('creator-version-saved',{detail:{draftOnly:!!result.draft_only,source:payload.request.source,sourceHash:payload.request.source_sha256,master:result.master,output:result.output}}))
     return result
   } catch(error) { if(error.name!=='AbortError'&&['prepare','apply'].includes(kind))$('advanced-review').open=true;throw error } finally { busy(false) }
 }
@@ -575,7 +578,7 @@ let catalogEpoch=0
 function updateCatalog(data){
  const previous=$('source').value
  state.models=data.catalog.models;state.catalogReady=true
- renderModels(previous);projectManager.update(data.project_catalog?.models??state.models,state.workspace)
+ renderModels(previous);projectManager.update(data.project_catalog?.models??state.models,state.workspace,data.project_catalog?.constraint_folders??[])
  if(state.models.length&&!state.info&&!state.busy&&(!previous||!state.models.some(item=>item.source===previous))&&$('models').value!=='')selectModel(Number($('models').value))
  if(data.catalog.migration_in_progress)status('建筑库正在按形状迁移和校验，完成后刷新列表即可。','warn')
  else if(!state.models.length)status(`未发现可载入的完整建筑。扫描目录：${data.catalog.scan_root??state.workspace+'/nbt_models'}。已检查 ${data.catalog.scanned} 个文件，${data.catalog.skipped} 个格式不支持或损坏。请确认项目根目录，或直接打开完整 NBT / 主模型。`,'warn')
@@ -713,6 +716,7 @@ async function showComparison(side){
   state.viewerFeedbackId=side==='before'?result.baseline_feedback_id:result.feedback_id;await activateViewerFeedback(state.viewerFeedbackId)
   $('workspace-context').textContent=`${modelName()} · ${side==='before'?'原建筑':'参数调整效果'} · 同一视角对比，仅预览`
   $('model-hash').textContent=side==='before'?'原建筑':'效果预览（未保存为正式建筑）'
+  window.dispatchEvent(new Event('creator-editor-state'))
 }
 $('auto-preview').addEventListener('change',()=>{if($('auto-preview').checked)schedulePreview();else clearTimeout(previewTimer)})
 $('update-preview').addEventListener('click',handle(updatePreview))
@@ -843,8 +847,15 @@ function syncPicking(){
   $('pick-coordinate').setAttribute('aria-pressed',String(Boolean(state.coordinatePicking)))
   const commentCaption=$('pick-coordinate').querySelector('.toolbar-caption');if(commentCaption)commentCaption.textContent=state.coordinatePicking?'结束标注':'标注'
   $('viewer').contentWindow?.nbtModeler?.setPicking(Boolean(state.selectionEditPicking||state.walkPicking||state.assetPicking||state.aiPlacing||state.picking||state.coordinatePicking),state.selectionEditPicking?'selection-edit':state.coordinatePicking?'comment':'material')
+  window.dispatchEvent(new Event('creator-editor-state'))
 }
-window.addEventListener('keydown',event=>{if(event.key==='Escape'&&state.selectionEditPicking){state.selectionEditPicking=null;syncPicking();$('view-hint').textContent='已取消编辑选区选择。'}})
+function cancelPicking(){
+ const target=state.coordinatePicking?'pick-coordinate':state.picking?'pick-material':state.selectionEditPicking?'ai-edit-pick':'viewport-assets'
+ if(!state.selectionEditPicking&&!state.walkPicking&&!state.assetPicking&&!state.aiPlacing&&!state.picking&&!state.coordinatePicking)return
+ state.selectionEditPicking=null;state.walkPicking=false;state.assetPicking=null;state.aiPlacing=null;state.picking=false;state.coordinatePicking=false;syncPicking();walkView?.sync();$('view-hint').textContent='已退出选点，恢复视角操作。';const control=$(target);if(control&&!control.disabled&&control.getClientRects().length&&!control.closest('[inert]'))control.focus();else $('studio-inspector-toggle')?.focus()
+}
+function exitCanvasMode(){if(state.versionComparing)return versionComparison.close().then(()=>{const panel=$('version-compare-panel');if(panel?.matches(':popover-open'))panel.hidePopover();const target=$('open-version-compare');(target?.getClientRects().length?target:$('studio-inspector-toggle'))?.focus()}).catch(error=>status(error.message,'warn'));cancelPicking()}
+window.addEventListener('keydown',event=>{if(event.key==='Escape'&&!document.querySelector('dialog:modal'))exitCanvasMode()})
 $('pick-coordinate').addEventListener('click',()=>{
   state.walkPicking=false;state.assetPicking=null;state.aiPlacing=null;state.coordinatePicking=!state.coordinatePicking;state.picking=false;syncPicking()
   $('view-hint').textContent=state.coordinatePicking?'点击建筑表面添加位置编号，然后在标注面板填写修改要求。':'左键原地转向，中键平移，滚轮前进／后退'
@@ -855,7 +866,8 @@ $('pick-material').addEventListener('click',()=>{
 })
 window.addEventListener('message',event=>{
   if(event.origin!==location.origin||event.source!==$('viewer').contentWindow)return
-  if(event.data?.type==='nbt-pick-cancelled'){state.selectionEditPicking=null;syncPicking();return}
+  if(event.data?.type==='nbt-view-escape'){exitCanvasMode();return}
+  if(event.data?.type==='nbt-pick-cancelled'){cancelPicking();return}
   if(event.data?.type==='nbt-annotation-focused'){focusMarker(event.data.number);return}
   if(!['nbt-material-picked','nbt-coordinate-picked'].includes(event.data?.type))return
   const picked=event.data.result
@@ -902,6 +914,8 @@ $('add-picked-material').addEventListener('click',()=>{
 })
 createOrthographic({getInfo:()=>state.info,getRange:()=>($('whole-region').checked&&state.info?{lo:[0,0,0],hi:state.info.size.map(v=>v-1)}:{lo:['lo-x','lo-y','lo-z'].map(id=>Number($(id).value)),hi:['hi-x','hi-y','hi-z'].map(id=>Number($(id).value))}),setRange:range=>{$('whole-region').checked=false;['x','y','z'].forEach((axis,i)=>{setValue('lo-'+axis,range.lo[i]);setValue('hi-'+axis,range.hi[i])});syncSelectionRange()}})
 window.detailControl={gather,request,restore,loadModel,runJob,state,selectImage,imageMode}
+window.detailControl.cancelPicking=cancelPicking
+window.detailControl.exitCanvasMode=exitCanvasMode
 window.detailControl.saveAuthoringVersion=async()=>{if(!state.preview||state.previewSettings!==JSON.stringify(gather()))throw Error('请先更新当前参数的预览，再保存制作版');return runJob('revision',{draft_only:true})}
 async function openProjectModel(item){
  if(state.busy||state.previewBusy||state.sessionRestoring)throw Error('请等待当前任务完成')
@@ -916,8 +930,9 @@ async function openProjectModel(item){
  window.creatorWorkspace.select('model')
  return state.info
 }
+window.detailControl.openModel=openProjectModel
 const projectManager=initProjectManager({api,openModel:openProjectModel,isBusy:()=>state.busy||state.previewBusy||state.sessionRestoring,setBusy:busy,refresh:initialize,historyContext:()=>state.info,historyCompare:pair=>versionComparison.compare(pair)})
-initDesktop(source=>openProjectModel({source}))
+initDesktop(projectManager.openFile)
 initModelPicker()
 function notifyAIComponent(restored=false){window.dispatchEvent(new CustomEvent('nbt-ai-component-state',{detail:{restored}}))}
 function currentAIGroup(){try{const group=state.lastAIGroup;return group&&group.source===state.info?.source&&group.source_sha256===state.info?.source_sha256&&aiGroupMatches(group,gather())?group:null}catch{return null}}
@@ -1000,6 +1015,8 @@ async function applyComponentPatch(patch,expected){return withPreviewCommit(asyn
  const before=gather();if(expected&&expected!==JSON.stringify(before))throw Error('模型参数已改变，请重新开始放置')
  const next=structuredClone(before);next.operations.push(...patch.operations);updateComponentRange(next,patch)
  await commitPreviewSettings(next,(patch.mode==='move'?'移动选区：':'放置构件：')+(patch.name||patch.operations[0]?.label||'构件'))
+ state.recentComponent={source:state.info.source,source_sha256:state.info.source_sha256,start:before.operations.length,base:structuredClone(patch.operations),applied:structuredClone(gather().operations.slice(before.operations.length)),name:patch.name??patch.operations[0]?.label}
+ selectTool(8);window.dispatchEvent(new Event('creator-editor-state'))
 })}
 function reusableContext(){if(!state.info)return null;const s=gather();return {name:state.info.source.split(/[\\/]/).slice(-3).join('/'),source:state.info.source,source_sha256:state.info.source_sha256,size:state.info.size,busy:!!(state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring||state.versionComparing||state.transforming),whole:s.whole_region,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?state.info.size.map(v=>v-1):s.hi,operations:s.operations,settings:JSON.stringify(s),target_id:state.mode==='3d'&&state.feedbackTarget?.kind==='3d'?state.feedbackTarget.id:null}}
 async function applyReusable(patch,expected){
@@ -1018,7 +1035,7 @@ function captureToolEffect(){
 const toolEffects=initToolEffects({api,capture:captureToolEffect,context:reusableContext,apply:(patch,expected)=>withPreviewCommit(async()=>{if(expected!==JSON.stringify(gather()))throw Error('模型参数已变化');const next=structuredClone(gather()),settings=structuredClone(patch.settings),operations=settings.operations??[];delete settings.operations;for(const [key,value]of Object.entries(settings))next[key]=value&&typeof value==='object'&&!Array.isArray(value)?{...next[key],...value}:value;next.operations.push(...operations);window.creatorWorkspace.select('model');await commitPreviewSettings(next,'载入工具效果：'+patch.name)})})
 const reusableLibrary=initReusableLibrary({api,context:reusableContext,apply:applyReusable})
 initAssetWorkspace({
- api,context:reusableContext,decorateTree:reusableLibrary.decorateTree,
+ api,context:()=>{const ctx=reusableContext();if(!ctx)return null;const model=state.models.find(item=>item.source===ctx.source);return {...ctx,name:[model?.name_zh||model?.name,model?.version].filter(Boolean).join(' / ')||ctx.name}},chooseTarget:projectManager.chooseTarget,decorateTree:reusableLibrary.decorateTree,
  pickPosition:async callback=>{if(!state.info||state.busy||state.previewBusy)throw Error('请先打开建筑并等待任务完成');window.creatorWorkspace.select('model');if(state.mode!=='3d')await runJob('snapshot');state.aiPlacing=null;state.picking=false;state.coordinatePicking=false;state.assetPicking=callback;syncPicking();$('view-hint').textContent='点击建筑表面设置构件锚点并生成预览；左键拖动仍可转向'},
  interactive:(component,options)=>options.selection?componentEditor.startSelection(options.move):componentEditor.startAsset(component,options),
  apply:applyReusable
@@ -1158,8 +1175,9 @@ document.addEventListener('input',event=>{if(event.target.closest('#settings,#fe
 document.addEventListener('change',event=>{if(event.target.closest('#settings,.review-toolbar'))editSession.schedule()})
 window.addEventListener('creator-session-preference',event=>{for(const id of ['session-save-now','session-reload','session-valid-inputs'])$(id).disabled=state.busy||!event.detail;if(!event.detail){sessionStatus.textContent='编辑草稿自动保存与恢复已关闭';sessionStatus.classList.remove('session-error')}else editSession.schedule()})
 initCommandCenter({api,state:()=>state,selectTool,message:status})
-initStudioWorkspace({state:()=>state,gather})
+initStudioWorkspace({state:()=>state,gather,openModel:openProjectModel})
 initArchitectTools({api,context:()=>state,getVisible:()=>projectManager.getVisible(),openModel:openProjectModel,refresh:initialize,compare:pair=>versionComparison.compare(pair),flush:()=>window.nbtFeedbackAutosave?.flush()})
+arrangeLibraryActions()
 const feedbackSaveState=document.createElement('p');feedbackSaveState.id='feedback-save-state';feedbackSaveState.setAttribute('role','status');feedbackSaveState.textContent='标注会自动保存到当前建筑版本';$('feedback-text').after(feedbackSaveState)
 feedbackAutosave=createFeedbackAutosave({
  capture:()=>{

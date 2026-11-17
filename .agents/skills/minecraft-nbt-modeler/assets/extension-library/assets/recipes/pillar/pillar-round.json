@@ -1,0 +1,19 @@
+{
+  "arguments": {
+    "form": {
+      "base_height": 3,
+      "capital_height": 3,
+      "section": "round",
+      "shaft_ratio": 0.9
+    },
+    "kind": "pillar",
+    "name": "素面圆柱",
+    "size": [
+      9,
+      20,
+      9
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}
