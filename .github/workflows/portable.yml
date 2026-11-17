@@ -17,7 +17,7 @@ concurrency:
 jobs:
   build:
     runs-on: windows-2025
-    timeout-minutes: 45
+    timeout-minutes: 60
     defaults:
       run:
         shell: pwsh
@@ -69,6 +69,16 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/cli.mjs check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/sync-asset-library.py --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/engine/asset-libraries.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/engine/modular-objects.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/engine/structural-members.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/engine/window-frames.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Prepare pinned renderer for source regression
         run: |
           node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
@@ -77,6 +87,8 @@ jobs:
         env:
           ELECTRON_ENABLE_LOGGING: '1'
         run: node tests/desktop/electron-launch.mjs
+      - name: Verify unified asset library desktop flow
+        run: node tests/desktop/unified-assets-desktop.mjs
       - name: Verify Agent evidence and whole-model pipelines
         env:
           DEBUG: 'pw:browser'

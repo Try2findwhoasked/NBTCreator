@@ -43,7 +43,7 @@ let app,page
 const checks={},errors=[],layouts=[]
 const env={...process.env,NBTCREATOR_AUTOMATION:'1',OPENBLAS_NUM_THREADS:'1',OMP_NUM_THREADS:'1'};delete env.ELECTRON_RUN_AS_NODE
 async function launch(folder,profile){
- app=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:[root,'--workspace',folder,'--user-data-dir',profile],env,timeout:60000})
+ app=await _electron.launch({executablePath:path.join(root,'node_modules/electron/dist/electron.exe'),args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader',root,'--workspace',folder,'--user-data-dir',profile],env,timeout:60000})
  page=await app.firstWindow();page.setDefaultTimeout(75000);await minimizedScreenshots(app,page)
  page.on('pageerror',error=>errors.push(error.message))
  await page.waitForFunction(()=>window.detailControl?.state.catalogReady)
