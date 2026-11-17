@@ -45,6 +45,9 @@ function buildOutputSchema(mode,context){
  else if(mode==='component'){
   const placement=object({id:{type:'string',pattern:'^[a-f0-9]{32}$'},content_sha256:{type:'string',pattern:'^[a-f0-9]{64}$'},position:vector,quarter_turns:optional({...integer,minimum:0,maximum:3}),mirror:optional({type:['string','null'],enum:['x','z',null]}),material_map:optional(mapSchema())})
   schema=object({name:enumeration([context.name]),size:vector,camera,operations:array(operations,48),placements:array(placement,32)})
+ }else if(mode==='workbench'&&context.task==='constraint'){
+  const properties=catalog.project_constraints.rules.properties
+  return object({name:{type:'string',minLength:1,maxLength:80},rules:object(Object.fromEntries(Object.entries(properties).map(([key,schema])=>[key,optional(schema)])))})
  }else if(mode==='workbench'&&context.task==='brief'){
   const fields=context.brief_scope?.editable_fields??Object.keys(catalog.prompt_design.fields)
   const properties=Object.fromEntries(fields.map(key=>{

@@ -28852,5 +28852,108 @@
       "reference": "参考尺寸，执行 Agent 可按用途调整并说明",
       "fixed": "固定尺寸，执行 Agent 必须满足"
     }
+  },
+  "project_constraints": {
+    "schema_version": 1,
+    "description": "在建筑库选中项目或形状文件夹后管理该文件夹的约束。创作方案按文件夹选用约束并保存所选版本。",
+    "cli": "architect <constraints-list|constraints-save|constraints-delete> --request <JSON>",
+    "actions": [
+      "constraints-list",
+      "constraints-save",
+      "constraints-delete"
+    ],
+    "storage": "<folder>/项目约束.json，省略 folder 时使用 nbt_models/_workspaces/project_design/constraints.json",
+    "folder_request": "list、save、delete 可传已有文件夹相对路径，例如 nbt_models/SAODG/l_shape。省略表示工作区共用。",
+    "max_items": 256,
+    "max_selected": 16,
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "buildingShape": {
+          "type": "string",
+          "enum": [
+            "single",
+            "long",
+            "square",
+            "l_shape",
+            "t_shape",
+            "cross",
+            "irregular",
+            "standalone"
+          ]
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4096
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "size_policy": {
+          "type": "string",
+          "enum": [
+            "reference",
+            "fixed"
+          ]
+        },
+        "cell_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 512
+        },
+        "cells": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4095
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true
+        },
+        "footprint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "requirements": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      },
+      "description": "size_policy需要size；指定size但省略策略时按fixed处理；cells需要cell_size，若指定尺寸不得越界。同一方案中的结构字段冲突时拒绝引用。"
+    },
+    "save_request": {
+      "revision": "约束库的最新整数revision；防止并发覆盖",
+      "id": "修改时使用已有id；新建时省略",
+      "name": "不重复的1～80字名称",
+      "rules": "符合rules定义的对象",
+      "actor": "human或agent"
+    },
+    "snapshot_fields": [
+      "schema_version",
+      "id",
+      "revision",
+      "name",
+      "rules",
+      "folder",
+      "sha256",
+      "updated_at",
+      "actor"
+    ],
+    "snapshot_hash": "SHA256 of compact UTF-8 JSON for schema_version,id,revision,name,rules and folder if present, with sorted object keys; no whitespace or trailing newline",
+    "selection": "方案document.constraints为最多16个完整快照；更新或移除项目约束不改写已有方案。移除引用恢复原设计参数。"
   }
 }

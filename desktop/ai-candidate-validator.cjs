@@ -3,7 +3,7 @@ const fs=require('node:fs/promises'),path=require('node:path'),{pathToFileURL}=r
 function createCandidateValidator({root,python,directory,getWorkspace}){
  let session,workspace,loading
  async function validate({mode,result,context,signal}){
-  if(mode==='prompt'||mode==='workbench'&&context.task==='brief')return
+  if(mode==='prompt'||mode==='workbench'&&['brief','constraint'].includes(context.task))return
   const fatal=message=>Object.assign(Error(message),{retryable:false})
   if(signal?.aborted)throw fatal('AI几何预检已取消')
   const target=path.resolve(getWorkspace())

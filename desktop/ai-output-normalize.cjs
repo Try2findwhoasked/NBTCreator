@@ -44,6 +44,7 @@ function boxes(rows,palette,defaultClassification){
 }
 function normalizeReply(value,mode,context){
  if(!object(value))return value
+ if(mode==='workbench'&&context.task==='constraint')return structuredClone(value)
  const result=structuredClone(value),target=mode==='small_structure'?(result.settings_patch??result):result
  if(mode==='structure'&&object(result.settings_patch))result.settings_patch=materials(result.settings_patch)
  if(object(target)&&target.boxes!==undefined){

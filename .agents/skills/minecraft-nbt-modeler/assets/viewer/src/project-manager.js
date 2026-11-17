@@ -9,6 +9,7 @@ import {initLibraryBrowser} from './library-browser.js'
 import {floatingDetails,chevron} from './floating-panel.js'
 import {initProjectBatch} from './project-batch.js'
 import {initBuildingHistory} from './building-history.js'
+import {initProjectConstraints} from './project-constraints.js'
 
 // Browsing and read-only previews never change the editor's selected source.
 export function initProjectManager({api,openModel,isBusy,setBusy,refresh,historyContext=()=>null,historyCompare=()=>{}}){
@@ -25,7 +26,32 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh,history
  let thumbnailRun=null
  let treeModels=null,treeShowDiscarded=false,batch=null,workspaces=null,visibleModels=[]
  let models=[],workspace='',limit=24,generation=0,selected=null,previewGeneration=0,previewBusy=false,object='',catalogLoading=true,latest=new Set(),coverQueue=[],activeCovers=0,searchTimer
- let treeSelection=null
+ let constraintFolders=[],constraintFolder='',treeSelection=null
+ const shapeNames={single:'单格',long:'长条',square:'方形',l_shape:'L 形',t_shape:'T 形',cross:'十字',standalone:'独立结构',irregular:'不规则'}
+ function foldersFor(items,paths){
+  const folders=new Map()
+  const projectFolder=(project,label)=>{
+   const folder=['nbt_models',project].filter(Boolean).join('/')
+   folders.set(folder,{folder,project,projectLabel:label,label})
+   return folder
+  }
+  for(const item of items){
+   const {project_key:project,project_name:label,shape_group:shape}=item
+   if(typeof project!=='string')continue
+   const parent=projectFolder(project,label)
+   if(Object.hasOwn(shapeNames,shape)){
+    const folder=parent+'/'+shape
+    if(item.relative_path?.replaceAll('\\','/').startsWith(folder.slice('nbt_models/'.length)+'/'))folders.set(folder,{folder,project,shape,projectLabel:label,shapeLabel:shapeNames[shape],label:`${label} / ${shapeNames[shape]}`})
+   }
+  }
+  for(const folder of paths){
+   const parts=folder.split('/').slice(1),last=parts.at(-1),shape=Object.hasOwn(shapeNames,last)?parts.pop():null,project=parts.join('/')
+   const label=project||folders.get('nbt_models')?.label||workspace.split(/[\\/]/).at(-1)||'工作区根目录'
+   projectFolder(project,label)
+   if(shape)folders.set(folder,{folder,project,shape,projectLabel:label,shapeLabel:shapeNames[shape],label:`${label} / ${shapeNames[shape]}`})
+  }
+  return [...folders.values()].sort((a,b)=>a.folder.localeCompare(b.folder,'zh-CN'))
+ }
  const message=text=>{$('project-status').textContent=text;const note=document.getElementById('project-manage-status');if(note)note.textContent=text}
  const coverTargets=new WeakMap()
  const coverObserver=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting){const task=coverTargets.get(entry.target);coverObserver.unobserve(entry.target);if(task)coverQueue.push(task)}pumpCovers()},{root:host,rootMargin:'160px'})
@@ -79,6 +105,12 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh,history
   object=value.object;$('project-search').value='';limit=24;render()
  }
  const treeView=createProjectTree({container:$('project-tree'),api,onStatus:message,onOrderChange:render,onOpen:edit,onSelect:selectTreeFolder})
+ const constraints=initProjectConstraints({api,container:$('project-tree').querySelector('.project-tree-heading'),getFolders:()=>constraintFolders,getFolder:()=>constraintFolder,onFolderChange(folder){
+  if(document.body.dataset.workspace==='prompt'){window.dispatchEvent(new CustomEvent('project-constraint-folder',{detail:folder}));return}
+  const entry=constraintFolders.find(item=>item.folder===folder)
+  selectTreeFolder({project:entry?.project??'*',shape:entry?.shape??'*',object:''})
+  if(entry)treeView.revealProject(entry.project)
+ }})
  const organization=initProjectOrganization({api,container:$('project-tree'),message,changed:()=>{treeSelection=null;object='';filters.project.reset();filters.shape.reset();limit=24;treeModels=null;populateFilters();render()}})
  batch=initProjectBatch({host,api,library,getVisible:()=>visibleModels,getModels:()=>models,render,isBusy,setBusy,refresh,message})
  workspaces=initBatchWorkspaces({host,api,getModels:()=>models,openModel:edit,previewModel:showPreview,render})
@@ -115,7 +147,7 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh,history
   const scopedModels=organization.filter(models)
   const browsingModels=showDiscarded?scopedModels:scopedModels.filter(item=>projectStage(item)!=='discarded')
   latest=latestSources(browsingModels)
-  if(treeModels!==models||treeShowDiscarded!==showDiscarded){treeModels=models;treeShowDiscarded=showDiscarded;treeView.update(browsingModels)}
+  if(treeModels!==models||treeShowDiscarded!==showDiscarded){treeModels=models;treeShowDiscarded=showDiscarded;treeView.update(browsingModels,constraintFolders)}
   const scrollTop=library.main.scrollTop,token=append?generation:++generation
   if(!append){coverObserver.disconnect();coverQueue=[]}
   const visible=filterProjects(organization.filter(models),{project:filters.project.get(),shape:filters.shape.get(),object,version:filters.version.get(),readability:filters.readability.get(),stage:filters.stage.get(),query:$('project-search').value},latest)
@@ -123,6 +155,11 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh,history
   visible.sort((a,b)=>(order.get(a.object_key||a.group||a.source)??Infinity)-(order.get(b.object_key||b.group||b.source)??Infinity)||Number(a.is_delivery)-Number(b.is_delivery)||Number(latest.has(b.source))-Number(latest.has(a.source)))
   visibleModels=visible
   treeView.select({...treeSelection,project:treeSelection?.project??'*',shape:treeSelection?.shape??'*',object})
+  const projectFolders=treeSelection&&constraintFolders.filter(entry=>entry.project===treeSelection.project)
+  const scope=projectFolders&&(projectFolders.find(entry=>entry.shape===treeSelection.shape)??projectFolders.find(entry=>!entry.shape))
+  const nextFolder=scope?.folder??''
+  if(nextFolder!==constraintFolder){constraintFolder=nextFolder;window.dispatchEvent(new CustomEvent('project-constraint-folder',{detail:nextFolder}))}
+  constraints.scope(scope)
   const versions=filters.version.get()
   $('project-quick-version').value=versions.length===3?'all':versions.length===1&&['latest','older'].includes(versions[0])?versions[0]:'custom'
   const summary=Object.values(filters).map(filter=>filter.description()).filter(Boolean)
@@ -131,7 +168,7 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh,history
   library.scope.hidden=!summary.length&&!treeSelection&&!object&&!$('project-tree').querySelector('[data-custom-menu][aria-pressed=true]')
   $('project-count').textContent=`${visible.length} 个版本 / 库内共 ${models.length} 个版本`
   const selectedObject=models.find(item=>(item.object_key||item.group||item.source)===object)
-  $('project-breadcrumb').textContent=[selectedObject?.project_name,selectedObject?.shape_group_zh,selectedObject?.object_name||selectedObject?.name_zh||selectedObject?.name].filter(Boolean).join(' / ')
+  $('project-breadcrumb').textContent=selectedObject?[selectedObject.project_name,selectedObject.shape_group_zh,selectedObject.object_name||selectedObject.name_zh||selectedObject.name].filter(Boolean).join(' / '):scope?.label??''
   const start=append?$('project-grid').querySelectorAll('.project-card').length:0
   if(!append)$('project-grid').replaceChildren();$('project-more').hidden=visible.length<=limit
   const entries=[]
@@ -211,6 +248,7 @@ batch?.decorate(card,item);workspaces?.decorate(card,item);$('project-grid').app
  }
  function populateFilters(){
   const scoped=organization.filter(models),projects=new Map(scoped.map(item=>[item.project_key,item.project_name])),shapes=new Map(scoped.map(item=>[item.shape_group,item.shape_group_zh]));shapes.set('bugged','bugged（待修复）')
+  for(const folder of constraintFolders){projects.set(folder.project,folder.projectLabel);if(folder.shape)shapes.set(folder.shape,folder.shapeLabel)}
   for(const [filter,entries]of [[filters.project,projects],[filters.shape,shapes]])filter.options([...entries].sort((a,b)=>Number(a[0]==='bugged')-Number(b[0]==='bugged')||a[1].localeCompare(b[1],'zh-CN')))
  }
  $('project-search').oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{limit=24;render()},120)}
@@ -220,5 +258,5 @@ batch?.decorate(card,item);workspaces?.decorate(card,item);$('project-grid').app
  $('project-preview-close').onclick=()=>dialog.close();$('project-preview-render').onclick=render3D;$('project-preview-edit').onclick=()=>edit(selected)
  dialog.addEventListener('close',()=>{previewGeneration++;$('project-preview-3d').src='about:blank';$('project-preview-3d').hidden=true;$('project-preview-image').removeAttribute('src')})
  window.addEventListener('creator-workspace-change',event=>{if(event.detail==='project'){render()}else{if(!openingTarget)clearTarget();if(thumbnailRun)thumbnailRun.cancelled=true;generation++;coverObserver.disconnect();coverQueue=[];if(dialog.open)dialog.close()}})
- return {chooseTarget,openFile:source=>targetIntent?edit({source}):openModel({source}),getVisible:()=>visibleModels,checked(info){for(const item of models)if(item.source===info.source){item.unverified=false;item.unreadable=false;item.geometry_sha256=info.geometry_sha256;item.size=info.size}latest=latestSources(models);if(document.body.dataset.workspace==='project')render()},setLoading(text){catalogLoading=!!text;$('project-loading').textContent=text;$('project-refresh').disabled=catalogLoading;host.setAttribute('aria-busy',String(catalogLoading&&!models.length))},update(items,root){if(root!==workspace){compare.reset();clearTarget()}models=items;compare.reconcile(items);batch?.update();latest=latestSources(models);workspace=root;workspaces?.update(workspace);host.dataset.workspaceRoot=workspace;populateFilters();render();}}
+ return {chooseTarget,openFile:source=>targetIntent?edit({source}):openModel({source}),getVisible:()=>visibleModels,constraintFolders:()=>constraintFolders,constraintFolder:()=>constraintFolder,checked(info){for(const item of models)if(item.source===info.source){item.unverified=false;item.unreadable=false;item.geometry_sha256=info.geometry_sha256;item.size=info.size}latest=latestSources(models);if(document.body.dataset.workspace==='project')render()},setLoading(text){catalogLoading=!!text;$('project-loading').textContent=text;$('project-refresh').disabled=catalogLoading;host.setAttribute('aria-busy',String(catalogLoading&&!models.length))},update(items,root,folders=[]){if(root!==workspace){compare.reset();clearTarget()}models=items;compare.reconcile(items);batch?.update();latest=latestSources(models);workspace=root;constraintFolders=foldersFor(items,folders);workspaces?.update(workspace);host.dataset.workspaceRoot=workspace;populateFilters();render();window.dispatchEvent(new Event('project-constraint-folders-loaded'))}}
 }

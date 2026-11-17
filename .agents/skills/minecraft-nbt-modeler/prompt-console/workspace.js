@@ -3,7 +3,7 @@
 (() => {
  globalThis.createPromptWorkspace=function(hooks){
   const $=id=>document.getElementById(id),C=NbtPrompt,items=[];let active=null,loading=true,working=false,silent=false,cancelled=false,batchRunning=false,pristine=true
-  const signature=doc=>JSON.stringify([doc.project,doc.operations,doc.aiDraft,doc.proposal_draft,doc.workbench?.instruction,doc.design_standard,doc.design_override])
+  const signature=doc=>JSON.stringify([doc.project,doc.operations,doc.aiDraft,doc.proposal_draft,doc.workbench?.instruction,doc.design_standard,doc.design_override,doc.constraints])
   const phase=item=>item.task?'published':item.document?.workbench?.status==='reviewed'||!item.document&&item.review_state==='reviewed'?'reviewed':item.document?.proposal_draft?'pending':item.document?.workbench?.generated===false||!item.document&&item.generation_state===false?'waiting':'pending'
   const labels={published:'已交接 · 等待外部助手读取',reviewed:'已审查 · 可以交接',pending:'待审查 · 修改后自动保存',waiting:'待编写'}
   function syncNavigation(){const step=document.body.classList.contains('output-open')?'handoff':!$('ai').hidden?'write':'review';for(const button of document.querySelectorAll('[data-planning-step]')){button.disabled=working||loading;if(button.dataset.planningStep===step)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current')}const tab=document.querySelector('.tab:not([hidden])'),hint=$('planning-next');if(tab&&hint.parentElement!==tab)tab.prepend(hint)}
@@ -101,7 +101,7 @@
     const template=C.clone(hooks.document()),inherit=$('prompt-batch-inherit').checked;
     for(const request of requested){
      const doc=C.defaults();
-     if(inherit){if(C.buildingShapes[template.project.buildingShape])C.applyShape(doc.project,template.project.buildingShape);for(const key of [...Object.keys(C.designContract.fields),'size_policy'])if(key!=='name'&&template.project[key]!==undefined)doc.project[key]=C.clone(template.project[key]);doc.workbench.brief_fields=C.clone(template.workbench?.brief_fields??C.designContract.default_editable_fields);}
+     if(inherit){doc.constraints=C.clone(template.constraints??[]);if(C.buildingShapes[template.project.buildingShape])C.applyShape(doc.project,template.project.buildingShape);for(const key of [...Object.keys(C.designContract.fields),'size_policy'])if(key!=='name'&&template.project[key]!==undefined)doc.project[key]=C.clone(template.project[key]);doc.workbench.brief_fields=C.clone(template.workbench?.brief_fields??C.designContract.default_editable_fields);}
      doc.project.name=request.name;doc.project.output=C.outputPath(doc.project);added.push(await appendDocument(doc,request.instruction,standard));
     }
     if(!generate){await select(added[0],{skipFlush:true,tab:'ai'});hooks.message(`已添加 ${added.length} 座建筑。点击“生成下一条”依次编写。`);return}

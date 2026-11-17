@@ -193,7 +193,7 @@ async function captureViewport(isCancelled=()=>false){
 }
 let promptLoaded=false
 initReferencePicker({api})
-window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload),publish:payload=>api('prompt-publish',payload),library:payload=>api('prompt-library',payload),standards:()=>api('architect/standards-get',{})})
+window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload),publish:payload=>api('prompt-publish',payload),library:payload=>api('prompt-library',payload),standards:()=>api('architect/standards-get',{}),constraints:folder=>api('architect/constraints-list',folder?{folder}:{}),constraintFolders:()=>projectManager.constraintFolders(),constraintFolder:()=>projectManager.constraintFolder()})
 // The iframe gets only prompt generation, never the native API/key management bridge.
 window.nbtPromptAI=Object.freeze({
  config:()=>window.nbtDesktop?.apiConfig?.()??Promise.resolve({enabled:false,available:false}),
@@ -209,7 +209,8 @@ async function syncPrompt(){
     label.textContent='正在读取当前建筑、参数和保护配置…'
     const req=request(),result=await api('prompt-export',req)
     const selected=state.models.find(m=>m.source===result.source)
-    await $('prompt-frame').contentWindow.NbtPromptUI.receive({...result,name:selected?.name,buildingShape:selected?.shape,
+    const folder=projectManager.constraintFolders().find(entry=>entry.project===selected?.project_key&&entry.shape===selected?.shape_group)?.folder
+    await $('prompt-frame').contentWindow.NbtPromptUI.receive({...result,name:selected?.name,buildingShape:selected?.shape,constraintFolder:folder,
       contextPath:req.context,reviewPath:req.review,output:state.info?.workdir??state.output,budget:req.settings.max_changed_blocks})
     label.textContent='已载入当前建筑与参数；面板修改只用于生成提示词'
   }catch(error){label.textContent=error.message}
@@ -577,7 +578,7 @@ let catalogEpoch=0
 function updateCatalog(data){
  const previous=$('source').value
  state.models=data.catalog.models;state.catalogReady=true
- renderModels(previous);projectManager.update(data.project_catalog?.models??state.models,state.workspace)
+ renderModels(previous);projectManager.update(data.project_catalog?.models??state.models,state.workspace,data.project_catalog?.constraint_folders??[])
  if(state.models.length&&!state.info&&!state.busy&&(!previous||!state.models.some(item=>item.source===previous))&&$('models').value!=='')selectModel(Number($('models').value))
  if(data.catalog.migration_in_progress)status('建筑库正在按形状迁移和校验，完成后刷新列表即可。','warn')
  else if(!state.models.length)status(`未发现可载入的完整建筑。扫描目录：${data.catalog.scan_root??state.workspace+'/nbt_models'}。已检查 ${data.catalog.scanned} 个文件，${data.catalog.skipped} 个格式不支持或损坏。请确认项目根目录，或直接打开完整 NBT / 主模型。`,'warn')
