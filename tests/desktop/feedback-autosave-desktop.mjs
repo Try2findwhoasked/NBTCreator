@@ -10,7 +10,7 @@ const output=path.join(root,'build','feedback-autosave-'+Date.now()),workspace=p
 function fixture(folder){const result=spawnSync(python,[path.join(root,'tests/support/make_fixture.py'),folder],{encoding:'utf8',windowsHide:true});assert.equal(result.status,0,result.stderr)}
 fixture(v1);const sourceBytes=await fs.readFile(source1);await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'model',autoPreview:false}))
 let app,page
-const click=selector=>page.locator(selector).first().click()
+const click=async selector=>{if(selector==='#project-refresh'&&!await page.locator('#project-library-menu').evaluate(menu=>menu.open))await page.locator('#project-library-menu>summary').click();return page.locator(selector).first().click()}
 const waitText=(index,text)=>page.waitForFunction(({index,text})=>window.detailControl.state.notes[index]?.text===text&&!document.querySelector('#feedback-save-state').classList.contains('error'),{index,text})
 async function capture(name){await page.screenshot();await page.screenshot({path:path.join(output,name+'.png')})}
 try{
