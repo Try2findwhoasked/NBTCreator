@@ -10,6 +10,7 @@
 
 ```powershell
 mise tasks
+mise install
 mise exec -- node --version
 mise exec -- python --version
 mise exec -- npm ci
@@ -17,7 +18,7 @@ mise exec -- npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
 mise exec -- python -m pip install -r .agents/skills/minecraft-nbt-modeler/requirements.txt
 ```
 
-当前 [mise.toml](../../mise.toml)提供 CPU、GPU 和主模型测试任务，未声明工具版本，也不会自动安装 Node.js / Python。`mise exec` 使用可用环境启动命令，不依赖交互式 shell 的自动激活。
+当前 [mise.toml](../../mise.toml)固定 Python 3.14.7，并提供 CPU、GPU、主模型、资产及 UI 测试任务；`mise install` 准备已声明的工具。Node.js 24 仍使用可用环境。`mise exec` 不依赖交互式 shell 的自动激活。
 
 沿用 npm 和两份 package-lock.json，不混用包管理器。个人环境配置写入已被 Git 忽略的 `mise.local.toml`，不要提交密钥。普通离线编辑和自动化测试无需配置外部 AI 服务。
 
