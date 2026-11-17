@@ -1,0 +1,19 @@
+{
+  "arguments": {
+    "form": {
+      "band_spacing": 4,
+      "base_height": 3,
+      "capital_height": 3,
+      "section": "octagonal"
+    },
+    "kind": "pillar",
+    "name": "分带石柱",
+    "size": [
+      9,
+      20,
+      9
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

@@ -53,6 +53,8 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
     marker=root/'_migration/active.json'
     if marker.is_file() and read_json(marker).get('status')!='complete':return dict(models=[],skipped=0,scanned=0,cache_hits=0,migration_in_progress=True)
     files = []
+    constraint_folders=[]
+    from nbt_constraints import FOLDER_FILE, SHAPES, folder_parts
     for directory, dirs, names in os.walk(root):
         quarantined=include_bugged and 'bugged' in Path(directory).relative_to(root).parts
         refinement=Path(directory)/'refinement.json'
@@ -70,6 +72,14 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
         dirs[:] = [name for name in dirs if not (name.startswith(('.', 'synthetic', 'test_')) or
                     any(word in name.lower() for word in ('validation', 'fixture', 'cache', 'control_web', 'regression')) or
                     (name=='bugged' and not include_bugged) or name in {'_exports','_migration','_workspaces','_tests','world', 'worlds', 'saves', 'node_modules', 'previews', 'jobs', 'review','delivery','layers'})]
+        candidate=Path(directory)
+        if candidate.name in SHAPES or FOLDER_FILE in names:
+            relative_dir=candidate.relative_to(workspace).as_posix()
+            try:
+                parts=folder_parts(relative_dir)[1:]
+                if not SHAPES.intersection(parts[:-1]):constraint_folders.append(relative_dir)
+            except ValueError:
+                pass
         files.extend(Path(directory)/name for name in names if (name.lower().endswith('.json.gz') and 'master' in name.lower()) or name.lower().endswith(('.nbt','.snbt')))
     files.sort(key=lambda p: (p.suffix.lower()!='.snbt',p.suffix.lower()=='.nbt',-p.stat().st_mtime_ns,str(p)))
     cache_path = Path(cache_path) if cache_path else root/('_workspaces/catalog_metadata_index.json' if index_only else '_workspaces/catalog_metadata_projects.json' if include_bugged else '_workspaces/catalog_metadata.json')
@@ -200,7 +210,7 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
     import uuid
     temporary=cache_path.with_name(cache_path.name+'.'+uuid.uuid4().hex+'.tmp')
     write_json(temporary,next_cache);os.replace(temporary,cache_path)
-    return dict(models=models, skipped=skipped, scanned=len(files), cache_hits=cache_hits,workspace=str(workspace),scan_root=str(root),normalized_from=str(selected) if selected!=workspace else None,errors=errors)
+    return dict(models=models, constraint_folders=sorted(constraint_folders), skipped=skipped, scanned=len(files), cache_hits=cache_hits,workspace=str(workspace),scan_root=str(root),normalized_from=str(selected) if selected!=workspace else None,errors=errors)
 
 
 def preview_images(source, geometry_hash, image_limit=8):
@@ -762,6 +772,7 @@ def main():
     cmd = sub.add_parser('inspect'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--image-limit',type=int,default=8)
     cmd = sub.add_parser('effect-assets');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','save','get','preview','compile','archive','organize'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('room-score');cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path);cmd.add_argument('--output',type=Path,required=True)
+    cmd = sub.add_parser('asset-libraries');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','browse','discover','add','refresh','enable','remove','rollback','read','import','thumbnail','preview','resolve','place','copy'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('asset-batches');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','import','generate','read','save','organize'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('project-repair');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--source',required=True);cmd.add_argument('--category',default='auto');cmd.add_argument('--source-sha256')
     cmd = sub.add_parser('cover'); cmd.add_argument('--source', type=Path, required=True); cmd.add_argument('--geometry', default=''); cmd.add_argument('--cache',type=Path,required=True); cmd.add_argument('--generate-missing',action='store_true')
@@ -771,7 +782,7 @@ def main():
     cmd = sub.add_parser('protection-mask');cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('walk-inspect');cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
     cmd = sub.add_parser('agent-tasks');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['create','list','get','discover','record','review'],required=True);cmd.add_argument('--request',type=Path,required=True)
-    cmd = sub.add_parser('architect');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['standards-get','standards-save','deliveries','continue','cross-list','cross-save'],required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('architect');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['standards-get','standards-save','constraints-list','constraints-save','constraints-delete','deliveries','continue','cross-list','cross-save'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('history');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','get','record','current','derive','finalize'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('retrieve');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['search','source','bundle','read'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('selection-edit');cmd.add_argument('--action',choices=['context','compile'],required=True);cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
@@ -807,6 +818,9 @@ def main():
         elif args.command == 'cover':
             from nbt_cover import section_cover
             result = section_cover(args.source,args.geometry,args.cache,generate=args.generate_missing)
+        elif args.command == 'asset-libraries':
+            from nbt_asset_libraries import dispatch
+            result=dispatch(args.workspace,args.action,read_json(args.request))
         elif args.command == 'recipes':
             from nbt_recipes import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request) if args.request else {})

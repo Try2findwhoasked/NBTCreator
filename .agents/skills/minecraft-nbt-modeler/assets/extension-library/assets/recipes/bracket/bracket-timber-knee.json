@@ -1,0 +1,23 @@
+{
+  "arguments": {
+    "accent": "stripped_spruce_log",
+    "form": {
+      "border": 1,
+      "profile": "knee_brace"
+    },
+    "kind": "bracket",
+    "material": "stripped_spruce_log",
+    "name": "木构斜撑托架",
+    "size": [
+      3,
+      7,
+      7
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

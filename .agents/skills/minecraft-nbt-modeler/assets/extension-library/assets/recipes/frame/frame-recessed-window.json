@@ -1,0 +1,24 @@
+{
+  "arguments": {
+    "accent": "white_concrete",
+    "form": {
+      "border": 1,
+      "profile": "recessed_window",
+      "recess": 2
+    },
+    "kind": "frame",
+    "material": "white_concrete",
+    "name": "退进玻璃窗框",
+    "size": [
+      5,
+      5,
+      3
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

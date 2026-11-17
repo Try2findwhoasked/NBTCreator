@@ -69,6 +69,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 - agent-tasks → scripts/nbt_agent_tasks.py
 - project-repair → scripts/nbt_project_repair.py
 - asset-batches → scripts/nbt_asset_batches.py
+- asset-libraries → scripts/nbt_asset_libraries.py
 - room-score → scripts/nbt_room_score.py
 - effect-assets → scripts/nbt_effect_assets.py
 - history → scripts/nbt_history.py
@@ -97,8 +98,8 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | structure_write | 显式将绑定预览保存为新的构件资产；不能覆盖已有资产或导出NBT，保存不表示设计批准。 |
 | structure_place | 按锚点、旋转、镜像生成放置操作；不实际写建筑，仍须control preview/validate和显式新版本导出。 |
 | structure_save | 直接保存模型生成的资产：spec、component或绑定预览三选一；本地校验和真实预览后入库为待审阅资产，生成资产批次清单。保留手动导入，不产生NBT或设计批准。 |
-| parametric_list | 查询参数化构件类型、样式、默认参数及安装边界；只读，不生成资产。 |
-| parametric_compile | 将柱、楼梯、桌子、墙饰、吊顶、植物和小型物品编译为共享结构spec；确定性校验，不写建筑。 |
+| parametric_list | 查询16类模块、可直接编译的对象配方库、柱式与扶手样式、参数及安装边界；只读。 |
+| parametric_compile | 编译参数化模块候选：柱式、外置楼梯扶手、独立栏杆、梁、托架、拱框、门窗框、基座及家具。配方见parametric_list.object_library；不改当前建筑。 |
 | parametric_preview | 按参数编译并生成真实独立构件候选与缩略图；不入库、不批准、不写建筑。 |
 | parametric_contract | 由可信调用方给定硬约束，返回供模型输出使用的JSON Schema及语义门禁说明；模型回复不能修改该契约。 |
 | parametric_validate | 使用调用方保留的硬约束验收模型proposal，再运行共享编译器；超限拒绝，不截断、不降级、不写建筑。 |

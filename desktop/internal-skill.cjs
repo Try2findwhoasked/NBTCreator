@@ -27,6 +27,7 @@ const registry=require('../.agents/skills/minecraft-nbt-modeler/references/block
 const materialChoices=['air','stone','stone_bricks','cracked_stone_bricks','mossy_stone_bricks','cobblestone','mossy_cobblestone','andesite','polished_andesite','deepslate_bricks','deepslate_tiles','sandstone','chiseled_sandstone','smooth_sandstone','oak_planks','spruce_planks','oak_log','spruce_log','stone_brick_slab','stone_brick_stairs','sandstone_slab'].filter(name=>registry.blocks['minecraft:'+name])
 function buildInternalPrompt(mode,context={},options={}){
  if(!['prompt','structure','small_structure','component','selection_edit','workbench'].includes(mode))throw Error('未知内部Skill工作流')
+ if(mode==='workbench'&&context.task==='constraint')return '根据用户要求编写一项可复用的建筑约束候选，返回一个JSON对象{name,rules}。名称1～80字。仅填写明确的条件；不确定的条件省略，不输出工具步骤、代码、路径或执行权限，不声称已保存或已批准。size_policy需要size；cells需要cell_size，必须不重复且不能超出size。尺寸单位为方块，cells为XZ网格坐标。规则字段契约：'+JSON.stringify(catalog.project_constraints.rules)
  if(mode==='workbench'&&context.task==='brief'){
   const names=context.brief_scope?.editable_fields??Object.keys(catalog.prompt_design.fields)
   const labels=Object.fromEntries(names.map(key=>[key,catalog.prompt_design.fields[key].label]))

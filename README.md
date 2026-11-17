@@ -19,9 +19,9 @@
 ## 开始创作
 
 1. 选择创作项目根目录作为工作区，建筑存放在 `nbt_models/`。
-2. 在项目管理中打开建筑；首次创作可在“提示词方案”编写、审阅要求，再确认交接给外部 Agent。
+2. 在建筑库中打开建筑；首次创作可在“创作方案”编写、审阅要求，再确认交接给外部 Agent。
 3. 进入模型编辑，用工具或 AI 修改局部，更新候选预览。
-4. 检查实际图片或 3D、保护区与适用的通路报告，保存制作版；满意后手动定稿导出 NBT。
+4. 切换到同一建筑的“检查与交付”，核对实际图片或 3D、保护区、适用的通路报告与保存位置，保存 SNBT 制作版；满意后手动定稿导出 NBT。
 
 创作 Skill 在实际创作项目中生成：`.agents/skills/nbtcreator-workspace/SKILL.md`。软件源码及安装目录不作为默认创作工作区。
 
@@ -35,6 +35,7 @@
 | 编写方案、审阅与交接建筑任务 | [建筑师工作流](docs/guides/ARCHITECT_WORKFLOW.md) · [首次创作](docs/guides/PROMPT_CREATION.md) |
 | 让应用与 Agent 使用同一项目 | [共享工作区](docs/guides/SHARED_WORKSPACE.md) |
 | 使用 AI 选点、截图和构件移动 | [AI 放置](docs/guides/AI_PLACEMENT.md) · [AI 工作流](docs/guides/AI_WORKFLOW.md) |
+| 连接或维护本地、远端拓展资产库 | [拓展资产库协议](.agents/skills/minecraft-nbt-modeler/references/asset-libraries.md) |
 | 配置开发环境、运行检查或打包 | [开发指南](docs/development/DEVELOPMENT.md) · [构建与发布](docs/development/CI_CD.md) |
 | 查询问题或过去的验证结果 | [已知问题](docs/KNOWN_ISSUES.md) · [历史归档](docs/archive/README.md) |
 
@@ -58,6 +59,7 @@ mise exec -- npm run check:tools
 mise exec -- npm run test:api
 mise exec -- npm run test:desktop
 mise run architecture:test
+mise run modular:test
 ```
 
 复杂整栋的 Agent 入口与源绑定审阅流程见[建筑方案闭环](.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md)；`mise run architecture:preview` 在隔离项目中验证公共 CLI、冻结入口与真实出图。

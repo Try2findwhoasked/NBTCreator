@@ -145,6 +145,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   const {retrieved_assets,attachViewport,base_rules,workflow_steps,...providerWorkflow}=internal??{}
   if(internal?.reference_sources)system+=' 本次提供了编号参考来源；需要引用时使用其citation编号，不编造来源或声称已验证。引用资产仅可使用context.references里实际提供的id与内容哈希，可按结构协议旋转、镜像和material_map换材质。'
   const apiContext=input.mode==='selection_edit'?{size:context.selection.size,lo:[0,0,0],hi:context.selection.size.map(n=>n-1),allow_overwrite:context.allow_overwrite,selection:{palette:context.selection.palette,runs:context.selection.runs,air_omitted:true}}:input.mode==='small_structure'?{...context,size:context.hi.map((v,i)=>v-context.lo[i]+1),lo:[0,0,0],hi:context.hi.map((v,i)=>v-context.lo[i])}:input.mode==='workbench'?Object.fromEntries(Object.entries(context).filter(([key])=>key!=='baseline_binding')):context
+  if(input.mode==='workbench'&&apiContext.constraints)apiContext.constraints=apiContext.constraints.map(({name,rules})=>({name,rules}))
   let image
   if(input.viewport){
     if(!internal?.attachViewport)throw Error('该工作流未启用发送视口截图')
@@ -154,7 +155,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   }else if(internal?.attachViewport)throw Error('该工作流需要视口截图，请先打开建筑画面或关闭截图开关')
   const outputSchema=config.strictSchema?buildOutputSchema(input.mode,context):null
   if(outputSchema){
-   const geometryTask=['workbench','component','selection_edit'].includes(input.mode)&&context?.task!=='brief'
+   const geometryTask=['workbench','component','selection_edit'].includes(input.mode)&&!['brief','constraint'].includes(context?.task)
    if(geometryTask){
     const hints=Object.fromEntries(Object.entries(require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').tools).map(([kind,[,,hint]])=>[kind,hint]))
     system+=' 工具语义：'+JSON.stringify(hints)
@@ -230,13 +231,13 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     const reason=response.choices?.[0]?.finish_reason,text=response.choices?.[0]?.message?.content
     if(error.retryable===false||reason==='content_filter'||api_metrics.attempts>=3||reason==='length'&&compactRetries>=1)throw error
     const issue=api_metrics.calls.at(-1).validation_issue
-    if(['invalid_tool','invalid_parameter','invalid_geometry'].includes(issue?.code)&&['component','selection_edit','workbench'].includes(input.mode)&&!(input.mode==='workbench'&&context.task==='brief')){
+    if(['invalid_tool','invalid_parameter','invalid_geometry'].includes(issue?.code)&&['component','selection_edit','workbench'].includes(input.mode)&&!(input.mode==='workbench'&&['brief','constraint'].includes(context.task))){
      originalMessages[0].content=originalMessages[0].content.replace(taskPrompt,promptBuilder(input.mode,context,{instruction:input.instruction,fullTools:true}))
      api_metrics.expanded_tool_contract=true
     }
     if(reason==='length'){compactRetries++;api_metrics.retried_compact=true}
     if(reason==='length'&&input.mode==='small_structure'&&outputSchema){outputSchema.properties.settings_patch.properties.operations.maxItems=24;outputSchema.properties.summary.maxLength=80;payload.response_format.json_schema.schema=providerSchema(outputSchema)}
-    const feedback=reason==='length'?(input.mode==='workbench'&&context.task==='brief'?'上次输出达到长度上限。重新给出完整精简的project_patch，仅包含本次允许修改的设计文字；不续写、不生成工具步骤，保留人工硬条件。':input.mode==='prompt'?'上次文字达到长度上限。重新给出完整精简的设计说明，保留用户硬条件，不续写或生成工具步骤。':'上次输出达到长度上限。重新给出完整精简答案，不续写；小构件只保留最多24个box/beam/frame操作。'):('本地校验未通过：'+error.message.replace(/[\r\n]/g,' ').slice(0,300)+'。仅修正格式、长度或错误参数，保持原任务和原上下文，不扩大权限。')
+    const feedback=reason==='length'?(input.mode==='workbench'&&context.task==='constraint'?'上次输出达到长度上限。重新给出完整精简的{name,rules}约束候选，不返回工具步骤、路径或权限。':input.mode==='workbench'&&context.task==='brief'?'上次输出达到长度上限。重新给出完整精简的project_patch，仅包含本次允许修改的设计文字；不续写、不生成工具步骤，保留人工硬条件。':input.mode==='prompt'?'上次文字达到长度上限。重新给出完整精简的设计说明，保留用户硬条件，不续写或生成工具步骤。':'上次输出达到长度上限。重新给出完整精简答案，不续写；小构件只保留最多24个box/beam/frame操作。'):('本地校验未通过：'+error.message.replace(/[\r\n]/g,' ').slice(0,300)+'。仅修正格式、长度或错误参数，保持原任务和原上下文，不扩大权限。')
     payload.messages=structuredClone(originalMessages)
     if(reason!=='length'&&typeof text==='string'&&text.length<=48000&&Array.from(text).length<=Math.min(config.outputCharLimit?config.outputCharLimit*2:24000,24000))payload.messages.push({role:'assistant',content:text})
     else payload.messages.push({role:'assistant',content:'（本地已省略上一次不完整或过长的输出，不能视为已完成的候选。）'})

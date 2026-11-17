@@ -3,11 +3,23 @@
 (() => {
  globalThis.createPromptWorkspace=function(hooks){
   const $=id=>document.getElementById(id),C=NbtPrompt,items=[];let active=null,loading=true,working=false,silent=false,cancelled=false,batchRunning=false,pristine=true
-  const signature=doc=>JSON.stringify([doc.project,doc.operations,doc.aiDraft,doc.proposal_draft,doc.workbench?.instruction,doc.design_standard,doc.design_override])
+  const signature=doc=>JSON.stringify([doc.project,doc.operations,doc.aiDraft,doc.proposal_draft,doc.workbench?.instruction,doc.design_standard,doc.design_override,doc.constraints])
   const phase=item=>item.task?'published':item.document?.workbench?.status==='reviewed'||!item.document&&item.review_state==='reviewed'?'reviewed':item.document?.proposal_draft?'pending':item.document?.workbench?.generated===false||!item.document&&item.generation_state===false?'waiting':'pending'
   const labels={published:'已交接 · 等待外部助手读取',reviewed:'已审查 · 可以交接',pending:'待审查 · 修改后自动保存',waiting:'待编写'}
-  function showOutput(open){document.body.classList.toggle('output-open',open);$('prompt-output-toggle').setAttribute('aria-expanded',String(open));$('prompt-output-toggle').textContent=open?'返回编辑提示词':'查看完整提示词'}
+  function syncNavigation(){const step=document.body.classList.contains('output-open')?'handoff':!$('ai').hidden?'write':'review';for(const button of document.querySelectorAll('[data-planning-step]')){button.disabled=working||loading;if(button.dataset.planningStep===step)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current')}const tab=document.querySelector('.tab:not([hidden])'),hint=$('planning-next');if(tab&&hint.parentElement!==tab)tab.prepend(hint)}
+  function showOutput(open){document.body.classList.toggle('output-open',open);$('prompt-output-toggle').setAttribute('aria-expanded',String(open));$('prompt-output-toggle').textContent=open?'返回编辑提示词':'查看完整提示词';syncNavigation()}
+  for(const button of document.querySelectorAll('[data-tab]'))button.addEventListener('click',()=>queueMicrotask(syncNavigation))
   $('prompt-output-toggle').onclick=()=>showOutput(!document.body.classList.contains('output-open'));$('prompt-output-close').onclick=()=>showOutput(false)
+  function showQueue(open){document.body.classList.toggle('queue-open',open);$('prompt-queue-toggle').setAttribute('aria-expanded',String(open))}
+  $('prompt-queue-toggle').onclick=()=>showQueue(!document.body.classList.contains('queue-open'))
+  $('prompt-queue-list').addEventListener('click',event=>{if(event.target.closest('[data-prompt-id]'))showQueue(false)})
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.body.classList.contains('queue-open')){showQueue(false);$('prompt-queue-toggle').focus()}})
+  $('prompt-write-manually').onclick=()=>{document.querySelector('[data-tab=project]').click();$('project-fields').querySelector('input,textarea,select')?.focus()}
+  for(const button of document.querySelectorAll('[data-planning-step]'))button.onclick=()=>{
+   const step=button.dataset.planningStep
+   if(step==='handoff')showOutput(true)
+   else{showOutput(false);document.querySelector('[data-tab='+ (step==='write'?'ai':'project') +']').click()}
+  }
   function render(){
    document.querySelector('.editor').inert=working||loading;document.querySelector('.output').inert=working||loading
    for(const id of ['prompt-ai-mode','prompt-ai-instruction','prompt-ai-generate'])$(id).disabled=loading||working||hooks.isGenerating()
@@ -21,6 +33,8 @@
    $('left-save').disabled=loading||working||hooks.isGenerating()||!hooks.valid()
    $('left-save').textContent=active&&phase(active)==='published'?'已交接 · 查看任务':'确认并交接'
    if($('prompt-batch-retry'))$('prompt-batch-retry').disabled=loading||working||hooks.isGenerating()||!items.some(item=>phase(item)==='waiting')
+   const currentPhase=active?phase(active):'waiting';syncNavigation()
+   $('planning-next').textContent=loading?'正在读取已保存的方案…':working?'正在保存或交接，请稍候…':currentPhase==='published'?'方案已交接。请在外部建造助手中读取任务；建筑完成后，回到建筑库刷新查看。':currentPhase==='reviewed'?'已标记审查完成。点击“确认并交接”发送当前要求；建筑仍需由外部助手制作。':currentPhase==='waiting'?'可以让 AI 起草，也可以直接手动填写要求。这里只编写方案。':'逐项核对用途、尺寸和空间要求。确认后再交接给建造助手。'
    const list=$('prompt-queue-list');list.replaceChildren()
    items.forEach((item,index)=>{const b=document.createElement('button');b.type='button';b.dataset.promptId=item.id;b.disabled=loading||working||hooks.isGenerating();b.setAttribute('role','listitem');b.setAttribute('aria-current',String(item===active));const h=document.createElement('strong'),s=document.createElement('small');h.textContent=String(index+1).padStart(2,'0')+'  '+(item.document?.project.name??item.name??'未命名建筑');s.textContent=item.failure?'未完成 · '+item.failure:labels[phase(item)];b.append(h,s);b.onclick=()=>guard(()=>select(item));list.append(b)})
    if(active){$('prompt-document-number').textContent=`第 ${items.indexOf(active)+1} / ${items.length} 条提示词`;$('prompt-document-title').textContent=active.document?.project.name??active.name??'编写建筑要求';$('prompt-review-state').textContent=labels[phase(active)].split(' · ')[0];$('prompt-review-state').dataset.state=phase(active)}
@@ -87,16 +101,18 @@
     const template=C.clone(hooks.document()),inherit=$('prompt-batch-inherit').checked;
     for(const request of requested){
      const doc=C.defaults();
-     if(inherit){if(C.buildingShapes[template.project.buildingShape])C.applyShape(doc.project,template.project.buildingShape);for(const key of [...Object.keys(C.designContract.fields),'size_policy'])if(key!=='name'&&template.project[key]!==undefined)doc.project[key]=C.clone(template.project[key]);doc.workbench.brief_fields=C.clone(template.workbench?.brief_fields??C.designContract.default_editable_fields);}
+     if(inherit){doc.constraints=C.clone(template.constraints??[]);if(C.buildingShapes[template.project.buildingShape])C.applyShape(doc.project,template.project.buildingShape);for(const key of [...Object.keys(C.designContract.fields),'size_policy'])if(key!=='name'&&template.project[key]!==undefined)doc.project[key]=C.clone(template.project[key]);doc.workbench.brief_fields=C.clone(template.workbench?.brief_fields??C.designContract.default_editable_fields);}
      doc.project.name=request.name;doc.project.output=C.outputPath(doc.project);added.push(await appendDocument(doc,request.instruction,standard));
     }
     if(!generate){await select(added[0],{skipFlush:true,tab:'ai'});hooks.message(`已添加 ${added.length} 座建筑。点击“生成下一条”依次编写。`);return}
     await runBatch(added)
    })
   }
+  let batchHome=null
   async function runBatch(added){
    if(!added.length)return
    const limit=Math.max(1,Math.min(4,await hooks.concurrency()));cancelled=false;batchRunning=true;const running=new Set();let completed=0,cursor=0,failed=0
+   if(!batchHome){batchHome=document.createComment('batch-command-home');$('prompt-batch-open').before(batchHome)}document.querySelector('.queue-actions').append($('prompt-batch-open'))
    document.body.classList.add('prompt-processing');$('prompt-batch-open').textContent='停止批量生成';$('prompt-batch-open').disabled=false
    $('prompt-batch-open').onclick=()=>{cancelled=true;for(const id of running)hooks.cancelDocument(id);$('prompt-batch-open').textContent='本次生成已终止'}
    async function worker(){while(!cancelled&&cursor<added.length){const item=added[cursor++];await materialize(item);const snapshot=C.clone(item.document),before=JSON.stringify(snapshot);running.add(item.id);delete item.failure
@@ -105,7 +121,7 @@
      finally{running.delete(item.id);render();$('prompt-queue-progress').textContent=`已生成 ${completed} / ${added.length} · 正在编写 ${running.size} 条${failed?' · 未完成 '+failed+' 条':''}`}
    }}
    try{await Promise.all(Array.from({length:Math.min(limit,added.length)},worker))}
-   finally{batchRunning=false;$('prompt-batch-open').textContent='批量编写';$('prompt-batch-open').onclick=()=>{$('prompt-batch-status').textContent='';$('prompt-batch-dialog').showModal()};document.body.classList.remove('prompt-processing')}
+   finally{batchRunning=false;batchHome.after($('prompt-batch-open'));$('prompt-batch-open').textContent='批量编写';$('prompt-batch-open').onclick=()=>{$('prompt-batch-status').textContent='';$('prompt-batch-dialog').showModal()};document.body.classList.remove('prompt-processing')}
    const first=added.find(item=>item.document.workbench?.generated)??added[0];await select(first,{skipFlush:true,tab:first.document.workbench?.generated?'project':'ai'})
    hooks.message(`已生成 ${completed} / ${added.length} 条，草稿分别保存，请逐条审查。${cancelled?'已停止，可重试未完成项。':failed?'部分未完成，请查看列表说明并重试。':''}`,failed>0&&!cancelled)
   }

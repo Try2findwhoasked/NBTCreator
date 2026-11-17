@@ -254,175 +254,175 @@
       "id": "production",
       "runtime": "node",
       "args": [
-        "tests/production-server.mjs"
+        "tests/desktop/production-server.mjs"
       ]
     },
     {
       "id": "workspace",
       "runtime": "python",
       "args": [
-        "tests/workspace-contracts.py"
+        "tests/engine/workspace-contracts.py"
       ]
     },
     {
       "id": "modelling",
       "runtime": "python",
       "args": [
-        "tests/modelling-suite.py"
+        "tests/engine/modelling-suite.py"
       ]
     },
     {
       "id": "py-components",
       "runtime": "python",
       "args": [
-        "tests/components.py"
+        "tests/engine/components.py"
       ]
     },
     {
       "id": "py-structure-agent",
       "runtime": "python",
       "args": [
-        "tests/structure-agent.py"
+        "tests/engine/structure-agent.py"
       ]
     },
     {
       "id": "py-generated-assets",
       "runtime": "python",
       "args": [
-        "tests/generated-assets.py"
+        "tests/engine/generated-assets.py"
       ]
     },
     {
       "id": "py-asset-batches",
       "runtime": "python",
       "args": [
-        "tests/asset-batches.py"
+        "tests/engine/asset-batches.py"
       ]
     },
     {
       "id": "py-project-repair",
       "runtime": "python",
       "args": [
-        "tests/project-repair.py"
+        "tests/engine/project-repair.py"
       ]
     },
     {
       "id": "py-room-score",
       "runtime": "python",
       "args": [
-        "tests/room-score.py"
+        "tests/engine/room-score.py"
       ]
     },
     {
       "id": "py-protection-mask",
       "runtime": "python",
       "args": [
-        "tests/protection-mask.py"
+        "tests/engine/protection-mask.py"
       ]
     },
     {
       "id": "py-selection-edit",
       "runtime": "python",
       "args": [
-        "tests/selection-edit.py"
+        "tests/engine/selection-edit.py"
       ]
     },
     {
       "id": "py-candidate-validation",
       "runtime": "python",
       "args": [
-        "tests/candidate-validation.py"
+        "tests/engine/candidate-validation.py"
       ]
     },
     {
       "id": "py-reusable-recipes",
       "runtime": "python",
       "args": [
-        "tests/reusable-recipes.py"
+        "tests/engine/reusable-recipes.py"
       ]
     },
     {
       "id": "py-starter-effects",
       "runtime": "python",
       "args": [
-        "tests/starter-effects.py"
+        "tests/engine/starter-effects.py"
       ]
     },
     {
       "id": "py-effect-assets",
       "runtime": "python",
       "args": [
-        "tests/effect-assets.py"
+        "tests/engine/effect-assets.py"
       ]
     },
     {
       "id": "py-operation-history",
       "runtime": "python",
       "args": [
-        "tests/operation-history.py"
+        "tests/engine/operation-history.py"
       ]
     },
     {
       "id": "py-model-difference",
       "runtime": "python",
       "args": [
-        "tests/model-difference.py"
+        "tests/engine/model-difference.py"
       ]
     },
     {
       "id": "py-walk-inspection",
       "runtime": "python",
       "args": [
-        "tests/walk-inspection.py"
+        "tests/engine/walk-inspection.py"
       ]
     },
     {
       "id": "py-diagnostic-guidance",
       "runtime": "python",
       "args": [
-        "tests/diagnostic-guidance.py"
+        "tests/engine/diagnostic-guidance.py"
       ]
     },
     {
       "id": "py-feedback-tasks",
       "runtime": "python",
       "args": [
-        "tests/feedback-tasks.py"
+        "tests/engine/feedback-tasks.py"
       ]
     },
     {
       "id": "py-agent-task-return",
       "runtime": "python",
       "args": [
-        "tests/agent-task-return.py"
+        "tests/engine/agent-task-return.py"
       ]
     },
     {
       "id": "py-retrieval",
       "runtime": "python",
       "args": [
-        "tests/retrieval.py"
+        "tests/engine/retrieval.py"
       ]
     },
     {
       "id": "py-batches",
       "runtime": "python",
       "args": [
-        "tests/batches.py"
+        "tests/engine/batches.py"
       ]
     },
     {
       "id": "py-project-batch",
       "runtime": "python",
       "args": [
-        "tests/project-batch.py"
+        "tests/engine/project-batch.py"
       ]
     },
     {
       "id": "py-prompt-archive",
       "runtime": "python",
       "args": [
-        "tests/prompt-archive.py"
+        "tests/engine/prompt-archive.py"
       ]
     },
     {
@@ -449,45 +449,45 @@
       "args": [
         "--test",
         "--test-concurrency=1",
-        "tests/agent-handoff.test.mjs",
-        "tests/ai-component.test.mjs",
-        "tests/ai-input.test.cjs",
-        "tests/ai-metrics.test.mjs",
-        "tests/ai-style.test.cjs",
-        "tests/api-service.test.cjs",
-        "tests/app-settings.test.cjs",
-        "tests/backend-result.test.mjs",
-        "tests/batch-links.test.cjs",
-        "tests/camera-controls.test.mjs",
-        "tests/catalog-store.test.mjs",
-        "tests/command-preferences.test.mjs",
-        "tests/compact-structure.test.cjs",
-        "tests/difference-index.test.mjs",
-        "tests/edit-session-controller.test.mjs",
-        "tests/edit-session-store.test.mjs",
-        "tests/internal-ai.test.cjs",
-        "tests/mesh-scheduling.test.mjs",
-        "tests/operation-parameters.test.cjs",
-        "tests/project-catalog.test.mjs",
-        "tests/project-organization.test.mjs",
-        "tests/project-stages.test.mjs",
-        "tests/retrieval.test.cjs",
-        "tests/selection-edit.test.cjs",
-        "tests/settings-history.test.mjs",
-        "tests/updater.test.cjs",
-        "tests/workbench-contract.test.cjs",
-        "tests/workspace-api.test.cjs",
-        "tests/workspace-resolution.cjs",
-        "tests/ai-candidate-validator.test.cjs",
-        "tests/ai-result-extract.test.cjs",
-        "tests/prompt-brief.test.cjs"
+        "tests/node/agent-handoff.test.mjs",
+        "tests/node/ai-component.test.mjs",
+        "tests/node/ai-input.test.cjs",
+        "tests/node/ai-metrics.test.mjs",
+        "tests/node/ai-style.test.cjs",
+        "tests/node/api-service.test.cjs",
+        "tests/node/app-settings.test.cjs",
+        "tests/node/backend-result.test.mjs",
+        "tests/node/batch-links.test.cjs",
+        "tests/node/camera-controls.test.mjs",
+        "tests/node/catalog-store.test.mjs",
+        "tests/node/command-preferences.test.mjs",
+        "tests/node/compact-structure.test.cjs",
+        "tests/node/difference-index.test.mjs",
+        "tests/node/edit-session-controller.test.mjs",
+        "tests/node/edit-session-store.test.mjs",
+        "tests/node/internal-ai.test.cjs",
+        "tests/node/mesh-scheduling.test.mjs",
+        "tests/node/operation-parameters.test.cjs",
+        "tests/node/project-catalog.test.mjs",
+        "tests/node/project-organization.test.mjs",
+        "tests/node/project-stages.test.mjs",
+        "tests/node/retrieval.test.cjs",
+        "tests/node/selection-edit.test.cjs",
+        "tests/node/settings-history.test.mjs",
+        "tests/node/updater.test.cjs",
+        "tests/node/workbench-contract.test.cjs",
+        "tests/node/workspace-api.test.cjs",
+        "tests/node/workspace-resolution.cjs",
+        "tests/node/ai-candidate-validator.test.cjs",
+        "tests/node/ai-result-extract.test.cjs",
+        "tests/node/prompt-brief.test.cjs"
       ]
     },
     {
       "id": "ui-api",
       "runtime": "node",
       "args": [
-        "tests/api-desktop.mjs"
+        "tests/desktop/api-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -496,7 +496,7 @@
       "id": "ui-desktop-smoke",
       "runtime": "node",
       "args": [
-        "tests/desktop-smoke.mjs"
+        "tests/desktop/desktop-smoke.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -505,7 +505,7 @@
       "id": "ui-default-preview",
       "runtime": "node",
       "args": [
-        "tests/default-preview-desktop.mjs"
+        "tests/desktop/default-preview-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -514,7 +514,7 @@
       "id": "ui-control-availability",
       "runtime": "node",
       "args": [
-        "tests/control-availability-desktop.mjs"
+        "tests/desktop/control-availability-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -523,7 +523,7 @@
       "id": "ui-project-manager",
       "runtime": "node",
       "args": [
-        "tests/project-manager-desktop.mjs"
+        "tests/desktop/project-manager-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -532,7 +532,7 @@
       "id": "ui-project-recovery",
       "runtime": "node",
       "args": [
-        "tests/project-recovery-desktop.mjs"
+        "tests/desktop/project-recovery-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -541,7 +541,7 @@
       "id": "ui-project-menus",
       "runtime": "node",
       "args": [
-        "tests/project-menus-desktop.mjs"
+        "tests/desktop/project-menus-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -550,7 +550,7 @@
       "id": "ui-project-batch",
       "runtime": "node",
       "args": [
-        "tests/project-batch-desktop.mjs"
+        "tests/desktop/project-batch-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -559,7 +559,7 @@
       "id": "ui-asset-batches",
       "runtime": "node",
       "args": [
-        "tests/asset-batches-desktop.mjs"
+        "tests/desktop/asset-batches-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -568,7 +568,7 @@
       "id": "ui-asset-workspace",
       "runtime": "node",
       "args": [
-        "tests/asset-workspace-desktop.mjs"
+        "tests/desktop/asset-workspace-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -577,7 +577,7 @@
       "id": "ui-structure-agent",
       "runtime": "node",
       "args": [
-        "tests/structure-agent-desktop.mjs"
+        "tests/desktop/structure-agent-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -586,7 +586,7 @@
       "id": "ui-tool-effects",
       "runtime": "node",
       "args": [
-        "tests/tool-effects-desktop.mjs"
+        "tests/desktop/tool-effects-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -595,7 +595,7 @@
       "id": "ui-reusable",
       "runtime": "node",
       "args": [
-        "tests/reusable-desktop.mjs"
+        "tests/desktop/reusable-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -604,7 +604,7 @@
       "id": "ui-asset-interaction",
       "runtime": "node",
       "args": [
-        "tests/asset-interaction-desktop.mjs"
+        "tests/desktop/asset-interaction-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -613,7 +613,7 @@
       "id": "ui-authoring-journey",
       "runtime": "node",
       "args": [
-        "tests/authoring-journey-desktop.mjs"
+        "tests/desktop/authoring-journey-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -622,7 +622,7 @@
       "id": "ui-component-gizmo",
       "runtime": "node",
       "args": [
-        "tests/component-gizmo-desktop.mjs"
+        "tests/desktop/component-gizmo-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -631,7 +631,7 @@
       "id": "ui-transform-sliders",
       "runtime": "node",
       "args": [
-        "tests/transform-sliders-desktop.mjs"
+        "tests/desktop/transform-sliders-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -640,7 +640,7 @@
       "id": "ui-ai-placement",
       "runtime": "node",
       "args": [
-        "tests/ai-placement-desktop.mjs"
+        "tests/desktop/ai-placement-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -649,7 +649,7 @@
       "id": "ui-operation-history",
       "runtime": "node",
       "args": [
-        "tests/operation-history-desktop.mjs"
+        "tests/desktop/operation-history-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -658,7 +658,7 @@
       "id": "ui-edit-session",
       "runtime": "node",
       "args": [
-        "tests/edit-session-desktop.mjs"
+        "tests/desktop/edit-session-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -667,7 +667,7 @@
       "id": "ui-edit-session-images",
       "runtime": "node",
       "args": [
-        "tests/edit-session-images-desktop.mjs"
+        "tests/desktop/edit-session-images-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -676,7 +676,7 @@
       "id": "ui-version-compare",
       "runtime": "node",
       "args": [
-        "tests/version-compare-desktop.mjs"
+        "tests/desktop/version-compare-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -685,7 +685,7 @@
       "id": "ui-commands",
       "runtime": "node",
       "args": [
-        "tests/commands-desktop.mjs"
+        "tests/desktop/commands-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -694,7 +694,7 @@
       "id": "ui-ai-style",
       "runtime": "node",
       "args": [
-        "tests/ai-style-desktop.mjs"
+        "tests/desktop/ai-style-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -703,7 +703,7 @@
       "id": "ui-workbench-ui",
       "runtime": "node",
       "args": [
-        "tests/workbench-ui-desktop.mjs"
+        "tests/desktop/workbench-ui-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -712,7 +712,7 @@
       "id": "ui-selection-edit",
       "runtime": "node",
       "args": [
-        "tests/selection-edit-desktop.mjs"
+        "tests/desktop/selection-edit-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -721,7 +721,7 @@
       "id": "ui-retrieval",
       "runtime": "node",
       "args": [
-        "tests/retrieval-desktop.mjs"
+        "tests/desktop/retrieval-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -730,7 +730,7 @@
       "id": "ui-feedback-tasks",
       "runtime": "node",
       "args": [
-        "tests/feedback-tasks-desktop.mjs"
+        "tests/desktop/feedback-tasks-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -739,7 +739,7 @@
       "id": "ui-agent-task-return",
       "runtime": "node",
       "args": [
-        "tests/agent-task-return-desktop.mjs"
+        "tests/desktop/agent-task-return-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -748,7 +748,7 @@
       "id": "ui-walk",
       "runtime": "node",
       "args": [
-        "tests/walk-desktop.mjs"
+        "tests/desktop/walk-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -757,7 +757,7 @@
       "id": "ui-protection",
       "runtime": "node",
       "args": [
-        "tests/protection-desktop.mjs"
+        "tests/desktop/protection-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -766,7 +766,7 @@
       "id": "ui-batch-workspaces",
       "runtime": "node",
       "args": [
-        "tests/batch-workspaces-desktop.mjs"
+        "tests/desktop/batch-workspaces-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -775,7 +775,7 @@
       "id": "ui-prompt-archive",
       "runtime": "node",
       "args": [
-        "tests/prompt-archive-desktop.mjs"
+        "tests/desktop/prompt-archive-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -784,7 +784,7 @@
       "id": "ui-room-score",
       "runtime": "node",
       "args": [
-        "tests/room-score-desktop.mjs"
+        "tests/desktop/room-score-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -793,7 +793,7 @@
       "id": "ui-library-layout",
       "runtime": "node",
       "args": [
-        "tests/library-layout-desktop.mjs"
+        "tests/desktop/library-layout-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -802,7 +802,7 @@
       "id": "ui-workspace-api",
       "runtime": "node",
       "args": [
-        "tests/workspace-api-desktop.mjs"
+        "tests/desktop/workspace-api-desktop.mjs"
       ],
       "desktop": true,
       "receipt": true
@@ -811,7 +811,7 @@
       "id": "performance",
       "runtime": "node",
       "args": [
-        "tests/project-performance.mjs"
+        "tests/desktop/project-performance.mjs"
       ],
       "receipt": true
     },
@@ -819,7 +819,7 @@
       "id": "workspace-library",
       "runtime": "python",
       "args": [
-        "tests/workspace-library-audit.py",
+        "tests/engine/workspace-library-audit.py",
         "--workspace",
         "{workspace}",
         "--output",
@@ -830,14 +830,14 @@
       "id": "ui-effect-gallery",
       "runtime": "node",
       "args": [
-        "tests/effect-gallery-desktop.mjs"
+        "tests/desktop/effect-gallery-desktop.mjs"
       ]
     },
     {
       "id": "ui-agent-simulation",
       "runtime": "node",
       "args": [
-        "tests/agent-simulation-desktop.mjs"
+        "tests/desktop/agent-simulation-desktop.mjs"
       ],
       "desktop": true
     },
@@ -845,7 +845,7 @@
       "id": "ui-prompt-task",
       "runtime": "node",
       "args": [
-        "tests/prompt-task-desktop.mjs"
+        "tests/desktop/prompt-task-desktop.mjs"
       ],
       "desktop": true
     },
@@ -853,7 +853,7 @@
       "id": "ui-prompt-brief",
       "runtime": "node",
       "args": [
-        "tests/prompt-brief-desktop.mjs"
+        "tests/desktop/prompt-brief-desktop.mjs"
       ],
       "desktop": true
     }

@@ -1,0 +1,32 @@
+{
+  "arguments": {
+    "accent": "cut_sandstone",
+    "form": {
+      "bar_material": "dark_oak_planks",
+      "dentils": true,
+      "detail_material": "chiseled_sandstone",
+      "head": "triangular",
+      "panes": [
+        3,
+        4
+      ],
+      "profile": "classical_window",
+      "recess": 3,
+      "sill_material": "smooth_sandstone_slab[type=top]"
+    },
+    "kind": "frame",
+    "material": "smooth_sandstone",
+    "name": "山花分格宫廷窗",
+    "size": [
+      17,
+      29,
+      4
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

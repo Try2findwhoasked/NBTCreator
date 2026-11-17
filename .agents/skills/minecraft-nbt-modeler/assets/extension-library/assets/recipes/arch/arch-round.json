@@ -1,0 +1,16 @@
+{
+  "arguments": {
+    "form": {
+      "profile": "round"
+    },
+    "kind": "arch",
+    "name": "圆拱框",
+    "size": [
+      13,
+      12,
+      3
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

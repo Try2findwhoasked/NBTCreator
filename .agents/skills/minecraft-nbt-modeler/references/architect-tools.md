@@ -6,6 +6,41 @@
 
 复杂整栋使用[建筑方案、构造与审阅闭环](architecture-workflow.md)。`capabilities --architecture` 查询 `architect plan-*`、`review-*` 和 `game-*` 的严格契约；与项目文字规范、桌面批注和显式定稿各保留自己的责任。无需启动 Electron。
 
+## 项目约束
+
+在建筑库左侧选中项目或形状文件夹，再点「管理约束」。例如「SAODG / L 形」对应 `nbt_models/SAODG/l_shape/项目约束.json`。可用 1×1、L 形模板填入初始尺寸和网格，也可只填写通行或净高要求。选「全部项目」时，「共用约束」打开兼容旧版的 `nbt_models/_workspaces/project_design/constraints.json`。
+
+在创作方案的「项目约束」中先选文件夹，再勾选要写入提示词的约束。「Agent 创建约束」在所选文件夹中填写草稿，核对后手动保存。切换文件夹会保留勾选，冲突的尺寸、形状或网格不能同时引用。取消勾选后恢复原设计参数。已有建筑的尺寸和形状仍取自模型。批量编写沿用当前方案的勾选，空白方案由用户勾选。
+
+方案 JSON 的 `constraints` 保存已选约束的版本和内容。文件夹中的约束改版或移除后，旧方案仍使用当时的版本。在方案里点击「改用第 N 版」才会替换。选择约束文件夹只改变可选的规则，建筑保存目录仍由方案的形状和建筑名称确定。
+
+外部 Agent 可直接使用工作区入口。先准备 `folder.json`，写入 `{"folder":"nbt_models/SAODG/l_shape"}`。读取该文件夹的 `revision` 后，在 `constraint.json` 中填入下方保存参数。
+
+```powershell
+python .agents/skills/nbtcreator-workspace/nbt.py architect constraints-list --request folder.json
+python .agents/skills/nbtcreator-workspace/nbt.py architect constraints-save --request constraint.json
+```
+
+```json
+{
+  "folder": "nbt_models/SAODG/l_shape",
+  "revision": 0,
+  "name": "L 形 32 格院落",
+  "actor": "agent",
+  "rules": {
+    "buildingShape": "l_shape",
+    "size": [64, 24, 64],
+    "size_policy": "fixed",
+    "cell_size": 32,
+    "cells": [[0, 0], [0, 1], [1, 1]],
+    "footprint": "缺角留作庭院，不放方块",
+    "requirements": "主入口净宽至少 3 格"
+  }
+}
+```
+
+`folder` 使用工作区内已存在的 `nbt_models` 相对路径。省略时读写工作区共用约束。修改时加上原约束 `id`。删除用 `constraints-delete`，传 `folder`、最新的 `revision` 和 `id`，此前的版本仍保存在该文件夹的 `.project-constraints/constraint-revisions/`。`size_policy` 需要 `size`，只填 `size` 时按固定尺寸处理。`cells` 需要 `cell_size`，坐标不能重复或超出尺寸。每个文件夹最多保存 256 项，每份方案最多引用 16 项。字段契约见能力目录的 `project_constraints`。
+
 ## 项目设计规范
 
 建筑库“建筑工具 → 项目设计规范”，或创作方案列表中的“项目设计规范”。统一记录材质、尺度、通行、风格、参考说明和其他要求。保存形成新的修订，位于 `nbt_models/_workspaces/project_design/`；新建方案引用最新修订，已有方案保留自己保存的规范快照。

@@ -5,3 +5,72 @@ body[data-busy=true] #prompt-queue-list button{cursor:wait}
 .review-state[data-state=reviewed]{color:#246346;background:#e7f4eb}
 .review-state[data-state=published]{color:var(--ui-accent);background:var(--ui-accent-soft)}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+
+#planning-heading>div { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+#planning-steps { display:flex; padding:0; gap:4px; border:0; }
+#planning-steps button { border:0; background:transparent; color:var(--ui-muted); padding:5px 9px; font-size:12px; }
+#planning-steps button[aria-current=step] { color:var(--ui-accent); background:var(--ui-accent-soft); font-weight:600; }
+#planning-next { margin:0; padding:10px 20px; color:var(--ui-muted); background:var(--ui-input); border-bottom:1px solid var(--ui-line); font-size:13px; line-height:1.7; }
+#prompt-queue-toggle { display:none; }
+#prompt-write-manually { color:var(--ui-accent); }
+/* The three document views are the only primary navigation. AI and manual
+   entry both edit this document; advanced tool tabs remain contextual. */
+body { font-size:14px; }
+button,summary { font-family:var(--ui-font); font-size:13px; min-height:32px; border-radius:5px; }
+input,select,textarea { font-family:var(--ui-font); font-size:14px; line-height:1.65; border-radius:5px; min-height:36px; }
+label { font-size:14px; line-height:1.7; }
+main,body.embedded main { grid-template-columns:240px minmax(0,1fr); }
+body.embedded { display:flex; flex-direction:column; }
+body.embedded main { height:auto; flex:1; }
+.output { display:none; position:absolute; z-index:5; inset:0 0 84px 240px; border-left:1px solid var(--ui-line); }
+body.output-open .output { display:flex; }
+#prompt-output-toggle,#prompt-output-close { display:block; }
+#planning-heading { min-height:48px; height:auto; padding:6px 20px; }
+#planning-heading>div>strong { display:none; }
+#planning-steps button { font-size:14px; padding:6px 14px; }
+.editor>nav[aria-label="提示词编辑"] [data-tab] { display:none; }
+.editor>nav[aria-label="提示词编辑"] { border:0; margin:0; position:absolute; top:20px; right:20px; }
+.editor { position:relative; padding:20px 24px; }
+.document-heading { padding-right:120px; }
+.document-heading h2 { font-size:20px; line-height:1.5; }
+.document-heading small,.queue-intro,#prompt-editor-save-state { font-size:12px; }
+#prompt-queue { padding:16px; background:var(--ui-input); }
+.queue-heading h2 { font-size:16px; }
+.queue-actions { display:flex; }
+#prompt-add { width:100%; }
+#prompt-list-tools { border:0; border-block:1px solid var(--ui-line); margin:12px 0; padding:8px 0; }
+#prompt-list-tools>summary { cursor:pointer; color:var(--ui-muted); font-size:13px; min-height:24px; }
+#prompt-list-tools>div { display:flex; flex-direction:column; gap:8px; padding-block:10px 4px; }
+.queue-footer { font-size:12px; }
+.queue-footer>p:last-child { display:none; }
+.ai-workbench { border:0; border-radius:0; padding:0; background:transparent; }
+.ai-workbench h2,#project>h2 { font-size:18px; }
+.ai-workbench .muted,#project-intro { font-size:13px; line-height:1.7; }
+.ai-workbench .ai-actions { gap:8px; flex-wrap:wrap; }
+.fields { gap:16px; }
+.field-card { border-radius:5px; }
+#planning-next { padding:10px 12px; margin:0 0 16px; font-size:13px; border-left:3px solid var(--ui-accent); border-bottom:0; }
+body:has(#ai:not([hidden])) #left-save { display:none; }
+.editor-storage { padding-top:12px; }
+.output { background:var(--ui-panel); }
+@media(max-width:1000px) { main,body.embedded main { grid-template-columns:200px minmax(0,1fr); } .editor { padding:16px; } #planning-heading { padding-inline:16px; } #planning-steps button { padding-inline:9px; } .output { left:200px; } }
+:is(button,input,select,textarea,summary):focus-visible { outline:2px solid var(--ui-accent); outline-offset:3px; }
+@media(max-width:600px) {
+ #planning-heading { flex-wrap:wrap; gap:6px; }
+ #planning-heading { height:auto; min-height:48px; padding-block:6px; }
+ #planning-heading>div { gap:4px; }
+ #planning-heading>div>strong { display:none; }
+ #planning-steps button { padding-inline:5px; }
+ #planning-next { padding:8px 12px; }
+ #prompt-queue-toggle { display:block; }
+ body { display:flex; flex-direction:column; }
+ body>header { height:auto; flex-wrap:wrap; gap:6px; padding:6px 12px; }
+ main,body.embedded main { grid-template-columns:minmax(0,1fr); height:auto; flex:1; }
+ #prompt-queue { display:none; position:absolute; z-index:8; inset:0 auto 0 0; width:min(290px,100%); box-shadow:8px 0 24px #0002; }
+ body.queue-open #prompt-queue { display:flex; }
+ .output { left:0; padding:14px; }
+ .document-heading { gap:6px; margin-bottom:8px; }
+ .document-heading h2 { font-size:16px; }
+ .editor nav { margin-bottom:8px; }
+ .brief-field-options { grid-template-columns:1fr; }
+}

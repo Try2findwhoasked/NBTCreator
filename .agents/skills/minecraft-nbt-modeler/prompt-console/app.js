@@ -1,18 +1,20 @@
 (() => {
  const C=NbtPrompt, $=id=>document.getElementById(id), storage='nbt-prompt-console-v2';
  let state=C.defaults(), pending=new Map(),autosave,studio;const archivedPrompts=new Map();
+ const constraintStorage=parent===window?null:parent.nbtPromptStorage;
+ let constraintFolder=constraintStorage?.constraintFolder?.()??'',constraintLibrary=[],constraintLoading=false,constraintError='',constraintRequest=0;
  try{const saved=localStorage.getItem(storage);if(parent===window&&saved){const candidate=C.normalize(JSON.parse(saved));if(!C.validate(candidate).length)state=candidate;}}catch{}
- const projectFields={...Object.fromEntries(Object.entries(C.designContract.fields).map(([key,value])=>[key,value.label])),stage:'这次要做什么',size_policy:'尺寸约束方式',source:'正在修改的建筑文件',integration:'使用场景',output:'建筑保存位置',budget:'最多允许修改的方块数',contextPath:'通路与保护区域配置',reviewPath:'看图确认资料（可留空）'};
+ const projectFields={...Object.fromEntries(Object.entries(C.designContract.fields).map(([key,value])=>[key,value.label])),buildingShape:'归档形状（按实际模型登记）',stage:'这次要做什么',size_policy:'尺寸约束方式',source:'正在修改的建筑文件',integration:'使用场景',output:'建筑保存位置',budget:'最多允许修改的方块数',contextPath:'通路与保护区域配置',reviewPath:'看图确认资料（可留空）'};
  const options={size_policy:Object.entries(C.designContract.size_policies),buildingShape:Object.entries(C.buildingShapes).map(([k,v])=>[k,v.label]),stage:[['draft','首次创建完整初稿'],['plan','只读修改规划'],['refine','已有建筑精修']],integration:[['standalone','独立建筑'],['saodg','SAODG 接入']],classification:['body','wall','inherit'],mirror:[['','无'],['x','X 镜像'],['z','Z 镜像']],profile:['maintained','worn','ruined','cavern'],action:['replace','fill'],scope:['surface','volume'],shape_policy:['preserve','any']};
  function element(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;}
  function download(name,value,type='application/json'){const blob=new Blob([typeof value==='string'?value:JSON.stringify(value,null,2)],{type});const a=element('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
  function notify(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error);$('prompt-editor-save-state').textContent=error?message:'修改后自动保存';$('prompt-editor-save-state').title=message;$('prompt-editor-save-state').classList.toggle('error',error);}
- function binding(){return JSON.stringify({project:state.project,operations:state.operations,...(state.design_standard?{project_standard:C.standardText(state)}:{})});}
+ function binding(){return JSON.stringify({project:state.project,operations:state.operations,...(state.constraints?.length?{constraints:state.constraints}:{}),...(state.design_standard?{project_standard:C.standardText(state)}:{})});}
  function requestBinding(){return JSON.stringify({design:binding(),brief_fields:briefFields(state)});}
  function aiDraft(){return state.aiDraft&&typeof state.aiDraft.text==='string'&&state.aiDraft.text.length<=60000&&state.aiDraft.binding===binding()?state.aiDraft:null;}
  function composeAI(text){return C.prompt(state,{designText:text});}
  function outputText(){const cached=archivedPrompts.get(state.export_id);if(cached?.binding===JSON.stringify(state))return cached.original.text;return aiDraft()?composeAI(aiDraft().text):C.prompt(state);}
- function update(){if(state.project.stage==='draft'){state.project.output=C.outputPath(state.project);const output=document.querySelector('[data-field=output]');if(output)output.value=state.project.output;}if(state.proposal_draft&&state.proposal_draft.binding!==requestBinding())delete state.proposal_draft;const errors=[...pending.values(),...C.validate(state)];const invalid=errors.length>0;for(const id of ['copy','markdown','plan','config','save','left-save'])$(id).disabled=invalid;
+ function update(){const errors=[...pending.values(),...C.validate(state)];const invalid=errors.length>0;if(!invalid&&state.project.stage==='draft'){state.project.output=C.outputPath(C.effectiveProject(state));const output=document.querySelector('[data-field=output]');if(output)output.value=state.project.output;}if(state.proposal_draft&&state.proposal_draft.binding!==requestBinding())delete state.proposal_draft;for(const id of ['copy','markdown','plan','config','save','left-save'])$(id).disabled=invalid;
    $('result').value=invalid?'请先补齐以下内容：\n'+errors.join('\n'):outputText();notify(invalid?errors.join('\n'):state.operations.length?`${state.operations.filter(op=>op.enabled!==false).length} 个启用 / ${state.operations.length} 个高级步骤 · 供建造助手核对`:'请核对建筑要求，审查后交给建造助手制作',invalid);$('count').textContent=state.operations.length;
    $('output-mode').textContent=aiDraft()?'当前任务包含：已采用的 AI 建议、建筑要求及校验配置':state.aiDraft?'建筑要求已修改，任务已更新为当前表单内容；请重新核对 AI 建议':'当前任务使用表单中的建筑要求';
    if(!state.export_id)state.export_id=crypto.randomUUID().replaceAll('-','');
@@ -59,11 +61,13 @@
  }
  function renderProject(){
    const host=$('project-fields'),draft=state.project.stage==='draft';host.replaceChildren();
+   const shown=C.effectiveProject(state),bound=NbtConstraintContract.resolve(state.constraints??[]);
+   const constraints=element('fieldset',undefined,'field-group');constraints.id='prompt-constraints';host.append(constraints);renderConstraints();
    const sections=[['建筑概况',['name','stage','buildingShape','integration','theme','purpose']],['空间与体验',['size','size_policy','footprint','spatial_character','layout','circulation','atmosphere']],['风格与部位意图',['style','materials','ceiling','floor','wall','props']],['硬条件与补充',['avoid','preserve','extras']],['文件与修改范围（高级）',['source','output','budget','contextPath','reviewPath']]];const groups=new Map();
    for(const [title,keys]of sections){const group=element('fieldset',undefined,'field-group'),legend=element('legend',title),fields=element('div',undefined,'fields');group.append(legend,fields);host.append(group);for(const key of keys)groups.set(key,fields)}
    for(const [key,label]of Object.entries(projectFields)){
      if(draft&&['source','contextPath','reviewPath','budget'].includes(key))continue;
-     const input=field(groups.get(key),key,key==='output'?C.outputPath(state.project):state.project[key],v=>{
+     const input=field(groups.get(key),key,key==='output'?C.outputPath(shown):shown[key],v=>{
        if(key==='buildingShape')C.applyShape(state.project,v);else state.project[key]=v;
        if(key==='integration'&&v==='saodg')state.project.size_policy='fixed';
        if(key==='stage'&&v!=='draft')state.project.size_policy='fixed';
@@ -74,12 +78,50 @@
      if(key==='buildingShape'&&!draft)input.disabled=true;
      if(Object.hasOwn(C.designContract.fields,key)&&['INPUT','TEXTAREA'].includes(input.tagName)&&typeof state.project[key]==='string')input.maxLength=4000;
      if(key==='size_policy'&&(!draft||state.project.integration==='saodg'))input.disabled=true;
+     if(Object.hasOwn(bound,key)){if(input.matches('input,select,textarea'))input.disabled=true;else input.querySelectorAll('input,select,textarea').forEach(node=>node.disabled=true);input.title='来自已选项目约束；可移除引用或在项目管理中另存约束';}
    }
    $('context-json').value=JSON.stringify(state.project.context,null,2);
    const draftOption=$('prompt-ai-mode').querySelector('[value=draft]');draftOption.disabled=!draft;
    if(!draft&&$('prompt-ai-mode').value==='draft')$('prompt-ai-mode').value='text';
    $('project-intro').textContent=draft?'人工参数可逐项修改；未限定的部位可以留空。AI只辅助编写设计意图，具体构造由执行Agent推导。':'正在编写已有建筑的修改要求。原建筑和保护范围沿用当前版本；改动会自动保存为提示词。';
    renderBriefScope();
+ }
+
+ function renderConstraints(){
+   const host=$('prompt-constraints');if(!host)return;host.replaceChildren(element('legend','项目约束'));
+   const folders=constraintStorage?.constraintFolders?.()??[];
+   const folderName=folder=>folders.find(entry=>entry.folder===folder)?.label??(folder||'工作区共用');
+   if(constraintStorage){
+     const label=element('label','从文件夹选约束'),picker=element('select');picker.id='prompt-constraint-folder';
+     picker.add(new Option('工作区共用',''));
+     for(const entry of folders)picker.add(new Option(entry.label,entry.folder));
+     if(constraintFolder&&!folders.some(entry=>entry.folder===constraintFolder))picker.add(new Option(constraintFolder,constraintFolder));
+     picker.value=constraintFolder;picker.disabled=aiRunning;picker.onchange=()=>refreshConstraints(picker.value);label.append(picker);host.append(label);
+   }
+   host.append(element('p','勾选后，提示词会列出这一版的尺寸、可建网格和文字要求。换文件夹可以继续选，之前的勾选会保留。','field-help'));
+   const actions=element('div',undefined,'constraint-actions');
+   const openConstraints=(create=false)=>parent.dispatchEvent(new CustomEvent('project-constraints-open',{detail:{folder:constraintFolder,create,agent:create}}));
+   for(const [label,run]of [['编辑文件夹约束',()=>openConstraints()],['Agent 创建约束',()=>openConstraints(true)],['刷新约束',()=>refreshConstraints(constraintFolder)]]){const button=element('button',label);button.type='button';button.disabled=constraintLoading||aiRunning||!constraintStorage;button.onclick=run;actions.append(button)}host.append(actions);
+   const selected=state.constraints??[],items=new Map(constraintLibrary.map(item=>[item.id,item]));for(const item of selected)if(!items.has(item.id))items.set(item.id,item);
+   if(!constraintLibrary.length)host.append(element('p',constraintError||(constraintLoading?'正在读取「'+folderName(constraintFolder)+'」的约束…':'「'+folderName(constraintFolder)+'」还没有可选的约束。'),'field-help'));
+   for(const item of items.values()){
+     const saved=selected.find(value=>value.id===item.id),row=element('div',undefined,'constraint-choice'),label=element('label',undefined,'inline'),check=element('input');check.type='checkbox';check.dataset.constraintId=item.id;check.checked=!!saved;check.disabled=constraintLoading||aiRunning;
+     check.onchange=async()=>{check.disabled=true;try{await window.NbtPromptUI.applyConstraints(check.checked?[...selected,item]:selected.filter(value=>value.id!==item.id))}catch(error){notify(error.message,true);renderConstraints()}};
+     const shown=saved??item;
+     label.append(check,document.createTextNode(shown.name+' · 第 '+shown.revision+' 版'));row.append(label);
+     if((shown.folder??'')!==constraintFolder)row.append(element('small','来自「'+folderName(shown.folder)+'」'));
+     if(saved&&saved.sha256!==item.sha256){const latest=element('button','改用第 '+item.revision+' 版');latest.type='button';latest.disabled=aiRunning;latest.onclick=()=>window.NbtPromptUI.applyConstraints(selected.map(value=>value.id===item.id?item:value)).catch(error=>notify(error.message,true));row.append(latest)}
+     const details=element('details'),summary=element('summary','查看要求'),description=element('ul');
+     for(const line of NbtConstraintContract.describe(shown.rules))description.append(element('li',line));
+     details.append(summary,description);row.append(details);host.append(row);
+   }
+ }
+ async function refreshConstraints(folder=constraintFolder){
+   const request=++constraintRequest;
+   constraintFolder=folder;constraintLibrary=[];constraintError='';constraintLoading=true;renderConstraints();
+   try{const result=await constraintStorage?.constraints?.(folder);if(request===constraintRequest)constraintLibrary=result?.items??[]}
+   catch(error){if(request===constraintRequest)constraintError='读取约束失败。'+error.message}
+   finally{if(request===constraintRequest){constraintLoading=false;renderConstraints()}}
  }
 
  function renderOperations(){const host=$('operations');host.replaceChildren();if(!state.operations.length)host.append(element('p','尚未添加工具。可以先只填写建筑要求，由 Agent 按需选择。','empty'));
@@ -94,7 +136,7 @@
  for(const [kind,[label]]of Object.entries(C.catalog)){const o=element('option',label);o.value=kind;$('kind').append(o);}
  $('add').onclick=()=>{if(pending.size){notify('请先修复未完成的参数',true);return;}state.operations.push(C.operation($('kind').value));renderOperations();update();};
  $('prompt-advanced-toggle').onclick=()=>{const open=$('prompt-advanced-tabs').hidden;$('prompt-advanced-tabs').hidden=!open;$('prompt-advanced-toggle').setAttribute('aria-expanded',String(open));$('prompt-ai-mode').querySelector('[value=controls]').hidden=!open;if(!open){if($('prompt-ai-mode').value==='controls')$('prompt-ai-mode').value=state.project.stage==='draft'?'draft':'text';if(['tools','context'].some(id=>!$(id).hidden))document.querySelector('[data-tab=project]').click()}};
- document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.tab').forEach(x=>x.hidden=x.id!==b.dataset.tab);});
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b))});document.querySelectorAll('.tab').forEach(x=>x.hidden=x.id!==b.dataset.tab);});
  $('context-json').oninput=()=>{try{const v=JSON.parse($('context-json').value);if(!v||typeof v!=='object'||Array.isArray(v))throw Error('上下文须为对象');state.project.context=v;pending.delete('context');$('context-error').textContent='';}catch(e){pending.set('context','上下文JSON无效：'+e.message);$('context-error').textContent=e.message;}update();};
  $('save').onclick=()=>download('nbt_prompt_settings.json',state);
  $('left-read').onclick=()=>$('import').click();
@@ -114,14 +156,14 @@
  $('prompt-task-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('prompt-task-command').textContent);notify('Agent读取命令已复制')}catch{notify($('prompt-task-command').textContent)}}
  $('markdown').onclick=()=>download('NBT建模完整提示词.md',outputText(),'text/markdown;charset=utf-8');
  $('plan').onclick=()=>download('plan.json',C.plan(state));
- $('config').onclick=()=>download('context_draft.json',{...state.project.context,max_changed_blocks:state.project.budget});
+ $('config').onclick=()=>download('context_draft.json',{...C.effectiveProject(state).context,max_changed_blocks:state.project.budget});
  $('copy').onclick=async()=>{try{await autosave?.flush();if(navigator.clipboard?.writeText)await navigator.clipboard.writeText($('result').value);else throw Error('fallback');notify('完整提示词已复制');}catch{$('result').focus();$('result').select();notify(document.execCommand('copy')?'完整提示词已复制':'已选中提示词，请按 Ctrl+C');}};
  $('import').onclick=()=>$('file').click();$('file').onchange=async()=>{const f=$('file').files[0];if(!f)return;try{const v=JSON.parse(await f.text());const candidate=C.normalize(v);const errors=C.validate(candidate);if(errors.length)throw Error(errors.join('；'));state=candidate;pending.clear();renderProject();renderOperations();update();}catch(e){notify('导入失败：'+e.message,true);}finally{$('file').value='';}};
  $('reset').onclick=()=>studio.addBlank();
  let aiBridge=null,candidateBinding=null,aiRunning=false,aiEpoch=0,candidateMode='text';
  try{if(window.parent!==window&&window.parent.location.origin===location.origin)aiBridge=window.parent.nbtPromptAI;}catch{}
  function aiMessage(text,error=false){$('prompt-ai-status').textContent=text;$('prompt-ai-status').classList.toggle('error',error);}
- function aiLock(value){aiRunning=value;$('prompt-ai-mode').disabled=value;$('prompt-ai-generate').disabled=value;$('prompt-ai-cancel').disabled=!value;$('prompt-ai-cancel').hidden=!value;$('prompt-ai-settings').disabled=value;document.querySelectorAll('[data-brief-field]').forEach(input=>input.disabled=value);$('prompt-ai-fields-default').disabled=value;studio?.refresh();}
+ function aiLock(value){aiRunning=value;renderConstraints();$('prompt-ai-mode').disabled=value;$('prompt-ai-generate').disabled=value;$('prompt-ai-cancel').disabled=!value;$('prompt-ai-cancel').hidden=!value;$('prompt-ai-settings').disabled=value;document.querySelectorAll('[data-brief-field]').forEach(input=>input.disabled=value);$('prompt-ai-fields-default').disabled=value;studio?.refresh();}
  function renderCandidate(){
   const host=$('prompt-ai-review');host.replaceChildren();$('prompt-ai-proposal').hidden=!candidateBinding;$('prompt-ai-raw').open=candidateMode==='text';if(!candidateBinding||candidateMode==='text')return;
   try{const proposal=JSON.parse($('prompt-ai-candidate').value);for(const [key,value]of Object.entries(proposal.project_patch??{})){const label=element('label',undefined,['name','buildingShape'].includes(key)?'':'wide');label.append(element('span',projectFields[key]??key));const input=element(key==='name'?'input':'textarea');input.dataset.proposalField=key;input.value=Array.isArray(value)?value.join(' × '):value;input.oninput=()=>{const parsed=JSON.parse($('prompt-ai-candidate').value);parsed.project_patch[key]=key==='size'?input.value.split(/[×xX,， ]+/).filter(Boolean).map(Number):input.value;$('prompt-ai-candidate').value=JSON.stringify(parsed,null,2);state.proposal_draft={binding:candidateBinding,mode:candidateMode,raw:$('prompt-ai-candidate').value};update()};label.append(input);host.append(label)}}catch{aiMessage('AI 返回内容无法展开，请在高级数据中检查格式。',true)}
@@ -140,11 +182,11 @@
  $('prompt-ai-references').onclick=()=>{const flow=$('prompt-ai-mode').value==='draft'?'draft':$('prompt-ai-mode').value==='text'?'prompt':'workbench';const picker=window.parent?.nbtReferencePicker;if(picker)picker.open({workflow:flow,query:$('prompt-ai-instruction').value}).catch(error=>aiMessage(error.message,true));else aiMessage('本地检索在桌面版工作区提供',true)};
  $('prompt-ai-settings').onclick=()=>{if(aiBridge)aiBridge.settings();else aiMessage('API 设置在 Electron 桌面版主界面右上角提供。',true);};
  function sanitizedDesign(doc=state,mode=$('prompt-ai-mode').value){
-   const p=doc.project,keys=[...Object.keys(C.designContract.fields),'size_policy','integration'];
+   const p=C.effectiveProject(doc),keys=[...Object.keys(C.designContract.fields),'size_policy','integration'];
    const project=Object.fromEntries(keys.map(k=>[k,p[k]]));
    project.extras=String(p.extras??'').split('\n').filter(line=>!line.startsWith('源文件 SHA256：')).join('\n');
    const allowed=new Set(['kind','label','enabled','classification','lo','hi','geometry','mode','state','from_states','seed','max_writes','offset','count','destination','quarter_turns','mirror','move','include_air','overwrite','iterations','seeds','steps','decay','surface_only','centre','radius','roughness','rays','ray_length','ray_width','fraction','spacing','supported','action','scope','scale','palette','preserve_properties','shape_policy','profile','style_note','slab_share','patch_size','pit_depth','route_margin','exclude_boxes','include_boxes','slab_overrides','moss','cracks','floor','thickness','width','start','end']);
-   return {project,task:mode==='draft'?'draft':'controls',...(mode==='draft'?{brief_scope:{editable_fields:briefFields(doc)}}:{}),existing_model:!!p.source,...(doc.design_standard?{project_standard:C.standardText(doc)}:{}),operations:doc.operations.map(op=>Object.fromEntries(Object.entries(op).filter(([key])=>allowed.has(key))))};
+   return {project,...(doc.constraints?.length?{constraints:C.clone(doc.constraints)}:{}),task:mode==='draft'?'draft':'controls',...(mode==='draft'?{brief_scope:{editable_fields:briefFields(doc)}}:{}),existing_model:!!p.source,...(doc.design_standard?{project_standard:C.standardText(doc)}:{}),operations:doc.operations.map(op=>Object.fromEntries(Object.entries(op).filter(([key])=>allowed.has(key))))};
  }
  $('prompt-ai-generate').onclick=async()=>{
    if(aiRunning)return;const epoch=++aiEpoch;
@@ -172,6 +214,7 @@
  function adoptProposal(base,proposal,mode){
      const patch=proposal.project_patch??{},allowed=Object.keys(C.designContract.fields);
      if(Object.keys(patch).some(key=>!allowed.includes(key)))throw Error('方案不能改写路径、阶段、预算或保护字段');
+     const bound=NbtConstraintContract.resolve(base.constraints??[]),effective=C.effectiveProject(base);for(const key of ['buildingShape','size','footprint'])if(bound[key]!==undefined&&patch[key]!==undefined&&JSON.stringify(patch[key])!==JSON.stringify(effective[key]))throw Error('AI不能修改已选项目约束：'+key);
      if(base.project.source&&patch.size&&JSON.stringify(patch.size)!==JSON.stringify(base.project.size))throw Error('已有模型的尺寸保持不变');
      if(mode==='draft')NbtPromptAIInput.assertPatch(base.project,patch,briefFields(base));
      const next=C.clone(base);if(patch.buildingShape&&mode!=='draft'){if(!C.buildingShapes[patch.buildingShape]||base.project.source&&patch.buildingShape!==base.project.buildingShape)throw Error('建筑形状无效，或已有模型形状不能由 AI 改写');C.applyShape(next.project,patch.buildingShape);}for(const [key,value]of Object.entries(patch)){if(key!=='size'&&(typeof value!=='string'||value.length>4000))throw Error('设计字段需为有效文字');next.project[key]=value;}
@@ -185,7 +228,7 @@
  async function generateDocument(doc,isCancelled=()=>false){
    if(!aiBridge)throw Error('AI 需要在 Electron 桌面版内使用');
    const base=C.clone(doc),mode='draft',errors=C.validate(base);if(errors.length)throw Error(errors.join('；'));
-   const before=JSON.stringify({project:base.project,operations:base.operations,brief_fields:briefFields(base),...(base.design_standard?{project_standard:C.standardText(base)}:{})});
+   const before=JSON.stringify({project:base.project,operations:base.operations,...(base.constraints?.length?{constraints:base.constraints}:{}),brief_fields:briefFields(base),...(base.design_standard?{project_standard:C.standardText(base)}:{})});
    const input=NbtPromptAIInput.request(mode,base.workbench?.instruction??'',sanitizedDesign(base,mode));
    input.context.baseline_binding=await NbtPromptAIInput.bindingToken(before);
    if(isCancelled())throw Error('已停止批量生成');
@@ -215,15 +258,34 @@
    next.operations=C.clone(payload.plan.operations);
    const errors=C.validate(next);if(errors.length)throw Error(errors.join('；'));
    state=next;pending.clear();renderProject();renderOperations();update();
+   if(payload.constraintFolder!==undefined)refreshConstraints(payload.constraintFolder);
  }};
  if(window.parent!==window){document.body.classList.add('embedded');}
- const payload=doc=>{const cached=archivedPrompts.get(doc.export_id);if(cached?.binding===JSON.stringify(doc))return {session_id:doc.export_id,document:C.clone(cached.original.document),text:cached.original.text,plan:cached.original.plan,context:cached.original.context};const designText=doc.aiDraft?.binding===JSON.stringify({project:doc.project,operations:doc.operations,...(doc.design_standard?{project_standard:C.standardText(doc)}:{})})?doc.aiDraft.text:undefined;return {session_id:doc.export_id,document:C.clone(doc),text:C.prompt(doc,designText===undefined?{}:{designText}),plan:C.plan(doc),context:{...doc.project.context,max_changed_blocks:doc.project.budget}}};
+ const payload=doc=>{const cached=archivedPrompts.get(doc.export_id);if(cached?.binding===JSON.stringify(doc))return {session_id:doc.export_id,document:C.clone(cached.original.document),text:cached.original.text,plan:cached.original.plan,context:cached.original.context};const designText=doc.aiDraft?.binding===JSON.stringify({project:doc.project,operations:doc.operations,...(doc.constraints?.length?{constraints:doc.constraints}:{}),...(doc.design_standard?{project_standard:C.standardText(doc)}:{})})?doc.aiDraft.text:undefined;return {session_id:doc.export_id,document:C.clone(doc),text:C.prompt(doc,designText===undefined?{}:{designText}),plan:C.plan(doc),context:{...C.effectiveProject(doc).context,max_changed_blocks:doc.project.budget}}};
  autosave=createPromptAutosave({host:$('output-mode'),read:()=>payload(state),onSaved:result=>studio?.saved(result)});
  studio=createPromptWorkspace({remember:(id,original,doc)=>archivedPrompts.set(id,{original,binding:JSON.stringify(doc)}),document:()=>state,valid:()=>!pending.size&&!C.validate(state).length,isGenerating:()=>aiRunning,flush:()=>autosave.flush(),discard:()=>autosave.discard(),bridge:parent!==window?parent.nbtPromptStorage:null,message:notify,update,saveDocument:doc=>parent.nbtPromptStorage.save(payload(doc)),generateDocument,concurrency:async()=>(await aiBridge?.config())?.maxConcurrent??2,cancelDocument:id=>aiBridge?.cancel('prompt:'+id),instruction:text=>{$('prompt-ai-instruction').value=text},cancel:()=>aiBridge?.cancel(),restoreTask(task){$('prompt-task-handoff').hidden=!task;if(task){$('prompt-task-state').dataset.id=task.id;$('prompt-task-state').dataset.path=task.directory;$('prompt-task-state').textContent='已交接，请手动让外部助手读取。';$('prompt-task-command').textContent='python .agents/skills/nbtcreator-workspace/nbt.py prompts task --id '+task.id}},replace(doc){state=doc;pending.clear();$('prompt-ai-mode').value=state.project.stage==='draft'?'draft':'text';renderProject();renderOperations();restoreCandidate();update()},async generate(){await $('prompt-ai-generate').onclick();if(!candidateBinding)throw Error($('prompt-ai-status').textContent);$('prompt-ai-apply').onclick();if(candidateBinding)throw Error($('prompt-ai-status').textContent)}});
  window.NbtPromptUI.defaultStandards=snapshot=>{if(!studio.pristine||studio.busy||aiRunning)return;state.design_standard=C.clone(snapshot);update()};
  window.NbtPromptUI.applyStandards=async(snapshot,override='')=>{if(studio.busy||aiRunning)throw Error('请先结束当前提示词操作');await autosave.flush();if(snapshot)state.design_standard=C.clone(snapshot);else delete state.design_standard;state.design_override=override;state.workbench={...state.workbench,status:'pending'};delete state.aiDraft;delete state.proposal_draft;candidateBinding=null;restoreCandidate();update();await autosave.flush()};
  window.NbtPromptUI.standards=()=>({snapshot:state.design_standard?C.clone(state.design_standard):null,override:state.design_override??''});
+ window.NbtPromptUI.constraints=()=>C.clone(state.constraints??[]);
+ window.NbtPromptUI.applyConstraints=async snapshots=>{await studio.exclusive(async()=>{
+   if(aiRunning)throw Error('请先结束当前提示词操作');
+   if(pending.size)throw Error('请先修复未完成的参数');
+   const next=C.clone(state);next.constraints=C.clone(snapshots);const errors=C.validate(next);if(errors.length)throw Error(errors.join('；'));
+   if(!C.validate(state).length)await autosave.flush();state=next;state.workbench={...state.workbench,status:'pending'};delete state.aiDraft;delete state.proposal_draft;candidateBinding=null;renderProject();restoreCandidate();update();await autosave.flush();
+ });renderConstraints()};
  const norms=document.createElement('button');norms.id='prompt-project-standards';norms.type='button';norms.textContent='项目设计规范';$('prompt-batch-open').after(norms);norms.onclick=()=>parent.dispatchEvent(new Event('architect-standards'));
  window.NbtPromptUI.flushExport=()=>autosave.flush();
- renderProject();renderOperations();update();window.NbtPromptUI.ready=studio.load();window.NbtPromptUI.ready.catch(()=>{});
+ if(constraintStorage){
+  parent.addEventListener('project-constraints-changed',event=>{if(event.detail===constraintFolder)refreshConstraints(constraintFolder)});
+  parent.addEventListener('project-constraint-folder',event=>refreshConstraints(event.detail));
+  parent.addEventListener('project-constraint-folders-loaded',renderConstraints);
+ }
+ // Keep one document navigation. Batch commands belong to the list rather
+ // than competing with the current document's next action.
+ const listTools=document.createElement('details');listTools.id='prompt-list-tools';listTools.innerHTML='<summary>列表工具</summary><div></div>';$('prompt-queue-list').before(listTools);listTools.querySelector('div').append($('prompt-batch-open'),$('prompt-batch-retry'),norms,$('prompt-publish-reviewed'));
+ $('prompt-add').textContent='新建方案';document.querySelector('.queue-heading h2').textContent='我的方案';document.querySelector('.queue-intro').textContent='每份方案独立保存。选择一份继续编辑。';
+ document.querySelector('[data-planning-step=write]').textContent='起草要求';document.querySelector('[data-planning-step=review]').textContent='编辑与审查';document.querySelector('[data-planning-step=handoff]').textContent='交接结果';
+ $('prompt-advanced-toggle').textContent='建造与约束';$('prompt-more').querySelector('summary').textContent='方案操作';
+ renderProject();renderOperations();update();refreshConstraints();window.NbtPromptUI.ready=studio.load();window.NbtPromptUI.ready.catch(()=>{});
 })();

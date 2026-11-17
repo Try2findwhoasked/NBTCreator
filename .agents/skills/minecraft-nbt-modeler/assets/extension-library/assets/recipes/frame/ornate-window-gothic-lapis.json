@@ -1,0 +1,29 @@
+{
+  "arguments": {
+    "accent": "quartz_bricks",
+    "form": {
+      "glass_palette": [
+        "blue_stained_glass",
+        "light_blue_stained_glass",
+        "yellow_stained_glass"
+      ],
+      "profile": "pointed_arch_window",
+      "recess": 3,
+      "sill_material": "smooth_quartz_slab[type=top]"
+    },
+    "kind": "frame",
+    "material": "smooth_quartz",
+    "name": "蓝金彩玻玫瑰尖拱窗",
+    "size": [
+      23,
+      31,
+      5
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

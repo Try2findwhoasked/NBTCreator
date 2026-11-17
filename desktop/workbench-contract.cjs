@@ -1,6 +1,7 @@
 const {validateOperation,validateParameter}=require('./operation-parameters.cjs')
 const {isDeepStrictEqual}=require('node:util')
 const catalog=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json')
+const constraints=require('../.agents/skills/minecraft-nbt-modeler/prompt-console/constraint-contract.cjs').create(catalog)
 const {createHash}=require('node:crypto')
 const fields=Object.keys(catalog.prompt_design.fields).filter(key=>key!=='size')
 const SHA=/^[a-f0-9]{64}$/
@@ -10,6 +11,10 @@ function fingerprint(value){
  return createHash('sha256').update(JSON.stringify(stable(value))).digest('hex')
 }
 function cleanContext(input){
+ if(input?.task==='constraint'){
+  if(!own(input,['task']))throw Error('创建约束不接受模型、路径或执行上下文')
+  return {task:'constraint'}
+ }
  if(!input||!input.project||!Array.isArray(input.project.size))throw Error('需要当前提示词方案')
  const project={size:[...input.project.size]}
  for(const key of fields)if(input.project[key]!==undefined){if(typeof input.project[key]!=='string'||input.project[key].length>4000)throw Error('设计参数须为不超过4000字的文字：'+key);project[key]=input.project[key]}
@@ -20,13 +25,19 @@ function cleanContext(input){
  if(input.baseline_binding!==undefined&&!SHA.test(input.baseline_binding))throw Error('方案绑定指纹无效')
  if(input.operations!==undefined&&(!Array.isArray(input.operations)||input.operations.length>128))throw Error('当前工具序列最多128项，不能静默截断')
  if(input.project_standard!==undefined&&(typeof input.project_standard!=='string'||input.project_standard.length>40000))throw Error('项目规范文本无效或超过40000字')
+ if(input.constraints!==undefined){
+  constraints.resolve(input.constraints)
+  for(const item of input.constraints)if(fingerprint(Object.fromEntries(['schema_version','id','revision','name','rules','folder'].filter(key=>Object.hasOwn(item,key)).map(key=>[key,item[key]])))!==item.sha256)throw Error('项目约束快照内容与哈希不符')
+  const effective=constraints.effective({...project,...(input.existing_model?{source:'existing'}:{})},input.constraints)
+  for(const key of ['buildingShape','size','size_policy','footprint'])if(effective[key]!==undefined)project[key]=effective[key]
+ }
  let brief_scope
  if(input.brief_scope!==undefined){
   const scope=input.brief_scope
   if(input.task!=='brief'||!own(scope,['editable_fields'])||!Array.isArray(scope.editable_fields)||!scope.editable_fields.length||scope.editable_fields.length>fields.length+1||new Set(scope.editable_fields).size!==scope.editable_fields.length||scope.editable_fields.some(key=>!Object.hasOwn(catalog.prompt_design.fields,key)))throw Error('AI修改范围无效，请选择允许修改的设计项')
   brief_scope={editable_fields:[...scope.editable_fields]}
  }
- return {...(input.project_standard?{project_standard:input.project_standard}:{}),project,task:['draft','brief'].includes(input.task)?input.task:'controls',existing_model:input.existing_model===true,operations:input.task==='brief'?[]:structuredClone(input.operations??[]),...(brief_scope?{brief_scope}:{}),...(input.baseline_binding?{baseline_binding:input.baseline_binding}:{})}
+ return {...(input.constraints!==undefined?{constraints:structuredClone(input.constraints)}:{}),...(input.project_standard?{project_standard:input.project_standard}:{}),project,task:['draft','brief'].includes(input.task)?input.task:'controls',existing_model:input.existing_model===true,operations:input.task==='brief'?[]:structuredClone(input.operations??[]),...(brief_scope?{brief_scope}:{}),...(input.baseline_binding?{baseline_binding:input.baseline_binding}:{})}
 }
 function operationBase(context){return {baseline:fingerprint(context),steps:context.operations.map((op,i)=>({step:i+1,expected:fingerprint(op)}))}}
 function mergeOperationPatch(result,context){
@@ -54,10 +65,16 @@ function mergeOperationPatch(result,context){
  return {summary:result.summary,...(result.project_patch!==undefined?{project_patch:result.project_patch}:{}),operations}
 }
 function validateWorkbench(result,context){
+ if(context.task==='constraint'){
+  if(!own(result,['name','rules'])||typeof result.name!=='string'||!result.name.trim()||result.name.length>80)throw Error('约束候选需要1～80字名称及规则')
+  return {name:result.name.trim(),rules:constraints.rules(result.rules)}
+ }
  const incremental=result?.operation_patch!==undefined
  if(incremental)result=mergeOperationPatch(result,context)
  if(!result||typeof result!=='object'||Array.isArray(result)||Object.keys(result).some(k=>!['summary','project_patch','operations'].includes(k))||typeof result.summary!=='string'||result.summary.length>4000)throw Error('AI控件方案格式无效')
  const patch=result.project_patch??{}
+ const bound=constraints.resolve(context.constraints??[])
+ for(const key of ['buildingShape','size','footprint'])if(bound[key]!==undefined&&patch[key]!==undefined&&!isDeepStrictEqual(patch[key],context.project[key]))throw Error('AI不能修改已选项目约束：'+key)
  if(!patch||Array.isArray(patch)||typeof patch!=='object'||Object.keys(patch).some(k=>!fields.includes(k)&&k!=='size'))throw Error('AI只能调整设计字段，不能修改源路径、阶段、保护或批准')
  for(const [key,value]of Object.entries(patch))if(key!=='size'&&(typeof value!=='string'||value.length>4000))throw Error('AI设计文字字段无效')
  if(patch.buildingShape){if(!catalog.building_shapes[patch.buildingShape])throw Error('建筑形状无效');if(context.existing_model&&patch.buildingShape!==context.project.buildingShape)throw Error('已有模型形状不可由AI改写')}

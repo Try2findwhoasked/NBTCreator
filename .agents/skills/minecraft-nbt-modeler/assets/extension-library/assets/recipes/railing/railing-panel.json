@@ -1,0 +1,17 @@
+{
+  "arguments": {
+    "form": {
+      "pitch": 3,
+      "profile": "panel"
+    },
+    "kind": "railing",
+    "name": "实心栏板",
+    "size": [
+      13,
+      5,
+      3
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

@@ -8,6 +8,7 @@
 
 | 版本 | 记录 |
 | --- | --- |
+| 3.3.0 | [统一素材库与模块化构件](releases/RELEASE_3.3.0.md) |
 | 3.2.0 | [活动路线、参考图构造与审阅位置](releases/RELEASE_3.2.0.md) |
 | 3.1.0 | [可执行建筑方案、提示词改写与 AI 输出](releases/RELEASE_3.1.0.md) |
 | 2.0.0 | [建筑师工作区、SNBT 制作版与版本历史](releases/RELEASE_2.0.md) |

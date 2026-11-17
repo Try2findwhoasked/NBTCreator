@@ -1,0 +1,22 @@
+{
+  "arguments": {
+    "accent": "white_concrete",
+    "form": {
+      "profile": "rectangular"
+    },
+    "kind": "beam",
+    "material": "white_concrete",
+    "name": "通体混凝土梁",
+    "size": [
+      19,
+      2,
+      2
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

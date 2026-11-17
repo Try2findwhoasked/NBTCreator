@@ -8,11 +8,15 @@
 
 ## 验证门禁
 
-CI 先检查工具一致性、冻结资料库及 API/工作区/交接/提示词契约，再构建 ZIP。随后逐文件验证解压内容，移除系统 Node/Python 搜索路径，检查私有 Python、CLI、Skill 生成和包内浏览器，最后运行打包版桌面和模拟 API 回归。任何检查失败都会阻止发布。
+CI 将源码契约（source-contracts）、素材库桌面流程（asset-desktop）、整模流水线（model-pipelines）、创作契约（authoring-contracts）和 Portable 打包（portable-package）拆成五个独立 Windows job，可在 runner 配额允许时并行执行。每个 job 独立安装锁定依赖、构建前端并保留失败诊断，诊断产物名带 job 标识，避免并发上传冲突。原有测试范围保持不变，单个 job 失败不取消其他 job。
 
-源码门禁还先构建 web-dist，并用 viewer 锁定的 Playwright 显式安装完整 Chromium；`PLAYWRIGHT_BROWSERS_PATH` 固定到本次 `build/portable-browser`，供源码回归和后续 portable 打包共用，不依赖 runner 偶然预装的 Edge或额外 headless-shell。随后运行共享渲染/快照校验、评论索引迁移与证据、独立开口、独立尺寸/非48网格交付、候选校验、工作区API取消、碰撞反例、整体精修及网页回导回归。核心夹具只写全新的 `build/ci-model-pipelines`，既有目录或任何检查失败直接使CI失败，不静默跳过，也不把模拟确认用于真实作者模型。打包后另用挂起的本机模拟API检查实际工作区切换会中止旧连接、允许新请求，并且不把旧结果/活动写到新工作区。
+打包 job 构建 ZIP 后逐文件验证解压内容，移除系统 Node/Python 搜索路径，检查私有 Python、CLI、Skill 生成和包内浏览器，最后运行打包版桌面和模拟 API 回归。保留原名 build 作为汇总门禁：五个 job 必须全部成功，失败、取消或跳过都会使门禁失败；Release 仍依赖 build。打包产物可在源码回归完成前上传，但任何检查失败都会阻止发布。
 
-`tests/task-cancel.mjs`另用超过50万格的真实合成主稿启动Python，确认PID仍存活后分别取消前置inspect和实际preview任务，检查cancelled状态、诊断保留和后续任务可继续；服务关闭也须结束自己创建的非job inspect子进程。该测试不使用sleep伪造工作，不扫描杀死用户其他进程。
+3.3.0 起，源码门禁还校验自带素材库的 121 项内容与哈希，运行外部库离线、刷新、回退及模块化构件回归，并在桌面端验证统一素材浏览、预览、复制和放置。桌面测试使用软件 WebGL 渲染以稳定运行最小化窗口中的真实 3D 预览。
+
+源码门禁还先构建 web-dist，并用 viewer 锁定的 Playwright 显式安装完整 Chromium；`PLAYWRIGHT_BROWSERS_PATH` 固定到本次 `build/portable-browser`，在各自 job 内供源码回归或 portable 打包使用，不依赖 runner 偶然预装的 Edge或额外 headless-shell。随后运行共享渲染/快照校验、评论索引迁移与证据、独立开口、独立尺寸/非48网格交付、候选校验、工作区API取消、碰撞反例、整体精修及网页回导回归。核心夹具只写全新的 `build/ci-model-pipelines`，既有目录或任何检查失败直接使CI失败，不静默跳过，也不把模拟确认用于真实作者模型。打包后另用挂起的本机模拟API检查实际工作区切换会中止旧连接、允许新请求，并且不把旧结果/活动写到新工作区。
+
+`tests/node/task-cancel.mjs`另用超过50万格的真实合成主稿启动Python，确认PID仍存活后分别取消前置inspect和实际preview任务，检查cancelled状态、诊断保留和后续任务可继续；服务关闭也须结束自己创建的非job inspect子进程。该测试不使用sleep伪造工作，不扫描杀死用户其他进程。
 
 ## 产物与本地构建
 

@@ -15,7 +15,7 @@ const out=path.resolve(values.output);await fs.mkdir(out)
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../../../..')
 const workspace=path.join(out,'workspace'),version=path.join(workspace,'nbt_models/single/候选检查/v01')
 await fs.mkdir(workspace,{recursive:true})
-execFileSync(values.python??'python',['-c','import runpy,sys;runpy.run_path(sys.argv[1])["make_fixture"](sys.argv[2])',path.join(root,'tests/candidate-validation.py'),version],{windowsHide:true,cwd:root})
+execFileSync(values.python??'python',['-c','import runpy,sys;runpy.run_path(sys.argv[1])["make_fixture"](sys.argv[2])',path.join(root,'tests/engine/candidate-validation.py'),version],{windowsHide:true,cwd:root})
 const source=path.join(version,'master/master_geometry.json.gz'),hash=bytes=>createHash('sha256').update(bytes).digest('hex'),original=hash(await fs.readFile(source))
 let server,browser;const checks={},errors=[]
 try{
@@ -59,7 +59,7 @@ try{
   await page.waitForFunction(()=>document.querySelectorAll('.task-entry').length>0)
   await page.locator('#task-filter').selectOption('failed')
   assert.ok((await page.locator('#task-list').textContent()).includes('检查候选效果'))
-  assert.ok((await page.locator('.task-state.failed').first().textContent()).includes('未通过'))
+  assert.ok((await page.locator('.task-state.failed').first().textContent()).includes('需改参数'))
   checks.task_filter_and_verdict_are_consistent=true
   await page.locator('button[data-workspace=model]').click()
   await page.locator('.result-panel').evaluate(e=>e.open=false)

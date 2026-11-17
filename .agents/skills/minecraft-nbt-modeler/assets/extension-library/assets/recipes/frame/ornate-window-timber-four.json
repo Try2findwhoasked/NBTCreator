@@ -1,0 +1,28 @@
+{
+  "arguments": {
+    "accent": "spruce_planks",
+    "form": {
+      "panes": [
+        2,
+        2
+      ],
+      "profile": "sash_window",
+      "recess": 2,
+      "sill_material": "spruce_slab[type=top]"
+    },
+    "kind": "frame",
+    "material": "stripped_spruce_log",
+    "name": "四格木窗与前挑窗台",
+    "size": [
+      7,
+      7,
+      4
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

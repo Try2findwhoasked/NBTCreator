@@ -1,0 +1,28 @@
+{
+  "arguments": {
+    "accent": "dark_oak_planks",
+    "form": {
+      "panes": [
+        3,
+        4
+      ],
+      "profile": "sash_window",
+      "recess": 2,
+      "sill_material": "dark_oak_slab[type=top]"
+    },
+    "kind": "frame",
+    "material": "stripped_dark_oak_log",
+    "name": "十二格上下木窗",
+    "size": [
+      10,
+      13,
+      4
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

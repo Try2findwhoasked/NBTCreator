@@ -26,7 +26,7 @@
       if (groups.has(key)) groups.get(key).steps++;
       else groups.set(key,{...intent,steps:1});
     }
-    return {project,...(design.project_standard?{project_standard:design.project_standard}:{}),operation_count:design.operations.length,operation_intents:[...groups.values()]};
+    return {project,...(design.constraints?.length?{project_constraints:globalThis.NbtConstraintContract.text(design.constraints)}:{}),...(design.project_standard?{project_standard:design.project_standard}:{}),operation_count:design.operations.length,operation_intents:[...groups.values()]};
   }
   function request(mode,instruction,design) {
     if (!['text','controls','draft'].includes(mode)) throw Error('未知 AI 方案模式');

@@ -1,0 +1,27 @@
+{
+  "arguments": {
+    "accent": "cut_sandstone",
+    "form": {
+      "dentils": true,
+      "detail_material": "chiseled_sandstone",
+      "head": "cornice",
+      "profile": "classical_window",
+      "recess": 3,
+      "sill_material": "smooth_sandstone_slab[type=top]"
+    },
+    "kind": "frame",
+    "material": "smooth_sandstone",
+    "name": "齿饰檐口古典窗套",
+    "size": [
+      13,
+      21,
+      4
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}
