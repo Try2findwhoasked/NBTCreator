@@ -138,7 +138,13 @@ jobs:
         run: |
           node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify native Electron launch
+        env:
+          ELECTRON_ENABLE_LOGGING: '1'
+        run: node tests/desktop/electron-launch.mjs
       - name: Verify unified asset library desktop flow
+        env:
+          DEBUG: 'pw:browser'
         run: node tests/desktop/unified-assets-desktop.mjs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
@@ -191,6 +197,10 @@ jobs:
         run: |
           node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify native Electron launch
+        env:
+          ELECTRON_ENABLE_LOGGING: '1'
+        run: node tests/desktop/electron-launch.mjs
       - name: Verify Agent evidence and whole-model pipelines
         env:
           DEBUG: 'pw:browser'
@@ -341,7 +351,13 @@ jobs:
         run: |
           node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify native Electron launch
+        env:
+          ELECTRON_ENABLE_LOGGING: '1'
+        run: node tests/desktop/electron-launch.mjs
       - name: Verify authoring contracts
+        env:
+          DEBUG: 'pw:browser'
         run: |
           python -B tests/engine/roof-curves.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
