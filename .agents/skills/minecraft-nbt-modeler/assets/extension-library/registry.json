@@ -1,0 +1,14 @@
+{
+  "kind": "nbtcreator.asset-registry",
+  "libraries": [
+    {
+      "id": "nbtcreator.modular",
+      "manifest_sha256": "b201eb04177c4d4f518090061aeaa288e3d30c012f2988b7c8534a1fc3e6f97e",
+      "name": "NBTCreator 模块化建筑资产库",
+      "path": "library.json",
+      "version": "1.0.0"
+    }
+  ],
+  "name": "NBTCreator 拓展库清单",
+  "schema_version": 1
+}

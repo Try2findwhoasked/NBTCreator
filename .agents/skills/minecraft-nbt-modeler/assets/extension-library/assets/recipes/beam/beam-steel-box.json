@@ -1,0 +1,23 @@
+{
+  "arguments": {
+    "accent": "light_gray_concrete",
+    "form": {
+      "border": 1,
+      "profile": "box_section"
+    },
+    "kind": "beam",
+    "material": "light_gray_concrete",
+    "name": "空心箱形梁",
+    "size": [
+      19,
+      3,
+      3
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

@@ -1,0 +1,22 @@
+{
+  "arguments": {
+    "accent": "stripped_spruce_log[axis=y]",
+    "form": {
+      "base_height": 1,
+      "base_material": "smooth_stone",
+      "capital_height": 1,
+      "section": "square",
+      "shaft_inset": 0
+    },
+    "kind": "pillar",
+    "material": "stripped_spruce_log[axis=y]",
+    "name": "木构直柱与石础",
+    "size": [
+      3,
+      14,
+      3
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

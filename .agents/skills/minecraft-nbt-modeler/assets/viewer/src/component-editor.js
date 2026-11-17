@@ -19,7 +19,7 @@ export function initComponentEditor({api,context,prepare,lock,apply,committed,vi
   try{const base=await prepare(kind);if(!base)throw Error('请先打开建筑');let extracted
    if(kind==='selection'){if(base.whole)throw Error('请先在“修改范围”中关闭整座建筑，并选择局部范围');extracted=await api('components/extract',{target_id:base.target_id,lo:base.lo,hi:base.hi,name:options.move?'移动选区':'复制选区'});component=extracted.component}
    if(!component)throw Error('请先选择构件');if(context().source!==base.source||context().source_sha256!==base.source_sha256||context().settings!==base.settings)throw Error('建筑或参数已变化，请重新开始')
-   session={...base,kind,component,id:options.id,move:options.move===true,selection:extracted?{lo:extracted.lo,hi:extracted.hi,target_id:base.target_id}:null};mode='translate';pickSurface=false
+   session={...base,kind,component,id:options.id,library:options.library,move:options.move===true,selection:extracted?{lo:extracted.lo,hi:extracted.hi,target_id:base.target_id}:null};mode='translate';pickSurface=false
    const position=options.position??(extracted?extracted.lo.map((n,i)=>n+component.anchor[i]):base.lo.map((n,i)=>i===1?n:Math.floor((n+base.hi[i])/2)))
    fields({position,quarter_turns:options.quarter_turns??0});$('component-transform-mirror').value=options.mirror??'';$('component-transform-grid').value='1';$('component-transform-overwrite').checked=!!options.overwrite;$('component-transform-title').textContent=(session.move?'移动：':kind==='selection'?'复制：':'放置：')+component.name
    lock(true);panel.hidden=false;report(session.move?'位置示意；应用时清除源选区的实体方块，再放到新位置。':'位置示意；应用后查看真实方块效果。');await show();$('component-transform-x').focus()
@@ -30,6 +30,7 @@ export function initComponentEditor({api,context,prepare,lock,apply,committed,vi
   working=true;buttons();report('正在核对构件、保护和冲突，并生成真实候选…')
   try{const request={source:current.source,source_sha256:current.source_sha256,...value};let patch
    if(current.kind==='selection')patch=await api('components/transform',{...request,...current.selection,name:current.component.name,move:current.move})
+   else if(current.library){const {grid,...placement}=request;patch=await api('asset-libraries/place',{...placement,...current.library,content_sha256:current.component.content_sha256})}
    else patch=await api('components/place',{...request,...(current.id?{id:current.id}:{component:current.component}),content_sha256:current.component.content_sha256})
    await viewer().configureTransform(null);await apply(patch,current.settings);await committed();
    if(again){const next=context();session={...current,kind:'raw',id:null,move:false,selection:null,settings:next.settings,target_id:next.target_id};$('component-transform-title').textContent='继续复制：'+current.component.name;report('上一份已加入候选；移动手柄放下一份。结束时取消仅关闭当前示意。');await show()}

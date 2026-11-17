@@ -9,7 +9,7 @@ from nbt_modular_objects import KINDS as MODULAR_KINDS
 KINDS.update(MODULAR_KINDS)
 STYLES = {'classic':'框架与收边','stepped':'层叠与加厚','open':'减少封闭面并保留骨架'}
 
-def listing(arguments=None):
+def listing(arguments=None, workspace=None):
     from nbt_structure_agent import definitions
     from nbt_ornament import PROFILES
     from nbt_ornament_sample import ARCHITECTURAL_SAMPLES
@@ -18,7 +18,7 @@ def listing(arguments=None):
     from nbt_object_library import library
     from nbt_object_forms import PROFILES as FORM_PROFILES
     arguments=arguments or {}
-    return dict(schema_version=1,column_orders=ORDERS,object_library=library(arguments.get('kind')),form_profiles=FORM_PROFILES,architectural_samples=ARCHITECTURAL_SAMPLES,themes=THEMES,form_fields=FORM_FIELDS,parameters=definitions()['parametric_compile']['parameters'],
+    return dict(schema_version=1,column_orders=ORDERS,object_library=library(arguments.get('kind'), workspace=workspace),form_profiles=FORM_PROFILES,architectural_samples=ARCHITECTURAL_SAMPLES,themes=THEMES,form_fields=FORM_FIELDS,parameters=definitions()['parametric_compile']['parameters'],
                 kinds=[dict(kind=k,name=v,styles=STYLES,mount='wall_back_z0' if k=='wall' else 'back_z0_top_support' if k=='bracket' else 'span_end_supports' if k=='beam' else 'ceiling_top' if k=='ceiling' else 'floor') for k,v in KINDS.items() if not arguments.get('kind') or arguments['kind']==k],
                 ornament_profiles={k:v for k,v in PROFILES.items() if not arguments.get('ornament_profile') or arguments['ornament_profile']==k},
                 coordinates='局部XYZ，包含两端；墙饰背面Z=0，楼梯沿+Z上升；放置旋转、镜像由structure_place处理',

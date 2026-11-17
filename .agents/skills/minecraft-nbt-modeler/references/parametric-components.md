@@ -71,9 +71,9 @@ size 是整体设计包围空间，部分对象为薄浮雕或悬挂构造，不
 
 ## 模块对象库与楼梯扶手
 
-`parametric_list` 的 `object_library` 返回54条具名配方，每项包含稳定 `id`、中文 `name`、分类 `category` 及可直接传给 `parametric_compile` 的完整 `arguments`。传 `kind` 可筛选；返回值复制后可改尺寸、材质及 form，不会创建资产或批准。应用的“资产管理 → 让 Agent 生成资产 → 参数化模块库”读取同一份库；选择配方会填入建议尺寸，预览后再保存新资产。不同配方有独立尺寸需求，缩小到无法表达时明确拒绝。
+`parametric_list` 的 `object_library` 返回具名配方，每项包含稳定 `id`、中文 `name`、分类 `category` 及可直接传给 `parametric_compile` 的完整 `arguments`。传 `kind` 可筛选；返回值复制后可改尺寸、材质及 form，不会创建资产或批准。应用的“资产管理 → 让 Agent 生成资产 → 参数化模块库”读取同一份库；选择配方会填入建议尺寸，预览后再保存新资产。不同配方有独立尺寸需求，缩小到无法表达时明确拒绝。
 
-库覆盖11种柱配方、12种楼梯扶手组合、5种独立栏杆，以及梁、托架、拱框、门窗框、基座、家具、植物、墙裙和吊顶。五种古典柱式沿用已有实现，新增 `form.section=octagonal/bundled`（八角、束柱）；`band_spacing=2..16` 在柱身按间距换成 accent，保持原截面占用。柱础、柱身、柱头仍保留各自部件边界及原有局部重生成。古典造型是方块适配，不是历史复原。
+库覆盖14种柱配方、12种楼梯扶手组合（其中4种横索式为推荐，另外8种为试作）、5种独立栏杆，以及梁、托架、拱框、门窗框、基座、家具、植物、墙裙和吊顶。五种古典柱式沿用已有实现，新增 `form.section=octagonal/bundled`（八角、束柱）；`band_spacing=2..16` 在柱身按间距换成 accent，保持原截面占用。柱础、柱身、柱头仍保留各自部件边界及原有局部重生成。古典造型是方块适配，不是历史复原。
 
 新的楼梯 `form.handrail` 与旧布尔 `form.rail` 分开；旧调用保留原几何。横索式扶手示例：
 
@@ -100,11 +100,63 @@ size 是整体设计包围空间，部分对象为薄浮雕或悬挂构造，不
 
 新楼梯返回 `construction`，包含实际 `walk_columns`、`rail_bases`、`entrance`、`exit`（均为局部 XYZ）、踏步净宽及实际栏杆列数。它是构造回执；`routes/support` 仍为 `not_checked`，安装后用最终模型核对碰撞路线、净空和真实接触。
 
-独立栏杆沿 +X 放在深度中线。`form.profile` 使用同样四种栏体名，`pitch=2..8` 控制立柱或横索款的节奏，原版铁栏杆格构使用固定网格、界面不提供间距调整，`slope=0..24` 为整段坡升；尺寸 Y 至少为 slope+3。`rail_material/post_material` 分别控制扶手面与立柱/格构（默认随样式选材），材质范围同上。界面用专门的扶手材质输入，不再把无效的主体/收边输入用于独立栏杆。默认薄件的接口标为 `fine_rail_faces_not_halfcell_certified`，不声称栅栏/石墙具备半格精确装配面；完整方块和半砖能精确表示时仍提供 `start/end`。对象图可编排薄件，显式精确接触要求遇到未知细碰撞时仍拒绝。其他新模块的 profile 可从 `parametric_list.form_profiles` 查询。
+独立栏杆沿 +X 放在深度中线。`form.profile` 使用同样四种栏体名，`pitch=2..8` 控制立柱或横索款的节奏，原版铁栏杆格构使用固定网格、界面不提供间距调整，`slope=0..24` 为整段坡升；尺寸 Y 至少为 slope+3。`rail_material/post_material` 分别控制扶手面与立柱/格构（默认随样式选材），材质范围同上。界面用专门的扶手材质输入，不再把无效的主体/收边输入用于独立栏杆。`status` 表示配方整理状态：`recommended` 为当前推荐，`stable` 为已有配方，`draft` 为试作。它不代替用户资产的看图批准或游戏验收。默认薄件的接口标为 `fine_rail_faces_not_halfcell_certified`，不声称栅栏/石墙具备半格精确装配面；完整方块和半砖能精确表示时仍提供 `start/end`。对象图可编排薄件，显式精确接触要求遇到未知细碰撞时仍拒绝。其他新模块的 profile 可从 `parametric_list.form_profiles` 查询。
 
 梁提供底部两端的 `support_start/support_end` 接口；托架提供 `back/top`，侧装托架须显式设置 `quarter_turns`。这些接口绑定实际实体，但不自动证明整段梁或上方荷载得到支承。
 
-在软件仓库根目录执行 `mise run modular:test`，验证全库编译、扶手两侧与平台、顶栏材质连续、净宽、四向旋转、SNBT回读、旧调用兼容及公共对象图/CLI；这些测试不构成用户资产的看图批准或游戏验收。
+在软件仓库根目录执行 `mise run modular:test`，验证全库编译、扶手两侧与平台、栏体静态模型盒的接触和空隙比例（铁栏杆、链条使用视觉包络，不认证精确碰撞）、净宽、四向旋转/镜像、SNBT回读、旧调用兼容及公共对象图/CLI。自定义材质组合需要重新检查实际接触；这些测试不构成用户资产的看图批准或游戏验收。
+
+## 梁、托架与门窗洞口模块
+
+以下8条配方已加入 `parametric_list.object_library`，沿用 `parametric_compile/preview`、对象图和工作模型安装流程。它们使用固定截面，界面禁用不适用的结构样式/节奏控件。API 的 `style` 仅接受默认 classic，不接收顶层 spacing/thickness；壁厚和框边厚度使用 `form.border`。旧 solid/coffered/braced、旧托架和旧矩形窗框保持原生成路径。
+
+| 配方 ID | 构造与方向 | form.profile |
+| --- | --- | --- |
+| beam-timber-rectangular | 沿 +X 的素木梁，裸木材 ID 自动转为沿梁轴木纹 | rectangular |
+| beam-concrete-rectangular | 通体矩形混凝土梁 | rectangular |
+| beam-steel-i | 上下翼缘与中心腹板，两侧凹槽贯通 | i_section |
+| beam-steel-box | 四壁箱形截面，内腔沿 +X 贯通，两端不封堵 | box_section |
+| bracket-timber-knee | 背部立杆、顶部横杆、面接触的斜杆，保留三角留空 | knee_brace |
+| bracket-steel-angle | 薄 L 形托架，不填满三角区 | angle_bracket |
+| frame-timber-doorway | 两侧门梃与顶楣，无底部横槛，默认仅1格厚 | doorway |
+| frame-recessed-window | 框、后退玻璃和前挑顶部半砖窗台 | recessed_window |
+
+梁的 size 为沿 X 的长度、截面高 Y、截面宽 Z。矩形梁跨度至少3格，截面可小到1×1格；其他构件每轴仍至少3格。I/箱梁 `border=1..3`，必须满足 `2*border < min(Y,Z)`。矩形梁不使用 border；主体控制中段，accent 控制两端，默认两者同材。I/箱梁主体控制腹板，accent 控制翼缘，默认同色。裸木材 ID 按杆件方向设 axis；显式提供 axis 时保留作者状态。
+
+托架背面为 Z=0，向 +Z 挑出，顶部承接上部构件。`border` 控制杆件厚度，实体位于 X 中线，不用填满画布宽度。背部与顶杆用主体，斜杆用 accent；默认同材。改变整体方向仍通过显式 quarter_turns，接口随放置旋转。
+
+门框 `frame_depth` 默认1，不大于画布深度。净门洞从 Y=0 开始，不自动加门扇；现有墙上的开洞仍经工作模型受检修改完成。窗框正面朝 -Z，框从 Z=1 开始，`recess` 默认2且须位于1到深度-1。`glazing=false` 移除玻璃但保留框体。`glass_material` 只接受完整玻璃方块，`sill_material` 只接受未含水顶部半砖，以便与后方框底形成真实接触。示例：
+
+```json
+{"kind":"frame","size":[5,5,3],"material":"white_concrete","accent":"white_concrete","form":{"profile":"recessed_window","recess":2,"glazing":true,"glass_material":"glass","sill_material":"smooth_quartz_slab[type=top]"}}
+```
+
+新构件返回 `parts` 与 `construction`。梁提供 support_start/support_end、end_start/end_end、top；托架提供 back/top；门窗提供 left_seat/right_seat/head_top。每个声明区域包含实际实体，装配后仍须核对承托与接触，不把接口当承载能力计算。`construction.apertures` 标注洞口范围、是否有玻璃、是否只是通行候选；玻璃窗不宣称通行。`parametric_regenerate` 支持翼缘、腹板、斜撑、门梃、顶楣、窗台和 glazing 区域；删除玻璃可对同一 glazing 区域重生成。
+
+构造关系参考 [AISC 的空心截面资料](https://www.aisc.org/aisc/solutions-center/hss/)、[工字截面示意](https://www.aisc.org/globalassets/aisc/publications/standards/a370-21w.pdf)、[柱梁与斜撑接头](https://timberframehq.com/post-and-beam-knee-brace-connection/)及 [Andersen 的窗框构件定义](https://www.andersenwindows.com/ideas-and-inspiration/blog/tips/how-to-measure-windows)，于2026-11-17核对；仅提炼形状和构件关系，不复制产品尺寸、设计标准或额定承载值。
+
+在仓库根目录执行 `mise run modular:test`，同时验证对象库和 `tests/engine/structural-members.py`：截面/内腔、木纹、真实门洞路线、玻璃阻挡、局部玻璃移除、柱梁联动、接口、旋转/镜像、SNBT回读和保护。
+
+## 花式窗框与独立资产数据
+
+新配方维护于独立 `NBTCreator-AssetLibrary`，引擎只实现确定性几何；软件内快照和外部库通过 [拓展资产库](asset-libraries.md) 同步。新的推荐数据有上下分格木窗、古典线脚/山花窗、圆拱石窗、玫瑰尖拱彩玻窗，以及编译后的华丽陈设和原创浮雕/镶地。它们不是从远端加载的 Python 插件。
+
+| form.profile | 形体与参数 |
+| --- | --- |
+| sash_window | 默认 panes=[3,4]，每小格至少2格净尺寸；行数必须为偶数。下扇玻璃在 recess，上扇在 recess+1，须留足深度。只生成静态窗扇，不模拟滑动或配重。 |
+| classical_window | 内外两层窗套、前挑窗台、dentils 齿饰及 head=cornice/triangular。cornice_material 仅用于平檐口，须为底部半砖；三角山花使用框材，显式传该字段会拒绝。可用 panes 加分格。 |
+| round_arch_window | 圆弧拱框、前方楔石，lights 控制竖向分栏。玻璃服从真实弧形，不用矩形不透明板补背面。 |
+| pointed_arch_window | 默认双光尖拱、玫瑰窗和连接杆；复用建筑窗棂生成器。复杂窗棂至少11×15格，固定 border=1、lights=2。tracery=false 可做较简洁分栏尖拱窗。 |
+
+玻璃在 `glass_material` 与 `glass_palette` 中选一种，配色1～8项且必须为原版完整玻璃方块。框和窗棂使用不透明完整方块；`bar_material` 控制分格条/窗棂，裸木材自动设杆向木纹。`sill_material` 须为未含水顶部半砖。`recess` 位于1到深度-1，上下木窗另需多一层玻璃空间。新窗型不叠加通用 ornament，避免把玻璃刷成不透明纹样；装饰由窗型本身的线脚、齿饰和窗棂组织。
+
+```json
+{"kind":"frame","size":[13,24,4],"material":"smooth_sandstone","accent":"cut_sandstone","form":{"profile":"classical_window","head":"triangular","dentils":true,"recess":3,"detail_material":"chiseled_sandstone","sill_material":"smooth_sandstone_slab[type=top]"}}
+```
+
+`construction.apertures` 返回轮廓、名义洞口 cells_xy 和实际贯通的 clear_cells_xy；有玻璃时不声称通行。三个安装接口只声明真实占用的承托点，不夸大成完整顶面。`glazing=false` 保留窗框及窗棂；可通过同边界 glazing 区域局部重生成。组件保存不自动挖宿主墙，安装仍须按当前主模型的保护、预算、墙 mask 和源哈希处理。
+
+构造识别参考 [Historic England 传统窗资料](https://historicengland.org.uk/images-books/publications/traditional-windows-care-repair-upgrading/heag039-traditional-windows-revfeb17/)和 [V&A 哥特式语汇](https://www.vam.ac.uk/articles/the-gothic-style-an-introduction)，于2026-11-17核对。新资产是方块化设计，不声称复原具体建筑或通过游戏实测。`mise run modular:test` 包含花式窗7项回归；已制作的独立华丽库另用 `python -B tests/engine/ornate-library.py --library <库目录>` 验证旋转、SNBT、类型覆盖和齐平镶地路线。
 
 ## 装饰风格与纹样参数
 
@@ -331,3 +383,9 @@ reserved_boxes 可声明椅后通道、使用侧或柜门开启空间。工具�
 ### 小纹样生成、区域采样与组合资产
 
 见 [小纹样生成、区域采样与组合资产](pattern-authoring.md).
+
+### 当前推荐与现实构造参考
+
+横索扶手按 [Viewrail](https://www.viewrail.com/rod-railing) 的立柱与细杆层次取意；竖杆试作参考 [Keuka Studios](https://www.keuka-studios.com/case-studies/custom-metal-stairs/flat-bar-railing/) 的规则竖杆与统一扶手线，网格试作参考 [Jakob Frames](https://www.jakob.com/pl/en/portfolio/frames) 的框架与细网填充。以上为构造关系的方块化适配，不声称复原产品或满足现实规范。参考于2026-11-17核对。
+
+柱子新增三组基础对象：`pillar-modern-flush` 通体现代方柱、`pillar-timber-post` 石础木柱、`pillar-classical-plain` 素面古典圆柱。前两组用 `form.shaft_inset=0` 让非圆柱身与柱端齐平；默认仍为1，旧请求保持几何。圆柱使用原有 `inset/shaft_ratio`。古典柱继续保留柱础、柱身、柱头与分部再生，构件角色可参照 [Met 的实物柱身与柱础](https://www.metmuseum.org/art/collection/search/471346)。尺寸是可调整的建模包围空间，放入具体建筑时须按玩家尺度选择。

@@ -1,0 +1,18 @@
+{
+  "arguments": {
+    "form": {
+      "drop": 2,
+      "pitch": 4,
+      "profile": "parallel"
+    },
+    "kind": "ceiling",
+    "name": "平行梁吊顶",
+    "size": [
+      13,
+      4,
+      13
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

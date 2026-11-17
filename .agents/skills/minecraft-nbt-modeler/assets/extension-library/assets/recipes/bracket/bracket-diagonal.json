@@ -1,0 +1,16 @@
+{
+  "arguments": {
+    "form": {
+      "profile": "diagonal"
+    },
+    "kind": "bracket",
+    "name": "斜撑托架",
+    "size": [
+      5,
+      7,
+      7
+    ]
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

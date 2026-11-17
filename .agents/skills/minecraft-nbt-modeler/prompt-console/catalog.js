@@ -1031,6 +1031,7 @@ globalThis.NbtToolCatalog = {
     "agent-tasks": "nbt_agent_tasks.py",
     "project-repair": "nbt_project_repair.py",
     "asset-batches": "nbt_asset_batches.py",
+    "asset-libraries": "nbt_asset_libraries.py",
     "room-score": "nbt_room_score.py",
     "effect-assets": "nbt_effect_assets.py",
     "history": "nbt_history.py",

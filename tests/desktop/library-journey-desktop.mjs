@@ -65,6 +65,7 @@ try{
 
  await click('button[data-workspace=assets]')
  await click('#asset-kind-components');await page.waitForSelector('#asset-grid .asset-card')
+ await click('#asset-filters-menu>summary');await page.selectOption('#asset-source-filter','local');await page.keyboard.press('Escape')
  await capture('components')
  assert.equal(await page.locator('#asset-create-agent').isVisible(),false)
  await click('#asset-library-menu > summary');assert.equal(await page.locator('#asset-create-agent').isVisible(),true);await page.keyboard.press('Escape')

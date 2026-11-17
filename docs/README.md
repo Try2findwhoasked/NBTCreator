@@ -33,6 +33,8 @@ NBTCreator 的文档按使用指南、开发维护和历史记录归类。首次
 
 实际创作时，Agent 应读取创作项目生成的 `.agents/skills/nbtcreator-workspace/SKILL.md`，按已选知识路由工作。软件源码根目录不生成这个创作入口。
 
+拓展配方与构件的数据协议、远端清单、缓存、回退和 CLI 入口见[拓展资产库](../.agents/skills/minecraft-nbt-modeler/references/asset-libraries.md)；官方新资产维护在独立 NBTCreator-AssetLibrary 仓库，软件只保存发行快照。
+
 ## 文档维护约定
 
 - 仓库 `README.md` 保留最短上手路径；操作细节放 `guides/`，环境、接口与验收约定放 `development/`。

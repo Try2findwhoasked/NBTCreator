@@ -11,7 +11,7 @@
 | `desktop/` | Electron 旅程、浏览器渲染、生产前端与便携包集成检查 | 前端相关检查先 `build:web`，再执行指定脚本或组合任务 |
 | `support/` | 合成模型生成器、HTTP 模拟服务、最小化截图等共享辅助代码 | 由测试导入或调用，不作为独立测试集合运行 |
 
-按执行环境分层，文件继续按功能命名。例如纹样资产的 Python 回归在 `engine/pattern-assets.py`，桌面流程在 `desktop/pattern-assets-desktop.mjs`。使用 `rg --files tests` 搜索同名功能即可查看相关层。
+按执行环境分层，文件继续按功能命名。例如资产库的 Python 回归在 `engine/asset-libraries.py`，桌面流程在 `desktop/unified-assets-desktop.mjs`。使用 `rg --files tests` 搜索同名功能即可查看相关层。
 
 ## 常用入口
 
@@ -26,7 +26,9 @@
 | 参数化构件与几何回归 | `mise exec -- npm run test:parametric` |
 | 主模型、对象关系与接口 | `mise run model:test` |
 | 建筑方案闭环 | `mise run architecture:test` |
-| 模块化对象与窗框 | `mise run modular:test` |
+| 模块化对象、结构杆件与窗框 | `mise run modular:test` |
+| 外部资产库的离线、完整性与回滚 | `mise run assets:test` |
+| 外部资产库桌面流程 | `mise run assets:desktop` |
 | 工作台旅程、焦点与窗口布局 | `mise run ui:test` |
 
 单独运行一个检查：
@@ -52,7 +54,7 @@ mise exec -- node tests/node/task-cancel.mjs --output build/task-cancel-check
 - `desktop/production-server.mjs` 等生产前端检查需要先构建网页；`desktop/project-performance.mjs` 还需要其配置的 Playwright 浏览器。按所属任务及脚本要求准备环境。
 - `desktop/portable-smoke.mjs` 和产品验收需要已生成的便携包或完整目录，见[构建与发布](../docs/development/CI_CD.md)及[产品验收](../docs/development/PRODUCT_ACCEPTANCE.md)。
 - `desktop/ai-live-desktop.mjs` 会调用指定配置的真实 API；普通回归使用本机模拟服务。真实 API 的调用方法见[使用指南](../docs/guides/USER_GUIDE.md#ai-与-agent-协作)。
-- `mise run gpu:test` 要求可选 GPU 环境。
+- `mise run gpu:test` 要求可选 GPU 环境；`mise run ornate:test` 要求相邻的 `NBTCreator-AssetLibrary` 仓库。
 - 基准、复杂场景及现有工作区审计需按脚本参数显式运行，例如 `engine/fitting-shapes-benchmark.py`、`engine/fitting-shapes-complex.py`、`engine/workspace-library-audit.py`。
 
 ## 新增或移动测试

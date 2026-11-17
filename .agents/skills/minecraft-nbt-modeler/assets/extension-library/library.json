@@ -1,0 +1,1702 @@
+{
+  "assets": [
+    {
+      "bytes": 228,
+      "category": "洞口与边框",
+      "id": "arch-flat",
+      "name": "平拱框",
+      "path": "assets/recipes/arch/arch-flat.json",
+      "sha256": "f018630257fde3f58f4083f05d0c64d63f8feb13f08f785d2b28866328ee626a",
+      "status": "stable",
+      "tags": [
+        "arch"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 231,
+      "category": "洞口与边框",
+      "id": "arch-pointed",
+      "name": "尖拱框",
+      "path": "assets/recipes/arch/arch-pointed.json",
+      "sha256": "75bc9fe49bbe1f0602200a28c36654fe9cea41f5df9d53d20dda49b72441081d",
+      "status": "stable",
+      "tags": [
+        "arch"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 229,
+      "category": "洞口与边框",
+      "id": "arch-round",
+      "name": "圆拱框",
+      "path": "assets/recipes/arch/arch-round.json",
+      "sha256": "58cd4f43a0517193a848a7a8884ab1b3897841012456b40945d22795da8719c3",
+      "status": "stable",
+      "tags": [
+        "arch"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 229,
+      "category": "梁与承托",
+      "id": "beam-braced",
+      "name": "加腋梁",
+      "path": "assets/recipes/beam/beam-braced.json",
+      "sha256": "e0be72546d84a3fb772851633ec72db4f70b614c6de02d73db00c2e43f66bf8e",
+      "status": "stable",
+      "tags": [
+        "beam"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 231,
+      "category": "梁与承托",
+      "id": "beam-coffered",
+      "name": "格构梁",
+      "path": "assets/recipes/beam/beam-coffered.json",
+      "sha256": "8aeed0ab718fe08a306ec6791b25865e699ce95162c6ee2cf297a01d4980338f",
+      "status": "stable",
+      "tags": [
+        "beam"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 371,
+      "category": "梁与承托",
+      "id": "beam-concrete-rectangular",
+      "name": "通体混凝土梁",
+      "path": "assets/recipes/beam/beam-concrete-rectangular.json",
+      "sha256": "7c8419bd302cbfb3b3c07bcdc9f0bda690a271895b37c9f055de13d53d8d0ddf",
+      "status": "recommended",
+      "tags": [
+        "beam"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 225,
+      "category": "梁与承托",
+      "id": "beam-solid",
+      "name": "整梁",
+      "path": "assets/recipes/beam/beam-solid.json",
+      "sha256": "b11f0022552ef3ee2bc839c33077e857e8d4c2bebb7136a5227dfb661d68c331",
+      "status": "stable",
+      "tags": [
+        "beam"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 397,
+      "category": "梁与承托",
+      "id": "beam-steel-box",
+      "name": "空心箱形梁",
+      "path": "assets/recipes/beam/beam-steel-box.json",
+      "sha256": "e60c645687007118701843bcdac5996965172588701e9c90669fa1a10a9db454",
+      "status": "recommended",
+      "tags": [
+        "beam"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 383,
+      "category": "梁与承托",
+      "id": "beam-steel-i",
+      "name": "工字截面梁",
+      "path": "assets/recipes/beam/beam-steel-i.json",
+      "sha256": "bac1c1dc7d90d4d3fec54ba2cb1ff8112cedb18872bc152005523ec772e71e96",
+      "status": "recommended",
+      "tags": [
+        "beam"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 375,
+      "category": "梁与承托",
+      "id": "beam-timber-rectangular",
+      "name": "素木横梁",
+      "path": "assets/recipes/beam/beam-timber-rectangular.json",
+      "sha256": "877dbb1cebcbd8ff87182c1d7c34c2e164dc3967efca286a7093c2a755f50429",
+      "status": "recommended",
+      "tags": [
+        "beam"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 185,
+      "category": "家具与陈设",
+      "id": "bench-classic",
+      "name": "靠背长凳",
+      "path": "assets/recipes/bench/bench-classic.json",
+      "sha256": "193c11b5706ad57cbc0fd5bffe65eb970bf6d11a6f6bd9a9b14801d92c9be81c",
+      "status": "stable",
+      "tags": [
+        "bench"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 234,
+      "category": "梁与承托",
+      "id": "bracket-curved",
+      "name": "弧形托架",
+      "path": "assets/recipes/bracket/bracket-curved.json",
+      "sha256": "fcff598c37d88866291035f2fdc015b53595600d4148a017ccbb12951f54d884",
+      "status": "stable",
+      "tags": [
+        "bracket"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 236,
+      "category": "梁与承托",
+      "id": "bracket-diagonal",
+      "name": "斜撑托架",
+      "path": "assets/recipes/bracket/bracket-diagonal.json",
+      "sha256": "e0151236d858b7a702a88a16f6524ee2bbd6e153fe53fcfcd3e2dc75e00d149f",
+      "status": "stable",
+      "tags": [
+        "bracket"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 392,
+      "category": "梁与承托",
+      "id": "bracket-steel-angle",
+      "name": "简洁直角托架",
+      "path": "assets/recipes/bracket/bracket-steel-angle.json",
+      "sha256": "374e61b512fff8ce33e3ea00b1c30b1bf26d68f2e4f7679aac4414ed21568a46",
+      "status": "recommended",
+      "tags": [
+        "bracket"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 235,
+      "category": "梁与承托",
+      "id": "bracket-stepped",
+      "name": "叠涩托架",
+      "path": "assets/recipes/bracket/bracket-stepped.json",
+      "sha256": "61f0c2000e5a3e69ae8a881de793fcfa442cdbe6bb91f99f29db920d7e391773",
+      "status": "stable",
+      "tags": [
+        "bracket"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 401,
+      "category": "梁与承托",
+      "id": "bracket-timber-knee",
+      "name": "木构斜撑托架",
+      "path": "assets/recipes/bracket/bracket-timber-knee.json",
+      "sha256": "7287755a3fe6f177f2623a89d7e05c07396b8626d3f3fcd62b440db885b2df7f",
+      "status": "recommended",
+      "tags": [
+        "bracket"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 269,
+      "category": "墙面与吊顶",
+      "id": "ceiling-grid",
+      "name": "井字吊顶",
+      "path": "assets/recipes/ceiling/ceiling-grid.json",
+      "sha256": "7077814e341974a739f67e71e0e3fbbef72b761db565d9e4d3efa5730dfd974f",
+      "status": "stable",
+      "tags": [
+        "ceiling"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 276,
+      "category": "墙面与吊顶",
+      "id": "ceiling-parallel",
+      "name": "平行梁吊顶",
+      "path": "assets/recipes/ceiling/ceiling-parallel.json",
+      "sha256": "0f0fffbfe263aef0811060eeb74fcda8661769a183ef73833a60b33cd67add6c",
+      "status": "stable",
+      "tags": [
+        "ceiling"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 238,
+      "category": "洞口与边框",
+      "id": "frame-crosslight",
+      "name": "十字窗框",
+      "path": "assets/recipes/frame/frame-crosslight.json",
+      "sha256": "b3bcb6ccbe50e2e92812ae4a17cbe264d8a3c564fc8b2836524bbeab5009b231",
+      "status": "stable",
+      "tags": [
+        "frame"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 237,
+      "category": "洞口与边框",
+      "id": "frame-mullioned",
+      "name": "竖梃窗框",
+      "path": "assets/recipes/frame/frame-mullioned.json",
+      "sha256": "c25fb73f83a753b4533e776ae338cec8337df523b66695b808a3a79b3cc767bf",
+      "status": "stable",
+      "tags": [
+        "frame"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 413,
+      "category": "洞口与边框",
+      "id": "frame-recessed-window",
+      "name": "退进玻璃窗框",
+      "path": "assets/recipes/frame/frame-recessed-window.json",
+      "sha256": "b05d47d7b44503d1c983a774926eaeb7442b4e8a558616ae6926ccdc985a36d7",
+      "status": "recommended",
+      "tags": [
+        "frame"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 242,
+      "category": "洞口与边框",
+      "id": "frame-rectangular",
+      "name": "素面门窗框",
+      "path": "assets/recipes/frame/frame-rectangular.json",
+      "sha256": "e8ca7cc3c3f480631d5534ba9be47ecdc0350f61c7f6baaaf9623d2a48807118",
+      "status": "stable",
+      "tags": [
+        "frame"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 424,
+      "category": "洞口与边框",
+      "id": "frame-timber-doorway",
+      "name": "无门槛木门框",
+      "path": "assets/recipes/frame/frame-timber-doorway.json",
+      "sha256": "8727e63d8734f00f04d597ad69d3dc23b0ff7e20c52110cdc2d3fafc2457699b",
+      "status": "recommended",
+      "tags": [
+        "frame"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 187,
+      "category": "家具与陈设",
+      "id": "lantern-classic",
+      "name": "落地灯架",
+      "path": "assets/recipes/lantern/lantern-classic.json",
+      "sha256": "abd110a4c583b801f714b97b2e42946ee38eef9546527fa047196b22d63d362f",
+      "status": "stable",
+      "tags": [
+        "lantern"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 35265,
+      "category": "华丽构件 · arch",
+      "id": "ornate-arch-gilded",
+      "name": "白金椭圆礼仪拱门",
+      "path": "assets/components/ornate/ornate-arch-gilded.json",
+      "sha256": "747be839056316b18daada8910f7d9c6aa2cb537f2060cc6bb4140e291a4e722",
+      "status": "recommended",
+      "tags": [
+        "arch",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 46031,
+      "category": "华丽构件 · beam",
+      "id": "ornate-beam-dentil",
+      "name": "齿饰金边檐梁",
+      "path": "assets/components/ornate/ornate-beam-dentil.json",
+      "sha256": "8a32c37643ab8497cde5fc82cc7b45704885c75bb090a0b1981366028d6d6650",
+      "status": "recommended",
+      "tags": [
+        "beam",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 8459,
+      "category": "华丽构件 · bench",
+      "id": "ornate-bench-highback",
+      "name": "薄木花格高背长椅",
+      "path": "assets/components/ornate/ornate-bench-highback.json",
+      "sha256": "24dc60390c997305c1bd58c5dea1b88fb49bb6336a07b63f7e49e44c741ec9b6",
+      "status": "recommended",
+      "tags": [
+        "bench",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 34225,
+      "category": "华丽构件 · bracket",
+      "id": "ornate-bracket-volute",
+      "name": "涡卷柱头承托块",
+      "path": "assets/components/ornate/ornate-bracket-volute.json",
+      "sha256": "7f3cbfee29eb445d4b17188d501b2a20e676a0b2c3f448aaea3c0e8020091d54",
+      "status": "recommended",
+      "tags": [
+        "bracket",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 87078,
+      "category": "华丽纹样 · ceiling",
+      "id": "ornate-ceiling-coffer-rosette",
+      "name": "花环凹格章纹 · 顶部花章",
+      "path": "assets/components/patterns/ornate-ceiling-coffer-rosette.json",
+      "sha256": "aa5f7e293ab115d53ff63a0ac2e588d444214246a408e097d6bf80f96eac2913",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "ceiling"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 93196,
+      "category": "华丽构件 · ceiling",
+      "id": "ornate-ceiling-coffers",
+      "name": "白金凹格宫廷藻井",
+      "path": "assets/components/ornate/ornate-ceiling-coffers.json",
+      "sha256": "eabeda289056b2c8b2ba612b3e00c1cfa7039bc7930475424e9ad7895941b3fd",
+      "status": "recommended",
+      "tags": [
+        "ceiling",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 97776,
+      "category": "华丽构件 · ceiling",
+      "id": "ornate-ceiling-lattice",
+      "name": "蓝金格栅天花",
+      "path": "assets/components/ornate/ornate-ceiling-lattice.json",
+      "sha256": "bd0fe27365f37d598925fcf30656eec0546b2005aeca5aa1cc9e687d9d7bbb81",
+      "status": "recommended",
+      "tags": [
+        "ceiling",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 80920,
+      "category": "华丽纹样 · ceiling",
+      "id": "ornate-ceiling-rosette-eight",
+      "name": "八瓣花章浮雕 · 顶部花章",
+      "path": "assets/components/patterns/ornate-ceiling-rosette-eight.json",
+      "sha256": "82734539a529a59fd44d39370f41aa825eaa820ef0bcfaff1db58f320887f2d7",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "ceiling"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 60415,
+      "category": "华丽纹样 · floor",
+      "id": "ornate-floor-coffer-rosette",
+      "name": "花环凹格章纹 · 齐平镶地",
+      "path": "assets/components/patterns/ornate-floor-coffer-rosette.json",
+      "sha256": "47797f45b4909f6d3c90d63b3a2f68ba849c9c5380a471c235e6624c8798b9fb",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "floor"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 60415,
+      "category": "华丽纹样 · floor",
+      "id": "ornate-floor-interlace-knot",
+      "name": "连环交织结纹 · 齐平镶地",
+      "path": "assets/components/patterns/ornate-floor-interlace-knot.json",
+      "sha256": "afe0049da809fc8908b35938dee602dc84173606609f74f9010d05ba0aee0a20",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "floor"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 60384,
+      "category": "华丽纹样 · floor",
+      "id": "ornate-floor-rosette-eight",
+      "name": "八瓣花章浮雕 · 齐平镶地",
+      "path": "assets/components/patterns/ornate-floor-rosette-eight.json",
+      "sha256": "a210001b03668664c88691423bde497d41159196f1614ad7894e04f26ff132b1",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "floor"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 60415,
+      "category": "华丽纹样 · floor",
+      "id": "ornate-floor-star-eight",
+      "name": "八向星章镶饰 · 齐平镶地",
+      "path": "assets/components/patterns/ornate-floor-star-eight.json",
+      "sha256": "e9f713df47d54afe1490c635c34331e045abdc6f0773b0fc55a3be890b0640a0",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "floor"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 1800,
+      "category": "华丽构件 · lantern",
+      "id": "ornate-lantern-chandelier",
+      "name": "四臂金饰悬灯",
+      "path": "assets/components/ornate/ornate-lantern-chandelier.json",
+      "sha256": "9aa4ea88a2c3fe4f627059b4ce4e8d192696401a69c668c8dffc55420349d23b",
+      "status": "recommended",
+      "tags": [
+        "lantern",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 6498,
+      "category": "华丽构件 · lantern",
+      "id": "ornate-lantern-court",
+      "name": "四盏花枝庭灯",
+      "path": "assets/components/ornate/ornate-lantern-court.json",
+      "sha256": "ed4cac95a14e2f732b3a0c3cdbb0d6987564e43ceb7441f7291d23b9c7d7353c",
+      "status": "recommended",
+      "tags": [
+        "lantern",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 87060,
+      "category": "华丽纹样 · relief",
+      "id": "ornate-pattern-coffer-rosette",
+      "name": "花环凹格章纹",
+      "path": "assets/components/patterns/ornate-pattern-coffer-rosette.json",
+      "sha256": "2c8c873b17c1f11ecfcb554a1a488ef9447c29c1c414fb3a5404aae1fa4da4da",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "relief"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 90009,
+      "category": "华丽纹样 · relief",
+      "id": "ornate-pattern-fan-sunburst",
+      "name": "扇形日轮饰板",
+      "path": "assets/components/patterns/ornate-pattern-fan-sunburst.json",
+      "sha256": "f34a3b673c4bba301d1bcbff4fa541d4779658e3bb4826ad5f83464a30bf5e7d",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "relief"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 90153,
+      "category": "华丽纹样 · relief",
+      "id": "ornate-pattern-interlace-knot",
+      "name": "连环交织结纹",
+      "path": "assets/components/patterns/ornate-pattern-interlace-knot.json",
+      "sha256": "8e37f7d4a8662f0ba2be01b035be174114f400abfe3d83180ea82400bdb8829b",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "relief"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 38249,
+      "category": "华丽纹样 · relief",
+      "id": "ornate-pattern-meander-frieze",
+      "name": "回环折线边带",
+      "path": "assets/components/patterns/ornate-pattern-meander-frieze.json",
+      "sha256": "d7d4e734ef1e78eee397a717fda358944bc7510f3ad0b4c8767b216fb588f0ae",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "relief"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 40476,
+      "category": "华丽纹样 · relief",
+      "id": "ornate-pattern-palmette-frieze",
+      "name": "棕叶连续饰带",
+      "path": "assets/components/patterns/ornate-pattern-palmette-frieze.json",
+      "sha256": "cba4603c746c11ea569e6ee34224f6721173648a679787daf10b921e1d7eccc7",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "relief"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 80902,
+      "category": "华丽纹样 · relief",
+      "id": "ornate-pattern-rosette-eight",
+      "name": "八瓣花章浮雕",
+      "path": "assets/components/patterns/ornate-pattern-rosette-eight.json",
+      "sha256": "d30203f6fa06f84e374832cc0a8fb13e212902fa3c22a291853c68452ab8ecaf",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "relief"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 84178,
+      "category": "华丽纹样 · relief",
+      "id": "ornate-pattern-scroll-leaf",
+      "name": "对称卷叶浮雕",
+      "path": "assets/components/patterns/ornate-pattern-scroll-leaf.json",
+      "sha256": "ef681ff0be476da24c0cdfe83531a8d3ac6d949c13178d0132c600c88d5e4016",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "relief"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 82988,
+      "category": "华丽纹样 · relief",
+      "id": "ornate-pattern-star-eight",
+      "name": "八向星章镶饰",
+      "path": "assets/components/patterns/ornate-pattern-star-eight.json",
+      "sha256": "37e9abd5a4eb9ca008f0a72651f865ee76c1dedc4156e5905a9dd9252aab4e32",
+      "status": "recommended",
+      "tags": [
+        "ornate",
+        "pattern",
+        "relief"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 61836,
+      "category": "华丽构件 · pedestal",
+      "id": "ornate-pedestal-moulded",
+      "name": "金线环带陈设基座",
+      "path": "assets/components/ornate/ornate-pedestal-moulded.json",
+      "sha256": "2adeb12f0beaaa3fac1f92a68d6e9b033930db4c56b698d0fe56c396b1881e8f",
+      "status": "recommended",
+      "tags": [
+        "pedestal",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 267879,
+      "category": "华丽构件 · pillar",
+      "id": "ornate-pillar-composite",
+      "name": "黑金复合柱式",
+      "path": "assets/components/ornate/ornate-pillar-composite.json",
+      "sha256": "62a264d60165b9016e599945feb9381324312c367bf7e8a707897ec17258a00d",
+      "status": "recommended",
+      "tags": [
+        "pillar",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 186768,
+      "category": "华丽构件 · pillar",
+      "id": "ornate-pillar-corinthian",
+      "name": "白金莨苕叶柱",
+      "path": "assets/components/ornate/ornate-pillar-corinthian.json",
+      "sha256": "082b120c796fc4b3425f540bb615084624333e4442f1e9d2ef30fcef20efcb53",
+      "status": "recommended",
+      "tags": [
+        "pillar",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 134782,
+      "category": "华丽构件 · pillar",
+      "id": "ornate-pillar-ionic",
+      "name": "象牙蓝颈饰涡卷柱",
+      "path": "assets/components/ornate/ornate-pillar-ionic.json",
+      "sha256": "bd0a94451d93315569aa26e2cb8e77c6c2243ca3102d4567514d603ceaffb62e",
+      "status": "recommended",
+      "tags": [
+        "pillar",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 24045,
+      "category": "华丽构件 · plant",
+      "id": "ornate-plant-vessel",
+      "name": "花冠镶金陈设花器",
+      "path": "assets/components/ornate/ornate-plant-vessel.json",
+      "sha256": "929ea1d2606bcc51e191b7dd058df022720631ed1a2ea2d732e2e7d257871c6e",
+      "status": "recommended",
+      "tags": [
+        "plant",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 61940,
+      "category": "华丽构件 · planter",
+      "id": "ornate-planter-gallery",
+      "name": "金线连槽花廊",
+      "path": "assets/components/ornate/ornate-planter-gallery.json",
+      "sha256": "3c837ef6d198689b30fd187bff1ae5d8a66e2f67e231e49e6cc7dac1ef7ce26e",
+      "status": "recommended",
+      "tags": [
+        "planter",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 5524,
+      "category": "华丽构件 · railing",
+      "id": "ornate-railing-frieze",
+      "name": "宫廷横索栏片与雕饰下槛",
+      "path": "assets/components/ornate/ornate-railing-frieze.json",
+      "sha256": "7bfa24b0190466305cc590978087e091d17908ba0079917bf94ebb80e7cbdf58",
+      "status": "recommended",
+      "tags": [
+        "railing",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 56342,
+      "category": "华丽构件 · shelf",
+      "id": "ornate-shelf-palace",
+      "name": "镀金陈列书架",
+      "path": "assets/components/ornate/ornate-shelf-palace.json",
+      "sha256": "6f1f119345252e6c83f6b63d740be0410ad481ab736b73ab207224f33d417f08",
+      "status": "recommended",
+      "tags": [
+        "shelf",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 23765,
+      "category": "华丽构件 · stairs",
+      "id": "ornate-stairs-ceremonial",
+      "name": "镶嵌平台礼仪阶梯",
+      "path": "assets/components/ornate/ornate-stairs-ceremonial.json",
+      "sha256": "6b71d2ac4012997c00fdd7dad9cc32c44933c714b3062a504278c3040e24317a",
+      "status": "recommended",
+      "tags": [
+        "stairs",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 8100,
+      "category": "华丽构件 · table",
+      "id": "ornate-table-inlaid",
+      "name": "镶铜白石纹样长桌",
+      "path": "assets/components/ornate/ornate-table-inlaid.json",
+      "sha256": "7a4ff70fe9ff85c50a7a9d7caef5b81366db794be29cdb9d35da9ed44a79bf4c",
+      "status": "recommended",
+      "tags": [
+        "table",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 78606,
+      "category": "华丽构件 · wall",
+      "id": "ornate-wall-fan",
+      "name": "黑金放射折线饰墙",
+      "path": "assets/components/ornate/ornate-wall-fan.json",
+      "sha256": "01122c46a920022a91edf654f30b2ae04c8ada14f20edd5a86ffa60436ebb96a",
+      "status": "recommended",
+      "tags": [
+        "wall",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 74325,
+      "category": "华丽构件 · wall",
+      "id": "ornate-wall-vine",
+      "name": "蓝金卷叶浮雕饰墙",
+      "path": "assets/components/ornate/ornate-wall-vine.json",
+      "sha256": "85c34e35a3ff754744107907316db3b089f7ea6e4538357ec0ef478fec168552",
+      "status": "recommended",
+      "tags": [
+        "wall",
+        "ornate"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 557,
+      "category": "华丽窗框",
+      "id": "ornate-window-classical-cornice",
+      "name": "齿饰檐口古典窗套",
+      "path": "assets/recipes/frame/ornate-window-classical-cornice.json",
+      "sha256": "d41cc9dafc8ecd0df94dbf451bf151a5da5f495f47b44d58882dc1296197e86f",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "classical_window"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 40228,
+      "category": "华丽窗框",
+      "id": "ornate-window-classical-cornice-component",
+      "name": "齿饰檐口古典窗套（构件）",
+      "path": "assets/components/windows/ornate-window-classical-cornice-component.json",
+      "sha256": "9dae2f761c3ef39f44c42b68e5a84ba2ea188abd1dc8011e8d912b318c10ce6a",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "classical_window"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 645,
+      "category": "华丽窗框",
+      "id": "ornate-window-classical-divided",
+      "name": "山花分格宫廷窗",
+      "path": "assets/recipes/frame/ornate-window-classical-divided.json",
+      "sha256": "c9faaac6c810dffa9c030a85d10826cd2830722dded0889fb29ad7edbd35207c",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "classical_window"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 62865,
+      "category": "华丽窗框",
+      "id": "ornate-window-classical-divided-component",
+      "name": "山花分格宫廷窗（构件）",
+      "path": "assets/components/windows/ornate-window-classical-divided-component.json",
+      "sha256": "4210dfad5972b55ee9e90e3f2e5485ec356c5985be71b56b8df0ee29f648fb26",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "classical_window"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 563,
+      "category": "华丽窗框",
+      "id": "ornate-window-classical-pediment",
+      "name": "三角山花与线脚窗套",
+      "path": "assets/recipes/frame/ornate-window-classical-pediment.json",
+      "sha256": "f6bdd2f69e3e6b64eceeba598b2b1fcca4058e4279ab4ab758d177229c812074",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "classical_window"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 43888,
+      "category": "华丽窗框",
+      "id": "ornate-window-classical-pediment-component",
+      "name": "三角山花与线脚窗套（构件）",
+      "path": "assets/components/windows/ornate-window-classical-pediment-component.json",
+      "sha256": "c16c3b27af17228539feab585701392a48b4680d8ab2809c680f24575ac38524",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "classical_window"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 498,
+      "category": "华丽窗框",
+      "id": "ornate-window-gothic-clear",
+      "name": "玫瑰与双尖拱窗棂",
+      "path": "assets/recipes/frame/ornate-window-gothic-clear.json",
+      "sha256": "63ae8cc1bfa065b58280446a1f893f9a30249552c191a612f74569bc9e8f6df6",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "pointed_arch_window"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 56748,
+      "category": "华丽窗框",
+      "id": "ornate-window-gothic-clear-component",
+      "name": "玫瑰与双尖拱窗棂（构件）",
+      "path": "assets/components/windows/ornate-window-gothic-clear-component.json",
+      "sha256": "6ac12c143228e68134a35012571a3d46e3c1cefad0b711c660636996ae22821b",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "pointed_arch_window"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 603,
+      "category": "华丽窗框",
+      "id": "ornate-window-gothic-gilded",
+      "name": "黑金玫瑰宫廷尖拱窗",
+      "path": "assets/recipes/frame/ornate-window-gothic-gilded.json",
+      "sha256": "554878e1fb6ed8d49c68d20679e4f912722a23bd3edbe105eb725984e3c5f5b0",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "pointed_arch_window"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 87808,
+      "category": "华丽窗框",
+      "id": "ornate-window-gothic-gilded-component",
+      "name": "黑金玫瑰宫廷尖拱窗（构件）",
+      "path": "assets/components/windows/ornate-window-gothic-gilded-component.json",
+      "sha256": "c9729a72d94612d4a26c1e35867da339d13cc6d633f7dfc73f5047be457800d8",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "pointed_arch_window"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 593,
+      "category": "华丽窗框",
+      "id": "ornate-window-gothic-lapis",
+      "name": "蓝金彩玻玫瑰尖拱窗",
+      "path": "assets/recipes/frame/ornate-window-gothic-lapis.json",
+      "sha256": "35cf9d69612c4c45a7a38e1ca360e5d448bd0d7ce797875af7f563648f568b8b",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "pointed_arch_window"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 87798,
+      "category": "华丽窗框",
+      "id": "ornate-window-gothic-lapis-component",
+      "name": "蓝金彩玻玫瑰尖拱窗（构件）",
+      "path": "assets/components/windows/ornate-window-gothic-lapis-component.json",
+      "sha256": "9e380a5aac0fd79d64612999676d1a616b8551912d6f82bf032474c48ec9e849",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "pointed_arch_window"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 545,
+      "category": "华丽窗框",
+      "id": "ornate-window-round-single",
+      "name": "圆拱券与楔石窗",
+      "path": "assets/recipes/frame/ornate-window-round-single.json",
+      "sha256": "c02fe422227bb51c0e64ca6f08ce69a6ef2deea66cb6f7324c1ca1240b8fdd54",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "round_arch_window"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 44384,
+      "category": "华丽窗框",
+      "id": "ornate-window-round-single-component",
+      "name": "圆拱券与楔石窗（构件）",
+      "path": "assets/components/windows/ornate-window-round-single-component.json",
+      "sha256": "b64951e23942ca4dbc2619dbba75725e7a3e3bda8047e58210a48d8ae9fb8e64",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "round_arch_window"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 588,
+      "category": "华丽窗框",
+      "id": "ornate-window-round-twin",
+      "name": "双光圆拱石窗",
+      "path": "assets/recipes/frame/ornate-window-round-twin.json",
+      "sha256": "bf9338ceb59644f32be92b8a6f2d41311d31a906dd37393003fd0edad246db22",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "round_arch_window"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 44394,
+      "category": "华丽窗框",
+      "id": "ornate-window-round-twin-component",
+      "name": "双光圆拱石窗（构件）",
+      "path": "assets/components/windows/ornate-window-round-twin-component.json",
+      "sha256": "735f9887d3691f3700b64a47afe5d165fe55e0018dc00f2b069fb88caa0be52d",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "round_arch_window"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 498,
+      "category": "华丽窗框",
+      "id": "ornate-window-timber-four",
+      "name": "四格木窗与前挑窗台",
+      "path": "assets/recipes/frame/ornate-window-timber-four.json",
+      "sha256": "36c30e683cc97f18f8eccf69d8056240bc41893e074bee8f52643dc3004f5e65",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "sash_window"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 7182,
+      "category": "华丽窗框",
+      "id": "ornate-window-timber-four-component",
+      "name": "四格木窗与前挑窗台（构件）",
+      "path": "assets/components/windows/ornate-window-timber-four-component.json",
+      "sha256": "29fddbc80e408bce94d39aa80b94d844345f131fb3ca2c5ccb8b6e665f715f1d",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "sash_window"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 509,
+      "category": "华丽窗框",
+      "id": "ornate-window-timber-sixteen",
+      "name": "十六格高窗与双层窗扇",
+      "path": "assets/recipes/frame/ornate-window-timber-sixteen.json",
+      "sha256": "cb41e29104c5d13344312ad5b5928c4046a856cfe186adcef77e7d39c0d762eb",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "sash_window"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 18324,
+      "category": "华丽窗框",
+      "id": "ornate-window-timber-sixteen-component",
+      "name": "十六格高窗与双层窗扇（构件）",
+      "path": "assets/components/windows/ornate-window-timber-sixteen-component.json",
+      "sha256": "c406d5c591f4c912e0e8eb385705cb6e2c7705a3449194e43c8d86777a8b61b7",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "sash_window"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 500,
+      "category": "华丽窗框",
+      "id": "ornate-window-timber-twelve",
+      "name": "十二格上下木窗",
+      "path": "assets/recipes/frame/ornate-window-timber-twelve.json",
+      "sha256": "22d75ba5e0dd236e0f131ad63aa74698c7af73d55e415c865242679783bb53ce",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "sash_window"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 14745,
+      "category": "华丽窗框",
+      "id": "ornate-window-timber-twelve-component",
+      "name": "十二格上下木窗（构件）",
+      "path": "assets/components/windows/ornate-window-timber-twelve-component.json",
+      "sha256": "c7cf33e48fe2f4cfbdee652e6f58b5003655cac69b4763bbd6b0e070a2423a53",
+      "status": "recommended",
+      "tags": [
+        "frame",
+        "ornate",
+        "window",
+        "sash_window"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 234,
+      "category": "柱与基座",
+      "id": "pedestal-round",
+      "name": "圆形基座",
+      "path": "assets/recipes/pedestal/pedestal-round.json",
+      "sha256": "bb81d487b8d29070844bf407592b854ab15e1c26670ec31a42a5a3c11012bb00",
+      "status": "stable",
+      "tags": [
+        "pedestal"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 235,
+      "category": "柱与基座",
+      "id": "pedestal-square",
+      "name": "方形基座",
+      "path": "assets/recipes/pedestal/pedestal-square.json",
+      "sha256": "5eaae15ff405e3f0cb88f6c5d507ea2ec2dbfb829a401e6efbbb4b17164c3e84",
+      "status": "stable",
+      "tags": [
+        "pedestal"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 236,
+      "category": "柱与基座",
+      "id": "pedestal-stepped",
+      "name": "层叠基座",
+      "path": "assets/recipes/pedestal/pedestal-stepped.json",
+      "sha256": "271928fecb09c278419bc805d977d5e570528cf97a2e168b8aba8e38c4677fd0",
+      "status": "stable",
+      "tags": [
+        "pedestal"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 313,
+      "category": "柱与基座",
+      "id": "pillar-banded",
+      "name": "分带石柱",
+      "path": "assets/recipes/pillar/pillar-banded.json",
+      "sha256": "f487b594310a3a150e19cc4ee1a9ea52582ac67fb843771fb934ed83308a4ce4",
+      "status": "stable",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 349,
+      "category": "柱与基座",
+      "id": "pillar-bundled",
+      "name": "束柱",
+      "path": "assets/recipes/pillar/pillar-bundled.json",
+      "sha256": "25da9d328e9b7600cc740edd0eb1cdc9cb4dbbc5c051bfb612c912ea73b49968",
+      "status": "stable",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 388,
+      "category": "柱与基座",
+      "id": "pillar-classical-plain",
+      "name": "素面古典圆柱",
+      "path": "assets/recipes/pillar/pillar-classical-plain.json",
+      "sha256": "d81926d5db2fb2d474e6e9aea15b6b1a58f294ded5c02bc0e412efec4bd32eb8",
+      "status": "recommended",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 312,
+      "category": "柱与基座",
+      "id": "pillar-composite",
+      "name": "复合柱式启发柱",
+      "path": "assets/recipes/pillar/pillar-composite.json",
+      "sha256": "ccb93beddb6f14681ecd8ff30bc80ba5b6be69e1bcf1bc20510d3df3d8f7829d",
+      "status": "stable",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 310,
+      "category": "柱与基座",
+      "id": "pillar-corinthian",
+      "name": "科林斯启发柱",
+      "path": "assets/recipes/pillar/pillar-corinthian.json",
+      "sha256": "7cff069c1fc43ed1849408223a22ada41ac11d66ed0abae6b8f6bc904f4deccc",
+      "status": "stable",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 350,
+      "category": "柱与基座",
+      "id": "pillar-cross",
+      "name": "十字柱",
+      "path": "assets/recipes/pillar/pillar-cross.json",
+      "sha256": "62999585bff961c7d36558451e56eb5be52b4783d14daae76c25607e7d1836fc",
+      "status": "stable",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 305,
+      "category": "柱与基座",
+      "id": "pillar-ionic",
+      "name": "爱奥尼启发柱",
+      "path": "assets/recipes/pillar/pillar-ionic.json",
+      "sha256": "230f546b1c65f39b6dcfce4199df3637243b79851f58135a66f77af6a5b913ed",
+      "status": "stable",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 381,
+      "category": "柱与基座",
+      "id": "pillar-modern-flush",
+      "name": "现代通体方柱",
+      "path": "assets/recipes/pillar/pillar-modern-flush.json",
+      "sha256": "6537b0c44fb149ee790d23e9e895aa35bf6528e5d437fe2cb95b96a0f2efc320",
+      "status": "recommended",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 354,
+      "category": "柱与基座",
+      "id": "pillar-octagonal",
+      "name": "八角柱",
+      "path": "assets/recipes/pillar/pillar-octagonal.json",
+      "sha256": "901307a2ab9254ec5e55879354875ca635efd9f03839a1bfe07b657668d78f7b",
+      "status": "stable",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 317,
+      "category": "柱与基座",
+      "id": "pillar-roman-doric",
+      "name": "罗马多立克启发柱",
+      "path": "assets/recipes/pillar/pillar-roman-doric.json",
+      "sha256": "790e68b1c63a94069e1ba08daefb63ec11238c98005956259eaadaa6a03c5ca8",
+      "status": "stable",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 310,
+      "category": "柱与基座",
+      "id": "pillar-round",
+      "name": "素面圆柱",
+      "path": "assets/recipes/pillar/pillar-round.json",
+      "sha256": "b7176bd46d58fcafe83bafc55061d8b3754dac5cf7a703ea599e18205d78c7c0",
+      "status": "stable",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 348,
+      "category": "柱与基座",
+      "id": "pillar-square",
+      "name": "方柱",
+      "path": "assets/recipes/pillar/pillar-square.json",
+      "sha256": "02250c0dc37a5695a70ae11ccf494b8c264662104c96fd543ab465816932dd3c",
+      "status": "stable",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 449,
+      "category": "柱与基座",
+      "id": "pillar-timber-post",
+      "name": "木构直柱与石础",
+      "path": "assets/recipes/pillar/pillar-timber-post.json",
+      "sha256": "3eb50d8934cccfb33b1430a0e95835318d929be662ca952204a62587f776fdaf",
+      "status": "recommended",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 309,
+      "category": "柱与基座",
+      "id": "pillar-tuscan",
+      "name": "托斯卡纳启发柱",
+      "path": "assets/recipes/pillar/pillar-tuscan.json",
+      "sha256": "c347a282ea7c700d999810e47c43a87412d2685d601aca302eeb2204e5696a6f",
+      "status": "stable",
+      "tags": [
+        "pillar"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 302,
+      "category": "家具与陈设",
+      "id": "plant-climbing",
+      "name": "攀援盆栽",
+      "path": "assets/recipes/plant/plant-climbing.json",
+      "sha256": "803c24dd84ddb8cb4a14bd1284e5d747982c9bd5e3614db5d63b7787e5aa6ab6",
+      "status": "stable",
+      "tags": [
+        "plant"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 302,
+      "category": "家具与陈设",
+      "id": "plant-trailing",
+      "name": "垂挂盆栽",
+      "path": "assets/recipes/plant/plant-trailing.json",
+      "sha256": "9219963b72c61c7338d96d71354748b14132cab5e6ec7a06d4dd60fe597d8c9b",
+      "status": "stable",
+      "tags": [
+        "plant"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 301,
+      "category": "家具与陈设",
+      "id": "plant-upright",
+      "name": "直立盆栽",
+      "path": "assets/recipes/plant/plant-upright.json",
+      "sha256": "6ee4423d1f95be3e4bd2a5f9d33c506f421fc385d56094dcf9f7f773f188d596",
+      "status": "stable",
+      "tags": [
+        "plant"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 188,
+      "category": "家具与陈设",
+      "id": "planter-row",
+      "name": "连续花槽",
+      "path": "assets/recipes/planter/planter-row.json",
+      "sha256": "46044db7248108e0f4254ac92ebdb2f393fd19149ab7242de939b295f1906bd9",
+      "status": "stable",
+      "tags": [
+        "planter"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 255,
+      "category": "楼梯与护栏",
+      "id": "railing-baluster",
+      "name": "立柱栏杆",
+      "path": "assets/recipes/railing/railing-baluster.json",
+      "sha256": "41d92e470c9ef9456021b8a78470185d666f7ada5061449210e2ccf739b4c7c1",
+      "status": "stable",
+      "tags": [
+        "railing"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 257,
+      "category": "楼梯与护栏",
+      "id": "railing-horizontal",
+      "name": "横档栏杆",
+      "path": "assets/recipes/railing/railing-horizontal.json",
+      "sha256": "7d58622f252d043e370a55475e81914820fda9366cd70b4ad76420d02901df96",
+      "status": "stable",
+      "tags": [
+        "railing"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 254,
+      "category": "楼梯与护栏",
+      "id": "railing-lattice",
+      "name": "格构栏杆",
+      "path": "assets/recipes/railing/railing-lattice.json",
+      "sha256": "ba2665831964c05e33123c9e1509a0235e1cd94c2d4c7f9da3d6a31db34b6850",
+      "status": "stable",
+      "tags": [
+        "railing"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 252,
+      "category": "楼梯与护栏",
+      "id": "railing-panel",
+      "name": "实心栏板",
+      "path": "assets/recipes/railing/railing-panel.json",
+      "sha256": "c9044714cd99616c9da8045f7891155eacc56fa1c0dbf5e9d2af0abc211500f3",
+      "status": "stable",
+      "tags": [
+        "railing"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 276,
+      "category": "楼梯与护栏",
+      "id": "railing-sloped",
+      "name": "斜坡扶手段",
+      "path": "assets/recipes/railing/railing-sloped.json",
+      "sha256": "ff20dd316522d02ab2f1c9082f13b9c2d774a6ad25017869c1252278b2782531",
+      "status": "stable",
+      "tags": [
+        "railing"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 186,
+      "category": "家具与陈设",
+      "id": "shelf-classic",
+      "name": "多层书架",
+      "path": "assets/recipes/shelf/shelf-classic.json",
+      "sha256": "c435aee7ea3078f162aa12f3ef80b328049d8fa2d439d8ffd94f2166fde496d4",
+      "status": "stable",
+      "tags": [
+        "shelf"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 534,
+      "category": "楼梯与护栏",
+      "id": "stairs-quarter-turn-baluster",
+      "name": "转角梯 · 立柱扶手",
+      "path": "assets/recipes/stairs/stairs-quarter-turn-baluster.json",
+      "sha256": "5a6cf9a81cf9d16d2fb36b87baa5da2e908e7ca6122f04f3330135381651cde0",
+      "status": "draft",
+      "tags": [
+        "stairs"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 536,
+      "category": "楼梯与护栏",
+      "id": "stairs-quarter-turn-horizontal",
+      "name": "转角梯 · 横档扶手",
+      "path": "assets/recipes/stairs/stairs-quarter-turn-horizontal.json",
+      "sha256": "9f8f4d0422398cecdc6033c5cdb212a261b8b002287dcd028dbe6b6a4a2e02eb",
+      "status": "recommended",
+      "tags": [
+        "stairs"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 533,
+      "category": "楼梯与护栏",
+      "id": "stairs-quarter-turn-lattice",
+      "name": "转角梯 · 格构扶手",
+      "path": "assets/recipes/stairs/stairs-quarter-turn-lattice.json",
+      "sha256": "57938a9053971b19e27bcf1b119c0f25c48326fa27ff899d9573320e4fa2105a",
+      "status": "draft",
+      "tags": [
+        "stairs"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 531,
+      "category": "楼梯与护栏",
+      "id": "stairs-spiral-baluster",
+      "name": "方形旋梯 · 立柱扶手",
+      "path": "assets/recipes/stairs/stairs-spiral-baluster.json",
+      "sha256": "41cdd8fe03f3fe1d920a732044ba36ce14d7f3c131754fd859bebfed57c3f3a7",
+      "status": "draft",
+      "tags": [
+        "stairs"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 533,
+      "category": "楼梯与护栏",
+      "id": "stairs-spiral-horizontal",
+      "name": "方形旋梯 · 横档扶手",
+      "path": "assets/recipes/stairs/stairs-spiral-horizontal.json",
+      "sha256": "76609370126e4cb035365e7a680fb68a41b69ff002b15220bd5303c65fc84ee2",
+      "status": "recommended",
+      "tags": [
+        "stairs"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 530,
+      "category": "楼梯与护栏",
+      "id": "stairs-spiral-lattice",
+      "name": "方形旋梯 · 格构扶手",
+      "path": "assets/recipes/stairs/stairs-spiral-lattice.json",
+      "sha256": "cb9274279a722450bb5471616bc2702003dba353b82421c65b25b2aa8a079a67",
+      "status": "draft",
+      "tags": [
+        "stairs"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 526,
+      "category": "楼梯与护栏",
+      "id": "stairs-straight-baluster",
+      "name": "直梯 · 立柱扶手",
+      "path": "assets/recipes/stairs/stairs-straight-baluster.json",
+      "sha256": "b25500f69540ede4400617578ea0e83523a8cec6339edc432b0a7b3d739cd6d5",
+      "status": "draft",
+      "tags": [
+        "stairs"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 528,
+      "category": "楼梯与护栏",
+      "id": "stairs-straight-horizontal",
+      "name": "直梯 · 横档扶手",
+      "path": "assets/recipes/stairs/stairs-straight-horizontal.json",
+      "sha256": "ec96d17fd2cd3ab9bfeb0208414f2f9a66b233e9fdfcd18bbc71b849be1b31ee",
+      "status": "recommended",
+      "tags": [
+        "stairs"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 525,
+      "category": "楼梯与护栏",
+      "id": "stairs-straight-lattice",
+      "name": "直梯 · 格构扶手",
+      "path": "assets/recipes/stairs/stairs-straight-lattice.json",
+      "sha256": "0533990ae9f58bc0ab61b144a80cd9a15eaae84ef2e0b1df3b5185a68de648d2",
+      "status": "draft",
+      "tags": [
+        "stairs"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 532,
+      "category": "楼梯与护栏",
+      "id": "stairs-switchback-baluster",
+      "name": "折返梯 · 立柱扶手",
+      "path": "assets/recipes/stairs/stairs-switchback-baluster.json",
+      "sha256": "9a80e59d7384eb99c73d957475c428a80300bed2ddb5336ed2762e6fdf3bef81",
+      "status": "draft",
+      "tags": [
+        "stairs"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 534,
+      "category": "楼梯与护栏",
+      "id": "stairs-switchback-horizontal",
+      "name": "折返梯 · 横档扶手",
+      "path": "assets/recipes/stairs/stairs-switchback-horizontal.json",
+      "sha256": "7d3e07b3f307592f1d50c81b62a3a55887a1193a91c9a4dddec13d97df9015c2",
+      "status": "recommended",
+      "tags": [
+        "stairs"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 531,
+      "category": "楼梯与护栏",
+      "id": "stairs-switchback-lattice",
+      "name": "折返梯 · 格构扶手",
+      "path": "assets/recipes/stairs/stairs-switchback-lattice.json",
+      "sha256": "17da9ec4a5a3fecf4dbce6e4043724ee730a335ac48f3ae2a3f4069a09a580fd",
+      "status": "draft",
+      "tags": [
+        "stairs"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 182,
+      "category": "家具与陈设",
+      "id": "table-classic",
+      "name": "工作桌",
+      "path": "assets/recipes/table/table-classic.json",
+      "sha256": "190aee0d7ed6112fbf358ee0b26eafb7c85547ef3c76910436f661fe513aea98",
+      "status": "stable",
+      "tags": [
+        "table"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 308,
+      "category": "墙面与吊顶",
+      "id": "wall-wainscot",
+      "name": "墙裙与檐口",
+      "path": "assets/recipes/wall/wall-wainscot.json",
+      "sha256": "286469dc18d5c3896656016cb00d9b605e31f0b46eddfa91d39750727e3eaf1f",
+      "status": "stable",
+      "tags": [
+        "wall"
+      ],
+      "type": "parametric_recipe"
+    }
+  ],
+  "compatibility": {
+    "app_min": "3.1.0",
+    "minecraft": "1.20.1"
+  },
+  "description": "模块化建筑配方与数据构件；含宫廷金饰主题窗框、柱式、陈设及原创浮雕/镶地。须实际预览，安装后另验通路、承托和游戏效果。",
+  "id": "nbtcreator.modular",
+  "kind": "nbtcreator.asset-library",
+  "license": "LicenseRef-NBTCreator-Project",
+  "name": "NBTCreator 模块化建筑资产库",
+  "schema_version": 1,
+  "version": "1.0.0"
+}

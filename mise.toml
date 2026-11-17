@@ -48,7 +48,27 @@ run = "python -B tests/engine/roof-curves.py"
 
 [tasks."modular:test"]
 description = "Verify object recipes, stair handrails, column sections and shared placement"
-run = ["python -B tests/engine/modular-objects.py", "python -B tests/engine/window-frames.py"]
+run = ["python -B tests/engine/modular-objects.py", "python -B tests/engine/structural-members.py", "python -B tests/engine/window-frames.py"]
+
+[tasks."assets:sync"]
+description = "Import a verified official asset library release into the application snapshot"
+run = "python -B scripts/sync-asset-library.py"
+
+[tasks."assets:check"]
+description = "Verify bundled external asset data and hashes"
+run = "python -B scripts/sync-asset-library.py --check"
+
+[tasks."assets:test"]
+description = "Verify local and remote libraries, integrity, offline use and rollback"
+run = "python -B tests/engine/asset-libraries.py"
+
+[tasks."assets:desktop"]
+description = "Build and verify external asset discovery, preview, import and offline desktop flow"
+run = ["npm run build:web", "node tests/desktop/unified-assets-desktop.mjs"]
+
+[tasks."ornate:test"]
+description = "Verify the authored ornate collection; requires sibling NBTCreator-AssetLibrary"
+run = "python -B tests/engine/ornate-library.py --library ../NBTCreator-AssetLibrary"
 
 [tasks."ui:test"]
 description = "Verify studio journeys, focus, delivery and six-page window/zoom layouts"

@@ -20,7 +20,7 @@ GROUPS={
  'rendering':('纹理预览与图像评审',['rendering']),
  'saodg':('可选：SAODG接入',['saodg-constraints','mod-structures','SAOartguide','room-examples','sealed-examples']),
  'desktop':('桌面、提示词与网页转换',['nbtcreator','detail-control','prompt-console','web-revision']),
- 'library':('建筑库与选择器',['library-archive','structure-selector','component-assets','reusable-recipes','project-batch']),
+ 'library':('建筑库与选择器',['library-archive','structure-selector','component-assets','asset-libraries','reusable-recipes','project-batch']),
  'handoff':('委派阅读记录',['delegation-and-review']),
 }
 

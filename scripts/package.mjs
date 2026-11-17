@@ -6,6 +6,7 @@ import {execFileSync} from 'node:child_process'
 import {buildWeb} from './build-web.mjs'
 execFileSync(process.execPath,[path.join(root,'scripts/sync-capabilities.mjs'),'--check'],{stdio:'inherit'})
 execFileSync(python,[path.join(root,'scripts/build-starter-effects.py'),'--check'],{stdio:'inherit',windowsHide:true})
+execFileSync(python,[path.join(root,'scripts/sync-asset-library.py'),'--check'],{stdio:'inherit',windowsHide:true})
 await buildWeb()
 const outIndex=process.argv.indexOf('--out')
 const output=path.resolve(root,outIndex>=0?process.argv[outIndex+1]:'dist');await fs.mkdir(output,{recursive:true})

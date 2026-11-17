@@ -69,6 +69,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 - agent-tasks → scripts/nbt_agent_tasks.py
 - project-repair → scripts/nbt_project_repair.py
 - asset-batches → scripts/nbt_asset_batches.py
+- asset-libraries → scripts/nbt_asset_libraries.py
 - room-score → scripts/nbt_room_score.py
 - effect-assets → scripts/nbt_effect_assets.py
 - history → scripts/nbt_history.py

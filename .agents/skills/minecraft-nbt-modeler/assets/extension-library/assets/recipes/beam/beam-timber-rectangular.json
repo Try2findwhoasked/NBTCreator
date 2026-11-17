@@ -1,0 +1,22 @@
+{
+  "arguments": {
+    "accent": "stripped_spruce_log",
+    "form": {
+      "profile": "rectangular"
+    },
+    "kind": "beam",
+    "material": "stripped_spruce_log",
+    "name": "素木横梁",
+    "size": [
+      19,
+      1,
+      1
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

@@ -1,0 +1,29 @@
+{
+  "arguments": {
+    "accent": "gold_block",
+    "form": {
+      "glass_palette": [
+        "blue_stained_glass",
+        "cyan_stained_glass",
+        "yellow_stained_glass"
+      ],
+      "profile": "pointed_arch_window",
+      "recess": 3,
+      "sill_material": "polished_blackstone_slab[type=top]"
+    },
+    "kind": "frame",
+    "material": "polished_blackstone_bricks",
+    "name": "黑金玫瑰宫廷尖拱窗",
+    "size": [
+      23,
+      31,
+      5
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

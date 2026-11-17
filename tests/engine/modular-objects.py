@@ -188,6 +188,28 @@ class ModularObjects(unittest.TestCase):
         self.assertGreater(fractions['panel'],.95)
         self.assertGreater(receipts['horizontal']['handrail']['horizontal_detail_blocks'],0)
         self.assertEqual(receipts['lattice']['rail_height'],2)
+        # Keep all three request variants; recommend only the selected horizontal family.
+        self.assertEqual({row['arguments']['form']['handrail']['style'] for row in library('stairs')},
+                         {'baluster','lattice','horizontal'})
+        self.assertEqual({row['arguments']['form']['handrail']['style'] for row in library('stairs') if row['status']=='recommended'},
+                         {'horizontal'})
+
+    def test_new_column_families_have_clean_shaft_bounds_and_keep_local_parts(self):
+        for identifier in ('pillar-modern-flush','pillar-timber-post','pillar-classical-plain'):
+            args=next(row['arguments'] for row in library('pillar') if row['id']==identifier)
+            result=self.call(**args);voxels=self.voxels(result)
+            self.assertTrue(visually_connected(voxels))
+            self.assertEqual(set(result['parts']),{'base','shaft','capital'})
+            self.assertEqual({i['id'] for i in result['interfaces']},{'base','capital_top'})
+            if identifier!='pillar-classical-plain':
+                w,h,d=args['size']
+                self.assertEqual(set(voxels),set(product(range(w),range(h),range(d))))
+            else:
+                start=result['parts']['shaft']['lo'][1];end=result['parts']['shaft']['hi'][1]
+                sections=[{(x,z) for x,y,z in voxels if y==level} for level in (start,(start+end)//2,end)]
+                self.assertTrue(all(section==sections[0] for section in sections))
+        with self.assertRaisesRegex(ValueError,'圆柱'):
+            self.call(kind='pillar',size=[9,20,9],form=dict(section='round',shaft_inset=0))
 
     def test_each_thin_guard_is_connected_without_relying_on_the_stair_mass(self):
         for shape,style,side in product(('straight','quarter_turn','switchback','spiral'),
