@@ -62,7 +62,7 @@ microfit.shape_search 返回搜索方式 method（exhaustive / bounded_beam）�
 
 `shape_counts` 记录实际选中的类型；`geometry_constraints_passed` 和 `unsupported_positions` 记录静态连接与支承检查。`geometry_basis=static_shape_envelopes_texture_alpha_excluded` 表示评分不包含纹理透明孔洞；铁栏杆、链条会列入 `approximate_states`。玻璃透明度、游戏邻接重算、红石、碰撞和游戏效果另验，`collision_validated=false` 不得改写成游戏验收通过。
 
-从软件根目录执行 `mise run fit:test` 验证方块、方向、支撑与保存回读。效果对比使用 `mise exec -- python -B tests/fitting-shapes-benchmark.py --output build/<全新目录> --render`，输出同一原图在1/32格基准下的对照分数、耗时、启用材质及真实预览；该脚本只生成合成试件，不定稿或导出NBT。
+从软件根目录执行 `mise run fit:test` 验证方块、方向、支撑与保存回读。效果对比使用 `mise exec -- python -B tests/engine/fitting-shapes-benchmark.py --output build/<全新目录> --render`，输出同一原图在1/32格基准下的对照分数、耗时、启用材质及真实预览；该脚本只生成合成试件，不定稿或导出NBT。
 
 这项评分比较静态模型盒体投影，不计算活版门纹理中的透明孔，也不模拟红石与游戏邻接更新；石墙侧臂保存的状态需在目标布局中复查。报告用 `geometry_basis`、`state_policy` 和 `collision_validated=false` 明确这个范围。新增候选不扩大玩家通路的精确碰撞支持范围，不能当作游戏内通行或放置稳定性的证明。墙面与柱饰支持两种新形状；吊顶可用活版门，平齐地板和圆柱环绕继续使用原有形状。标准整图拟合不接受这两项，需先拟合微型单元再铺排。
 
@@ -173,7 +173,7 @@ repeat 的第一项为绕周重复次数，第二项为竖向重复次数。脚�
 
 ## 维护验证
 
-复杂原图对比可运行 `mise exec -- python -B tests/fitting-shapes-complex.py --output build/<全新目录> --render`。固定原图与尺寸，对比原有、同材质石墙和混材候选，以同一1/32格原图评估 ornate、细节和耗时，并保留失败记录及成功候选的正视/斜视图。新增形状会尝试把仍满足精细约束的原有楼梯/半砖解作为搜索种子；`shape_search.seed_candidates_evaluated` 记录实际接纳数。精细方案的质量评估固定为每格32像素（`quality_sampling_resolution=32`），避免随形状精度重复放大。拓扑、误差和调用方质量门槛继续执行；更大的候选集不保证每种复杂纹样都改善。
+复杂原图对比可运行 `mise exec -- python -B tests/engine/fitting-shapes-complex.py --output build/<全新目录> --render`。固定原图与尺寸，对比原有、同材质石墙和混材候选，以同一1/32格原图评估 ornate、细节和耗时，并保留失败记录及成功候选的正视/斜视图。新增形状会尝试把仍满足精细约束的原有楼梯/半砖解作为搜索种子；`shape_search.seed_candidates_evaluated` 记录实际接纳数。精细方案的质量评估固定为每格32像素（`quality_sampling_resolution=32`），避免随形状精度重复放大。拓扑、误差和调用方质量门槛继续执行；更大的候选集不保证每种复杂纹样都改善。
 
 ## 原图分析与评分的口径
 

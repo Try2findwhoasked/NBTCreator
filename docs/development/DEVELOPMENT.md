@@ -64,7 +64,7 @@ mise exec -- node scripts/cli.mjs --workspace "D:\MyMinecraftProject" capabiliti
 | 外部 Agent 机器接口 | `mise exec -- npm run test:agent-protocol` |
 | Agent 离线模拟全流程 | `mise exec -- npm run test:agent-simulation` |
 
-更细的检查以 [package.json](../../package.json) 的 scripts 和 [mise.toml](../../mise.toml) 为准。修改 `tool-catalog.json` 后先运行 `mise exec -- npm run sync:tools`，再执行 `check:tools`。
+测试分层、单文件运行方法与特殊前置条件见[测试导航](../../tests/README.md)。更细的检查以 [package.json](../../package.json) 的 scripts 和 [mise.toml](../../mise.toml) 为准。修改 `tool-catalog.json` 后先运行 `mise exec -- npm run sync:tools`，再执行 `check:tools`。
 
 桌面自动测试使用隔离的合成工作区，窗口默认最小化，不触发已记录的全屏问题。真实 API 检查会使用指定连接并产生实际请求，入口和边界见[使用指南](../guides/USER_GUIDE.md#ai-与-agent-协作)；常规自动测试使用本机模拟服务。
 

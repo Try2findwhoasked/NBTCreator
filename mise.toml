@@ -12,7 +12,7 @@ run = "python scripts/gpu-runtime.py node scripts/cli.mjs"
 
 [tasks."gpu:test"]
 description = "Run CPU and real GPU compute/transform regressions"
-run = "python scripts/gpu-runtime.py python -B tests/compute-transforms.py --require-gpu"
+run = "python scripts/gpu-runtime.py python -B tests/engine/compute-transforms.py --require-gpu"
 
 [tasks."gpu:benchmark"]
 description = "Measure transfers, cold/warm compute and full tool calls"
@@ -20,7 +20,7 @@ run = "python scripts/gpu-runtime.py python -B scripts/benchmark-compute.py"
 
 [tasks."cpu:test"]
 description = "Verify bulk writes, catalogue invalidation and strict validation"
-run = "python -B tests/materialization.py"
+run = "python -B tests/engine/materialization.py"
 
 [tasks."model:test"]
 description = "Verify whole-model composition, managed updates and assembly interfaces"
@@ -44,15 +44,15 @@ run = "npm run test:architecture-preview"
 
 [tasks."roof:test"]
 description = "Verify curved roof contact, protection and shared structure entry points"
-run = "python -B tests/roof-curves.py"
+run = "python -B tests/engine/roof-curves.py"
 
 [tasks."modular:test"]
 description = "Verify object recipes, stair handrails, column sections and shared placement"
-run = ["python -B tests/modular-objects.py", "python -B tests/window-frames.py"]
+run = ["python -B tests/engine/modular-objects.py", "python -B tests/engine/window-frames.py"]
 
 [tasks."ui:test"]
 description = "Verify studio journeys, focus, delivery and six-page window/zoom layouts"
-run = ["npm run build:web", "node tests/studio-redesign-desktop.mjs"]
+run = ["npm run build:web", "node tests/desktop/studio-redesign-desktop.mjs"]
 
 [tools]
 python = "3.14.7"

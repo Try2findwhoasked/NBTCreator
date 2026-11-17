@@ -113,7 +113,7 @@ AI 可返回紧凑区域及材质索引，由本地脚本展开为工具步骤�
 
 提示词编写只校验设计文字和交接格式。建模入口及高级工具提案会检查 JSON 与参数，核对 1.20.1 方块与属性；需要创建几何时，调用共用 Python 引擎。楼梯、屋顶、材质等错误会反馈给模型修正，总共最多请求 3 次。归属字段严格使用 `body / wall / inherit`，脚本可归一化等价的工具键、公共字段包装和标准 `Name/Properties` 方块状态。任务记录分开显示“接口已返回”和本地校验结果；几何预检不等于设计、通路或游戏验收。
 
-真实服务回归可使用 `mise exec -- node tests/ai-live-desktop.mjs --profile <NBTCreator用户配置目录>`，显式调用该配置的实际 API，测试完整初稿、小构件和独立资产。检查使用隔离工作区，保留本次合成任务的真实最终返回与预览报告，结束后清理复制的加密连接文件；不会导出 NBT 或发布测试构件。普通自动测试不调用真实服务。
+真实服务回归可使用 `mise exec -- node tests/desktop/ai-live-desktop.mjs --profile <NBTCreator用户配置目录>`，显式调用该配置的实际 API，测试完整初稿、小构件和独立资产。检查使用隔离工作区，保留本次合成任务的真实最终返回与预览报告，结束后清理复制的加密连接文件；不会导出 NBT 或发布测试构件。普通自动测试不调用真实服务。
 
 从软件源码根目录运行离线模拟验收： `mise exec -- npm run test:agent-simulation`；验证完整目录包用 `mise exec -- npm run test:agent-simulation -- --directory dist/<目录包>`。模拟服务覆盖全部生成入口、错误归属/材质/几何反馈、截断修正、重试停止和鉴权失败，测试会实际运行 Electron、Python 几何计算和外部 Agent 读写。随后执行界面采用、选区保护与回退、撤销、资产预览与入库流程，输出 `build/agent-acceptance-*/results.json` 和各项日志。目录包验收先比较共享引擎和桌面源文件哈希，再检查随包运行环境；不读取用户 Key 或调用真实 API。
 

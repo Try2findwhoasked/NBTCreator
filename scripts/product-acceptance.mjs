@@ -13,7 +13,7 @@ await fs.mkdir(output,{recursive:true})
 const app=path.join(directory,'NBTCreator-win32-x64'),executable=path.join(app,'NBTCreator.exe')
 await fs.access(executable)
 const plan=JSON.parse(await fs.readFile(path.join(root,'config/product-acceptance.json'),'utf8'))
-const suites=[{id:'private-runtime',runtime:'node',args:['tests/portable-smoke.mjs','--directory',directory]},...plan.suites]
+const suites=[{id:'private-runtime',runtime:'node',args:['tests/desktop/portable-smoke.mjs','--directory',directory]},...plan.suites]
 const ids=new Set(suites.map(s=>s.id));if(ids.size!==suites.length)throw Error('Duplicate suite identifier')
 for(const requirement of plan.requirements)for(const id of requirement.suites)if(!ids.has(id))throw Error('Missing suite '+id)
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex')
