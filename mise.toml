@@ -48,7 +48,7 @@ run = "python -B tests/roof-curves.py"
 
 [tasks."modular:test"]
 description = "Verify object recipes, stair handrails, column sections and shared placement"
-run = "python -B tests/modular-objects.py"
+run = ["python -B tests/modular-objects.py", "python -B tests/window-frames.py"]
 
 [tasks."ui:test"]
 description = "Verify studio journeys, focus, delivery and six-page window/zoom layouts"

@@ -28,6 +28,9 @@ def compile_object(workspace, arguments):
     from nbt_structure_agent import _schema, definitions, build
     _schema(arguments,definitions()['parametric_compile']['parameters'],'参数化构件')
     original_arguments=arguments
+    from nbt_window_frames import PROFILES as WINDOW_PROFILES
+    if arguments.get('form',{}).get('profile') in WINDOW_PROFILES and arguments.get('ornament',{}).get('profile','none')!='none':
+        raise ValueError('花式窗型使用自身窗棂与线脚，不叠加会覆盖玻璃的通用ornament')
     from nbt_object_forms import THEMES
     theme=arguments.get('theme')
     if theme:
@@ -35,13 +38,20 @@ def compile_object(workspace, arguments):
         if arguments['kind']=='ceiling' and 'form' in arguments:
             arguments['form']={'pitch':arguments['spacing'],**arguments['form']}
     kind=arguments['kind'];style=arguments.get('style','classic');w,h,d=arguments['size'];x,y,z=w-1,h-1,d-1
+    slender_beam=kind=='beam' and arguments.get('form',{}).get('profile')=='rectangular'
+    if w<3 or min(h,d)<(1 if slender_beam else 3):
+        raise ValueError('矩形梁跨度至少3格、截面至少1格；其他构件每轴至少3格')
+    from nbt_structural_members import selected
+    if selected(kind,arguments.get('form',{})):
+        if style!='classic' or set(original_arguments)&{'spacing','thickness'}:
+            raise ValueError('新结构截面由form.profile决定；style仅接受classic，壁厚用form.border，不使用spacing/thickness')
     if max(w,d)>32 or h>(64 if kind=='pillar' else 32):raise ValueError('柱子高度最多64格，其余构件和柱子宽深最多32格')
     if kind=='pillar' and 'form' in arguments:
         from nbt_classical_column import resolve
         arguments=dict(arguments,form=resolve(arguments['form'],arguments['size']))
         if arguments['form'].get('capital_profile') in ('tuscan','doric','ionic','corinthian','composite'):arguments['form'].setdefault('detail_material',arguments.get('material','stone_bricks'))
     spacing=arguments.get('spacing',3);t=arguments.get('thickness',1)
-    if 2*t>=min(w,d):raise ValueError('厚度须小于宽度与深度的一半')
+    if not slender_beam and 2*t>=min(w,d):raise ValueError('厚度须小于宽度与深度的一半')
     primary=state(arguments.get('material','stone_bricks'));accent=state(arguments.get('accent','polished_andesite'))
     if primary in AIR_NAMES or accent in AIR_NAMES:raise ValueError('构件材质不能为空气')
     foliage=state(arguments.get('foliage','oak_leaves[persistent=true]'))
@@ -152,7 +162,8 @@ def compile_object(workspace, arguments):
     if kind=='pillar' and set(arguments.get('form',{}))&{'base_profile','capital_profile','base_curve','capital_curve','base_pattern','capital_pattern'}:identity['revision']=9
     if kind=='pillar' and ('order' in arguments.get('form',{}) or arguments.get('form',{}).get('section')=='round'):identity['revision']=10
     if kind in MODULAR_KINDS or 'handrail' in arguments.get('form',{}) or arguments.get('form',{}).get('section') in ('octagonal','bundled') or 'band_spacing' in arguments.get('form',{}):identity['revision']=11
-    if kind=='railing' or 'handrail' in arguments.get('form',{}):identity['revision']=12
+    if kind=='railing' or 'handrail' in arguments.get('form',{}):identity['revision']=13
+    if kind=='pillar' and 'shaft_inset' in arguments.get('form',{}):identity['revision']=14
     interfaces=[]
     if kind=='pillar':
         interfaces=[dict(id='base',face='down',lo=[0,0,0],hi=[x,0,z]),
@@ -166,6 +177,10 @@ def compile_object(workspace, arguments):
         interfaces=[dict(id='support_start',face='down',lo=[0,0,cz],hi=[0,0,cz]),dict(id='support_end',face='down',lo=[x,0,cz],hi=[x,0,cz])]
     if kind=='bracket':
         interfaces=[dict(id='back',face='north',lo=[0,0,0],hi=[x,y,0]),dict(id='top',face='up',lo=[0,y,0],hi=[x,y,z])]
+    from nbt_structural_members import selected,describe
+    if selected(kind,arguments.get('form',{})):
+        modular_receipt=describe(kind,arguments['form'],arguments['size'])
+        interfaces=modular_receipt['interfaces'];identity['revision']=15
     return dict(spec=spec,ornament=ornament,parts=parts,construction=modular_receipt,end_decorations=end_decorations,resolved_form=arguments.get('form',{}),revision=identity['revision'],recipe_sha256=hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest(),
                 content_sha256=data['content_sha256'],block_count=len(data['blocks']),mount=mount,
                 verification=dict(block_states=True,bounds=True,design='pending_visual_review',routes='not_checked',support='not_checked',game='not_checked'),

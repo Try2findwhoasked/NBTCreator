@@ -19,7 +19,7 @@ FORM_FIELDS={
 }
 from nbt_modular_objects import FIELDS as MODULAR_FIELDS, PROFILES as MODULAR_PROFILES
 FORM_FIELDS.update(MODULAR_FIELDS)
-FORM_FIELDS['pillar'] += ('band_spacing',)
+FORM_FIELDS['pillar'] += ('band_spacing','shaft_inset')
 PROFILES={'ceiling':('grid','parallel'),'plant':('upright','trailing','climbing'),
           'planter':('upright','trailing','climbing'),'stairs':('straight','quarter_turn','switchback','spiral')}
 PROFILES.update(MODULAR_PROFILES)
@@ -42,6 +42,10 @@ def generate(kind, spec, size, box, primary, accent, foliage, style='classic'):
         inset=spec.get('inset',1)
         if base+cap>=h or 2*inset>=min(w,d):
             raise ValueError('柱础、柱头或柱身收分超过构件尺寸')
+        shaft_inset=spec.get('shaft_inset',1)
+        if 'shaft_inset' in spec and spec.get('section')=='round':
+            raise ValueError('圆柱用inset控制半径；shaft_inset用于方形等非圆截面')
+        if 2*shaft_inset>=min(w,d):raise ValueError('柱身留边没有留下有效截面')
         from nbt_pillar_ends import end_layers
         end_layers(spec,'base',size,box,state(spec.get('base_material',accent)))
         end_layers(spec,'capital',size,box,state(spec.get('capital_material',accent)))
@@ -51,9 +55,9 @@ def generate(kind, spec, size, box, primary, accent, foliage, style='classic'):
                 band=spec.get('band_spacing') and (level-base)%spec['band_spacing']==0
                 shaft_level(spec,size,level,base,cap,box,accent if band else primary,accent);continue
             offset=inset if spec.get('taper',False) and level>=base+(h-base-cap)//2 else 0
-            if 2*offset>=min(w-2,d-2):
+            if 2*(shaft_inset+offset)>=min(w,d):
                 raise ValueError('柱身收分后没有可用截面')
-            lo=[1+offset,level,1+offset];hi=[x-1-offset,level,z-1-offset]
+            lo=[shaft_inset+offset,level,shaft_inset+offset];hi=[x-shaft_inset-offset,level,z-shaft_inset-offset]
             section=spec.get('section','square')
             shaft_material=accent if spec.get('band_spacing') and (level-base)%spec['band_spacing']==0 else primary
             if section in ('octagonal','bundled'):

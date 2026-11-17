@@ -22,6 +22,12 @@ FIELDS['railing'] = ('profile', 'pitch', 'slope', 'rail_material', 'post_materia
 FIELDS['bracket'] = ('profile', 'pitch')
 FIELDS['arch'] = ('profile', 'border')
 FIELDS['pedestal'] = ('profile', 'pitch')
+from nbt_structural_members import PROFILES as STRUCTURAL_PROFILES
+for _kind,_profiles in STRUCTURAL_PROFILES.items():PROFILES[_kind]+=_profiles
+FIELDS['bracket']+=('border',)
+FIELDS['frame']+=('recess','glazing','glass_material','sill_material','frame_depth')
+from nbt_window_frames import FIELDS as WINDOW_FIELDS
+FIELDS['frame']+=WINDOW_FIELDS
 
 
 def solid(value):
@@ -38,6 +44,11 @@ def generate(kind, form, size, box, primary, accent, style):
     profile = form.get('profile', PROFILES[kind][1 if style == 'stepped' else 0])
     if profile not in PROFILES[kind] or set(form)-set(FIELDS[kind]):
         raise ValueError('form 含不适用于该模块的参数')
+    if profile in STRUCTURAL_PROFILES.get(kind,()):
+        from nbt_structural_members import generate as generate_member
+        return generate_member(kind,form,size,box,primary,accent)
+    if kind=='bracket' and 'border' in form or kind=='frame' and set(form)&{'recess','glazing','glass_material','sill_material','frame_depth'}:
+        raise ValueError('这些参数需要选择新的结构托架或洞口框profile')
     pitch = form.get('pitch', 3)
     border = form.get('border', 1)
     parts = {}
@@ -140,7 +151,7 @@ def stairs(form, size, box, primary, accent):
     block, props = effective(tread)
     if not block.endswith('_stairs') or props.get('waterlogged') != 'false' or props.get('half')!='bottom' or props.get('shape')!='straight' or ('facing=' in tread and props['facing']!='south'):
         raise ValueError('踏步须使用干燥底部直楼梯；朝向由跑段决定，显式facing只接受south')
-    height = rail.get('height', 3 if rail.get('style')=='lattice' else 2)
+    height = rail.get('height', 2)
     style = rail.get('style', 'baluster')
     primary, accent = solid(primary), solid(accent)
     footprint = {}
@@ -220,14 +231,19 @@ def stairs(form, size, box, primary, accent):
             if q not in footprint and q not in openings:
                 points[q] = max(points.get(q, 0), level+1)
     # Fill convex elbows so successive rail caps meet by a face, not a corner.
-    for x, z in list(points):
+    boundary=dict(points)
+    for x, z in boundary:
         for dx, dz in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
             q = (x+dx, z+dz)
-            if q not in points:
+            if q not in boundary:
                 continue
-            for elbow in ((x+dx, z), (x, z+dz)):
+            elbows=((x+dx,z),(x,z+dz))
+            # A concave turn already has its inside elbow. Adding the other
+            # one thickens it into a two-column cage and can propagate inward.
+            if any(elbow in boundary for elbow in elbows):continue
+            for elbow in elbows:
                 if elbow not in footprint and elbow not in openings:
-                    points[elbow] = max(points.get(elbow, 0), points[(x, z)], points[q])
+                    points[elbow] = max(points.get(elbow, 0), boundary[(x,z)], boundary[q])
     side = rail.get('side', 'both')
     def side_end(end, sign):
         row, _, normal = end
@@ -256,15 +272,13 @@ def stairs(form, size, box, primary, accent):
         box([x, 0, z], [x, level-1, z], accent)
         value = primary if direction is None else f'{block}[facing={directions[direction]},half=bottom,shape=straight,waterlogged=false]'
         box([x, level, z], [x, level, z], value)
-    for (x, z), base in sorted(points.items()):
-        # A short stepped fascia joins adjacent edge supports, including the
-        # outside elbows, without filling the entire height down to the floor.
-        neighbors=[points[q] for dx,dz in ((1,0),(-1,0),(0,1),(0,-1)) if (q:=(x+dx,z+dz)) in points]
-        bottom=min([base,*neighbors])-1
-        box([x,bottom,z],[x,base-1,z],accent)
     from nbt_railings import compile_rails
     detail=compile_rails(points,height,rail.get('post_spacing',3),style,box,
-                         rail.get('material'),rail.get('cap_material'))
+                         rail.get('material'),rail.get('cap_material'),lower_to_tread=True)
+    seats={(x,z):bottom for x,bottom,z in detail['support_seats']}
+    for (x,z),own_bottom in sorted(seats.items()):
+        # Only mounting seats at regular posts and turns; no decorative skirt.
+        box([x,own_bottom-1,z],[x,own_bottom-1,z],detail['support_material'])
     return dict(clear_width=width, rail_side=side, rail_columns=len(points),
                 footprint=[list(q) for q in sorted(footprint)],
                 walk_columns=[[q[0], value[0], q[1]] for q,value in sorted(footprint.items())],

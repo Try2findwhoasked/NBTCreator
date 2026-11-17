@@ -1793,11 +1793,12 @@ globalThis.NbtToolCatalog = {
             "type": "array",
             "items": {
               "type": "integer",
-              "minimum": 3,
+              "minimum": 1,
               "maximum": 64
             },
             "minItems": 3,
-            "maxItems": 3
+            "maxItems": 3,
+            "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
           },
           "style": {
             "type": "string",
@@ -2013,7 +2014,17 @@ globalThis.NbtToolCatalog = {
                   "rectangular",
                   "crosslight",
                   "mullioned",
-                  "square"
+                  "square",
+                  "i_section",
+                  "box_section",
+                  "knee_brace",
+                  "angle_bracket",
+                  "doorway",
+                  "recessed_window",
+                  "sash_window",
+                  "classical_window",
+                  "round_arch_window",
+                  "pointed_arch_window"
                 ]
               },
               "base_profile": {
@@ -2900,18 +2911,20 @@ globalThis.NbtToolCatalog = {
               "rail_material": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 160
+                "maxLength": 160,
+                "description": "独立栏杆扶手面，支持完整方块、底部半砖或关闭的底部活板门。"
               },
               "post_material": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 160
+                "maxLength": 160,
+                "description": "独立栏杆立柱/格构材质；支持完整方块、未含水栅栏、石墙或铁栏杆。"
               },
               "handrail": {
                 "type": "object",
                 "additionalProperties": false,
                 "minProperties": 1,
-                "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                "description": "外置护栏：默认2格，坡段使用显式横臂，平台使用轻薄扶手面；默认推荐横索式。run_width保持踏步净宽，不能与旧rail混用。",
                 "properties": {
                   "side": {
                     "type": "string",
@@ -2933,7 +2946,8 @@ globalThis.NbtToolCatalog = {
                   "height": {
                     "type": "integer",
                     "minimum": 2,
-                    "maximum": 5
+                    "maximum": 5,
+                    "description": "默认2格；栏杆立柱向踏步侧下探一层，留出通透栏体。"
                   },
                   "post_spacing": {
                     "type": "integer",
@@ -2943,14 +2957,97 @@ globalThis.NbtToolCatalog = {
                   "material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "扶手立柱/填充材质，支持完整方块、未含水栅栏、石墙或铁栏杆。"
                   },
                   "cap_material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "平台扶手顶面，支持完整方块、未含水底半砖或关闭的底部活板门；留空按样式选材。"
                   }
                 }
+              },
+              "shaft_inset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 6,
+                "description": "非圆柱身的四周留边，默认1；0用于通体方柱。圆柱使用inset。"
+              },
+              "recess": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "退进窗的玻璃平面Z，须小于画布深度。"
+              },
+              "frame_depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "无门槛门框的实际厚度，默认1，须不大于画布深度。"
+              },
+              "glazing": {
+                "type": "boolean",
+                "description": "退进窗是否生成完整玻璃方块，默认true。"
+              },
+              "glass_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "sill_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "panes": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 8
+                },
+                "minItems": 2,
+                "maxItems": 2,
+                "description": "分格列数与行数，每个玻璃格至少2格净尺寸；上下木窗要求偶数行。"
+              },
+              "head": {
+                "type": "string",
+                "enum": [
+                  "cornice",
+                  "triangular"
+                ]
+              },
+              "dentils": {
+                "type": "boolean"
+              },
+              "lights": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "tracery": {
+                "type": "boolean"
+              },
+              "glass_palette": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "minItems": 1,
+                "maxItems": 8
+              },
+              "cornice_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "bar_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
               }
             }
           },
@@ -3233,11 +3330,12 @@ globalThis.NbtToolCatalog = {
             "type": "array",
             "items": {
               "type": "integer",
-              "minimum": 3,
+              "minimum": 1,
               "maximum": 64
             },
             "minItems": 3,
-            "maxItems": 3
+            "maxItems": 3,
+            "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
           },
           "style": {
             "type": "string",
@@ -3453,7 +3551,17 @@ globalThis.NbtToolCatalog = {
                   "rectangular",
                   "crosslight",
                   "mullioned",
-                  "square"
+                  "square",
+                  "i_section",
+                  "box_section",
+                  "knee_brace",
+                  "angle_bracket",
+                  "doorway",
+                  "recessed_window",
+                  "sash_window",
+                  "classical_window",
+                  "round_arch_window",
+                  "pointed_arch_window"
                 ]
               },
               "base_profile": {
@@ -4340,18 +4448,20 @@ globalThis.NbtToolCatalog = {
               "rail_material": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 160
+                "maxLength": 160,
+                "description": "独立栏杆扶手面，支持完整方块、底部半砖或关闭的底部活板门。"
               },
               "post_material": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 160
+                "maxLength": 160,
+                "description": "独立栏杆立柱/格构材质；支持完整方块、未含水栅栏、石墙或铁栏杆。"
               },
               "handrail": {
                 "type": "object",
                 "additionalProperties": false,
                 "minProperties": 1,
-                "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                "description": "外置护栏：默认2格，坡段使用显式横臂，平台使用轻薄扶手面；默认推荐横索式。run_width保持踏步净宽，不能与旧rail混用。",
                 "properties": {
                   "side": {
                     "type": "string",
@@ -4373,7 +4483,8 @@ globalThis.NbtToolCatalog = {
                   "height": {
                     "type": "integer",
                     "minimum": 2,
-                    "maximum": 5
+                    "maximum": 5,
+                    "description": "默认2格；栏杆立柱向踏步侧下探一层，留出通透栏体。"
                   },
                   "post_spacing": {
                     "type": "integer",
@@ -4383,14 +4494,97 @@ globalThis.NbtToolCatalog = {
                   "material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "扶手立柱/填充材质，支持完整方块、未含水栅栏、石墙或铁栏杆。"
                   },
                   "cap_material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "平台扶手顶面，支持完整方块、未含水底半砖或关闭的底部活板门；留空按样式选材。"
                   }
                 }
+              },
+              "shaft_inset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 6,
+                "description": "非圆柱身的四周留边，默认1；0用于通体方柱。圆柱使用inset。"
+              },
+              "recess": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "退进窗的玻璃平面Z，须小于画布深度。"
+              },
+              "frame_depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8,
+                "description": "无门槛门框的实际厚度，默认1，须不大于画布深度。"
+              },
+              "glazing": {
+                "type": "boolean",
+                "description": "退进窗是否生成完整玻璃方块，默认true。"
+              },
+              "glass_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "sill_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "panes": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 8
+                },
+                "minItems": 2,
+                "maxItems": 2,
+                "description": "分格列数与行数，每个玻璃格至少2格净尺寸；上下木窗要求偶数行。"
+              },
+              "head": {
+                "type": "string",
+                "enum": [
+                  "cornice",
+                  "triangular"
+                ]
+              },
+              "dentils": {
+                "type": "boolean"
+              },
+              "lights": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "tracery": {
+                "type": "boolean"
+              },
+              "glass_palette": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "minItems": 1,
+                "maxItems": 8
+              },
+              "cornice_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "bar_material": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
               }
             }
           },
@@ -4676,7 +4870,7 @@ globalThis.NbtToolCatalog = {
                 "type": "array",
                 "items": {
                   "type": "integer",
-                  "minimum": 3,
+                  "minimum": 1,
                   "maximum": 64
                 },
                 "minItems": 3,
@@ -4805,11 +4999,12 @@ globalThis.NbtToolCatalog = {
                 "type": "array",
                 "items": {
                   "type": "integer",
-                  "minimum": 3,
+                  "minimum": 1,
                   "maximum": 64
                 },
                 "minItems": 3,
-                "maxItems": 3
+                "maxItems": 3,
+                "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
               },
               "style": {
                 "type": "string",
@@ -5025,7 +5220,17 @@ globalThis.NbtToolCatalog = {
                       "rectangular",
                       "crosslight",
                       "mullioned",
-                      "square"
+                      "square",
+                      "i_section",
+                      "box_section",
+                      "knee_brace",
+                      "angle_bracket",
+                      "doorway",
+                      "recessed_window",
+                      "sash_window",
+                      "classical_window",
+                      "round_arch_window",
+                      "pointed_arch_window"
                     ]
                   },
                   "base_profile": {
@@ -5912,18 +6117,20 @@ globalThis.NbtToolCatalog = {
                   "rail_material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "独立栏杆扶手面，支持完整方块、底部半砖或关闭的底部活板门。"
                   },
                   "post_material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "独立栏杆立柱/格构材质；支持完整方块、未含水栅栏、石墙或铁栏杆。"
                   },
                   "handrail": {
                     "type": "object",
                     "additionalProperties": false,
                     "minProperties": 1,
-                    "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                    "description": "外置护栏：默认2格，坡段使用显式横臂，平台使用轻薄扶手面；默认推荐横索式。run_width保持踏步净宽，不能与旧rail混用。",
                     "properties": {
                       "side": {
                         "type": "string",
@@ -5945,7 +6152,8 @@ globalThis.NbtToolCatalog = {
                       "height": {
                         "type": "integer",
                         "minimum": 2,
-                        "maximum": 5
+                        "maximum": 5,
+                        "description": "默认2格；栏杆立柱向踏步侧下探一层，留出通透栏体。"
                       },
                       "post_spacing": {
                         "type": "integer",
@@ -5955,14 +6163,97 @@ globalThis.NbtToolCatalog = {
                       "material": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 160
+                        "maxLength": 160,
+                        "description": "扶手立柱/填充材质，支持完整方块、未含水栅栏、石墙或铁栏杆。"
                       },
                       "cap_material": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 160
+                        "maxLength": 160,
+                        "description": "平台扶手顶面，支持完整方块、未含水底半砖或关闭的底部活板门；留空按样式选材。"
                       }
                     }
+                  },
+                  "shaft_inset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6,
+                    "description": "非圆柱身的四周留边，默认1；0用于通体方柱。圆柱使用inset。"
+                  },
+                  "recess": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8,
+                    "description": "退进窗的玻璃平面Z，须小于画布深度。"
+                  },
+                  "frame_depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8,
+                    "description": "无门槛门框的实际厚度，默认1，须不大于画布深度。"
+                  },
+                  "glazing": {
+                    "type": "boolean",
+                    "description": "退进窗是否生成完整玻璃方块，默认true。"
+                  },
+                  "glass_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "sill_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "panes": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "分格列数与行数，每个玻璃格至少2格净尺寸；上下木窗要求偶数行。"
+                  },
+                  "head": {
+                    "type": "string",
+                    "enum": [
+                      "cornice",
+                      "triangular"
+                    ]
+                  },
+                  "dentils": {
+                    "type": "boolean"
+                  },
+                  "lights": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "tracery": {
+                    "type": "boolean"
+                  },
+                  "glass_palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    },
+                    "minItems": 1,
+                    "maxItems": 8
+                  },
+                  "cornice_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "bar_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
                   }
                 }
               },
@@ -6602,11 +6893,12 @@ globalThis.NbtToolCatalog = {
                 "type": "array",
                 "items": {
                   "type": "integer",
-                  "minimum": 3,
+                  "minimum": 1,
                   "maximum": 64
                 },
                 "minItems": 3,
-                "maxItems": 3
+                "maxItems": 3,
+                "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
               },
               "style": {
                 "type": "string",
@@ -6822,7 +7114,17 @@ globalThis.NbtToolCatalog = {
                       "rectangular",
                       "crosslight",
                       "mullioned",
-                      "square"
+                      "square",
+                      "i_section",
+                      "box_section",
+                      "knee_brace",
+                      "angle_bracket",
+                      "doorway",
+                      "recessed_window",
+                      "sash_window",
+                      "classical_window",
+                      "round_arch_window",
+                      "pointed_arch_window"
                     ]
                   },
                   "base_profile": {
@@ -7709,18 +8011,20 @@ globalThis.NbtToolCatalog = {
                   "rail_material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "独立栏杆扶手面，支持完整方块、底部半砖或关闭的底部活板门。"
                   },
                   "post_material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "独立栏杆立柱/格构材质；支持完整方块、未含水栅栏、石墙或铁栏杆。"
                   },
                   "handrail": {
                     "type": "object",
                     "additionalProperties": false,
                     "minProperties": 1,
-                    "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                    "description": "外置护栏：默认2格，坡段使用显式横臂，平台使用轻薄扶手面；默认推荐横索式。run_width保持踏步净宽，不能与旧rail混用。",
                     "properties": {
                       "side": {
                         "type": "string",
@@ -7742,7 +8046,8 @@ globalThis.NbtToolCatalog = {
                       "height": {
                         "type": "integer",
                         "minimum": 2,
-                        "maximum": 5
+                        "maximum": 5,
+                        "description": "默认2格；栏杆立柱向踏步侧下探一层，留出通透栏体。"
                       },
                       "post_spacing": {
                         "type": "integer",
@@ -7752,14 +8057,97 @@ globalThis.NbtToolCatalog = {
                       "material": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 160
+                        "maxLength": 160,
+                        "description": "扶手立柱/填充材质，支持完整方块、未含水栅栏、石墙或铁栏杆。"
                       },
                       "cap_material": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 160
+                        "maxLength": 160,
+                        "description": "平台扶手顶面，支持完整方块、未含水底半砖或关闭的底部活板门；留空按样式选材。"
                       }
                     }
+                  },
+                  "shaft_inset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6,
+                    "description": "非圆柱身的四周留边，默认1；0用于通体方柱。圆柱使用inset。"
+                  },
+                  "recess": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8,
+                    "description": "退进窗的玻璃平面Z，须小于画布深度。"
+                  },
+                  "frame_depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8,
+                    "description": "无门槛门框的实际厚度，默认1，须不大于画布深度。"
+                  },
+                  "glazing": {
+                    "type": "boolean",
+                    "description": "退进窗是否生成完整玻璃方块，默认true。"
+                  },
+                  "glass_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "sill_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "panes": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "分格列数与行数，每个玻璃格至少2格净尺寸；上下木窗要求偶数行。"
+                  },
+                  "head": {
+                    "type": "string",
+                    "enum": [
+                      "cornice",
+                      "triangular"
+                    ]
+                  },
+                  "dentils": {
+                    "type": "boolean"
+                  },
+                  "lights": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "tracery": {
+                    "type": "boolean"
+                  },
+                  "glass_palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    },
+                    "minItems": 1,
+                    "maxItems": 8
+                  },
+                  "cornice_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "bar_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
                   }
                 }
               },
@@ -8243,11 +8631,12 @@ globalThis.NbtToolCatalog = {
                 "type": "array",
                 "items": {
                   "type": "integer",
-                  "minimum": 3,
+                  "minimum": 1,
                   "maximum": 64
                 },
                 "minItems": 3,
-                "maxItems": 3
+                "maxItems": 3,
+                "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
               },
               "style": {
                 "type": "string",
@@ -8463,7 +8852,17 @@ globalThis.NbtToolCatalog = {
                       "rectangular",
                       "crosslight",
                       "mullioned",
-                      "square"
+                      "square",
+                      "i_section",
+                      "box_section",
+                      "knee_brace",
+                      "angle_bracket",
+                      "doorway",
+                      "recessed_window",
+                      "sash_window",
+                      "classical_window",
+                      "round_arch_window",
+                      "pointed_arch_window"
                     ]
                   },
                   "base_profile": {
@@ -9350,18 +9749,20 @@ globalThis.NbtToolCatalog = {
                   "rail_material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "独立栏杆扶手面，支持完整方块、底部半砖或关闭的底部活板门。"
                   },
                   "post_material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "独立栏杆立柱/格构材质；支持完整方块、未含水栅栏、石墙或铁栏杆。"
                   },
                   "handrail": {
                     "type": "object",
                     "additionalProperties": false,
                     "minProperties": 1,
-                    "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                    "description": "外置护栏：默认2格，坡段使用显式横臂，平台使用轻薄扶手面；默认推荐横索式。run_width保持踏步净宽，不能与旧rail混用。",
                     "properties": {
                       "side": {
                         "type": "string",
@@ -9383,7 +9784,8 @@ globalThis.NbtToolCatalog = {
                       "height": {
                         "type": "integer",
                         "minimum": 2,
-                        "maximum": 5
+                        "maximum": 5,
+                        "description": "默认2格；栏杆立柱向踏步侧下探一层，留出通透栏体。"
                       },
                       "post_spacing": {
                         "type": "integer",
@@ -9393,14 +9795,97 @@ globalThis.NbtToolCatalog = {
                       "material": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 160
+                        "maxLength": 160,
+                        "description": "扶手立柱/填充材质，支持完整方块、未含水栅栏、石墙或铁栏杆。"
                       },
                       "cap_material": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 160
+                        "maxLength": 160,
+                        "description": "平台扶手顶面，支持完整方块、未含水底半砖或关闭的底部活板门；留空按样式选材。"
                       }
                     }
+                  },
+                  "shaft_inset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6,
+                    "description": "非圆柱身的四周留边，默认1；0用于通体方柱。圆柱使用inset。"
+                  },
+                  "recess": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8,
+                    "description": "退进窗的玻璃平面Z，须小于画布深度。"
+                  },
+                  "frame_depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8,
+                    "description": "无门槛门框的实际厚度，默认1，须不大于画布深度。"
+                  },
+                  "glazing": {
+                    "type": "boolean",
+                    "description": "退进窗是否生成完整玻璃方块，默认true。"
+                  },
+                  "glass_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "sill_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "panes": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "分格列数与行数，每个玻璃格至少2格净尺寸；上下木窗要求偶数行。"
+                  },
+                  "head": {
+                    "type": "string",
+                    "enum": [
+                      "cornice",
+                      "triangular"
+                    ]
+                  },
+                  "dentils": {
+                    "type": "boolean"
+                  },
+                  "lights": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "tracery": {
+                    "type": "boolean"
+                  },
+                  "glass_palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    },
+                    "minItems": 1,
+                    "maxItems": 8
+                  },
+                  "cornice_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "bar_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
                   }
                 }
               },
@@ -9818,11 +10303,12 @@ globalThis.NbtToolCatalog = {
                       "type": "array",
                       "items": {
                         "type": "integer",
-                        "minimum": 3,
+                        "minimum": 1,
                         "maximum": 64
                       },
                       "minItems": 3,
-                      "maxItems": 3
+                      "maxItems": 3,
+                      "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
                     },
                     "style": {
                       "type": "string",
@@ -10038,7 +10524,17 @@ globalThis.NbtToolCatalog = {
                             "rectangular",
                             "crosslight",
                             "mullioned",
-                            "square"
+                            "square",
+                            "i_section",
+                            "box_section",
+                            "knee_brace",
+                            "angle_bracket",
+                            "doorway",
+                            "recessed_window",
+                            "sash_window",
+                            "classical_window",
+                            "round_arch_window",
+                            "pointed_arch_window"
                           ]
                         },
                         "base_profile": {
@@ -10925,18 +11421,20 @@ globalThis.NbtToolCatalog = {
                         "rail_material": {
                           "type": "string",
                           "minLength": 1,
-                          "maxLength": 160
+                          "maxLength": 160,
+                          "description": "独立栏杆扶手面，支持完整方块、底部半砖或关闭的底部活板门。"
                         },
                         "post_material": {
                           "type": "string",
                           "minLength": 1,
-                          "maxLength": 160
+                          "maxLength": 160,
+                          "description": "独立栏杆立柱/格构材质；支持完整方块、未含水栅栏、石墙或铁栏杆。"
                         },
                         "handrail": {
                           "type": "object",
                           "additionalProperties": false,
                           "minProperties": 1,
-                          "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                          "description": "外置护栏：默认2格，坡段使用显式横臂，平台使用轻薄扶手面；默认推荐横索式。run_width保持踏步净宽，不能与旧rail混用。",
                           "properties": {
                             "side": {
                               "type": "string",
@@ -10958,7 +11456,8 @@ globalThis.NbtToolCatalog = {
                             "height": {
                               "type": "integer",
                               "minimum": 2,
-                              "maximum": 5
+                              "maximum": 5,
+                              "description": "默认2格；栏杆立柱向踏步侧下探一层，留出通透栏体。"
                             },
                             "post_spacing": {
                               "type": "integer",
@@ -10968,14 +11467,97 @@ globalThis.NbtToolCatalog = {
                             "material": {
                               "type": "string",
                               "minLength": 1,
-                              "maxLength": 160
+                              "maxLength": 160,
+                              "description": "扶手立柱/填充材质，支持完整方块、未含水栅栏、石墙或铁栏杆。"
                             },
                             "cap_material": {
                               "type": "string",
                               "minLength": 1,
-                              "maxLength": 160
+                              "maxLength": 160,
+                              "description": "平台扶手顶面，支持完整方块、未含水底半砖或关闭的底部活板门；留空按样式选材。"
                             }
                           }
+                        },
+                        "shaft_inset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 6,
+                          "description": "非圆柱身的四周留边，默认1；0用于通体方柱。圆柱使用inset。"
+                        },
+                        "recess": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 8,
+                          "description": "退进窗的玻璃平面Z，须小于画布深度。"
+                        },
+                        "frame_depth": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 8,
+                          "description": "无门槛门框的实际厚度，默认1，须不大于画布深度。"
+                        },
+                        "glazing": {
+                          "type": "boolean",
+                          "description": "退进窗是否生成完整玻璃方块，默认true。"
+                        },
+                        "glass_material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "sill_material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "panes": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 8
+                          },
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "description": "分格列数与行数，每个玻璃格至少2格净尺寸；上下木窗要求偶数行。"
+                        },
+                        "head": {
+                          "type": "string",
+                          "enum": [
+                            "cornice",
+                            "triangular"
+                          ]
+                        },
+                        "dentils": {
+                          "type": "boolean"
+                        },
+                        "lights": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 8
+                        },
+                        "tracery": {
+                          "type": "boolean"
+                        },
+                        "glass_palette": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 160
+                          },
+                          "minItems": 1,
+                          "maxItems": 8
+                        },
+                        "cornice_material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "bar_material": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
                         }
                       }
                     },
@@ -11333,11 +11915,12 @@ globalThis.NbtToolCatalog = {
                 "type": "array",
                 "items": {
                   "type": "integer",
-                  "minimum": 3,
+                  "minimum": 1,
                   "maximum": 64
                 },
                 "minItems": 3,
-                "maxItems": 3
+                "maxItems": 3,
+                "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
               },
               "style": {
                 "type": "string",
@@ -11553,7 +12136,17 @@ globalThis.NbtToolCatalog = {
                       "rectangular",
                       "crosslight",
                       "mullioned",
-                      "square"
+                      "square",
+                      "i_section",
+                      "box_section",
+                      "knee_brace",
+                      "angle_bracket",
+                      "doorway",
+                      "recessed_window",
+                      "sash_window",
+                      "classical_window",
+                      "round_arch_window",
+                      "pointed_arch_window"
                     ]
                   },
                   "base_profile": {
@@ -12440,18 +13033,20 @@ globalThis.NbtToolCatalog = {
                   "rail_material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "独立栏杆扶手面，支持完整方块、底部半砖或关闭的底部活板门。"
                   },
                   "post_material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "独立栏杆立柱/格构材质；支持完整方块、未含水栅栏、石墙或铁栏杆。"
                   },
                   "handrail": {
                     "type": "object",
                     "additionalProperties": false,
                     "minProperties": 1,
-                    "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                    "description": "外置护栏：默认2格，坡段使用显式横臂，平台使用轻薄扶手面；默认推荐横索式。run_width保持踏步净宽，不能与旧rail混用。",
                     "properties": {
                       "side": {
                         "type": "string",
@@ -12473,7 +13068,8 @@ globalThis.NbtToolCatalog = {
                       "height": {
                         "type": "integer",
                         "minimum": 2,
-                        "maximum": 5
+                        "maximum": 5,
+                        "description": "默认2格；栏杆立柱向踏步侧下探一层，留出通透栏体。"
                       },
                       "post_spacing": {
                         "type": "integer",
@@ -12483,14 +13079,97 @@ globalThis.NbtToolCatalog = {
                       "material": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 160
+                        "maxLength": 160,
+                        "description": "扶手立柱/填充材质，支持完整方块、未含水栅栏、石墙或铁栏杆。"
                       },
                       "cap_material": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 160
+                        "maxLength": 160,
+                        "description": "平台扶手顶面，支持完整方块、未含水底半砖或关闭的底部活板门；留空按样式选材。"
                       }
                     }
+                  },
+                  "shaft_inset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6,
+                    "description": "非圆柱身的四周留边，默认1；0用于通体方柱。圆柱使用inset。"
+                  },
+                  "recess": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8,
+                    "description": "退进窗的玻璃平面Z，须小于画布深度。"
+                  },
+                  "frame_depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8,
+                    "description": "无门槛门框的实际厚度，默认1，须不大于画布深度。"
+                  },
+                  "glazing": {
+                    "type": "boolean",
+                    "description": "退进窗是否生成完整玻璃方块，默认true。"
+                  },
+                  "glass_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "sill_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "panes": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "分格列数与行数，每个玻璃格至少2格净尺寸；上下木窗要求偶数行。"
+                  },
+                  "head": {
+                    "type": "string",
+                    "enum": [
+                      "cornice",
+                      "triangular"
+                    ]
+                  },
+                  "dentils": {
+                    "type": "boolean"
+                  },
+                  "lights": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "tracery": {
+                    "type": "boolean"
+                  },
+                  "glass_palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    },
+                    "minItems": 1,
+                    "maxItems": 8
+                  },
+                  "cornice_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "bar_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
                   }
                 }
               },
@@ -12770,11 +13449,12 @@ globalThis.NbtToolCatalog = {
                 "type": "array",
                 "items": {
                   "type": "integer",
-                  "minimum": 3,
+                  "minimum": 1,
                   "maximum": 64
                 },
                 "minItems": 3,
-                "maxItems": 3
+                "maxItems": 3,
+                "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
               },
               "style": {
                 "type": "string",
@@ -12990,7 +13670,17 @@ globalThis.NbtToolCatalog = {
                       "rectangular",
                       "crosslight",
                       "mullioned",
-                      "square"
+                      "square",
+                      "i_section",
+                      "box_section",
+                      "knee_brace",
+                      "angle_bracket",
+                      "doorway",
+                      "recessed_window",
+                      "sash_window",
+                      "classical_window",
+                      "round_arch_window",
+                      "pointed_arch_window"
                     ]
                   },
                   "base_profile": {
@@ -13877,18 +14567,20 @@ globalThis.NbtToolCatalog = {
                   "rail_material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "独立栏杆扶手面，支持完整方块、底部半砖或关闭的底部活板门。"
                   },
                   "post_material": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 160
+                    "maxLength": 160,
+                    "description": "独立栏杆立柱/格构材质；支持完整方块、未含水栅栏、石墙或铁栏杆。"
                   },
                   "handrail": {
                     "type": "object",
                     "additionalProperties": false,
                     "minProperties": 1,
-                    "description": "外置扶手；run_width保持踏步净宽，尺寸额外容纳一格边距、平台和栏高。不能与旧rail混用。",
+                    "description": "外置护栏：默认2格，坡段使用显式横臂，平台使用轻薄扶手面；默认推荐横索式。run_width保持踏步净宽，不能与旧rail混用。",
                     "properties": {
                       "side": {
                         "type": "string",
@@ -13910,7 +14602,8 @@ globalThis.NbtToolCatalog = {
                       "height": {
                         "type": "integer",
                         "minimum": 2,
-                        "maximum": 5
+                        "maximum": 5,
+                        "description": "默认2格；栏杆立柱向踏步侧下探一层，留出通透栏体。"
                       },
                       "post_spacing": {
                         "type": "integer",
@@ -13920,14 +14613,97 @@ globalThis.NbtToolCatalog = {
                       "material": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 160
+                        "maxLength": 160,
+                        "description": "扶手立柱/填充材质，支持完整方块、未含水栅栏、石墙或铁栏杆。"
                       },
                       "cap_material": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 160
+                        "maxLength": 160,
+                        "description": "平台扶手顶面，支持完整方块、未含水底半砖或关闭的底部活板门；留空按样式选材。"
                       }
                     }
+                  },
+                  "shaft_inset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6,
+                    "description": "非圆柱身的四周留边，默认1；0用于通体方柱。圆柱使用inset。"
+                  },
+                  "recess": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8,
+                    "description": "退进窗的玻璃平面Z，须小于画布深度。"
+                  },
+                  "frame_depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8,
+                    "description": "无门槛门框的实际厚度，默认1，须不大于画布深度。"
+                  },
+                  "glazing": {
+                    "type": "boolean",
+                    "description": "退进窗是否生成完整玻璃方块，默认true。"
+                  },
+                  "glass_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "sill_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "panes": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 8
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "分格列数与行数，每个玻璃格至少2格净尺寸；上下木窗要求偶数行。"
+                  },
+                  "head": {
+                    "type": "string",
+                    "enum": [
+                      "cornice",
+                      "triangular"
+                    ]
+                  },
+                  "dentils": {
+                    "type": "boolean"
+                  },
+                  "lights": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "tracery": {
+                    "type": "boolean"
+                  },
+                  "glass_palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    },
+                    "minItems": 1,
+                    "maxItems": 8
+                  },
+                  "cornice_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "bar_material": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
                   }
                 }
               },
@@ -14188,7 +14964,25 @@ globalThis.NbtToolCatalog = {
               "container",
               "wainscot",
               "cornice",
-              "crown"
+              "crown",
+              "span",
+              "end_start",
+              "end_end",
+              "bottom_flange",
+              "top_flange",
+              "web",
+              "near_web",
+              "far_web",
+              "back",
+              "arm",
+              "brace",
+              "jamb_left",
+              "jamb_right",
+              "lintel",
+              "sill",
+              "glazing",
+              "arch",
+              "tracery"
             ]
           },
           "max_changed_blocks": {

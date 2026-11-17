@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from itertools import product
 from pathlib import Path
+from functools import lru_cache
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
@@ -15,6 +16,69 @@ from nbt_object_library import library
 from nbt_components import placement, paste_plan
 from nbt_assembly import Volume
 from nbt_snbt import save_snbt, read_snbt
+from nbt_registry import effective
+from nbt_collision import collision_cells
+
+
+@lru_cache(maxsize=256)
+def visible_boxes(value):
+    """Static model boxes; bars/chain are visual envelopes, never support proof."""
+    name,props=effective(value)
+    if name=='minecraft:iron_bars':
+        boxes=[(7,0,7,9,16,9)]
+        for direction,(axis,sign) in {'north':(2,-1),'east':(0,1),'south':(2,1),'west':(0,-1)}.items():
+            if props[direction]!='true':continue
+            box=[7,0,7,9,16,9];box[axis]=8 if sign>0 else 0;box[axis+3]=16 if sign>0 else 8
+            boxes.append(tuple(box))
+        return tuple(boxes)
+    if name=='minecraft:chain':
+        axis={'x':0,'y':1,'z':2}[props['axis']];box=[6.5,6.5,6.5,9.5,9.5,9.5];box[axis]=0;box[axis+3]=16
+        return (tuple(box),)
+    if name.endswith('_trapdoor') and props['open']=='false':
+        return ((0,0,0,16,3,16),) if props['half']=='bottom' else ((0,13,0,16,16,16),)
+    if name.endswith(('_fence','_wall')):
+        wall=name.endswith('_wall')
+        boxes=[(4,0,4,12,16,12)] if wall else [(6,0,6,10,16,10)]
+        for direction,(axis,sign) in {'north':(2,-1),'east':(0,1),'south':(2,1),'west':(0,-1)}.items():
+            if props[direction] in ('false','none'):continue
+            for bottom,top in ((0,14 if props[direction]=='low' else 16),) if wall else ((6,9),(12,15)):
+                a,b=(5,11) if wall else (7,9)
+                box=[a,bottom,a,b,top,b];box[axis]=8 if sign>0 else 0;box[axis+3]=16 if sign>0 else 8
+                boxes.append(tuple(box))
+        return tuple(boxes)
+    if name=='minecraft:end_rod':
+        from nbt_fit_shapes import end_rods
+        return next(shape.boxes for shape in end_rods(name,'wall') if effective(shape.value)[1]['facing']==props['facing'])
+    cells,reason=collision_cells(value)
+    if reason:raise ValueError('No precise visual boxes for '+value)
+    return tuple((x*8,y*8,z*8,x*8+8,y*8+8,z*8+8) for x,y,z in cells)
+
+
+def visually_connected(voxels):
+    remaining=set(voxels)
+    first=remaining.pop();queue=[first]
+    while queue:
+        p=queue.pop()
+        for axis in range(3):
+            for sign in (-1,1):
+                q=tuple(v+sign if i==axis else v for i,v in enumerate(p))
+                if q not in remaining:continue
+                a,b=(p,q) if sign>0 else (q,p)
+                contact=any(one[axis+3]==16 and two[axis]==0 and all(min(one[i+3],two[i+3])>max(one[i],two[i]) for i in range(3) if i!=axis)
+                            for one in visible_boxes(voxels[a]) for two in visible_boxes(voxels[b]))
+                if contact:remaining.remove(q);queue.append(q)
+    return not remaining
+
+
+def box_volume(boxes):
+    axes=[sorted({box[i] for box in boxes}|{box[i+3] for box in boxes}) for i in range(3)]
+    intervals=[list(zip(axis,axis[1:])) for axis in axes]
+    total=0
+    for span in product(*intervals):
+        midpoint=[(a+b)/2 for a,b in span]
+        if any(all(box[i]<midpoint[i]<box[i+3] for i in range(3)) for box in boxes):
+            total+=(span[0][1]-span[0][0])*(span[1][1]-span[1][0])*(span[2][1]-span[2][0])
+    return total
 
 
 def components(points):
@@ -50,7 +114,7 @@ class ModularObjects(unittest.TestCase):
     def stair(self, profile, side='both', **rail):
         return dict(kind='stairs', size=[24, 16, 24], form=dict(profile=profile,
                     run_width=3, rise=8, landing=3, handrail=dict(side=side,
-                    material='iron_block', cap_material='gold_block', **rail)))
+                    height=2,**rail)))
 
     def test_all_discoverable_recipes_are_real_deterministic_and_pure(self):
         listing = self.call('parametric_list')
@@ -70,7 +134,7 @@ class ModularObjects(unittest.TestCase):
         self.assertTrue(all(row['arguments']['kind'] == 'pillar' for row in self.call('parametric_list', kind='pillar')['object_library']))
         self.assertEqual(list(self.workspace.iterdir()), [])
 
-    def test_four_stair_shapes_keep_clear_width_and_connected_caps_on_both_sides(self):
+    def test_four_stair_shapes_keep_clear_width_and_connected_guards_on_both_sides(self):
         for profile in ('straight', 'quarter_turn', 'switchback', 'spiral'):
             by_side = {}
             for side in ('left', 'right', 'both'):
@@ -86,22 +150,63 @@ class ModularObjects(unittest.TestCase):
                     for x, y, z in receipt['walk_columns']:
                         self.assertIn((x, y, z), voxels)
                         self.assertTrue(all((x, y+k, z) not in voxels for k in (1, 2, 3)))
-                    for x, y, z in rail_bases:
-                        self.assertEqual(voxels[(x, y+2, z)], 'minecraft:gold_block')
-                    # Only the top band, excluding the decorative bottom rail.
-                    top_levels = {(x, z): y+2 for x, y, z in rail_bases}
-                    caps = set()
-                    for (x, z), top in top_levels.items():
-                        low = min([top, *[top_levels[q] for q in ((x-1,z),(x+1,z),(x,z-1),(x,z+1)) if q in top_levels]])
-                        for y in range(low, top+1):
-                            self.assertEqual(voxels[(x,y,z)], 'minecraft:gold_block')
-                            caps.add((x,y,z))
-                    self.assertEqual(len(components(caps)), 2 if side == 'both' else 1)
+                    self.assertTrue(visually_connected(voxels))
+                    self.assertEqual(receipt['rail_height'],2)
+                    self.assertTrue(any('_slab[' in v or '_trapdoor[' in v for v in voxels.values()))
+                    self.assertTrue(any('_fence[' in v or '_wall[' in v for v in voxels.values()))
+                    self.assertEqual(len(components((x,0,z) for x,_,z in rail_bases)),2 if side=='both' else 1)
+                    # Outside the walk footprint, no solid full-block retaining
+                    # wall may extend from the floor to the railing anymore.
+                    for (x,y,z),value in voxels.items():
+                        if (x,z) not in footprint:
+                            cells,reason=collision_cells(value)
+                            self.assertFalse(reason is None and len(cells)==8)
                     by_side[side] = {(x,z) for x, _, z in rail_bases}
                     self.assertEqual(len(receipt['entrance']), 3)
                     self.assertEqual(len(receipt['exit']), 3)
             self.assertFalse(by_side['left'] & by_side['right'])
             self.assertEqual(by_side['both'], by_side['left'] | by_side['right'])
+
+    def test_open_styles_have_real_voids_distinct_members_and_no_floating_details(self):
+        receipts={};fractions={};fingerprints=set()
+        for style in ('baluster','lattice','horizontal','panel'):
+            result=self.call(**self.stair('quarter_turn',style=style))
+            voxels=self.voxels(result);receipt=result['construction'];receipts[style]=receipt
+            self.assertTrue(visually_connected(voxels),style)
+            fingerprint=[];filled=0;available=0
+            for x,base,z in receipt['rail_bases']:
+                for y in range(max(1,base-1),base+1):
+                    available+=4096
+                    value=voxels.get((x,y,z))
+                    if value is None:continue
+                    filled+=box_volume(visible_boxes(value));fingerprint.append(((x,y,z),value))
+            fractions[style]=filled/available
+            fingerprints.add(tuple(fingerprint))
+        self.assertEqual(len(fingerprints),4)
+        for style in ('baluster','lattice','horizontal'):
+            self.assertLess(fractions[style],.35,(style,fractions))
+        self.assertGreater(fractions['panel'],.95)
+        self.assertGreater(receipts['horizontal']['handrail']['horizontal_detail_blocks'],0)
+        self.assertEqual(receipts['lattice']['rail_height'],2)
+
+    def test_each_thin_guard_is_connected_without_relying_on_the_stair_mass(self):
+        for shape,style,side in product(('straight','quarter_turn','switchback','spiral'),
+                                         ('baluster','lattice','horizontal'),('left','right')):
+            compiled=self.call(**self.stair(shape,side,style=style));voxels=self.voxels(compiled)
+            footprint={tuple(p) for p in compiled['construction']['footprint']}
+            supports={(x,y-1,z) for x,y,z in compiled['construction']['handrail']['support_seats']}
+            guard={p:v for p,v in voxels.items() if (p[0],p[2]) not in footprint and p not in supports}
+            self.assertTrue(visually_connected(guard),(shape,style,side))
+
+    def test_explicit_fence_and_slab_materials_and_full_block_interfaces(self):
+        for style in ('baluster','lattice','horizontal'):
+            compiled=self.call(**self.stair('quarter_turn',style=style,material='birch_fence',cap_material='stone_brick_slab'))
+            voxels=self.voxels(compiled)
+            self.assertTrue(any('birch_fence[' in value for value in voxels.values()))
+            self.assertTrue(any(effective(value)[0]=='minecraft:stone_brick_slab' for value in voxels.values()))
+            self.assertTrue(visually_connected(voxels),style)
+        exact=self.call(kind='railing',size=[13,5,3],form=dict(profile='lattice',post_material='iron_block',rail_material='gold_block'))
+        self.assertEqual({item['id'] for item in exact['interfaces']},{'start','end'})
 
     def test_platforms_and_entrances_stay_open_for_varied_run_widths(self):
         for profile in ('straight', 'quarter_turn', 'switchback', 'spiral'):
@@ -116,7 +221,7 @@ class ModularObjects(unittest.TestCase):
                     self.assertEqual(len(receipt[endpoint]), width)
                     for x,y,z in receipt[endpoint]:
                         self.assertTrue(all((x,y+k,z) not in voxels for k in (1,2)))
-                self.assertEqual(len(components(voxels)), 1)
+                self.assertTrue(visually_connected(voxels),(profile,width,rise,landing))
 
     def test_new_rails_reject_invalid_state_size_budget_and_irrelevant_fields(self):
         args = self.stair('straight')
@@ -125,7 +230,9 @@ class ModularObjects(unittest.TestCase):
                            ('tread','oak_stairs[half=top]'), ('tread','oak_stairs[facing=north]'),
                            ('tread','oak_stairs[shape=inner_left]'), ('tread','oak_stairs[waterlogged=true]'),
                            ('handrail',{}), ('handrail',dict(side='unknown')),
-                           ('handrail',dict(height=1)), ('handrail',dict(material='oak_fence')),
+                           ('handrail',dict(height=1)), ('handrail',dict(material='short_grass')),
+                           ('handrail',dict(material='oak_fence[waterlogged=true]')),
+                           ('handrail',dict(cap_material='smooth_stone_slab[type=top]')),
                            ('handrail',dict(cap_material='air'))]:
             bad = copy.deepcopy(args); bad['form'][key] = value; invalid.append(bad)
         for bad in invalid:
@@ -165,11 +272,16 @@ class ModularObjects(unittest.TestCase):
                 compiled = self.call(**row['arguments'])
                 voxels = self.voxels(compiled)
                 self.assertEqual(len(components(voxels)), 1, row['id'])
-                if kind in ('arch','frame'):
+                from nbt_window_frames import PROFILES as WINDOW_PROFILES
+                if kind in ('arch','frame') and row['arguments'].get('form',{}).get('profile') not in WINDOW_PROFILES:
                     w,h,d = compiled['spec']['size']
                     self.assertNotIn((2,1,d//2), voxels)
                 if kind == 'railing':
-                    self.assertEqual({i['id'] for i in compiled['interfaces']}, {'start','end'})
+                    if row['id']=='railing-panel':
+                        self.assertEqual({i['id'] for i in compiled['interfaces']},{'start','end'})
+                    else:
+                        self.assertEqual(compiled['interfaces'],[])
+                        self.assertEqual(compiled['interface_scope'],'fine_rail_faces_not_halfcell_certified')
                 for interface in compiled['interfaces']:
                     points=product(*(range(a,b+1) for a,b in zip(interface['lo'],interface['hi'])))
                     self.assertTrue(all(p in voxels for p in points),row['id'])
@@ -177,13 +289,14 @@ class ModularObjects(unittest.TestCase):
     def test_rotation_state_roundtrip_and_host_protection_are_shared(self):
         compiled = self.call(**self.stair('spiral'))
         data = build(self.workspace, compiled['spec'])
-        for turns in range(4):
-            placed = placement(data, [25,0,25], [64,24,64], turns)
+        for turns,mirror in product(range(4),(None,'x','z')):
+            placed = placement(data, [25,0,25], [64,24,64], turns,mirror)
             volume = Volume((64,24,64))
             edits, _ = paste_plan(volume, placed['operations'][0], set())
             for p,value in edits:volume.put(p,value)
             self.assertEqual(len(volume.blocks), compiled['block_count'])
-            path = self.workspace/f'rotated-{turns}.snbt'
+            self.assertTrue(visually_connected(volume.blocks),(turns,mirror))
+            path = self.workspace/f'rotated-{turns}-{mirror}.snbt'
             save_snbt(path,volume,set())
             disk, walls = read_snbt(path)
             self.assertEqual(disk.blocks, volume.blocks)

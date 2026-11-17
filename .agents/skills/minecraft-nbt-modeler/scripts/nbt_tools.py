@@ -49,6 +49,8 @@ def transformed_state(value, turns, mirror):
     if not props:
         return value
     allowed={'axis', 'facing', 'waterlogged'}
+    if name in ('minecraft:lantern','minecraft:soul_lantern'):allowed.add('hanging')
+    if name.endswith('_leaves'):allowed.update(('distance','persistent'))
     if name.endswith('_stairs') and props.get('shape')=='straight':
         allowed.update(('half','shape'))
     if name.endswith('_slab'):
