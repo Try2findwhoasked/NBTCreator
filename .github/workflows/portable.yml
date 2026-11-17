@@ -190,9 +190,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify authoring contracts
         run: |
-          python -B tests/roof-curves.py
+          python -B tests/engine/roof-curves.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -B tests/architectural-bay.py
+          python -B tests/engine/architectural-bay.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run test:architecture-workflow
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
