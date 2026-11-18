@@ -2,6 +2,14 @@
 description = "Run the shared NBTCreator CLI; pass --workspace for a creative project"
 run = "node scripts/cli.mjs"
 
+[tasks."knowledge:fetch"]
+description = "Explicitly download the curated historical architecture books"
+run = "python -B scripts/fetch-architecture-books.py"
+
+[tasks."knowledge:index"]
+description = "Build the local architecture book index without a model or network"
+run = "python -B .agents/skills/minecraft-nbt-modeler/scripts/nbt_architecture_knowledge.py --library workspace/architecture-knowledge build"
+
 [tasks."gpu:setup"]
 description = "Install optional NVIDIA compute libraries in build/gpu-env using pip cache"
 run = "python scripts/gpu-runtime.py setup"

@@ -101,16 +101,21 @@ class Contracts(unittest.TestCase):
    self.assertEqual(len(backups),1);self.assertEqual(backups[0].read_text(encoding='utf8'),edited)
    self.assertNotIn('用户补充的索引注记',index.read_text(encoding='utf8'))
 
- def test_core_only_retains_maintenance_route_without_optional_extension_guidance(self):
+ def test_authoring_entry_keeps_pattern_tools_and_loads_maintenance_only_when_enabled(self):
   with tempfile.TemporaryDirectory() as temp:
    root=Path(temp);expose(root,dict(schema_version=1,enabled_groups=['core']))
    entry=(root/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8')
-   self.assertIn('| 单工具检查与维护 |',entry)
-   self.assertIn('state-and-maintenance.md',entry)
+   self.assertNotIn('state-and-maintenance.md',entry)
    self.assertNotIn('extensions.md',entry)
-   run=subprocess.run([sys.executable,str(root/'.agents/skills/nbtcreator-workspace/nbt.py'),'capabilities','--agent-tool','parametric_surface'],cwd=root,capture_output=True,text=True,encoding='utf8')
+   self.assertIn('capabilities --agent-tool pattern_microfit',entry)
+   self.assertIn('retrieve architecture --library',entry)
+   run=subprocess.run([sys.executable,str(root/'.agents/skills/nbtcreator-workspace/nbt.py'),'capabilities','--agent-tool','pattern_microfit'],cwd=root,capture_output=True,text=True,encoding='utf8')
    self.assertEqual(run.returncode,0,run.stderr)
-   self.assertIn('parametric_surface',run.stdout)
+   self.assertIn('pattern_microfit',run.stdout)
+   expose(root,dict(schema_version=1,enabled_groups=['core','maintenance']))
+   maintenance=(root/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8')
+   self.assertIn('state-and-maintenance.md',maintenance)
+   self.assertIn('extensions.md',maintenance)
 
  def test_core_facade_exposes_both_draft_routes_and_the_blocked_landing_example(self):
   with tempfile.TemporaryDirectory() as temp:

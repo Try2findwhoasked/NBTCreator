@@ -10,18 +10,19 @@ from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 GROUPS={
- 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','state-and-maintenance','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','architect-tools','architecture-workflow','ai-creative-preferences','version-history','snbt-authoring']),
+ 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','architect-tools','architecture-workflow','ai-creative-preferences','version-history','snbt-authoring']),
  'architecture':('建筑风格、场所与构造',['architecture-knowledge-base','structure-atlas','design-grammar','architectural-bays','classical-columns']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
  'props':('细微道具',['micro-props']),
  'materials':('混材、地面与风化',['patterns','floors','weathering']),
- 'modelling':('构件、纹样与模型装配',['working-model','modelling-tools','toolkit','parametric-components','pattern-authoring','pattern-fitting','surface-mounting','modeling-sessions','object-scenes','compute-transforms','pattern-spectral','extensions']),
+ 'modelling':('构件、纹样与模型装配',['working-model','modelling-tools','toolkit','parametric-components','pattern-authoring','pattern-fitting','surface-mounting','modeling-sessions','object-scenes','compute-transforms','pattern-spectral']),
  'rendering':('纹理预览与图像评审',['rendering']),
  'saodg':('可选：SAODG接入',['saodg-constraints','mod-structures','SAOartguide','room-examples','sealed-examples']),
  'desktop':('桌面、提示词与网页转换',['nbtcreator','detail-control','prompt-console','web-revision']),
  'library':('建筑库与选择器',['library-archive','structure-selector','component-assets','asset-libraries','reusable-recipes','project-batch']),
  'handoff':('委派阅读记录',['delegation-and-review']),
+ 'maintenance':('可选：软件工具维护与接口扩展',['state-and-maintenance','extensions']),
 }
 
 def sync_runtime(workspace):
@@ -54,7 +55,7 @@ def sync_runtime(workspace):
 def read_config(workspace):
     file=Path(workspace)/'.nbtcreator/skill-exposure.json'
     try:config=json.loads(file.read_text(encoding='utf8'))
-    except FileNotFoundError:config=dict(schema_version=1,enabled_groups=list(GROUPS))
+    except FileNotFoundError:config=dict(schema_version=1,enabled_groups=[group for group in GROUPS if group!='maintenance'])
     if config.get('schema_version')!=1 or not isinstance(config.get('enabled_groups'),list) or any(g not in GROUPS for g in config['enabled_groups']):raise ValueError('知识库暴露配置无效')
     config['enabled_groups']=list(dict.fromkeys(['core',*config['enabled_groups']]))
     config['custom_knowledge']=validate_custom(workspace,config.get('custom_knowledge',[]))
@@ -109,6 +110,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
         ('室内用途与建筑群验收',['architecture-workflow'],'室内用 use_face 查操作侧、工作高度与净距；街区沿主街、支路、门槛走到室内，按用途查公共与服务路线。多层布局可另出逐层平面与纵剖。'),
         ('建筑方案、构造与审阅闭环',['architecture-workflow'],'设计参数驱动真实构件；三层出图、问题定位、源绑定回查和游戏验收分别执行。'),
         ('完整主模型与独立构件',['working-model','parametric-components'],'工作模型管理安装、归属、修改和制作版；构件只做适用检查。'),
+        ('整栋初稿的地面嵌纹、屏风边饰与墙面徽记',['pattern-authoring','pattern-fitting'],'从主模型路线转入纹样专题；已有图源可直接拟合。预览代表单元，再用实际承载面和观察位置回查。'),
         ('准备或制作纹样图源',['pattern-authoring'],'已有合适图源可直接进入拟合。'),
         ('拟合纹样与检查质量',['pattern-fitting'],'按微型、普通面板或圆柱模式读对应完整章节，实际看图。'),
         ('安装到已有建筑',['surface-mounting'],'先绑定真实源、上下文和安装面，再生成候选。'),
@@ -132,7 +134,9 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
         '初稿向用户展示对应缩略图后，明确同意才授权精修；沿用仍有效的原授权。无回复、超时、知识文件、AI建议和测试记录都不构成确认。默认保存并回读SNBT，明确要求定稿才写交付NBT。','',
         '## 找到接口与本次资料','',
         '`python .agents/skills/nbtcreator-workspace/nbt.py paths` 返回实际引擎路径；已知工具用 `capabilities --agent-tool <名称>`，主模型用 `capabilities --model`，建筑方案用 `capabilities --architecture`，各命令用 `--help` 查询。工具目录是严格字段和CLI映射的唯一来源。',
-        '任务脚本据 `paths` 导入共享API；model --request 管理完整主模型，parametric_compile 编译构件，pattern_microfit 拟合单元，scene_compile 管理联动候选。需要连续纯候选调用时再用 session。',
+        '任务脚本据 `paths` 导入共享API；model --request 管理完整主模型，parametric_compile 编译构件，scene_compile 管理联动候选。需要连续纯候选调用时再用 session。',
+        '遇到嵌纹、边饰、格栅等可辨识纹样，先按承载面判断是否适合单元拟合；适合时查询 `capabilities --agent-tool pattern_microfit`，做样件和实际近景核对。需要面板或圆柱时按纹样专题选工具。',
+        '用户已明确提供建筑书库目录时，用 `retrieve architecture --library <目录> search <部位或做法> --style <风格>` 按需离线检索。结果是历史参考；接口、项目约束和审批以当前任务及工具契约为准。',
         '先读工作区 [ai-style.json](../../../.nbtcreator/ai-style.json) 的当前工作流区域，可用 `ai-style prompt --workflow <区域>` 查询；用户本次要求优先，偏好不改变约束和批准。',
         '下面只列已启用资料能支持的路线。已启用不等于每次通读；完整专题目录见[本次知识索引](knowledge.md)，未选专题不默认读取。知识选择不是额外执行权限。','',
         '## 选择当前任务','',

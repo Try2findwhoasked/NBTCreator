@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "books": [
+    {
+      "id": 20239,
+      "title": "The Ten Books on Architecture",
+      "author": "Vitruvius, translated by Morris Hicky Morgan",
+      "styles": [
+        "classical",
+        "greek",
+        "roman"
+      ],
+      "region": "Mediterranean",
+      "edition": "ancient; 1914 translation",
+      "source_type": "treatise"
+    },
+    {
+      "id": 26319,
+      "title": "A Text-Book of the History of Architecture",
+      "author": "Alfred D. F. Hamlin",
+      "styles": [
+        "overview",
+        "ancient",
+        "classical",
+        "byzantine",
+        "romanesque",
+        "gothic",
+        "renaissance",
+        "islamic",
+        "east-asian",
+        "baroque"
+      ],
+      "region": "Europe, Asia, Africa",
+      "edition": "1909 revised edition",
+      "source_type": "survey"
+    },
+    {
+      "id": 52868,
+      "title": "Japanese Homes and Their Surroundings",
+      "author": "Edward S. Morse",
+      "styles": [
+        "japanese",
+        "timber",
+        "vernacular"
+      ],
+      "region": "Japan",
+      "edition": "1889 edition",
+      "source_type": "field observations"
+    },
+    {
+      "id": 54701,
+      "title": "Gothic Architecture",
+      "author": "Édouard Corroyer",
+      "styles": [
+        "gothic",
+        "romanesque"
+      ],
+      "region": "France and Western Europe",
+      "edition": "1893 English edition",
+      "source_type": "specialist study"
+    },
+    {
+      "id": 69619,
+      "title": "Character of Renaissance Architecture",
+      "author": "Charles Herbert Moore",
+      "styles": [
+        "renaissance",
+        "classical"
+      ],
+      "region": "Italy, France, England",
+      "edition": "1905",
+      "source_type": "specialist study"
+    },
+    {
+      "id": 61178,
+      "title": "History of Indian and Eastern Architecture",
+      "author": "James Fergusson",
+      "styles": [
+        "south-asian",
+        "buddhist",
+        "jain",
+        "dravidian",
+        "indo-islamic",
+        "chinese"
+      ],
+      "region": "South and East Asia",
+      "edition": "1891 edition",
+      "source_type": "historical survey"
+    },
+    {
+      "id": 55870,
+      "title": "A History of Architecture in All Countries, Volumes I and II",
+      "author": "James Fergusson",
+      "styles": [
+        "ancient",
+        "classical",
+        "byzantine",
+        "romanesque",
+        "gothic",
+        "islamic"
+      ],
+      "region": "Europe, Africa, Asia",
+      "edition": "19th-century edition",
+      "source_type": "historical survey"
+    },
+    {
+      "id": 30754,
+      "title": "The Stones of Venice, Volume I",
+      "author": "John Ruskin",
+      "styles": [
+        "venetian",
+        "byzantine",
+        "gothic"
+      ],
+      "region": "Venice",
+      "edition": "1851",
+      "source_type": "historical criticism"
+    },
+    {
+      "id": 30755,
+      "title": "The Stones of Venice, Volume II",
+      "author": "John Ruskin",
+      "styles": [
+        "venetian",
+        "byzantine",
+        "gothic"
+      ],
+      "region": "Venice",
+      "edition": "1853",
+      "source_type": "historical criticism"
+    },
+    {
+      "id": 35898,
+      "title": "The Seven Lamps of Architecture",
+      "author": "John Ruskin",
+      "styles": [
+        "gothic-revival",
+        "ornament"
+      ],
+      "region": "Western Europe",
+      "edition": "1849 work",
+      "source_type": "historical criticism"
+    },
+    {
+      "id": 33837,
+      "title": "Architecture: Gothic and Renaissance",
+      "author": "T. Roger Smith",
+      "styles": [
+        "gothic",
+        "renaissance"
+      ],
+      "region": "Western Europe",
+      "edition": "19th-century edition",
+      "source_type": "illustrated handbook"
+    },
+    {
+      "id": 12625,
+      "title": "Architecture and Democracy",
+      "author": "Claude Bragdon",
+      "styles": [
+        "early-modern",
+        "american",
+        "ornament"
+      ],
+      "region": "United States",
+      "edition": "1918",
+      "source_type": "historical criticism"
+    },
+    {
+      "id": 40144,
+      "title": "A History of Art in Ancient Egypt, Volume I",
+      "author": "Georges Perrot and Charles Chipiez",
+      "styles": [
+        "egyptian",
+        "ancient"
+      ],
+      "region": "Egypt",
+      "edition": "1883 English edition",
+      "source_type": "specialist study"
+    },
+    {
+      "id": 60034,
+      "title": "The Principles of Ornament",
+      "author": "James Ward",
+      "styles": [
+        "ornament"
+      ],
+      "region": "Western Europe",
+      "edition": "1890s edition",
+      "source_type": "ornament handbook"
+    },
+    {
+      "id": 59971,
+      "title": "Historic Ornament, Volume II",
+      "author": "James Ward",
+      "styles": [
+        "ornament",
+        "renaissance",
+        "gothic"
+      ],
+      "region": "Europe and Asia",
+      "edition": "1890s edition",
+      "source_type": "historic ornament survey"
+    }
+  ],
+  "illustrated_originals": [
+    {
+      "file": "morse-japanese-homes-illustrated.zip",
+      "title": "Japanese Homes and Their Surroundings",
+      "author": "Edward S. Morse",
+      "source": "https://www.gutenberg.org/ebooks/52868",
+      "url": "https://gutenberg.pglaf.org/5/2/8/6/52868/52868-h.zip",
+      "format": "zip",
+      "rights": "Historical work, Project Gutenberg terms in the edition."
+    },
+    {
+      "file": "jones-grammar-of-ornament-1856.pdf",
+      "title": "The Grammar of Ornament",
+      "author": "Owen Jones",
+      "source": "https://library.si.edu/digital-library/book/grammarornament00jone",
+      "url": "https://archive.org/download/grammarornament00Jone/grammarornament00Jone.pdf",
+      "format": "pdf",
+      "rights": "Public domain, Smithsonian Libraries copy via Wikimedia Commons."
+    },
+    {
+      "file": "yingzao-fashi-volumes-1-4.pdf",
+      "title": "營造法式·卷一至卷四",
+      "author": "李誡",
+      "source": "https://zh.wikisource.org/wiki/File:CADAL06051718_營造法式·卷一~卷四.djvu",
+      "url": "https://archive.org/download/06051718.cn/06051718.cn.pdf",
+      "format": "pdf",
+      "rights": "Public-domain historical work and scan. CADAL 06051718."
+    },
+    {
+      "file": "vitruvius-ten-books-illustrated.zip",
+      "title": "The Ten Books on Architecture",
+      "author": "Vitruvius, translated by Morris Hicky Morgan",
+      "source": "https://www.gutenberg.org/ebooks/20239",
+      "url": "https://gutenberg.pglaf.org/2/0/2/3/20239/20239-h.zip",
+      "format": "zip",
+      "rights": "Historical work, Project Gutenberg terms in the edition."
+    },
+    {
+      "file": "smith-gothic-and-renaissance-illustrated.zip",
+      "title": "Architecture: Gothic and Renaissance",
+      "author": "T. Roger Smith",
+      "source": "https://www.gutenberg.org/ebooks/33837",
+      "url": "https://gutenberg.pglaf.org/3/3/8/3/33837/33837-h.zip",
+      "format": "zip",
+      "rights": "Historical work, Project Gutenberg terms in the edition."
+    },
+    {
+      "file": "ruskin-stones-of-venice-v1-illustrated.zip",
+      "title": "The Stones of Venice, Volume I",
+      "author": "John Ruskin",
+      "source": "https://www.gutenberg.org/ebooks/30754",
+      "url": "https://gutenberg.pglaf.org/3/0/7/5/30754/30754-h.zip",
+      "format": "zip",
+      "rights": "Historical work, Project Gutenberg terms in the edition."
+    }
+  ]
+}

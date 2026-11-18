@@ -54,4 +54,18 @@
 
 position 是原资产锚点在目标空间中的坐标，quarter_turns 是绕 Y 的 90° 次数，可按原协议镜像。material_map 最多 32 项，把原始规范方块状态映射到新状态，在旋转前应用；所有状态仍由注册表验证，旧资产及其哈希保持不变。不合适时应调整方案或新建结构，不强行挤入尺寸。
 
+## 外部建筑书库
+
+在明确选定的书库目录中，`books.json` 记录全文文件、版本、来源、适用风格和 SHA-256。`illustrated-originals.json` 记录可看图的原版档案。脚本保留书籍全文，按章和行切分，使用 SQLite FTS5 进行本地关键词检索。已有的少量中文建筑部件同义词会扩展为原文常用术语。风格筛选使用**书级标签**，综合性著作的具体章节仍须核对。
+
+在 NBTCreator 源码根目录下载和建索引：
+
+```powershell
+mise run knowledge:fetch
+mise run knowledge:index
+mise run nbt -- retrieve architecture --library workspace/architecture-knowledge search "飞扶壁 尖拱" --style gothic --limit 4
+```
+
+创作工作区沿用生成的 `nbt.py`，或从项目根目录调用便携包的 `NBT工具.cmd`。命令为 `retrieve architecture --library <书库目录> search <部位或做法>`。使用 `source --book <编号>` 核对全文位置，使用 `build` 重新建索引。下载是独立步骤，查询时只读选定目录，不调用模型和网络。历史著作可能使用过时分类，查询结果是设计参考。方块尺度、可用资产和具体安装按主模型工具验证。图版本保留供人工看图，当前全文检索使用已有电子文本。
+
 structure_preview 仅生成真实候选供看图；用户查看后才按授权 structure_write 保存新资产。放入建筑仍走保护、占用、总预算、预览／验证和显式导出下一版流程。集合登记、AI 输出、资产保存及任务日志都不代表精修获批或游戏内验收通过。

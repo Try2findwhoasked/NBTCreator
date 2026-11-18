@@ -19,6 +19,7 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 | 判断室内用途或建筑群的通行关系 | 室内从真实脚位核对[操作面与使用侧](references/architecture-workflow.md#操作面与使用侧)。多栋从总览走到街口、支路、门槛和室内，按[建筑群与多层选图](references/architecture-workflow.md#建筑群与多层选图)实测。交付时摘取当前审阅记录中的覆盖摘要。 |
 | 独立构件或主模型装配 | [工作模型](references/working-model.md)、[参数化构件](references/parametric-components.md)；需要稳定 ID、尺寸引用和联动时读[对象图](references/object-scenes.md)。只做适用的尺寸、状态、占用、接触和预览检查。 |
 | 纹样来源与拟合 | 准备图源读[纹样来源](references/pattern-authoring.md)；已有图源读[纹样拟合](references/pattern-fitting.md)的对应模式。复杂主纹采用 ornate 和明确门槛，分数不代替实际看图。 |
+| 整栋初稿包含主题纹样 | 地面嵌纹、屏风边饰、墙面徽记等，从整体路线转入纹样来源与拟合。用实际承载面和观察位置验证，交付时列出已落实和待补的纹样。 |
 | 安装到已有建筑 | [贴面安装](references/surface-mounting.md)；先绑定真实源、上下文与安装面，再生成候选。持续组合、修改与制作版保存回到工作模型。 |
 | 已有模型修改 | 读真实源、保护、阶段及[意见证据](references/agent-feedback.md)。初稿必要修正继续做；用户看过对应图像并明确批准后，才进入[精修流程](references/refinement.md)。 |
 | 检查、看图与交付 | [验证](references/validation-workflow.md)、[渲染](references/rendering.md)；保存与定稿见[SNBT](references/snbt-authoring.md)，交付和存放按各自链接继续读取。 |
@@ -31,6 +32,9 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 - `tool-catalog.json` 是工具字段和 CLI 映射的唯一来源。已知工具用 `capabilities --agent-tool <名称>` 查询对应 Schema，完整主模型用 `capabilities --model`，建筑方案用 `capabilities --architecture`；各命令用 `--help` 查询。创作工作区的 `paths` 返回实际引擎路径，不猜安装目录。
 - 先按[创作偏好](references/ai-creative-preferences.md)读取工作区 `.nbtcreator/ai-style.json` 的当前区域；无配置用默认值。用户本次要求优先，偏好不改变保护、预算、阶段与批准。
 - 用自然中文表达空间、构件和连接关系，再推导实现参数。48格是存储尺度，不是日常房间的默认跨度。初稿落实主要支承、顶构、围护层次、收边和可辨主题节点；留白和克制都可成立。
+- 需求已有可辨识纹样时，先确定承载面、观察距离、可用格数和与周边构造的关系。适合平面拟合时按纹样路线选图源并预览一个单元，再放入完整模型核对近景和通行。把尚未落实的主题细节写入初稿审阅。
+- 有小型平面嵌纹或边饰时，用 `capabilities --agent-tool pattern_microfit` 查接口并先拟合样件。较大面板与圆柱按纹样专题选工具。历史图录可以提供图案依据，实际安装与质量判断继续走主模型和近景审阅。
+- 用户明确提供了外部建筑书库时，用 `retrieve architecture --library <目录> search <部位或做法> --style <风格>` 获取带出处的历史参考。出版年代与建筑年代分别理解，方块尺度与支承仍须对照项目约束。
 - 需要具体构造时按用途选[建筑知识](references/architecture-knowledge-base.md)、[空间语法](references/design-grammar.md)或[场所原型](references/structure-atlas.md)。它们提供推演资料，不是模板白名单。批量候选复用见[建模会话](references/modeling-sessions.md)。
 
 ## 必须保留的边界

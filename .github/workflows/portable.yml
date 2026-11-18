@@ -230,6 +230,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/engine/retrieval.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/engine/architecture-knowledge.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/engine/diagnostic-guidance.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/engine/architect-tools.py
