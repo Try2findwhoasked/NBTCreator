@@ -23,6 +23,7 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 | 安装到已有建筑 | [贴面安装](references/surface-mounting.md)；先绑定真实源、上下文与安装面，再生成候选。持续组合、修改与制作版保存回到工作模型。 |
 | 已有模型修改 | 读真实源、保护、阶段及[意见证据](references/agent-feedback.md)。初稿必要修正继续做；用户看过对应图像并明确批准后，才进入[精修流程](references/refinement.md)。 |
 | 检查、看图与交付 | [验证](references/validation-workflow.md)、[渲染](references/rendering.md)；保存与定稿见[SNBT](references/snbt-authoring.md)，交付和存放按各自链接继续读取。 |
+| 接手工作台任务或续作 | 用 `task-client inspect prompts <id>` 读紧凑任务，按需展开并核对源。已选定任务时按[本地任务客户端](references/agent-protocol.md#本地任务客户端)领取、续租和回传。 |
 | 接口解释、工具维护或回归 | 当前实现、相应接口与[维护要求](references/state-and-maintenance.md)；扩展见[注册器](references/extensions.md)。不默认生成建筑、打开 GUI 或重读全部设计专题。 |
 
 其余专题及内容归属见[知识库任务路线](references/knowledge-map.md)。已读且未变化的内容无需重复加载；按任务读取适用完整章节，长原型库不必遍读。采用已获授权的委派时再读[委派与阅读](references/delegation-and-review.md)，本 Skill 不要求为普通任务新增 subagent。

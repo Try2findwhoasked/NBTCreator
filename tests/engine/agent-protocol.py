@@ -9,6 +9,7 @@ from nbt_prompts import save,publish,task_action,read_task,tasks
 from nbt_refine import save_master
 from nbt_assembly import Volume
 from nbt_machine import dispatch as machine
+from nbt_task_client import TaskClient
 from nbt_diagnostic_delta import delta
 class Contracts(unittest.TestCase):
  def setUp(self):
@@ -115,6 +116,73 @@ class Contracts(unittest.TestCase):
   self.assertLess(len(json.dumps(compact,ensure_ascii=False)),len(json.dumps(full,ensure_ascii=False)))
   self.assertEqual(get(view='text')['data']['text'],full['text'])
   self.assertEqual(get(view='nope')['error']['code'],'INVALID_REQUEST')
+
+ def test_task_client_resumes_lost_reply_and_registers_once(self):
+  task=self.create()
+  client=TaskClient(self.w,'return')
+  def lost_response(workspace, encoded):
+   data=machine(workspace,encoded)
+   if encoded['method'] in ('tasks.claim','tasks.record'):
+    self.assertTrue(data['ok']);raise OSError('simulated response lost')
+   return data
+  with patch('nbt_task_client.dispatch',side_effect=lost_response):
+   with self.assertRaises(OSError):client.start('tasks',task['id'],'local-agent',60)
+  session=TaskClient(self.w,'return')
+  request_id=session.status()['pending']['request_id']
+  with patch('nbt_task_client.dispatch',wraps=machine) as calls:
+   answer=session.retry()
+   self.assertEqual(calls.call_args_list[0].args[1]['request_id'],request_id)
+  self.assertEqual(answer['phase'],'active');self.assertNotIn('lease_token',answer)
+  renewed=session.change('heartbeat')
+  self.assertGreater(renewed['revision'],answer['revision'])
+  target=self.source.parent.parent.parent/'v02/master/model.snbt';target.parent.mkdir(parents=True);target.write_bytes(self.source.read_bytes())
+  with patch('nbt_task_client.dispatch',side_effect=lost_response):
+   with self.assertRaises(OSError):session.change('complete',new_source=str(target),summary='等待用户审查')
+  completed=TaskClient(self.w,'return').retry()
+  self.assertEqual(completed['phase'],'completed')
+  self.assertEqual(completed['completion']['return']['source'],target.relative_to(self.w).as_posix())
+  returned=dispatch(self.w,'get',dict(id=task['id']))['returns']
+  self.assertEqual(len(returned),1);self.assertEqual(returned[0]['acceptance'],'pending_user_review')
+  self.assertNotIn('lease_token',session.load())
+
+ def test_task_client_renews_then_stops_on_release(self):
+  published=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'续租','buildingShape':'single'}},'测试任务')
+  client=TaskClient(self.w,'renewer')
+  with patch('nbt_agent_protocol.time.time',return_value=100):initial=client.start('prompts',published['id'],'agent',60)
+  with patch('nbt_agent_protocol.time.time',return_value=120),patch('nbt_task_client.time.sleep',side_effect=lambda _:client.change('release')):
+   final=client.keepalive()
+  self.assertEqual(final['phase'],'released');self.assertEqual(final['revision'],initial['revision']+2)
+  self.assertEqual(tasks(self.w,status='pending')['items'][0]['id'],published['id'])
+
+ def test_task_client_refuses_stale_source_and_expired_lease(self):
+  task=self.create();client=TaskClient(self.w,'stale')
+  with patch('nbt_agent_protocol.time.time',return_value=100):client.start('tasks',task['id'],'agent',60)
+  with patch('nbt_agent_protocol.time.time',return_value=161):
+   with self.assertRaises(ProtocolError) as expired:client.change('heartbeat')
+  self.assertEqual(expired.exception.code,'LEASE_EXPIRED')
+  with patch('nbt_agent_protocol.time.time',return_value=162):client.start('tasks',task['id'],'agent',60)
+  self.source.write_bytes(b'changed')
+  with self.assertRaises(ProtocolError) as stale:client.change('heartbeat')
+  self.assertEqual(stale.exception.code,'SOURCE_CHANGED')
+  self.assertEqual(client.status()['phase'],'blocked')
+
+ def test_prompt_completion_checks_source_after_claim(self):
+  task=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'plan','name':'源绑定','source':str(self.source)}},'测试任务')
+  client=TaskClient(self.w,'prompt-source');client.start('prompts',task['id'],'agent',60)
+  self.source.write_bytes(b'changed')
+  with self.assertRaises(ProtocolError) as stale:client.change('complete')
+  self.assertEqual(stale.exception.code,'SOURCE_CHANGED')
+  self.assertEqual(read_task(self.w,task['id'])['task']['status'],'in_progress')
+
+ def test_client_stops_on_revision_conflict_without_replacing_lease(self):
+  task=self.create();client=TaskClient(self.w,'conflict')
+  client.start('tasks',task['id'],'agent',60)
+  session=client.load()
+  newer=dispatch(self.w,'heartbeat',self.request(id=task['id'],lease_token=session['lease_token'],fence=session['lease']['fence']))
+  with self.assertRaises(ProtocolError) as changed:client.change('release')
+  self.assertEqual(changed.exception.code,'REVISION_CONFLICT')
+  self.assertEqual(client.status()['phase'],'blocked')
+  self.assertEqual(dispatch(self.w,'get',dict(id=task['id']))['revision'],newer['revision'])
 
  def test_incremental_diagnostics_preserve_evidence_for_grouped_issues(self):
   landing=dict(name='stair_landing',feet=[5.5,5,19.5],reachable=False,reason='invalid_or_obstructed_feet_pose')

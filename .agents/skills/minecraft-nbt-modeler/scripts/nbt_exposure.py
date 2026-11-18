@@ -123,7 +123,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
         ('验证和看图',['validation-workflow','rendering'],'技术、空间、构造与主题分别给结论。'),
         ('已有资产保存与放置',['component-assets','reusable-recipes'],'先查询与预览，放置只生成受保护的候选。'),
         ('保存、续版与交付',['snbt-authoring','version-history','output-storage'],'默认保存SNBT；定稿NBT必须明确要求。'),
-        ('任务领取与结果回传',['agent-protocol','agent-task-return'],'先读取任务和租约，稳定请求编号幂等回传，不制造批准。'),
+        ('任务领取与结果回传',['agent-protocol','agent-task-return'],'用 task-client 查看、领取及回传指定任务，自动管理租约和幂等重放。'),
         ('单工具检查与维护',['state-and-maintenance'],'只读当前实现及所改专题，不默认生成建筑。'),
         ('注册器与接口扩展',['extensions'],'新增公共能力时再读注册与目录同步要求。')]
     lines=['---','name: nbtcreator-workspace','description: 当前工作区的Minecraft NBT建模接口，按任务读取已选择知识，共用受检引擎与工具契约。','---','',
@@ -146,7 +146,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
     for label,names,action in routes:
         if all(name in enabled for name in names):lines.append('| '+label+' | '+'、'.join(link(name) for name in names)+' | '+action+' |')
     lines+=['',
-        '接手工作台提示词时，先 `prompts tasks --status pending` 发现，再 `prompts task --id <id>` 读取正文、方案、任务目录和 source_matches；登记状态使用任务租约，状态不等于验收。',
+        '先用 `prompts tasks --status pending` 发现任务，再 `task-client inspect prompts <id>` 看紧凑视图和 source_matches。按需用 `--view text|document|plan|context` 展开，选定任务后才 `task-client start`。',
         '定位建模失败可用 `diagnostics --kind model --report <当前回执> --baseline <上次回执>`；审阅回执用 `--kind review` 查看待看机位和证据。',
         '交付时给真实源、图像与验证路径。用 review-record 的 delivery_summary 说明已查通路、已看与待看的位置、待回查问题；再写实际观察和相应的游戏实测情况。']
     index=['# 本次已启用知识','',

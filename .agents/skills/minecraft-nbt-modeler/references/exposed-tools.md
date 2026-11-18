@@ -76,6 +76,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 - snbt → scripts/nbt_snbt.py
 - finalize → scripts/nbt_finalize.py
 - machine → scripts/nbt_machine.py
+- task-client → scripts/nbt_task_client.py
 - architect → scripts/nbt_architect.py
 - session → scripts/nbt_engine_session.py
 

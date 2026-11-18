@@ -1038,6 +1038,7 @@ globalThis.NbtToolCatalog = {
     "snbt": "nbt_snbt.py",
     "finalize": "nbt_finalize.py",
     "machine": "nbt_machine.py",
+    "task-client": "nbt_task_client.py",
     "architect": "nbt_architect.py",
     "session": "nbt_engine_session.py"
   },

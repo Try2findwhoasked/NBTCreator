@@ -62,7 +62,7 @@ python .agents/skills/nbtcreator-workspace/nbt.py machine --schema
 python .agents/skills/nbtcreator-workspace/nbt.py paths
 ```
 
-`machine --request <JSON>` 提供版本化契约与统一错误封装。任务租约、幂等回执、超时重领和独立批注读取见[机器接口](../../.agents/skills/minecraft-nbt-modeler/references/agent-protocol.md)；任务登记与用户批准保持独立。
+`machine --request <JSON>` 提供版本化契约与统一错误封装。用 `prompts.get` 的 `compact` 视图按需读取任务，或用 `task-client` 查看、领取、续租和回传指定任务。任务登记与用户批准保持独立。参见[机器接口](../../.agents/skills/minecraft-nbt-modeler/references/agent-protocol.md)。
 
 建筑对象可通过 `scene_compile / scene_read / scene_update` 编译与修改，再显式 `scene_save` 保存新图谱。图谱绑定父版本、保护、留白、路线和预算，不自动识别手工 SNBT 对象，也不直接修改当前建筑或导出定稿。详见[建筑对象图](../../.agents/skills/minecraft-nbt-modeler/references/object-scenes.md)。
 

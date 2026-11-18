@@ -458,9 +458,10 @@ def task_action(workspace,action,request):
         item=next((item for item in data['records'] if item['id']==request.get('id')),None)
         if not item:protocol.error('TASK_NOT_FOUND','提示词任务不存在')
         if 'expected_revision' in request and request['expected_revision']!=item.get('state_revision',0):protocol.error('REVISION_CONFLICT','任务状态已改变',retryable=True,details={'current_revision':item.get('state_revision',0)})
+        if action in ('claim','heartbeat','release') or (action=='task-status' and request.get('request_id')):
+            original=_read_task_record(workspace,item)
+            if original['source_matches'] is False:protocol.error('SOURCE_CHANGED','任务原建筑已变化，请核对来源')
         if action in ('claim','heartbeat','release'):
-            original=read_task(workspace,item['id'])
-            if original['source_matches'] is False:protocol.error('SOURCE_CHANGED','任务原建筑已变化，不能继续领取')
             result=protocol.lease_action(item,action,request)
         elif action=='task-status':
             status=request.get('status')

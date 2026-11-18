@@ -39,6 +39,22 @@
 
 LEASE_EXPIRED、TASK_CLAIMED 和 REVISION_CONFLICT 的 retryable 表示可以重新读取状态后继续协调；不是允许自动覆盖。LEASE_NOT_OWNER、LEASE_FENCE_CONFLICT 不应继续写入。人工核对仍使用应用独立入口，机器接口不提供自动批准方法。旧命令保留兼容，已纳入租约的任务必须通过机器入口携带有效凭据提交。
 
+## 本地任务客户端
+
+从已同步 Skill 的创作项目根目录执行。`inspect` 是只读命令，`start` 领取明确指定的任务。用 `--session` 区分并行任务，各命令使用同一会话名。省略时使用 `default`。
+
+```powershell
+$entry = '.agents/skills/nbtcreator-workspace/nbt.py'
+python $entry task-client inspect prompts <任务ID>
+python $entry task-client inspect prompts <任务ID> --view text
+python $entry task-client --session room-a start prompts <任务ID> --owner <执行者>
+python $entry task-client --session room-a status
+```
+
+- 长任务可在另一终端运行 `task-client --session room-a keepalive`。它约每三分之一租期续租，正常完成或释放后退出。短任务可按需调用 `renew`。重启终端后还可用同一会话名继续续租，未到期的租约继续有效。
+- 提示词任务完成后执行 `task-client --session room-a complete`。建筑修改任务用 `start tasks <任务ID> --owner <执行者>`，回传用 `complete --new-source <新版本SNBT> --summary <真实改动说明>`。有逐条评论处理时加 `--comments <JSON文件>`，内容为 `tasks.record` 的 `comments` 数组。放弃任务时执行 `release`。
+- 中断或响应不明时先 `status`。看到 `pending` 时用 `retry` 重放原编号及原参数。租约失效、源变化、修订冲突时重新读取当前任务，由执行者核对后决定下一步。客户端状态保存在本工作区 `nbt_models/_workspaces/agent_protocol/clients/`，活跃会话的状态文件含租约令牌，仅在本机保留。
+
 ## 内置 AI 的并发
 
 AI 设置可选同时运行 1～4 个生成请求，默认 2。超过数量的请求等待空位，最多接收 64 个未完成请求。每个请求固定输入、所选资料与工作区上下文，有自己的取消信号和超时计时；点击终止会立即结束界面等待，中断本地请求/预检并丢弃迟到结果；记录清理在后台完成。取消其中一条不影响其他条。远端服务是否同步停止计算取决于其对断连的处理。切换工作区会取消旧区所有请求并等待它们退出。

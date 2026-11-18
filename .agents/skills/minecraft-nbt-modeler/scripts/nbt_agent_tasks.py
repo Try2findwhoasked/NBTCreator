@@ -35,11 +35,16 @@ def task_for(workspace,index,identifier):
     return data
 def verify(workspace,data):
     source=inside(workspace,data['source'])
-    if sha(source)!=data['source_sha256']:raise ValueError('任务原建筑已变化，请保留原版本后重新建立任务')
+    if not source.is_file() or sha(source)!=data['source_sha256']:
+        protocol.error('SOURCE_CHANGED','任务原建筑已变化，请保留原版本后重新建立任务')
     for origin in data.get('origins',[]):
-        if sha(inside(workspace,origin['path']))!=origin['sha256']:raise ValueError('原修改计划或校验包已变化，请核对任务来源')
+        path=inside(workspace,origin['path'])
+        if not path.is_file() or sha(path)!=origin['sha256']:
+            protocol.error('SOURCE_CHANGED','原修改计划或校验包已变化，请核对任务来源')
     for entry in data['returns']:
-        if sha(inside(workspace,entry['source']))!=entry['source_sha256']:raise ValueError('已回传版本被覆盖，请使用新版本重新登记')
+        path=inside(workspace,entry['source'])
+        if not path.is_file() or sha(path)!=entry['source_sha256']:
+            protocol.error('SOURCE_CHANGED','已回传版本已变化，请核对已登记版本')
     return source
 def output(workspace,data):
     result=protocol.redact(data);result['absolute_source']=str(inside(workspace,data['source']));result['approval']='not_granted_by_task_registration'
