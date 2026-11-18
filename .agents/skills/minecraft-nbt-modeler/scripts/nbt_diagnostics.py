@@ -68,10 +68,20 @@ def explain(kind,report):
     return dict(schema_version=1,kind=kind,issues=issues,source_sha256=report.get('source_sha256'),geometry_sha256=report.get('geometry_sha256'),context_sha256=report.get('context_sha256'),asset_written=False,approval_created=False,report_reverified=False,note='解释来自报告字段；复制旧报告不重新验证当前建筑。原生检查流程绑定源与当前画面，定位前须核对绑定。')
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--kind',choices=['walk','protection','candidate'],required=True);parser.add_argument('--report',type=Path,required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--kind',choices=['walk','protection','candidate','model','review'],required=True)
+    parser.add_argument('--report',type=Path,required=True)
+    parser.add_argument('--baseline',type=Path,help='Previous report from the same check and task')
+    parser.add_argument('--incremental',action='store_true',help='Group current issues even without a baseline')
+    args=parser.parse_args()
     try:
-        raw=args.report.read_bytes()
-        if len(raw)>32*1024*1024:raise ValueError('报告超过32MiB')
-        result=explain(args.kind,json.loads(raw.decode('utf-8-sig')));result['input_report_sha256']=hashlib.sha256(raw).hexdigest();print(json.dumps(result,ensure_ascii=False));return 0
+        from nbt_diagnostic_delta import delta,load
+        if args.incremental or args.baseline or args.kind in ('model','review'):
+            result=delta(args.kind,args.report,args.baseline)
+        else:
+            report,source=load(args.report)
+            result=explain(args.kind,report)
+            result['input_report_sha256']=source['sha256']
+        print(json.dumps(result,ensure_ascii=False));return 0
     except (ValueError,OSError,KeyError,TypeError) as error:print(json.dumps(dict(error=str(error)),ensure_ascii=False));return 1
 if __name__=='__main__':raise SystemExit(main())

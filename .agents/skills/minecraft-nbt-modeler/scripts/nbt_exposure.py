@@ -147,6 +147,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
         if all(name in enabled for name in names):lines.append('| '+label+' | '+'、'.join(link(name) for name in names)+' | '+action+' |')
     lines+=['',
         '接手工作台提示词时，先 `prompts tasks --status pending` 发现，再 `prompts task --id <id>` 读取正文、方案、任务目录和 source_matches；登记状态使用任务租约，状态不等于验收。',
+        '定位建模失败可用 `diagnostics --kind model --report <当前回执> --baseline <上次回执>`；审阅回执用 `--kind review` 查看待看机位和证据。',
         '交付时给真实源、图像与验证路径。用 review-record 的 delivery_summary 说明已查通路、已看与待看的位置、待回查问题；再写实际观察和相应的游戏实测情况。']
     index=['# 本次已启用知识','',
         '这是按工作区选择生成的目录，供按任务查找；不用从第一篇读到最后一篇。先按 SKILL.md 选择任务阶段，再读对应完整章节。严格工具字段仍从 capabilities 查询。','']

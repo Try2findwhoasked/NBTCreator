@@ -146,6 +146,8 @@ def main():
     from nbt_constraints import ACTIONS
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['standards-get','standards-save','deliveries','continue','cross-list','cross-save',*ACTIONS,*catalog().get('architecture',{}).get('actions',{})]);parser.add_argument('--request',type=Path);args=parser.parse_args()
     try:print(json.dumps(dispatch(args.workspace,args.action,read(args.request,{}) if args.request else {}),ensure_ascii=False));return 0
-    except (ValueError,OSError,KeyError,TypeError) as error:print(json.dumps(dict(error=str(error)),ensure_ascii=False));return 1
+    except (ValueError,OSError,KeyError,TypeError) as error:
+        print(json.dumps(dict(ok=False,error=str(error),code=getattr(error,'code','ARCHITECT_INVALID'),
+            conflicts=getattr(error,'conflicts',[])),ensure_ascii=False));return 1
 
 if __name__=='__main__':raise SystemExit(main())

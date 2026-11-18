@@ -30,6 +30,7 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 ## 工具与设计入口
 
 - `tool-catalog.json` 是工具字段和 CLI 映射的唯一来源。已知工具用 `capabilities --agent-tool <名称>` 查询对应 Schema，完整主模型用 `capabilities --model`，建筑方案用 `capabilities --architecture`；各命令用 `--help` 查询。创作工作区的 `paths` 返回实际引擎路径，不猜安装目录。
+- 已有建模或审阅回执时，用 [增量诊断](references/diagnostic-guidance.md#增量诊断) 查本次失败、待看机位和原始证据位置。
 - 先按[创作偏好](references/ai-creative-preferences.md)读取工作区 `.nbtcreator/ai-style.json` 的当前区域；无配置用默认值。用户本次要求优先，偏好不改变保护、预算、阶段与批准。
 - 用自然中文表达空间、构件和连接关系，再推导实现参数。48格是存储尺度，不是日常房间的默认跨度。初稿落实主要支承、顶构、围护层次、收边和可辨主题节点；留白和克制都可成立。
 - 需求已有可辨识纹样时，先确定承载面、观察距离、可用格数和与周边构造的关系。适合平面拟合时按纹样路线选图源并预览一个单元，再放入完整模型核对近景和通行。把尚未落实的主题细节写入初稿审阅。

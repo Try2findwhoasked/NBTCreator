@@ -25,3 +25,17 @@ python .agents/skills/nbtcreator-workspace/nbt.py diagnostics --kind protection 
 ```
 
 这个命令只解释已保存报告，输出 `input_report_sha256` 以绑定所读文件，并明确 `report_reverified:false`。它不重新读取模型，不能证明旧报告对当前版本仍有效。Agent 应先核对报告的 source_sha256、geometry_sha256、context_sha256 与当前任务；缺少绑定则重新运行实际检查。不得把通俗解释当作已经定位了唯一故障、已经完成修复或新的授权。
+
+## 增量诊断
+
+在已同步 Skill 的创作项目根目录运行。先把每次 CLI 的 JSON 原始回执保存为文件。`model` 接受工作模型与建筑方案建模或验证回执。`review` 接受审阅包或 `review-record` 的观察记录。
+
+```powershell
+$entry = '.agents/skills/nbtcreator-workspace/nbt.py'
+python $entry diagnostics --kind model --report <当前回执> --baseline <同一任务上次回执>
+python $entry diagnostics --kind review --report <review-notes.json>
+```
+
+结果按错误码、构件或路线分组，列出 `new` 和 `ongoing`。坐标变化时同一目标仍可归入持续问题，证据始终取自本次回执。`evidence_pointer` 是 `report.path` 文件中的 JSON Pointer，空字符串表示报告根；结合报告哈希查原始记录。省略 `--baseline` 时只汇总本次问题。`walk`、`protection`、`candidate` 使用 `--baseline` 或 `--incremental` 时也输出分组视图。
+
+审阅结果另外列出 `pending_views` 和原始 `delivery_summary`。本命令读取既有证据，实际看图后才登记观察。一次运行缺少某条问题可能只是未执行相关检查，继续核对本次检查覆盖范围和源绑定。

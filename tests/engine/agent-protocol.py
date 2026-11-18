@@ -9,6 +9,7 @@ from nbt_prompts import save,publish,task_action,read_task,tasks
 from nbt_refine import save_master
 from nbt_assembly import Volume
 from nbt_machine import dispatch as machine
+from nbt_diagnostic_delta import delta
 class Contracts(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.w=Path(self.tmp.name)
@@ -115,4 +116,24 @@ class Contracts(unittest.TestCase):
   self.assertEqual(get(view='text')['data']['text'],full['text'])
   self.assertEqual(get(view='nope')['error']['code'],'INVALID_REQUEST')
 
+ def test_incremental_diagnostics_preserve_evidence_for_grouped_issues(self):
+  landing=dict(name='stair_landing',feet=[5.5,5,19.5],reachable=False,reason='invalid_or_obstructed_feet_pose')
+  def receipt(targets):return dict(ok=False,code='ROUTE_FAILED',conflicts=[dict(passed=False,targets=targets)])
+  old,new=self.w/'old.json',self.w/'new.json'
+  old.write_text(json.dumps(receipt([landing])),encoding='utf8')
+  new.write_text(json.dumps(receipt([dict(landing,feet=[5.5,5,20.5]),landing,dict(landing,name='entry')])),encoding='utf8')
+  value=delta('model',new,old)
+  self.assertEqual(value['new'][0]['target'],'entry')
+  self.assertEqual(value['ongoing'][0]['occurrences'],2)
+  self.assertEqual(value['ongoing'][0]['evidence_pointer'],'/conflicts/0/targets/0')
+  self.assertEqual(value['ongoing'][0]['evidence']['feet'],[5.5,5,20.5])
+  self.assertEqual(value['report']['sha256'],hashlib.sha256(new.read_bytes()).hexdigest())
+  new.write_text(json.dumps(dict(error='ROUTE_FAILED: '+json.dumps(receipt([landing])['conflicts']))),encoding='utf8')
+  self.assertEqual(delta('model',new,old)['ongoing'][0]['evidence_pointer'],'/error')
+  face=dict(part='return_desk',interface='intake',passed=False,reason='wrong_side',feet=[13.5,2,11.5])
+  new.write_text(json.dumps(dict(ok=False,code='DESIGN_INVALID',conflicts=[dict(kind='activity_routes',id='file_books',passed=False,use_faces=[face],segments=[])])),encoding='utf8')
+  issue=delta('model',new,old)['new'][0]
+  self.assertEqual((issue['target'],issue['evidence']['reason']),('return_desk.intake','wrong_side'))
+  new.write_text(json.dumps(dict(images={'entry':{},'roof':{}},observations=[dict(image='entry')],issues=[],delivery_summary=['1/2'])),encoding='utf8')
+  self.assertEqual(delta('review',new)['review']['pending_views'],['roof'])
 if __name__=='__main__':unittest.main(verbosity=2)
