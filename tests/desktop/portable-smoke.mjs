@@ -39,11 +39,12 @@ assert.equal(doctor.ok,true,JSON.stringify(doctor))
 assert.equal(doctor.git,git)
 assert.equal(doctor.python.nbtlib,'2.0.4')
 const externalPython=doctor.python.python
+const miseEnv={...env,NBTCREATOR_PYTHON:externalPython}
 const mise=path.join(app,'runtime/mise/mise.exe')
 const releaseInfo=JSON.parse(await fs.readFile(path.join(path.dirname(exe),'portable-info.json'),'utf8'))
 assert.ok(execFileSync(mise,['--no-config','version'],{env,encoding:'utf8',windowsHide:true,timeout:30000}).startsWith(releaseInfo.mise+' windows-x64'))
 const caps=JSON.parse(execFileSync(mise,['--no-config','exec','--',exe,path.join(app,'scripts/cli.mjs'),'capabilities'],
- {env,encoding:'utf8',windowsHide:true,timeout:180000,maxBuffer:4*1024*1024}))
+ {env:miseEnv,encoding:'utf8',windowsHide:true,timeout:180000,maxBuffer:4*1024*1024}))
 assert.equal(Object.keys(caps.tools).length,Object.keys(JSON.parse(await fs.readFile(path.join(app,'.agents/skills/minecraft-nbt-modeler/tool-catalog.json'),'utf8')).tools).length)
 const workspace=path.join(output,'workspace');await fs.mkdir(workspace)
 const promptRequest=path.join(output,'prompt.json')
@@ -53,7 +54,7 @@ const saved=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'--workspace',works
 const task=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'prompts','publish',
  '--index',saved.index,'--id',saved.id,'--revision',saved.revision]))
 const read=JSON.parse(execFileSync(mise,['--no-config','exec','--',exe,path.join(app,'scripts/cli.mjs'),'task','--id',task.id],
- {cwd:workspace,env,encoding:'utf8',windowsHide:true,timeout:30000}))
+ {cwd:workspace,env:miseEnv,encoding:'utf8',windowsHide:true,timeout:30000}))
 assert.equal(read.text,'Portable task fixture')
 assert.equal(read.task.status,'pending')
 run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'exposure','apply'])
