@@ -26,13 +26,16 @@
    const constraints=doc.constraints??[],eligible=constraints.filter(item=>item.folder&&constraintStorage.layoutProject(item.folder)===layout);
    const planned=doc.workbench?.owner_constraint_id;
    const selectedOwner=owner!==undefined?owner:planned===undefined&&eligible.length===1?eligible[0].id:eligible.some(item=>item.id===planned)?planned:null;
+   const priorBinding=doc.aiDraft?binding(doc):null;
    const result=await constraintStorage.registerRoom({project:layout,session_id:doc.export_id,name:doc.project.name,shape:C.effectiveProject(doc).buildingShape,owner_constraint_id:selectedOwner,constraint_ids:constraints.map(item=>item.id)});
+   const adopted=priorBinding!==null&&doc.aiDraft?.binding===priorBinding&&binding(doc)===priorBinding;
    doc.project.room_folder=result.folder;
    doc.project.output=result.folder;
+   if(adopted)doc.aiDraft={...doc.aiDraft,binding:binding(doc)};
  }
  function download(name,value,type='application/json'){const blob=new Blob([typeof value==='string'?value:JSON.stringify(value,null,2)],{type});const a=element('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
  function notify(message,error=false){const saved=$('prompt-editor-save-state');$('status').textContent=message;$('status').classList.toggle('error',error);if(error||saved.classList.contains('error'))saved.textContent=error?message:'修改后自动保存';saved.title=message;saved.classList.toggle('error',error);}
- function binding(){return JSON.stringify({project:state.project,operations:state.operations,...(state.constraints?.length?{constraints:state.constraints}:{}),...(state.design_standard?{project_standard:C.standardText(state)}:{})});}
+ function binding(doc=state){return JSON.stringify({project:doc.project,operations:doc.operations,...(doc.constraints?.length?{constraints:doc.constraints}:{}),...(doc.design_standard?{project_standard:C.standardText(doc)}:{})});}
  function requestBinding(){return JSON.stringify({design:binding(),brief_fields:briefFields(state)});}
  function aiDraft(){return state.aiDraft&&typeof state.aiDraft.text==='string'&&state.aiDraft.text.length<=60000&&state.aiDraft.binding===binding()?state.aiDraft:null;}
  function composeAI(text){return C.prompt(state,{designText:text});}
@@ -492,7 +495,7 @@
    studio.showOutput(false);document.querySelector('[data-tab=project]').click();
  }};
  if(window.parent!==window){document.body.classList.add('embedded');}
- const payload=doc=>{const cached=archivedPrompts.get(doc.export_id);if(cached?.binding===JSON.stringify(doc))return {session_id:doc.export_id,document:C.clone(cached.original.document),text:cached.original.text,plan:cached.original.plan,context:cached.original.context};const designText=doc.aiDraft?.binding===JSON.stringify({project:doc.project,operations:doc.operations,...(doc.constraints?.length?{constraints:doc.constraints}:{}),...(doc.design_standard?{project_standard:C.standardText(doc)}:{})})?doc.aiDraft.text:undefined;return {session_id:doc.export_id,document:C.clone(doc),text:C.prompt(doc,designText===undefined?{}:{designText}),plan:C.plan(doc),context:{...C.effectiveProject(doc).context,max_changed_blocks:doc.project.budget}}};
+ const payload=doc=>{const cached=archivedPrompts.get(doc.export_id);if(cached?.binding===JSON.stringify(doc))return {session_id:doc.export_id,document:C.clone(cached.original.document),text:cached.original.text,plan:cached.original.plan,context:cached.original.context};const designText=doc.aiDraft?.binding===binding(doc)?doc.aiDraft.text:undefined;return {session_id:doc.export_id,document:C.clone(doc),text:C.prompt(doc,designText===undefined?{}:{designText}),plan:C.plan(doc),context:{...C.effectiveProject(doc).context,max_changed_blocks:doc.project.budget}}};
  autosave=createPromptAutosave({host:$('output-mode'),read:()=>payload(state),onSaved:result=>studio?.saved(result)});
  studio=createPromptWorkspace({prepareDraft,registerDraftRoom,newDocument:async()=>{const entry=constraintStorage?.startConstraint?.();if(entry){try{const snapshot=await lookupConstraint(entry.folder,entry.id);if(snapshot)await window.NbtPromptUI.applyConstraints([snapshot])}catch(error){notify(error.message,true)}}},remember:(id,original,doc)=>archivedPrompts.set(id,{original,binding:JSON.stringify(doc)}),document:()=>state,valid:()=>!pending.size&&!C.validate(state).length,isGenerating:()=>aiRunning,flush:()=>autosave.flush(),discard:()=>autosave.discard(),bridge:parent!==window?parent.nbtPromptStorage:null,message:notify,update,saveDocument:doc=>parent.nbtPromptStorage.save(payload(doc)),generateDocument,concurrency:async()=>(await aiBridge?.config())?.maxConcurrent??2,cancelDocument:id=>aiBridge?.cancel('prompt:'+id),instruction:text=>{$('prompt-ai-instruction').value=text},cancel:()=>aiBridge?.cancel(),restoreTask(task){
    const handoff=$('prompt-task-handoff'), status=$('prompt-task-state');
