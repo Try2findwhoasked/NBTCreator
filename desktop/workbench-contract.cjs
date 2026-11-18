@@ -29,7 +29,7 @@ function cleanContext(input){
   constraints.resolve(input.constraints)
   for(const item of input.constraints)if(fingerprint(Object.fromEntries(['schema_version','id','revision','name','rules','folder'].filter(key=>Object.hasOwn(item,key)).map(key=>[key,item[key]])))!==item.sha256)throw Error('项目约束快照内容与哈希不符')
   const effective=constraints.effective({...project,...(input.existing_model?{source:'existing'}:{})},input.constraints)
-  for(const key of ['buildingShape','size','size_policy','footprint'])if(effective[key]!==undefined)project[key]=effective[key]
+  for(const key of ['buildingShape','size','size_policy','footprint','integration'])if(effective[key]!==undefined)project[key]=effective[key]
  }
  let brief_scope
  if(input.brief_scope!==undefined){
