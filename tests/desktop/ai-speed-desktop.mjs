@@ -25,7 +25,7 @@ try{
  app=await _electron.launch({executablePath:process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),args:[...(process.env.NBTCREATOR_TEST_EXE?[]:[root]),'--workspace',workspace,'--user-data-dir',path.join(output,'profile')],env,timeout:60000})
  const page=await app.firstWindow();await minimizedScreenshots(app,page)
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy,undefined,{timeout:60000})
- await page.locator('#auto-preview').uncheck();await page.locator('#studio-ai-settings').click()
+ await page.locator('#studio-panel-tools').click();await page.locator('#auto-preview').uncheck();await page.locator('#studio-ai-settings').click()
  await page.locator('#api-provider').selectOption('compatible');await page.locator('#api-base').fill(`http://127.0.0.1:${server.address().port}/v1`);await page.locator('#api-model').fill('schema-mock');await page.locator('#api-enabled').check()
  await page.locator('#api-advanced').evaluate(e=>e.open=true);await page.locator('#api-strict-schema').check();await page.locator('#api-save').click()
  await page.waitForFunction(()=>document.querySelector('#ai-status').textContent.includes('已保存'))
