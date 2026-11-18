@@ -28923,6 +28923,28 @@
           "maxItems": 256,
           "uniqueItems": true
         },
+        "integration": {
+          "type": "string",
+          "enum": ["standalone", "saodg"]
+        },
+        "require_enclosure": {
+          "type": "boolean"
+        },
+        "openings_policy": {
+          "type": "string",
+          "enum": ["optional", "required", "none"]
+        },
+        "opening_size": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 294
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "通行洞口的净宽、净高，单位为方块。实际位置、厚度和朝向由上下文中的 openings 声明。"
+        },
         "footprint": {
           "type": "string",
           "minLength": 1,

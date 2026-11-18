@@ -20,13 +20,13 @@ def export_binary(model,walls,config,checks,target):
     from nbt_delivery import export_delivery,verify_delivery
     from nbt_snbt import write_binary
     target=Path(target);target.mkdir(parents=True,exist_ok=False)
-    model.seal_record=checks['recapped_seal'];model.stage='opened';model.final_fingerprint=model.fingerprint()
     prefix=datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d')+'_building_'
     cells=layout(model,config)
     if validation_mode(config)=='standalone':
         from nbt_standalone_delivery import export_standalone
-        exported=export_standalone(model,walls,target,file_prefix=prefix,allow_empty_wall_mask=config.get('allow_empty_wall_mask',False),active_cells=config.get('cells'));delivery=exported['delivery'];parts=[dict(file=file) for file in exported['runtime_files']]
+        exported=export_standalone(model,walls,target,file_prefix=prefix,allow_empty_wall_mask=config.get('allow_empty_wall_mask',False),active_cells=config.get('cells'),checks=checks,cell_size=config.get('cell_size',48));delivery=exported['delivery'];parts=[dict(file=file) for file in exported['runtime_files']]
     else:
+        model.seal_record=checks['recapped_seal'];model.stage='opened';model.final_fingerprint=model.fingerprint()
         delivery=export_delivery(model,cells,walls,target/'delivery','Explicit inherited global wall ownership',file_prefix=prefix)
         runtime=target/'runtime/parts';runtime.mkdir(parents=True);parts=[];recovered={}
         for cx,cz in sorted(map(tuple,cells)):

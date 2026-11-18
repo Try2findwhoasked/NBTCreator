@@ -335,7 +335,7 @@ class History:
                     from nbt_library import canonical_context
                     mode=canonical_context(target/'coordinates.json').get('mode')
                 if meta.get('name_zh'):
-                    register_building(derived,meta['name_zh'],meta.get('cells'),mode=mode if mode in {'standalone','saodg'} else None)
+                    register_building(derived,meta['name_zh'],meta.get('cells'),mode=mode if mode in {'standalone','saodg'} else None,cell_size=meta.get('cell_size',48))
             from nbt_working_model import managed_manifest
             managed_manifest(derived)
             new,_=self.snapshot(state,dict(source=str(derived),parent=identifier,message=message,actor='human',tasks=[]));state['current'][node['building']]=new['id']

@@ -20,8 +20,8 @@ def sha(p):
  with Path(p).open('rb') as stream:
   for part in iter(lambda:stream.read(1048576),b''):h.update(part)
  return h.hexdigest()
-def shape_of(size,cells):
- if size[0]%48 or size[2]%48:return 'standalone'
+def shape_of(size,cells,cell_size=48):
+ if cell_size==48 and (size[0]%48 or size[2]%48):return 'standalone'
  c={tuple(p) for p in cells};n=len(c)
  if n==1:return 'single'
  if len({x for x,z in c})==1 or len({z for x,z in c})==1:return 'long'
@@ -156,12 +156,17 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
    geometry_cache[digest]=dict(valid=False,error=str(error))
  if selected is None:result['reasons'].append('没有可读取且哈希一致的完整主模型');return result
  result['valid']=False
+ from nbt_whole_validation import requires_enclosure, validation_mode
  standalone_config=None
+ enclosure_required=True
  for candidate in [unit/'coordinates.json',unit/'config.json',unit/'context.json']:
   if not candidate.is_file():continue
   try:
    value=canonical_context(candidate)
-   if value.get('mode')=='standalone':standalone_config=value;break
+   if validation_mode(value)=='standalone':
+    enclosure_required=requires_enclosure(value)
+    standalone_config=value
+    break
   except (ValueError,OSError):pass
  standalone=standalone_config is not None
  footprint={tuple(c) for c in result['cells']};reached=set();pending=[next(iter(footprint))] if footprint else []
@@ -175,6 +180,14 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
  if not standalone and not 8<=result['size'][1]<=48:result['reasons'].append('当前切片高度不在8至48')
  result['shape']=shape_of(result['size'],result['cells']);result['shape_zh']=LABELS[result['shape']]
  if standalone:
+  from nbt_whole_validation import active_xz_cells
+  try:
+   stride=standalone_config.get('cell_size',48)
+   cells=active_xz_cells(result['size'],standalone_config.get('cells'),stride)
+   if cells:
+    result.update(cells=[list(c) for c in cells],cell_size=stride,shape=shape_of(result['size'],cells,stride))
+    result['shape_zh']=LABELS[result['shape']]
+  except ValueError as error:result['reasons'].append(str(error))
   descriptor=unit/'room_description.json'
   if descriptor.is_file() and read_json(descriptor).get('shape')=='standalone':result.update(shape='standalone',shape_zh=LABELS['standalone'])
   result['mode']='standalone'
@@ -185,7 +198,7 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
    choice=None
    for candidate in configs:
     config=canonical_context(candidate)
-    if all(k in config for k in ('start','targets','interior_probes')):choice=(candidate,config);break
+    if 'start' in config and 'targets' in config and (not requires_enclosure(config) or config.get('interior_probes')):choice=(candidate,config);break
    if choice is None:result['reasons'].append('坐标配置缺少路线或密闭探针')
    else:
     selected_config,config=choice
@@ -193,7 +206,7 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
     result['context']=str(selected_config)
   except Exception as error:result['reasons'].append('坐标JSON无法读取：'+str(error))
  proof,proof_files=report_evidence(unit);result.update(evidence=proof,evidence_files=proof_files)
- if not proof['seal']:result['reasons'].append('缺少密闭检查通过记录')
+ if enclosure_required and not proof['seal']:result['reasons'].append('缺少密闭检查通过记录')
  if not proof['routes']:result['reasons'].append('缺少静态通路检查通过记录')
  manifests=list(unit.rglob('delivery.json'))
  # Ignore nested versions; their own units will be processed separately.
@@ -277,14 +290,14 @@ def new_project(workspace,name_zh,shape):
  write_json(target/'room_description.json',dict(schema_version=1,name_zh=name_zh,shape=shape,shape_zh=LABELS[shape],display_name=name_zh+'-'+LABELS[shape],description_zh=name_zh+'-'+LABELS[shape],master=None,status='authoring',audit=dict(compliant=None)))
  return target
 
-def register_building(master,name_zh,cells=None,mode=None):
+def register_building(master,name_zh,cells=None,mode=None,cell_size=48):
  if not isinstance(name_zh,str) or not re.search('[\u4e00-\u9fff]',name_zh):raise ValueError('房间描述必须提供中文名')
  model,walls,inferred=read_geometry(master);shape=shape_of(model.size,cells or inferred)
  if mode not in (None,'standalone','saodg'):raise ValueError('未知建筑模式')
  if mode=='standalone':
   from nbt_whole_validation import standalone_cells
-  cells=standalone_cells(model,dict(cells=cells)) or []
-  shape=shape_of(model.size,cells or inferred)
+  cells=standalone_cells(model,dict(cells=cells,cell_size=cell_size)) or []
+  shape=shape_of(model.size,cells or inferred,cell_size)
  parts=Path(master).resolve().parts
  if 'nbt_models' in parts:
   index=parts.index('nbt_models')
@@ -292,7 +305,7 @@ def register_building(master,name_zh,cells=None,mode=None):
   if index+1<len(parts) and parts[index+1] in LABELS and parts[index+1]!=shape:raise ValueError('保存目录形状与实际完整模型不一致，请使用正确形状目录')
  unit=version_root(master);existing=unit/'room_description.json';data=read_json(existing) if existing.is_file() else {}
  data.update(schema_version=1,name_zh=name_zh,shape=shape,shape_zh=LABELS[shape],display_name=name_zh+'-'+LABELS[shape],description_zh=name_zh+'-'+LABELS[shape],master=os.path.relpath(Path(master).resolve(),unit).replace('\\','/'),master_file_sha256=sha(master),geometry_sha256=model.fingerprint(),size=list(model.size),cells=cells or inferred)
- if mode=='standalone':data.update(mode='standalone',cells=cells or [],parts_layout='xyz_tiles_max48')
+ if mode=='standalone':data.update(mode='standalone',cells=cells or [],cell_size=cell_size,parts_layout='xyz_tiles_max48')
  write_json(existing,data);return data
 
 if __name__=='__main__':

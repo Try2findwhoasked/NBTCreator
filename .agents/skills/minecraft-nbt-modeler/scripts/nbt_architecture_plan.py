@@ -23,11 +23,18 @@ def contract():
 
 def normalize(plan):
     from nbt_structure_agent import _schema
+    from nbt_whole_validation import check_opening_policy, requires_enclosure, validation_mode
     if len(json.dumps(plan,ensure_ascii=False,allow_nan=False).encode())>1024*1024:raise ValueError('建筑方案超过1MiB')
     _schema(plan,contract()['plan'],'建筑方案')
     plan=deepcopy(plan)
-    if plan['context'].get('mode')!='standalone':raise ValueError('当前建筑方案使用独立建筑上下文，不套用SAODG协议')
-    if not plan['context'].get('start') or not plan['context'].get('targets') or not plan['context'].get('interior_probes'):raise ValueError('完整建筑方案需要起点、目标与室内密闭探针')
+    context = plan['context']
+    if validation_mode(context) != 'standalone':
+        raise ValueError('当前建筑方案入口使用独立建筑上下文')
+    if not context.get('start') or not context.get('targets'):
+        raise ValueError('完整建筑方案需要路线起点与目标')
+    if requires_enclosure(context) and not context.get('interior_probes'):
+        raise ValueError('要求密闭时须提供实际室内探针')
+    check_opening_policy(context, context.get('openings', []))
     if 'standards_snapshot' in plan:
         from nbt_architect import validate_standard
         validate_standard(plan['standards_snapshot'])
@@ -274,8 +281,10 @@ def build(workspace,request):
         original=WorkingModel(workspace,resolved['size'],context=resolved['context'],limits=request.get('limits'));previous=None
     # Compile in a detached scratch candidate. The original bound model enforces
     # every protection, reserved region, aggregate budget and route at commit.
-    scratch=WorkingModel(workspace,resolved['size'],context=dict(mode='standalone',openings=resolved['context'].get('openings',[]),
-        start=resolved['context'].get('start'),targets=resolved['context'].get('targets'),interior_probes=resolved['context'].get('interior_probes',[])),
+    scratch_context = {key: resolved['context'][key] for key in (
+        'openings', 'opening_size', 'openings_policy', 'require_enclosure', 'interior_probes',
+        'start', 'targets') if key in resolved['context']}
+    scratch=WorkingModel(workspace,resolved['size'],context=dict(scratch_context, mode='standalone'),
         limits=dict(original.limits,max_changed_positions=original.limits['max_written_positions']+len(original.model.blocks)))
     scratch.model.blocks=deepcopy(original.model.blocks);scratch.walls=set(original.walls);scratch.instances=deepcopy(original.instances)
     previous_ids=set((previous or {}).get('generated_instances',[]))
@@ -312,7 +321,10 @@ def build(workspace,request):
     for identifier,instance in original.instances.items():
         if identifier not in previous_ids:
             scratch.instances[identifier]['compiled']['policy']=deepcopy(instance['compiled'].get('policy',{}))
-    scratch.seal();scratch.open_declared()
+    from nbt_whole_validation import requires_enclosure
+    if requires_enclosure(scratch.context):
+        scratch.seal()
+    scratch.open_declared()
     # Engine-declared carving updates every generated part's current baseline.
     # Retain owned-air records so the next rebuild can safely remove the same group.
     for identifier in binding['generated_instances']:

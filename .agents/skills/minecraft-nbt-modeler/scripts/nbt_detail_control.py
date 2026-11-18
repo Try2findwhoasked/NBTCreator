@@ -267,6 +267,7 @@ def inspect_source(source, image_limit=8):
 def context_readiness(model, context, source=None):
     """Schema readiness only; never a seal, route or visual acceptance result."""
     from nbt_library import canonical_context
+    from nbt_whole_validation import check_opening_policy, requires_enclosure, validation_mode
     missing=[];errors=[]
     if not context:return dict(ready=False,missing=['context'],errors=[],scope='schema_only')
     try:data=canonical_context(context)
@@ -281,14 +282,18 @@ def context_readiness(model, context, source=None):
                 return dict(ready=True,missing=[],errors=[],scope='schema_only',kind=manifest['kind'],phase=manifest['phase'])
         except (OSError,ValueError,TypeError) as error:
             return dict(ready=False,missing=[],errors=[str(error)],scope='schema_only')
-    mode=data.get('mode','saodg')
-    if mode not in ('saodg','standalone'):errors.append('mode 必须为 saodg 或 standalone')
-    for key in ('start','targets','interior_probes'):
+    try:
+        mode = validation_mode(data)
+        sealed = requires_enclosure(data)
+        check_opening_policy(data, data.get('ports' if mode == 'saodg' else 'openings', []))
+    except ValueError as error:
+        return dict(ready=False,missing=[],errors=[str(error)],scope='schema_only')
+    for key in ('start','targets',*(('interior_probes',) if sealed else ())):
         if key not in data or not data[key]:missing.append(key)
     if 'start' not in missing and (not isinstance(data['start'],list) or len(data['start'])!=3 or any(type(v) not in (int,float) or not math.isfinite(v) for v in data['start'])):
         errors.append('start 需要实际玩家脚位XYZ')
     if 'targets' not in missing and not isinstance(data['targets'],(list,dict)):errors.append('targets 需要非空目标列表或命名字典')
-    if 'interior_probes' not in missing and not isinstance(data['interior_probes'],list):errors.append('interior_probes 需要室内空气坐标列表')
+    if 'interior_probes' in data and not isinstance(data['interior_probes'],list):errors.append('interior_probes 需要室内空气坐标列表')
     def xyz(value,voxel=False):
         return isinstance(value,(list,tuple)) and len(value)==3 and all(type(v) in ((int,) if voxel else (int,float)) and math.isfinite(v) for v in value)
     if isinstance(data.get('targets'),(list,dict)):
@@ -297,10 +302,11 @@ def context_readiness(model, context, source=None):
     if isinstance(data.get('interior_probes'),list) and any(not xyz(p,True) or not model.in_bounds(p) for p in data['interior_probes']):
         errors.append('interior_probes 每项需要模型内的整数XYZ')
     if mode=='standalone':
-        if 'openings' not in data:missing.append('openings')
-        elif not isinstance(data['openings'],list):errors.append('openings 需要显式开口列表；无开口填空列表')
+        if sealed and 'openings' not in data:missing.append('openings')
         if data.get('ports'):errors.append('独立建筑使用 openings，不混用SAODG ports')
-    elif not data.get('cells') and not(model.size[0]==model.size[2]==48):missing.append('cells 或显式 mode=standalone')
+    else:
+        if data.get('openings'):errors.append('SAODG 使用 ports，不混用独立建筑 openings')
+        if not data.get('cells') and not(model.size[0]==model.size[2]==48):missing.append('cells')
     return dict(ready=not missing and not errors,mode=mode,missing=missing,errors=errors,scope='schema_only')
 
 
@@ -482,18 +488,21 @@ def compile_plan(settings, size):
 
 
 def normalize_context(model, context_path, camera_path, settings):
-    data = read_json(context_path)
     from nbt_library import canonical_context
+    from nbt_whole_validation import requires_enclosure, validation_mode
     data = canonical_context(context_path)
-    keys = ('mode', 'openings', 'allow_empty_wall_mask', 'cells', 'door_y', 'ports', 'start', 'targets', 'interior_probes', 'protected_paths',
+    keys = ('mode', 'openings', 'require_enclosure', 'openings_policy', 'opening_size',
+            'allow_empty_wall_mask', 'cells', 'cell_size', 'door_y', 'ports', 'start', 'targets', 'interior_probes', 'protected_paths',
             'protected_boxes', 'route_legs', 'cameras', 'wall_positions')
     config = {key: data[key] for key in keys if key in data}
-    if config.get('mode','saodg')!='standalone':
+    config['mode'] = validation_mode(config)
+    if config['mode'] == 'saodg':
         if 'cells' not in config and model.size[0] == model.size[2] == 48: config['cells'] = [[0, 0]]
         config.setdefault('ports', []); config.setdefault('door_y', 2)
     config['max_changed_blocks'] = settings.get('max_changed_blocks', 4096)
-    for key in ('start', 'targets', 'interior_probes'):
-        if key not in config or not config[key]: raise ValueError(f'Context is missing non-empty {key}; choose coordinates/config JSON')
+    for key in ('start', 'targets', *(('interior_probes',) if requires_enclosure(config) else ())):
+        if not config.get(key):
+            raise ValueError(f'Context is missing non-empty {key}; choose coordinates/config JSON')
     raw_cameras = read_json(camera_path) if camera_path else config.get('cameras', [])
     if not raw_cameras:
         start = config['start']; targets = config['targets']

@@ -167,10 +167,13 @@ class Model:
         return dict(passed=True, air_blocks=len(allowed), door_y=door_y)
 
     def save(self, path):
-        path = Path(path)
         # Geometry changes made after carving require explicit revalidation.
         assert self.seal_record is not None, 'Run check_sealed before export'
         assert self.fingerprint() == self.final_fingerprint, 'Geometry changed after validation; redesign and revalidate'
+        return dict(self._write_nbt(path), before_opening=self.seal_record)
+
+    def _write_nbt(self, path):
+        path = Path(path)
         palette = sorted({AIR, *self.blocks.values()})
         assert len(palette) <= 4096
         mapping = {v:i for i,v in enumerate(palette)}
@@ -207,7 +210,7 @@ class Model:
         assert recovered.size == self.size and recovered.blocks == self.blocks
         return dict(path=str(path.resolve()), sha256=hashlib.sha256(packed).hexdigest(),
                     size=list(self.size), palette_states=len(palette), full_volume=sx*sy*sz,
-                    before_opening=self.seal_record, disk_roundtrip=True)
+                    disk_roundtrip=True)
 
 
 def load(path):

@@ -65,9 +65,18 @@ def save(workspace, payload):
     if document.get('design_standard') is not None:
         from nbt_architect import validate_standard
         validate_standard(document['design_standard'])
+    context = payload.get('context', {})
+    if not isinstance(context, dict):
+        raise ValueError('上下文草案必须为 JSON 对象')
     if 'constraints' in document:
         from nbt_constraints import validate_selection
-        validate_selection(document['constraints'],document['project'])
+        selected = validate_selection(document['constraints'], document['project'])
+        context = dict(context)
+        for key in ('require_enclosure', 'openings_policy', 'opening_size', 'cells', 'cell_size'):
+            if key in selected:
+                context[key] = selected[key]
+        if 'integration' in selected:
+            context['mode'] = selected['integration']
     if not isinstance(document.get('design_override',''),str) or len(document.get('design_override',''))>4000:raise ValueError('建筑规范例外最多4000字')
     catalog=json.loads((Path(__file__).resolve().parents[1]/'tool-catalog.json').read_text(encoding='utf8'))
     design=catalog['prompt_design'];project=document['project']
@@ -103,7 +112,7 @@ def save(workspace, payload):
         if index.get('schema_version')!=1 or not isinstance(index.get('records'),list):raise ValueError('提示词索引无效，未覆盖')
         previous=next((item for item in index['records'] if item.get('id')==session),None)
         if previous and previous.get('deleted_at'):raise ValueError('这条创作方案已删除，请新建方案')
-        files={'提示词.md':text.encode('utf8'),'方案.json':encode(document),'操作计划.json':encode(payload.get('plan',{})),'上下文草案.json':encode(payload.get('context',{}))}
+        files={'提示词.md':text.encode('utf8'),'方案.json':encode(document),'操作计划.json':encode(payload.get('plan',{})),'上下文草案.json':encode(context)}
         hashes={name:digest(raw) for name,raw in files.items()};revision=digest(encode(dict(files=hashes,source_sha256=source_hash)))
         folder=inside(workspace,directory/'修订'/session/revision);folder.mkdir(parents=True,exist_ok=True)
         for name,raw in files.items():

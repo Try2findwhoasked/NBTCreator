@@ -78,6 +78,8 @@ def layout(model,config):
     from nbt_whole_validation import validation_mode,standalone_cells
     if validation_mode(config)=='standalone':
         return standalone_cells(model,config) or []
+    if type(config.get('cell_size',48)) is not int or config.get('cell_size',48)!=48:
+        raise ValueError('SAODG requires 48-block footprint cells')
     cells=[tuple(c) for c in config['cells']]
     if not cells or len(set(cells))!=len(cells) or any(len(c)!=2 or any(type(v) is not int or v<0 for v in c) for c in cells):
         raise ValueError('Declare distinct occupied XZ cells')
@@ -388,8 +390,9 @@ def refine(review_dir,plan,output_dir):
     checks=validate(model,config)
     _current_review(review)
     # Whole-source checks, followed by mechanical export; never rebuild per cell.
-    model.seal_record=dict(checks['recapped_seal'],scope='refined_whole_model_legal_ports_recapped')
-    model.stage='opened';model.final_fingerprint=model.fingerprint()
+    if not standalone:
+        model.seal_record=dict(checks['recapped_seal'],scope='refined_whole_model_legal_ports_recapped')
+        model.stage='opened';model.final_fingerprint=model.fingerprint()
     out.mkdir(parents=True)
     write_json(out/'refinement.json',dict(state='writing',source=record['source'],source_geometry_sha256=record['source_geometry_sha256'],runtime_verified=False))
     save_master(out/'refined.master.json.gz',model,walls)
@@ -399,7 +402,7 @@ def refine(review_dir,plan,output_dir):
     write_json(out/'plan.json',plan);write_json(out/'validation.json',checks)
     if standalone:
         from nbt_standalone_delivery import export_standalone
-        exported=export_standalone(model,walls,out,allow_empty_wall_mask=config.get('allow_empty_wall_mask',False),active_cells=config.get('cells'))
+        exported=export_standalone(model,walls,out,allow_empty_wall_mask=config.get('allow_empty_wall_mask',False),active_cells=config.get('cells'),checks=checks,cell_size=config.get('cell_size',48))
         delivery=exported['delivery'];runtime=exported['runtime_templates']
     else:
         delivery=export_delivery(model,cells,walls,out/'delivery','Approved detail revision of explicit whole-source wall mask')

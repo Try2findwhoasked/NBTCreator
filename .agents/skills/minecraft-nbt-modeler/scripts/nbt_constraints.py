@@ -25,6 +25,15 @@ def validate_rules(rules):
         if not integer(rules.get('cell_size'),512) or not isinstance(cells,list) or not 1<=len(cells)<=256 or any(not isinstance(cell,list) or len(cell)!=2 or any(type(n) is not int or not 0<=n<4096 for n in cell) for cell in cells):raise ValueError('有效网格须为非负整数XZ坐标，并指定网格边长')
         if len({tuple(cell) for cell in cells})!=len(cells):raise ValueError('有效网格不能重复')
         if 'size' in rules and any((x+1)*rules['cell_size']>rules['size'][0] or (z+1)*rules['cell_size']>rules['size'][2] for x,z in cells):raise ValueError('有效网格超出约束尺寸')
+    if 'integration' in rules and rules['integration'] not in ('standalone', 'saodg'):
+        raise ValueError('接入扩展无效')
+    from nbt_whole_validation import opening_policy, requires_enclosure
+    context = {key: rules[key] for key in ('require_enclosure', 'openings_policy', 'opening_size') if key in rules}
+    context['mode'] = rules.get('integration', 'standalone')
+    requires_enclosure(context)
+    opening_policy(context)
+    if context['mode'] == 'saodg' and rules.get('cell_size', 48) != 48:
+        raise ValueError('SAODG 接入要求 48 格网格')
     return rules
 
 FOLDER_FILE='项目约束.json'
@@ -65,6 +74,11 @@ def validate_selection(items,project=None):
             merged[key]=value
     if merged:validate_rules(merged)
     if project:
+        integration = merged.get('integration', project.get('integration', 'standalone'))
+        if project.get('source') and 'integration' in merged and project.get('context', {}).get('mode', project.get('integration')) != integration:
+            raise ValueError('接入约束与已有建筑不符')
+        if integration == 'saodg' and merged:
+            validate_rules(dict(merged, integration=integration))
         effective=dict(project,**{key:value for key,value in merged.items() if key in ('size','buildingShape')})
         if project.get('source') and any(key in merged and merged[key]!=project.get(key) for key in ('size','buildingShape')):raise ValueError('项目约束与已有建筑不符')
         if 'cells' in merged and any((x+1)*merged['cell_size']>effective['size'][0] or (z+1)*merged['cell_size']>effective['size'][2] for x,z in merged['cells']):raise ValueError('项目约束的有效网格超出当前尺寸')

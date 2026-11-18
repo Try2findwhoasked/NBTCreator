@@ -124,6 +124,34 @@ class Standalone(unittest.TestCase):
         self.assertEqual(descriptor['shape'],'l_shape');self.assertEqual({tuple(p) for p in descriptor['cells']},{tuple(p) for p in cells})
         self.assertEqual(verify_standalone(Path(result['release_dir']))['actual_nbt_files'],6);self.assertEqual(source.read_bytes(),original)
 
+    def test_custom_footprint_survives_coordinate_loading_and_final_delivery(self):
+        from nbt_detail_control import normalize_context
+        from nbt_finalize import export_binary
+
+        for stride, offsets in [(32, {0,32}), (64, {0,48,64,112})]:
+            with self.subTest(stride=stride):
+                model = Volume((stride*2, 4, stride))
+                model.box((0,0,0),(stride*2-1,0,2),'stone')
+                context = dict(mode='standalone', cells=[[0,0],[1,0]], cell_size=stride,
+                               require_enclosure=False, start=[1.5,1,1.5],
+                               targets={'other_cell':[stride+0.5,1,1.5]}, allow_empty_wall_mask=True)
+                output = self.folder(f'custom-grid-{stride}')
+                config_file = output/'coordinates.json'
+                write(config_file, context)
+                config = normalize_context(model, config_file, None, default_settings())
+                self.assertEqual(config['cell_size'], stride)
+                validated = validate_whole(model, config)
+                result = export_binary(model, set(), config, validated, output/'export')
+                self.assertTrue(result['binary_roundtrip'])
+                packet = verify_standalone(output/'export')
+                self.assertEqual(packet['cell_size'], stride)
+                self.assertEqual({part['offset'][0] for part in packet['parts']}, offsets)
+                self.assertTrue(all(max(part['size']) <= 48 for part in packet['parts']))
+                excluded = Volume((stride*2, 4, stride*2))
+                excluded.put((stride,0,stride),'stone')
+                with self.assertRaisesRegex(ValueError, 'excluded footprint'):
+                    validate_whole(excluded,dict(config,cells=[[0,0],[1,0],[0,1]]))
+
     def test_unknown_mode_leak_missing_declaration_and_missing_targets_refuse(self):
         model,walls,config=room();before=model.fingerprint()
         bad=copy.deepcopy(config);bad['mode']='unknown'

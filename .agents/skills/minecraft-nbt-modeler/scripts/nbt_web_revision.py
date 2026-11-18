@@ -142,7 +142,7 @@ def _convert_web_json(input_file,workdir,resolved):
             from nbt_library import register_building
             description=next((p/'room_description.json' for p in [source.parent,*list(source.parents)[:4]] if (p/'room_description.json').is_file()),None)
             if description:
-                register_building(authored,read_json(description)['name_zh'],cells,mode='standalone' if standalone else None)
+                register_building(authored,read_json(description)['name_zh'],cells,mode='standalone' if standalone else None,cell_size=config.get('cell_size',48))
             receipt.update(status='complete',master=str(authored),runtime_parts=0,runtime_files=[],delivery_nbt=0,geometry_sha256=model.fingerprint(),source_unchanged=True,source_format='snbt',draft_only=draft_only)
             write_json(target/'conversion.json',receipt)
             from nbt_history import source_workspace,record_produced_version

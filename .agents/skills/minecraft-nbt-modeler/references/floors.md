@@ -46,7 +46,7 @@ walls, floor_report = apply_floor_damage(master, {
 }, context, wall_positions=walls)
 ```
 
-示例坐标必须改为本次真实设备范围，不能照抄。调用返回更新墙mask和报告；地面修改归主体，不按材质把地面拆进墙层。支持 `protected=` 额外整数坐标集合。工具只接受design阶段的直接写入；后面仍在原主模型完成首次密闭检查、开门、最终验证、批量看图和机械切片。
+示例坐标必须改为本次真实设备范围，不能照抄。调用返回更新墙mask和报告；地面修改归主体，不按材质把地面拆进墙层。支持 `protected=` 额外整数坐标集合。工具只接受design阶段的直接写入；后续围护与洞口验收按原项目约束执行。自动识别依赖封闭空气腔体和探针；露天庭院等开放区域可在主模型明确选面，使用通用地板构件或几何操作。
 
 只想检查候选时：`detect_floors(master, context)` 返回 `(floor_positions, report)`；只读规划时：`auto_floor_plan(master, operation, context)` 返回 `(edits, report)`。这两个函数不修改输入，规划后会在副本验证密闭和必要通路，但不自动批准/导出建筑。
 

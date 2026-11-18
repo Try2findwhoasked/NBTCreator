@@ -213,6 +213,46 @@ class WorkingModels(unittest.TestCase):
         self.assertEqual(read_master(saved['source'])[0].get((5,1,0)),'minecraft:air')
         self.assertTrue(m.validate()['whole_model']['routes']['passed'])
 
+    def test_open_air_courtyard_can_save_reopen_and_finalize_without_seal(self):
+        from nbt_finalize import finalize
+
+        context = dict(mode='standalone', require_enclosure=False, openings_policy='none',
+                       start=[3.5,1,1.5], targets={'court':[3.5,1,6.5]}, allow_empty_wall_mask=True)
+        model = WorkingModel(self.root, [8,6,8], context)
+        model.apply_operations([dict(kind='box', label='庭院铺地', classification='body',
+                                     lo=[0,0,0], hi=[7,0,7], state='stone')])
+        self.assertEqual(model.open_declared()['changes'], [])
+        saved = model.save_draft('露天庭院')
+        self.assertFalse((Path(saved['output'])/'master/preopening.snbt').exists())
+        reopened = WorkingModel.open(self.root, saved['source'])
+        checks = reopened.validate()['whole_model']
+        self.assertIsNone(checks['recapped_seal'])
+        self.assertTrue(checks['routes']['passed'])
+        self.assertEqual(reopened.model.get((3,5,3)), 'minecraft:air')
+        release = finalize(self.root, saved['source'], register_history=False)
+        self.assertTrue(release['binary_roundtrip'])
+        self.assertEqual(read_master(release['nbt_master'])[0].blocks, model.model.blocks)
+
+    def test_adjustable_aperture_is_checked_without_a_seal_and_fails_atomically(self):
+        opening = dict(id='gate', lo=[2,1,0], hi=[4,4,0], facing='north')
+        context = dict(mode='standalone', require_enclosure=False, openings_policy='required',
+                       opening_size=[2,4], openings=[opening],
+                       start=[3.5,1,0.5], targets={'court':[3.5,1,6.5]})
+        model = WorkingModel(self.root, [8,6,8], context)
+        model.apply_operations([
+            dict(kind='box', label='庭院地面', classification='body', lo=[0,0,0], hi=[7,0,7], state='stone'),
+            dict(kind='box', label='围墙', classification='wall', lo=[0,1,0], hi=[7,4,0], state='stone')])
+        before = model.model.fingerprint(), set(model.walls)
+        with self.assertRaisesRegex(ValueError, 'width and height'):
+            model.open_declared()
+        self.assertEqual((model.model.fingerprint(), model.walls), before)
+        self.assertEqual(model.phase, 'design')
+        model.context['opening_size'] = [3,4]
+        opened = model.open_declared()
+        self.assertEqual(len(opened['changes']), 12)
+        self.assertFalse(opened['validation']['sealed_before_opening'])
+        self.assertTrue(model.validate()['whole_model']['routes']['passed'])
+
     def test_desktop_save_preserves_instances_and_stales_another_working_copy(self):
         from nbt_web_revision import convert_web_json
         from nbt_detail_control import default_settings

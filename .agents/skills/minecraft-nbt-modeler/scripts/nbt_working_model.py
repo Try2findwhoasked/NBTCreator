@@ -299,7 +299,7 @@ class WorkingModel:
         if (phase or self.phase) != 'opened':
             # In a new design these describe future openings, not existing air
             # apertures. Explicit paths/boxes remain protected in every phase.
-            context.update(openings=[], ports=[])
+            context.update(openings=[], ports=[], openings_policy='optional')
         return context
 
     def _commit_edits(self, edits, instances=None):
@@ -649,20 +649,29 @@ class WorkingModel:
 
     def open_declared(self):
         from nbt_openings import open_declared_openings
-        if self.phase != 'sealed':
-            raise ValueError('声明开洞前须完成真实封闭检查')
-        if self.context.get('mode') != 'standalone':
+        from nbt_whole_validation import check_opening_policy, requires_enclosure, standalone_openings, validation_mode
+        required = requires_enclosure(self.context)
+        if self.phase not in ('design', 'sealed') or required and self.phase != 'sealed':
+            raise ValueError('该阶段不能开洞；要求密闭的项目须先完成真实封闭检查')
+        if validation_mode(self.context) != 'standalone':
             raise ValueError('此入口使用独立建筑 openings，SAODG 使用其专用端口流程')
-        # The opening API is atomic. Keep an independent proof of the closed source.
         self._unchanged()
+        openings = self.context.get('openings', [])
+        check_opening_policy(self.context, openings)
         candidate = Volume(self.model.size)
         candidate.blocks = dict(self.model.blocks)
         candidate.stage, candidate.seal_record = self.model.stage, deepcopy(self.model.seal_record)
         walls = set(self.walls)
         proof, closed = self.preopening, self._closed
-        report = open_declared_openings(candidate, self.context['openings'], wall_positions=walls)
+        if openings:
+            report = open_declared_openings(candidate, openings, wall_positions=walls, require_enclosure=required)
+        else:
+            report = dict(passed=True, openings=[], opened_positions=[], changes=[], removed_wall_positions=[],
+                          validation=dict(sealed_before_opening=None))
+        standalone_openings(candidate, self.context)
         changed, layers = change_sets(self.model.blocks, candidate.blocks, self.walls, walls)
         self._commit_edits([dict(pos=list(p),before=value_at(self.model,self.walls,p),after=value_at(candidate,walls,p)) for p in sorted(changed|layers)])
+        candidate.stage = 'opened'
         self.model, self.phase, self.preopening, self._closed = candidate, 'opened', proof, closed
         return report
 
@@ -797,7 +806,7 @@ class WorkingModel:
             building = self.workspace / 'nbt_models' / shape / str(name_zh)
         if not isinstance(name_zh, str) or not re.search('[\u4e00-\u9fff]', name_zh) or any(c in name_zh for c in '<>:"/\\|?*'):
             raise ValueError('建筑名须含中文且不能包含路径符号')
-        if shape != 'standalone' and shape_of(self.model.size,self.context.get('cells',[])) != shape:
+        if shape != 'standalone' and shape_of(self.model.size,self.context.get('cells',[]), self.context.get('cell_size',48)) != shape:
             raise ValueError('保存目录形状与完整主模型不一致')
         if not building.resolve().is_relative_to(self.workspace / 'nbt_models'):
             raise ValueError('制作版本须位于工作区 nbt_models')
@@ -834,7 +843,7 @@ class WorkingModel:
             write_json(stage / 'room_description.json', dict(schema_version=1, name_zh=name_zh, shape=shape, shape_zh=LABELS[shape],
                 display_name=name_zh + '-' + LABELS[shape], description_zh=name_zh + '-' + LABELS[shape],
                 master='master/model.snbt', master_file_sha256=files['master/model.snbt'], geometry_sha256=self.model.fingerprint(),
-                size=list(self.model.size), cells=self.context.get('cells', []), mode=self.context.get('mode'), context_file='coordinates.json',
+                size=list(self.model.size), cells=self.context.get('cells', []), cell_size=self.context.get('cell_size',48), mode=self.context.get('mode'), context_file='coordinates.json',
                 status='authoring', model_revision=manifest['revision']))
             with publication_lock(self.workspace, building):
                 self._unchanged()

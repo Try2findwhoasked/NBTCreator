@@ -1,4 +1,4 @@
-"""Declared rectangular apertures for newly authored standalone models, after a real seal check."""
+"""Declared rectangular apertures for newly authored standalone models."""
 from itertools import product
 from nbt_model import AIR, AIR_NAMES
 
@@ -9,7 +9,7 @@ def _point(value):
     return tuple(value)
 
 
-def open_declared_openings(model, openings, wall_positions=None):
+def open_declared_openings(model, openings, wall_positions=None, *, require_enclosure=True):
     """Preflight all apertures, then carve only them, preserving the accepted seal.
 
     lo/hi are inclusive and may cover a thick wall away from the model boundary.
@@ -21,7 +21,8 @@ def open_declared_openings(model, openings, wall_positions=None):
     """
     before = model.fingerprint()
     seal = model.seal_record
-    if model.stage!='sealed' or not seal or not seal.get('passed') or seal.get('geometry_sha256')!=before:
+    sealed = model.stage == 'sealed' and seal and seal.get('passed') and seal.get('geometry_sha256') == before
+    if not sealed and (require_enclosure or model.stage != 'design'):
         raise ValueError('Check the unchanged closed master before carving declared openings')
     if not isinstance(openings, (list, tuple)) or not openings:
         raise ValueError('Declare at least one opening')
@@ -81,6 +82,6 @@ def open_declared_openings(model, openings, wall_positions=None):
     return dict(passed=True,before_geometry_sha256=before,after_geometry_sha256=model.final_fingerprint,
                 openings=checked,opened_positions=[list(p) for p in sorted(allowed)],changes=changes,
                 removed_wall_positions=[list(p) for p in removed_walls],
-                validation=dict(sealed_before_opening=True,floor_voxels_present=True,
+                validation=dict(sealed_before_opening=bool(sealed),floor_voxels_present=True,
                                 collision_support='not_checked',routes='not_checked',game='not_checked'),
-                note='Only declared apertures were carved. Keep seal/diff evidence; reclose a copy and validate routes before delivery.')
+                note='Only declared apertures were carved. Validate the final geometry against the project context.')
