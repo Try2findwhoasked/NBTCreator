@@ -369,12 +369,25 @@ async function main() {
     return true
   }
   resize()
-  await renderer.whenReady()
-  draw()
-  loading.classList.add('hidden')
+  // Mesh chunks are built asynchronously. Show the viewport as soon as the
+  // first chunks exist instead of keeping a blocking cover until all finish.
+  let building = true
+  const progressive = setInterval(() => {
+    if (!building) return
+    try { draw(); loading.classList.add('hidden') } catch { /* First chunk is pending. */ }
+  }, 120)
+  const meshReady = renderer.whenReady().then(() => {
+    building = false; clearInterval(progressive); draw(); loading.classList.add('hidden')
+  }, error => {
+    building = false; clearInterval(progressive); api.status = 'error'
+    loading.textContent = error.message; loading.classList.remove('hidden'); throw error
+  })
+  // Keep a rejection handler even when the parent only needs the first frame.
+  meshReady.catch(reportError)
   const observer = new ResizeObserver(() => { if (resize()) requestRender() })
   observer.observe(canvas)
   window.addEventListener('pagehide', () => {
+    building = false; clearInterval(progressive)
     observer.disconnect()
     if (frameRequest) cancelAnimationFrame(frameRequest)
     if (renderTimer) clearTimeout(renderTimer)
@@ -421,7 +434,7 @@ async function main() {
   componentGizmo=createComponentGizmo({canvas,camera:renderer.camera,viewCamera:camera,requestRender,notify:value=>{if(window.parent!==window)window.parent.postMessage({type:'nbt-transform-change',value,source_sha256:snapshot.source_sha256,geometry_sha256:snapshot.geometry_sha256},location.origin)}})
   window.addEventListener('keydown',event=>{if(componentGizmo.state()&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&['Escape','KeyW','KeyE'].includes(event.code)){event.preventDefault();window.parent.postMessage({type:'nbt-transform-key',code:event.code},location.origin)}})
   Object.assign(api, {
-    snapshot, renderer, camera, metadata,
+    snapshot, renderer, camera, metadata, meshReady,
     setControls:value=>camera.setControls(value),
     configureTransform:value=>enqueue(()=>{const result=componentGizmo.configure(value);draw();return result}),
     transformStatus:()=>componentGizmo.state(),transformHandles:()=>componentGizmo.screenHandles(),
@@ -478,6 +491,8 @@ async function main() {
     }),
     capture: view => enqueue(async () => {
       await applyView(normalizeView(view, size))
+      await renderer.whenReady()
+      draw()
       // Encode in the same task as the completed draw: never read a cleared WebGL buffer.
       const dataUrl = canvas.toDataURL('image/png')
       return { dataUrl, metadata: metadata() }

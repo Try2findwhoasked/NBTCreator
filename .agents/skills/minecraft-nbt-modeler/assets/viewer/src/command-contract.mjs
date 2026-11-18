@@ -14,7 +14,7 @@ export function commandDefinitions(catalog){
   ...[
    ['preview.update','更新效果预览','update-preview','Ctrl+Shift+KeyU'],
    ['preview.validate','检查当前效果','validate-preview'],
-   ['view.prepare','准备编辑','studio-view-prepare'],['view.inspect','检查与交付','studio-view-inspect'],
+   ['view.prepare','准备编辑','studio-panel-tools'],['view.inspect','检查与交付','studio-panel-checks'],
    ['version.authoring','保存 SNBT 制作版','save-authoring-version'],['version.export','定稿导出 NBT','export-revision'],
    ['version.history','查看建筑版本记录','open-building-history'],
    ['edit.undo','撤销参数','undo-settings','Ctrl+KeyZ'],['edit.redo','重做参数','redo-settings','Ctrl+KeyY'],

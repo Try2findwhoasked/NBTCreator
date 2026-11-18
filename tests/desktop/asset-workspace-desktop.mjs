@@ -1,5 +1,6 @@
 import {minimizedScreenshots} from '../support/minimized-screenshots.mjs'
 import assert from 'node:assert/strict'
+import {positionComponent,confirmComponent} from '../support/component-placement.mjs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import {spawnSync} from 'node:child_process'
@@ -36,8 +37,8 @@ try{
  await page.locator('#asset-inspector-close').click();await showLocal(page);await page.locator('#asset-search').fill('不存在');assert.equal(await page.locator('.asset-card').count(),0);await page.locator('#asset-search').fill('木构');assert.equal(await page.locator('.asset-card').count(),1);await page.locator('.asset-card').click();checks.rename_tags_search=true
  const download=await page.locator('#asset-export').getAttribute('href'),data=await page.evaluate(async url=>(await fetch(url)).json(),download);assert.equal(data.size.join(','),'1,4,1');assert.equal(data.blocks.length,4);assert.equal(data.blocks.filter(b=>b[4]).length,1)
  await page.screenshot({path:path.join(output,'asset-workspace.png')});checks.portable_export_and_preview=true
- for(const [axis,value]of [['x','35'],['y','4'],['z','10']])await page.locator('#asset-position-'+axis).fill(value)
- await page.locator('#asset-place').click();await page.waitForFunction(()=>document.body.dataset.workspace==='model'&&window.detailControl.state.comparisonSide==='after'&&!window.detailControl.state.previewBusy)
+ await page.locator('#asset-place').click();await positionComponent(page,[35,4,10]);await confirmComponent(page)
+ await page.waitForFunction(()=>document.body.dataset.workspace==='model'&&window.detailControl.state.comparisonSide==='after'&&!window.detailControl.state.previewBusy)
  const operations=await page.evaluate(()=>window.detailControl.gather().operations);assert.equal(operations.length,2);assert.ok(operations.every(op=>op.kind==='paste_component'));assert.deepEqual(operations.map(op=>op.classification).sort(),['body','wall']);checks.reuse_preview_same_engine=true
  await page.locator('[data-workspace=assets]').click();await showLocal(page);await page.locator('.asset-card').click();if(!await page.locator('#asset-archive').isVisible())await page.locator('.asset-management>summary').click();await page.locator('#asset-archive').click();await page.waitForFunction(()=>document.querySelectorAll('.asset-card').length===0);await page.locator('#asset-filters-menu>summary').click();await page.locator('#asset-trash').check();await page.locator('.asset-card').click();if(!await page.locator('#asset-archive').isVisible())await page.locator('.asset-management>summary').click();await page.locator('#asset-archive').click();await page.locator('#asset-filters-menu>summary').click();await page.locator('#asset-trash').uncheck();await page.waitForFunction(()=>document.querySelectorAll('.asset-card').length===1);checks.recoverable_archive=true
  await page.locator('#asset-import-file').setInputFiles({name:'copy.component.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(data))});await page.waitForFunction(()=>document.querySelectorAll('.asset-card').length===2);checks.import_usable_asset=true

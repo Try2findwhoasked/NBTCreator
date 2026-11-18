@@ -1,0 +1,111 @@
+/* One command row and one file browser for every library edition. */
+body[data-shell=studio] .library-browser .library-heading.library-toolbar{display:flex;align-items:center;flex-wrap:nowrap;gap:8px;min-height:46px;height:auto;margin:0 0 10px;padding:5px 8px;border:1px solid var(--ui-line);border-radius:7px;background:var(--ui-panel);box-sizing:border-box}
+body[data-shell=studio] .library-browser .library-heading-title{flex:none;min-width:0;margin:0 4px 0 0}
+body[data-shell=studio] .library-browser .library-heading-title h1{font-size:16px;white-space:nowrap}
+body[data-shell=studio] .library-browser .library-search{flex:1 1 220px;max-width:none;min-width:120px;height:34px}
+body[data-shell=studio] .library-browser .library-toolbar>:is(button,select),body[data-shell=studio] .library-browser .library-toolbar :is(.library-actions>button,.library-filter-menu>summary){min-height:34px;height:34px;box-sizing:border-box;border-radius:5px;font-size:12px;margin:0}
+body[data-shell=studio] .project-checkbox-filter>summary>strong{min-height:36px;box-sizing:border-box;line-height:18px}
+body[data-shell=studio] .library-browser .library-toolbar :is(button,.library-filter-menu>summary){display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;padding:4px 9px}
+body[data-shell=studio] .library-browser .library-toolbar .library-actions button[hidden]{display:none}
+body[data-shell=studio] .library-browser .library-toolbar-spacer{flex:0 0 4px}
+body[data-shell=studio] .library-browser .library-actions{margin-left:auto;flex-wrap:nowrap;gap:5px}
+body[data-shell=studio] .library-browser .library-view-switch{display:flex;align-items:center;gap:2px;padding:2px;background:var(--ui-input);border:1px solid var(--ui-line);border-radius:6px;flex:none;height:34px;box-sizing:border-box}
+body[data-shell=studio] .library-browser .library-toolbar .library-view-switch button{border:0;background:transparent;color:var(--ui-muted);min-height:28px;height:28px;margin:0}
+body[data-shell=studio] .library-browser .library-view-switch button[aria-pressed=true]{background:var(--ui-panel);color:var(--ui-accent);box-shadow:0 1px 2px #14243b16}
+body[data-shell=studio] #asset-workspace .asset-kind-tabs{display:flex;align-items:center;flex:none;gap:2px;padding:2px;margin:0;border:1px solid var(--ui-line);border-radius:6px;background:var(--ui-input)}
+body[data-shell=studio] #asset-workspace .asset-kind-tabs button{border:0;background:transparent;color:var(--ui-muted);min-height:28px;height:28px;margin:0;padding-inline:8px;font-size:12px}
+body[data-shell=studio] #asset-workspace .asset-kind-tabs button[aria-pressed=true]{background:var(--ui-panel);color:var(--ui-accent);box-shadow:0 1px 2px #14243b16}
+body[data-shell=studio] .library-browser .library-layout{grid-template-columns:220px minmax(0,1fr);gap:10px}
+body[data-shell=studio] .library-browser:not(.tree-expanded) .library-layout>.library-tree{display:none!important}
+body[data-shell=studio] .library-browser .library-layout.selection-open{grid-template-columns:220px minmax(0,1fr) minmax(290px,340px)}
+body[data-shell=studio] .library-browser .library-tree{background:var(--ui-panel);border:1px solid var(--ui-line);border-radius:7px;padding:8px;min-height:0;overflow:auto}
+body[data-shell=studio] #project-workspace .project-organization{width:100%;max-width:100%;min-width:0;padding:8px 10px;margin:0;box-sizing:border-box;overflow-x:hidden}
+body[data-shell=studio] #project-workspace .project-organization .organization-heading{min-width:0;max-width:100%;flex-wrap:nowrap}
+body[data-shell=studio] #project-workspace .project-organization .organization-heading strong{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body[data-shell=studio] #project-workspace .project-organization .organization-heading button{flex:none;width:auto}
+body[data-shell=studio] #project-workspace .project-organization .project-menu-row{min-width:0;max-width:100%}
+body[data-shell=studio] #project-workspace .project-organization .project-menu-row>button:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body[data-shell=studio] #project-workspace .library-toolbar>label:has(#project-quick-version){margin:0;flex:none}
+body[data-shell=studio] #project-workspace #project-quick-version{display:block;width:136px;min-width:136px;height:34px;min-height:34px;line-height:20px;padding:4px 9px;box-sizing:border-box;margin:0;font-size:12px}
+body[data-shell=studio] #asset-groups-panel{display:flex;align-items:end;flex-wrap:wrap;gap:7px;padding:8px 10px;margin:-2px 0 9px;border:1px solid var(--ui-line);border-radius:7px;background:var(--ui-panel)}
+body[data-shell=studio] #asset-groups-panel[hidden]{display:none}
+body[data-shell=studio] #asset-groups-panel label{display:flex;flex-direction:column;gap:3px;margin:0;font-size:11px;color:var(--ui-muted)}
+body[data-shell=studio] #asset-groups-panel :is(input,select){min-width:150px;min-height:32px;height:32px;padding:4px 8px}
+body[data-shell=studio] #asset-groups-panel>span{font-size:11px;color:var(--ui-muted);margin-left:auto}
+body[data-shell=studio] .asset-group-select{position:absolute;top:7px;right:7px;z-index:3;display:grid;place-items:center;width:26px;height:26px;border:1px solid var(--ui-line);border-radius:5px;background:var(--ui-panel)}
+body[data-shell=studio] #asset-workspace[data-view=list] .asset-group-select{position:static;grid-area:1/2;align-self:center;margin:0 10px}
+body[data-shell=studio] .asset-group-select input{width:16px;height:16px;margin:0}
+body[data-shell=studio] .library-tree .project-tree-toggle{display:none!important}
+body[data-shell=studio] .library-tree .project-tree-row{min-height:32px;height:auto;padding-block:3px;cursor:pointer}
+body[data-shell=studio] .library-tree .project-tree-row:hover{background:var(--ui-accent-soft)}
+body[data-shell=studio] .library-tree .project-tree-label{cursor:pointer}
+body[data-shell=studio] .library-tree .project-tree-row>.project-tree-label{flex:1;min-width:0;width:auto;height:auto;min-height:0;margin:0;padding:2px 4px;border:0;background:transparent;box-shadow:none;text-align:left;color:inherit;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body[data-shell=studio] .library-tree .project-tree-row>.project-tree-label:hover{border:0;background:transparent}
+body[data-shell=studio] .library-tree .project-tree-list>.project-tree-all{display:block;width:100%;min-height:30px;margin:0 0 4px;padding:4px 8px;border:0;background:transparent;box-shadow:none;text-align:left;color:var(--ui-muted)}
+body[data-shell=studio] .library-tree .project-tree-list>.project-tree-all:hover{background:var(--ui-accent-soft)}
+body[data-shell=studio] :is(#effect-assets-gallery,#pattern-assets-gallery){display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden;padding:0 0 10px}
+body[data-shell=studio] :is(#effect-assets-gallery,#pattern-assets-gallery)[hidden]{display:none}
+body[data-shell=studio] :is(.effect-gallery-heading,.pattern-gallery-heading){flex:none;min-height:30px;margin:0;padding:0 4px}
+body[data-shell=studio] :is(.effect-library-layout,.pattern-library-layout){flex:1;min-height:0;margin:0}
+body[data-shell=studio] :is(#effect-assets-tree,#pattern-assets-tree){height:100%;max-height:none;box-sizing:border-box;overflow:auto}
+body[data-shell=studio] :is(#project-preview-dialog,#asset-inspector-dialog){display:none;position:static;inset:auto;grid-column:3;margin:0;width:auto;max-width:none;max-height:none;height:100%;min-height:0;box-sizing:border-box;border:1px solid var(--ui-line);border-radius:7px;overflow:auto;box-shadow:none;background:var(--ui-panel)}
+body[data-shell=studio] :is(#project-preview-dialog,#asset-inspector-dialog)[open]{display:flex;flex-direction:column}
+body[data-shell=studio] #project-preview-dialog .project-detail-body{display:flex;flex-direction:column;min-height:0;overflow:auto}
+body[data-shell=studio] #project-preview-dialog .project-preview-stage{min-height:210px;flex:none}
+body[data-shell=studio] #project-preview-dialog .project-preview-stage :is(img,iframe){max-height:220px;height:220px}
+body[data-shell=studio] #project-preview-dialog .project-detail-management{max-height:none;border-left:0;border-top:1px solid var(--ui-line);padding:12px}
+body[data-shell=studio] #project-preview-dialog>footer{margin-top:auto;padding:8px;gap:6px}
+body[data-shell=studio] #project-preview-dialog>footer>span{display:none}
+body[data-shell=studio] #asset-inspector-dialog #asset-detail{display:block;overflow:auto;min-height:0;padding:12px}
+body[data-shell=studio] #asset-inspector-dialog #asset-detail[hidden]{display:none}
+body[data-shell=studio] #asset-inspector-dialog #asset-detail>.asset-overview{position:static;display:flex;flex-direction:column;gap:8px}
+body[data-shell=studio] #asset-inspector-dialog #asset-preview-viewer{height:180px}
+body[data-shell=studio] #asset-inspector-dialog .asset-placement-primary>button{width:100%}
+body[data-shell=studio] #asset-inspector-dialog :is(fieldset,section,div,label){min-width:0;max-width:100%;box-sizing:border-box}
+body[data-shell=studio] #asset-inspector-dialog :is(input,select,textarea){min-width:0;max-width:100%;box-sizing:border-box}
+body[data-shell=studio] .library-selection{grid-column:3;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0;overflow:auto;padding:12px;border:1px solid var(--ui-line);border-radius:7px;background:var(--ui-panel)}
+body[data-shell=studio] .library-selection[hidden]{display:none}
+body[data-shell=studio] .library-selection header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+body[data-shell=studio] .library-selection h2{margin:0;font-size:15px}
+body[data-shell=studio] .library-selection img{width:100%;height:180px;object-fit:contain;background:var(--ui-input)}
+body[data-shell=studio] .library-selection strong{overflow-wrap:anywhere}
+body[data-shell=studio] .library-selection p{margin:0;color:var(--ui-muted);font-size:12px;line-height:1.6}
+body[data-shell=studio] .library-selection>.primary{margin-top:auto}
+body[data-shell=studio] .library-browser[data-view=list] :is(#project-grid,#asset-grid,#effect-assets-grid,#pattern-assets-grid){display:flex;flex-direction:column;align-items:stretch;gap:5px}
+body[data-shell=studio] .library-browser[data-view=list] :is(#project-grid,#asset-grid,#effect-assets-grid,#pattern-assets-grid)>.project-card{display:grid;grid-template-columns:minmax(0,1fr) auto;min-height:70px;contain:none;content-visibility:visible;border-radius:5px}
+body[data-shell=studio] #project-workspace[data-view=list] .project-card-open{display:grid;grid-column:1;justify-self:stretch;grid-template-columns:74px minmax(0,1fr);grid-template-rows:auto auto;column-gap:12px;align-content:center;min-width:0;padding:5px 10px}
+body[data-shell=studio] #project-workspace[data-view=list] .project-card-open .project-cover{grid-column:1;grid-row:1/3;width:74px;height:56px;margin:0}
+body[data-shell=studio] #project-workspace[data-view=list] .project-card-open :is(strong,.project-card-meta){grid-column:2;max-width:none;margin:0;min-height:0}
+body[data-shell=studio] #project-workspace[data-view=list] .project-card-footer{grid-column:2;grid-row:1;align-self:center;border:0;background:transparent;padding:5px 10px}
+body[data-shell=studio] #asset-workspace[data-view=list] :is(.asset-card,.effect-asset-card,.pattern-asset-card){display:grid;grid-template-columns:74px minmax(0,1fr);grid-template-rows:auto auto;column-gap:12px;align-content:center;width:100%;min-height:70px;padding:5px 10px}
+body[data-shell=studio] #asset-workspace[data-view=list] :is(.asset-card,.effect-asset-card,.pattern-asset-card) .project-cover{grid-column:1;grid-row:1/4;width:74px;height:56px;margin:0}
+body[data-shell=studio] #asset-workspace[data-view=list] :is(.asset-card,.effect-asset-card,.pattern-asset-card) :is(strong,.project-card-meta,small){grid-column:2;max-width:none;margin:0;min-height:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body[data-shell=studio] .library-batch-bar{position:sticky;top:0;z-index:4;display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:6px 8px;margin-bottom:6px;border:1px solid var(--ui-line);border-radius:6px;background:var(--ui-panel)}
+body[data-shell=studio] .library-batch-bar[hidden],body[data-shell=studio] .library-batch-bar [hidden],body[data-shell=studio] .project-card-footer[hidden]{display:none}
+body[data-shell=studio] .library-batch-bar button{min-height:32px;font-size:12px}
+body[data-shell=studio] #project-manage-items{max-height:180px;overflow:auto;overflow-wrap:anywhere}
+body[data-shell=studio] #project-manage-group-label[hidden]{display:none}
+body[data-shell=studio] #project-workspace[data-view=list] .project-card-selection{position:static;grid-area:1/2;align-self:center;margin:0 10px}
+body[data-shell=studio] #project-workspace[data-view=list] .project-card-selection[hidden]{display:none}
+@media(max-width:1199px){
+ body[data-shell=studio] .library-browser .library-heading.library-toolbar{flex-wrap:wrap}
+ body[data-shell=studio] .library-browser .library-heading-title{flex:0 0 auto}
+ body[data-shell=studio] .library-browser .library-search{flex:1 1 230px}
+ body[data-shell=studio] .library-browser .library-actions{margin-left:auto}
+ body[data-shell=studio] .library-browser .library-layout.selection-open{grid-template-columns:200px minmax(0,1fr);position:relative}
+ body[data-shell=studio] .library-browser .library-layout.selection-open>:is(#project-preview-dialog,#asset-inspector-dialog,.library-selection){position:fixed;inset:calc(var(--studio-header) + 8px) 8px 8px auto;z-index:50;width:min(360px,calc(100vw - 16px));max-width:calc(100vw - 16px);height:calc(100dvh - var(--studio-header) - 16px);box-shadow:0 8px 26px #14243b24}
+}
+@media(max-width:799px){
+ body[data-shell=studio] .library-browser .library-heading.library-toolbar{gap:5px}
+ body[data-shell=studio] .library-browser .library-layout,body[data-shell=studio] .library-browser .library-layout.selection-open{grid-template-columns:minmax(0,1fr);position:relative}
+ body[data-shell=studio] .library-browser .library-layout .library-tree{display:none}
+ body[data-shell=studio] .library-browser.tree-expanded .library-layout .library-tree{display:block;position:absolute;inset:0 auto 0 0;z-index:7;width:min(270px,88%);height:100%;box-shadow:8px 0 24px #14243b24}
+ body[data-shell=studio] .library-tree-toggle{display:inline-flex}
+}
+@media(min-width:800px){
+ body[data-shell=studio] .library-browser:not(.tree-expanded) .library-layout{grid-template-columns:minmax(0,1fr)}
+ body[data-shell=studio] .library-browser:not(.tree-expanded) .library-layout.selection-open>:is(#project-preview-dialog,#asset-inspector-dialog,.library-selection){grid-column:2}
+}
+@media(min-width:1200px){
+ body[data-shell=studio] .library-browser:not(.tree-expanded) .library-layout.selection-open{grid-template-columns:minmax(0,1fr) minmax(290px,340px)}
+}

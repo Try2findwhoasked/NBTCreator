@@ -5,7 +5,7 @@ export function initAuthoringJourney({state,gather,showPanel,openModel}) {
  const $=id=>document.getElementById(id)
  const panel=document.createElement('section');panel.id='authoring-journey';panel.setAttribute('aria-label','当前编辑进度')
  panel.innerHTML='<div class="journey-heading"><strong id="journey-title"></strong></div><p id="journey-hint"></p>'
- $('studio-inspector-nav').before(panel)
+ $('studio-inspector-nav').after(panel)
  const action=document.createElement('button');action.id='journey-action';action.type='button';document.querySelector('.studio-primary-actions').append(action)
  const title=$('journey-title'),hint=$('journey-hint')
  title.setAttribute('role','status');title.setAttribute('aria-live','polite')
@@ -26,8 +26,10 @@ export function initAuthoringJourney({state,gather,showPanel,openModel}) {
   if(s.info&&parameterError&&!s.busy&&!s.previewBusy&&!s.versionComparing&&!s.transforming)flow={...flow,canSave:false,action:null,tone:'warning',title:'参数需要调整',hint:parameterError}
   result.hidden=!receipt;result.disabled=!!(s.busy||s.previewBusy||s.commitBusy||s.sessionRestoring)
   panel.dataset.tone=flow.tone;panel.dataset.step=String(flow.step)
-  if(title.textContent!==flow.title)title.textContent=flow.title
-  hint.textContent=flow.hint
+  const notesActive=!$('studio-notes')?.hidden&&!!s.info
+  const shownTitle=notesActive?'标注修改意见':flow.title,shownHint=notesActive?'点击画布标记位置，再写下修改要求；标注自动保存，交接由你明确执行。':flow.hint
+  if(title.textContent!==shownTitle)title.textContent=shownTitle
+  hint.textContent=shownHint
   action.hidden=!s.info||!flow.action||homes.has(flow.action);action.disabled=!flow.action;action.textContent=flow.label??'';action.classList.add('primary')
   for(const id of ['update-preview','validate-preview','save-authoring-version','export-revision']){
    const control=$(id),home=homes.get(id),primary=document.querySelector('.studio-primary-actions');control.classList.toggle('primary',flow.action===id)

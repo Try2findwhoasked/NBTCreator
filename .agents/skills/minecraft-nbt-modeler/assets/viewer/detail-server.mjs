@@ -12,6 +12,7 @@ import { spawn } from 'node:child_process'
 import { createViewerServer } from './viewer-server.mjs'
 import { savedEffects } from './saved-effects.mjs'
 import {createProjectOrganization} from './project-organization.mjs'
+import {createAssetGroups} from './asset-groups.mjs'
 import { createFeedbackStore } from './feedback-store.mjs'
 import {createCatalogStore} from './catalog-store.mjs'
 import {createProjectStages} from './project-stages.mjs'
@@ -55,6 +56,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   if (outputRoot === skillRoot || outputRoot.startsWith(skillRoot+path.sep)) throw new Error('Keep jobs outside the skill installation')
   await fs.mkdir(path.join(workspace,'nbt_models/_workspaces/batches'),{recursive:true})
   const projectOrganization=createProjectOrganization(workspace)
+  const assetGroups=createAssetGroups(workspace)
   async function withChildConstraints(catalog){
     const folders=new Set(catalog.constraint_folders??[]),shapes=new Set(Object.keys(toolCatalog.building_shapes))
     for(const folder of folders){if(!shapes.has(folder.split('/').at(-1)))continue
@@ -338,6 +340,8 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         json(res,action==='list'?result:exposeProjectQueue(result))
       } else if(url.pathname==='/__detail__/project-organization'&&['GET','POST'].includes(req.method)){
         json(res,req.method==='GET'?await projectOrganization.read():await projectOrganization.save(await body(req,3*1024*1024)))
+      } else if(url.pathname==='/__detail__/asset-groups'&&['GET','POST'].includes(req.method)){
+        json(res,req.method==='GET'?await assetGroups.read():await assetGroups.save(await body(req,1024*1024)))
       } else if (url.pathname === '/__detail__/project-layout' && ['GET','POST'].includes(req.method)) {
         const directory=path.join(workspace,'.nbtcreator'),file=path.join(directory,'project-manager.json')
         if(req.method==='GET'){

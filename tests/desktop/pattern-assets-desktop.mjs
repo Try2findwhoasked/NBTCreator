@@ -23,7 +23,7 @@ try{
  assert.equal(await page.locator('#effect-assets-gallery').isVisible(),false)
  const builtinMicroCount=Object.keys(JSON.parse(await fs.readFile(path.join(skill,'assets/ornament-patterns/manifest.json'),'utf8'))).filter(key=>key.startsWith('micro-')).length
  assert.equal(await page.locator('[data-pattern-asset-id^="builtin:micro-"]').count(),builtinMicroCount)
- await page.locator('[data-pattern-asset-id="builtin:gothic-pointed-tracery"]').click()
+ await page.locator('[data-pattern-asset-id="builtin:gothic-pointed-tracery"]').dblclick()
  await page.waitForFunction(()=>document.querySelector('#pattern-assets-name').value==='哥特尖拱窗棂')
  assert.equal(await page.locator('#pattern-fit-micro').isChecked(),false)
  assert.equal(await page.locator('#pattern-fit-width').inputValue(),'32')
@@ -32,7 +32,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#pattern-assets-viewer').contentWindow.nbtModeler?.status==='ready')
  await page.locator('#pattern-assets-close').click()
  checks.architectural_preset_uses_full_size_preview=true
- await page.locator('[data-pattern-asset-id="builtin:micro-link"]').click()
+ await page.locator('[data-pattern-asset-id="builtin:micro-link"]').dblclick()
  await page.locator('#pattern-fit-width').fill('2');await page.locator('#pattern-fit-height').fill('2')
  await page.locator('#pattern-fit-repeat-u').fill('1');await page.locator('#pattern-fit-repeat-v').fill('1')
  await page.locator('#pattern-assets-fit').click()
@@ -42,7 +42,7 @@ try{
  await page.screenshot({path:path.join(output,'micro-link-two-block.png')})
  await page.locator('#pattern-assets-close').click()
  checks.small_builtin_ring_is_visible_and_fits_at_two_blocks=true
- await page.locator('[data-pattern-asset-id="builtin:checkerboard"]').click()
+ await page.locator('[data-pattern-asset-id="builtin:checkerboard"]').dblclick()
  await page.waitForFunction(()=>document.querySelector('#pattern-assets-image').naturalWidth>0)
  assert.equal(await page.locator('#pattern-assets-save').isDisabled(),true)
  checks.builtins_are_visible_as_readonly_pattern_assets=true
@@ -87,8 +87,9 @@ try{
  await page.screenshot();await page.waitForTimeout(150)
  await page.screenshot({path:path.join(output,'pattern-asset-fit.png')})
  await page.locator('#pattern-assets-save-component').click()
- await page.waitForFunction(()=>document.querySelector('#asset-kind-components').getAttribute('aria-pressed')==='true'&&document.querySelectorAll('.asset-card').length===1)
- assert.equal((await post('structure_list',{})).items.length,1)
+ await page.waitForFunction(()=>document.querySelector('#asset-kind-components').getAttribute('aria-pressed')==='true')
+ const savedComponents=(await post('structure_list',{})).items;assert.equal(savedComponents.length,1)
+ await page.waitForFunction(id=>document.querySelector('#asset-kind-components').getAttribute('aria-pressed')==='true'&&[...document.querySelectorAll('.asset-card')].some(card=>card.dataset.assetId===id),savedComponents[0].id)
  checks.pattern_can_be_fitted_and_saved_as_a_separate_component=true
  await page.locator('#asset-kind-patterns').click();await page.waitForFunction(count=>document.querySelectorAll('.pattern-asset-card').length===count,builtinCount+2)
  await page.locator('#asset-search').fill('组合花纹测试');assert.equal(await page.locator('.pattern-asset-card').count(),1)
@@ -98,7 +99,7 @@ try{
  assert.equal((await post('pattern_assets',{action:'list'})).items.filter(item=>!item.builtin).length,3)
  await page.locator('#pattern-assets-close').click()
  checks.image_upload_is_imported_as_an_independent_native_asset=true
- assert.equal(await page.locator('#asset-workspace .library-layout').isVisible(),false)
+ assert.equal(await page.locator('#asset-workspace > .library-layout').isVisible(),false)
  assert.equal(await page.locator('#pattern-assets-gallery').isVisible(),true)
  await page.screenshot();await page.waitForTimeout(150);await page.screenshot({path:path.join(output,'pattern-asset-library.png')})
  await page.reload();await page.locator('#asset-kind-patterns').click();await page.waitForFunction(count=>document.querySelectorAll('.pattern-asset-card').length===count,builtinCount+3)

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import {positionComponent,confirmComponent} from '../support/component-placement.mjs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import {spawnSync} from 'node:child_process'
@@ -28,17 +29,18 @@ try{
  await page.waitForFunction(()=>window.detailControl?.state.catalogReady)
  assert.equal(await page.evaluate(()=>window.detailControl.state.info),null)
  await page.locator('button[data-workspace=assets]').evaluate(e=>e.click())
- await page.locator('.asset-card').waitFor();await page.locator('.asset-card').evaluate(e=>e.click())
- for(const id of ['asset-place','asset-pick','asset-use-range','asset-adjust-3d'])assert.equal(await page.locator('#'+id).isDisabled(),true)
+ const localAsset=page.locator('.asset-card[data-source-id=local]')
+ await localAsset.waitFor();await localAsset.evaluate(e=>e.click())
+ assert.equal(await page.locator('#asset-place').isEnabled(),true)
+ assert.equal(await page.locator('#asset-place').textContent(),'选择目标建筑')
  assert.equal(await page.locator('#asset-update').isEnabled(),true)
- assert.ok((await page.locator('#asset-target').textContent()).includes('请先'))
- checks.no_target_disables_placement_and_keeps_library_management=true
+ checks.no_target_offers_direct_building_selection=true
 
  await page.locator('.asset-management > summary').click();await page.locator('#asset-edit-name').fill('');await click('asset-update')
  await page.waitForFunction(()=>!document.querySelector('#asset-update').disabled&&document.querySelector('#asset-detail-status').classList.contains('error'))
  assert.equal(await page.locator('#asset-detail-status').isVisible(),true)
  assert.ok((await page.locator('#asset-detail-status').textContent()).length>0)
- assert.equal(await page.locator('.asset-card strong').textContent(),'交互测试石柱')
+ assert.equal(await localAsset.locator('strong').textContent(),'交互测试石柱')
  await page.screenshot();await page.waitForTimeout(150);await page.screenshot({path:path.join(output,'error-in-inspector.png')})
  checks.rename_error_visible_in_active_dialog_and_original_kept=true
 
@@ -48,41 +50,44 @@ try{
  for(const id of ['asset-update','asset-edit-name','asset-edit-tags','asset-archive','asset-place'])assert.equal(await page.locator('#'+id).isDisabled(),true)
  assert.equal(await page.locator('#asset-inspector-close').isEnabled(),true)
  await click('asset-inspector-close');release()
- await page.waitForFunction(()=>document.querySelector('.asset-card strong').textContent==='交互验收石柱'&&document.querySelector('#asset-inspector-dialog').getAttribute('aria-busy')==='false')
+ await page.waitForFunction(()=>document.querySelector('.asset-card[data-source-id=local] strong').textContent==='交互验收石柱'&&document.querySelector('#asset-inspector-dialog').getAttribute('aria-busy')==='false')
  await page.unroute('**/__detail__/components/update')
  assert.equal(await page.locator('#asset-inspector-dialog').evaluate(e=>e.open),false)
  await click('asset-refresh');assert.equal(await page.locator('#asset-inspector-dialog').evaluate(e=>e.open),false)
  checks.inflight_management_is_locked_and_closed_dialog_stays_closed=true
 
- await page.locator('button[data-workspace=project]').evaluate(e=>e.click());await page.locator('.project-card-open').first().evaluate(e=>e.click());await page.waitForFunction(()=>!window.detailControl.state.busy);await click('project-preview-edit')
+ await localAsset.evaluate(e=>e.click());await click('asset-place')
+ await page.waitForSelector('.library-target-request:not([hidden])')
+ await page.locator('.project-card-edit').click()
+ await page.locator('#component-editor').waitFor()
+ await page.locator('#component-transform-cancel').click()
+ await page.locator('#component-editor').waitFor({state:'hidden'})
  await page.waitForFunction(()=>window.detailControl.state.info&&!window.detailControl.state.busy&&window.detailControl.state.mode==='3d')
  let releasePreview,previewSeen;const previewWaiting=new Promise(resolve=>previewSeen=resolve)
  await page.route('**/__detail__/jobs',async route=>{if(route.request().method()==='POST'&&route.request().postDataJSON()?.kind==='preview'){previewSeen();await new Promise(resolve=>releasePreview=resolve)}await route.continue()})
  await click('update-preview');await previewWaiting
- await page.locator('button[data-workspace=assets]').evaluate(e=>e.click());await page.locator('.asset-card').evaluate(e=>e.click())
+ await page.locator('button[data-workspace=assets]').evaluate(e=>e.click());await localAsset.evaluate(e=>e.click())
  assert.equal(await page.locator('#asset-place').isDisabled(),true);assert.equal(await page.locator('#asset-inspector-close').isEnabled(),true)
  releasePreview();await page.waitForFunction(()=>!window.detailControl.state.previewBusy&&!document.querySelector('#asset-place').disabled);await page.unroute('**/__detail__/jobs')
  await click('asset-inspector-close')
  checks.model_preview_busy_state_blocks_placement_and_recovers=true
- await page.locator('button[data-workspace=assets]').evaluate(e=>e.click());await page.locator('.asset-card').evaluate(e=>e.click())
- for(const [axis,value]of [['x',60],['y',4],['z',16]])await page.locator('#asset-position-'+axis).fill(String(value))
- await click('asset-place');await page.waitForFunction(()=>!document.querySelector('#asset-place').disabled&&document.querySelector('#asset-detail-status').classList.contains('error'))
- assert.equal(await page.locator('#asset-inspector-dialog').evaluate(e=>e.open),true)
- assert.equal(await page.locator('#asset-detail-status').isVisible(),true)
- await page.locator('#asset-inspector-dialog').evaluate(e=>e.scrollTop=e.scrollHeight);await page.waitForTimeout(50)
- assert.equal(await page.locator('#asset-detail-status').evaluate(e=>{const r=e.getBoundingClientRect(),d=e.closest('dialog').getBoundingClientRect();return r.top>=d.top&&r.bottom<=d.bottom}),true)
+ await page.locator('button[data-workspace=assets]').evaluate(e=>e.click());await localAsset.evaluate(e=>e.click())
+ await click('asset-place');await positionComponent(page,[60,4,16])
+ await page.waitForFunction(()=>document.querySelector('#component-transform-message').classList.contains('error'))
+ assert.equal(await page.locator('#asset-inspector-dialog').evaluate(e=>e.open),false)
+ assert.equal(await page.locator('#component-transform-message').isVisible(),true)
  assert.deepEqual(await page.evaluate(()=>window.detailControl.gather().operations),[])
- checks.out_of_bounds_placement_reports_in_dialog_without_mutation=true
+ checks.out_of_bounds_placement_reports_in_editor_without_mutation=true
 
- await page.locator('#asset-position-x').fill('16');await click('asset-place')
+ await positionComponent(page,[16,4,16]);await confirmComponent(page)
  await page.waitForFunction(()=>document.body.dataset.workspace==='model'&&!window.detailControl.state.previewBusy&&!window.detailControl.state.commitBusy&&window.detailControl.state.preview)
  assert.ok((await page.evaluate(()=>window.detailControl.gather().operations)).length)
  checks.failed_placement_can_be_corrected_and_retried=true
  const valid=await page.locator('#operation-sequence').inputValue()
  await page.locator('#operation-sequence').evaluate(e=>{e.value='{';e.dispatchEvent(new Event('input',{bubbles:true}))})
- await page.locator('button[data-workspace=assets]').evaluate(e=>e.click());await page.locator('.asset-card').evaluate(e=>e.click())
+ await page.locator('button[data-workspace=assets]').evaluate(e=>e.click());await localAsset.evaluate(e=>e.click())
  assert.equal(await page.locator('#asset-place').isDisabled(),true)
- assert.ok((await page.locator('#asset-target').textContent()).includes('参数尚未'))
+ assert.match(await page.locator('#asset-target').textContent(),/补齐.*参数/)
  assert.equal(await page.locator('#asset-update').isEnabled(),true)
  await click('asset-inspector-close');await page.locator('#operation-sequence').evaluate((e,text)=>{e.value=text;e.dispatchEvent(new Event('input',{bubbles:true}))},valid)
  checks.unfinished_model_parameters_do_not_break_library_management=true

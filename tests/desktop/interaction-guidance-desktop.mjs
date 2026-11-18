@@ -17,9 +17,9 @@ try {
  await page.locator('.project-empty button').click()
  const frame=page.frameLocator('#prompt-frame')
  await page.waitForFunction(()=>document.querySelector('#prompt-frame').contentDocument?.body?.dataset.promptReady==='true')
- await frame.locator('#prompt-ai-settings').click();await page.waitForFunction(()=>document.body.dataset.workspace==='ai')
+ await frame.locator('#prompt-more>summary').click();await frame.locator('#prompt-ai-settings').click();await page.waitForFunction(()=>document.body.dataset.workspace==='ai')
  await page.locator('#close-api').click();await page.waitForFunction(()=>document.body.dataset.workspace==='prompt')
- assert.equal(await page.locator('#close-prompt').textContent(),'返回建筑库')
+ assert.equal(await frame.locator('#prompt-back').textContent(),'返回')
  checks.ai_settings_preserves_planning_return_path=true
  await frame.locator('#prompt-write-manually').click()
  assert.equal(await frame.locator('#project-fields').isVisible(),true)
@@ -38,7 +38,7 @@ try {
   assert.deepEqual(overflow,{shell:false,prompt:false},JSON.stringify({width,overflow}))
   await page.screenshot({path:path.join(output,'planning-'+width+'.png')})
  }
- await page.locator('#close-prompt').click();await page.waitForFunction(()=>document.body.dataset.workspace==='project')
+ await frame.locator('#prompt-back').click();await page.waitForFunction(()=>document.body.dataset.workspace==='project')
  await page.locator('[data-workspace=model]').click();assert.match(await page.locator('#journey-title').textContent(),/从一座建筑开始/)
  assert.equal(await page.locator('#export-revision').isDisabled(),true)
  await page.locator('#studio-inspector-toggle').click()

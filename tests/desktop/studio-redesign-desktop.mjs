@@ -15,14 +15,19 @@ let app,page
 const run=(args)=>{const result=spawnSync(python,args,{encoding:'utf8',windowsHide:true});assert.equal(result.status,0,result.stdout+result.stderr);return result.stdout}
 const click=selector=>page.locator(selector).first().click()
 const idle=()=>page.waitForFunction(()=>!window.detailControl.state.busy&&!window.detailControl.state.previewBusy&&!window.detailControl.state.commitBusy&&!window.detailControl.state.sessionRestoring)
-const go=async panel=>{await click('[data-studio-view='+ (panel==='checks'?'inspect':'prepare') +']');if(panel!=='checks')await click('#studio-panel-'+panel)}
+const go=panel=>click('#studio-panel-'+panel)
 async function capture(name){await page.screenshot({path:path.join(output,name+'.png')});captures.push({name,...await page.evaluate(()=>({workspace:document.body.dataset.workspace,view:document.getElementById('studio-workspace').dataset.view,viewport:[innerWidth,innerHeight],title:document.getElementById('studio-object-meta').textContent}))})}
 async function layout(name){const result=await page.evaluate(()=>{
  const issues=[],visible=e=>!!e.getClientRects().length&&!e.closest('[hidden]')
  if(document.documentElement.scrollWidth>innerWidth+1)issues.push('horizontal overflow')
- const selectors=['.creator-header','[data-studio-view]','.studio-primary-actions>.primary','#settings-save','#setting-open-ai','#close-settings','#close-prompt']
+ const selectors=['.creator-header','#studio-inspector-nav button','.studio-primary-actions>.primary','#settings-save','#setting-open-ai','#close-settings','#close-prompt']
  for(const selector of selectors)for(const e of document.querySelectorAll(selector))if(visible(e)){const r=e.getBoundingClientRect();if(r.left<0||r.right>innerWidth+1||r.top<0||r.bottom>innerHeight+1)issues.push('offscreen '+(e.id||selector))}
- const frame=document.getElementById('prompt-frame');if(document.body.dataset.workspace==='prompt'&&frame.contentDocument){const d=frame.contentDocument;if(d.documentElement.scrollWidth>frame.contentWindow.innerWidth+1)issues.push('prompt horizontal overflow');const e=d.getElementById('left-save'),r=e.getBoundingClientRect();if(visible(e)&&r.bottom>frame.clientHeight+1)issues.push('prompt main action offscreen')}
+ if(document.body.dataset.workspace==='project'){
+  const controls=['#project-quick-version','#project-workspace .library-search','#project-filters-menu>summary','#project-workspace .library-view-switch']
+  const sizes=controls.map(selector=>document.querySelector(selector).getBoundingClientRect())
+  if(sizes.some(rect=>Math.abs(rect.height-34)>1))issues.push('library toolbar control heights: '+sizes.map(rect=>rect.height).join(', '))
+ }
+ const frame=document.getElementById('prompt-frame');if(document.body.dataset.workspace==='prompt'&&frame.contentDocument){const d=frame.contentDocument;if(d.documentElement.scrollWidth>frame.contentWindow.innerWidth+1)issues.push('prompt horizontal overflow');const e=d.getElementById('prompt-primary'),r=e.getBoundingClientRect();if(visible(e)&&r.bottom>frame.clientHeight+1)issues.push('prompt main action offscreen')}
  return {issues,width:innerWidth,height:innerHeight,canvas:document.querySelector('.canvas-wrap').getBoundingClientRect().toJSON()}
  });layouts.push({name,...result});assert.deepEqual(result.issues,[],JSON.stringify({name,...result}))}
 try{
@@ -34,15 +39,34 @@ try{
  await click('.project-empty button');const f=page.frameLocator('#prompt-frame')
  await page.waitForFunction(()=>document.querySelector('#prompt-frame').contentDocument?.body.dataset.promptReady==='true')
  await f.locator('#prompt-write-manually').click();await f.locator('[data-field=name]').fill('山城工坊 · 手写方案')
- await page.waitForFunction(()=>document.querySelector('#prompt-frame').contentDocument.getElementById('prompt-editor-save-state').textContent==='已自动保存')
+ await page.evaluate(()=>document.querySelector('#prompt-frame').contentWindow.NbtPromptUI.flushExport())
  const promptBefore=await f.locator('[data-field=name]').inputValue();await click('#studio-ai-settings');await click('#close-api');assert.equal(await f.locator('[data-field=name]').inputValue(),promptBefore)
- await capture('planning');await f.locator('#left-save').click();await page.waitForFunction(()=>!document.querySelector('#prompt-frame').contentDocument.getElementById('prompt-task-handoff').hidden)
- assert.match(await f.locator('#prompt-task-state').textContent(),/已交接/);await capture('handoff');await click('#close-prompt');await page.waitForFunction(()=>document.body.dataset.workspace==='project')
+ await capture('planning');await f.locator('#prompt-primary').click();await page.waitForFunction(()=>!document.querySelector('#prompt-frame').contentDocument.getElementById('prompt-task-handoff').hidden)
+ assert.match(await f.locator('#prompt-task-state').textContent(),/已交接/);assert.equal(await f.locator('#prompt-primary').textContent(),'复制读取命令');await capture('handoff')
+ await f.locator('#prompt-list-select').click();await f.locator('#prompt-selection-all').click();assert.match(await f.locator('#prompt-selection-count').textContent(),/已选 1/)
+ await f.locator('#prompt-selection-recycle').click();await f.locator('#prompt-delete-confirm').click()
+ await f.locator('#prompt-scope-trash').click();await f.locator('#prompt-list-select').click();await f.locator('#prompt-selection-all').click();await f.locator('#prompt-selection-recycle').click();await f.locator('#prompt-delete-confirm').click()
+ await f.locator('#prompt-scope-published').click();await f.locator('[data-prompt-id]').waitFor();assert.equal(await f.locator('#prompt-primary').textContent(),'复制读取命令')
+ await f.locator('#prompt-back').click();await page.waitForFunction(()=>document.body.dataset.workspace==='project')
  checks.empty_library_manual_document_handoff_and_return=true
 
  const folder=path.join(workspace,'nbt_models/single/山城工坊/v1');run([path.join(root,'tests/support/make_fixture.py'),folder])
  run(['-c',`import sys;sys.path.insert(0,sys.argv[1]);from nbt_components import store;store(sys.argv[2],dict(schema_version=1,name='工坊石柱',tags=['柱'],size=[1,4,1],anchor=[0,0,0],palette=['gold_block'],blocks=[[0,y,0,0,False] for y in range(4)]))`,path.join(skill,'scripts'),workspace])
  await click('#project-library-menu>summary');await click('#project-refresh');await page.waitForSelector('.project-card-open')
+ const treeToggle=page.locator('#project-workspace .library-tree-toggle');assert.equal(await treeToggle.getAttribute('aria-expanded'),'true')
+ await treeToggle.click();await page.locator('#project-tree').waitFor({state:'hidden'});assert.equal(await treeToggle.getAttribute('aria-expanded'),'false')
+ await treeToggle.click();await page.locator('#project-tree').waitFor();assert.equal(await treeToggle.getAttribute('aria-expanded'),'true')
+ await click('#project-filters-menu>summary')
+ const summaries=await page.locator('#project-filter-controls details > summary').evaluateAll(nodes=>nodes.map(summary=>{
+  const value=summary.querySelector('strong'),text=value.firstElementChild
+  return {summary:summary.clientHeight,box:value.clientHeight,bottom:text.getBoundingClientRect().bottom,boxBottom:value.getBoundingClientRect().bottom}
+ }))
+ assert.ok(summaries.every(row=>row.summary>=50&&row.box>=34&&row.bottom<=row.boxBottom),JSON.stringify(summaries))
+ await page.keyboard.press('Escape')
+ await click('#project-select');await click('#project-select-filtered');assert.match(await page.locator('#project-batch-count').textContent(),/已选 1/);assert.equal(await page.locator('#project-preview-dialog').isVisible(),false)
+ await click('#project-recycle-versions');await click('#project-manage-selection button[value=confirm]');await page.waitForFunction(()=>!document.querySelector('.project-card-open'))
+ await click('#project-trash');await click('#project-select');await click('#project-select-filtered');await click('#project-recycle-versions');await click('#project-manage-selection button[value=confirm]')
+ await page.waitForFunction(()=>!document.querySelector('.project-card-open'));await click('#project-trash');await page.waitForSelector('.project-card-open')
  await click('#project-library-menu>summary');await click('#project-generate-thumbnails');await page.waitForSelector('.project-cover img');await capture('library')
  await click('.project-card-open');await click('#project-preview-edit');await idle();await page.waitForFunction(()=>document.querySelector('#viewer').contentWindow?.nbtModeler?.status==='ready')
  const source=path.join(folder,'synthetic.master.json.gz'),hash=b=>createHash('sha256').update(b).digest('hex'),original=hash(await fs.readFile(source))
@@ -51,10 +75,43 @@ try{
  await page.locator('#pick-material').press('Escape');assert.equal(await page.locator('#studio-canvas-mode').isVisible(),false);assert.equal(await page.evaluate(()=>document.activeElement.id),'pick-material')
  await click('#pick-coordinate');await page.locator('#feedback-text').fill('尚未保存的修改意见');await page.locator('#feedback-text').press('Escape');assert.equal(await page.evaluate(()=>document.activeElement.id),'pick-coordinate');await go('tools')
  checks.canvas_modes_escape_and_focus=true
- await click('[data-workspace=assets]');await page.waitForSelector('.asset-card');await click('.asset-card');for(const [axis,value]of [['x',16],['y',4],['z',16]])await page.locator('#asset-position-'+axis).fill(String(value))
- await click('#asset-detail .placement-methods>summary');await click('#asset-adjust-3d');await page.waitForFunction(()=>window.detailControl.state.transforming);assert.equal(await page.locator('#studio-inspector #component-editor').count(),1);await page.locator('#component-transform-x').press('Escape');await page.waitForFunction(()=>!window.detailControl.state.transforming);assert.equal(await page.evaluate(()=>window.detailControl.gather().operations.length),0)
- await click('[data-workspace=assets]');await click('.asset-card');for(const [axis,value]of [['x',16],['y',4],['z',16]])await page.locator('#asset-position-'+axis).fill(String(value));await click('#asset-place');await idle();await page.waitForFunction(()=>window.detailControl.state.preview)
+ await click('[data-workspace=assets]');await page.waitForSelector('.asset-card')
+ const assetCount=Number((await page.locator('#asset-count').textContent()).match(/^\d+/)[0])
+ assert.ok(assetCount>await page.locator('#asset-grid .asset-card').count(),'Fixture must contain unloaded results')
+ await click('#asset-groups-toggle');await click('#asset-group-select-all')
+ assert.equal(await page.locator('#asset-group-selection').textContent(),`已选 ${assetCount} 项`)
+ assert.ok(await page.locator('#asset-grid .asset-group-select input').evaluateAll(inputs=>inputs.length&&inputs.every(input=>input.checked)))
+ await click('#asset-group-done')
+ checks.asset_select_all_includes_unloaded_results=true
+ async function beginPlacement(){
+  await click('[data-workspace=assets]');await page.waitForSelector('.asset-card');await click('.asset-card')
+  await click('#asset-place');await page.waitForFunction(()=>window.detailControl.state.transforming)
+  assert.equal(await page.locator('#studio-inspector #component-editor').count(),1)
+ }
+ await beginPlacement()
+ await page.locator('#component-transform-surface').press('Escape');await page.waitForFunction(()=>!window.detailControl.state.transforming);assert.equal(await page.evaluate(()=>window.detailControl.gather().operations.length),0)
+ await beginPlacement()
+ const floorPoint=await page.evaluate(()=>{
+  const viewer=document.querySelector('#viewer').contentWindow.nbtModeler
+  for(let y=-.9;y<.9;y+=.04)for(let x=-.8;x<.8;x+=.04){
+   const hit=viewer.pickBlock(x,y)
+   if(hit?.normal[1]===1&&hit.position[1]===3&&hit.position[0]>3&&hit.position[2]>3&&hit.position[0]<44&&hit.position[2]<44)return {x,y}
+  }
+ })
+ assert.ok(floorPoint,'3D fixture must show a placeable floor surface')
+ const placementCanvas=await page.frameLocator('#viewer').locator('#preview').boundingBox()
+ await page.mouse.click(placementCanvas.x+(floorPoint.x+1)*placementCanvas.width/2,placementCanvas.y+(1-floorPoint.y)*placementCanvas.height/2)
+ await page.waitForFunction(()=>!document.querySelector('#component-transform-apply').disabled)
+ assert.equal(await page.evaluate(()=>window.detailControl.gather().operations.length),0)
+ await click('#component-transform-apply');await page.waitForFunction(()=>!window.detailControl.state.transforming&&window.detailControl.state.preview)
  await capture('editor');assert.match(await page.locator('#studio-object-scope').textContent(),/构件实例/)
+ await go('more')
+ assert.equal(await page.locator('#studio-inspector-nav #studio-panel-checks').count(),1)
+ assert.equal(await page.locator('#studio-actions #studio-panel-checks').count(),0)
+ assert.equal(await page.locator('#studio-more .studio-side-card').count(),4)
+ assert.equal(await page.locator('#studio-more .studio-card-actions .inline-info').isVisible(),true)
+ assert.equal(await page.locator('#authoring-journey').isVisible(),false)
+ checks.editor_sidebar_cards_and_delivery_navigation=true
  await go('notes');await page.locator('#feedback-text').fill('候选画面的修改意见草稿');await go('tools')
  const pose=await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.metadata())
  await go('checks');await go('tools');const returned=await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.metadata());assert.deepEqual(returned.camera,pose.camera);assert.deepEqual(returned.cuts,pose.cuts);assert.equal(await page.locator('#feedback-text').inputValue(),'候选画面的修改意见草稿')
@@ -66,6 +123,7 @@ try{
  await click('#update-preview');await page.waitForFunction(()=>document.getElementById('status').textContent.includes('专项回归'));await idle();await capture('preview-failure');await page.unroute('**/__detail__/jobs');await click('#update-preview');await idle();await page.waitForFunction(()=>window.detailControl.state.previewSettings===JSON.stringify(window.detailControl.gather()))
  await go('checks');await click('#open-version-compare');await page.locator('#version-compare-kind').selectOption('candidate');await click('#start-version-compare');await page.waitForFunction(()=>window.detailControl.state.versionComparing);await page.frameLocator('#viewer').locator('#preview').press('Escape');await page.waitForFunction(()=>!window.detailControl.state.versionComparing);assert.equal(await page.locator('#studio-canvas-mode').isVisible(),false);checks.readonly_compare_escape_restores_editor=true
  await click('#validate-preview');await idle();assert.equal(await page.evaluate(()=>window.detailControl.state.candidateValidation.passed),true);await capture('checks-delivery')
+ assert.equal(await page.locator('#studio-inspector-nav').isVisible(),true)
  await page.route('**/__detail__/jobs',route=>route.request().method()==='POST'&&route.request().postDataJSON()?.kind==='revision'?route.fulfill({status:400,contentType:'application/json',body:JSON.stringify({error:'专项回归：保存失败'})}):route.continue());await click('#save-authoring-version');await page.waitForFunction(()=>document.getElementById('status').textContent.includes('制作版未保存'));assert.equal(await page.evaluate(()=>document.body.dataset.workspace),'model');assert.equal(await page.evaluate(()=>document.activeElement.id),'save-authoring-version');await page.unroute('**/__detail__/jobs')
  await click('#save-authoring-version');await idle();assert.equal(await page.locator('#journey-title').textContent(),'制作版已保存');assert.equal(hash(await fs.readFile(source)),original);await click('#journey-action');await page.waitForFunction(source=>window.detailControl.state.info.source!==source,source);await idle();assert.notEqual(await page.evaluate(()=>window.detailControl.state.info.source),source);assert.match(await page.locator('#studio-object-meta').textContent(),/^v\d+ ·/)
  await click('#update-preview');await idle();await go('checks');await click('#export-revision');await idle();assert.equal(await page.locator('#journey-title').textContent(),'NBT 已导出')

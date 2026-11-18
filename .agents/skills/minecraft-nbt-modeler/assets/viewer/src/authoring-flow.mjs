@@ -8,6 +8,7 @@ export function authoringFlow(state, current, saved) {
  if (state.busy || state.previewBusy || state.commitBusy) return {...base, step:1, title:'正在处理本次操作', hint:'完成后会显示结果；具体进度可在底部运行记录中查看。'}
  if (saved) return {...base, step:2, tone:'success', title:saved.draftOnly?'制作版已保存':'NBT 已导出', hint:'当前仍显示保存前的版本。打开新版本后再继续修改或导出；文件位置可在运行记录中查看。', action:'open-saved', label:'打开新版本'}
  if (!current) return {...base, title:state.preview?'参数已改变，预览需要更新':'调整参数，再看效果', hint:state.preview?'画面仍是上一次的结果。更新预览后才能保存这次修改。':'选择建造工具，或从素材库放入构件。原始建筑会保留。', action:'update-preview', label:'更新预览'}
+ if (state.preview?.missing_checks?.length) return {...base, step:1, tone:'warning', title:'缺少室内检查点', hint:'位置已预览。请在检查页补齐坐标配置，再检查和保存。', action:'checks', label:'查看检查资料'}
  const ready = {...base, step:1, canSave:true}
  if (state.candidateValidation?.passed === false) return {...ready, tone:'warning', title:'检查发现需要处理的问题', hint:'查看检查报告，调整参数后重新预览。检查结果不代表看图确认。', action:'checks', label:'查看检查问题'}
  if (state.candidateValidation?.passed) return {...ready, step:2, tone:'success', title:'检查通过，请确认画面', hint:'对比原建筑与本次修改。继续制作可保存制作版；确认定稿后再导出 NBT。', action:'save-authoring-version', label:'保存制作版'}

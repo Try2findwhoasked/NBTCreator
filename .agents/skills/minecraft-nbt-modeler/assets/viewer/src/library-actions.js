@@ -26,18 +26,21 @@ export function arrangeLibraryActions(){
  }
  menu($('project-native-actions'),'project-library-menu','建筑库工具',[
   ['项目与方案',['project-workspace-menu','studio-project-new','architect-tools-menu']],
-  ['批量处理',['project-select','project-queue-open','batch-workspaces-open']],
+  ['批量处理',['project-queue-open','batch-workspaces-open']],
   ['列表显示',['project-refresh','project-generate-thumbnails','project-tree-sort-reset','project-auto-more']]
  ])
  const assets=$('asset-workspace')
  menu(assets.querySelector('.library-actions'),'asset-library-menu','素材库工具',[
-  ['添加与制作',['asset-import','asset-create-agent','asset-save-selection','pattern-assets-import','pattern-assets-new','effect-assets-capture']],
+  ['添加与制作',['asset-import','asset-create-agent']],
   ['素材管理',['asset-libraries-open','asset-batches-open','tool-effects-open','asset-refresh']]
  ])
  // Pattern and effect tools used to be scoped by their parent gallery.
  for(const [kind,ids] of Object.entries({patterns:['pattern-assets-import','pattern-assets-new'],effects:['effect-assets-capture']})){
   for(const id of ids)$(id).dataset.toolKind=kind
  }
+ // Frequent create actions stay visible beside search for the selected edition.
+ const assetToolbar=assets.querySelector('.library-toolbar')
+ for(const id of ['pattern-assets-import','pattern-assets-new','effect-assets-capture'])assetToolbar.append($(id))
  const projectFilter=$('project-filter-controls'),assetFilter=$('asset-filters-menu').querySelector('.library-filter-panel')
  const quick=$('project-quick-version')
  $('project-workspace').querySelector('.library-toolbar').insertBefore(quick.closest('label'),$('project-filters-menu'))
@@ -46,15 +49,10 @@ export function arrangeLibraryActions(){
  assetFilter.prepend(assetReview.closest('label'),assetSort.closest('label'))
  assetFilter.append($('asset-reset-view'))
  const select=$('project-select'),toolbar=$('project-workspace').querySelector('.library-toolbar')
- const menuHome=select.parentElement
  select.addEventListener('click',()=>{
   const active=select.getAttribute('aria-pressed')==='true'
-  if(active){toolbar.insertBefore(select,$('project-selection-menu'));select.textContent='退出多选'}
-  else{menuHome.prepend(select);select.textContent='批量选择建筑'}
   const compare=toolbar.querySelector('.library-compare-mode')
-  if(active&&compare.getAttribute('aria-pressed')==='true')compare.click()
-  compare.hidden=active
+  if(active&&compare?.getAttribute('aria-pressed')==='true')compare.click()
  })
- select.textContent='批量选择建筑'
  projectFilter.querySelector('#project-clear').textContent='恢复默认筛选'
 }

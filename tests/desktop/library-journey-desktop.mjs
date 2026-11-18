@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import {positionComponent,confirmComponent} from '../support/component-placement.mjs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import {createRequire} from 'node:module'
@@ -79,16 +80,15 @@ try{
  assert.ok(await dialog.getByRole('row',{name:/方块数/}).textContent().then(text=>text.includes('2')&&text.includes('3')))
  await capture('component-comparison')
  await dialog.getByRole('button',{name:'查看与放置'}).last().click()
- await click('#asset-choose-building')
- await page.waitForSelector('.library-target-request:not([hidden])')
- await page.selectOption('#project-quick-version','latest')
- await click('#project-grid .project-card-edit')
- await page.waitForSelector('#asset-inspector-dialog[open]')
  assert.equal(await page.locator('#asset-name').textContent(),'青石柱')
- assert.ok(!(await page.locator('#asset-target').textContent()).includes('请先'))
- for(const [axis,value]of [['x',16],['y',4],['z',16]])await page.locator('#asset-position-'+axis).fill(String(value))
- await capture('placement')
+ const needsTarget=await page.locator('#asset-place').textContent()==='选择目标建筑'
  await click('#asset-place')
+ if(needsTarget){
+  await page.waitForSelector('.library-target-request:not([hidden])')
+  await page.selectOption('#project-quick-version','latest')
+  await click('#project-grid .project-card-edit')
+ }
+ await positionComponent(page,[16,4,16]);await capture('placement');await confirmComponent(page)
  await page.waitForFunction(()=>document.body.dataset.workspace==='model'&&window.detailControl.state.preview&&!window.detailControl.state.commitBusy)
  checks.select_target_returns_to_chosen_component_and_previews=true
  await click('button[data-workspace=assets]')

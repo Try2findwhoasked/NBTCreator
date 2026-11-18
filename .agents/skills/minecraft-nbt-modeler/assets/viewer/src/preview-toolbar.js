@@ -8,7 +8,7 @@ export function initPreviewToolbar(){
  $('pause-3d').hidden=true
  const mode=document.createElement('div');mode.className='toolbar-mode';mode.setAttribute('role','group');mode.setAttribute('aria-label','图片或三维');bar.prepend(mode);mode.append(image,three)
  $('three-quality').options[0].textContent='简易';$('three-quality').options[1].textContent='材质';$('three-quality').title='3D 显示质量：简易看形状，材质看方块纹理'
- decorate('pick-material','pick','取材','3D 取材：点击方块读取材质，拖动仍可转向');decorate('pick-coordinate','comment','标注','3D 选点评论：点击表面添加位置编号')
+ decorate('pick-material','pick','取材','3D 取材：点击方块读取材质，拖动仍可转向');decorate('pick-coordinate','comment','选点标注','在图片或 3D 建筑上为修改意见标记位置')
  const selection=$('show-selection').closest('label');selection.classList.add('toolbar-selection');selection.title='显示当前选区范围框；范围框不会写入建筑';selection.lastChild.textContent='范围';$('show-selection').setAttribute('aria-label','显示选区范围框')
  const labels=[...$('three-toolbar').querySelectorAll('label')]
  for(const [index,text,title]of [[0,'视角','预设观察角度，部分视角会隐藏屋顶'],[1,'图层','仅改变显示的主体或墙面，不删除方块'],[2,'剖切','仅显示所选高度以下的方块；完整表示不剖切，不改变导出模型']]){labels[index].firstChild.textContent=text;labels[index].title=title}

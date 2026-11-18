@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import {positionComponent,confirmComponent} from '../support/component-placement.mjs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import http from 'node:http'
@@ -143,21 +144,19 @@ try{
  checks.explicit_copy_creates_an_editable_local_pending_asset=true
  await filter(sourceId,'component')
  await click(`[data-source-id="${sourceId}"][data-asset-type=component]`);await previewReady()
- await click('#asset-choose-building')
+ await click('#asset-place')
  await page.waitForSelector('.library-target-request:not([hidden])')
  await click('#project-grid .project-card-edit')
- await page.waitForSelector('#asset-inspector-dialog[open]');await previewReady()
- for(const [axis,value]of [['x',16],['y',4],['z',16]])await page.locator('#asset-position-'+axis).fill(String(value))
+ await positionComponent(page,[16,4,16])
  await capture('direct-placement')
- await click('#asset-place')
+ await confirmComponent(page)
  await page.waitForFunction(()=>document.body.dataset.workspace==='model'&&window.detailControl.state.preview&&!window.detailControl.state.commitBusy)
  assert.equal(sha(await fs.readFile(source)),original)
  assert.equal((await fs.readdir(path.join(workspace,'.nbtcreator/components'))).filter(name=>/^[a-f0-9]{32}\.json$/.test(name)).length,2)
  checks.connected_component_places_directly_as_candidate_without_import=true
  await click('[data-workspace=assets]');await filter(sourceId,'component')
  await click(`[data-source-id="${sourceId}"][data-asset-type=component]`);await previewReady()
- for(const [axis,value]of [['x',20],['y',4],['z',20]])await page.locator('#asset-position-'+axis).fill(String(value))
- await click('#asset-detail .placement-methods>summary');await click('#asset-adjust-3d')
+ await click('#asset-place');await positionComponent(page,[20,4,20])
  await page.waitForSelector('#component-editor:not([hidden])')
  const previousPreview=await page.evaluate(()=>JSON.stringify(window.detailControl.state.preview))
  await click('#component-transform-apply')

@@ -17,12 +17,13 @@ export function createComponentGizmo({canvas,camera,viewCamera,requestRender,not
   // half a block offset in world space after rotating/mirroring that pivot.
   visual.position.set(.5,.5,.5).applyQuaternion(root.quaternion.clone().invert())
   const bounds=componentBounds(current.component,current.position,current.quarter_turns,current.mirror)
-  box.box.min.fromArray(bounds.lo);box.box.max.fromArray(bounds.hi.map(n=>n+1));box.updateMatrixWorld(true);box.visible=true
+  box.box.min.fromArray(bounds.lo);box.box.max.fromArray(bounds.hi.map(n=>n+1));box.updateMatrixWorld(true);box.visible=!current.pick_surface
+  visual.visible=!current.pick_surface&&current.show_ghost!==false
   box.userData.valid=bounds.lo.every((n,i)=>n>=0&&bounds.hi[i]<current.model_size[i]);box.material.color.setHex(box.userData.valid?0x6fbbff:0xf26778);mesh.material.color.setHex(box.userData.valid?0x64b5f6:0xf26778)
   controls.setMode(current.mode);controls.showX=current.mode!=='rotate';controls.showY=true;controls.showZ=current.mode!=='rotate';controls.setTranslationSnap(current.grid);controls.enabled=!current.pick_surface
   scene.updateMatrixWorld(true);handlesScene.updateMatrixWorld(true);requestRender()
  }
- function publish(){const value=state(),key=JSON.stringify([value.position,value.quarter_turns]);if(key!==last){last=key;notify(value)}}
+ function publish(){const value=state(),key=JSON.stringify([value.position,value.quarter_turns,value.dragging]);if(key!==last){last=key;notify(value)}}
  controls.addEventListener('change',requestRender)
  controls.addEventListener('dragging-changed',event=>{viewCamera.setInteractionEnabled(!event.value);canvas.dataset.transformDragging=String(event.value);if(!event.value&&current)publish()})
  controls.addEventListener('objectChange',()=>{if(syncing||!current)return
@@ -48,7 +49,7 @@ export function createComponentGizmo({canvas,camera,viewCamera,requestRender,not
    mesh=new InstancedMesh(new BoxGeometry(.98,.98,.98),new MeshBasicMaterial({color:0x64b5f6,opacity:.48,transparent:true,depthWrite:false,toneMapped:false}),solid.length)
    const matrix=new Matrix4();solid.forEach((b,i)=>{matrix.makeTranslation(...b.slice(0,3).map((v,i)=>v-next.component.anchor[i]));mesh.setMatrixAt(i,matrix)});mesh.instanceMatrix.needsUpdate=true;mesh.frustumCulled=false;visual.add(mesh)
   }
-  current=next;syncing=true;try{update();controls.attach(root)}finally{syncing=false}last=JSON.stringify([next.position,next.quarter_turns]);return state()
+  current=next;syncing=true;try{update();controls.attach(root);controls.visible=!current.pick_surface}finally{syncing=false}last=JSON.stringify([next.position,next.quarter_turns,controls.dragging]);return state()
  }
  function screenHandles(){if(!current||!controls.enabled)return[];handlesScene.updateMatrixWorld(true);camera.updateMatrixWorld(true);const rect=canvas.getBoundingClientRect(),result=[]
   for(const object of controls._gizmo.picker[current.mode].children){if(!object.visible||!['X','Y','Z','XY','XZ','YZ'].includes(object.name))continue
