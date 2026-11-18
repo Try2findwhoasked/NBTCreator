@@ -6,7 +6,7 @@ archive=importlib.util.module_from_spec(spec);spec.loader.exec_module(archive)
 class PortableContracts(unittest.TestCase):
     def make_app(self,folder):
         app=folder/'NBTCreator-win32-x64'
-        for name in ['NBTCreator.exe','resources/app/runtime/python/python.exe','resources/app/runtime/browser/chrome.exe','resources/app/runtime/git/cmd/git.exe','resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md']:
+        for name in ['NBTCreator.exe','mise.cmd','resources/app/runtime/browser/chrome.exe','resources/app/runtime/mise/mise.exe','resources/app/runtime/mise/LICENSE.txt','resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md']:
             p=app/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(name.encode())
         return app
     def test_hidden_skill_roundtrip_and_no_overwrite(self):
@@ -34,5 +34,16 @@ class PortableContracts(unittest.TestCase):
             code={f['path']:f['sha256'] for f in manifests['application']['files']}
             runtime={f['path']:f['sha256'] for f in manifests['runtime']['files']}
             self.assertFalse(set(code)&set(runtime));self.assertEqual(full,{**code,**runtime})
+            self.assertIn(app.name+'/mise.cmd',code)
+            self.assertIn(app.name+'/resources/app/runtime/mise/mise.exe',runtime)
+            self.assertIn(app.name+'/resources/app/runtime/mise/LICENSE.txt',runtime)
+    def test_rejects_legacy_python_and_git_in_new_runtime(self):
+        for relative in ['python/python.exe','git/cmd/git.exe']:
+            with self.subTest(relative=relative), tempfile.TemporaryDirectory() as temporary:
+                folder=Path(temporary);app=self.make_app(folder)
+                extra=app/'resources/app/runtime'/relative
+                extra.parent.mkdir(parents=True);extra.write_bytes(b'legacy')
+                with self.assertRaisesRegex(ValueError,'external Python and Git'):
+                    archive.pack(app,folder/'runtime.zip','runtime')
 
 if __name__=='__main__':unittest.main()

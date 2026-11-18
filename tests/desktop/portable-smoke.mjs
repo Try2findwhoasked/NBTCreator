@@ -29,14 +29,33 @@ else{
 }
 }
 const exe=path.join(unpacked,'NBTCreator-win32-x64/NBTCreator.exe'),app=path.join(path.dirname(exe),'resources/app')
-const env={...process.env,PATH:path.join(process.env.WINDIR||'C:/Windows','System32'),ELECTRON_RUN_AS_NODE:'1',PYTHONNOUSERSITE:'1'}
-delete env.NBTCREATOR_PYTHON;delete env.NBTCREATOR_GIT;delete env.PYTHONPATH;delete env.PYTHONHOME
+const env={...process.env,ELECTRON_RUN_AS_NODE:'1',PYTHONNOUSERSITE:'1'}
+delete env.PYTHONPATH;delete env.PYTHONHOME
+const git=execFileSync(env.NBTCREATOR_GIT||'git',['--version'],{env,encoding:'utf8',windowsHide:true}).trim()
+await Promise.all(['python','git'].map(tool=>assert.rejects(fs.stat(path.join(app,'runtime',tool)),{code:'ENOENT'})))
 function run(args){return execFileSync(exe,args,{env,encoding:'utf8',windowsHide:true,timeout:180000,maxBuffer:4*1024*1024})}
-const probe=run(['-e',`const {resolvePython,configureRenderRuntime}=require(${JSON.stringify(path.join(app,'desktop/python-runtime.cjs'))});configureRenderRuntime(${JSON.stringify(app)},process.execPath);const {execFileSync}=require('node:child_process');const p=resolvePython(${JSON.stringify(app)});console.log(execFileSync(p,['-c','import numpy,PIL;print(numpy.__version__,PIL.__version__)'],{encoding:'utf8'}));`])
-assert.ok(probe.includes('2.4.2 12.1.0'))
-const gitProbe=run(['-e',`const runtime=require(${JSON.stringify(path.join(app,'desktop/python-runtime.cjs'))});runtime.configureRenderRuntime(${JSON.stringify(app)},process.execPath);console.log(require('node:child_process').execFileSync(process.env.NBTCREATOR_GIT,['--version'],{encoding:'utf8'}));`]);assert.ok(gitProbe.includes('2.56.0.windows.4'))
-const caps=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'capabilities']));assert.equal(Object.keys(caps.tools).length,Object.keys(JSON.parse(await fs.readFile(path.join(app,'.agents/skills/minecraft-nbt-modeler/tool-catalog.json'),'utf8')).tools).length)
+const doctor=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'doctor']))
+assert.equal(doctor.ok,true,JSON.stringify(doctor))
+assert.equal(doctor.git,git)
+assert.equal(doctor.python.nbtlib,'2.0.4')
+const externalPython=doctor.python.python
+const mise=path.join(app,'runtime/mise/mise.exe')
+const releaseInfo=JSON.parse(await fs.readFile(path.join(path.dirname(exe),'portable-info.json'),'utf8'))
+assert.ok(execFileSync(mise,['--no-config','version'],{env,encoding:'utf8',windowsHide:true,timeout:30000}).startsWith(releaseInfo.mise+' windows-x64'))
+const caps=JSON.parse(execFileSync(mise,['--no-config','exec','--',exe,path.join(app,'scripts/cli.mjs'),'capabilities'],
+ {env,encoding:'utf8',windowsHide:true,timeout:180000,maxBuffer:4*1024*1024}))
+assert.equal(Object.keys(caps.tools).length,Object.keys(JSON.parse(await fs.readFile(path.join(app,'.agents/skills/minecraft-nbt-modeler/tool-catalog.json'),'utf8')).tools).length)
 const workspace=path.join(output,'workspace');await fs.mkdir(workspace)
+const promptRequest=path.join(output,'prompt.json')
+await fs.writeFile(promptRequest,JSON.stringify({session_id:'a'.repeat(32),text:'Portable task fixture',
+ document:{schema_version:1,project:{name:'便携任务验证',stage:'draft',buildingShape:'standalone'}}}))
+const saved=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'prompts','save','--request',promptRequest]))
+const task=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'prompts','publish',
+ '--index',saved.index,'--id',saved.id,'--revision',saved.revision]))
+const read=JSON.parse(execFileSync(mise,['--no-config','exec','--',exe,path.join(app,'scripts/cli.mjs'),'task','--id',task.id],
+ {cwd:workspace,env,encoding:'utf8',windowsHide:true,timeout:30000}))
+assert.equal(read.text,'Portable task fixture')
+assert.equal(read.task.status,'pending')
 run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'exposure','apply'])
 assert.ok((await fs.readFile(path.join(workspace,'.agents/skills/nbtcreator-workspace/SKILL.md'),'utf8')).includes('.nbtcreator/runtimes'))
 const exportedRuntime=(await fs.readdir(path.join(workspace,'.nbtcreator/runtimes')))[0]
@@ -50,18 +69,18 @@ assert.equal(initial.items.length,initialManifest.items.length);assert.equal(ini
 const effectRequest=path.join(output,'initial-effect.json');await fs.writeFile(effectRequest,JSON.stringify({id:initial.items[0].id,content_sha256:initial.items[0].content_sha256}))
 const initialPreview=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'effect-assets','preview','--request',effectRequest])).result
 assert.equal(initialPreview.precomputed,true);assert.ok(initialPreview.changed_blocks>0)
-const facadeEffects=JSON.parse(execFileSync(path.join(app,'runtime/python/python.exe'),[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'effect-assets','--workspace',workspace,'list'],{env,cwd:workspace,encoding:'utf8',windowsHide:true})).result
+const facadeEffects=JSON.parse(execFileSync(externalPython,[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'effect-assets','--workspace',workspace,'list'],{env,cwd:workspace,encoding:'utf8',windowsHide:true})).result
 assert.equal(facadeEffects.items.length,initialManifest.items.length)
 const browserScript=path.join(output,'browser-probe.mjs')
 await fs.writeFile(browserScript,`import {createRequire} from 'node:module';const r=createRequire(${JSON.stringify(path.join(app,'.agents/skills/minecraft-nbt-modeler/assets/viewer/package.json'))});const b=await r('playwright').chromium.launch({executablePath:${JSON.stringify(path.join(app,'runtime/browser/chrome.exe'))},headless:true});const p=await b.newPage();await p.setContent('<title>portable</title>');if(await p.title()!=='portable')throw Error('browser');await b.close();console.log('browser-ok')`)
 assert.ok(run([browserScript]).includes('browser-ok'))
 const fixture=path.join(output,'tiny.master.json.gz'),cameras=path.join(output,'cameras.json'),rendered=path.join(output,'rendered')
-execFileSync(path.join(app,'runtime/python/python.exe'),['-c',`import sys;sys.path.insert(0,${JSON.stringify(path.join(app,'.agents/skills/minecraft-nbt-modeler/scripts'))});from nbt_assembly import Volume;from nbt_refine import save_master;m=Volume((8,8,8));m.box((0,0,0),(7,1,7),'stone_bricks');save_master(${JSON.stringify(fixture)},m,set())`],{env,windowsHide:true})
+execFileSync(externalPython,['-c',`import sys;sys.path.insert(0,${JSON.stringify(path.join(app,'.agents/skills/minecraft-nbt-modeler/scripts'))});from nbt_assembly import Volume;from nbt_refine import save_master;m=Volume((8,8,8));m.box((0,0,0),(7,1,7),'stone_bricks');save_master(${JSON.stringify(fixture)},m,set())`],{env,windowsHide:true})
 await fs.writeFile(cameras,JSON.stringify([{id:'whole',eye:[15,13,15],target:[4,1,4]}]))
 run([path.join(app,'scripts/cli.mjs'),'render','--source',fixture,'--cameras',cameras,'--output',rendered,'--width','320','--height','240','--quality','balanced'])
 assert.ok((await fs.readdir(rendered)).some(f=>f.endsWith('.png')))
 const facadeRendered=path.join(output,'workspace-rendered')
-execFileSync(path.join(app,'runtime/python/python.exe'),[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'render','--source',fixture,'--cameras',cameras,'--output',facadeRendered,'--width','320','--height','240'],{env,cwd:workspace,windowsHide:true,timeout:180000})
+execFileSync(externalPython,[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'render','--source',fixture,'--cameras',cameras,'--output',facadeRendered,'--width','320','--height','240'],{env,cwd:workspace,windowsHide:true,timeout:180000})
 assert.equal(JSON.parse(await fs.readFile(path.join(facadeRendered,'render_manifest.json'),'utf8')).status,'complete')
 const candidate=path.join(workspace,'candidate-fixture'),scripts=path.join(workspace,'.nbtcreator/runtimes',exportedRuntime,'scripts')
 await fs.mkdir(candidate)
@@ -82,14 +101,14 @@ request=dict(source=str(source),source_sha256=digest(source),context=str(folder/
 (folder/'request.json').write_text(json.dumps(request),encoding='utf8')
 preview_effect(request,folder/'preview')
 `
-execFileSync(path.join(app,'runtime/python/python.exe'),['-B','-c',code],{env,windowsHide:true,timeout:180000})
-execFileSync(path.join(app,'runtime/python/python.exe'),[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'validate','--request',path.join(candidate,'request.json'),'--snapshot',path.join(candidate,'preview/after.json'),'--output',path.join(candidate,'checked')],{env,cwd:workspace,windowsHide:true,timeout:180000})
+execFileSync(externalPython,['-B','-c',code],{env,windowsHide:true,timeout:180000})
+execFileSync(externalPython,[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'validate','--request',path.join(candidate,'request.json'),'--snapshot',path.join(candidate,'preview/after.json'),'--output',path.join(candidate,'checked')],{env,cwd:workspace,windowsHide:true,timeout:180000})
 const verified=JSON.parse(await fs.readFile(path.join(candidate,'checked/validation.json'),'utf8'))
 assert.equal(verified.passed,true);assert.equal(verified.asset_written,false)
 const snbt=path.join(output,'portable-source.snbt')
 const converted=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'snbt','--source',path.join(candidate,'source.master.json.gz'),'--output',snbt]));assert.equal(converted.format,'snbt')
 const historySource=path.join(workspace,'nbt_models/standalone/便携历史/v01/master/source.master.json.gz');await fs.mkdir(path.dirname(historySource),{recursive:true});await fs.copyFile(path.join(candidate,'source.master.json.gz'),historySource)
 const history=JSON.parse(run([path.join(app,'scripts/cli.mjs'),'--workspace',workspace,'history','record','--source',historySource,'--message','便携版 Git 验证']));assert.ok(history.commit)
-const privateHistory=JSON.parse(execFileSync(path.join(app,'runtime/python/python.exe'),[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'history','--workspace',workspace,'list'],{env,cwd:workspace,encoding:'utf8',windowsHide:true}));assert.ok(privateHistory.versions.length>0)
-await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks:{package_integrity_and_hidden_skill:true,private_python_dependencies:true,electron_node_cli:true,workspace_skill_generation:true,shared_regional_ai_preferences:true,component_library_cli:true,starter_effects_and_cached_previews_available_to_exported_skill:true,bundled_chromium:true,python_node_batch_render:true,workspace_facade_private_render_runtime:true,standalone_candidate_checked_in_private_runtime:true,bundled_git_and_private_history:true,pinned_snbt_roundtrip:true}},null,2))
-console.log(JSON.stringify({passed:true,checks:13,git_bundled:true,snbt_available:true,output}))
+const privateHistory=JSON.parse(execFileSync(externalPython,[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'history','--workspace',workspace,'list'],{env,cwd:workspace,encoding:'utf8',windowsHide:true}));assert.ok(privateHistory.versions.length>0)
+await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks:{package_integrity_and_hidden_skill:true,external_python_dependencies:true,electron_node_cli:true,workspace_skill_generation:true,shared_regional_ai_preferences:true,component_library_cli:true,starter_effects_and_cached_previews_available_to_exported_skill:true,bundled_chromium:true,python_node_batch_render:true,workspace_facade_private_render_runtime:true,standalone_candidate_checked_with_external_python:true,external_git_and_private_history:true,pinned_snbt_roundtrip:true}},null,2))
+console.log(JSON.stringify({passed:true,checks:13,git_bundled:false,python_bundled:false,mise_bundled:true,snbt_available:true,output}))

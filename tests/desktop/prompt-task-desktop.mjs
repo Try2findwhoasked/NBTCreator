@@ -7,7 +7,7 @@ import {root,skill,python} from '../../scripts/paths.mjs'
 import {minimizedScreenshots} from '../support/minimized-screenshots.mjs'
 const require=createRequire(path.join(skill,'assets/viewer/package.json')),{_electron}=require('playwright'),output=path.join(root,'build','prompt-task-'+Date.now()),workspace=path.join(output,'workspace'),checks={},errors=[]
 await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'prompt',autoPreview:false}))
-const runtime=process.env.NBTCREATOR_TEST_EXE?path.join(path.dirname(process.env.NBTCREATOR_TEST_EXE),'resources/app/runtime/python/python.exe'):python
+const runtime=python
 const cli=args=>{const run=spawnSync(runtime,[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'prompts',...args],{cwd:workspace,encoding:'utf8',windowsHide:true,timeout:30000});assert.equal(run.status,0,run.stdout+run.stderr);return JSON.parse(run.stdout)}
 let app,page
 try{

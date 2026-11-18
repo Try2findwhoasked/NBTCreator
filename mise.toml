@@ -1,3 +1,7 @@
+[tasks.nbt]
+description = "Run the shared NBTCreator CLI; pass --workspace for a creative project"
+run = "node scripts/cli.mjs"
+
 [tasks."gpu:setup"]
 description = "Install optional NVIDIA compute libraries in build/gpu-env using pip cache"
 run = "python scripts/gpu-runtime.py setup"

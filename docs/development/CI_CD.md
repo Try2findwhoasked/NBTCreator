@@ -4,13 +4,13 @@
 
 `.github/workflows/portable.yml` 在main、codex分支提交、PR和手动触发时构建Windows x64包；推送与package.json版本一致的 `v<版本>` 标签时，在构建及解压验证通过后自动创建GitHub Release。不覆盖已有Release或标签。预发行版本标签含连字符时标为prerelease。当前仓库按用户确认保持公开，发行包可直接下载；若将部署改为私有，下载仍遵循仓库权限。
 
-包内包含固定版本且经过 SHA256 校验的 Python 3.14.10、NumPy 2.4.2、Pillow 12.1.0、nbtlib 和 MinGit，具体锁定值见 [portable-runtime.json](../../config/portable-runtime.json)。Electron 提供 Node，锁定版本的 Playwright 提供 Chromium，用于批量出图。完整解压后运行 NBTCreator.exe 即可，无需另行安装这些运行环境。仍可通过 NBTCREATOR_PYTHON 显式指定其他解释器。
+包内 mise 固定版本并通过 SHA256 校验，见 [portable-runtime.json](../../config/portable-runtime.json)。Electron 提供 Node，Playwright 固定版本的 Chromium 用于批量出图。运行时从环境解析 Python 和 Git，也可用 NBTCREATOR_PYTHON、NBTCREATOR_GIT 指定；CI 先在测试解释器中安装引擎依赖。
 
 ## 验证门禁
 
 CI 将源码契约（source-contracts）、素材库桌面流程（asset-desktop）、整模流水线（model-pipelines）、创作契约（authoring-contracts）和 Portable 打包（portable-package）拆成五个独立 Windows job，可在 runner 配额允许时并行执行。每个 job 独立安装锁定依赖、构建前端并保留失败诊断，诊断产物名带 job 标识，避免并发上传冲突。原有测试范围保持不变，单个 job 失败不取消其他 job。
 
-打包 job 构建 ZIP 后逐文件验证解压内容，移除系统 Node/Python 搜索路径，检查私有 Python、CLI、Skill 生成和包内浏览器，最后运行打包版桌面和模拟 API 回归。保留原名 build 作为汇总门禁：五个 job 必须全部成功，失败、取消或跳过都会使门禁失败；Release 仍依赖 build。打包产物可在源码回归完成前上传，但任何检查失败都会阻止发布。
+打包 job 构建 ZIP 后逐文件验证解压内容，检查外部 Python 与 Git、包内 mise、CLI、Skill 生成和包内浏览器，最后运行打包版桌面和模拟 API 回归。保留原名 build 作为汇总门禁：五个 job 必须全部成功，失败、取消或跳过都会使门禁失败；Release 仍依赖 build。打包产物可在源码回归完成前上传，但任何检查失败都会阻止发布。
 
 3.3.0 起，源码门禁还校验自带素材库的 121 项内容与哈希，运行外部库离线、刷新、回退及模块化构件回归，并在桌面端验证统一素材浏览、预览、复制和放置。桌面测试使用软件 WebGL 渲染以稳定运行最小化窗口中的真实 3D 预览。
 
@@ -35,17 +35,17 @@ mise exec -- npm run test:portable -- --archive-dir dist/portable
 
 Portable 表示免安装目录包，工作区仍由用户选择。API 密钥仍保存在 Windows 用户级加密配置中，不随 ZIP 发布。请保留完整目录，不要仅复制 exe。未签名程序沿用原说明。全屏问题 NBTC-001 已根据用户于 2026-11-04 的确认关闭，CI 不触发全屏。
 
-运行环境打包参考 [Python 嵌入分发说明](https://docs.python.org/3/using/windows.html#the-embeddable-package)，触发与权限参考 [GitHub Actions 说明](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)。仓库实际流程以 [portable.yml](../../.github/workflows/portable.yml)为准。
+运行环境打包参考 [mise 发布资产](https://github.com/jdx/mise/releases)，触发与权限参考 [GitHub Actions 说明](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)。仓库实际流程以 [portable.yml](../../.github/workflows/portable.yml)为准。
 
 ## 完整包与分离包
 
 每次构建同时生成 full Portable、app-update、runtime 三个 ZIP，以及各自的 SHA256/文件清单。首次使用可直接下载 Portable，也可将 app-update 与 runtime 解压到同一父文件夹，合并同名 NBTCreator-win32-x64 目录。后续依赖未改变时，只需更新 app-update，保留已有 runtime。
 
-app-update包含应用源码、建模工具、预构建前端和Skill资料，不包含Electron、Python和Chromium。runtime包含Electron宿主、Python与Chromium；体积大但可复用。运行环境ID绑定Electron版本、Python/wheel锁和Playwright版本，启动时核对应用所需ID与runtime-info.json，不匹配时提示下载配套runtime或完整版。旧1.6运行包没有该标识，首次使用1.7应用更新包需要配套运行环境。
+app-update 包含应用源码、建模工具、预构建前端和 Skill 资料。runtime 包含 Electron 宿主、mise 与 Chromium，可以与匹配的应用更新包复用。运行环境 ID 绑定 Electron 版本、mise 锁定值和 Playwright 版本，启动时核对应用所需ID与runtime-info.json，不匹配时提示下载配套runtime或完整版。旧1.6运行包没有该标识，首次使用1.7应用更新包需要配套运行环境。
 
-CI 会验证两份分离包的文件互不重复，并按路径和字节哈希确认它们能完整重组为完整包。完整解压测试仍会运行私有 Python、CLI、Skill 生成、Chromium 和批量出图。新版本的校验文件随 Release 提供，不复用旧版本的 ZIP 哈希。
+CI 会验证两份分离包的文件互不重复，并按路径和字节哈希确认它们能完整重组为完整包。完整解压测试仍会运行外部 Python、CLI、Skill 生成、Chromium 和批量出图。新版本的校验文件随 Release 提供，不复用旧版本的 ZIP 哈希。
 
-本地仅制作应用更新包可运行 `mise exec -- npm run package:portable -- --app-only --out dist/update-版本`，它不下载/复制Python或Chromium；不能把该临时构建文件夹当完整免安装包。应用更新ZIP需解压覆盖已有兼容runtime，启动时仍验证runtime_id。云端发布继续构建完整与两种分离包并执行全套解压验证。
+本地仅制作应用更新包可运行 `mise exec -- npm run package:portable -- --app-only --out dist/update-版本`，该构建只打包应用部分；不能把该临时构建文件夹当完整免安装包。应用更新ZIP需解压覆盖已有兼容runtime，启动时仍验证runtime_id。云端发布继续构建完整与两种分离包并执行全套解压验证。
 
 本地需要完整免安装文件夹而无需ZIP时：`mise exec -- npm run package:portable -- --directory-only --out dist/full-folder`；校验：`mise exec -- npm run test:portable -- --directory dist/full-folder`。目录模式仍打入完整运行环境，不可与 `--app-only` 同用。
 

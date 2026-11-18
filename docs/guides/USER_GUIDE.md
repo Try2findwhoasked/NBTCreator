@@ -15,7 +15,7 @@ NBTCreator 是面向 **Minecraft Java 1.20.1** 的 Windows NBT 建筑创作工�
 | `windows-x64-app-update.zip` | 已有兼容运行环境，仅更新应用 |
 | `windows-x64-runtime.zip` | 与应用更新包解压到同一父目录，合并同名文件夹 |
 
-完整版内置 Python、NumPy、Pillow 和 Chromium，Electron 提供 Node 运行环境，无需另行安装开发工具。**保留完整目录，不要只复制 EXE。** 应用更新包不包含完整运行环境，启动时会检查兼容性。
+便携包内置 mise 和 Chromium，Electron 提供 Node。准备 PATH 中的 Python 和 Git，按 README 安装 Python 依赖，可运行 NBT工具.cmd doctor 自检。**保留完整目录，不要只复制 EXE。** 应用更新包不包含完整运行环境，启动时会检查兼容性。
 
 首次使用时，选择创作项目的根目录，建筑默认存放在工作区的 `nbt_models/` 中。应用目录与创作工作区可以分开。
 

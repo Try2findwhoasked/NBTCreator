@@ -43,11 +43,9 @@ def resolve_git(workspace=None):
         resolved=shutil.which(explicit)
         if resolved:return str(Path(resolved).resolve())
         raise ValueError('指定的 Git 运行环境不可用')
-    for parent in [ENGINE,*ENGINE.parents]:
-        candidate=parent/'runtime/git/cmd/git.exe'
-        if candidate.is_file():return str(candidate)
-    # Frozen workspace Skills can share the application's verified Git binary.
-    # The renderer's installed engine never executes a workspace-selected binary.
+    installed=shutil.which('git')
+    if installed:return str(Path(installed).resolve())
+    # Recognize a previously verified binding from an older frozen runtime.
     if workspace and (ENGINE/'runtime-manifest.json').is_file():
         binding=Path(workspace)/'.nbtcreator/history-runtime.json'
         pin=ENGINE/'assets/git-runtime.json'
@@ -56,9 +54,7 @@ def resolve_git(workspace=None):
             data=json.loads(binding.read_text(encoding='utf8'));expected=json.loads(pin.read_text(encoding='utf8'))
             candidate=(binding.parent/data.get('executable','')).resolve()
             if data.get('schema_version')==1 and expected.get('executable_sha256') and candidate.is_file() and file_hash(candidate)==expected['executable_sha256']:return str(candidate)
-    installed=shutil.which('git')
-    if installed:return str(Path(installed).resolve())
-    raise ValueError('Git 运行环境不可用；请使用包含内置 Git 的完整便携版，或重新同步工作区 Skill')
+    raise ValueError('Git 运行环境不可用；请将 Git 加入 PATH 或设置 NBTCREATOR_GIT')
 
 def write_git_binding(workspace,engine=ENGINE):
     pin=Path(engine)/'assets/git-runtime.json'

@@ -14,7 +14,16 @@
 | `windows-x64-app-update.zip` | 更新已有应用，需保留兼容运行环境 |
 | `windows-x64-runtime.zip` | 与应用更新包解压到同一父目录，合并同名文件夹 |
 
-完整版内置 Python、NumPy、Pillow、SNBT 解析库、Chromium 和 Git，Electron 提供 Node 运行环境。保留完整目录，不要只复制 EXE。更新前关闭应用，保留原创作工作区。
+便携包内置 mise 和 Chromium，Electron 提供 Node。使用环境中已有的 Python 和 Git，已验证 Python 3.14。在解压后的包目录执行以下命令，再启动应用：
+
+```powershell
+python -m pip install -r resources/app/.agents/skills/minecraft-nbt-modeler/requirements.txt
+.\NBT工具.cmd doctor
+```
+
+可用 `NBTCREATOR_PYTHON` 和 `NBTCREATOR_GIT` 指向特定可执行文件。更新时关闭应用并保留原创作工作区。由旧版迁移时，可把新完整包解压到新目录，使用原有创作工作区。
+
+便携包目录下可运行 `mise.cmd --version`。从实际创作项目根目录调用包内的 `NBT工具.cmd task --id <任务编号>`，可读取已交接的任务。该入口经内置 mise 启动共享 CLI，读取任务使用当前工作目录。
 
 ## 开始创作
 
@@ -42,6 +51,8 @@
 ## 从源码运行
 
 在仓库根目录执行。需要 mise、Node.js 24 和 Python；Python 依赖由仓库的 requirements 文件声明。CI 使用 Python 3.14，完整开发和验证说明见[开发指南](docs/development/DEVELOPMENT.md)。
+
+源码开发时，可用 `mise run nbt -- --workspace <创作项目目录> task --id <任务编号>` 调用同一个任务读取入口。
 
 ```powershell
 mise exec -- npm ci

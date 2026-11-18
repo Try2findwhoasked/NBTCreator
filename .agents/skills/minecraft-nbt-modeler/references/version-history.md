@@ -1,6 +1,6 @@
-# 建筑版本历史与内置 Git
+# 建筑版本历史与 Git
 
-历史库独立放在当前工作区 `.nbtcreator/history/repository.git`，归档文件按 SHA256 放在 `.nbtcreator/history/objects/`。不操作项目根目录自己的 `.git`，不执行 checkout、reset、远程同步、用户 hooks 或仓库别名。便携版带锁定的 MinGit；工作区 Skill 可共享经哈希校验的包内 Git，不要求用户另装 Git。
+历史库独立放在当前工作区 `.nbtcreator/history/repository.git`，归档文件按 SHA256 放在 `.nbtcreator/history/objects/`。不操作项目根目录自己的 `.git`，不执行 checkout、reset、远程同步、用户 hooks 或仓库别名。使用 PATH 上的 Git 或 NBTCREATOR_GIT 指定的可执行文件。旧冻结 Skill 中已校验的 Git 绑定仍可读取。
 
 ## 同一份接口
 

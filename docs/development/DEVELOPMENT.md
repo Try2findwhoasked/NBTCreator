@@ -4,7 +4,7 @@
 
 ## 环境与依赖
 
-需要 mise、Node.js 24 和 Python。仓库声明的 Node 最低版本见 [package.json](../../package.json)，CI 使用 Node.js 24 / Python 3.14；Python 依赖见 [requirements.txt](../../.agents/skills/minecraft-nbt-modeler/requirements.txt)。完整版的嵌入运行环境另由 [portable-runtime.json](../../config/portable-runtime.json)锁定。
+需要 mise、Node.js 24 和 Python。仓库声明的 Node 最低版本见 [package.json](../../package.json)，CI 使用 Node.js 24 / Python 3.14；Python 依赖见 [requirements.txt](../../.agents/skills/minecraft-nbt-modeler/requirements.txt)。便携包内置的 mise 另由 [portable-runtime.json](../../config/portable-runtime.json)锁定。
 
 先查看仓库及父目录的 mise 配置，确认任务、钩子和脚本后执行：
 

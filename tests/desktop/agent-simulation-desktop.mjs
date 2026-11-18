@@ -8,7 +8,7 @@ import {root,skill,python} from '../../scripts/paths.mjs'
 import {minimizedScreenshots} from '../support/minimized-screenshots.mjs'
 const require=createRequire(path.join(skill,'assets/viewer/package.json')),{_electron}=require('playwright')
 const output=path.join(root,'build','agent-simulation-'+Date.now()),workspace=path.join(output,'workspace');await fs.mkdir(workspace,{recursive:true})
-const appRoot=process.env.NBTCREATOR_TEST_EXE?path.join(path.dirname(process.env.NBTCREATOR_TEST_EXE),'resources/app'):root,engine=path.join(appRoot,'.agents/skills/minecraft-nbt-modeler'),runtime=process.env.NBTCREATOR_TEST_EXE?path.join(appRoot,'runtime/python/python.exe'):python
+const appRoot=process.env.NBTCREATOR_TEST_EXE?path.join(path.dirname(process.env.NBTCREATOR_TEST_EXE),'resources/app'):root,engine=path.join(appRoot,'.agents/skills/minecraft-nbt-modeler'),runtime=python
 const box={kind:'box',label:'石柱',classification:'body',lo:[2,1,2],hi:[3,4,3],state:'stone_bricks'},size=[16,10,16],region={size,lo:[0,0,0],hi:[15,9,15],allow_overwrite:false}
 const project=Object.fromEntries(['name','theme','purpose','layout','circulation','style','ceiling','floor','wall','props'].map(key=>[key,'模拟石构设计']))
 const draft={mode:'workbench',context:{task:'draft',project:{size},operations:[],existing_model:false}},component={mode:'component',context:{name:'模拟石柱',size,references:[]}},local={mode:'structure',context:region},small={mode:'small_structure',context:{...region,lo:[4,2,4],hi:[11,8,11]}},controls=operations=>({mode:'workbench',context:{project:{size},operations,existing_model:true}})

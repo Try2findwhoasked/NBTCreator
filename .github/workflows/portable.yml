@@ -49,7 +49,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m pip install numpy==2.4.2 Pillow==12.1.0
+          python -m pip install numpy==2.4.2 Pillow==12.1.0 nbtlib==2.0.4
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build production frontend
         run: npm run build:web
@@ -130,7 +130,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m pip install numpy==2.4.2 Pillow==12.1.0
+          python -m pip install numpy==2.4.2 Pillow==12.1.0 nbtlib==2.0.4
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build production frontend
         run: npm run build:web
@@ -189,7 +189,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m pip install numpy==2.4.2 Pillow==12.1.0
+          python -m pip install numpy==2.4.2 Pillow==12.1.0 nbtlib==2.0.4
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build production frontend
         run: npm run build:web
@@ -343,7 +343,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m pip install numpy==2.4.2 Pillow==12.1.0
+          python -m pip install numpy==2.4.2 Pillow==12.1.0 nbtlib==2.0.4
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build production frontend
         run: npm run build:web
@@ -430,11 +430,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m pip install numpy==2.4.2 Pillow==12.1.0
+          python -m pip install numpy==2.4.2 Pillow==12.1.0 nbtlib==2.0.4
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build production frontend
         run: npm run build:web
-      - name: Build self-contained portable ZIP
+      - name: Build portable ZIP
         run: |
           npm run package:portable -- --out dist/portable
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

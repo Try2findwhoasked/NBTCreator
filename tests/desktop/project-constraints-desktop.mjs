@@ -8,7 +8,7 @@ import {createRequire} from 'node:module'
 import {root,skill,python} from '../../scripts/paths.mjs'
 import {minimizedScreenshots} from '../support/minimized-screenshots.mjs'
 const require=createRequire(path.join(skill,'assets/viewer/package.json')),{_electron}=require('playwright'),output=path.join(root,'build','project-constraints-'+Date.now()),workspace=path.join(output,'workspace'),errors=[],checks={}
-const executable=process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),testRoot=process.env.NBTCREATOR_TEST_EXE?path.join(path.dirname(executable),'resources/app'):root,testSkill=path.join(testRoot,'.agents/skills/minecraft-nbt-modeler'),testPython=process.env.NBTCREATOR_TEST_EXE?path.join(testRoot,'runtime/python/python.exe'):python
+const executable=process.env.NBTCREATOR_TEST_EXE||path.join(root,'node_modules/electron/dist/electron.exe'),testRoot=process.env.NBTCREATOR_TEST_EXE?path.join(path.dirname(executable),'resources/app'):root,testSkill=path.join(testRoot,'.agents/skills/minecraft-nbt-modeler'),testPython=python
 await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'project',autoPreview:false}))
 const corner='nbt_models/SAODG/l_shape',single='nbt_models/SAODG/single';
 for(const folder of [corner,single,'nbt_models/另一个项目/l_shape'])await fs.mkdir(path.join(workspace,folder),{recursive:true});

@@ -24,15 +24,19 @@ def pack(source,output,kind="full"):
         # Runtime probes can create engine bytecode in a tested directory.
         # Omit this disposable cache without deleting or changing the input.
         if relative.startswith('resources/app/.agents/skills/minecraft-nbt-modeler/') and '__pycache__' in PurePosixPath(relative).parts:continue
-        is_runtime=not (relative.startswith('resources/app/') and not relative.startswith('resources/app/runtime/') or relative in {'portable-info.json','NBT工具.cmd','Portable说明.txt'})
+        is_runtime=not (relative.startswith('resources/app/') and not relative.startswith('resources/app/runtime/') or relative in {'portable-info.json','mise.cmd','NBT工具.cmd','Portable说明.txt'})
         if kind=='application' and is_runtime or kind=='runtime' and not is_runtime:continue
         parts=PurePosixPath(relative).parts
         if any(p in {'.git','.github','.nbtcreator','nbt_models'} for p in parts) or relative.startswith('resources/app/logs/') or file.suffix.lower()=='.log' or file.name=='api-settings.json' or file.name=='.env' or file.name.startswith('.env.'):
             raise ValueError('Private/generated content in portable package: '+relative)
         files.append(dict(path=source.name+'/'+relative,bytes=file.stat().st_size,sha256=digest(file)))
     expected={f['path'] for f in files}
-    requirements={'full':['NBTCreator.exe','resources/app/runtime/python/python.exe','resources/app/runtime/browser/chrome.exe','resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md'],'application':['resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md'],'runtime':['NBTCreator.exe','resources/app/runtime/python/python.exe','resources/app/runtime/browser/chrome.exe']}
-    if kind in {'full','runtime'}:requirements[kind].append('resources/app/runtime/git/cmd/git.exe')
+    requirements={'full':['NBTCreator.exe','resources/app/runtime/browser/chrome.exe','resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md'],'application':['resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md'],'runtime':['NBTCreator.exe','resources/app/runtime/browser/chrome.exe']}
+    if kind in {'full','runtime'}:
+        requirements[kind].extend(['resources/app/runtime/mise/mise.exe','resources/app/runtime/mise/LICENSE.txt'])
+        if any(f['path'].startswith(source.name+'/resources/app/runtime/'+tool+'/') for f in files for tool in ('python','git')):
+            raise ValueError('Portable runtime must use external Python and Git')
+    if kind in {'full','application'}:requirements[kind].append('mise.cmd')
     for required in requirements[kind]:
         if source.name+'/'+required not in expected:raise ValueError('Missing portable dependency: '+required)
     output.parent.mkdir(parents=True,exist_ok=True)

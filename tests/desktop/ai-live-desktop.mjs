@@ -10,7 +10,7 @@ import {minimizedScreenshots} from '../support/minimized-screenshots.mjs'
 const index=process.argv.indexOf('--profile');if(index<0||!process.argv[index+1])throw Error('显式提供 --profile <NBTCreator配置目录>；此检查会调用真实API')
 const sourceProfile=path.resolve(process.argv[index+1]),output=path.join(root,'build','ai-live-'+Date.now()),profile=path.join(output,'profile'),workspace=path.join(output,'workspace')
 const require=createRequire(path.join(skill,'assets/viewer/package.json')),{_electron}=require('playwright')
-const applicationRoot=process.env.NBTCREATOR_TEST_EXE?path.join(path.dirname(process.env.NBTCREATOR_TEST_EXE),'resources/app'):root,validationPython=process.env.NBTCREATOR_TEST_EXE?path.join(applicationRoot,'runtime/python/python.exe'):python
+const applicationRoot=process.env.NBTCREATOR_TEST_EXE?path.join(path.dirname(process.env.NBTCREATOR_TEST_EXE),'resources/app'):root,validationPython=python
 await fs.mkdir(profile,{recursive:true});await fs.mkdir(workspace)
 const cloned=['api-settings.json','Local State']
 const cases=[

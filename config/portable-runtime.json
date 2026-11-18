@@ -1,35 +1,7 @@
 {
-  "git": {
-    "version": "2.56.0.windows.4",
-    "url": "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.4/MinGit-2.56.0.4-64-bit.zip",
-    "sha256": "e3bf78351fe777fba47ddee5950082f8a98bb0f02604fdc7ba3ee2cb68ffa877"
-  },
-  "python": {
-    "version": "3.14.10",
-    "url": "https://www.python.org/ftp/python/3.14.10/python-3.14.10-embeddable-amd64.zip",
-    "sha256": "b553e7dac884469b40e0740bb527271c3378f700b427e0485835f1bb6424361c"
-  },
-  "wheels": [
-    {
-      "name": "nbtlib",
-      "version": "2.0.4",
-      "filename": "nbtlib-2.0.4-py3-none-any.whl",
-      "url": "https://files.pythonhosted.org/packages/7f/10/5669f4e5fa24706fa44b2e28e4362429665a8d26f3c18eda7233f1a01772/nbtlib-2.0.4-py3-none-any.whl",
-      "sha256": "38d571fbf2f7ebd640639461b47fc79919a8ea8e74633ffcc8aa6b2acfc9c889"
-    },
-    {
-      "name": "numpy",
-      "version": "2.4.2",
-      "filename": "numpy-2.4.2-cp314-cp314-win_amd64.whl",
-      "url": "https://files.pythonhosted.org/packages/05/cb/eff72a91b2efdd1bc98b3b8759f6a1654aa87612fc86e3d87d6fe4f948c4/numpy-2.4.2-cp314-cp314-win_amd64.whl",
-      "sha256": "068cdb2d0d644cdb45670810894f6a0600797a69c05f1ac478e8d31670b8ee75"
-    },
-    {
-      "name": "pillow",
-      "version": "12.1.0",
-      "filename": "pillow-12.1.0-cp314-cp314-win_amd64.whl",
-      "url": "https://files.pythonhosted.org/packages/1c/af/f23697f587ac5f9095d67e31b81c95c0249cd461a9798a061ed6709b09b5/pillow-12.1.0-cp314-cp314-win_amd64.whl",
-      "sha256": "4f9f6a650743f0ddee5593ac9e954ba1bdbc5e150bc066586d4f26127853ab94"
-    }
-  ]
+  "mise": {
+    "version": "2026.11.5",
+    "url": "https://github.com/jdx/mise/releases/download/v2026.11.5/mise-v2026.11.5-windows-x64.exe",
+    "sha256": "f310926e432d6ae16eeb822d205c7880ea6bd88540162d84b48d6b886f95ea80"
+  }
 }
