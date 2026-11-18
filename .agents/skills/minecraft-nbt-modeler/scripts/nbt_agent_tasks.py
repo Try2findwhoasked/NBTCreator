@@ -44,7 +44,7 @@ def verify(workspace,data):
     for entry in data['returns']:
         path=inside(workspace,entry['source'])
         if not path.is_file() or sha(path)!=entry['source_sha256']:
-            protocol.error('SOURCE_CHANGED','已回传版本已变化，请核对已登记版本')
+            protocol.error('SOURCE_CHANGED','已回传版本被覆盖，请使用新版本重新登记')
     return source
 def output(workspace,data):
     result=protocol.redact(data);result['absolute_source']=str(inside(workspace,data['source']));result['approval']='not_granted_by_task_registration'
