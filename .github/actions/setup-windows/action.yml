@@ -1,0 +1,28 @@
+name: Prepare Windows build environment
+description: Install locked dependencies and build the production frontend
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      with:
+        node-version: '24'
+        cache: npm
+        cache-dependency-path: |
+          package-lock.json
+          .agents/skills/minecraft-nbt-modeler/assets/viewer/package-lock.json
+    - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+      with:
+        version: '2026.11.5'
+        env: 'false'
+    - name: Install locked dependencies
+      shell: pwsh
+      run: |
+        mise exec -- npm ci
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        mise exec -- npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        mise exec -- python -m pip install numpy==2.4.2 Pillow==12.1.0 nbtlib==2.0.4
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    - name: Build production frontend
+      shell: pwsh
+      run: mise run ci:build

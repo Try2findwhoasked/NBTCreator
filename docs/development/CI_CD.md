@@ -2,15 +2,15 @@
 
 ## 工作流与运行环境
 
-`.github/workflows/portable.yml` 在main、codex分支提交、PR和手动触发时构建Windows x64包；推送与package.json版本一致的 `v<版本>` 标签时，在构建及解压验证通过后自动创建GitHub Release。不覆盖已有Release或标签。预发行版本标签含连字符时标为prerelease。当前仓库按用户确认保持公开，发行包可直接下载；若将部署改为私有，下载仍遵循仓库权限。
+[Windows Portable](../../.github/workflows/portable.yml) 在 main 和 codex 分支推送、手动运行与版本 tag 推送时执行完整验证。PR 根据相对目标分支的变更运行文档、快速或完整检查。推送与 package.json 版本一致的 `v<版本>` 标签时，构建及解压验收通过后自动创建 GitHub Release。预发行版本标签含连字符时标为 prerelease。已存在的 Release 会阻止重复发布。
 
 包内 mise 固定版本并通过 SHA256 校验，见 [portable-runtime.json](../../config/portable-runtime.json)。Electron 提供 Node，Playwright 固定版本的 Chromium 用于批量出图。运行时从环境解析 Python 和 Git，也可用 NBTCREATOR_PYTHON、NBTCREATOR_GIT 指定；CI 先在测试解释器中安装引擎依赖。
 
 ## 验证门禁
 
-CI 将源码契约（source-contracts）、素材库桌面流程（asset-desktop）、整模流水线（model-pipelines）、创作契约（authoring-contracts）和 Portable 打包（portable-package）拆成五个独立 Windows job，可在 runner 配额允许时并行执行。每个 job 独立安装锁定依赖、构建前端并保留失败诊断，诊断产物名带 job 标识，避免并发上传冲突。原有测试范围保持不变，单个 job 失败不取消其他 job。
+完整验证并行运行源码契约、素材库桌面流程、整模流水线、创作契约和便携包打包五个 Windows job。各 job 通过共用 Action 配置 Node、按 mise.toml 选择 Python、安装锁定依赖和构建前端，失败时按 job 分别上传诊断。快速验证运行源码契约、模型流程和桌面冒烟。仅修改文档时运行变更分类与汇总检查。修改发布说明、测试、打包配置、运行时或其他未归类路径时执行完整验证。
 
-打包 job 构建 ZIP 后逐文件验证解压内容，检查外部 Python 与 Git、包内 mise、CLI、Skill 生成和包内浏览器，最后运行打包版桌面和模拟 API 回归。保留原名 build 作为汇总门禁：五个 job 必须全部成功，失败、取消或跳过都会使门禁失败；Release 仍依赖 build。打包产物可在源码回归完成前上传，但任何检查失败都会阻止发布。
+打包 job 验证 ZIP 解压内容、外部 Python 和 Git、包内 mise、CLI、Skill 生成和包内浏览器，随后运行打包版桌面和模拟 API 回归。汇总门禁继续使用 `build`，由它检查当前范围所需 job 是否全部成功。Release 在完整验证通过后复用已验收的 ZIP，并在上传之前校验 SHA256。
 
 3.3.0 起，源码门禁还校验自带素材库的 121 项内容与哈希，运行外部库离线、刷新、回退及模块化构件回归，并在桌面端验证统一素材浏览、预览、复制和放置。桌面测试使用软件 WebGL 渲染以稳定运行最小化窗口中的真实 3D 预览。
 
@@ -31,7 +31,7 @@ mise exec -- npm run test:portable -- --archive-dir dist/portable
 
 ## 发布规则
 
-发布时，更新 package.json/package-lock.json 的版本，提交并推送，再为该提交创建与版本一致的全新注解标签并推送。已发布版本不可复用，需要增加版本号。手动 workflow_dispatch 只生成构建产物，不发布未打标签的版本。
+发布时更新 package.json 和 package-lock.json 的版本，提交并推送，再为该提交创建与版本一致的全新注解标签并推送。已发布版本需要使用新版本号。分支测试包通过 Actions 中的 Windows Portable 手动构建，成功后下载带提交 SHA 的 Artifact。
 
 Portable 表示免安装目录包，工作区仍由用户选择。API 密钥仍保存在 Windows 用户级加密配置中，不随 ZIP 发布。请保留完整目录，不要仅复制 exe。未签名程序沿用原说明。全屏问题 NBTC-001 已根据用户于 2026-11-04 的确认关闭，CI 不触发全屏。
 

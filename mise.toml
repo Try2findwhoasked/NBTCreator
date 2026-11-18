@@ -86,5 +86,13 @@ run = "python -B tests/engine/ornate-library.py --library ../NBTCreator-AssetLib
 description = "Verify studio journeys, focus, delivery and six-page window/zoom layouts"
 run = ["npm run build:web", "node tests/desktop/studio-redesign-desktop.mjs"]
 
+[tasks."ci:build"]
+description = "Build the production frontend for Windows validation"
+run = "npm run build:web"
+
+[tasks."ci:quick"]
+description = "Run model and source desktop smoke tests after ci:build"
+run = ["npm run test:model-workflow", "npm run test:desktop"]
+
 [tools]
 python = "3.14.7"

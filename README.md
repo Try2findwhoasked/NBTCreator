@@ -25,6 +25,14 @@ python -m pip install -r resources/app/.agents/skills/minecraft-nbt-modeler/requ
 
 便携包目录下可运行 `mise.cmd --version`。从实际创作项目根目录调用包内的 `NBT工具.cmd task --id <任务编号>`，可读取已交接的任务。该入口经内置 mise 启动共享 CLI，读取任务使用当前工作目录。
 
+## 持续集成与测试包
+
+Windows Portable 按 PR 改动选择验证范围。纯文档改动只运行范围判断和汇总检查。前端源码和引擎 Python 脚本改动运行源码契约与冒烟测试。其余改动、主分支推送、手动运行和版本 tag 执行完整验证及打包。
+
+在 GitHub 的 **Actions → Windows Portable → Run workflow** 选择分支。运行成功后，从 Artifacts 下载带提交 SHA 的 `windows-x64-portable-<SHA>` 测试包。测试包使用与正式版相同的外部 Python 和 Git。正式 Release 由版本 tag 推送触发。
+
+在仓库根目录安装依赖后，运行 `mise run ci:build` 构建生产前端，再运行 `mise run ci:quick` 验证模型流程和桌面应用启动。
+
 ## 开始创作
 
 1. 选择创作项目根目录作为工作区，建筑存放在 `nbt_models/`。
