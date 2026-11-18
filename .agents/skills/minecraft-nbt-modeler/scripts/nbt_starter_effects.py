@@ -78,7 +78,20 @@ def cached_preview(workspace,data):
     if not report.resolve().is_relative_to(Path(workspace).resolve()) or not report.is_file():return None
     try:
         value=json.loads(report.read_text(encoding='utf8'))
-        if value.get('content_sha256')!=data['content_sha256'] or value.get('engine_sha256')!=engine_sha():return None
+        engine=engine_sha()
+        if value.get('content_sha256')!=data['content_sha256']:return None
+        if value.get('engine_sha256')!=engine:
+            # A previous installation can reuse its files when the current
+            # release independently produced exactly the same preview bytes.
+            bundle=catalog()
+            if not bundle or bundle.get('engine_sha256')!=engine:return None
+            item=next((item for item in bundle['items'] if item['id']==data['id'] and item['content_sha256']==data['content_sha256']),None)
+            if item is None:return None
+            current=BUNDLE/item['id']/'preview/report.json'
+            if sha(current)!=item['files']['preview/report.json']:return None
+            current_value=json.loads(current.read_text(encoding='utf8'))
+            if current_value.get('engine_sha256')!=engine or current_value.get('content_sha256')!=data['content_sha256'] or current_value['files']!=value['files']:return None
+            value=current_value
         paths={name:folder/name for name in ['before.json','after.json','thumbnail.jpg']}
         if any(not file.resolve().is_relative_to(Path(workspace).resolve()) or sha(file)!=value['files'][name] for name,file in paths.items()):return None
         return dict(before_snapshot=str(paths['before.json']),after_snapshot=str(paths['after.json']),thumbnail=str(paths['thumbnail.jpg']),cameras=value['cameras'],changed_blocks=value['changed_blocks'],sample_only=True,asset_written=False,nbt_exported=False,precomputed=True,warning='预生成的工具样例；应用到当前建筑仍需实际候选预览')

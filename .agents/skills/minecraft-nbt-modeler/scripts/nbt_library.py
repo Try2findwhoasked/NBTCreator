@@ -8,8 +8,9 @@ from nbt_registry import normalize
 from nbt_model import AIR_NAMES,load
 from nbt_delivery import verify_delivery
 from generate_sealed_models import read_nbt
+from nbt_catalog import catalog
 INFRA={'master','masters','runtime','parts','layers','delivery'}
-LABELS={'single':'单格','long':'长条','square':'方形','l_shape':'L形','t_shape':'T形','cross':'十字形','irregular':'不规则','standalone':'独立建筑'}
+LABELS={key:shape.get('archive_label',shape['label']) for key,shape in catalog()['building_shapes'].items()}
 def read_json(p):return json.loads(Path(p).read_text(encoding='utf-8-sig'))
 def write_json(p,d):
  import uuid

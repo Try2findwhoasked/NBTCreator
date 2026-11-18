@@ -2,16 +2,60 @@ import './project-batch.css'
 import {floatingDetails,chevron} from './floating-panel.js'
 
 const statusNames={pending:'等待中',running:'运行中',complete:'已完成',failed:'未通过',cancelled:'已停止',interrupted:'已中断'},actionNames={preview:'截面预览',check:'文件与路线检查'}
-export function initProjectBatch({host,api,library,getVisible,getModels,render,isBusy,setBusy,refresh,message}){
- const $=id=>document.getElementById(id),chosen=new Map();let mode=false,queues=[],queue=null,working=false,activeJob=null,generation=0,polling=false
+export function initProjectBatch({host,api,library,getVisible,getModels,getConstraintGroups,render,isBusy,setBusy,refresh,message,organization}){
+ const $=id=>document.getElementById(id),chosen=new Map(),failedSelection=new Set();let mode=false,trash=false,queues=[],queue=null,working=false,activeJob=null,generation=0,polling=false
  const select=document.createElement('button');select.id='project-select';select.type='button';select.textContent='多选';select.setAttribute('aria-pressed','false')
- const actions=document.createElement('details');actions.id='project-selection-menu';actions.className='library-filter-menu';actions.innerHTML='<summary>批量'+chevron+'</summary><div id="project-selection-panel"><p id="project-selection-summary"></p><div class="batch-actions"><button id="project-select-page" type="button">选中当前页</button><button id="project-select-filtered" type="button">选中筛选结果</button><button id="project-select-clear" type="button">清空选择</button></div><label>预览 / 检查<select id="project-batch-actions"><option value="both">截面预览与文件/路线检查</option><option value="preview">仅截面预览</option><option value="check">仅文件与路线检查</option></select></label><button id="project-batch-create" class="primary" type="button">创建并运行队列</button><label>创作阶段<select id="project-batch-stage"><option value="unrefined">未精修</option><option value="refined">已精修</option><option value="finalized">已定稿</option><option value="discarded">废稿</option><option value="auto">恢复自动判断</option></select></label><button id="project-stage-apply" type="button">标记选中版本</button><p>选择最多100个版本；筛选后选择会保留。阶段标记仅记录进度，不代替精修授权或验收。</p></div>';actions.hidden=true
+ const actions=document.createElement('details');actions.id='project-selection-menu';actions.className='library-filter-menu';actions.innerHTML='<summary>批量'+chevron+'</summary><div id="project-selection-panel"><p id="project-selection-summary"></p><div class="batch-actions"><button id="project-select-page" type="button">选中当前页</button><button id="project-select-filtered" type="button">选中筛选结果</button><button id="project-select-clear" type="button">清空选择</button></div><label>预览 / 检查<select id="project-batch-actions"><option value="both">截面预览与文件/路线检查</option><option value="preview">仅截面预览</option><option value="check">仅文件与路线检查</option></select></label><button id="project-batch-create" class="primary" type="button">创建并运行队列</button><label>创作阶段<select id="project-batch-stage"><option value="unrefined">未精修</option><option value="refined">已精修</option><option value="finalized">已定稿</option><option value="discarded">废稿</option><option value="auto">恢复自动判断</option></select></label><button id="project-stage-apply" type="button">标记选中版本</button><p>切换筛选会保留已选版本。</p></div>';actions.hidden=true
  const open=document.createElement('button');open.id='project-queue-open';open.type='button';open.textContent='批量任务';library.toolbar.append(select,actions,open);floatingDetails(actions,$('project-selection-panel'),{minimum:340})
+ const selectionBar=document.createElement('div');selectionBar.className='library-batch-bar';selectionBar.innerHTML='<span id="project-batch-count" role="status"></span><button id="project-move-group" type="button">移到分组</button><button id="project-link-constraints" type="button">关联约束</button><button id="project-recycle-versions" type="button"></button><button id="project-select-done" type="button">完成</button>'
+ $('project-grid').before(selectionBar);selectionBar.insertBefore(actions,$('project-select-done'))
+ const selectAll=$('project-select-filtered');selectAll.textContent='选择全部';selectAll.title='选择当前筛选结果中的全部版本';selectionBar.insertBefore(selectAll,$('project-move-group'))
+ const trashButton=document.createElement('button');trashButton.id='project-trash';trashButton.type='button';trashButton.textContent='回收站';trashButton.setAttribute('aria-pressed','false');library.toolbar.insertBefore(trashButton,select)
+ const manage=document.createElement('dialog');manage.id='project-manage-selection';manage.className='review-help-dialog';manage.innerHTML='<form method="dialog"><h3 id="project-manage-title"></h3><p id="project-manage-hint" hidden></p><ul id="project-manage-items"></ul><label id="project-manage-group-label"><span id="project-manage-target-label">目标分组</span><select id="project-manage-group"></select></label><div class="note-actions"><button value="cancel">取消</button><button value="confirm" class="primary">确认</button></div></form>';document.body.append(manage)
  const dialog=document.createElement('dialog');dialog.id='project-batch-dialog';dialog.innerHTML='<header><h2>批量预览与检查</h2><button id="project-batch-close" type="button">关闭</button></header><div class="project-batch-layout"><nav id="project-batch-history" aria-label="批量任务历史"></nav><section id="project-batch-detail"><p>选择历史任务，或在卡片上多选后创建队列。不会自动修改或导出建筑。</p></section></div><p id="project-batch-message" role="status"></p>';document.body.append(dialog)
  const report=text=>{$('project-batch-message').textContent=text;message(text)},safe=action=>async()=>{if(working)return;working=true;try{await action()}catch(error){report(error.message)}finally{working=false;sync()}}
- function sync(){select.textContent=mode?`已选 ${chosen.size}`:'多选';select.setAttribute('aria-pressed',String(mode));actions.hidden=!mode;$('project-selection-summary').textContent=`已选 ${chosen.size} 个版本 · 最多100个`;$('project-batch-create').disabled=working||!!activeJob||!chosen.size;$('project-stage-apply').disabled=working||!!activeJob||!chosen.size}
- function toggle(item){if(chosen.has(item.source))chosen.delete(item.source);else{if(chosen.size>=100){message('最多选择100个版本，请先缩小范围或清空选择');return}chosen.set(item.source,item)}render();sync()}
- function add(items){const unique=new Map([...chosen,...items.map(item=>[item.source,item])]);if(unique.size>100)throw Error('筛选结果超过100个版本，请缩小筛选范围');for(const [key,item]of unique)chosen.set(key,item);render();sync()}
+ const eligibleRooms=items=>[...new Map(items.filter(item=>item.legacy_room_key&&!item.constraint_ids?.length).map(item=>[item.legacy_room_key,item])).values()]
+ function sync(){
+  select.setAttribute('aria-pressed',String(mode));select.disabled=working;trashButton.disabled=working
+  trashButton.setAttribute('aria-pressed',String(trash));selectionBar.hidden=!mode;actions.hidden=!mode||trash
+  $('project-batch-count').textContent=`已选 ${chosen.size} 个版本`
+  $('project-move-group').hidden=trash;$('project-move-group').disabled=working||!chosen.size
+  $('project-link-constraints').hidden=trash;$('project-link-constraints').disabled=working||!eligibleRooms([...chosen.values()]).length
+  $('project-recycle-versions').textContent=trash?'恢复':'移入回收站';$('project-recycle-versions').disabled=working||!chosen.size
+  $('project-select-done').disabled=working
+  const tooMany=chosen.size>100
+  $('project-selection-summary').textContent=`已选 ${chosen.size} 个版本`+(tooMany?' · 每个预览或检查队列最多处理 100 个版本':'')
+  $('project-batch-create').disabled=working||!!activeJob||!chosen.size||tooMany;$('project-stage-apply').disabled=working||!!activeJob||!chosen.size
+  selectAll.disabled=working||!getVisible().some(item=>!chosen.has(item.source))
+ }
+ function toggle(item){
+  failedSelection.delete(item.source)
+  if(chosen.has(item.source))chosen.delete(item.source)
+  else chosen.set(item.source,item)
+  const focused=document.activeElement,checkbox=focused.type==='checkbox',focusRow=focused.closest('.project-card')?.dataset.source===item.source
+  render();sync()
+  if(focusRow){const row=[...host.querySelectorAll('.project-card')].find(card=>card.dataset.source===item.source);row?.querySelector(checkbox?'.project-card-selection input':'.project-card-open')?.focus({preventScroll:true})}
+ }
+ function add(items){for(const item of items)if(!chosen.has(item.source))chosen.set(item.source,item);render();sync()}
+ async function processVersions(route,items,options){
+  const failed=[]
+  const bindings=items.map(({source,file_size,modified_ns})=>({source,file_size,modified_ns}))
+  for(let start=0;start<bindings.length;start+=100){
+   try{
+    const result=await api(route,{items:bindings.slice(start,start+100),...options})
+    for(const row of result.items){
+     if(row.status==='complete'){chosen.delete(row.source);failedSelection.delete(row.source)}
+     else failed.push(row)
+    }
+   }catch(error){
+    failed.push(...bindings.slice(start).map(({source})=>({source,error:error.message})))
+    break
+   }
+  }
+  for(const item of failed)failedSelection.add(item.source)
+  await refresh();render()
+  return failed
+ }
  function drawHistory(){const list=$('project-batch-history');list.replaceChildren();for(const entry of queues){const button=document.createElement('button');button.type='button';button.dataset.queueId=entry.id;button.setAttribute('aria-pressed',String(queue?.id===entry.id));const name=document.createElement('strong'),meta=document.createElement('small');name.textContent=`${entry.item_count} 个版本 · ${statusNames[entry.status]??entry.status}`;meta.textContent=new Date(entry.created_at).toLocaleString('zh-CN');button.append(name,meta);button.onclick=safe(()=>load(entry.id));list.append(button)}if(!queues.length)list.textContent='还没有批量任务'}
  async function history(){queues=(await api('project-batch')).items;drawHistory()}
  async function load(id){const token=++generation,result=await api('project-batch/get',{id});if(token!==generation)return;queue=result;drawHistory();drawQueue()}
@@ -35,14 +79,54 @@ export function initProjectBatch({host,api,library,getVisible,getModels,render,i
   if(polling||!activeJob)return;polling=true;const id=activeJob
   try{const job=await api('jobs/'+id);if(job.status==='running'){if(dialog.open&&queue?.id===job.queue_id)await load(job.queue_id)}else{activeJob=null;setBusy(false);await history();if(queue)await load(queue.id);await refresh();report(job.status==='complete'?'批量处理结束，请查看各项结果':job.error||'批量任务已停止')}}catch(error){report('进度读取暂不可用：'+error.message)}finally{polling=false;sync();if(activeJob)setTimeout(poll,900)}
  }
- select.onclick=()=>{mode=!mode;if(!mode){chosen.clear();actions.open=false}$('project-selection-panel').hidePopover?.();render();sync()}
+ function setMode(value){mode=value;if(!mode){chosen.clear();failedSelection.clear();actions.open=false}else if($('project-preview-dialog').open)$('project-preview-dialog').close();$('project-selection-panel').hidePopover?.();render();sync()}
+ select.onclick=()=>setMode(!mode)
+ $('project-select-done').onclick=()=>{setMode(false);select.focus()}
+ trashButton.onclick=()=>{trash=!trash;setMode(false)}
+ let management
+ const confirm=manage.querySelector('button[value=confirm]')
+ function manageSelection(action){
+  if(working||!chosen.size)return
+  const selected=[...chosen.values()],link=action==='link',move=action==='move'
+  const items=link?eligibleRooms(selected):selected,keys=organization.keys(items)
+  if(!items.length)return
+  management={items,keys,action}
+  $('project-manage-title').textContent=link?`为 ${items.length} 间旧房间关联约束`:move?`移动 ${keys.size} 座建筑到分组？`:`${trash?'恢复':'移入回收站'} ${items.length} 个版本？`
+  $('project-manage-hint').hidden=!link;$('project-manage-hint').textContent=link?'同一房间的多个版本合并显示。列表包含所选记录中可补关联的旧房间。':''
+  $('project-manage-items').replaceChildren(...items.map(item=>{const row=document.createElement('li');row.textContent=[item.object_name||item.name_zh||item.name||item.label,link?item.legacy_room_key:item.version].filter(Boolean).join(' · ');return row}))
+  $('project-manage-group-label').hidden=!move&&!link
+  $('project-manage-target-label').textContent=link?'目标约束':'目标分组'
+  const choices=link?getConstraintGroups().filter(rule=>!rule.archived&&items.every(item=>(rule.project_key===null||rule.project_key===item.project_key)&&(!rule.folder||item.legacy_room_key===rule.folder||item.legacy_room_key.startsWith(rule.folder+'/')))):organization.groups()
+  const placeholder=new Option(link?(choices.length?'选择约束':'所选房间没有共用的可选约束'):'未归组','')
+  $('project-manage-group').replaceChildren(placeholder,...choices.map(group=>new Option(group.name,group.id)))
+  confirm.disabled=link
+  manage.returnValue='cancel';manage.showModal()
+ }
+ $('project-manage-group').onchange=()=>{confirm.disabled=management?.action==='link'&&!$('project-manage-group').value}
+ $('project-move-group').onclick=()=>manageSelection('move')
+ $('project-link-constraints').onclick=()=>manageSelection('link')
+ $('project-recycle-versions').onclick=()=>manageSelection(trash?'restore':'trash')
+ manage.addEventListener('close',safe(async()=>{
+  if(manage.returnValue!=='confirm'||!management)return
+  if(isBusy())throw Error('请等待当前建模任务完成')
+  const {items,keys,action}=management
+  if(action==='link'){
+   const constraint_id=$('project-manage-group').value
+   if(!constraint_id)throw Error('请选择要关联的约束')
+   const result=await api('prompt-library',{action:'add-room-links',constraint_id,items:items.map(({source,file_size,modified_ns})=>({source,file_size,modified_ns}))})
+   chosen.clear();await refresh();report(`已为 ${result.rooms} 间旧房间关联约束`);return
+  }
+  if(action==='move'){await organization.move(keys,$('project-manage-group').value);chosen.clear();render();report(`已整理 ${keys.size} 座建筑`);return}
+  const failed=await processVersions('project-recycle',items,{trashed:action==='trash'})
+  report(`已处理 ${items.length-failed.length} 个版本`+(failed.length?'。'+failed.map(item=>(items.find(entry=>entry.source===item.source)?.name_zh||item.source)+'：'+item.error).join('。'):''))
+ }))
  $('project-select-page').onclick=safe(()=>add(getVisible().slice(0,host.querySelectorAll('.project-card').length)))
- $('project-select-filtered').onclick=safe(()=>add(getVisible()))
- $('project-select-clear').onclick=()=>{chosen.clear();render();sync()}
+ selectAll.onclick=safe(()=>add(getVisible()))
+ $('project-select-clear').onclick=()=>{chosen.clear();failedSelection.clear();render();sync()}
  $('project-batch-create').onclick=safe(async()=>{if(isBusy()||activeJob)throw Error('请等待当前建模任务完成');const action=$('project-batch-actions').value,result=await api('project-batch/create',{sources:[...chosen.values()].map(item=>({source:item.source,label:item.object_name||item.name_zh||item.name||item.label})),actions:action==='both'?['preview','check']:[action]});actions.open=false;$('project-selection-panel').hidePopover();if(!dialog.open)dialog.showModal();await history();await load(result.id);await start(result.id)})
- $('project-stage-apply').onclick=safe(async()=>{if(isBusy())throw Error('请等待当前任务完成');const result=await api('project-stage-batch',{items:[...chosen.values()].map(item=>({source:item.source,file_size:item.file_size,modified_ns:item.modified_ns})),stage:$('project-batch-stage').value});for(const item of result.items)if(item.status==='complete')chosen.delete(item.source);await refresh();const failed=result.items.filter(item=>item.status==='failed');report(`阶段标记：${result.items.length-failed.length} 项成功，${failed.length} 项未完成${failed.length?'；失败项保留选中：'+failed.map(item=>item.error).join('；'):''}`);render()})
+ $('project-stage-apply').onclick=safe(async()=>{if(isBusy())throw Error('请等待当前任务完成');const items=[...chosen.values()],failed=await processVersions('project-stage-batch',items,{stage:$('project-batch-stage').value});report(`阶段标记：${items.length-failed.length} 项成功，${failed.length} 项未完成${failed.length?'；失败项保留选中：'+failed.map(item=>item.error).join('；'):''}`)})
  open.onclick=safe(async()=>{if(!dialog.open)dialog.showModal();await history();if(queue)await load(queue.id)});$('project-batch-close').onclick=()=>dialog.close()
  window.addEventListener('creator-workspace-change',event=>{if(event.detail!=='project'&&dialog.open)dialog.close()})
  sync()
- return {get active(){return mode},has:item=>chosen.has(item.source),toggle,decorate(card,item){const label=document.createElement('label');label.className='project-card-selection';label.hidden=!mode;const input=document.createElement('input');input.type='checkbox';input.checked=chosen.has(item.source);input.setAttribute('aria-label','选择版本：'+(item.object_name||item.name_zh||item.name||item.label));input.onchange=()=>toggle(item);label.append(input);card.append(label);card.classList.toggle('project-selected',chosen.has(item.source))},update(){const available=new Map(getModels().map(item=>[item.source,item]));for(const [key,item]of chosen){const current=available.get(key);if(!current||current.modified_ns!==item.modified_ns||current.file_size!==item.file_size)chosen.delete(key);else chosen.set(key,current)}sync()}}
+ return {get active(){return mode},get trash(){return trash},exit(){trash=false;setMode(false)},has:item=>chosen.has(item.source),toggle,sync,decorate(card,item){const label=document.createElement('label');label.className='project-card-selection';label.hidden=!mode;const input=document.createElement('input');input.checked=chosen.has(item.source);input.type='checkbox';input.setAttribute('aria-label','选择版本：'+(item.object_name||item.name_zh||item.name||item.label));input.onchange=()=>toggle(item);label.append(input);card.append(label);card.classList.toggle('project-selected',chosen.has(item.source))},update(){const available=new Map(getModels().map(item=>[item.source,item]));for(const [key,item]of chosen){const current=available.get(key);if(current&&current.modified_ns===item.modified_ns&&current.file_size===item.file_size)chosen.set(key,current);else if(!failedSelection.has(key))chosen.delete(key)}sync()}}
 }

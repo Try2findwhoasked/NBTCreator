@@ -191,9 +191,9 @@ async function captureViewport(isCancelled=()=>false){
  if(state.info&&img.complete&&img.naturalWidth){const canvas=document.createElement('canvas'),ratio=Math.min(1,1280/Math.max(img.naturalWidth,img.naturalHeight));canvas.width=Math.max(1,Math.round(img.naturalWidth*ratio));canvas.height=Math.max(1,Math.round(img.naturalHeight*ratio));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);return {dataUrl:canvas.toDataURL('image/jpeg',.82),width:canvas.width,height:canvas.height}}
  throw Error('没有可用的建模视口，请先打开3D或建筑图片，或关闭该工作流的截图开关')
 }
-let promptLoaded=false
+let promptLoaded=false,promptEntrySource=''
 initReferencePicker({api})
-window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload),publish:payload=>api('prompt-publish',payload),library:payload=>api('prompt-library',payload),standards:()=>api('architect/standards-get',{}),constraints:folder=>api('architect/constraints-list',folder?{folder}:{}),constraintFolders:()=>projectManager.constraintFolders(),constraintFolder:()=>projectManager.constraintFolder()})
+window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload),publish:async payload=>{const task=await api('prompt-publish',payload);refreshProjectCatalog().catch(error=>status(error.message,'warn'));return task},library:payload=>api('prompt-library',payload),standards:()=>api('architect/standards-get',{}),constraintRegistry:(folders,query={})=>api('architect/constraints-registry',{folders,...query}),registerRoom:async payload=>{const room=await api('prompt-library',{...payload,action:'register-room'});initialize().catch(error=>status(error.message,'warn'));return room},startConstraint:()=>projectManager.startConstraint(),layoutProject:folder=>projectManager.layoutProject(folder),draftConstraintScopes:folder=>projectManager.draftConstraintScopes(folder),constraintFolders:()=>projectManager.constraintFolders(),constraintFolder:source=>source?projectManager.constraintFolderFor(source):projectManager.constraintFolderFor(promptEntrySource)||projectManager.constraintFolder()||projectManager.defaultConstraintFolder(),back:()=>$('close-prompt').click(),loadBuilding:()=>syncPrompt(true)})
 // The iframe gets only prompt generation, never the native API/key management bridge.
 window.nbtPromptAI=Object.freeze({
  config:()=>window.nbtDesktop?.apiConfig?.()??Promise.resolve({enabled:false,available:false}),
@@ -202,27 +202,32 @@ window.nbtPromptAI=Object.freeze({
  cancel:scope=>cancelAI(scope??'prompt-editor'),
  settings:()=>$('open-api').click()
 })
-async function syncPrompt(){
+async function syncPrompt(reportToFrame=false){
   const label=$('prompt-sync-status');$('sync-prompt').disabled=true
   try{
     if(!state.info)throw new Error('请先在建筑库打开建筑；新建任务可直接编辑提示词')
     label.textContent='正在读取当前建筑、参数和保护配置…'
     const req=request(),result=await api('prompt-export',req)
     const selected=state.models.find(m=>m.source===result.source)
-    const folder=projectManager.constraintFolders().find(entry=>entry.project===selected?.project_key&&entry.shape===selected?.shape_group)?.folder
-    await $('prompt-frame').contentWindow.NbtPromptUI.receive({...result,name:selected?.name,buildingShape:selected?.shape,constraintFolder:folder,
+    const folder=projectManager.constraintFolderFor(result.source)
+    const linked=[...(selected?.published_constraint_ids??[]),...(selected?.manual_constraint_ids??[])]
+    const roomConstraintIds=selected?.room_id?selected.constraint_ids:linked.length?[...new Set(linked)]:undefined
+    await $('prompt-frame').contentWindow.NbtPromptUI.receive({...result,name:selected?.name,buildingShape:selected?.shape_group??selected?.shape,constraintFolder:folder,roomConstraintIds,
       contextPath:req.context,reviewPath:req.review,output:state.info?.workdir??state.output,budget:req.settings.max_changed_blocks})
     label.textContent='已载入当前建筑与参数；面板修改只用于生成提示词'
-  }catch(error){label.textContent=error.message}
+  }catch(error){label.textContent=error.message;if(reportToFrame===true)throw error}
   finally{$('sync-prompt').disabled=false}
 }
 $('open-prompt').addEventListener('click',()=>{
+  const origin=window.creatorWorkspace?.current()
+  if(origin==='model')promptEntrySource=state.info?.source??''
+  else if(origin==='project')promptEntrySource=''
   if(!$('prompt-dialog').open)$('prompt-dialog').show()
   window.creatorWorkspace?.opened('prompt')
   if(!promptLoaded){
     const frame=$('prompt-frame');frame.addEventListener('load',()=>{promptLoaded=true;$('prompt-sync-status').textContent='新建筑可直接编写；修改现有建筑时，先引用当前建筑'},{once:true})
     frame.src='/__detail__/prompt/index.html'
-  }else $('prompt-sync-status').textContent='已保留上次编辑的提示词'
+  }else{$('prompt-sync-status').textContent='已保留上次编辑的提示词';$('prompt-frame').contentWindow.NbtPromptUI?.refreshConstraints?.()}
 })
 $('sync-prompt').addEventListener('click',syncPrompt)
 $('prompt-new').addEventListener('click',()=>{if(!promptLoaded)return;$('prompt-frame').contentWindow.NbtPromptUI.newDraft();$('prompt-sync-status').textContent='已新增一条提示词，之前的内容已自动保存'})
@@ -578,7 +583,7 @@ let catalogEpoch=0
 function updateCatalog(data){
  const previous=$('source').value
  state.models=data.catalog.models;state.catalogReady=true
- renderModels(previous);projectManager.update(data.project_catalog?.models??state.models,state.workspace,data.project_catalog?.constraint_folders??[])
+ renderModels(previous);projectManager.update(data.project_catalog?.models??state.models,state.workspace,data.project_catalog?.constraint_folders??[],data.project_catalog)
  if(state.models.length&&!state.info&&!state.busy&&(!previous||!state.models.some(item=>item.source===previous))&&$('models').value!=='')selectModel(Number($('models').value))
  if(data.catalog.migration_in_progress)status('建筑库正在按形状迁移和校验，完成后刷新列表即可。','warn')
  else if(!state.models.length)status(`未发现可载入的完整建筑。扫描目录：${data.catalog.scan_root??state.workspace+'/nbt_models'}。已检查 ${data.catalog.scanned} 个文件，${data.catalog.skipped} 个格式不支持或损坏。请确认项目根目录，或直接打开完整 NBT / 主模型。`,'warn')
@@ -618,6 +623,14 @@ function selectModel(index) {
 }
 function handle(fn) { return async event => { try { await fn(event) } catch(error) { status(error.message,error.name==='AbortError'?'cancelled':'error') } } }
 $('refresh').addEventListener('click',handle(initialize))
+async function refreshProjectCatalog(){
+  const epoch=++catalogEpoch
+  try{
+   const fresh=await api('catalog')
+   if(epoch===catalogEpoch)updateCatalog(fresh)
+  }finally{if(epoch===catalogEpoch)projectManager.setLoading('')}
+}
+window.addEventListener('project-constraints-changed',handle(refreshProjectCatalog))
 $('models').addEventListener('change',handle(async()=>{selectModel(Number($('models').value));await loadModel()}))
 $('load').addEventListener('click',handle(()=>loadModel()))
   $('enable-3d').addEventListener('click',handle(()=>state.mode==='3d'?imageMode():runJob('snapshot')))

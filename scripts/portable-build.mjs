@@ -38,4 +38,8 @@ for(const kind of (appOnly?['application']:['application','runtime'])){
  const suffix=kind==='application'?'app-update':'runtime'
  execFileSync(python,[path.join(root,'scripts/portable-archive.py'),'pack','--source',app,'--kind',kind,'--output',path.join(out,`NBTCreator-${version}-windows-x64-${suffix}.zip`)],{stdio:'inherit'})
 }
+const tool=await fs.readFile(path.join(root,'tools/constraint-room-migration/migrate.py'))
+const toolName=`NBTCreator-${version}-constraint-room-migration.py`
+await fs.writeFile(path.join(out,toolName),tool)
+await fs.writeFile(path.join(out,toolName+'.sha256'),createHash('sha256').update(tool).digest('hex')+'  '+toolName+'\n')
 }

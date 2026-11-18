@@ -2,6 +2,7 @@ import {applyColorScheme,colorSchemes} from './color-scheme.js'
 import {applyCameraPreferences} from './camera-preferences.js'
 import {CAMERA_CONTROL_DEFAULTS} from './camera-controls.mjs'
 import {previewKnowledge} from './knowledge-preview.js'
+import {mountRoomMigration} from './room-migration.js'
 export function initAppSettings(){
  if(!window.nbtDesktop?.appSettings)return
  const bridge=window.nbtDesktop,dialog=document.createElement('dialog');dialog.id='app-settings-dialog';dialog.className='review-help-dialog app-settings-dialog'
@@ -16,6 +17,7 @@ export function initAppSettings(){
  general.insertAdjacentHTML('afterbegin','<h3>应用与界面</h3><label><input id="setting-restore-session" type="checkbox">自动保存并恢复编辑草稿</label><label>启动后打开<select id="setting-start-page"><option value="project">项目管理</option><option value="assets">资产管理</option><option value="model">模型编辑</option><option value="prompt">提示词方案</option><option value="tasks">任务记录</option></select></label><label>界面密度<select id="setting-density"><option value="comfortable">标准</option><option value="compact">紧凑</option></select></label><label><input id="setting-remember-window" type="checkbox">记住窗口大小</label><label><input id="setting-show-hints" type="checkbox">显示视口操作提示</label>')
  storage.dataset.settingsPage='storage';storage.hidden=true;storage.innerHTML='<h3>项目与文件</h3><p>每个工作区保存自己的界面设置、资料和 Agent 阅读配置。AI 密钥与更新令牌单独加密保存在本机。下面可以打开各类文件的实际位置。</p><div id="settings-storage-paths"></div><h3>外部 Agent 接入</h3><p id="settings-skill-entry" class="path"></p><p>把下方入口或接入说明交给 Agent，它便可以在当前项目中阅读资料并调用建模工具。保存这些资料不会自动向 AI 服务上传文件。</p><button id="settings-skill-preview" type="button">查看实际暴露入口</button><button id="settings-skill-copy" type="button">复制给 Agent 的接入说明</button><p>修改方案保存在当前结构版本/Agent交接/plan-任务编号/；审阅图在同版本的review-任务编号中。新建筑版本另存，保留源文件。</p>'
  for(const id of ['setting-workspace','setting-workspace-pick'])storage.append(dialog.querySelector('#'+id))
+ mountRoomMigration(storage,bridge)
  general.insertAdjacentHTML('beforeend','<label>界面配色<select id="setting-color-scheme">'+Object.entries(colorSchemes).map(([id,p])=>'<option value="'+id+'">'+p.label+'</option>').join('')+'</select></label><div class="setting-palette-preview" aria-hidden="true"></div><p>保存后同步应用到编辑器与创作方案页。</p>');
  const palettePreview=general.querySelector('.setting-palette-preview');for(const p of Object.values(colorSchemes)){const swatch=document.createElement('i');swatch.style.background=p.accent;swatch.title=p.label;palettePreview.append(swatch)}
  const layout=document.createElement('div');layout.className='settings-layout';const content=document.createElement('div');content.className='settings-content'

@@ -25,7 +25,8 @@ def folder(workspace,identifier):
 
 def source_path(workspace,value):
     if not isinstance(value,str) or not value:raise ValueError('模型路径无效')
-    source=(Path(workspace).resolve()/value).resolve();models=(Path(workspace).resolve()/'nbt_models').resolve()
+    from nbt_web_paths import workspace_path
+    source=workspace_path(workspace,value);models=(Path(workspace).resolve()/'nbt_models').resolve()
     if not source.is_relative_to(models) or not source.is_file():raise ValueError('请选择当前工作区建筑库中的文件')
     return source
 

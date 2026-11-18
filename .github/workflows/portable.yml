@@ -482,6 +482,7 @@ jobs:
             dist/portable/*.zip
             dist/portable/*.sha256
             dist/portable/*.manifest.json
+            dist/portable/*-constraint-room-migration.py
             dist/portable/release-notes.md
           if-no-files-found: error
           compression-level: 0
@@ -540,4 +541,4 @@ jobs:
             echo 'Release already exists; refusing to replace published assets.' >&2
             exit 1
           fi
-          gh release create "$RELEASE_TAG" ./*.zip ./*.sha256 ./*.manifest.json "${args[@]}"
+          gh release create "$RELEASE_TAG" ./*.zip ./*.sha256 ./*.manifest.json ./*-constraint-room-migration.py "${args[@]}"

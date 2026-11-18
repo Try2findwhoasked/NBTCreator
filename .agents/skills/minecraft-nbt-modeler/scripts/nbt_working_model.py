@@ -717,21 +717,30 @@ class WorkingModel:
         return head_file(self.workspace, building)
 
     def _read_head(self, building):
-        file = self._head_file(building)
-        return json.loads(file.read_text(encoding='utf8')) if file.is_file() else None
+        from nbt_web_paths import prior_workspace_paths,workspace_path
+        candidates=[building,*prior_workspace_paths(self.workspace,building)]
+        files=[file for folder in candidates if (file:=self._head_file(folder)).is_file()]
+        if not files:return None
+        file=max(files,key=lambda current:current.stat().st_mtime_ns)
+        head=json.loads(file.read_text(encoding='utf8'))
+        return dict(head,source=workspace_path(self.workspace,head['source']).relative_to(self.workspace).as_posix())
 
     def _history_source(self, building):
         from nbt_history import History, digest as history_digest
+        from nbt_web_paths import prior_workspace_paths,workspace_path
         try:
             history = History(self.workspace)
             data, _ = history.state()
-            key = history_digest(Path(building).relative_to(self.workspace).as_posix().encode())[:24]
-            current = data['current'].get(key)
-            return data['versions'][current]['source'] if current else None
+            for folder in [building,*prior_workspace_paths(self.workspace,building)]:
+                key=history_digest(Path(folder).relative_to(self.workspace).as_posix().encode())[:24]
+                current=data['current'].get(key)
+                if current:return workspace_path(self.workspace,data['versions'][current]['source']).relative_to(self.workspace).as_posix()
+            return None
         except (OSError, ValueError):
             return None
 
     def _assert_parent(self, building):
+        from nbt_web_paths import workspace_path
         head = self._read_head(building)
         history_source = self._history_source(building)
         source = self.source.relative_to(self.workspace).as_posix() if self.source else None
@@ -745,8 +754,9 @@ class WorkingModel:
         seen = set()
         while history_source and ancestor != history_source and ancestor not in seen:
             seen.add(ancestor)
-            manifest = managed_manifest(self.workspace / ancestor) if ancestor else None
+            manifest = managed_manifest(workspace_path(self.workspace,ancestor)) if ancestor else None
             ancestor = manifest.get('parent_source') if manifest else None
+            if ancestor:ancestor=workspace_path(self.workspace,ancestor).relative_to(self.workspace).as_posix()
         if history_source and ancestor != history_source:
             raise ModelConflict('STALE_PARENT', [dict(source=source, history=history_source)])
         return head, history_source

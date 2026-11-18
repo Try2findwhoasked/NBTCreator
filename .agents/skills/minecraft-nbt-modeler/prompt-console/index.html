@@ -7,17 +7,21 @@
 </head>
 <body>
  <header><div><h1>创作方案</h1><p>把建筑想法写成提示词，审查后交给建造助手。</p></div><div class="actions"><button id="import">导入方案</button><input id="file" type="file" accept=".json" hidden><button id="save">下载方案</button><button id="reset">另起一份</button></div></header>
- <div id="planning-heading"><div><strong>创作方案</strong><nav id="planning-steps" aria-label="创作方案步骤"><button type="button" data-planning-step="write">1 写下要求</button><button type="button" data-planning-step="review">2 审查方案</button><button type="button" data-planning-step="handoff">3 查看交接</button></nav></div><button id="prompt-queue-toggle" type="button" aria-expanded="false" aria-controls="prompt-queue">方案列表</button><button id="prompt-output-toggle" type="button" aria-expanded="false">查看完整提示词</button></div>
+ <div id="planning-heading"><button id="prompt-back" type="button" hidden>返回</button><nav id="planning-steps" aria-label="创作方案步骤"><button type="button" data-planning-step="write">起草要求</button><button type="button" data-planning-step="review">编辑与审查</button><button type="button" data-planning-step="handoff">交接结果</button></nav><div class="planning-commands"><button id="prompt-queue-toggle" type="button" aria-expanded="false" aria-controls="prompt-queue">方案列表</button><button id="prompt-primary" class="primary" type="button">批量编写</button><details id="prompt-more"><summary>更多</summary><div><button id="prompt-output-toggle" type="button" aria-expanded="false">查看完整提示词</button><button id="prompt-review" type="button">标记已审查</button><button id="prompt-delete" type="button" class="danger">移入回收站</button></div></details></div></div>
  <main>
   <aside id="prompt-queue" aria-label="提示词列表">
    <div class="queue-heading"><h2>提示词列表</h2><span id="prompt-queue-count">0 条</span></div>
-   <div class="queue-actions"><button id="prompt-add" type="button">＋ 新增一条</button><button id="prompt-batch-open" type="button">批量编写</button><button id="prompt-ai-cancel" type="button" hidden disabled>终止生成</button></div>
+   <div class="queue-actions"><button id="prompt-batch-open" type="button" class="primary">批量编写</button><button id="prompt-add" type="button">＋ 单条</button><button id="prompt-ai-cancel" type="button" hidden disabled>终止生成</button></div>
+   <div class="queue-scope" role="group" aria-label="方案状态"><button id="prompt-scope-active" type="button" aria-pressed="true">待处理</button><button id="prompt-scope-published" type="button" aria-pressed="false">待领取</button><button id="prompt-scope-trash" type="button" aria-pressed="false">回收站</button></div>
+   <div class="prompt-list-controls"><select id="prompt-group-filter" aria-label="方案分组" hidden></select><button id="prompt-list-select" type="button" aria-pressed="false">多选</button></div>
+   <div id="prompt-selection-bar" hidden><span id="prompt-selection-count" role="status"></span><button id="prompt-selection-all" type="button">选择全部</button><button id="prompt-selection-group" type="button">移到分组</button><button id="prompt-selection-recycle" type="button">移入回收站</button><button id="prompt-selection-done" type="button">完成</button></div>
+   <p id="prompt-selection-status" role="status"></p>
    <p class="queue-intro">每条提示词对应一座建筑，可以分别修改和交接。</p>
    <div id="prompt-queue-list" role="list"></div>
    <footer class="queue-footer"><p id="prompt-queue-progress" role="status"></p><button id="prompt-publish-reviewed" type="button">交接已审查的提示词</button><p>交接后，请在外部建造助手中调用工作区 Skill 读取任务。建筑完成后回到建筑库查看。</p></footer>
   </aside>
   <section class="editor">
-   <div class="document-heading"><div><small id="prompt-document-number">当前提示词</small><h2 id="prompt-document-title">编写建筑要求</h2></div><div class="document-actions"><span id="prompt-review-state" class="review-state">待审查</span><details id="prompt-more"><summary>更多</summary><div><button id="prompt-review" type="button">仅标记已审查，稍后批量交接</button><button id="prompt-delete" type="button" class="danger">删除这条方案</button></div></details></div></div>
+   <div class="document-heading"><div><small id="prompt-document-number">当前提示词</small><h2 id="prompt-document-title">编写建筑要求</h2></div><span id="prompt-review-state" class="review-state">待审查</span></div>
    <nav aria-label="提示词编辑"><button data-tab="ai" class="active">AI 编写</button><button data-tab="project">审查与修改</button><button id="prompt-advanced-toggle" type="button" aria-expanded="false">高级选项</button></nav>
    <nav id="prompt-advanced-tabs" hidden><button data-tab="tools">建造步骤 <span id="count">0</span></button><button data-tab="context">保护与通行</button></nav>
    <p id="planning-next" role="status">可以让 AI 起草，也可以直接填写建筑要求。</p>
@@ -50,7 +54,7 @@
    <footer>提示词修改会自动保存到项目目录。外部助手完成建造后，回到建筑库查看、标注，再继续修改。</footer>
   </section>
  </main>
- <dialog id="prompt-delete-dialog" aria-labelledby="prompt-delete-title"><h2 id="prompt-delete-title">删除这条创作方案？</h2><p id="prompt-delete-name"></p><p class="muted">从方案列表移除，保留归档文件、已交接的任务和建筑。已交接任务仍可由外部助手读取。</p><div class="batch-actions"><button id="prompt-delete-cancel" type="button">取消</button><button id="prompt-delete-confirm" type="button" class="danger">删除方案</button></div></dialog>
+ <dialog id="prompt-delete-dialog" aria-labelledby="prompt-delete-title"><h2 id="prompt-delete-title">整理方案</h2><ul id="prompt-delete-name"></ul><label id="prompt-manage-group-label" hidden>分组名称<input id="prompt-manage-group" list="prompt-group-names" maxlength="60" placeholder="新建或选择分组，留空移出分组"><datalist id="prompt-group-names"></datalist></label><div class="batch-actions"><button id="prompt-delete-cancel" type="button" autofocus>取消</button><button id="prompt-delete-confirm" type="button">确认</button></div></dialog>
  <dialog id="prompt-batch-dialog"><form method="dialog" class="batch-heading"><div><h2>批量编写建筑提示词</h2><p>先生成一组草稿，再逐条审查。每座建筑独立保存。</p></div><button id="prompt-batch-close" aria-label="关闭批量编写">关闭</button></form><label>共同的风格与要求<textarea id="prompt-batch-common" maxlength="4000" rows="3" placeholder="例如：同一座山城的配套建筑，石砖与深色木构，尺度朴素，保留清楚的出入口。"></textarea></label><label class="inline"><input id="prompt-batch-inherit" type="checkbox" checked>继承当前方案的人工设计参数与AI改写范围</label><label>建筑清单（每行一座，最多 20 座）<textarea id="prompt-batch-items" maxlength="20000" rows="7" placeholder="水渠工坊｜底层加工区，上层检修平台&#10;沿街茶馆｜一层大堂，二层雅间，临街有檐廊&#10;山门｜双塔连接门楼，预留商队通行空间"></textarea></label><p class="muted">可写“建筑名｜单独要求”。生成的草稿不会自动交给外部助手。</p><p id="prompt-batch-status" role="status"></p><div class="batch-actions"><button id="prompt-batch-add" type="button">只添加到列表</button><button id="prompt-batch-generate" type="button" class="primary">添加并批量生成</button></div></dialog>
  <script src="catalog.js"></script><script src="constraint-contract.cjs"></script><script src="core.js"></script><script src="ai-input.js"></script><script src="autosave.js"></script><script src="workspace.js"></script><script src="app.js"></script>
 </body></html>

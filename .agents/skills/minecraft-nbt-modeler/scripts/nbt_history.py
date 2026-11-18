@@ -25,7 +25,8 @@ def file_hash(file):
 def relative(workspace,file):return Path(file).resolve().relative_to(workspace).as_posix()
 def model_file(workspace,value):
     if not isinstance(value,(str,Path)):raise ValueError('请选择建筑主模型')
-    file=(workspace/Path(value)).resolve()
+    from nbt_web_paths import workspace_path
+    file=workspace_path(workspace,value)
     if not file.is_relative_to(workspace/'nbt_models'):raise ValueError('版本历史只管理当前工作区 nbt_models 内的建筑')
     return file
 def owned(root,file):
@@ -152,18 +153,27 @@ class History:
         from nbt_refine import read_master
         model,_=read_master(source);source_sha=file_hash(source);source_path=relative(self.workspace,source)
         identifier='v_'+digest((source_path+'\n'+source_sha).encode())[:24];previous=state['versions'].get(identifier)
+        if previous is None:
+            previous=next((node for node in state['versions'].values()
+                if node['source_sha256']==source_sha and model_file(self.workspace,node['source'])==source),None)
+            if previous:identifier=previous['id']
         building=digest(relative(self.workspace,workdir).encode())[:24]
+        if previous:
+            source_path=previous['source'];building=previous['building']
         parent=request.get('parent')
         if parent:
             if not isinstance(parent,str):raise ValueError('父版本编号无效')
             parent_node=self.lookup(state,parent)
-            if parent_node['building']!=building or parent==identifier:raise ValueError('父版本必须属于同一建筑且不能是当前版本')
+            if project_paths(model_file(self.workspace,parent_node['source']))['workdir']!=workdir or parent==identifier:
+                raise ValueError('父版本必须属于同一建筑且不能是当前版本')
+            building=parent_node['building']
         if previous:
             if parent and parent!=previous.get('parent'):
                 from nbt_working_model import managed_manifest
                 manifest = managed_manifest(source)
                 repair = (previous.get('parent') is None and manifest
-                    and manifest.get('parent_source') == parent_node['source']
+                    and manifest.get('parent_source')
+                    and model_file(self.workspace,manifest['parent_source']) == model_file(self.workspace,parent_node['source'])
                     and manifest.get('parent_source_sha256') == parent_node['source_sha256'])
                 if not repair:
                     raise ValueError('已有版本的父子关系不重写')
@@ -269,9 +279,12 @@ class History:
                 publish_head(self.workspace, model_file(self.workspace,node['source']))
             return dict(version=self.summary(node),commit=commit,unchanged=commit==head,current=state['current'].get(node['building']))
     def list(self,source=None):
+        from nbt_web_paths import workspace_path
         state,head=self.state();building=None
-        if source:building=digest(relative(self.workspace,project_paths(model_file(self.workspace,source))['workdir']).encode())[:24]
-        versions=[self.summary(node,verify=bool(source)) for node in state['versions'].values() if building is None or node['building']==building]
+        if source:building=project_paths(model_file(self.workspace,source))['workdir']
+        versions=[self.summary(node,verify=bool(source)) for node in state['versions'].values()
+            if building is None or workspace_path(self.workspace,node['workdir'])==building
+            or project_paths(model_file(self.workspace,node['source']))['workdir']==building]
         return dict(versions=sorted(versions,key=lambda item:item['created_at'],reverse=True),current=state['current'],commit=head,git_available=True,repository=relative(self.workspace,self.repository),approval='not_granted_by_history')
     def get(self,identifier):
         state,head=self.state();node=self.lookup(state,identifier)
@@ -282,7 +295,7 @@ class History:
     def current(self,identifier):
         from nbt_working_model import publication_lock, publish_head, managed_manifest
         initial,_=self.state();selected=self.lookup(initial,identifier)
-        with publication_lock(self.workspace,self.workspace/selected['workdir']), self.lock():
+        with publication_lock(self.workspace,project_paths(model_file(self.workspace,selected['source']))['workdir']), self.lock():
             state,head=self.state();node=self.lookup(state,identifier);summary=self.summary(node)
             if not summary['source_matches']:raise ValueError('该版本文件缺失或已变化，可从历史归档另存恢复')
             managed_manifest(model_file(self.workspace,node['source']))
@@ -294,7 +307,7 @@ class History:
     def derive(self,identifier,message='从历史版本继续编辑'):
         from nbt_working_model import publication_lock, publish_head, digest as model_digest, write_json
         initial,_=self.state();selected=self.lookup(initial,identifier)
-        with publication_lock(self.workspace,self.workspace/selected['workdir']), self.lock():
+        with publication_lock(self.workspace,project_paths(model_file(self.workspace,selected['source']))['workdir']), self.lock():
             state,head=self.state();node=self.lookup(state,identifier)
             # Verify every archived byte before allocating a new version.
             for name,item in [*node['files'].items(),*node.get('context',{}).items()]:

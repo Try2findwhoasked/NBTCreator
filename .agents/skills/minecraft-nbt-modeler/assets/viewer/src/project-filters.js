@@ -22,5 +22,5 @@ export function checkboxFilter({host,id,label,options,defaults,onChange}){
   if(initial.length===selected.size&&initial.every(key=>selected.has(key)))return ''
   const names=choices.filter(([key])=>selected.has(key)).map(([,text])=>text)
   return label+'：'+(names.join('、')||'未选择')
- },get:()=>[...selected],set(keys){selected=new Set(keys.includes('all')?choices.map(([key])=>key):keys);render()},options:setOptions,reset(){selected=new Set(defaults.includes('all')?choices.map(([key])=>key):defaults);render()}}
+ },get:()=>[...selected],isAll:()=>selected.size===choices.length,set(keys){selected=new Set(keys.includes('all')?choices.map(([key])=>key):keys);render()},options:setOptions,reset(){selected=new Set(defaults.includes('all')?choices.map(([key])=>key):defaults);render()}}
 }

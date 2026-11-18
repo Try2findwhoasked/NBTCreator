@@ -8,6 +8,13 @@
 .library-search{flex:0 0 clamp(160px,calc(100vw - 430px),460px)}
 
 /* Shared toolbar actions wrap instead of escaping the viewport at high zoom. */
+.library-browser .library-heading { margin-bottom:4px; }
+.library-browser .library-toolbar { background:var(--ui-panel,#fff); border:1px solid var(--ui-line,#dce4ef); border-radius:7px; padding:5px 8px; margin-bottom:10px; box-sizing:border-box; }
+.library-browser .library-actions { gap:5px; }
+.library-browser .library-actions>button,.library-browser .library-actions>details>summary,.library-browser .library-toolbar>button,.library-browser .library-toolbar>details>summary { min-height:30px; padding:5px 9px; border-radius:5px; }
+.library-browser .library-search { border:0; background:var(--ui-input,#f4f6fa); }
+.library-browser .library-tree { background:var(--ui-panel,#fff); border:1px solid var(--ui-line,#dce4ef); border-radius:7px; padding:8px; }
+.library-browser .project-card { border-radius:7px; box-shadow:none; }
 .library-heading{height:auto;min-height:36px;flex:0 0 auto;flex-wrap:wrap}
 .library-actions,.library-actions>div{flex-wrap:wrap;max-width:100%}
 .library-toolbar{height:auto;min-height:36px;flex:0 0 auto;flex-wrap:wrap;row-gap:8px}

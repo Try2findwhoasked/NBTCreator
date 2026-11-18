@@ -6,8 +6,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_prompts import save,scan,read_prompt,read_handoff,publish,tasks,read_task,task_status,remove_prompt
+from nbt_prompts import save,scan,read_prompt,read_handoff,publish,tasks,read_task,task_action,task_status,remove_prompt,library_list,organize_prompts,handoff_statuses
 
 class Prompts(unittest.TestCase):
  def setUp(self):
@@ -24,6 +25,20 @@ class Prompts(unittest.TestCase):
   self.assertEqual(frozen['document']['workbench']['brief_fields'],['layout','style'])
   self.payload['document']['project']['avoid']='新的要求';save(self.workspace,self.payload)
   self.assertEqual(read_task(self.workspace,task['id'])['document']['project']['avoid'],'不要中央圆环')
+ def test_claimed_and_expired_handoffs_have_public_queue_status(self):
+  saved=save(self.workspace,self.payload)
+  task=publish(self.workspace,saved['index'],saved['id'],saved['revision'])
+  task_id=task['id']
+  self.assertEqual(handoff_statuses(self.workspace),{'statuses':{task_id:'pending'}})
+  lease=task_action(self.workspace,'claim',dict(id=task_id,owner='test',request_id='a'*32))
+  visible=library_list(self.workspace)['items'][0]['published_task']
+  self.assertEqual(set(visible),{'id','directory','status'})
+  self.assertEqual(visible['status'],'in_progress')
+  duplicate=publish(self.workspace,saved['index'],saved['id'],saved['revision'])
+  self.assertNotIn('token',duplicate['lease'])
+  with patch('nbt_agent_protocol.time.time',return_value=lease['lease']['expires_at']+1):
+   self.assertEqual(handoff_statuses(self.workspace),{'statuses':{task_id:'pending'}})
+   self.assertEqual(library_list(self.workspace)['items'][0]['published_task']['status'],'pending')
  def test_invalid_human_fields_and_edit_scope_are_rejected_before_archiving(self):
   for value in ({'project':{'materials':['stone']}},{'project':{'size_policy':'guess'}},{'workbench':{'brief_fields':['layout','layout']}},{'workbench':{'brief_fields':['source']}}):
    p=copy.deepcopy(self.payload)
@@ -41,6 +56,11 @@ class Prompts(unittest.TestCase):
   self.assertEqual(read_task(self.workspace,task['id'])['text'],self.payload['text'])
   with self.assertRaisesRegex(ValueError,'已删除'):read_prompt(self.workspace,current['index'],current['id'])
   with self.assertRaisesRegex(ValueError,'已删除'):save(self.workspace,self.payload)
+  library=library_list(self.workspace)['items'];self.assertEqual(len(library),1);self.assertTrue(library[0]['deleted_at'])
+  self.assertEqual(organize_prompts(self.workspace,dict(action='restore',items=[old]))['items'][0]['status'],'failed')
+  self.assertEqual(organize_prompts(self.workspace,dict(action='restore',items=[current]))['items'][0]['status'],'complete')
+  self.assertEqual(organize_prompts(self.workspace,dict(action='group',group='测试分组',items=[current]))['items'][0]['status'],'complete')
+  restored,=library_list(self.workspace)['items'];self.assertEqual(restored['group'],'测试分组');self.assertEqual(restored['published_task']['id'],task['id']);self.assertNotIn('deleted_at',restored)
  def test_delete_existing_building_prompt_does_not_change_model_and_rejects_external_paths(self):
   source,p=self.existing();current=save(self.workspace,p);before=source.read_bytes()
   remove_prompt(self.workspace,current['index'],current['id'],current['revision']);self.assertEqual(source.read_bytes(),before)

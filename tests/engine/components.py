@@ -54,6 +54,21 @@ class Components(unittest.TestCase):
   components.capture(self.workspace,self.source,'快照',[3,1,3],[3,4,3],snapshot=snapshot,snapshot_sha256=digest)
   snapshot.write_text('{}')
   with self.assertRaises(ValueError):components.capture(self.workspace,self.source,'错位',[3,1,3],[3,4,3],snapshot=snapshot,snapshot_sha256=digest)
+ def test_enclosure_preview_without_probes_keeps_declared_protection_and_strict_export(self):
+  from nbt_detail_control import default_settings, preview_effect, export_plan
+  context=self.workspace/'coordinates.json'
+  context.write_text(json.dumps(dict(start=[3.5,1,4.5],targets={'exit':[6.5,1,4.5]},protected_boxes=[],require_enclosure=True,openings=[])))
+  component=components.load(self.workspace,self.captured()['id'])
+  operation=components.placement(component,[10,1,10],list(self.model.size))['operations']
+  settings=default_settings();settings['operations']=operation
+  request=dict(source=str(self.source),context=str(context),settings=settings)
+  result=preview_effect(request,self.workspace/'preview')
+  self.assertEqual(result['missing_checks'],['interior_probes']);self.assertEqual(result['changed_blocks'],4)
+  with self.assertRaisesRegex(ValueError,'interior_probes'):export_plan(request,self.workspace/'plan')
+  config=json.loads(context.read_text());config['protected_boxes']=[dict(lo=[10,1,10],hi=[10,4,10])]
+  context.write_text(json.dumps(config))
+  with self.assertRaises(ValueError):preview_effect(request,self.workspace/'protected')
+  self.assertEqual(self.source.read_bytes(),self.original)
  def test_import_and_operation_reject_forged_hash_duplicates_and_invalid_states(self):
   data=components.load(self.workspace,self.captured()['id']);data['blocks'][0][0]=999
   with self.assertRaises(ValueError):components.store(self.workspace,data)

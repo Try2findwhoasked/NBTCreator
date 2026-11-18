@@ -1042,187 +1042,33 @@
   },
   "building_shapes": {
     "single": {
-      "label": "单格",
-      "size": [
-        48,
-        24,
-        48
-      ],
-      "cells": [
-        [
-          0,
-          0
-        ]
-      ],
-      "footprint": "单个紧凑空间，统一设计入口、主厅与主题节点。"
+      "label": "单格"
     },
     "long": {
-      "label": "长条",
-      "size": [
-        48,
-        24,
-        96
-      ],
-      "cells": [
-        [
-          0,
-          0
-        ],
-        [
-          0,
-          1
-        ]
-      ],
-      "footprint": "纵向连续空间，沿长轴组织入口、过渡和主要活动区。"
+      "label": "长条"
     },
     "square": {
-      "label": "方形",
-      "size": [
-        96,
-        32,
-        96
-      ],
-      "cells": [
-        [
-          0,
-          0
-        ],
-        [
-          1,
-          0
-        ],
-        [
-          0,
-          1
-        ],
-        [
-          1,
-          1
-        ]
-      ],
-      "footprint": "方形整体，围绕中心节点布置相互可见、可达的空间分区。"
+      "label": "方形"
     },
     "l_shape": {
       "label": "L形",
-      "size": [
-        96,
-        28,
-        96
-      ],
-      "cells": [
-        [
-          0,
-          0
-        ],
-        [
-          0,
-          1
-        ],
-        [
-          1,
-          1
-        ]
-      ],
-      "footprint": "L形有效占地，转角形成空间转折；右上缺角不建房、不出空片。"
+      "library_label": "L 形"
     },
     "t_shape": {
       "label": "T形",
-      "size": [
-        144,
-        28,
-        96
-      ],
-      "cells": [
-        [
-          0,
-          0
-        ],
-        [
-          1,
-          0
-        ],
-        [
-          2,
-          0
-        ],
-        [
-          1,
-          1
-        ]
-      ],
-      "footprint": "T形有效占地，横向主空间与中央纵向分支共用整体构造和路线。"
+      "library_label": "T 形"
     },
     "cross": {
       "label": "十字形",
-      "size": [
-        144,
-        32,
-        144
-      ],
-      "cells": [
-        [
-          1,
-          0
-        ],
-        [
-          0,
-          1
-        ],
-        [
-          1,
-          1
-        ],
-        [
-          2,
-          1
-        ],
-        [
-          1,
-          2
-        ]
-      ],
-      "footprint": "十字形有效占地，中央枢纽连接四向空间，四角留空。"
+      "library_label": "十字"
     },
     "irregular": {
-      "label": "不规则",
-      "size": [
-        96,
-        32,
-        144
-      ],
-      "cells": [
-        [
-          0,
-          0
-        ],
-        [
-          1,
-          0
-        ],
-        [
-          0,
-          1
-        ],
-        [
-          0,
-          2
-        ],
-        [
-          1,
-          2
-        ]
-      ],
-      "footprint": "不规则整体占地，按统一空间设计连接各区域；有效单元和边界可继续调整。"
+      "label": "不规则"
     },
     "standalone": {
       "label": "自由尺寸 / 独立建筑",
-      "size": [
-        64,
-        32,
-        64
-      ],
-      "cells": [],
-      "footprint": "独立建筑，尺寸由用途、玩家活动与轮廓决定，不强加48网格或四门。"
+      "library_label": "独立结构",
+      "archive_label": "独立建筑"
     }
   },
   "optional_operation_fields": {
@@ -28857,8 +28703,9 @@
   "project_constraints": {
     "schema_version": 1,
     "description": "在建筑库选中项目或形状文件夹后管理该文件夹的约束。创作方案按文件夹选用约束并保存所选版本。",
-    "cli": "architect <constraints-list|constraints-save|constraints-delete> --request <JSON>",
+    "cli": "architect <constraints-registry|constraints-list|constraints-save|constraints-delete> --request <JSON>",
     "actions": [
+      "constraints-registry",
       "constraints-list",
       "constraints-save",
       "constraints-delete"

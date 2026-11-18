@@ -1,6 +1,7 @@
 const {app,BrowserWindow,ipcMain,dialog,utilityProcess,Menu,safeStorage,net,clipboard,shell}=require('electron')
 const {createAppSettings}=require('./app-settings.cjs')
 const {createUpdater}=require('./updater.cjs')
+const {createRoomMigration}=require('./room-migration.cjs')
 const {createInternalAI}=require('./internal-ai.cjs')
 const {createApiService}=require('./api-service.cjs')
 const {createWorkspaceApi}=require('./workspace-api.cjs')
@@ -58,6 +59,7 @@ async function boot(){
 
  await fs.mkdir(app.getPath('userData'),{recursive:true})
  const preferences=createAppSettings(()=>path.join(workspace,'.nbtcreator')),updater=createUpdater({directory:app.getPath('userData'),version:app.getVersion(),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
+ const migration=createRoomMigration({root,python,dataDirectory:app.getPath('userData'),download:updater.migrationTool})
  let initialPreferences
  const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler'),retrieve:async input=>{const response=await net.fetch(new URL('/__detail__/retrieve/read',serverUrl).href,{method:'POST',headers:{'content-type':'application/json',origin:new URL(serverUrl).origin},body:JSON.stringify(input),redirect:'error'});const data=await response.json();if(!response.ok)throw Error(data.error||'参考集合无法读取');return data}})
  const workspaceApi=createWorkspaceApi({cancel:()=>api?.cancel()})
@@ -115,10 +117,7 @@ async function boot(){
  ipcMain.handle('nbt:info',event=>{allowed(event);return {version:app.getVersion(),workspace,python,frontend,skill:'.agents/skills/nbtcreator-workspace/SKILL.md',migration:'shared-engine'}})
  ipcMain.handle('nbt:source',async event=>{allowed(event);const result=await dialog.showOpenDialog(window,{title:'选择 SNBT、NBT 或旧主模型',properties:['openFile'],filters:[{name:'SNBT / NBT / Master',extensions:['snbt','nbt','gz']}]});return result.canceled?null:result.filePaths[0]})
  let switchingWorkspace=false
- ipcMain.handle('nbt:workspace',async event=>{
-  allowed(event);const selection=await dialog.showOpenDialog(window,{title:'选择项目根目录或nbt_models（自动识别）',defaultPath:workspace,properties:['openDirectory','createDirectory']})
-  if(selection.canceled)return null
-  const next=normalizeWorkspace(selection.filePaths[0])
+ async function switchWorkspace(next){
   const response=await dialog.showMessageBox(window,{type:'question',buttons:['切换工作区','取消'],defaultId:1,cancelId:1,message:'切换将结束当前服务及未完成任务。请先保存参数和意见。',detail:'实际项目目录：'+next+'\n建筑目录：'+path.join(next,'nbt_models')+'\n同时同步Skill脚本、数据和知识库。已有目标知识配置保留；新工作区携带当前知识组。'})
   if(response.response!==0)return null
   if(switchingWorkspace)throw Error('正在切换工作区，请稍后重试')
@@ -137,7 +136,20 @@ async function boot(){
    await recordConfig();await startBackend();workspaceApi.resume();await window.loadURL(serverUrl);window.webContents.setZoomFactor((await preferences.load()).zoom/100);return workspace
   }catch(error){if(suspended){await workspaceApi.suspend();await stopBackend();workspace=previous;await recordConfig();await startBackend();workspaceApi.resume();await window.loadURL(serverUrl)}throw error}
   finally{workspaceApi.resume();switchingWorkspace=false}
+ }
+ ipcMain.handle('nbt:workspace',async event=>{
+  allowed(event);const selection=await dialog.showOpenDialog(window,{title:'选择项目根目录或nbt_models（自动识别）',defaultPath:workspace,properties:['openDirectory','createDirectory']})
+  return selection.canceled?null:switchWorkspace(normalizeWorkspace(selection.filePaths[0]))
  })
+ ipcMain.handle('nbt:migration-select',async(event,kind)=>{
+  allowed(event);if(!['source','target'].includes(kind))throw Error('迁移路径类型无效')
+  const result=await dialog.showOpenDialog(window,{title:kind==='source'?'选择旧项目工作区':'选择用于放迁移副本的父目录',defaultPath:workspace,properties:['openDirectory','createDirectory']})
+  if(result.canceled)return null
+  const chosen=result.filePaths[0]
+  return migration.select(kind,kind==='source'?normalizeWorkspace(chosen):chosen)
+ })
+ ipcMain.handle('nbt:migration-run',(event,action,input)=>{allowed(event);return migration.execute(action,input)})
+ ipcMain.handle('nbt:migration-open',event=>{allowed(event);const target=migration.verified();if(!target)throw Error('请先完成迁移验证');return switchWorkspace(target)})
  const systemMenus=Menu.buildFromTemplate([{label:'项目',submenu:[{label:'选择工作区…',click:()=>window.webContents.executeJavaScript('window.nbtDesktop.chooseWorkspace()')},{label:'打开 NBT / 主模型…',click:()=>window.webContents.executeJavaScript('document.getElementById("desktop-source").click()')},{type:'separator'},{role:'quit'}]},{label:'视图',submenu:[{role:'reload'},{role:'toggleDevTools'},{type:'separator'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]}])
  Menu.setApplicationMenu(systemMenus)
  window.setMenuBarVisibility(false)

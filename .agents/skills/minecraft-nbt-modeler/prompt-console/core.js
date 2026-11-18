@@ -11,6 +11,7 @@
   }
   function outputPath(p) {
     if(p.stage!=='draft')return p.output||'';
+    if(p.room_folder)return p.room_folder;
     const name=String(p.name||'未命名建筑').replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').replace(/[. ]+$/g,'').slice(0,70)||'未命名建筑';
     return `nbt_models/${shapeOf(p)}/${name}`;
   }

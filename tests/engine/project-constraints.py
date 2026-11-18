@@ -14,6 +14,25 @@ class ProjectConstraints(unittest.TestCase):
   return self.call('constraints-save',revision=0,name='L形32格网格',rules={'buildingShape':'l_shape','size':[64,24,64],'cell_size':32,'cells':[[0,0],[0,1],[1,1]],'footprint':'缺角留作庭院'},actor='agent',**changes)
  def test_empty_project_has_no_implicit_constraints_or_writes(self):
   self.assertEqual(self.call('constraints-list')['items'],[]);self.assertFalse((self.workspace/'nbt_models').exists())
+ def test_registry_lists_selectable_builtin_and_workspace_rules_and_keeps_snapshots(self):
+  saved=self.create()['saved']
+  reply=self.call('constraints-registry',folders=[''],summary=True)['groups']
+  self.assertEqual([group['source'] for group in reply],['builtin','workspace'])
+  self.assertEqual(reply[1]['items'][0]['id'],saved['id'])
+  square=next(item for item in reply[0]['items'] if item['name']=='2×2 方形')
+  self.assertNotIn('rules',square)
+  selected=self.call('constraints-registry',folders=[''],id=square['id'])['groups'][0]['items'][0]
+  validate_snapshot(selected)
+  self.assertEqual(selected['sha256'],square['sha256'])
+  self.assertEqual(selected['rules']['cells'],[[0,0],[1,0],[0,1],[1,1]])
+  self.assertEqual(selected['rules']['cell_size'],48)
+  extension=next(item for item in reply[0]['items'] if item['name']=='SAODG 房间接入')
+  snapshot=self.call('constraints-registry',id=extension['id'])['groups'][0]['items'][0]
+  validate_snapshot(snapshot)
+  self.assertEqual(validate_selection([snapshot,selected])['opening_size'],[6,5])
+  self.assertTrue(snapshot['rules']['require_enclosure'])
+  self.assertNotIn('integration',selected['rules'])
+  self.assertEqual(len(self.call('constraints-list')['items']),1)
  def test_agent_and_ui_share_revisioned_records_and_old_prompts_keep_snapshots(self):
   first=self.create();item=first['saved'];validate_snapshot(item);self.assertEqual(item['actor'],'agent')
   request=dict(session_id=uuid.uuid4().hex,document=dict(schema_version=1,project=dict(name='庭院',stage='draft',buildingShape='standalone',size=[32,24,32]),constraints=[item]),text='采用L形32格网格',plan={},context={})
@@ -22,6 +41,15 @@ class ProjectConstraints(unittest.TestCase):
   self.assertEqual(read_prompt(self.workspace,saved['index'],saved['id'])['document']['constraints'],[item])
   removed=self.call('constraints-delete',revision=changed['revision'],id=item['id']);self.assertEqual(removed['items'],[])
   self.assertEqual(read_prompt(self.workspace,saved['index'],saved['id'])['document']['constraints'],[item]);self.assertEqual(len(list(self.workspace.rglob('constraint-revisions/*/*.json'))),2)
+ def test_selected_policy_is_stored_in_cli_handoff_context(self):
+  created=self.call('constraints-save',revision=0,name='露天入口',rules={
+      'require_enclosure':False,'openings_policy':'required','opening_size':[3,4]})
+  project=dict(name='庭院',stage='draft',buildingShape='standalone',size=[16,8,16])
+  request=dict(session_id=uuid.uuid4().hex, document=dict(schema_version=1,project=project,
+      constraints=[created['saved']]),text='庭院与通行洞口',context={'require_enclosure':True})
+  result=save(self.workspace,request)
+  self.assertEqual(read_prompt(self.workspace,result['index'],result['id'])['context'],
+      dict(require_enclosure=False,openings_policy='required',opening_size=[3,4]))
  def test_stale_writes_duplicate_names_invalid_rules_and_forged_snapshots_fail(self):
   created=self.create();item=created['saved']
   with self.assertRaisesRegex(ValueError,'刷新'):self.call('constraints-save',revision=0,name='另一项',rules={'requirements':'留出通路'})

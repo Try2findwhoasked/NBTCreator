@@ -23,6 +23,11 @@ export function latestSources(models){
  return new Set([...groups.values()].map(item=>item.source))
 }
 
+export function matchesProjectConstraint(item,rule){
+ if(rule.project_key!==null&&rule.project_key!==item.project_key)return false
+ return item.constraint_ids?.includes(rule.id)??false
+}
+
 export function projectStage(item){
  if(['unrefined','refined','finalized','discarded'].includes(item.stage))return item.stage
  return /(?:^|[\\/])(?:refined(?:[_-]v?\d+)?|detail_v\d+)(?:[\\/]|$)/i.test(item.relative_path||'')?'refined':'unrefined'

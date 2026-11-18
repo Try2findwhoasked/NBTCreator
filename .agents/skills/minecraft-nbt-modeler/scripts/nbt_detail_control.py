@@ -15,8 +15,9 @@ import sys
 from nbt_refine import read_master, prepare, refine, validate, protections, _current_review, operation_candidates
 from nbt_model import state
 from nbt_request_paths import read_request, metadata_path
-from nbt_web_paths import project_paths
+from nbt_web_paths import project_paths, workspace_path
 from nbt_collision import collision_cells
+from nbt_catalog import catalog as tool_catalog
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -45,6 +46,55 @@ def nearby(source, names):
     return ''
 
 
+def link_legacy_room_constraints(workspace, models, groups, errors):
+    from nbt_constraints import SHAPES
+    from nbt_prompts import published_constraint_links
+    from nbt_room_links import LINKS_FILE, read_links
+
+    rules={group['id']:group for group in groups if not group['archived']}
+    root=workspace/'nbt_models'
+    sources={};folders={};published={};scoped={}
+    for item in models:
+        if item.get('room_id'):continue
+        key=(item['project_key'],item['object_key'])
+        sources[Path(item['source'])]=key
+        folders.setdefault(root/item['group'],set()).add(key)
+    try:manual=read_links(workspace)
+    except (OSError,ValueError,KeyError,TypeError) as error:
+        manual={};errors.append(dict(file=LINKS_FILE,reason=str(error)))
+    for path, ids, proofs in published_constraint_links(workspace,errors):
+        keys={sources[path]} if path in sources else folders.get(path,set())
+        if len(keys)==1:
+            found=published.setdefault(next(iter(keys)),{})
+            for identifier in ids:found.setdefault(identifier,[]).extend(proofs)
+    for group in rules.values():
+        parts=group['folder'].split('/')
+        if not any(part in SHAPES for part in parts[1:-1]):continue
+        keys=folders.get(workspace/group['folder'],set())
+        if len(keys)==1:scoped.setdefault(next(iter(keys)),{})[group['id']]=[dict(kind='room-rule',path=group['folder'])]
+    for item in models:
+        if item.get('room_id'):continue
+        project=item['project_key'];key=(project,item['object_key'])
+        evidence={identifier:list(proofs) for identifier,proofs in published.get(key,{}).items()
+                  if identifier in rules and rules[identifier]['project_key'] in (None,project)}
+        if evidence:item['published_constraint_ids']=sorted(evidence)
+        for identifier,proofs in scoped.get(key,{}).items():evidence.setdefault(identifier,[]).extend(proofs)
+        folder=root/item['group'];project_root=root/project
+        if (folder not in (project_root,project_root/item['shape_group']) and folder.is_relative_to(project_root)
+                and '..' not in folder.parts and len(folders[folder])==1 and not item.get('unreadable')):
+            room_key=folder.relative_to(workspace).as_posix()
+            item['legacy_room_key']=room_key
+            association=manual.get(room_key,{})
+            manually_linked=association.get('constraint_id')
+            if manually_linked in rules and rules[manually_linked]['project_key'] in (None,project):
+                item['manual_constraint_ids']=[manually_linked]
+                evidence.setdefault(manually_linked,[]).append(dict(kind='manual',path=LINKS_FILE))
+        if evidence:
+            item['constraint_ids']=sorted(evidence)
+            item['constraint_evidence']={identifier:[dict(fields) for fields in dict.fromkeys(tuple(proof.items()) for proof in proofs)]
+                                         for identifier,proofs in evidence.items()}
+
+
 def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
     selected=Path(workspace).resolve();workspace=selected
     for candidate in [selected,*selected.parents]:
@@ -53,8 +103,10 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
     marker=root/'_migration/active.json'
     if marker.is_file() and read_json(marker).get('status')!='complete':return dict(models=[],skipped=0,scanned=0,cache_hits=0,migration_in_progress=True)
     files = []
-    constraint_folders=[]
-    from nbt_constraints import FOLDER_FILE, SHAPES, folder_parts
+    constraint_folders=[];layout_roots=[];legacy_scopes=[]
+    from nbt_constraints import FOLDER_FILE, SHAPES, folder_parts, directory_records, dispatch as constraints_dispatch
+    from nbt_constraint_registry import builtin_constraints
+    from nbt_rooms import GROUPS, has_layout, room_dirs, room_info
     for directory, dirs, names in os.walk(root):
         quarantined=include_bugged and 'bugged' in Path(directory).relative_to(root).parts
         refinement=Path(directory)/'refinement.json'
@@ -73,11 +125,17 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
                     any(word in name.lower() for word in ('validation', 'fixture', 'cache', 'control_web', 'regression')) or
                     (name=='bugged' and not include_bugged) or name in {'_exports','_migration','_workspaces','_tests','world', 'worlds', 'saves', 'node_modules', 'previews', 'jobs', 'review','delivery','layers'})]
         candidate=Path(directory)
+        if GROUPS in dirs and has_layout(candidate):
+            layout_roots.append(candidate)
+            constraint_folders.append(candidate.relative_to(workspace).as_posix())
         if candidate.name in SHAPES or FOLDER_FILE in names:
             relative_dir=candidate.relative_to(workspace).as_posix()
             try:
                 parts=folder_parts(relative_dir)[1:]
-                if not SHAPES.intersection(parts[:-1]):constraint_folders.append(relative_dir)
+                if FOLDER_FILE in names:
+                    legacy_scopes.append(relative_dir)
+                    constraint_folders.append(relative_dir)
+                elif not SHAPES.intersection(parts[:-1]):constraint_folders.append(relative_dir)
             except ValueError:
                 pass
         files.extend(Path(directory)/name for name in names if (name.lower().endswith('.json.gz') and 'master' in name.lower()) or name.lower().endswith(('.nbt','.snbt')))
@@ -90,6 +148,44 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
     next_cache = {}; cache_hits = 0
     models, seen, skipped = [], set(), 0
     descriptions={};description_paths={};errors=[]
+    room_index={};rooms=[];constraint_groups=[];constraint_scopes=[]
+
+    def constraint_group(snapshot, project_key, *, scope=None, builtin=False, archived=False):
+        return dict(id=snapshot['id'],name=snapshot['name'],folder=snapshot.get('folder','') if scope is None else scope,
+                    project_key=project_key,archived=archived,builtin=builtin)
+
+    for project in layout_roots:
+        folder=project.relative_to(workspace).as_posix();project_key=project.relative_to(root).as_posix()
+        if project_key=='.':project_key=''
+        scopes_by_id={}
+        for room in room_dirs(project):
+            item=dict(room_info(project,room),folder=room.relative_to(workspace).as_posix(),project_key=project_key)
+            room_index[room]=item;rooms.append(item)
+            scopes_by_id[item['id']]=item['folder']
+            constraint_scopes.append(dict(folder=item['folder'],project=project_key,shape=item['shape'],object=item['id'],name=item['name']))
+        for _,record in directory_records(project):
+            snapshot=record['snapshot']
+            constraint_groups.append(constraint_group(snapshot,project_key,scope=scopes_by_id.get(record.get('room_id')),archived=record.get('archived',False)))
+        for shape in sorted(SHAPES):
+            constraint_scopes.append(dict(folder=folder+'/'+shape,project=project_key,shape=shape))
+    constraint_groups.extend(constraint_group(snapshot,None,builtin=True) for snapshot in builtin_constraints().values())
+    seen_rules={group['id'] for group in constraint_groups}
+    for scope in ['',*legacy_scopes]:
+        if scope:
+            directory=workspace/scope
+            if any(parent in room_index for parent in (directory,*directory.parents)):continue
+        parts=scope.split('/')[1:]
+        shape_at=next((i for i,part in enumerate(parts) if part in SHAPES),len(parts))
+        project_key='/'.join(parts[:shape_at]) if scope else None
+        try:
+            for snapshot in constraints_dispatch(workspace,'constraints-list',{'folder':scope})['items']:
+                if snapshot['id'] not in seen_rules:
+                    constraint_groups.append(constraint_group(snapshot,project_key))
+                    seen_rules.add(snapshot['id'])
+        except (OSError,ValueError,KeyError,TypeError) as error:
+            errors.append(dict(file=scope or '工作区共用约束',reason=str(error)))
+    def catalog_path(file,value):
+        return workspace_path(workspace,metadata_path(file,value))
     def description_near(source):
         for parent in list(source.parents)[:4]:
             if parent not in description_paths:
@@ -105,7 +201,9 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
                 declaration=descriptions[descriptor]
                 if declaration.get('audit',{}).get('compliant') is False and not bugged:continue
                 declared_master=declaration.get('master')
-                if declared_master and not bugged and metadata_path(descriptor,declared_master).is_file() and metadata_path(descriptor,declared_master)!=p.resolve():continue
+                if declared_master and not bugged:
+                    declared_path=catalog_path(descriptor,declared_master)
+                    if declared_path.is_file() and declared_path!=p.resolve():continue
             stat=p.stat(); stamp=[stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns]
             entry=cache.get(str(p))
             if entry and entry.get('stamp')==stamp:
@@ -150,7 +248,9 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
                 except (ValueError,OSError):room_description={}
                 if room_description.get('audit',{}).get('compliant') is False and not bugged:continue
                 recorded_master=room_description.get('master')
-                if recorded_master and not bugged and metadata_path(description_file,recorded_master)!=p.resolve() and metadata_path(description_file,recorded_master).is_file():continue
+                if recorded_master and not bugged:
+                    recorded_path=catalog_path(description_file,recorded_master)
+                    if recorded_path!=p.resolve() and recorded_path.is_file():continue
                 name=room_description.get('name_zh') or name
                 parts=description_file.parent.relative_to(root).parts
                 if len(parts)>=3 and parts[0] in {'single','long','square','l_shape','t_shape','cross','standalone','irregular'}:
@@ -183,9 +283,11 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
                 relative=p.relative_to(root)
                 models.append(dict(source=str(p.resolve()),label=str(relative),name=p.parent.name,group=str(relative.parent),version=p.name,
                                    relative_path=str(relative),bugged=bugged,unreadable=True,error=str(error) or '模型格式不完整',size=None,geometry_sha256=None,context='',cameras='',intermediate=False))
-    shapes={'single':'单格','long':'长条','square':'方形','l_shape':'L 形','t_shape':'T 形','cross':'十字','standalone':'独立结构','irregular':'不规则','bugged':'bugged（待修复）'}
+    shapes={key:shape.get('library_label',shape['label']) for key,shape in tool_catalog()['building_shapes'].items()}
+    shapes['bugged']='bugged（待修复）'
     for item in models:
         parts=Path(item['relative_path']).parts
+        room=next((room_index[parent] for parent in Path(item['source']).parents if parent in room_index),None)
         shape_index=next((i for i,part in enumerate(parts[:-1]) if part in shapes),None)
         item['project_key']='/'.join(parts[:shape_index]) if shape_index is not None else ''
         item['project_name']=item['project_key'] or workspace.name
@@ -198,7 +300,7 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
         if not item.get('unreadable'):
             declared=descriptions.get(description_near(Path(item['source'])),{})
             phase=declared.get('workflow_stage',declared.get('status'))
-            if phase in {'unrefined','refined','finalized','discarded'} and declared.get('master') and metadata_path(description_near(Path(item['source'])),declared['master'])==Path(item['source']):item['stage']=phase
+            if phase in {'unrefined','refined','finalized','discarded'} and declared.get('master') and catalog_path(description_near(Path(item['source'])),declared['master'])==Path(item['source']):item['stage']=phase
         item['is_delivery']='_deliveries' in parts or 'delivery' in parts
         if (shape_index is not None and len(parts)==shape_index+2) or len(parts)==1:
             item['object_key']='/'.join(parts)
@@ -206,11 +308,23 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
         if isinstance(item.get('name_zh'),str) and item['name_zh'].strip():
             # A delivery and its authoring version belong to one named object.
             item['object_key']=json.dumps([item['project_key'],item['shape_group'],item['name_zh'].strip()],ensure_ascii=False,separators=(',',':'))
+        if room:
+            shape=item['shape_group'] if item['bugged'] else room['shape']
+            item.update(project_key=room['project_key'],project_name=room['project_key'] or workspace.name,
+                        object_key=room['id'],object_name=room['name'],shape_group=shape,shape_group_zh=shapes[shape],
+                        room_id=room['id'],room_folder=room['folder'],owner_constraint_id=room['owner_constraint_id'],
+                        constraint_ids=room['constraint_ids'])
+            item['constraint_evidence']={identifier:[dict(kind='registered',path=room['folder']+'/房间.json')]
+                                         for identifier in room['constraint_ids']}
+    link_legacy_room_constraints(workspace,models,constraint_groups,errors)
     cache_path.parent.mkdir(parents=True,exist_ok=True)
     import uuid
     temporary=cache_path.with_name(cache_path.name+'.'+uuid.uuid4().hex+'.tmp')
     write_json(temporary,next_cache);os.replace(temporary,cache_path)
-    return dict(models=models, constraint_folders=sorted(constraint_folders), skipped=skipped, scanned=len(files), cache_hits=cache_hits,workspace=str(workspace),scan_root=str(root),normalized_from=str(selected) if selected!=workspace else None,errors=errors)
+    if not models and not constraint_folders:constraint_folders.append('nbt_models')
+    return dict(models=models,constraint_folders=sorted(set(constraint_folders)),rooms=rooms,constraint_groups=constraint_groups,
+                constraint_scopes=constraint_scopes,layout_projects=[project.relative_to(workspace).as_posix() for project in layout_roots],
+                skipped=skipped,scanned=len(files),cache_hits=cache_hits,workspace=str(workspace),scan_root=str(root),normalized_from=str(selected) if selected!=workspace else None,errors=errors)
 
 
 def preview_images(source, geometry_hash, image_limit=8):
@@ -487,7 +601,7 @@ def compile_plan(settings, size):
     return dict(style_note=note, operations=operations)
 
 
-def normalize_context(model, context_path, camera_path, settings):
+def normalize_context(model, context_path, camera_path, settings, *, preview_only=False):
     from nbt_library import canonical_context
     from nbt_whole_validation import requires_enclosure, validation_mode
     data = canonical_context(context_path)
@@ -502,7 +616,10 @@ def normalize_context(model, context_path, camera_path, settings):
     config['max_changed_blocks'] = settings.get('max_changed_blocks', 4096)
     for key in ('start', 'targets', *(('interior_probes',) if requires_enclosure(config) else ())):
         if not config.get(key):
-            raise ValueError(f'Context is missing non-empty {key}; choose coordinates/config JSON')
+            if preview_only and key == 'interior_probes':
+                config['missing_checks'] = [key]
+            else:
+                raise ValueError(f'Context is missing non-empty {key}; choose coordinates/config JSON')
     raw_cameras = read_json(camera_path) if camera_path else config.get('cameras', [])
     if not raw_cameras:
         start = config['start']; targets = config['targets']
@@ -624,13 +741,13 @@ def simulate_plan(model, walls, plan, config):
     return virtual,walls,difference
 
 
-def authoring_context(request, model, settings):
+def authoring_context(request, model, settings, *, preview_only=False):
     """Use the saved scope and stage for managed components and design drafts."""
     from nbt_working_model import managed_manifest, WorkingModel
     from nbt_history import source_workspace
     source = Path(request['source']).resolve()
     if not managed_manifest(source):
-        return normalize_context(model, request['context'], request.get('cameras',''), settings)
+        return normalize_context(model, request['context'], request.get('cameras',''), settings, preview_only=preview_only)
     working = WorkingModel.open(source_workspace(source),source,request['context'],
         source_sha256=request.get('source_sha256'))
     config = working._protection_context()
@@ -653,7 +770,7 @@ def preview_effect(request, output):
     source=Path(request['source']).resolve(); baseline=digest(source)
     if request.get('source_sha256') and request['source_sha256']!=baseline: raise ValueError('原建筑已变化，请重新打开')
     model,walls=read_master(source);settings=request['settings'];plan=compile_plan(settings,model.size)
-    config=authoring_context(request,model,settings)
+    config=authoring_context(request,model,settings,preview_only=True)
     if 'wall_positions' in config:
         from nbt_refine import point
         walls={point(p) for p in config['wall_positions']}
@@ -678,7 +795,8 @@ def preview_effect(request, output):
     if digest(source)!=baseline: raise ValueError('原建筑在计算中变化，请重新打开')
     return dict(status='visual_preview_only',snapshot=str(output/'after.json'),baseline_snapshot=str(output/'before.json'),
                 geometry_sha256=virtual.fingerprint(),source_sha256=baseline,size=list(model.size),
-                cameras=config['cameras'],changed_blocks=changed,wall_membership_changes=difference['wall_membership_changes'],settings_sha256=canonical(settings),preview_only=True,difference=str(output/'difference.json'))
+                cameras=config['cameras'],changed_blocks=changed,wall_membership_changes=difference['wall_membership_changes'],settings_sha256=canonical(settings),preview_only=True,difference=str(output/'difference.json'),
+                missing_checks=config.get('missing_checks', []))
 
 
 def create_review(request, output):
@@ -791,7 +909,7 @@ def main():
     cmd = sub.add_parser('protection-mask');cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('walk-inspect');cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
     cmd = sub.add_parser('agent-tasks');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['create','list','get','discover','record','review'],required=True);cmd.add_argument('--request',type=Path,required=True)
-    cmd = sub.add_parser('architect');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['standards-get','standards-save','constraints-list','constraints-save','constraints-delete','deliveries','continue','cross-list','cross-save'],required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('architect');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['standards-get','standards-save',*tool_catalog()['project_constraints']['actions'],'deliveries','continue','cross-list','cross-save'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('history');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','get','record','current','derive','finalize'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('retrieve');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['search','source','bundle','read'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('selection-edit');cmd.add_argument('--action',choices=['context','compile'],required=True);cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
@@ -840,16 +958,22 @@ def main():
             from nbt_prompts import publish
             data=read_json(args.request);result=publish(args.workspace,data['index'],data['id'],data['revision'])
         elif args.command == 'prompt-library':
-            from nbt_prompts import scan,read_prompt,load_tasks,remove_prompt
+            from nbt_prompts import handoff_statuses,library_list,read_prompt,remove_prompt,organize_prompts
             data=read_json(args.request)
             if data.get('action')=='read':result=read_prompt(args.workspace,data['index'],data['id'])
             elif data.get('action')=='delete':result=remove_prompt(args.workspace,data['index'],data['id'],data['revision'])
-            elif data.get('action')=='list':
-                result=scan(args.workspace);seen=set();items=[];published=load_tasks(args.workspace)['records']
-                for item in result['items']:
-                    if item['kind']!='workbench' or item['id'] in seen:continue
-                    seen.add(item['id']);item['published_task']=next((dict(id=task['id'],directory=task['directory']) for task in reversed(published) if task.get('archive_id')==item['id'] and task['revision']==item['revision']),None);items.append(item)
-                result.update(items=items,workspace=str(args.workspace.resolve()))
+            elif data.get('action')=='list':result=library_list(args.workspace)
+            elif data.get('action')=='task-statuses':result=handoff_statuses(args.workspace)
+            elif data.get('action')=='register-room':
+                from nbt_rooms import register_room
+                result=register_room(args.workspace,data)
+            elif data.get('action') in ('update-room','move-room'):
+                from nbt_rooms import update_room
+                result=update_room(args.workspace,data,move=data['action']=='move-room')
+            elif data.get('action')=='add-room-links':
+                from nbt_room_links import add_room_links
+                result=add_room_links(args.workspace,data)
+            elif data.get('action') in ('trash','restore','group'):result=organize_prompts(args.workspace,data)
             else:raise ValueError('未知提示词列表操作')
         elif args.command == 'batches':
             from nbt_batches import dispatch

@@ -35,6 +35,27 @@ test('conflicting, malformed and forged references fail and AI cannot override s
  assert.throws(()=>cleanContext({project:{size:[48,24,48],buildingShape:'single'},existing_model:true,constraints:[first]}),/已有建筑/)
  assert.throws(()=>cleanContext({project:{size:[48,24,48]},constraints:[{...first,source:'private/path'}]}),/快照/)
 })
+test('opening requirements are optional and the SAODG extension is an explicit snapshot',()=>{
+ const C=scope.NbtPrompt,doc=C.defaults()
+ const extension=JSON.parse(fs.readFileSync(path.join(base,'../constraint-extensions/saodg.json'),'utf8')).items[0]
+ const saodg=constraint(extension.rules,extension.name,extension.id)
+ const open=constraint({require_enclosure:false,openings_policy:'optional',opening_size:[3,4]})
+ assert.equal(C.effectiveProject(doc).context.mode,'standalone')
+ doc.constraints=[open]
+ assert.equal(C.effectiveProject(doc).context.require_enclosure,false)
+ assert.deepEqual(plain(C.effectiveProject(doc).context.opening_size),[3,4])
+ assert.match(C.prompt(doc),/洞口净宽 × 净高为 3 × 4 格/)
+ doc.constraints.push(saodg)
+ assert.match(C.validate(doc)[0],/冲突/)
+ doc.constraints=[saodg]
+ assert.equal(C.effectiveProject(doc).context.mode,'saodg')
+ assert.equal(C.effectiveProject(doc).context.require_enclosure,true)
+ assert.equal(C.effectiveProject(doc).context.openings_policy,'required')
+ assert.equal(C.effectiveProject(doc).size_policy,'fixed')
+ delete doc.constraints
+ assert.equal(C.effectiveProject(doc).context.mode,'standalone')
+ assert.equal(C.effectiveProject(doc).context.opening_size,undefined)
+})
 test('Agent constraint generation has a JSON contract, repairs invalid rules and never starts geometry',async t=>{
  const directory=await fs.promises.mkdtemp(path.join(require('node:os').tmpdir(),'nbt-constraint-api-'));t.after(()=>fs.promises.rm(directory,{recursive:true,force:true}));const calls=[]
  const api=createApiService({directory,safeStorage:{},validateCandidate:createCandidateValidator({root:path.resolve(__dirname,'../..'),python:'missing-python.exe',directory,getWorkspace:()=>directory}),fetchImpl:async(_url,options)=>{

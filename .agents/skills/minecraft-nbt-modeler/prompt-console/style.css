@@ -24,3 +24,31 @@ body.prompt-processing .editor,body.prompt-processing #prompt-queue-list{opacity
 .brief-field-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin:14px 0}.brief-field-options label{font-size:12px;margin:0}#prompt-ai-scope>p{margin-top:10px}
 
 .constraint-actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.constraint-choice{padding:10px 0;border-top:1px solid var(--ui-line)}.constraint-choice>label{margin-bottom:6px}.constraint-choice pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.7}.constraint-choice summary{font-size:12px;color:var(--ui-muted);cursor:pointer}
+#prompt-constraints{min-width:0}
+.constraint-options{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,15rem),1fr));gap:0 16px;align-items:start}
+#prompt-constraints summary{list-style:none}
+#prompt-constraints summary::-webkit-details-marker{display:none}
+.constraint-summary{margin:0 0 8px;border:1px solid var(--ui-line);border-radius:6px;background:var(--ui-panel)}
+.constraint-summary:not([open]){position:sticky;top:0;z-index:1}
+.constraint-summary>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;cursor:pointer}
+.constraint-summary>summary span{color:var(--ui-accent);font-size:12px}
+.constraint-effective-values{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));gap:10px 16px;margin:0;padding:10px;border-top:1px solid var(--ui-line)}
+.constraint-effective-values div{min-width:0;overflow-wrap:anywhere}
+.constraint-effective-values dt,.constraint-effective-values small{display:block;color:var(--ui-muted);font-size:12px}
+.constraint-effective-values dd{margin:2px 0;font-weight:500}
+.constraint-effective-text{grid-column:1/-1}
+.constraint-notice,.constraint-conflict{padding:8px 10px;border-radius:6px;background:var(--ui-accent-soft);color:var(--ui-accent);font-size:12px}
+.constraint-conflict{grid-column:1/-1}
+.constraint-conflict p,.constraint-conflict .constraint-actions{margin:0}
+.constraint-conflict .constraint-actions{margin-top:6px}
+#prompt-constraints .constraint-choice{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px}
+#prompt-constraints .constraint-choice>label{min-width:0;margin:0;overflow-wrap:anywhere}
+#prompt-constraints .constraint-choice>:is(details,p,button){grid-column:1/-1}
+#prompt-constraints .constraint-choice>button{justify-self:start}
+#prompt-constraints .constraint-choice details ul{margin:6px 0;padding-inline-start:20px;overflow-wrap:anywhere}
+.constraint-origin{overflow-wrap:anywhere}
+.constraint-management{padding-top:8px;border-top:1px solid var(--ui-line)}
+.constraint-management>summary{cursor:pointer;color:var(--ui-muted);font-size:13px}
+.shape-constraint-hint{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline}
+.shape-constraint-hint a{white-space:nowrap;color:var(--ui-accent)}
+@media(max-width:560px){#prompt-constraints .constraint-choice{grid-template-columns:minmax(0,1fr)}#prompt-constraints .constraint-choice>small{padding-left:24px}}

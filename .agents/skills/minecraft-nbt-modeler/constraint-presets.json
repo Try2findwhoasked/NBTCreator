@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "items": [
+    {
+      "id": "constraint-a745bd617953ced73548e82089562d15",
+      "revision": 1,
+      "name": "1×1 单格",
+      "rules": {
+        "buildingShape": "single",
+        "size": [
+          48,
+          24,
+          48
+        ],
+        "size_policy": "fixed",
+        "cell_size": 48,
+        "cells": [
+          [
+            0,
+            0
+          ]
+        ],
+        "footprint": "单个紧凑空间，统一设计入口、主厅与主题节点。"
+      }
+    },
+    {
+      "id": "constraint-ce43a78fd2a6ca46079a55e34b835002",
+      "revision": 1,
+      "name": "1×2 长条",
+      "rules": {
+        "buildingShape": "long",
+        "size": [
+          48,
+          24,
+          96
+        ],
+        "size_policy": "fixed",
+        "cell_size": 48,
+        "cells": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        "footprint": "纵向连续空间，沿长轴组织入口、过渡和主要活动区。"
+      }
+    },
+    {
+      "id": "constraint-df375d7dd27a25e26f411fb701bfe6b8",
+      "revision": 1,
+      "name": "2×2 方形",
+      "rules": {
+        "buildingShape": "square",
+        "size": [
+          96,
+          32,
+          96
+        ],
+        "size_policy": "fixed",
+        "cell_size": 48,
+        "cells": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "footprint": "方形整体，围绕中心节点布置相互可见、可达的空间分区。"
+      }
+    },
+    {
+      "id": "constraint-714ededad4d54784420581e059865d63",
+      "revision": 1,
+      "name": "L 形",
+      "rules": {
+        "buildingShape": "l_shape",
+        "size": [
+          96,
+          28,
+          96
+        ],
+        "size_policy": "fixed",
+        "cell_size": 48,
+        "cells": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "footprint": "L形有效占地，转角形成空间转折；右上缺角不建房、不出空片。"
+      }
+    },
+    {
+      "id": "constraint-2f4f924db20a45dc10e4dd0dc607b7dd",
+      "revision": 1,
+      "name": "T 形",
+      "rules": {
+        "buildingShape": "t_shape",
+        "size": [
+          144,
+          28,
+          96
+        ],
+        "size_policy": "fixed",
+        "cell_size": 48,
+        "cells": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "footprint": "T形有效占地，横向主空间与中央纵向分支共用整体构造和路线。"
+      }
+    },
+    {
+      "id": "constraint-9155e8da57030644275d3bfbce450162",
+      "revision": 1,
+      "name": "十字形",
+      "rules": {
+        "buildingShape": "cross",
+        "size": [
+          144,
+          32,
+          144
+        ],
+        "size_policy": "fixed",
+        "cell_size": 48,
+        "cells": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ],
+        "footprint": "十字形有效占地，中央枢纽连接四向空间，四角留空。"
+      }
+    },
+    {
+      "id": "constraint-d9ef94076788c64f3574755fe2dbf5cc",
+      "revision": 1,
+      "name": "不规则占地",
+      "rules": {
+        "buildingShape": "irregular",
+        "size": [
+          96,
+          32,
+          144
+        ],
+        "size_policy": "fixed",
+        "cell_size": 48,
+        "cells": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ]
+        ],
+        "footprint": "不规则整体占地，按统一空间设计连接各区域；有效单元和边界可继续调整。"
+      }
+    },
+    {
+      "id": "constraint-db7446b19f7c5b876d95e164ae9005ec",
+      "revision": 1,
+      "name": "自由尺寸 / 独立建筑",
+      "rules": {
+        "buildingShape": "standalone",
+        "size": [
+          64,
+          32,
+          64
+        ],
+        "size_policy": "reference",
+        "footprint": "独立建筑，尺寸由用途、玩家活动与轮廓决定，不强加48网格或四门。"
+      }
+    }
+  ]
+}

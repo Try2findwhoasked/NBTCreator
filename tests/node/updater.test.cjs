@@ -23,6 +23,23 @@ test('unexpected download redirects are rejected',async t=>{
  await assert.rejects(service.check(),/不支持的下载地址/)
 })
 
+test('migration tools are pinned to the app version and bundled bytes',async t=>{
+ const expected=Buffer.from('运行迁移\r\n'),name='NBTCreator-1.8.0-constraint-room-migration.py'
+ let networkBytes=Buffer.alloc(expected.length,65),requests=0
+ const {service}=await fixture(t,async url=>{
+  requests++
+  if(url.endsWith('/tags/v1.8.0'))return Response.json({tag_name:'v1.8.0',assets:[{id:31,name,size:expected.length}]})
+  assert.ok(url.endsWith('/31'))
+  return new Response(networkBytes)
+ })
+ await assert.rejects(service.migrationTool(expected),/SHA-256/)
+ networkBytes=expected
+ const file=await service.migrationTool(expected)
+ assert.deepEqual(await fs.readFile(file),expected)
+ assert.equal(await service.migrationTool(expected),file)
+ assert.equal(requests,4)
+})
+
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve}}
 async function fixture(t,fetchImpl){const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-updater-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));return {directory,service:createUpdater({directory,version:'1.8.0',safeStorage:storage,fetchImpl})}}
 const name='NBTCreator-9.0.0-windows-x64-app-update.zip',bytes=Buffer.from('verified-zip'),checksum=crypto.createHash('sha256').update(bytes).digest('hex')+'  '+name+'\n'

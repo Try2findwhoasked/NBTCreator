@@ -70,6 +70,22 @@ function createUpdater({directory,version,safeStorage,fetchImpl=fetch}){
    }
   })
  }
- return {access,saveAccess,check,download,status:()=>({...state}),folder:()=>path.join(directory,'updates')}
+ async function migrationTool(expected){
+  return exclusive('migration-tool',async()=>{
+   if(!/^\d+\.\d+\.\d+$/.test(version))throw Error('当前版本请使用随附迁移工具')
+   const name='NBTCreator-'+version+'-constraint-room-migration.py'
+   const cache=path.join(directory,'tools','constraint-room-migration',version,name)
+   try{if((await fs.readFile(cache)).equals(expected))return cache}catch(error){if(error.code!=='ENOENT')throw error}
+   const tag=JSON.parse(await boundedText(await request(BASE+'/releases/tags/v'+version),4*1024*1024,'迁移工具发行信息'))
+   const candidates=tag.assets?.filter(item=>item?.name===name)
+   if(tag.tag_name!=='v'+version||tag.draft||candidates?.length!==1||candidates[0].size!==expected.length)
+    throw Error('找不到与应用匹配的迁移工具；可使用随附版本')
+   const downloaded=Buffer.from(await boundedText(await asset(candidates[0]),expected.length,'迁移工具'))
+   if(!downloaded.equals(expected))throw Error('迁移工具 SHA-256 内容校验失败')
+   await fs.mkdir(path.dirname(cache),{recursive:true});await fs.writeFile(cache,downloaded)
+   return cache
+  })
+ }
+ return {access,saveAccess,check,download,migrationTool,status:()=>({...state}),folder:()=>path.join(directory,'updates')}
 }
 module.exports={createUpdater,newer}

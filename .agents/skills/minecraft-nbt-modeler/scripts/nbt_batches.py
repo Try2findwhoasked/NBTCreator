@@ -11,10 +11,11 @@ import time
 import uuid
 from nbt_prompts import encode, digest, index_lock
 from nbt_web_paths import project_paths
+from nbt_rooms import SHAPE_NAMES
 
 STATUSES={'authoring','review','delivered','failed','cancelled'}
 ROLES={'gallery','archive','report','script','design','preview','other'}
-SHAPES={'single','long','square','l_shape','t_shape','cross','irregular','standalone','bugged'}
+SHAPES=SHAPE_NAMES|{'bugged'}
 
 def workspace_root(value):
     path=Path(value).resolve();roots=[p.parent for p in [path,*path.parents] if p.name.lower()=='nbt_models']

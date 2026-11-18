@@ -41,11 +41,20 @@
   if(value.folder!==undefined&&!validFolder(value.folder))throw Error('约束的项目文件夹无效');
   rules(value.rules);return clone(value);
  }
+ const normalizedRules=item=>({...item.rules,...(item.rules.size&&!item.rules.size_policy?{size_policy:'fixed'}:{})});
+ function conflicts(candidate,selected){
+  const proposed=normalizedRules(candidate);
+  return selected.filter(item=>item.id!==candidate.id).flatMap(item=>{
+   const current=normalizedRules(item);
+   const fields=Object.keys(proposed).filter(key=>key!=='requirements'&&Object.hasOwn(current,key)&&!same(current[key],proposed[key]));
+   return fields.length?[{id:item.id,name:item.name,fields:fields.map(key=>labels[key])}]:[];
+  });
+ }
  function resolve(selected=[]){
   if(!Array.isArray(selected)||selected.length>16)throw Error('每个方案最多引用16项项目约束');
   const result={},owners={},seen=new Set();
   for(const item of selected){snapshot(item);if(seen.has(item.id))throw Error('不能重复引用同一项目约束');seen.add(item.id);
-   const normalized={...item.rules,...(item.rules.size&&!item.rules.size_policy?{size_policy:'fixed'}:{})};
+   const normalized=normalizedRules(item);
    for(const [key,value]of Object.entries(normalized)){
     if(key==='requirements')continue;
     if(Object.hasOwn(result,key)&&!same(result[key],value))throw Error('「'+owners[key]+'」和「'+item.name+'」的'+labels[key]+'冲突，请保留其中一项。');
@@ -94,7 +103,7 @@
   resolve(selected);if(!selected.length)return '';
   return '# 已选项目约束\n按方案引用的版本建模。\n'+selected.map(item=>'## '+item.name+'（第 '+item.revision+' 版）\n'+describe(item.rules).map(line=>'- '+line).join('\n')).join('\n');
  }
- const contract={rules,snapshot,resolve,effective,describe,text};
+ const contract={rules,snapshot,resolve,effective,conflicts,describe,text};
  return contract;
  };
  if(globalThis.NbtToolCatalog)globalThis.NbtConstraintContract=create(globalThis.NbtToolCatalog);

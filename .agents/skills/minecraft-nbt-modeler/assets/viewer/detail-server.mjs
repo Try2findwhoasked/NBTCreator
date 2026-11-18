@@ -55,6 +55,14 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   if (outputRoot === skillRoot || outputRoot.startsWith(skillRoot+path.sep)) throw new Error('Keep jobs outside the skill installation')
   await fs.mkdir(path.join(workspace,'nbt_models/_workspaces/batches'),{recursive:true})
   const projectOrganization=createProjectOrganization(workspace)
+  async function withChildConstraints(catalog){
+    const folders=new Set(catalog.constraint_folders??[]),shapes=new Set(Object.keys(toolCatalog.building_shapes))
+    for(const folder of folders){if(!shapes.has(folder.split('/').at(-1)))continue
+      let children=[];try{children=await fs.readdir(path.join(workspace,folder),{withFileTypes:true})}catch(error){if(error.code!=='ENOENT')throw error}
+      for(const child of children){if(!child.isDirectory()||child.name.startsWith('.')||child.name.startsWith('_'))continue;const target=path.join(workspace,folder,child.name,'项目约束.json');try{if((await fs.stat(target)).isFile())folders.add(folder+'/'+child.name)}catch(error){if(error.code!=='ENOENT')throw error}}
+    }
+    return {...catalog,constraint_folders:[...folders].sort((a,b)=>a.localeCompare(b,'zh-CN'))}
+  }
   const effects=savedEffects({workspace,skillRoot,initial:outputRoot})
   outputRoot=await effects.init()
   const jobs = new Map(), snapshots = new Map(), assets = new Map()
@@ -306,6 +314,21 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         const input=await body(req);if(!Array.isArray(input.items)||input.items.length<1||input.items.length>100||!['auto','unrefined','refined','finalized','discarded'].includes(input.stage))throw Error('批量标记需要1～100个版本及有效创作状态')
         const results=[];for(const item of input.items){try{const result=await projectStages.save(localPath(item.source),input.stage,{bytes:item.file_size,modified_ns:typeof item.modified_ns==='string'?item.modified_ns:undefined,modified_ms:Math.trunc(Number(item.modified_ns)/1e6)});results.push({...result,status:'complete'})}catch(error){results.push({source:item.source,status:'failed',error:error.message})}}
         json(res,{items:results,asset_written:false,approval_created:false})
+      } else if(url.pathname==='/__detail__/project-recycle'&&req.method==='POST'){
+        const {items,trashed}=await body(req)
+        if(typeof trashed!=='boolean'||!Array.isArray(items)||items.length<1||items.length>100)throw Error('请选择 1～100 个建筑版本')
+        const catalog=await projectStages.apply((await catalogStore.initial()).catalog)
+        const sources=new Map(catalog.models.map(item=>[item.source,item]))
+        const results=[]
+        for(const item of items){
+          try{
+            const source=localPath(item.source),current=sources.get(source)
+            if(!current||current.effect_file)throw Error('该版本已不在建筑库中')
+            const result=await projectStages.recycle(source,trashed,{bytes:item.file_size,modified_ns:typeof item.modified_ns==='string'?item.modified_ns:undefined,modified_ms:Math.trunc(Number(item.modified_ns)/1e6)})
+            results.push({...result,status:'complete'})
+          }catch(error){results.push({source:item?.source,status:'failed',error:error.message})}
+        }
+        json(res,{items:results})
       } else if(url.pathname==='/__detail__/project-batch'||url.pathname.startsWith('/__detail__/project-batch/')){
         const action=url.pathname.split('/')[3]||'list'
         if(!['list','create','get','retry','cancel'].includes(action)||req.method!==(action==='list'?'GET':'POST'))throw Error('无效批量任务请求')
@@ -329,15 +352,15 @@ export async function startDetailServer({ workspace, output, python = 'python', 
           await fs.writeFile(temporary,JSON.stringify({orders},null,2));await fs.rename(temporary,file);json(res,{orders})
         }
       } else if (req.method === 'GET' && url.pathname === '/__detail__/init') {
-        const [loaded, defaults] = await Promise.all([catalogStore.initial(), invoke(['defaults'])]),projectCatalog=await projectStages.apply(loaded.catalog)
-        const catalog={...projectCatalog,models:projectCatalog.models.filter(item=>!item.bugged&&!item.unreadable)}
+        const [loaded, defaults] = await Promise.all([catalogStore.initial(), invoke(['defaults'])]),projectCatalog=await withChildConstraints(await projectStages.apply(loaded.catalog))
+        const catalog={...projectCatalog,models:projectCatalog.models.filter(item=>!item.bugged&&!item.unreadable&&!item.trashed)}
         json(res, { catalog, defaults, workspace, output: outputRoot, features:{web_revision:true,project_feedback:true},
           project_catalog:projectCatalog,catalog_cached:loaded.cached,initial_request:initialPreset ? absoluteRequest(JSON.parse(await fs.readFile(initialPreset,'utf8')),workspace) : null })
       } else if(req.method==='GET'&&url.pathname==='/__detail__/command-preferences')json(res,await commandStore.read())
       else if(req.method==='POST'&&url.pathname==='/__detail__/command-preferences')json(res,await commandStore.save(await body(req,64*1024)))
       else if (req.method === 'GET' && url.pathname === '/__detail__/catalog') {
-        const projectCatalog=await projectStages.apply(await catalogStore.refresh());covers.clear()
-        json(res,{project_catalog:projectCatalog,catalog:{...projectCatalog,models:projectCatalog.models.filter(item=>!item.bugged&&!item.unreadable)}})
+        const projectCatalog=await withChildConstraints(await projectStages.apply(await catalogStore.refresh()));covers.clear()
+        json(res,{project_catalog:projectCatalog,catalog:{...projectCatalog,models:projectCatalog.models.filter(item=>!item.bugged&&!item.unreadable&&!item.trashed)}})
       } else if (req.method === 'GET' && url.pathname.startsWith('/__detail__/prompt/')) {
         const name=url.pathname.slice('/__detail__/prompt/'.length)
         if(!['index.html','core.js','constraint-contract.cjs','ai-input.js','autosave.js','workspace.js','app.js','style.css','design-tokens.css','theme.css','catalog.js'].includes(name))throw new Error('Unknown prompt asset')
@@ -478,7 +501,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/batches/')){
         const action=url.pathname.split('/').at(-1);if(!['list','get','create','import','ack','locate'].includes(action))throw Error('未知批次操作');const input=await body(req,256*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'batches-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['batches','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/architect/')){
-        const action=url.pathname.split('/').at(-1);if(!['standards-get','standards-save','constraints-list','constraints-save','constraints-delete','deliveries','continue','cross-list','cross-save'].includes(action))throw Error('未知建筑师工具');const input=await body(req,1024*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'architect-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['architect','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
+        const action=url.pathname.split('/').at(-1);if(!['standards-get','standards-save',...toolCatalog.project_constraints.actions,'deliveries','continue','cross-list','cross-save'].includes(action))throw Error('未知建筑师工具');const input=await body(req,1024*1024),directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'architect-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['architect','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
       } else if(req.method==='POST'&&url.pathname.startsWith('/__detail__/history/')){
         const action=url.pathname.split('/').at(-1);if(!['list','get','record','current','derive','finalize'].includes(action))throw Error('未知版本历史操作')
         const input=await body(req);const directory=path.join(outputRoot,'system');await fs.mkdir(directory,{recursive:true});const file=path.join(directory,'history-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify(input));try{json(res,await invoke(['history','--workspace',workspace,'--action',action,'--request',file]))}finally{await fs.unlink(file).catch(()=>{})}
