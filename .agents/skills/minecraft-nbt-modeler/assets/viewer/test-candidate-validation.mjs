@@ -25,17 +25,24 @@ try{
   await page.goto(server.url)
   await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy,undefined,{timeout:60000})
   await page.locator('button[data-workspace=model]').click()
+  await page.locator('#studio-panel-tools').click()
   await page.locator('#auto-preview').uncheck()
-  await page.locator('#tool-tabs [data-tool-index="8"]').evaluate(e=>e.click())
   assert.equal(await page.locator('#validate-preview').isDisabled(),true)
   checks.no_candidate_cannot_be_checked=true
-  async function operations(ops){
+  async function editOperations(ops){
+    await page.locator('#studio-panel-tools').click()
+    await page.locator('#studio-tool-menu>summary').click()
+    await page.getByRole('button',{name:'建造步骤',exact:true}).click()
     await page.locator('#operation-sequence').evaluate(input=>input.closest('details').open=true)
-    await page.locator('#tool-tabs [data-tool-index="8"]').evaluate(e=>e.click());await page.locator('#operation-sequence').fill(JSON.stringify(ops))
+    await page.locator('#operation-sequence').fill(JSON.stringify(ops))
+  }
+  async function operations(ops){
+    await editOperations(ops)
     await page.locator('#update-preview').click()
     await page.waitForFunction(()=>window.detailControl.state.preview&&!window.detailControl.state.previewBusy,undefined,{timeout:60000})
   }
   await operations([{kind:'box',label:'safe candidate',lo:[8,2,8],hi:[8,4,8],state:'stone_bricks',classification:'body'}])
+  await page.locator('#studio-panel-checks').click()
   await page.locator('#validate-preview').click()
   await page.waitForFunction(()=>window.detailControl.state.candidateValidation?.passed===true&&!window.detailControl.state.busy,undefined,{timeout:60000})
   assert.ok((await page.locator('#candidate-check-state').textContent()).includes('通过'))
@@ -44,11 +51,12 @@ try{
   const response=await fetch(new URL(success.validation_download,server.url));assert.equal(response.status,200)
   const report=await response.json();assert.equal(report.checks.candidate_geometry.details.routes.passed,true)
   checks.actual_candidate_check_and_downloadable_report=true
-  await page.locator('#tool-tabs [data-tool-index="8"]').evaluate(e=>e.click());await page.locator('#operation-sequence').fill(JSON.stringify([{kind:'box',label:'changed',lo:[8,2,8],hi:[8,4,8],state:'gold_block',classification:'body'}]))
+  await editOperations([{kind:'box',label:'changed',lo:[8,2,8],hi:[8,4,8],state:'gold_block',classification:'body'}])
   assert.equal(await page.locator('#validate-preview').isDisabled(),true)
   assert.equal(await page.evaluate(()=>window.detailControl.state.candidateValidation),null)
   checks.parameter_change_invalidates_old_pass=true
   await operations([{kind:'box',label:'leaking candidate',lo:[0,8,30],hi:[0,8,30],state:'air',classification:'wall'}])
+  await page.locator('#studio-panel-checks').click()
   await page.locator('#validate-preview').click()
   await page.waitForFunction(()=>window.detailControl.state.candidateValidation?.passed===false&&!window.detailControl.state.busy,undefined,{timeout:60000})
   assert.equal(await page.locator('.result-panel').evaluate(e=>e.open),true)
@@ -63,7 +71,7 @@ try{
   checks.task_filter_and_verdict_are_consistent=true
   await page.locator('button[data-workspace=model]').click()
   await page.locator('.result-panel').evaluate(e=>e.open=false)
-  await page.locator('#tool-tabs [data-tool-index="8"]').evaluate(e=>e.click());await page.locator('#operation-sequence').fill(JSON.stringify([{kind:'box',label:'cancel preview',lo:[8,2,8],hi:[8,4,8],state:'stone_bricks',classification:'body'}]))
+  await editOperations([{kind:'box',label:'cancel preview',lo:[8,2,8],hi:[8,4,8],state:'stone_bricks',classification:'body'}])
   await page.locator('#update-preview').click()
   await page.waitForFunction(()=>window.detailControl.state.previewBusy)
   assert.equal(await page.locator('#cancel').isDisabled(),false)
