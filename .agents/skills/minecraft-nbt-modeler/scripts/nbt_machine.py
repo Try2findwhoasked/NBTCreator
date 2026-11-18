@@ -29,7 +29,7 @@ def dispatch(workspace,request):
         elif namespace=='prompts':
             import nbt_prompts
             if action=='list':result=nbt_prompts.tasks(workspace,params.get('after',0),params.get('status'))
-            elif action=='get':result=nbt_prompts.read_task(workspace,params['id'])
+            elif action=='get':result=nbt_prompts.read_task(workspace,params['id'],view=params.get('view','full'))
             else:result=nbt_prompts.task_action(workspace,action,args)
         elif namespace=='annotations':
             import nbt_feedback

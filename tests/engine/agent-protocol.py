@@ -81,4 +81,38 @@ class Contracts(unittest.TestCase):
   target=self.source.parent.parent.parent/'v02/master/model.snbt';target.parent.mkdir(parents=True);target.write_bytes(self.source.read_bytes())
   req=self.request(id=task['id'],revision=claimed['revision'],new_source=str(target),new_source_sha256=hashlib.sha256(target.read_bytes()).hexdigest(),summary='完成本次制作，等待人工审查',lease_token=claimed['lease_token'],fence=claimed['lease']['fence'])
   result=dispatch(self.w,'record',req);self.assertEqual(dispatch(self.w,'record',req),result);self.assertEqual(len(result['returns']),1);self.assertEqual(result['status'],'completed');self.assertNotIn('lease',result);self.assertEqual(result['returns'][0]['acceptance'],'pending_user_review')
+
+ def publish_prompt(self, session, document, text, context=None):
+  saved=save(self.w,dict(session_id=session,document=document,text=text,plan={'operations':[]},context=context or {}))
+  return publish(self.w,saved['index'],saved['id'],saved['revision'])
+
+ def test_compact_prompt_preserves_stage_constraints_and_verbatim_excerpts(self):
+  from nbt_constraints import checksum
+  session=uuid.uuid4().hex
+  text='完整正文 '+('很长的模板文字 ' * 200)
+  purpose='先收卷，再走到庭院。'
+  constraint=dict(schema_version=1,id='constraint-'+uuid.uuid4().hex,revision=1,name='露天项目',
+                  rules=dict(require_enclosure=False,openings_policy='none',requirements='庭院保留露天。'))
+  constraint['sha256']=checksum(constraint)
+  document={'project':{'stage':'draft','name':'院落','buildingShape':'single','purpose':purpose},'constraints':[constraint]}
+  before=self.publish_prompt(session,document,text)
+  protected=[dict(lo=[0,0,0],hi=[3,3,3])]
+  after=self.publish_prompt(session,dict(document,project=dict(document['project'],purpose=purpose,extras='保留临街入口。'*50)),
+                            text+' 新段落',dict(protected_boxes=protected))
+  def get(**params):return machine(self.w,dict(protocol_version=1,method='prompts.get',params=dict(id=after['id'],**params)))
+  full, compact=get()['data'],get(view='compact')['data']
+  self.assertEqual(compact['brief']['purpose'],purpose)
+  self.assertEqual(compact['task']['stage'],'draft')
+  self.assertIs(compact['effective']['require_enclosure'],False)
+  self.assertEqual(compact['effective']['openings_policy'],'none')
+  self.assertEqual(compact['constraints'][0]['requirements'],'庭院保留露天。')
+  self.assertEqual(compact['protected_boxes'],protected)
+  self.assertIn('document.project.extras',compact['clipped'])
+  self.assertEqual(compact['previous']['task_id'],before['id'])
+  self.assertEqual(compact['previous']['project_fields'],['extras'])
+  self.assertEqual(compact['previous']['context_fields'],['protected_boxes'])
+  self.assertLess(len(json.dumps(compact,ensure_ascii=False)),len(json.dumps(full,ensure_ascii=False)))
+  self.assertEqual(get(view='text')['data']['text'],full['text'])
+  self.assertEqual(get(view='nope')['error']['code'],'INVALID_REQUEST')
+
 if __name__=='__main__':unittest.main(verbosity=2)

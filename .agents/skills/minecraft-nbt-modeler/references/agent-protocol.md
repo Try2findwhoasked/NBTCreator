@@ -21,6 +21,8 @@
 - `annotations.scan` / `annotations.collect`：独立读取正式批注及证据，不改变任务状态。结构批注仍保存在建筑版本目录。
 - `annotation-tasks.list` / `evidence`：读取人工整理的意见分组。create/update/merge 只整理跟进状态，不改写原批注或验收结论。
 
+`prompts.get` 的 `view` 省略时仍返回 `full`。用 `compact` 读取冻结表单摘录、阶段、有效约束、保护区摘要、源匹配状态和同一方案的上一条已发布修订差异。`clipped` 列出超过 240 字的字段。`design_supplement_present` 表示冻结正文包含补充设计说明。需要正文、完整表单、操作计划或坐标时分别使用 `text`、`document`、`plan` 或 `context`。`source_matches` 为 `null` 表示新建任务无既有源。
+
 提示词和建筑修改任务各自支持 claim、heartbeat、release。默认领取 15 分钟，可设置 60～3600 秒；执行期间按租期约三分之一间隔 heartbeat。领取回执给出 `lease_token` 和 `lease.fence`；之后续期、释放和提交都带上这两项。公开 get/list 隐藏令牌。
 
 超时后读取会将执行中任务显示为 pending，下一次领取原子地替换租约并增加 fence。超时执行者无法续期或提交，即使它后来恢复运行。`prompts.task-status` 登记 completed 后结束租约；`tasks.record` 登记新版本后标记 completed 并结束租约；后续修改应由人根据审查意见建立新任务。任务完成/版本登记均不等于人工验收。

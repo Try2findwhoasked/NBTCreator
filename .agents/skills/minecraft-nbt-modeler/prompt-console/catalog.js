@@ -24150,7 +24150,8 @@ globalThis.NbtToolCatalog = {
       },
       "prompts.get": {
         "fields": {
-          "id": "string"
+          "id": "string",
+          "view": "string"
         },
         "required": [
           "id"

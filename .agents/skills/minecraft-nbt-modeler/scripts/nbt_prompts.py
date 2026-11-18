@@ -412,9 +412,7 @@ def published_constraint_links(workspace, errors):
             errors.append(dict(file=record.get('directory','任务索引.json'),reason=str(error)))
 
 
-def read_task(workspace,identifier):
-    record=next((item for item in load_tasks(workspace)['records'] if item['id']==identifier),None)
-    if not record:raise ValueError('提示词任务不存在，请先 prompts tasks')
+def _read_task_record(workspace,record):
     folder=inside(workspace,record['directory']);contents={}
     for name in ('提示词.md','方案.json','操作计划.json','上下文草案.json'):
         raw=task_file(workspace,folder,record,name)
@@ -423,6 +421,31 @@ def read_task(workspace,identifier):
     matches=(digest(source.read_bytes())==record['source_sha256'] if source.is_file() else False) if source else None
     from nbt_agent_protocol import redact
     return dict(task=redact(record),directory=str(folder),prompt=str(inside(workspace,record['prompt'])),text=contents['提示词.md'],document=contents['方案.json'],plan=contents['操作计划.json'],context=contents['上下文草案.json'],source_matches=matches,approval='not_granted_by_prompt')
+
+
+TASK_VIEWS=('full','compact','text','document','plan','context')
+
+
+def read_task(workspace,identifier,*,view='full'):
+    from nbt_agent_protocol import error
+    records=load_tasks(workspace)['records']
+    record=next((item for item in records if item['id']==identifier),None)
+    if not record:error('TASK_NOT_FOUND','提示词任务不存在，请先 prompts tasks')
+    if view not in TASK_VIEWS:
+        error('INVALID_REQUEST','view 须为 full、compact、text、document、plan 或 context')
+    data=_read_task_record(workspace,record)
+    if view=='full':return data
+    if view!='compact':
+        return dict(id=identifier,revision=record['revision'],source_matches=data['source_matches'],view=view,**{view:data[view]})
+    from nbt_prompt_view import compact
+    previous=max((item for item in records if item['sequence']<record['sequence']
+        and item.get('archive_id')==record['archive_id'] and item.get('archive_index')==record['archive_index']),
+        key=lambda item:item['sequence'],default=None)
+    older=None
+    if previous is not None:
+        try:older=_read_task_record(workspace,previous)
+        except (ValueError,OSError,KeyError,TypeError):pass
+    return compact(data,previous,older)
 
 
 def task_action(workspace,action,request):
