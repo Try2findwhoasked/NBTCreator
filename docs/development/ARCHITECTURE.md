@@ -41,7 +41,7 @@ flowchart LR
 ### 桌面服务与版本发布
 
 - **已落地。** 工作台的 preload IPC 与 loopback HTTP 在运行图中分开。桌面和 CLI 发布受管制作版时使用同一个引擎入口，共用按建筑划分的发布锁。锁内检查父版本及源状态，同一父版本并发发布最多有一个成功。过期父版本返回 `STALE_PARENT`，现行版本保留。任务租约负责交接任务的领取权，发布锁负责建筑版本的一致性。实现见 [工作模型](../../.agents/skills/minecraft-nbt-modeler/scripts/nbt_working_model.py)，并发场景见 [引擎回归测试](../../tests/engine/working-model.py)。
-- **后续维护重构。** 随业务改动从 `detail-server.mjs` 逐步抽出领域路由，先处理边界清楚的编辑会话。工作区绑定、Host/Origin 校验和错误处理集中在公共入口，继续共用现有 Node utility process。后续扩大并发覆盖时，应验证其他写入入口，以及冲突候选在会话中断后的恢复。服务入口见 [detail-server.mjs](../../.agents/skills/minecraft-nbt-modeler/assets/viewer/detail-server.mjs)。
+- **编辑会话路由已拆分。** `edit-session-routes.mjs` 处理最近会话、草稿读取和保存以及图片证据恢复，持久化继续由 `edit-session-store.mjs` 负责。公共服务统一处理工作区源绑定、Host/Origin 校验和 HTTP 错误，继续共用现有 Node utility process。启用草稿恢复时，桌面在发布请求前保存当前编辑会话。遇到 `STALE_PARENT` 后，重启可从原版本恢复候选设置、预览和镜头。并发回归覆盖桌面与 CLI 竞争、历史派生与 CLI 同时写入、同一父版本的建筑方案并发重建，以及基于胜出版本手动重试不冲突的编辑。参见[编辑会话路由](../../.agents/skills/minecraft-nbt-modeler/assets/viewer/edit-session-routes.mjs)、[桌面恢复回归](../../tests/desktop/edit-session-desktop.mjs)和[引擎回归](../../tests/engine/working-model.py)。
 
 ### 外部 Agent 脚本化路线
 
