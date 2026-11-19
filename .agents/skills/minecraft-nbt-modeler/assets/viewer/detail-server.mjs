@@ -16,7 +16,7 @@ import {createAssetGroups} from './asset-groups.mjs'
 import { createFeedbackStore } from './feedback-store.mjs'
 import {createCatalogStore} from './catalog-store.mjs'
 import {createProjectStages} from './project-stages.mjs'
-import {createEditSessionStore} from './edit-session-store.mjs'
+import {createEditSessionRoutes} from './edit-session-routes.mjs'
 import {createCommandStore} from './command-store.mjs'
 import {referenceSources} from './reference-sources.mjs'
 import {cleanApiMetrics,cleanTimings} from './ai-metrics.mjs'
@@ -74,7 +74,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   const catalogStore=createCatalogStore({workspace,scan:()=>invoke(['catalog','--workspace',workspace,'--include-bugged','--index-only'])})
   const covers=new Map(),batchAssets=new Map()
   const projectStages=createProjectStages(workspace)
-  const editSessions=createEditSessionStore(workspace)
+  const editSessionRoutes=createEditSessionRoutes({workspace,body,json,localPath,openedSource,registerImages,bindings,sameSource})
   const toolCatalog=JSON.parse(await fs.readFile(path.join(skillRoot,'tool-catalog.json'),'utf8'))
   const commandStore=createCommandStore(workspace,toolCatalog)
   const engineSession=createEngineSession({workspace,python})
@@ -296,20 +296,8 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   const viewer = await createViewerServer({ port, frontendMode, modelResolver: key => snapshots.get(key), apiHandler: async (req, res, url) => {
     if (!url.pathname.startsWith('/__detail__/')) return false
     try {
-      if(url.pathname==='/__detail__/edit-sessions/recent'&&req.method==='GET'){json(res,{recent:await editSessions.recent()})
-      } else if(url.pathname==='/__detail__/edit-sessions/load'&&req.method==='POST'){
-        const input=await body(req),source=localPath(input.source),info=openedSource(source);if(!info)throw Error('请先打开完整建筑再恢复编辑草稿')
-        const result=await editSessions.load(source),view=result.state?.view
-        if(view?.mode==='images'&&view.image_hash&&!info.images?.some(image=>image.image_sha256===view.image_hash&&(!view.image_name||image.name===view.image_name))){
-          try{const file=await editSessions.imageEvidence(result.source_sha256,view.image_hash,view.image_name,info.geometry_sha256);if(file){result.image=(await registerImages([file],info))[0];result.image.restored=true}else result.warning='上次图片不在当前列表，且没有可用的图片证据；其文字和标记草稿仍保留'}catch(error){result.warning=error.message}
-        }
-        json(res,result)
-      } else if(url.pathname==='/__detail__/edit-sessions/save'&&req.method==='POST'){
-        const input=await body(req,32*1024*1024);input.source=localPath(input.source);if(!openedSource(input.source))throw Error('请先打开完整建筑再保存编辑草稿')
-        let warning;const view=input.state?.view
-        if(view?.mode==='images'&&view.image_hash){const binding=[...bindings.values()].find(b=>b.image&&sameSource(b.source,input.source)&&b.source_sha256===input.source_sha256&&b.image_sha256===view.image_hash&&(!view.image_name||path.basename(b.image)===view.image_name));try{if(!binding)throw Error('请重新打开该图片以保存画面证据');await editSessions.rememberImage(binding)}catch(error){warning='参数与文字草稿已存，但图片未归档：'+error.message}}
-        json(res,{...await editSessions.save(input),...(warning?{warning}:{})})
-      } else if (req.method === 'POST' && url.pathname === '/__detail__/resolve-request') { json(res,absoluteRequest((await body(req)).request,workspace))
+      if(await editSessionRoutes(req,res,url))return true
+      if (req.method === 'POST' && url.pathname === '/__detail__/resolve-request') { json(res,absoluteRequest((await body(req)).request,workspace))
       } else if (url.pathname === '/__detail__/project-stage' && req.method==='POST') {
         const input=await body(req);json(res,await projectStages.save(localPath(input.source),input.stage))
       } else if(url.pathname==='/__detail__/project-stage-batch'&&req.method==='POST'){

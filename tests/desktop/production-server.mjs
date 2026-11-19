@@ -5,6 +5,7 @@ import http from 'node:http'
 import {pathToFileURL} from 'node:url'
 import {root,skill} from '../../scripts/paths.mjs'
 const {createViewerServer}=await import(pathToFileURL(path.join(skill,'assets/viewer/viewer-server.mjs')).href)
+const {startDetailServer}=await import(pathToFileURL(path.join(skill,'assets/viewer/detail-server.mjs')).href)
 const output=path.join(root,'build','production-server-'+Date.now());await fs.mkdir(output,{recursive:true})
 const snapshot=path.join(output,'model.json');await fs.writeFile(snapshot,JSON.stringify({fixture:true}))
 let server;const checks={}
@@ -24,5 +25,15 @@ try{
  const {createViewerServer:createPortable}=await import(pathToFileURL(path.join(portable,'viewer-server.mjs')).href)
  server=await createPortable({model:snapshot,frontendMode:'production'});assert.equal((await fetch(server.url+'control.html')).status,200);await server.close();server=null;checks.production_runs_without_node_modules=true
  server=await createViewerServer({model:snapshot,frontendMode:'development'});assert.equal(server.frontend,'development');assert.ok((await(await fetch(server.url+'control.html')).text()).includes('/@vite/client'));await server.close();server=null;checks.explicit_development_fallback=true
+ const workspace=path.join(output,'workspace');await fs.mkdir(workspace)
+ server=await startDetailServer({workspace,frontendMode:'production'})
+ const recent=new URL('/__detail__/edit-sessions/recent',server.url)
+ const response=await fetch(recent);assert.equal(response.status,200);assert.deepEqual(await response.json(),{recent:null})
+ assert.equal((await fetch(recent,{headers:{Origin:'https://example.com'}})).status,403)
+ const editSpoof=await new Promise((resolve,reject)=>http.get(recent,{headers:{Host:'example.com'}},res=>{res.resume();resolve(res.statusCode)}).on('error',reject))
+ assert.equal(editSpoof,403)
+ const load=await fetch(new URL('load',recent),{method:'POST',body:JSON.stringify({source:path.join(workspace,'nbt_models','unopened.snbt')})})
+ assert.equal(load.status,400);assert.match((await load.json()).error,/请先打开完整建筑/)
+ await server.close();server=null;checks.edit_session_routes_use_shared_http_guards=true
  await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks},null,2));console.log(JSON.stringify({passed:true,checks:Object.keys(checks).length,output}))
 }finally{await server?.close()}
