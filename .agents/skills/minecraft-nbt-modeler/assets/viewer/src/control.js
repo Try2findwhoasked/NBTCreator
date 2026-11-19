@@ -468,8 +468,11 @@ async function runJob(kind, overrides = {}) {
   const payload = { kind, request: request(), bundle: state.bundle, review: $('review').value.trim() }
   Object.assign(payload.request, overrides)
   if(kind==='validate')payload.snapshot_key=state.preview?.model_key
+  // Capture while the editor is still idle so a rejected publish can be resumed.
+  if(kind==='revision')editSession?.checkpoint()
   busy(true); status('正在执行：'+(kind==='revision'?(overrides.draft_only?'保存 SNBT 制作版':'定稿并导出 NBT'):({plan:'生成计划',snapshot:'载入三维模型',prepare:'准备建筑审阅图',render:'批量保存源视图',apply:'应用已批准计划',validate:'检查当前修改预览效果'}[kind] ?? kind)))
   try {
+    if(kind==='revision'&&state.restoreSession!==false)await editSession?.flush()
     while(state.previewBusy)await new Promise(resolve=>setTimeout(resolve,100))
     if(cancelEpoch!==(state.cancelEpoch??0))throw new DOMException('任务已取消','AbortError')
     const submitted = await api('jobs', payload)

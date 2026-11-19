@@ -34,10 +34,38 @@ try{
  await page.locator('#studio-panel-notes').evaluate(e=>e.click());await page.locator('#feedback-text').fill('#1 补齐柱脚收口，保留通路。退出前追加。');await app.close();app=null
  await launch();assert.equal(await page.evaluate(()=>window.detailControl.state.info.source),source);assert.equal(await page.locator('#strength').inputValue(),'77');assert.equal(await page.locator('#whole-region').isChecked(),false);assert.equal(await page.locator('#lo-x').inputValue(),'9');assert.equal(await page.locator('#hi-y').inputValue(),'8');assert.equal(await page.locator('#feedback-text').inputValue(),'#1 补齐柱脚收口，保留通路。退出前追加。');assert.equal(await page.evaluate(()=>window.detailControl.state.draftPoints.length),1);checks.quit_flush_and_restart_restore_parameters_comments=true
  let meta=await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.metadata());assert.equal(meta.geometry_sha256,geometry);assert.deepEqual(meta.cuts,[{axis:'y',position:8,removed_side:'above'}]);assert.equal(meta.layer,'body');for(const key of ['eye','target','up'])assert.ok(meta.camera[key].every((n,i)=>Math.abs(n-pose[key][i])<1e-5));assert.ok(Math.abs(meta.camera.fov-55)<1e-5);checks.recomputed_candidate_camera_and_cut_restored=true
- assert.equal(await page.evaluate(()=>window.detailControl.state.notes.length),0);assert.equal(hash(await fs.readFile(source)),baseline);checks.drafts_are_not_formal_comments_or_exports=true
+ await page.evaluate(()=>window.nbtFeedbackAutosave.flush())
+ await page.waitForFunction(()=>window.detailControl.state.notes.length===1)
+ const savedNote=await page.evaluate(()=>window.detailControl.state.notes[0])
+ assert.equal(savedNote.text,'#1 补齐柱脚收口，保留通路。退出前追加。');assert.equal(hash(await fs.readFile(source)),baseline);checks.annotation_autosaves_without_changing_model=true
+ const winnerFile=path.join(output,'publish-winner.json')
+ await fs.writeFile(winnerFile,JSON.stringify({source,source_sha256:baseline,actions:[{method:'patch',changes:[{pos:[22,4,22],before:['minecraft:air',false],after:['minecraft:gold_block',false]}]}],save_draft:{}}))
+ const publish=spawnSync(python,['-B',path.join(skill,'scripts/nbt_working_model.py'),'--workspace',workspace,'--request',winnerFile],{encoding:'utf8',windowsHide:true})
+ assert.equal(publish.status,0,publish.stdout+publish.stderr)
+ const winner=JSON.parse(publish.stdout).result.saved.source
+ const winnerSha=hash(await fs.readFile(winner))
+ const rejected=await page.evaluate(async()=>{
+  const viewer=document.querySelector('#viewer').contentWindow.nbtModeler
+  await viewer.renderView({...viewer.metadata().camera,fov:51,cuts:viewer.metadata().cuts,layer:'body',lighting:viewer.metadata().lighting})
+  try{await window.detailControl.saveAuthoringVersion();return null}catch(error){return error.message}
+ })
+ assert.match(rejected,/STALE_PARENT/)
+ const savedConflict=await page.evaluate(async source=>{
+  const response=await fetch('/__detail__/edit-sessions/load',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source})})
+  if(!response.ok)throw Error(await response.text())
+  return response.json()
+ },source)
+ assert.equal(savedConflict.status,'found');assert.equal(savedConflict.state.view.camera.fov,51)
+ await app.close();app=null
+ await launch();await choose(source)
+ const restored=await page.evaluate(()=>({parameters:window.detailControl.gather(),view:document.querySelector('#viewer').contentWindow.nbtModeler.metadata()}))
+ assert.equal(restored.parameters.operations[0].label,'待导出的石柱')
+ assert.equal(restored.view.geometry_sha256,geometry);assert.ok(Math.abs(restored.view.camera.fov-51)<1e-5)
+ assert.equal(hash(await fs.readFile(source)),baseline);assert.equal(hash(await fs.readFile(winner)),winnerSha)
+ checks.stale_publish_keeps_candidate_across_restart=true
  await page.evaluate(()=>{const s=window.detailControl.gather();s.operations.push({kind:'box',label:'尚未预览的第二根柱',classification:'body',lo:[12,4,12],hi:[12,6,12],state:'stone_bricks'});window.detailControl.restore(s)});await page.evaluate(()=>window.nbtEditSession.flush());await app.close();app=null
  await launch();assert.equal(await page.evaluate(()=>window.detailControl.gather().operations.length),2);meta=await page.evaluate(()=>document.querySelector('#viewer').contentWindow.nbtModeler.metadata());assert.equal(meta.geometry_sha256,geometry);assert.equal(await page.locator('#validate-preview').isDisabled(),true);assert.equal(await page.evaluate(()=>JSON.parse(window.detailControl.state.previewSettings).operations.length),1);checks.unpreviewed_parameters_do_not_move_comment_geometry=true
- await click('#save-feedback');await page.waitForFunction(()=>!window.detailControl.state.savingNote&&window.detailControl.state.notes.length===1);assert.equal(await page.locator('#feedback-text').inputValue(),'');await page.evaluate(()=>window.nbtEditSession.flush());checks.recovered_comment_can_be_explicitly_saved=true
+ await click('#save-feedback');await page.waitForFunction(()=>!window.detailControl.state.savingNote&&window.detailControl.state.notes.length===1);assert.equal(await page.locator('#feedback-text').inputValue(),'');assert.equal(await page.evaluate(()=>window.detailControl.state.notes[0].id),savedNote.id);await page.evaluate(()=>window.nbtEditSession.flush());checks.start_next_annotation_keeps_existing_note=true
  await choose(other);assert.equal(await page.evaluate(()=>window.detailControl.gather().operations.length),0);assert.equal(await page.locator('#feedback-text').inputValue(),'');assert.equal(await page.evaluate(()=>window.detailControl.state.notes.length),0);await choose(source);assert.equal(await page.evaluate(()=>window.detailControl.gather().operations.length),2);assert.equal(await page.evaluate(()=>window.detailControl.state.notes.length),1);checks.identical_geometry_objects_have_separate_drafts=true
  await page.evaluate(()=>window.nbtEditSession.flush());await page.screenshot({path:path.join(output,'recovered-session.png')});await app.close();app=null
  const preferences=JSON.parse(await fs.readFile(path.join(workspace,'.nbtcreator/preferences.json'),'utf8'));await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({...preferences,startPage:'project'}))

@@ -1,6 +1,20 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {createEditSessionController} from '../../.agents/skills/minecraft-nbt-modeler/assets/viewer/src/edit-session.js'
+test('a failed checkpoint can save the same candidate on the next attempt',async t=>{
+ const old=globalThis.window;globalThis.window=new EventTarget();t.after(()=>{if(old===undefined)delete globalThis.window;else globalThis.window=old})
+ const info={source:'A',source_sha256:'a'.repeat(64)},candidate={...info,state:{value:'candidate'}},writes=[]
+ const controller=createEditSessionController({capture:()=>candidate,restore:()=>{},api:async(route,input)=>{
+  if(route.endsWith('load'))return {...info,status:'empty',revision:0}
+  writes.push(input.state)
+  if(writes.length===1)throw Error('temporary write failure')
+  return {revision:1,updated_at:new Date().toISOString()}
+ }});t.after(()=>controller.dispose())
+ await controller.opened(info,false)
+ await assert.rejects(controller.flush(),/temporary write failure/)
+ await controller.flush()
+ assert.deepEqual(writes,[candidate.state,candidate.state])
+})
 test('a late recovery cannot replace the editor selected after it',async t=>{
  const old=globalThis.window;globalThis.window=new EventTarget();t.after(()=>{if(old===undefined)delete globalThis.window;else globalThis.window=old})
  const a={source:'A',source_sha256:'a'.repeat(64)},b={source:'B',source_sha256:'b'.repeat(64)},restored=[];let release,captured={...a,state:{value:'initial'}}
