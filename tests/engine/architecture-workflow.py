@@ -107,6 +107,35 @@ class ArchitectureWorkflow(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'父指纹'):
             dispatch(self.workspace,'plan-build',dict(plan=changed,source=second['saved']['source'],source_sha256=file_hash(second['saved']['source']),expected_plan_sha256=first['plan_sha256']))
 
+    def test_concurrent_plan_rebuilds_publish_only_one_child(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from nbt_working_model import ModelConflict
+
+        first = self.make()
+        source = first['saved']['source']
+        original_sha = file_hash(source)
+        parent = dict(source=source, source_sha256=original_sha, expected_plan_sha256=first['plan_sha256'], save_draft={})
+
+        def rebuild(material):
+            changed = plan()
+            changed['style']['materials']['structure'] = material
+            try:
+                return dispatch(self.workspace, 'plan-build', dict(parent, plan=changed))
+            except ModelConflict as failure:
+                return failure
+
+        with ThreadPoolExecutor(max_workers=2) as workers:
+            results = list(workers.map(rebuild, ['polished_andesite', 'polished_diorite']))
+        published = [item for item in results if isinstance(item, dict)]
+        conflicts = [item.code for item in results if isinstance(item, ModelConflict)]
+        self.assertEqual(len(published), 1)
+        self.assertEqual(conflicts, ['STALE_PARENT'])
+        winner = published[0]
+        model = WorkingModel.open(self.workspace, winner['saved']['source'])
+        self.assertEqual(model.architecture['sha256'], winner['plan_sha256'])
+        self.assertEqual(model._read_head(model._building)['source'], model._history_source(model._building))
+        self.assertEqual(file_hash(source), original_sha)
+
     def test_actual_room_obstruction_is_checked_on_free_host_edits(self):
         result=self.make();working=WorkingModel.open(self.workspace,result['saved']['source'])
         working.model.put((15,2,8),'stone')

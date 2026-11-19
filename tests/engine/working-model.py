@@ -427,6 +427,35 @@ class WorkingModels(unittest.TestCase):
         (version/'room_description.json').write_text(json.dumps(dict(name_zh='旧房',shape='standalone',mode='standalone')), encoding='utf8')
         return source
 
+    def test_history_derivation_and_cli_publication_share_one_building_head(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from nbt_history import History
+
+        model = self.new(kind='component')
+        original = model.save_draft('历史派生并发')
+        identifier = original['history']['version']['id']
+        request = self.root/'derive-race.json'
+        request.write_text(json.dumps(dict(source=original['source'], source_sha256=file_hash(original['source']),
+            actions=[dict(method='patch', changes=[dict(pos=[3, 2, 3], before=['minecraft:air', False],
+                after=['minecraft:stone', False])])], save_draft={})), encoding='utf8')
+        command = [sys.executable, '-B', str(SCRIPTS/'nbt_working_model.py'), '--workspace', str(self.root), '--request', str(request)]
+        history = History(self.root)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            writer = pool.submit(subprocess.run, command, capture_output=True, text=True, encoding='utf8', timeout=30)
+            derived = pool.submit(history.derive, identifier).result(timeout=30)
+            cli = writer.result(timeout=30)
+
+        self.assertEqual(derived['version']['parent'], identifier)
+        self.assertEqual(model._read_head(model._building)['source'], model._history_source(model._building))
+        self.assertEqual(Path(self.root/model._history_source(model._building)).resolve(), Path(derived['source']))
+        self.assertEqual(file_hash(derived['source']), file_hash(original['source']))
+        if cli.returncode:
+            self.assertEqual(json.loads(cli.stdout)['code'], 'STALE_PARENT', cli.stdout+cli.stderr)
+        else:
+            saved = json.loads(cli.stdout)['result']['saved']
+            self.assertNotEqual(saved['source'], derived['source'])
+            self.assertEqual(WorkingModel.open(self.root, saved['source']).model.get((3, 2, 3)), 'minecraft:stone')
+
     def test_legacy_desktop_cannot_publish_from_a_stale_parent(self):
         from nbt_web_revision import convert_web_json
         from nbt_detail_control import default_settings
@@ -644,6 +673,24 @@ class WorkingModels(unittest.TestCase):
         self.assertEqual(head['source'],m._history_source(m._building))
         reopened = WorkingModel.open(self.root,head['source'])
         self.assertIn('panel',reopened.instances)
+        # The rejected request is still available after the publishing process exits.
+        # Reopen the winning source explicitly before applying the independent edit.
+        if results[0].returncode:
+            rejected = json.loads(cli_request.read_text(encoding='utf8'))
+            change, = rejected['actions'][0]['changes']
+            reopened.patch([change])
+            recovered = reopened.save_draft()
+        else:
+            rejected = json.loads(desktop_request.read_text(encoding='utf8'))
+            rejected.update(source=str(reopened.source),source_sha256=reopened.source_sha256,
+                context=str(reopened.source.parent.parent/'coordinates.json'))
+            desktop_request.write_text(json.dumps(rejected),encoding='utf8')
+            retry = execute(commands[1])
+            self.assertEqual(retry.returncode,0,retry.stdout+retry.stderr)
+            recovered = reopened._read_head(reopened._building)
+        latest = WorkingModel.open(self.root,recovered['source'])
+        self.assertEqual(latest.model.get((7,1,7)),'minecraft:stone')
+        self.assertEqual(latest.model.get((8,1,8)),'minecraft:gold_block')
 
 
 if __name__ == '__main__':
