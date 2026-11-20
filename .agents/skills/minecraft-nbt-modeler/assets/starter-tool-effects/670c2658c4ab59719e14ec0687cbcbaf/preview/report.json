@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "content_sha256": "1e4acb268be8149f2890585d4c00f49d394279ef027f420bc39f446e70a15bb2",
-  "engine_sha256": "52e90505dbbea708ce332249792e31deb6a0d89c6662a2dcb8d0037346bea7a3",
+  "engine_sha256": "df07f9005dc448dacf43ee5e9c4e09df5cd2a488e9164331f9bef74f8dff880c",
   "cameras": [
     {
       "id": "effect",
