@@ -148,8 +148,12 @@ def stair_system(model, specification, budget):
         support_space=_Space(model)
         for p in set(voxels)-tread_positions:
             if p[1]==foundation and not support_space.supported((p[0]+.5,foundation,p[2]+.5)):raise ValueError('梯段支承基底没有实际支撑')
-    for a,b in zip(report['feet'],report['feet'][1:]):
-        if not check_routes(candidate,a,[b],max_poses=1000)['passed']:raise ValueError('梯段与真实宿主组合后净空或连续支撑未通过')
+    for index,(a,b) in enumerate(zip(report['feet'],report['feet'][1:]),1):
+        route=check_routes(candidate,a,[b],max_poses=1000)
+        if not route['passed']:
+            from nbt_working_model import ModelConflict
+            raise ModelConflict('STAIR_ROUTE_FAILED',[dict(instance=specification.get('id'),segment=index,
+                start=a,end=b,report=route)])
     return voxels,dict(kind='stair_system',feet=report['feet'],route_segments=report['route_segments'],positions=all_positions+[list(p) for p in voxels],borrowed_floor=borrowed,
         accessory_positions=[list(p) for p in set(voxels)-tread_positions]+borrowed_accessories,supports_generated=foundation is not None,railings_generated=bool(railing),structural_load='not_checked')
 

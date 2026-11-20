@@ -105,7 +105,10 @@ mud_brick_wall nether_brick_fence nether_brick_wall oak_fence polished_blackston
 polished_blackstone_wall polished_deepslate_wall prismarine_wall red_nether_brick_wall red_sandstone_wall
 sandstone_wall spruce_fence stone_brick_wall warped_fence
 '''.split())
-ENVELOPE_VERSION = 'minecraft-java-1.20.1-bounded-obstacles-v4'
+# The dry walking graph excludes occupied water cells at every liquid level.
+# This is a clearance restriction, not a claim about fluid collision/support.
+DRY_ROUTE_EXCLUSIONS = frozenset({'water'})
+ENVELOPE_VERSION = 'minecraft-java-1.20.1-bounded-obstacles-v5'
 
 
 
@@ -120,7 +123,7 @@ def bounded_obstacle(value):
         name, _ = effective(value)
     except ValueError:
         return False
-    return name.removeprefix('minecraft:') in BOUNDED_OBSTACLES | TALL_OBSTACLES
+    return name.removeprefix('minecraft:') in BOUNDED_OBSTACLES | TALL_OBSTACLES | DRY_ROUTE_EXCLUSIONS
 
 
 @lru_cache(maxsize=4096)

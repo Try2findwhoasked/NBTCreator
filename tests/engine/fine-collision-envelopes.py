@@ -58,5 +58,24 @@ class FineEnvelopes(unittest.TestCase):
             model=Model((3,4,3));model.put((1,0,1),value)
             self.assertFalse(_Space(model).supported((1.5,1,1.5)),value)
 
+    def test_dry_walking_distinguishes_water_from_unsupported_shapes(self):
+        model=Model((8,5,6));model.box((0,0,0),(7,0,5),'stone')
+        model.box((1,1,1),(6,1,1),'water[level=0]')
+        model.put((1,1,2),'water[level=7]')
+        start=(1.5,1,4.5)
+        targets={'dry':(6.5,1,4.5),'water':(3.5,1,1.5),'above_water':(3.5,2,1.5)}
+        dry=check_routes(model,start,{'dry':targets['dry']})
+        self.assertTrue(dry['passed'])
+        self.assertFalse(dry['unknown_shapes'])
+        self.assertEqual({row['state'] for row in dry['conservative_obstacles']},
+                         {'minecraft:water[level=0]','minecraft:water[level=7]'})
+        excluded=check_routes(model,start,targets)
+        self.assertFalse(excluded['passed'])
+        self.assertFalse(excluded['targets'][1]['standing'])
+        self.assertFalse(excluded['targets'][2]['standing'])
+        strict=check_routes(model,start,{'dry':targets['dry']},conservative_obstacles=False)
+        self.assertFalse(strict['passed'])
+        self.assertTrue(strict['unknown_shapes'])
+
 
 if __name__=='__main__':unittest.main(verbosity=2)

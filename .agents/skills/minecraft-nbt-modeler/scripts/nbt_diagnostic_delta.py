@@ -42,21 +42,23 @@ def summary(kind, report):
                       'failed_samples','missing','missing_parts','severity','certainty','error','detail','title','state',
                       'coordinate_space','sampling','failures','eye','eye_cell','target_bounds',
                       'instance','object','unknown_shapes','missing_faces_half','violations','position','view','failure',
-                      'blocker','blockers','blocker_state','target_cell','target_state','target_inside_solid')
+                      'blocker','blockers','blocker_state','target_cell','target_state','target_inside_solid',
+                      'segment','start','end','feet','reason','count','search_limit_reached','start_standing')
             evidence = {field: row[field][:8] if isinstance(row[field], list) else row[field][:240]
                         if isinstance(row[field], str) else row[field] for field in fields if field in row}
             issues[key] = dict(code=code, scope=scope, target=target, evidence_pointer='/error' if legacy_error else path,
                                evidence=evidence, occurrences=0)
         issues[key]['occurrences'] += 1
 
-    def routes(report, path, scope=None, code='ROUTE_FAILED'):
+    def routes(report, path, scope=None, code='ROUTE_FAILED', context=None):
+        context = context or {}
         for index, row in enumerate(report.get('unknown_shapes', [])):
-            add('ROUTE_UNSUPPORTED_SHAPE', row['state'], f'{path}/unknown_shapes/{index}', row, scope=scope)
+            add('ROUTE_UNSUPPORTED_SHAPE', row['state'], f'{path}/unknown_shapes/{index}', dict(context, **row), scope=scope)
         for index, row in enumerate(report.get('targets', [])):
             if row.get('reachable') is False:
-                add(code, row['name'], f'{path}/targets/{index}', row, scope=scope)
+                add(code, row['name'], f'{path}/targets/{index}', dict(context, **row), scope=scope)
         if report.get('passed') is False and not any(row.get('reachable') is False for row in report.get('targets', [])):
-            add(code, None, path, report, scope=scope)
+            add(code, None, path, dict(context, **report), scope=scope)
 
     def checks(rows, path, default):
         for index, row in enumerate(rows):
@@ -132,7 +134,8 @@ def summary(kind, report):
                     if target and row.get('interface'):
                         target += '.'+row['interface']
                     if 'targets' in data:
-                        routes(data, path + ('/report' if 'report' in row else ''), target, code)
+                        context = {key: row[key] for key in ('segment', 'start', 'end') if key in row} if 'report' in row else None
+                        routes(data, path + ('/report' if 'report' in row else ''), target, code, context)
                     else:
                         add(code, target, path, row)
             else:
