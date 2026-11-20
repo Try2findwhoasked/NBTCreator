@@ -448,7 +448,7 @@ class WorkingModels(unittest.TestCase):
         self.assertEqual(run.returncode,0,run.stdout+run.stderr)
         second=json.loads(run.stdout)['result']['saved']
         self.assertNotEqual(first['revision'],second['revision'])
-        self.assertIn('统一', (self.root/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8'))
+        self.assertIn('working-model.md', (facade.parent/'knowledge.md').read_text(encoding='utf8'))
 
     def test_two_processes_from_the_same_parent_publish_only_one_head(self):
         from concurrent.futures import ThreadPoolExecutor

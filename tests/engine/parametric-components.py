@@ -266,10 +266,10 @@ class Parametric(unittest.TestCase):
   facade=self.root/'.agents/skills/nbtcreator-workspace/nbt.py'
   def run(*args):
    result=subprocess.run([sys.executable,str(facade),*args],cwd=self.root,capture_output=True,text=True,encoding='utf8');self.assertEqual(result.returncode,0,result.stdout+result.stderr);return json.loads(result.stdout)
-  caps=run('capabilities');self.assertIn('parametric_compile',caps['agent_tools'])
+  caps=run('capabilities','--agent-tool','parametric_compile');self.assertEqual(set(caps['agent_tools']),{'parametric_compile'})
   request=self.root/'params.json';request.write_text(json.dumps(self.request('ceiling')))
   result=run('components','agent','--tool','parametric_compile','--request',str(request))['result']
-  self.assertEqual(result['spec']['anchor'][1],7);self.assertIn('parametric_compile',(self.root/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8'))
+  self.assertEqual(result['spec']['anchor'][1],7);self.assertIn('capabilities --agent-tool',(facade.parent/'SKILL.md').read_text(encoding='utf8'))
   request.write_text(json.dumps(dict(kind='wall',ornament_profile='gothic')));listed=run('components','agent','--tool','parametric_list','--request',str(request))['result'];self.assertEqual(len(listed['kinds']),1);self.assertIn('gothic',listed['ornament_profiles'])
   request.write_text(json.dumps(dict(kind='wall',size=[15,13,4],ornament=dict(profile='gothic',depth=2))))
   decorated=run('components','agent','--tool','parametric_compile','--request',str(request))['result'];self.assertGreater(decorated['ornament']['added_or_recolored_blocks'],0)
