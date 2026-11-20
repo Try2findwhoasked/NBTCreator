@@ -86,6 +86,12 @@ mise run modular:test
 
 复杂整栋的 Agent 入口与源绑定审阅流程见[建筑方案闭环](.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md)；`mise run architecture:preview` 在隔离项目中验证公共 CLI、冻结入口与真实出图。
 
+## 开源许可证
+
+NBTCreator 主项目采用 [GNU Affero General Public License v3.0（仅第 3 版）](LICENSE)。第三方组件和素材按各自的授权条款分发。Viewer 复用及修改记录见 [上游来源](.agents/skills/minecraft-nbt-modeler/references/upstream-sources.json)，上游许可证见 [LICENSE.upstream](.agents/skills/minecraft-nbt-modeler/assets/viewer/LICENSE.upstream)。
+
+发布 Windows 二进制包时，在同一个 Release 提供该版本的对应源代码。正式发布的源码可从该 Release 的 **Source code** 下载项获取。
+
 ## 反馈
 
 在 [GitHub Issues](https://github.com/Try2findwhoasked/NBTCreator/issues) 提供应用版本、复现步骤、任务错误和必要截图，提交前移除 API Key 与私人工作区数据。问题状态以[已知问题](docs/KNOWN_ISSUES.md)为准；历史测试结果只证明当时记录的范围。
