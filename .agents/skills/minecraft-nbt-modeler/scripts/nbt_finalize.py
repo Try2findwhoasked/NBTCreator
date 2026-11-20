@@ -4,7 +4,7 @@ from datetime import datetime,timezone,timedelta
 from pathlib import Path
 from nbt_model import Model,load
 from nbt_library import canonical_context,coordinate_snapshot,saved_coordinates
-from nbt_refine import read_master,validate,layout,binary_wall_mask_hash,resolve_wall_mask
+from nbt_refine import read_master,validate,layout,binary_wall_mask_hash,resolve_wall_mask,source_binding
 from nbt_web_paths import project_paths
 from nbt_whole_validation import validation_mode
 
@@ -77,7 +77,16 @@ def load_release(target, inputs):
     return dict(released_result(target,result),unchanged=True)
 
 
-def finalize(workspace,source,*,register_history=True,expected_source_sha256=None):
+def inspect_inputs(workspace,source):
+    from nbt_agent_protocol import canonical
+
+    workspace=Path(workspace).resolve();source=(workspace/Path(source)).resolve()
+    release_path(workspace,source)
+    inputs=source_binding(source)
+    return dict(inputs,inputs_sha256=hashlib.sha256(canonical(inputs)).hexdigest())
+
+
+def finalize(workspace,source,*,register_history=True,expected_source_sha256=None,expected_inputs_sha256=None):
     workspace=Path(workspace).resolve();source=Path(source)
     if not source.is_absolute():source=workspace/source
     source=source.resolve();target=release_path(workspace,source)
@@ -90,6 +99,10 @@ def finalize(workspace,source,*,register_history=True,expected_source_sha256=Non
     inputs=release_inputs(source,context)
     if expected_source_sha256 is not None and inputs['source_sha256']!=expected_source_sha256:
         raise ValueError('已保存制作源发生变化，请重新检查后定稿')
+    if expected_inputs_sha256 is not None:
+        reviewed=inspect_inputs(workspace,source)
+        if reviewed['inputs_sha256']!=expected_inputs_sha256 or reviewed['source_sha256']!=inputs['source_sha256']:
+            raise ValueError('审阅绑定的制作源、保护配置或墙层已变化，请重新检查后定稿')
     receipt=target/'release.json'
     if receipt.is_file():
         return load_release(target,inputs)
@@ -140,6 +153,8 @@ def finalize(workspace,source,*,register_history=True,expected_source_sha256=Non
             raise ValueError('定稿期间制作源或坐标配置已变化')
         if manifest and managed_manifest(source)!=manifest:
             raise ValueError('定稿期间受管制作清单已变化')
+        if expected_inputs_sha256 is not None and inspect_inputs(workspace,source)!=reviewed:
+            raise ValueError('定稿期间审阅绑定的输入已变化')
         files={p.relative_to(stage).as_posix():dict(sha256=sha(p),bytes=p.stat().st_size)
                for p in stage.rglob('*') if p.is_file()}
         result.update(schema_version=1,status='finalized',source=source.relative_to(workspace).as_posix(),
@@ -159,7 +174,15 @@ def finalize(workspace,source,*,register_history=True,expected_source_sha256=Non
         result['history']=record_produced_version(workspace,source,message='定稿并导出 NBT',actor='human')
     return result
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('--source',required=True);args=parser.parse_args()
-    try:print(json.dumps(finalize(args.workspace,args.source),ensure_ascii=False));return 0
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('--source',required=True)
+    parser.add_argument('--inspect-inputs',action='store_true');parser.add_argument('--source-sha256');parser.add_argument('--inputs-sha256');args=parser.parse_args()
+    try:
+        if args.inspect_inputs:
+            result=inspect_inputs(args.workspace,args.source)
+        else:
+            if not args.source_sha256 or not args.inputs_sha256:
+                raise ValueError('定稿须提供审阅时记录的 --source-sha256 与 --inputs-sha256；用 --inspect-inputs 只读查看输入')
+            result=finalize(args.workspace,args.source,expected_source_sha256=args.source_sha256,expected_inputs_sha256=args.inputs_sha256)
+        print(json.dumps(result,ensure_ascii=False));return 0
     except (ValueError,OSError,KeyError,TypeError,AssertionError) as error:print(json.dumps(dict(error=str(error)),ensure_ascii=False));return 1
 if __name__=='__main__':raise SystemExit(main())

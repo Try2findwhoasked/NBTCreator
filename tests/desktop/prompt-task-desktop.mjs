@@ -94,7 +94,7 @@ try{
  assert.ok(!Object.hasOwn(saodg,'openings'))
  assert.deepEqual(await readContext(cli(['task','--id',id])),standalone)
  checks.download_body_and_published_context_match_in_both_modes=true
- assert.ok(cli(['task','--id',next.items[0].id]).text.includes('新增第二条任务'));assert.ok(cli(['task','--id',id]).text.includes('最后一次编辑直接交接'));cli(['task-status','--id',next.items[0].id,'--status','completed']);assert.equal(cli(['tasks','--status','pending']).items.length,1);checks.incremental_new_task_discovery_and_immutable_handoff=true
+ assert.ok(cli(['task','--id',next.items[0].id]).text.includes('新增第二条任务'));assert.ok(cli(['task','--id',id]).text.includes('最后一次编辑直接交接'));assert.throws(()=>cli(['task-status','--id',next.items[0].id,'--status','completed']),/先领取任务/);assert.equal(cli(['tasks','--status','pending']).items.length,2);checks.incremental_new_task_discovery_and_immutable_handoff=true
  await frame.locator('#prompt-scope-active').click();await frame.locator('[data-planning-step=review]').click();await frame.locator('[data-field="size.x"]').fill('');assert.equal(await frame.locator('#prompt-primary').isDisabled(),true);assert.equal(cli(['tasks']).items.length,2);await frame.locator('[data-field="size.x"]').fill('48');checks.invalid_form_cannot_publish_previous_prompt=true
  for(const [width,height] of [[1500,1000],[1000,760],[900,650]]){
   await app.evaluate(({BrowserWindow},bounds)=>{const win=BrowserWindow.getAllWindows()[0];win.setBounds(bounds);win.minimize()},{width,height});await page.setViewportSize({width:width-20,height:height-60})

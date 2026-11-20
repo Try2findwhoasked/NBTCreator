@@ -172,6 +172,23 @@ class SnbtSource(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'已保存制作源发生变化'):
    finalize(self.workspace,file,expected_source_sha256=expected)
   self.assertFalse(release_path(self.workspace,file).exists())
+ def test_finalize_cli_rejects_changed_reviewed_inputs_without_exporting(self):
+  from nbt_finalize import release_path
+  source=Path(self.draft()['master']);context=source.parents[1]/'coordinates.json'
+  command=['node',str(ROOT/'scripts/cli.mjs'),'--workspace',str(self.workspace),'finalize','--source',str(source)]
+  def call(*options):
+   run=subprocess.run([*command,*options],capture_output=True,encoding='utf8',timeout=30)
+   return run.returncode,json.loads(run.stdout)
+  status,reviewed=call('--inspect-inputs');self.assertEqual(status,0)
+  self.assertEqual(call()[0],1)
+  arguments=('--source-sha256',reviewed['source_sha256'],'--inputs-sha256',reviewed['inputs_sha256'])
+  context.write_bytes(context.read_bytes()+b'\n')
+  status,result=call(*arguments);self.assertEqual(status,1);self.assertIn('保护配置',result['error'])
+  self.assertFalse(release_path(self.workspace,source).exists())
+  source.write_bytes(source.read_bytes()+b'\n')
+  status,result=call(*arguments);self.assertEqual(status,1);self.assertIn('制作源发生变化',result['error'])
+  self.assertFalse(release_path(self.workspace,source).exists())
+
  def test_failed_explicit_export_keeps_the_published_authoring_version(self):
   with patch('nbt_finalize.export_binary',side_effect=OSError('synthetic export failure')):
    with self.assertRaisesRegex(ValueError,'制作版已保存.*synthetic export failure'):

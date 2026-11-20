@@ -14,7 +14,7 @@ from nbt_prompts import TASK_VIEWS, inside, index_lock, relative
 
 TRANSIENT = ('IO_ERROR', 'LOCK_BUSY')
 STALE = ('SOURCE_CHANGED', 'STALE_SOURCE', 'STALE_PARENT', 'REVISION_CONFLICT', 'LEASE_EXPIRED',
-         'LEASE_FENCE_CONFLICT', 'LEASE_REQUIRED', 'LEASE_NOT_OWNER', 'RECEIPT_CHANGED', 'IDEMPOTENCY_CONFLICT')
+         'LEASE_FENCE_CONFLICT', 'LEASE_REQUIRED', 'LEASE_NOT_OWNER', 'RECEIPT_CHANGED', 'IDEMPOTENCY_CONFLICT', 'TASK_SUPERSEDED')
 
 
 def request(method, params):
@@ -133,6 +133,9 @@ class TaskClient:
                 if state['kind'] == 'tasks':
                     returned = data['returns'][-1]
                     state['completion']['return'] = {key: returned[key] for key in ('id','source','source_sha256','acceptance')}
+                    self.record_history_status(state,data.get('version_history',{}))
+                elif 'evidence' in data:
+                    state['completion'].update(evidence=data['evidence'],acceptance=data['acceptance'])
         self.save(state)
         if replay and state['phase'] == 'active':
             try:
@@ -176,7 +179,21 @@ class TaskClient:
             state = self.load()
             if state.get('pending'):
                 return self.send(state, replay=True)
+            completion=state.get('completion',{})
+            if state['kind']=='tasks' and completion.get('history_pending'):
+                from nbt_agent_tasks import repair_return_history
+                history=repair_return_history(self.workspace,state['id'],completion['return']['id'])
+                self.record_history_status(state,history)
+                self.save(state)
             return self.status_data(state)
+
+    def record_history_status(self,state,history):
+        completion=state['completion']
+        completion['history_pending']=history.get('recorded') is False
+        if completion['history_pending']:
+            completion['history_error']=history['error']
+        else:
+            completion.pop('history_error',None)
 
     def lease_params(self, state):
         return dict(id=state['id'], lease_token=state['lease_token'], fence=state['lease']['fence'],
@@ -194,11 +211,15 @@ class TaskClient:
                 params = dict(ttl_seconds=state['ttl'])
             elif action == 'complete':
                 if state['kind'] == 'prompts':
-                    if params:
-                        error('INVALID_REQUEST', '提示词任务完成无需建筑回传参数')
-                    action, params = 'task-status', dict(status='completed')
+                    if set(params)=={'review'}:
+                        from nbt_refine import digest
+                        review=inside(self.workspace,params['review'])
+                        params=dict(review=relative(self.workspace,review),review_sha256=digest(review/'review.json'))
+                    elif set(params)!={'summary'}:
+                        error('EVIDENCE_REQUIRED','制作任务须提供 --review <审阅目录>，只读计划须提供 --summary <检查结果>')
+                    action,params='task-status',dict(params,status='completed')
                 else:
-                    if not params.get('new_source') or not params.get('summary'):
+                    if params.get('review') or not params.get('new_source') or not params.get('summary'):
                         error('INVALID_REQUEST', '建筑修改任务须提供 new-source 和 summary')
                     from nbt_agent_tasks import sha
                     target = inside(self.workspace, params['new_source'])
@@ -255,6 +276,7 @@ def main():
     complete = sub.add_parser('complete')
     complete.add_argument('--new-source')
     complete.add_argument('--summary')
+    complete.add_argument('--review')
     complete.add_argument('--comments', type=Path, help='JSON array of handled comments')
     args = parser.parse_args()
     try:
@@ -267,7 +289,7 @@ def main():
             elif args.action in ('status','retry','keepalive'):
                 data = getattr(client, args.action)()
             elif args.action == 'complete':
-                params = {key: getattr(args, key) for key in ('new_source','summary') if getattr(args, key) is not None}
+                params = {key: getattr(args, key) for key in ('new_source','summary','review') if getattr(args, key) is not None}
                 if args.comments is not None:
                     with args.comments.open(encoding='utf-8-sig') as stream:
                         raw = stream.read(2 * 1024 * 1024 + 1)

@@ -39,8 +39,40 @@ class Contracts(unittest.TestCase):
   task=publish(self.w,saved['index'],saved['id'],saved['revision']);req=self.request(id=task['id'],owner='agent');lease=task_action(self.w,'claim',req);self.assertEqual(task_action(self.w,'claim',req),lease)
   self.assertNotIn('token',read_task(self.w,task['id'])['task']['lease'])
   with self.assertRaises(ProtocolError):task_action(self.w,'task-status',self.request(id=task['id'],status='completed'))
-  result=task_action(self.w,'task-status',self.request(id=task['id'],status='completed',lease_token=lease['lease_token'],fence=lease['lease']['fence']))
+  params=dict(id=task['id'],status='completed',lease_token=lease['lease_token'],fence=lease['lease']['fence'])
+  with self.assertRaises(ProtocolError) as missing:task_action(self.w,'task-status',self.request(**params))
+  self.assertEqual(missing.exception.code,'EVIDENCE_REQUIRED')
+  from nbt_refine import prepare,digest
+  review=self.w/'nbt_models/review'
+  cameras=[dict(role='whole',eye=[12,8,13],target=[3.5,0.5,3.5]),dict(role='entry',eye=[2.5,2.62,2.5],target=[5.5,0.5,5.5])]
+  prepare(self.source,dict(mode='standalone',require_enclosure=False,openings=[],allow_empty_wall_mask=True,start=[2.5,1,2.5],targets={'other':[5.5,1,5.5]},cameras=cameras),review)
+  preview=review/'thumbnails.png';original=preview.read_bytes();preview.write_bytes(b'changed')
+  with self.assertRaises(ProtocolError) as changed:
+   task_action(self.w,'task-status',self.request(**params,review=str(review),review_sha256=digest(review/'review.json')))
+  self.assertEqual(changed.exception.code,'EVIDENCE_INVALID');preview.write_bytes(original)
+  result=task_action(self.w,'task-status',self.request(**params,review=str(review),review_sha256=digest(review/'review.json')))
   self.assertEqual(result['status'],'completed');self.assertEqual(result['approval'],'not_granted_by_prompt')
+  self.assertTrue(result['model_written']);self.assertEqual(result['acceptance'],'pending_user_review')
+ def test_new_prompt_revision_supersedes_old_lease(self):
+  session=uuid.uuid4().hex;document={'project':{'stage':'draft','name':'替代任务','buildingShape':'single'}}
+  first=self.publish_prompt(session,document,'第一版')
+  client=TaskClient(self.w,'superseded');client.start('prompts',first['id'],'agent',60)
+  second=self.publish_prompt(session,document,'第二版')
+  self.assertNotEqual(first['id'],second['id'])
+  self.assertEqual(read_task(self.w,first['id'])['task']['status'],'superseded')
+  self.assertEqual([item['id'] for item in tasks(self.w,status='pending')['items']],[second['id']])
+  with self.assertRaises(ProtocolError) as failure:client.change('heartbeat')
+  self.assertEqual(failure.exception.code,'TASK_SUPERSEDED')
+ def test_prompt_index_capacity_failure_keeps_last_readable_state(self):
+  from nbt_prompts import task_index
+  task=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'容量测试','buildingShape':'single'}},'测试任务')
+  index=task_index(self.w);before=index.read_bytes()
+  with patch('nbt_prompts.TASK_INDEX_BYTES',len(before)):
+   with self.assertRaises(ProtocolError) as failure:
+    task_action(self.w,'claim',self.request(id=task['id'],owner='agent'))
+   self.assertEqual(failure.exception.code,'TASK_INDEX_LIMIT')
+   self.assertEqual(index.read_bytes(),before)
+   self.assertEqual(read_task(self.w,task['id'])['task']['status'],'pending')
  def test_expired_prompt_returns_to_pending_discovery_without_exposing_token(self):
   saved=save(self.w,dict(session_id=uuid.uuid4().hex,document={'project':{'stage':'draft','name':'超时任务','buildingShape':'single'}},text='synthetic',plan={},context={}))
   task=publish(self.w,saved['index'],saved['id'],saved['revision'])
@@ -145,6 +177,52 @@ class Contracts(unittest.TestCase):
   self.assertEqual(len(returned),1);self.assertEqual(returned[0]['acceptance'],'pending_user_review')
   self.assertNotIn('lease_token',session.load())
 
+ def test_task_sidecars_are_frozen_even_across_heartbeat(self):
+  from nbt_refine import read_master
+  from nbt_snbt import write_binary
+  binary=self.source.with_suffix('.nbt');volume,_=read_master(self.source);write_binary(binary,volume,{(0,0,0)})
+  context=self.source.parents[1]/'coordinates.json';context.write_text('{"mode":"standalone"}',encoding='utf8')
+  for sidecar,replacement in ((context,b'{"mode":"standalone","reserved_boxes":[]}'),(binary.with_name('wall_mask.json'),b'{}')):
+   task=dispatch(self.w,'create',self.request(source=str(binary),source_sha256=hashlib.sha256(binary.read_bytes()).hexdigest()))
+   claim=dispatch(self.w,'claim',self.request(id=task['id'],owner='local-agent'))
+   original=sidecar.read_bytes();sidecar.write_bytes(replacement)
+   with self.assertRaises(ProtocolError) as failure:
+    dispatch(self.w,'heartbeat',self.request(id=task['id'],lease_token=claim['lease_token'],fence=claim['lease']['fence']))
+   self.assertEqual(failure.exception.code,'SOURCE_CHANGED');sidecar.write_bytes(original)
+
+ def test_stale_worker_cannot_publish_and_return_rejects_an_ancestor(self):
+  from nbt_working_model import WorkingModel
+  from nbt_history import History
+  context=dict(mode='standalone',require_enclosure=False,openings=[],allow_empty_wall_mask=True,start=[2.5,1,2.5],targets={'other':[5.5,1,5.5]})
+  working=WorkingModel(self.w,[8,6,8],context=context)
+  working.apply_operations([dict(kind='box',label='floor',classification='body',lo=[0,0,0],hi=[7,0,7],state='stone')]);working.open_declared()
+  ancestor=working.save_draft('租约测试')
+  def edit(model,position):
+   model.apply_operations([dict(kind='box',label='edit',classification='body',lo=position,hi=position,state='gold_block')])
+  edit(working,[1,1,1]);base=working.save_draft()
+  task=dispatch(self.w,'create',self.request(source=base['source'],source_sha256=base['source_sha256']))
+  with patch('nbt_agent_protocol.time.time',return_value=100):
+   old=TaskClient(self.w,'old');old.start('tasks',task['id'],'old',60)
+  first=WorkingModel.open(self.w,base['source']);second=WorkingModel.open(self.w,base['source']);edit(first,[1,1,2]);edit(second,[1,1,3])
+  with patch('nbt_agent_protocol.time.time',return_value=200):
+   new=TaskClient(self.w,'new');new.start('tasks',task['id'],'new',60)
+   with self.assertRaises(ProtocolError) as stale:first.save_draft(task_session='old')
+   self.assertEqual(stale.exception.code,'LEASE_NOT_OWNER')
+   with self.assertRaises(ProtocolError) as missing:first.save_draft()
+   self.assertEqual(missing.exception.code,'LEASE_REQUIRED')
+   with self.assertRaises(ProtocolError) as previous:
+    new.change('complete',new_source=ancestor['source'],summary='旧祖先不是成果')
+   self.assertEqual(previous.exception.code,'RETURN_LINEAGE_MISMATCH')
+   candidate=second.save_draft(task_session='new');edit(second,[1,1,4]);candidate=second.save_draft(task_session='new')
+   with patch('nbt_history.record_produced_version',return_value=dict(recorded=False,error='synthetic history failure')):
+    completed=new.change('complete',new_source=candidate['source'],summary='验证多次保存后回传')
+   self.assertTrue(completed['completion']['history_pending']);self.assertIn('synthetic history failure',completed['completion']['history_error'])
+   repaired=new.retry();self.assertFalse(repaired['completion']['history_pending'])
+   second.save_draft()
+  node=candidate['history']['version']['id']
+  self.assertEqual(len(dispatch(self.w,'get',dict(id=task['id']))['returns']),1)
+  self.assertIn('agent:'+task['id'],History(self.w).get(node)['version']['tasks'])
+
  def test_task_client_renews_then_stops_on_release(self):
   published=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'续租','buildingShape':'single'}},'测试任务')
   client=TaskClient(self.w,'renewer')
@@ -170,9 +248,16 @@ class Contracts(unittest.TestCase):
   task=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'plan','name':'源绑定','source':str(self.source)}},'测试任务')
   client=TaskClient(self.w,'prompt-source');client.start('prompts',task['id'],'agent',60)
   self.source.write_bytes(b'changed')
-  with self.assertRaises(ProtocolError) as stale:client.change('complete')
+  with self.assertRaises(ProtocolError) as stale:client.change('complete',summary='检查源模型')
   self.assertEqual(stale.exception.code,'SOURCE_CHANGED')
   self.assertEqual(read_task(self.w,task['id'])['task']['status'],'in_progress')
+
+ def test_read_only_plan_completes_with_findings_and_no_model(self):
+  task=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'plan','name':'只读计划','source':str(self.source)}},'检查任务')
+  client=TaskClient(self.w,'plan');client.start('prompts',task['id'],'agent',60)
+  completed=client.change('complete',summary='仅检查源模型，未执行候选操作')
+  self.assertEqual(completed['completion']['acceptance'],'pending_user_review')
+  self.assertFalse(read_task(self.w,task['id'])['task']['model_written'])
 
  def test_client_stops_on_revision_conflict_without_replacing_lease(self):
   task=self.create();client=TaskClient(self.w,'conflict')

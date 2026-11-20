@@ -890,7 +890,7 @@ def apply_approved(request, bundle_path, review, output):
         expected_walls = {tuple(p) for p in current['wall_positions']} & snapshot.blocks.keys()
         if approved_walls != expected_walls:
             raise ValueError('Reviewed wall mask differs from this plan; prepare new thumbnails')
-    result = refine(review, plan, output)
+    result = refine(review, plan, output, actor='human')
     return dict(status=result['state'], output=str(Path(output).resolve()), changed_blocks=result['changed_blocks'],
                 wall_membership_changes=result.get('wall_membership_changes',0),changed_positions=result.get('changed_positions',result['changed_blocks']),
                 preview_source=result['master'],

@@ -18,11 +18,11 @@ CLI `library register --master <旧JSON.GZ/NBT> --name-zh <中文名>` 会保留
 
 ## 定稿
 
-仅在用户明确要求定稿时调用：
+审阅时用 `finalize --source <已保存制作源> --inspect-inputs` 记录 `source_sha256` 和 `inputs_sha256`；后者同时绑定主模型、保护配置、外部墙层和受管清单。只读检查不会导出。仅在用户明确要求定稿时，使用审阅时保留的哈希，不要用重新计算的哈希替换失效审阅：
 
 ```text
-mise run nbt -- finalize --workspace . --source <已保存制作源>
-mise run nbt -- history finalize --workspace . --id <已登记版本ID>
+mise run nbt -- finalize --workspace . --source <已保存制作源> --source-sha256 <source_sha256> --inputs-sha256 <inputs_sha256>
+mise run nbt -- history finalize --workspace . --id <已登记版本ID> --inputs-sha256 <inputs_sha256>
 ```
 
 受管建筑须保存为 `opened` 阶段才能定稿。要求密闭的建筑先对原始未开洞主模型执行 `seal`，再执行 `open_declared`。无声明洞口时，仍用 `open_declared` 进入完整验证阶段。定稿回读并复查清单绑定的原始封闭证据，有证据时在验证报告中记录 `preopening`。旧式源没有制作阶段清单时，继续按保存的坐标约束检查；重盖洞口得到的密闭报告只证明复验模型的围护。

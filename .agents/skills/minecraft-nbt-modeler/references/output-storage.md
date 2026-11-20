@@ -8,7 +8,7 @@
 
 - 新建制作版用 [WorkingModel.save_draft](working-model.md)，例如 `model.save_draft(name_zh="冷铸阶地工场", shape="standalone")`。CLI 对应 `model --request <请求.json>`，请求中写入 `"save_draft":{"name_zh":"冷铸阶地工场","shape":"standalone"}`。按实际占地填写形状和坐标上下文，由保存入口发布版本、回读 `master/model.snbt` 并登记元数据。
 - 兼容导入用 `library register --master <旧完整JSON.GZ或NBT> --name-zh <中文名>`。保留旧源，在其旁创建或复用 `model.snbt`，以登记回执的 `master` 和 `history` 为准。旧命令按尺寸及有效格推断形状，48×4×48 的独立完整源可能被归为 `single`，因而拒绝登记到 `standalone` 目录。已有不同几何的 SNBT 时另建版本。
-- 用户明确要求定稿后，用 `finalize --workspace . --source <已保存制作源>`。以回执的 `output`、`nbt_master`、`runtime_files` 和交付目录内 `release.json` 为准。
+- 用户明确要求定稿后，按 [SNBT 定稿](snbt-authoring.md#定稿) 使用审阅时保存的源和输入哈希。以回执的 `output`、`nbt_master`、`runtime_files` 和交付目录内 `release.json` 为准。
 
 每版的 `room_description.json` 保存中文名、实际形状、显示名称和相对于版本目录的主模型路径，并用几何哈希、尺寸和占地绑定实际主模型。中文名沿用设计材料；从旧 slug 翻译时记录 name_source。
 

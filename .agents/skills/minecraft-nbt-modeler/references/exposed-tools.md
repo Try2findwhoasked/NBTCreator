@@ -133,7 +133,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 渲染实际图片 | `render --source <制作源> --cameras <相机JSON> --output <新目录>` | 提供制作源与相机。渲染候选时使用 --snapshot 与相机。 | 写 PNG 和 render_manifest.json。先打开实际图像，建筑审阅再登记观察。 |
 | 登记建筑看图观察 | `architect review-record --request <请求JSON>` | 审阅包路径及哈希、父修订、渲染清单、实际看图所得 observations 和 issues（无问题填 []）。参数用 capabilities --architect-action review-record 查询。 | 写观察记录，返回覆盖与交付摘要。精修另须用户看过对应图像并明确同意。 |
 | 保存可编辑 SNBT | `model --request <请求JSON>` | 在 model 或 architect plan-build 的 JSON 请求中填写 save_draft。 | 保存新 SNBT 制作版，返回 saved.source 与 saved.source_sha256，供复验和出图。 |
-| 导出定稿 NBT | `finalize --source <已保存制作源>` | 用户明确要求定稿时，提供要交付的 SNBT 制作源。无墙的独立建筑须在保存时声明 allow_empty_wall_mask:true。 | 验证并在 nbt_models/_exports/ 写 NBT 完整主模型、分片与交付回执。 |
+| 导出定稿 NBT | `finalize --source <已保存制作源> --source-sha256 <审阅源哈希> --inputs-sha256 <审阅输入哈希>` | 审阅时用 --inspect-inputs 记录源和输入哈希；仅在用户明确要求定稿时导出。无墙的独立建筑须在保存时声明 allow_empty_wall_mask:true。 | 验证并在 nbt_models/_exports/ 写 NBT 完整主模型、分片与交付回执。 |
 
 ## 共用结构 Agent 工具
 

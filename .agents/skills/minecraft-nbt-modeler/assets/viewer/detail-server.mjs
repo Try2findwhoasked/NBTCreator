@@ -189,7 +189,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
             info = await invoke(['inspect','--source',request.source],path.join(directory,'inspect.log'),undefined,job)
             checkpoint(job)
             modelInfo.set(request.source,info)
-            const handoff = await handoffInfo(info)
+            const handoff = await handoffInfo(info,workspace)
             checkpoint(job)
             if (kind === 'apply') resultDirectory = path.join(info.workdir, 'refined_'+Date.now()+parseInt(id.slice(0,8),16))
             else {
@@ -428,7 +428,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         const result = await invoke(['inspect', '--source', source,'--image-limit',String(input.image_limit ?? 8)])
         await catalogStore.record(result)
         modelInfo.set(source,result)
-        result.agent_handoff = await handoffInfo(result)
+        result.agent_handoff = await handoffInfo(result,workspace)
         result.images = await registerImages(result.images,result)
         json(res, result)
       } else if(req.method==='POST'&&url.pathname==='/__detail__/protection-mask'){

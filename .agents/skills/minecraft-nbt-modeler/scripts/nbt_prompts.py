@@ -306,15 +306,23 @@ def task_index(workspace):
     return inside(workspace,'nbt_models/_workspaces/prompt_tasks/任务索引.json')
 
 
+TASK_INDEX_BYTES=4*1024*1024
+
+
 def load_tasks(workspace):
     file=task_index(workspace)
     if not file.exists():return dict(schema_version=1,records=[])
-    if file.stat().st_size>4*1024*1024:raise ValueError('提示词任务索引超过4MiB')
+    if file.stat().st_size>TASK_INDEX_BYTES:raise ValueError('提示词任务索引超过4MiB')
     data=json.loads(file.read_text(encoding='utf8'))
     if data.get('schema_version')!=1 or not isinstance(data.get('records'),list):raise ValueError('提示词任务索引无效')
     for item in data['records']:
         if not isinstance(item,dict) or not re.fullmatch('[a-f0-9]{32}',str(item.get('id',''))) or type(item.get('sequence')) is not int or item['sequence']<1:raise ValueError('提示词任务记录无效')
     return data
+
+
+def check_task_index_size(data):
+    from nbt_agent_protocol import error
+    if len(encode(data))>TASK_INDEX_BYTES:error('TASK_INDEX_LIMIT','提示词任务索引已达容量上限，未写入本次状态变更')
 
 
 def publish(workspace,index,identifier,revision):
@@ -348,8 +356,19 @@ def publish(workspace,index,identifier,revision):
                   directory=relative(workspace,folder),prompt=files['提示词.md']['path'],files=files,
                   archive_index=archived['index'],archive_id=identifier,revision=revision,source=record.get('source'),source_sha256=record.get('source_sha256'),
                   approval='not_granted_by_prompt',model_written=False)
+        if task['source']:
+            from nbt_refine import source_binding
+            binding=source_binding(inside(workspace,task['source']))
+            if binding['source_sha256']!=task['source_sha256']:raise ValueError('发布期间制作源已变化')
+            task['input_binding']=binding
+        for item in data['records']:
+            if (item['archive_index']==task['archive_index'] and item['archive_id']==identifier
+                    and item['status'] not in ('completed','superseded')):
+                item.update(status='superseded',superseded_by=task_id,state_revision=item.get('state_revision',0)+1)
+                item.pop('lease',None)
+        data['records'].append(task);check_task_index_size(data)
         write(inside(workspace,folder/'任务.json'),task)
-        data['records'].append(task);write(global_index,data)
+        write(global_index,data)
         return dict(task,unchanged=False)
 
 
@@ -419,6 +438,10 @@ def _read_task_record(workspace,record):
         contents[name]=raw.decode('utf8') if name.endswith('.md') else json.loads(raw)
     source=inside(workspace,record['source']) if record.get('source') else None
     matches=(digest(source.read_bytes())==record['source_sha256'] if source.is_file() else False) if source else None
+    if matches and record.get('input_binding'):
+        from nbt_refine import source_binding
+        try:matches=source_binding(source)==record['input_binding']
+        except (ValueError,OSError):matches=False
     from nbt_agent_protocol import redact
     return dict(task=redact(record),directory=str(folder),prompt=str(inside(workspace,record['prompt'])),text=contents['提示词.md'],document=contents['方案.json'],plan=contents['操作计划.json'],context=contents['上下文草案.json'],source_matches=matches,approval='not_granted_by_prompt')
 
@@ -457,6 +480,7 @@ def task_action(workspace,action,request):
         if replayed is not None:return replayed
         item=next((item for item in data['records'] if item['id']==request.get('id')),None)
         if not item:protocol.error('TASK_NOT_FOUND','提示词任务不存在')
+        if item['status']=='superseded':protocol.error('TASK_SUPERSEDED','此任务已被新版替代')
         if 'expected_revision' in request and request['expected_revision']!=item.get('state_revision',0):protocol.error('REVISION_CONFLICT','任务状态已改变',retryable=True,details={'current_revision':item.get('state_revision',0)})
         if action in ('claim','heartbeat','release') or (action=='task-status' and request.get('request_id')):
             original=_read_task_record(workspace,item)
@@ -466,15 +490,53 @@ def task_action(workspace,action,request):
         elif action=='task-status':
             status=request.get('status')
             if status not in ('pending','in_progress','completed'):protocol.error('INVALID_REQUEST','任务状态无效')
-            protocol.check_lease(item,request,required=bool(request.get('request_id')));item['status']=status
-            if status=='completed':item.pop('lease',None)
+            if item['status']=='completed':protocol.error('TASK_COMPLETED','已完成任务不能重新修改执行状态')
+            protocol.check_lease(item,request,required=status=='completed' or bool(request.get('request_id')))
+            if status=='completed':
+                item.update(evidence=completion_evidence(workspace,item,request),model_written=item['stage']!='plan',acceptance='pending_user_review')
+                item.pop('lease',None)
+            item['status']=status
             result=dict(id=item['id'],status=status)
+            if status=='completed':result.update(evidence=item['evidence'],model_written=item['model_written'],acceptance=item['acceptance'])
         else:protocol.error('METHOD_NOT_FOUND','未知任务动作')
         item['state_revision']=item.get('state_revision',0)+1
         result.update(state_revision=item['state_revision'],approval='not_granted_by_prompt')
         protocol.receipt(workspace,data,'prompts.'+action,request,result)
+        check_task_index_size(data)
         write(inside(workspace,Path(item['directory'])/'任务.json'),item);write(file,data)
         return result
+
+def completion_evidence(workspace,item,request):
+    from nbt_agent_protocol import error
+    from nbt_agent_tasks import return_parent
+    from nbt_refine import _current_review
+
+    if item['stage']=='plan':
+        summary=request.get('summary')
+        if request.get('review') or not isinstance(summary,str) or not 1<=len(summary.strip())<=8000:
+            error('EVIDENCE_REQUIRED','只读计划任务须提供源检查结果和未验证事项的说明，不提交制作版')
+        return dict(source=item['source'],source_sha256=item['source_sha256'],summary=summary.strip())
+    if not request.get('review') or not request.get('review_sha256'):
+        error('EVIDENCE_REQUIRED','完成提示词任务须提供当前制作版的审阅目录和审阅文件哈希')
+    review=inside(workspace,request['review']);expected=request['review_sha256']
+    try:
+        record=_current_review(review,expected)
+        source=inside(workspace,record['source'])
+        if not record.get('validation_sha256'):
+            raise ValueError('审阅缺少绑定的完整模型验证记录')
+        baseline=json.loads((review/'baseline_validation.json').read_text(encoding='utf8'))
+        if baseline.get('passed') is not True:
+            raise ValueError('审阅缺少通过的完整模型验证记录')
+        if not {'whole','entry'}.issubset({thumb['role'] for thumb in record['thumbnails']}):
+            raise ValueError('审阅缺少全景和入口预览')
+        from PIL import Image
+        for image in [*record['thumbnails'],record['sheet']]:
+            with Image.open(review/image['file']) as preview:preview.verify()
+    except (ValueError,OSError,KeyError,TypeError) as failure:
+        error('EVIDENCE_INVALID',str(failure))
+    if item.get('source'):return_parent(workspace,inside(workspace,item['source']),source)
+    return dict(source=relative(workspace,source),source_sha256=record['source_sha256'],review=relative(workspace,review),
+                review_sha256=expected,validation_sha256=record['validation_sha256'],preview_sha256=record['sheet']['sha256'])
 
 def task_status(workspace,identifier,status):
     return task_action(workspace,'task-status',dict(id=identifier,status=status))
@@ -486,7 +548,7 @@ def main():
     cmd=sub.add_parser('scan');cmd.add_argument('--source')
     cmd=sub.add_parser('read');cmd.add_argument('--index');cmd.add_argument('--id');cmd.add_argument('--file');cmd.add_argument('--sha256')
     cmd=sub.add_parser('publish');cmd.add_argument('--index',required=True);cmd.add_argument('--id',required=True);cmd.add_argument('--revision',required=True)
-    cmd=sub.add_parser('tasks');cmd.add_argument('--after',type=int,default=0);cmd.add_argument('--status',choices=['pending','in_progress','completed'])
+    cmd=sub.add_parser('tasks');cmd.add_argument('--after',type=int,default=0);cmd.add_argument('--status',choices=['pending','in_progress','completed','superseded'])
     cmd=sub.add_parser('task');cmd.add_argument('--id',required=True)
     for action in ('claim','heartbeat','release'):
         cmd=sub.add_parser(action);cmd.add_argument('--request',type=Path,required=True)

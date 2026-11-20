@@ -51,7 +51,8 @@ mise run nbt -- task-client --session room-a status
 ```
 
 - 长任务可在另一终端运行 `task-client --session room-a keepalive`。它约每三分之一租期续租，正常完成或释放后退出。短任务可按需调用 `renew`。重启终端后还可用同一会话名继续续租，未到期的租约继续有效。
-- 提示词任务完成后执行 `task-client --session room-a complete`。建筑修改任务用 `start tasks <任务ID> --owner <执行者>`，回传用 `complete --new-source <新版本SNBT> --summary <真实改动说明>`。有逐条评论处理时加 `--comments <JSON文件>`，内容为 `tasks.record` 的 `comments` 数组。放弃任务时执行 `release`。
+- 初稿或精修提示词任务用 `task-client --session room-a complete --review <新制作版审阅目录>`，绑定完整制作源、验证记录和审阅图，仍待人工核对。只读计划用 `complete --summary <检查结果与未验证事项>`，不写制作版。发布同一方案的新修订会使未完成的旧任务及其租约失效。
+- 建筑修改任务用 `start tasks <任务ID> --owner <执行者>`；保存受管制作版时在 `save_draft` 中传入 `task_session`（Python 同名参数；精修命令用 `--task-session`）。在同一会话以 `complete --new-source <新版本SNBT> --summary <真实改动说明>` 回传。有逐条评论处理时加 `--comments <JSON文件>`。放弃时执行 `release`；如果回传后显示 `history_pending`，执行 `retry` 只补写历史，不重新回传模型。
 - 中断或响应不明时先 `status`。看到 `pending` 时用 `retry` 重放原编号及原参数。租约失效、源变化、修订冲突时重新读取当前任务，由执行者核对后决定下一步。客户端状态保存在本工作区 `nbt_models/_workspaces/agent_protocol/clients/`，活跃会话的状态文件含租约令牌，仅在本机保留。
 
 ## 内置 AI 的并发

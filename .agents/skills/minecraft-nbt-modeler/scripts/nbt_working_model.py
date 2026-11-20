@@ -792,10 +792,11 @@ class WorkingModel:
             receipt.update(history_pending=True, history_error=str(error))
         return receipt
 
-    def save_draft(self, name_zh=None, shape='standalone', attachments=None, actor='external_agent'):
+    def save_draft(self, name_zh=None, shape='standalone', attachments=None, actor='external_agent', task_session=None):
         from nbt_library import LABELS, shape_of
         from nbt_refine import save_master, read_master
         from nbt_object_scene import atomic
+        from nbt_agent_tasks import publication
         self._unchanged()
         if actor not in ('human', 'external_agent', 'internal_ai', 'import'):
             raise ValueError('制作版来源无效')
@@ -803,7 +804,7 @@ class WorkingModel:
         if self._saved and self._saved['token'] == self._content_token() and not attachments:
             target = Path(self._saved['receipt']['output'])
             manifest = verify_version(target)
-            with publication_lock(self.workspace, self._building):
+            with publication(self.workspace,self._building,self.source,task_session,actor):
                 receipt = self._history_receipt(target, manifest, self._building)
             self._saved['receipt'] = receipt
             head = self._read_head(self._building)
@@ -866,14 +867,16 @@ class WorkingModel:
                 master='master/model.snbt', master_file_sha256=files['master/model.snbt'], geometry_sha256=self.model.fingerprint(),
                 size=list(self.model.size), cells=self.context.get('cells', []), cell_size=self.context.get('cell_size',48), mode=self.context.get('mode'), context_file='coordinates.json',
                 status='authoring', model_revision=manifest['revision']))
-            with publication_lock(self.workspace, building):
+            with publication(self.workspace,building,self.source,task_session,actor) as check_lease:
                 self._unchanged()
                 head = self._read_head(building)
                 history_source = self._history_source(building)
                 # Retrying the same immutable result may repair history, but never
                 # moves a newer head backwards.
-                if not target.exists():
+                existing_target = target.exists()
+                if not existing_target:
                     self._assert_parent(building)
+                    check_lease()
                     os.rename(stage, target)
                 actual_manifest = verify_version(target)
                 if actual_manifest['revision'] != manifest['revision']:
@@ -883,6 +886,7 @@ class WorkingModel:
                 current = head['source'] if head else history_source
                 if (head == self._opened_head and history_source == self._opened_history_source
                         and (current == manifest.get('parent_source') or current is None)):
+                    if existing_target:check_lease()
                     new_head = dict(revision=manifest['revision'], source=(target / 'master/model.snbt').relative_to(self.workspace).as_posix())
                     head_file = self._head_file(building)
                     head_file.parent.mkdir(parents=True, exist_ok=True)

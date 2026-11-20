@@ -14,10 +14,10 @@ mise run nbt -- prompts tasks --after 0
 mise run nbt -- task-client inspect prompts <任务ID>
 mise run nbt -- task-client start prompts <任务ID> --owner <执行者>
 # 完成任务后，用同一会话登记。
-mise run nbt -- task-client complete
+mise run nbt -- task-client complete --review <新制作版审阅目录>
 ```
 
-`tasks` 只返回摘要、工作区相对目录、提示词位置及单调递增的 `sequence`，保存返回的 `cursor` 后用 `--after` 获取新增加的任务；不因状态更新重复出现。`task` 返回当前工作区下实际绝对目录、提示词路径和完整正文/方案/计划/上下文，逐文件核对SHA256；旧任务读取不受后来编辑归档影响。任务索引位于 `nbt_models/_workspaces/prompt_tasks/任务索引.json`，迁移整个工作区后仍可读取。`source_matches=false` 时必须重新核对源。状态只记录工作进度，不新增用户批准，也不会自动执行提示词、制作模型或导出NBT。
+`tasks` 只返回摘要、工作区相对目录、提示词位置及单调递增的 `sequence`，保存返回的 `cursor` 后用 `--after` 获取新增加的任务；不因状态更新重复出现。`task` 返回当前工作区下实际绝对目录、提示词路径和完整正文/方案/计划/上下文，逐文件核对SHA256；旧任务文件保留，但同一方案重新发布后未完成的旧任务不可再领取或回传。任务索引位于 `nbt_models/_workspaces/prompt_tasks/任务索引.json`，迁移整个工作区后仍可读取。`source_matches=false` 时必须重新核对源。只读计划用 `complete --summary <检查结果>`，不生成制作版；制作任务的 `complete` 须附验证和审阅图，仍待人工核对，不自动批准或导出 NBT。
 
 ## 编辑过程的自动归档
 
