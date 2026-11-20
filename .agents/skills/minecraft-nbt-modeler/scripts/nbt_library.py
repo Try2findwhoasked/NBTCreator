@@ -97,19 +97,114 @@ def adapt_coordinates(data):
   if cameras:data['cameras']=cameras
  return data
 
+def coordinate_snapshot(file, *, tolerate_invalid=False):
+ """Read the context and fingerprint the same bytes, including recovered probes."""
+ file=Path(file)
+ raw=file.read_bytes()
+ primary=hashlib.sha256(raw).hexdigest()
+ try:data=adapt_coordinates(json.loads(raw.decode('utf-8-sig')))
+ except (ValueError,TypeError):
+  if tolerate_invalid:return None,primary
+  raise
+ if 'interior_probes' in data:return data,primary
+ for name in ('validation.json','validation/summary.json','validation/before_opening.json'):
+  try:
+   evidence=(file.parent/name).read_bytes()
+   record=json.loads(evidence.decode('utf-8-sig'))
+  except (OSError,ValueError):continue
+  if not isinstance(record,dict):continue
+  for key in ('before_opening','seal_before_open','sealed_before_opening','recapped_seal',''):
+   proof=record.get(key,{}) if key else record
+   if isinstance(proof,dict) and proof.get('passed') is True and isinstance(proof.get('probes'),list):
+    data['interior_probes']=proof['probes']
+    binding=f'{primary}\0{name}\0{hashlib.sha256(evidence).hexdigest()}'
+    return data,hashlib.sha256(binding.encode('ascii')).hexdigest()
+ # Before this binding existed, a raw-file hash did not say if evidence was absent.
+ return data,hashlib.sha256(f'{primary}\0no_recovered_probes'.encode('ascii')).hexdigest()
+
+
 def canonical_context(file):
- data=adapt_coordinates(read_json(file))
- if 'interior_probes' not in data:
-  for candidate in (Path(file).parent/'validation.json',Path(file).parent/'validation/summary.json',Path(file).parent/'validation/before_opening.json'):
-   if not candidate.is_file():continue
-   try:record=read_json(candidate)
-   except (OSError,ValueError):continue
-   for key in ('before_opening','seal_before_open','sealed_before_opening','sealed_before_opening','recapped_seal',''):
-    proof=record.get(key,{}) if key else record
-    if isinstance(proof,dict) and proof.get('passed') is True and isinstance(proof.get('probes'),list):
-     data['interior_probes']=proof['probes'];break
-   if 'interior_probes' in data:break
- return data
+ return coordinate_snapshot(file)[0]
+
+
+def coordinates_hash(file):
+ return coordinate_snapshot(file,tolerate_invalid=True)[1]
+
+
+class InvalidCoordinateDescription(ValueError):
+ def __init__(self,file):
+  self.file=file
+  super().__init__(f'旧版本的 {file.name} 无法读取，无法确认原坐标约束')
+
+
+def saved_coordinates(source):
+ """Resolve version-owned coordinates before any adjacent legacy sidecar."""
+ from nbt_web_paths import project_paths
+ source=Path(source).resolve()
+ version=project_paths(source)['version']
+ if version.name=='nbt_models':return None
+ folders=[version,*(parent for parent in source.parents if parent!=version and parent.is_relative_to(version))]
+ for folder in folders:
+  for name in ('coordinates.json','config.json','context.json'):
+   file=folder/name
+   if file.is_file() and file.resolve().is_relative_to(version):return file
+ description=version/'room_description.json'
+ if description.is_file():
+  if not description.resolve().is_relative_to(version):raise InvalidCoordinateDescription(description)
+  try:data=read_json(description)
+  except (OSError,ValueError) as error:raise InvalidCoordinateDescription(description) from error
+  if not isinstance(data,dict):raise InvalidCoordinateDescription(description)
+  name=data.get('context_file')
+  if isinstance(name,str) and name:
+   file=(version/name).resolve()
+   if file.is_relative_to(version) and file.is_file():return file
+ return None
+
+
+def saved_coordinates_hash(source, *, allow_invalid_description=False):
+ try:file=saved_coordinates(source)
+ except InvalidCoordinateDescription as error:
+  if not allow_invalid_description:raise
+  try:raw=error.file.read_bytes()
+  except OSError:raw=b''
+  return hashlib.sha256(b'invalid_coordinate_description\0'+raw).hexdigest()
+ return coordinates_hash(file) if file else None
+
+
+def inherit_edit_constraints(context, source):
+ """Keep authored geometry constraints when selecting another legacy context."""
+ file=saved_coordinates(source)
+ if file is None:return context
+ saved=canonical_context(file)
+ if saved==context:return context
+ from nbt_whole_validation import requires_enclosure,validation_mode
+
+ context=dict(context)
+ geometry_fields=('mode','openings','ports','door_y','openings_policy','opening_size',
+                  'cells','cell_size','interior_probes','require_enclosure','allow_empty_wall_mask',
+                  'start','targets','route_legs','require_routes')
+ bound={key:saved[key] for key in geometry_fields if key in saved}
+ if bound:
+  bound['mode']=validation_mode(saved)
+  if requires_enclosure(saved):bound['require_enclosure']=True
+  context.update(bound)
+ protection_fields=('protected_paths','protected_boxes','reserved_boxes')
+ for field in protection_fields:
+  if field not in saved:continue
+  supplied=context.get(field,[])
+  if not isinstance(supplied,list) or not isinstance(saved[field],list):
+   raise ValueError('源制作版及当前上下文的保护或留白字段须为数组')
+  context[field]=supplied+[item for item in saved[field] if item not in supplied]
+ budget='max_changed_blocks'
+ if budget in saved:
+  values=(saved[budget],context.get(budget,saved[budget]))
+  if any(type(value) is not int or value<0 for value in values):
+   raise ValueError('变化上限必须为非负整数')
+  context[budget]=min(values)
+ if 'floor_context' in context:
+  fields=(*bound,*protection_fields,budget)
+  context['floor_context']={key:value for key,value in context['floor_context'].items() if key not in fields}
+ return context
 
 def report_evidence(unit):
  proof={'seal':False,'routes':False,'design':False};files=[]

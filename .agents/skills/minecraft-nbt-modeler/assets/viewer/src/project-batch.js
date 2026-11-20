@@ -68,7 +68,19 @@ export function initProjectBatch({host,api,library,getVisible,getModels,getConst
   const note=document.createElement('p');note.textContent='逐项读取当前版本；截面缓存复用。检查有坐标资料时验证几何与声明路线，缺资料会列出原因。完成不代表审美、游戏运行或定稿验收通过；重试保留成功项，按当前文件重新绑定未完成项。';detail.append(note)
   const list=document.createElement('div');list.id='project-batch-items'
   for(const item of queue.items){const card=document.createElement('article');card.className='project-batch-item';const name=document.createElement('h3'),path=document.createElement('small');name.textContent=item.label;path.textContent=item.source;path.title=item.source;card.append(name,path)
-   for(const [kind,step]of Object.entries(item.steps)){const row=document.createElement('div');row.className='project-batch-step';row.dataset.status=step.status;const label=document.createElement('span');label.textContent=`${actionNames[kind]} · ${statusNames[step.status]}${step.attempts?' · 第'+step.attempts+'次':''}`;row.append(label);if(step.report_download){const link=document.createElement('a');link.href=step.report_download;link.download=item.label+'-'+kind+'.json';link.textContent='完整报告';row.append(link)}if(step.thumbnail_download){const image=document.createElement('img');image.loading='lazy';image.src=step.thumbnail_download;image.alt=item.label+'截面预览';row.append(image)}if(step.error){const error=document.createElement('p');error.textContent=step.error;row.append(error)}card.append(row)}list.append(card)
+   for(const [kind,step]of Object.entries(item.steps)){
+    const row=document.createElement('div');row.className='project-batch-step';row.dataset.status=step.status
+    const label=document.createElement('span')
+    const routeStatus=step.result?.checks?.geometry_routes?.status
+    const routeLabel={not_checked:'完整路线检查未执行',not_applicable:'完整路线检查不适用'}[routeStatus]
+    label.textContent=`${actionNames[kind]} · ${statusNames[step.status]}${step.attempts?' · 第'+step.attempts+'次':''}${routeLabel?' · '+routeLabel:''}`
+    row.append(label)
+    if(step.report_download){const link=document.createElement('a');link.href=step.report_download;link.download=item.label+'-'+kind+'.json';link.textContent='完整报告';row.append(link)}
+    if(step.thumbnail_download){const image=document.createElement('img');image.loading='lazy';image.src=step.thumbnail_download;image.alt=item.label+'截面预览';row.append(image)}
+    if(step.error){const error=document.createElement('p');error.textContent=step.error;row.append(error)}
+    card.append(row)
+   }
+   list.append(card)
   }detail.append(list);detail.scrollTop=scroll
  }
  async function start(id){

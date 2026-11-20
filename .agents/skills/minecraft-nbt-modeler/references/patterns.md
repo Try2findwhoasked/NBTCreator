@@ -4,7 +4,7 @@
 
 ## 生成阶段调用
 
-在完整主模型中完成几何后、密闭与通路检查前处理材质；完成后继续正常密闭→开洞→验证→冻结→机械切片。初稿里的材质设计可以使用工具，不要把必要的设计表达全部拖到精修。
+在完整主模型上处理材质，初稿就落实用于判断设计的材质分区和代表细节。处理后按项目要求检查围护、洞口与通路，保存并回读 SNBT 制作版。用户明确要求定稿后再机械切片。
 
 ```python
 from nbt_patterns import apply_pattern
@@ -50,7 +50,7 @@ walls, report = apply_pattern(master, {
 
 ## 可复现性与比例的含义
 
-随机按完整作者坐标采样。一个整体的不同区域或48切面两侧不会因为遍历顺序、分片或重跑而重置相位；始终在完整主模型上执行，再切割。即使使用coordinate_origin保持采样相位，也不能用逐片处理代替整体的表面识别、墙归属及验证。
+随机按完整作者坐标采样，同一整体的不同区域和分片边界共享采样相位。表面识别、墙层更新和验证都在完整主模型上执行，定稿时再切片。
 
 70/20/10表示**预期概率**，不承诺小区域恰好70%、20%、10%。同材质抽样不会计入changed，因此不能用“改变后的方块数”反推整体材质比例。报告分别记录eligible、sampled、changed、sampled_states、resulting_states、protected_skipped和footprint_skipped，判断时明确各自分母。
 
@@ -69,7 +69,8 @@ clustered使用全局高斯值场、平滑插值、方差归一化和CDF映射�
 只查看会修改哪些方块，可用无写入主模型的计划入口：
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_patterns.py plan --source <完整主模型> --operation <规则JSON> --output <新的计划目录>
+$engine = python .agents/skills/nbtcreator-workspace/nbt.py paths | ConvertFrom-Json
+python (Join-Path $engine.scripts 'nbt_patterns.py') plan --source <完整主模型> --operation <规则JSON> --output <新的计划目录>
 ```
 
 它只导出候选编辑清单及统计，不产生修改后的NBT，不代替审阅、保护配置或任何技术验收。
@@ -77,10 +78,10 @@ python .agents/skills/minecraft-nbt-modeler/scripts/nbt_patterns.py plan --sourc
 对已有作品实际应用，先出对应缩略图并取得真实对话确认，再将 `kind=pattern` 加入nbt_refine的全局operations；或使用便利入口：
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_patterns.py apply --review <已真实批准的review目录> --operation <规则JSON> --style-note <本次整体材质意图> --output <新版本目录>
+python (Join-Path $engine.scripts 'nbt_patterns.py') apply --review <已真实批准的review目录> --operation <规则JSON> --style-note <本次整体材质意图> --output <新版本目录>
 ```
 
-apply委托既有refine，沿用确认哈希、保护范围、变化预算、密闭/通路重验和主体/墙层重切，不提供独立审批或逐片写入通道。报告的operations内保留pattern统计。独立非48尺寸模型若不适用当前精修导出器，明确记录工具限制，不伪造review或阶段来绕过。
+apply 委托既有精修流程，沿用确认哈希、保护范围、变化预算和适用的密闭与通路检查，再保存完整 SNBT。报告的 operations 保留 pattern 统计。
 
 NBT/世界互转继续原样保留。用户明确要随机处理时，在恢复的完整主模型中显式应用规则，另存新版本，再走适用验收；不改写既有存档、原始转换输出或房间池。
 

@@ -1,26 +1,89 @@
 """Named half-cell contact surfaces and bounded horizontal beam relations."""
 from copy import deepcopy
+from itertools import product
 
 FACES = {'up': (1, 1), 'down': (1, -1), 'east': (0, 1), 'west': (0, -1), 'south': (2, 1), 'north': (2, -1)}
 
 
-def compile_interfaces(definitions, local_voxels, size, turns, origin):
+class InterfaceError(ValueError):
+    def __init__(self, code, message, interface, owner, **evidence):
+        super().__init__(f'{owner}.{interface}：{message}')
+        self.code = code
+        self.conflicts = [dict(instance=owner, interface=interface, **evidence)]
+
+
+def obstacle_height(value):
+    from nbt_collision import bounded_obstacle, effective, TALL_OBSTACLES
+    if not bounded_obstacle(value):
+        return None
+    return 3 if effective(value)[0].removeprefix('minecraft:') in TALL_OBSTACLES else 2
+
+
+def obstacle_cells(pos, height):
+    return ((2*pos[0]+x, 2*pos[1]+y, 2*pos[2]+z)
+            for x in range(2) for y in range(height) for z in range(2))
+
+
+def check_interface_geometry(model, positions, surface, *, check_external=False):
+    """Check the bound faces against current geometry without using envelopes as support."""
+    from nbt_collision import collision_cells
+
+    faces = set(map(tuple, surface['faces_half']))
+    normal = surface['normal']
+    outward = {p: tuple(p[i]+normal[i] for i in range(3)) for p in faces}
+    adjacent = set(outward.values())
+    bounds = surface.get('region_half')
+    relevant = {tuple(v//2 for v in p) for p in faces | adjacent}
+    candidates = positions
+    if check_external:
+        candidates = positions | relevant | {(x,y-1,z) for x,y,z in relevant}
+    cells = set()
+    uncertain = []
+    for pos in sorted(candidates):
+        value = model.get(pos)
+        shape, reason = collision_cells(value)
+        if not reason:
+            if pos in positions and pos in relevant:
+                cells.update(tuple(2*p+h for p,h in zip(pos, half)) for half in shape)
+            continue
+        height = obstacle_height(value)
+        if (height is None and (pos in positions or pos in relevant)
+                or height is not None and any(
+                    p in faces or p in adjacent or
+                    (pos in positions and bounds and all(a<=v<=b for v,a,b in zip(p,bounds['lo'],bounds['hi'])))
+                    for p in obstacle_cells(pos,height))):
+            uncertain.append(dict(pos=list(pos),state=value,reason=reason))
+    missing = sorted(p for p in faces if p not in cells or outward[p] in cells)
+    return dict(passed=not missing and not uncertain,
+                missing_faces_half=[list(p) for p in missing[:32]], unknown_shapes=uncertain)
+
+
+def compile_interfaces(definitions, local_voxels, size, turns, origin, owner='envelope'):
     from nbt_object_scene import halfcells
+    from nbt_collision import collision_cells
     if not definitions:
         return {}
-    cells = halfcells(local_voxels)
+    exact = {}
+    uncertain = {}
+    for pos, voxel in local_voxels.items():
+        value = voxel[0]
+        _, reason = collision_cells(value)
+        if reason:
+            uncertain[pos] = (value, reason, obstacle_height(value))
+        else:
+            exact[pos] = voxel
+    cells = halfcells(exact)
     result = {}
     for definition in definitions:
         name, face = definition['id'], definition['face']
         if name in result:
-            raise ValueError('安装接口ID重复：' + name)
+            raise InterfaceError('INTERFACE_DUPLICATE', '安装接口ID重复', name, owner)
         lo, hi = definition['lo'], definition['hi']
         if any(type(a) is not int or type(b) is not int or a < 0 or a > b or b >= n for a, b, n in zip(lo, hi, size)):
-            raise ValueError('安装接口范围超出构件：' + name)
+            raise InterfaceError('INTERFACE_BOUNDS', '安装接口范围超出构件', name, owner, bounds=dict(lo=lo, hi=hi))
         # Regions are authored in the original local frame. Transform their
         # half-cells with exactly the same rotation as actual block placement.
-        region = set()
-        for p in cells:
+        def in_region(p):
             x, y, z = p
             a, b = 2 * size[0], 2 * size[2]
             if turns % 2:
@@ -28,22 +91,39 @@ def compile_interfaces(definitions, local_voxels, size, turns, origin):
             # local_voxels have already been rotated; invert to test the region.
             for _ in range((-turns) % 4):
                 x, z, a, b = b - 1 - z, x, b, a
-            if all(2 * lo[i] <= v < 2 * (hi[i] + 1) for i, v in enumerate((x, y, z))):
-                region.add(p)
+            return all(2 * lo[i] <= v < 2 * (hi[i] + 1) for i, v in enumerate((x, y, z)))
+        region = {p for p in cells if in_region(p)}
         direction = face
         for _ in range(turns):
             direction = {'north': 'east', 'east': 'south', 'south': 'west', 'west': 'north'}.get(direction, direction)
         axis, sign = FACES[direction]
+        adjacent = {tuple(v + (sign if i == axis else 0) for i, v in enumerate(p)) for p in region} - cells
+        for pos, (value, reason, height) in uncertain.items():
+            if height is None or any(
+                in_region(q) or q in adjacent
+                for q in obstacle_cells(pos,height)
+            ):
+                raise InterfaceError('INTERFACE_UNSUPPORTED_SHAPE', '精确接口遇到未支持的碰撞形状',
+                                     name, owner, pos=[pos[i]+origin[i] for i in range(3)],
+                                     state=value, reason=reason, bounds=dict(lo=lo, hi=hi), coordinate_space='scene')
         if not region:
-            raise ValueError('安装接口没有实际几何：' + name)
+            raise InterfaceError('INTERFACE_EMPTY', '安装接口没有实际几何', name, owner, bounds=dict(lo=lo, hi=hi))
         extreme = (max if sign > 0 else min)(p[axis] for p in region)
         faces = {p for p in region if p[axis] == extreme and tuple(v + (sign if i == axis else 0) for i, v in enumerate(p)) not in cells}
         if not faces:
-            raise ValueError('安装接口没有真实暴露面：' + name)
+            raise InterfaceError('INTERFACE_OCCLUDED', '安装接口没有真实暴露面', name, owner, bounds=dict(lo=lo, hi=hi))
         world = sorted([p[i] + 2 * origin[i] for i in range(3)] for p in faces)
+        corners = []
+        for x,y,z in product(*zip((2*v for v in lo),(2*v+1 for v in hi))):
+            a,b=2*size[0],2*size[2]
+            for _ in range(turns):
+                x,z,a,b=b-1-z,x,b,a
+            corners.append((x+2*origin[0],y+2*origin[1],z+2*origin[2]))
+        region_half=dict(lo=[min(p[i] for p in corners) for i in range(3)],
+                         hi=[max(p[i] for p in corners) for i in range(3)])
         plane = extreme + (1 if sign > 0 else 0) + 2 * origin[axis]
         normal = [sign if i == axis else 0 for i in range(3)]
-        result[name] = dict(id=name, face=direction, normal=normal, plane_half=plane, faces_half=world,
+        result[name] = dict(id=name, face=direction, normal=normal, plane_half=plane, faces_half=world,region_half=region_half,
             area=len(world) / 4, tangent_axes=[i for i in range(3) if i != axis],
             lo_half=[min(p[i] for p in world) for i in range(3)], hi_half=[max(p[i] for p in world) for i in range(3)])
     return result
@@ -76,7 +156,7 @@ def selected_interface(completed, reference):
     try:
         return dict(deepcopy(completed[target]['interfaces'][name]), object=target)
     except KeyError:
-        raise ValueError('安装接口不存在：' + target + '.' + name) from None
+        raise InterfaceError('INTERFACE_MISSING', '安装接口不存在', name, target) from None
 
 
 def span_recipe(node, recipe, completed):

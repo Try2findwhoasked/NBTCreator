@@ -12,15 +12,17 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def inspect_source(source, provenance=None, cameras=None):
-    from nbt_refine import read_master
+    from nbt_refine import binary_wall_mask_hash, digest, read_master
     from nbt_registry import effective, normalize, registry
     source = Path(source).resolve()
+    source_hash = digest(source)
+    mask_hash = binary_wall_mask_hash(source)
     model, walls = read_master(source)
     effective_blocks = []
     for p, value in sorted(model.blocks.items()):
         name, props = effective(value)
         effective_blocks.append([list(p), normalize(dict(Name=name, Properties=props))])
-    result = dict(name=source.name, source=str(source), source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
+    result = dict(name=source.name, source=str(source), source_sha256=source_hash, binary_wall_mask_sha256=mask_hash,
                   geometry_sha256=model.fingerprint(), size=list(model.size), blocks=effective_blocks,
                   wall_positions=sorted(walls), cameras=cameras or [],
                   registry_sha256=registry()['blocks_sha256'],
@@ -33,6 +35,8 @@ def inspect_source(source, provenance=None, cameras=None):
             raise ValueError('Provenance belongs to another geometry version')
         result['owners'] = [[','.join(map(str, p)), op] for p, op in trace['owners']]
         result['operations'] = trace['operations']
+    if not preview_source_matches(source, result):
+        raise ValueError('Source or wall mask changed while preparing the snapshot')
     return result
 
 
@@ -46,6 +50,13 @@ def write_snapshot(source, output, provenance=None, cameras=None):
     return result
 
 
+def preview_source_matches(source, data):
+    from nbt_refine import binary_wall_mask_hash, digest
+
+    return (digest(source) == data['source_sha256']
+            and binary_wall_mask_hash(source) == data.get('binary_wall_mask_sha256'))
+
+
 def checked_preview_snapshot(file):
     """Validate a data-only control preview before rendering it, never as an NBT source."""
     from nbt_assembly import Volume
@@ -55,8 +66,8 @@ def checked_preview_snapshot(file):
     raw = file.read_bytes()
     data = json.loads(raw)
     source = Path(data['source']).resolve()
-    if hashlib.sha256(source.read_bytes()).hexdigest() != data['source_sha256']:
-        raise ValueError('Preview source has changed; calculate a new preview')
+    if not preview_source_matches(source,data):
+        raise ValueError('Preview source or wall mask has changed; calculate a new preview')
     if not data.get('preview_only') or not isinstance(data.get('master_blocks'), list):
         raise ValueError('--snapshot requires a control preview with preview_only and master_blocks')
     baseline, _ = read_master(source)
@@ -82,6 +93,28 @@ def checked_preview_snapshot(file):
         if len(p)!=3 or any(type(n) is not int for n in p) or not model.in_bounds(p):
             raise ValueError('Invalid preview wall mask')
     return source, raw
+
+
+def publish_render_manifest(output, source, snapshot_data, preview=None, preview_bytes=None):
+    from nbt_object_scene import atomic
+
+    manifest = output / 'render_manifest.json'
+    report = json.loads(manifest.read_text(encoding='utf8'))
+    if report['status'] not in ('awaiting_input_check', 'complete'):
+        raise ValueError('Renderer did not finish the requested batch')
+    try:
+        preview_matches = preview is None or preview.read_bytes() == preview_bytes
+        if not preview_matches or not preview_source_matches(source, snapshot_data):
+            raise ValueError('Preview/source changed while rendering; output cannot be accepted')
+    except (OSError, ValueError) as error:
+        report.update(status='failed', error=str(error))
+        raise
+    else:
+        report['status'] = 'complete'
+    finally:
+        atomic(manifest, (json.dumps(report, ensure_ascii=False, indent=2) + '\n').encode('utf8'))
+    print(json.dumps(dict(status=report['status'], images=len(report['images']),
+                          duration_ms=report['duration_ms'], manifest=str(manifest))))
 
 
 def regress(output):
@@ -155,19 +188,21 @@ def main():
             preview_source, preview_bytes = (checked_preview_snapshot(args.snapshot) if args.snapshot else (None, None))
             if preview_bytes is not None:
                 source_snapshot.write_bytes(preview_bytes)
+                snapshot_data = json.loads(preview_bytes)
             else:
-                write_snapshot(args.source, source_snapshot, args.provenance, cameras)
+                snapshot_data = write_snapshot(args.source, source_snapshot, args.provenance, cameras)
             cmd = [render_env.get('NBTCREATOR_NODE','node'), str(viewer / 'render-batch.mjs'), '--model', str(source_snapshot),
                    '--cameras', str(args.cameras.resolve()), '--output', str(args.output.resolve()),
                    '--width', str(args.width), '--height', str(args.height), '--quality', args.quality,
-                   '--timeout', str(args.timeout_ms)]
+                   '--timeout', str(args.timeout_ms), '--defer-completion']
             if args.file_prefix:
                 cmd.extend(['--file-prefix', args.file_prefix])
             if args.browser_executable:
                 cmd.extend(['--browser-executable', str(args.browser_executable.resolve())])
             code = subprocess.call(cmd,env=render_env)
-            if preview_bytes is not None and (args.snapshot.read_bytes()!=preview_bytes or hashlib.sha256(preview_source.read_bytes()).hexdigest()!=json.loads(preview_bytes)['source_sha256']):
-                raise ValueError('Preview/source changed while rendering; output cannot be accepted')
+            if code == 0:
+                publish_render_manifest(args.output.resolve(), preview_source or Path(snapshot_data['source']),
+                                        snapshot_data, args.snapshot, preview_bytes)
             return code
     if args.command == 'inspect':
         result = inspect_source(args.source, args.provenance, cameras)

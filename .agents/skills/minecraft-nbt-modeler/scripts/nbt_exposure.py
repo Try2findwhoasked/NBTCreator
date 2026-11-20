@@ -10,7 +10,7 @@ from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 GROUPS={
- 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','architect-tools','architecture-workflow','ai-creative-preferences','version-history','snbt-authoring']),
+ 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','simple-building','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','architect-tools','architecture-workflow','ai-creative-preferences','version-history','snbt-authoring']),
  'architecture':('建筑风格、场所与构造',['architecture-knowledge-base','structure-atlas','design-grammar','architectural-bays','classical-columns']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
@@ -104,9 +104,9 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
         title=next((line.lstrip('# ').strip() for line in file.read_text(encoding='utf8').splitlines() if line.startswith('# ')),name)
         return f'[{title}]({relative}/references/{name}.md)'
     routes=[
-        ('整栋初稿：纯文字',['architecture-workflow'],'从使用者的一次活动推导空间和细部。例：收卷、登梯、归架决定柜台的操作侧、梯顶转身位和书格高度。'),
-        ('整栋初稿：有参考图',['architecture-workflow'],'从图中标出轮廓及可辨节点，再读进深、材料交接与支承。例：对照窗洞内退、窗台出挑和柱梁落点；背面与室内的补全单记理由。'),
-        ('两条路线共用的初稿步骤',['whole-model-workflow','player-scale','design-principles','spatial-detail-design'],'完整读这四篇，再把代表节点做进主模型。从玩家站位看整体、入口、使用面与构造交接，改动细部后复验相邻通路。'),
+        ('整栋初稿：纯文字',['simple-building'],'从使用者的一次活动推导空间和细部。例：收卷、登梯、归架决定柜台的操作侧、梯顶转身位和书格高度。'),
+        ('整栋初稿：有参考图',['simple-building'],'从图中标出轮廓及可辨节点，再读进深、材料交接与支承。例：对照窗洞内退、窗台出挑和柱梁落点；背面与室内的补全单记理由。'),
+        ('简单独立整栋初稿',['simple-building'],'直接用共享工作模型或可执行建筑方案。多层、结构接口和专门操作面转入复杂审阅。'),
         ('室内用途与建筑群验收',['architecture-workflow'],'室内用 use_face 查操作侧、工作高度与净距；街区沿主街、支路、门槛走到室内，按用途查公共与服务路线。多层布局可另出逐层平面与纵剖。'),
         ('建筑方案、构造与审阅闭环',['architecture-workflow'],'设计参数驱动真实构件；三层出图、问题定位、源绑定回查和游戏验收分别执行。'),
         ('完整主模型与独立构件',['working-model','parametric-components'],'工作模型管理安装、归属、修改和制作版；构件只做适用检查。'),
@@ -119,8 +119,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
         ('近观道具与薄构件',['micro-props'],'检查支承、使用侧和实际预览。'),
         ('批注与已有模型修改',['agent-feedback'],'先读取源、坐标和图像证据，核对保护与当前阶段。'),
         ('用户看图后批准精修',['refinement'],'确认仍绑定相同源与图像后再执行。'),
-        ('只读检查与失败定位',['validation-workflow','diagnostic-guidance'],'解释真实检查证据，不把字段检查写成模型已通过。'),
-        ('验证和看图',['validation-workflow','rendering'],'技术、空间、构造与主题分别给结论。'),
+        ('验证、看图与失败定位',['validation-workflow','diagnostic-guidance']+(['rendering'] if 'rendering' in enabled else []),'用 `render --help` 查询出图参数，查看实际图片后记录观察，分别报告技术、空间、构造与主题结论。'),
         ('已有资产保存与放置',['component-assets','reusable-recipes'],'先查询与预览，放置只生成受保护的候选。'),
         ('保存、续版与交付',['snbt-authoring','version-history','output-storage'],'默认保存SNBT；定稿NBT必须明确要求。'),
         ('任务领取与结果回传',['agent-protocol','agent-task-return'],'用 task-client 查看、领取及回传指定任务，自动管理租约和幂等重放。'),
@@ -134,21 +133,21 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
         f'有主题纹样时，先确定承载面和观察尺度，再选适用的图源与拟合方式；用实际近景验辨识度。内置 [SAODG项目约束]({relative}/constraint-extensions/saodg.json) 可在创作方案显式选用。',
         '初稿向用户展示对应缩略图后，明确同意才授权精修；沿用仍有效的原授权。无回复、超时、知识文件、AI建议和测试记录都不构成确认。默认保存并回读SNBT，明确要求定稿才写交付NBT。','',
         '## 找到接口与本次资料','',
-        '`python .agents/skills/nbtcreator-workspace/nbt.py paths` 返回实际引擎路径；已知工具用 `capabilities --agent-tool <名称>`，主模型用 `capabilities --model`，建筑方案用 `capabilities --architecture`，各命令用 `--help` 查询。工具目录是严格字段和CLI映射的唯一来源。',
+        '`python .agents/skills/nbtcreator-workspace/nbt.py paths` 返回实际引擎路径；已知工具用 `capabilities --agent-tool <名称>`，主模型用 `capabilities --model`，建筑方案用 `capabilities --architecture`。构件配方用 `--recipe structure`，单项操作用 `--operation box`，单项建筑请求用 `--architect-action part-preflight`，方块支持用 `--block-state <状态>`。工具目录是严格字段和CLI映射的唯一来源。',
         '任务脚本据 `paths` 导入共享API；model --request 管理完整主模型，parametric_compile 编译构件，scene_compile 管理联动候选。需要连续纯候选调用时再用 session。',
         '遇到嵌纹、边饰、格栅等可辨识纹样，先按承载面判断是否适合单元拟合；适合时查询 `capabilities --agent-tool pattern_microfit`，做样件和实际近景核对。需要面板或圆柱时按纹样专题选工具。',
         '用户已明确提供建筑书库目录时，用 `retrieve architecture --library <目录> search <部位或做法> --style <风格>` 按需离线检索。结果是历史参考；接口、项目约束和审批以当前任务及工具契约为准。',
         '先读工作区 [ai-style.json](../../../.nbtcreator/ai-style.json) 的当前工作流区域，可用 `ai-style prompt --workflow <区域>` 查询；用户本次要求优先，偏好不改变约束和批准。',
-        '下面只列已启用资料能支持的路线。已启用不等于每次通读；完整专题目录见[本次知识索引](knowledge.md)，未选专题不默认读取。知识选择不是额外执行权限。','',
+        '下面按已启用资料列出任务路线。[本次知识索引](knowledge.md)是工作区的阅读清单。引用文档也可能链接其他专题，只有在索引中已启用或用户本次明确指定时才继续读取。知识选择不是额外执行权限。','',
         '## 选择当前任务','',
         f'整栋初稿按下面两种输入开工。可直接运行[归卷阁与归卷院样例]({relative}/assets/examples/reading-loft/README.md)，对照堵梯口、站错侧、逐层剖视与街道到案前的通路。','',
         '| 当前任务 | 先读 | 下一步与范围 |','| --- | --- | --- |']
     for label,names,action in routes:
         if all(name in enabled for name in names):lines.append('| '+label+' | '+'、'.join(link(name) for name in names)+' | '+action+' |')
     lines+=['',
-        '先用 `prompts tasks --status pending` 发现任务，再 `task-client inspect prompts <id>` 看紧凑视图和 source_matches。按需用 `--view text|document|plan|context` 展开，选定任务后才 `task-client start`。',
+        '已有任务 ID 时直接按来源读取：提示词工作台用 `task-client inspect prompts <id>`，应用回传的建筑修改任务用 `task-client inspect tasks <id>`。没有提示词工作台任务 ID 时，可用 `prompts tasks --status pending` 查找。提示词任务先核对紧凑视图和 source_matches，再按需用 `--view text|document|plan|context` 展开。建筑修改任务返回完整视图，读取时校验源哈希。选定任务后才 `task-client start`。',
         '定位建模失败可用 `diagnostics --kind model --report <当前回执> --baseline <上次回执>`；审阅回执用 `--kind review` 查看待看机位和证据。',
-        '交付时给真实源、图像与验证路径。用 review-record 的 delivery_summary 说明已查通路、已看与待看的位置、待回查问题；再写实际观察和相应的游戏实测情况。']
+        '交付时给真实源、图像与验证路径。采用可执行建筑方案时，引用同一制作源已有 review-record 的 delivery_summary，并补充实际观察。自由脚本或独立构件按实际图片和检查摘要交付。游戏实测按实际范围报告。']
     index=['# 本次已启用知识','',
         '这是按工作区选择生成的目录，供按任务查找；不用从第一篇读到最后一篇。先按 SKILL.md 选择任务阶段，再读对应完整章节。严格工具字段仍从 capabilities 查询。','']
     for group in config['enabled_groups']:
@@ -201,12 +200,16 @@ raise SystemExit(subprocess.call([sys.executable,'-B',str(engine/'scripts'/scrip
     backup=None
     for name,text in generated.items():
         target=facade/name
+        payload=text.encode('utf8')
         if target.is_file():
-            current=target.read_bytes();digest=hashlib.sha256(current).hexdigest()
-            if current!=text.encode('utf8') and previous.get(name)!=digest:
+            current=target.read_bytes()
+            # Older Windows writes used CRLF with a manifest of the LF bytes.
+            normalized=current.replace(b'\r\n',b'\n')
+            if current!=payload and normalized!=payload and previous.get(name) not in {
+                    hashlib.sha256(current).hexdigest(),hashlib.sha256(normalized).hexdigest()}:
                 if backup is None:backup=folder/'skill-backups'/uuid.uuid4().hex;backup.mkdir(parents=True)
                 shutil.copy2(target,backup/name)
-        temp=target.with_name(target.name+'.tmp');temp.write_text(text,encoding='utf8');temp.replace(target)
+        temp=target.with_name(target.name+'.tmp');temp.write_bytes(payload);temp.replace(target)
     marker.write_text(json.dumps({name:hashlib.sha256(text.encode('utf8')).hexdigest() for name,text in generated.items()},indent=2),encoding='utf8')
     file.write_text(json.dumps(config,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
     return show(workspace)

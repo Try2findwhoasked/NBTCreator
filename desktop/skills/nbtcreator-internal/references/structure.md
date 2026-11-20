@@ -1,2 +1,2 @@
-仅返回JSON {"summary":"修改说明","settings_patch":{"lo":[x,y,z],"hi":[x,y,z],"structure":{"enabled":true,"mode":"fill","state":"stone_bricks","classification":"body","thickness":1,"offset":[0,0,0]}}}。
-structure.mode可选fill/carve/hollow/move/floor/ceiling/walls/frame；或使用replace:{enabled:true,from_states:["stone_bricks"],state:"andesite",scope:"surface"}。只改这些字段，坐标及移动目标都在context.lo/hi界内，无法确定时说明限制，不捏造操作。
+坐标直接使用模型中的 context.lo/hi 范围，无需减去选区最小角。选区为 [12,3,20] 到 [15,6,25] 时，可返回 {"summary":"铺设石砖","settings_patch":{"lo":[12,3,20],"hi":[15,3,25],"structure":{"enabled":true,"mode":"fill","state":"stone_bricks","classification":"body","thickness":1,"offset":[0,0,0]},"replace":null}}。
+structure.mode 可选 fill/carve/hollow/move/floor/ceiling/walls/frame；也可使用 replace，其字段为 {"enabled":true,"from_states":["stone_bricks"],"state":"andesite","scope":"surface"}。至少提供一个有效操作对象。严格 JSON 对未使用的对象填 null，普通 JSON 可省略该键。offset 是位移向量，移动后的范围也须在 context.lo/hi 内。

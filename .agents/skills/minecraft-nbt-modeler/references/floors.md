@@ -85,16 +85,17 @@ walls, floor_report = apply_floor_damage(master, {
 ## 命令与已有作品
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_floors.py detect --source <完整主模型> --context <上下文JSON> --output <新检测目录>
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_floors.py plan --source <完整主模型> --context <上下文JSON> --operation <风格规则JSON> --output <新规划目录>
+$engine = python .agents/skills/nbtcreator-workspace/nbt.py paths | ConvertFrom-Json
+python (Join-Path $engine.scripts 'nbt_floors.py') detect --source <完整主模型> --context <上下文JSON> --output <新检测目录>
+python (Join-Path $engine.scripts 'nbt_floors.py') plan --source <完整主模型> --context <上下文JSON> --operation <风格规则JSON> --output <新规划目录>
 ```
 
 两个命令只写floor_report.json，不修改源模型。对已有作品实际应用，仍需对应缩略图后的真实确认；使用nbt_refine的kind=auto_floor或便利入口：
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_floors.py apply --review <已真实批准的review> --operation <风格规则JSON> --style-note <整体意图> --output <新版本目录>
+python (Join-Path $engine.scripts 'nbt_floors.py') apply --review <已真实批准的review> --operation <风格规则JSON> --style-note <整体意图> --output <新版本目录>
 ```
 
-精修从原config读取上述context，保留预算、保护、整体重验和主体/墙层重切。maintained/no-op无需发起只有零变化的精修。自动识别不授权approve，也不改写格式转换、世界或生产房间池。
+精修沿用原坐标、保护和预算，重验后保存完整制作版。maintained 或无变化时无需精修。定稿时再写主体和墙层切片。
 
 合成回归：`python <skill>/scripts/check_floor_fixtures.py --output <新目录>`；已纳入nbt_task.py regress。材质/地面效果优先用render批量出图，实际查看完整入口、脚下、坑缘与多层关系，不用仅俯视或纯颜色图代替。

@@ -198,7 +198,8 @@ export async function startDetailServer({ workspace, output, python = 'python', 
               resultDirectory = path.join(handoff.directory, (kind === 'prepare' ? 'review-' : 'plan-')+id)
             }
           }
-          const args = [kind, '--request', requestPath, '--output', resultDirectory]
+          const args = [kind, '--request', requestPath]
+          if (kind !== 'revision') args.push('--output', resultDirectory)
           if(checkedSnapshot)args.push('--snapshot',checkedSnapshot)
           if (kind === 'apply') args.push('--bundle', localPath(input.bundle), '--review', localPath(input.review))
           result = await invoke(args, path.join(directory, 'backend.log'), undefined,job)

@@ -76,7 +76,7 @@ def save(workspace, payload):
         for key in ('require_enclosure', 'openings_policy', 'opening_size', 'cells', 'cell_size'):
             if key in selected:
                 context[key] = selected[key]
-        if 'integration' in selected:
+        if 'integration' in selected and not document['project'].get('source'):
             context['mode'] = selected['integration']
     if not isinstance(document.get('design_override',''),str) or len(document.get('design_override',''))>4000:raise ValueError('建筑规范例外最多4000字')
     catalog=json.loads((Path(__file__).resolve().parents[1]/'tool-catalog.json').read_text(encoding='utf8'))

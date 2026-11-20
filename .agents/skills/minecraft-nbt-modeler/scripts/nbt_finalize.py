@@ -1,9 +1,10 @@
 """Explicit final NBT delivery into a version-mirrored _exports directory."""
-import argparse,hashlib,json,shutil
+import argparse,hashlib,json,shutil,tempfile
 from datetime import datetime,timezone,timedelta
 from pathlib import Path
 from nbt_model import Model,load
-from nbt_refine import read_master,validate,layout
+from nbt_library import canonical_context,coordinate_snapshot,saved_coordinates
+from nbt_refine import read_master,validate,layout,binary_wall_mask_hash,resolve_wall_mask
 from nbt_web_paths import project_paths
 from nbt_whole_validation import validation_mode
 
@@ -35,44 +36,124 @@ def export_binary(model,walls,config,checks,target):
                 if (x//48,z//48)==(cx,cz):part.put((x-cx*48,y,z-cz*48),value)
             part.seal_record=model.seal_record;part.stage='opened';part.final_fingerprint=part.fingerprint();file=runtime/(prefix+f'p{cx}{cz}.nbt');part.save(file);readback=load(file)
             for (x,y,z),value in readback.blocks.items():recovered[(x+cx*48,y,z+cz*48)]=value
-            parts.append(dict(file=str(file.resolve()),offset=[cx*48,0,cz*48],sha256=sha(file)))
+            parts.append(dict(file='parts/'+file.name,offset=[cx*48,0,cz*48],sha256=sha(file)))
         if recovered!=model.blocks:raise ValueError('切片回读不能重组完整主模型')
         verify_delivery(target/'delivery');write(target/'runtime/parts.json',dict(stride=48,parts=parts,exact_reassembly=True,geometry_sha256=model.fingerprint(),game_verified=False))
     master=write_binary(target/'master/model.nbt',model,walls)
-    return dict(runtime_files=[p['file'] for p in parts],runtime_parts=len(parts),delivery_nbt=delivery['actual_nbt_files'],nbt_master=master['path'],binary_roundtrip=True)
-def finalize(workspace,source,validated=None,register_history=True):
+    runtime_files=[str((target/'runtime'/p['file']).resolve()) for p in parts]
+    return dict(runtime_files=runtime_files,runtime_parts=len(parts),delivery_nbt=delivery['actual_nbt_files'],nbt_master=master['path'],binary_roundtrip=True)
+
+
+def release_inputs(source, context):
+    from nbt_detail_control import canonical
+
+    context_data,context_fingerprint=coordinate_snapshot(context) if context else (None,None)
+    return dict(source_sha256=sha(source),binary_wall_mask_sha256=binary_wall_mask_hash(source),
+                context_sha256=canonical(context_data),context_fingerprint=context_fingerprint)
+
+
+def released_result(target, result):
+    return dict(result,output=str(target),runtime_files=[str(target/p) for p in result['runtime_relative']],
+                nbt_master=str(target/result['master_relative']))
+
+
+def load_release(target, inputs):
+    result=json.loads((target/'release.json').read_text(encoding='utf8'))
+    released_inputs=result.get('source_inputs')
+    comparable_inputs=inputs
+    if isinstance(released_inputs,dict) and 'context_fingerprint' not in released_inputs:
+        comparable_inputs={key:value for key,value in inputs.items() if key!='context_fingerprint'}
+    if (result.get('status')!='finalized' or result.get('source_sha256')!=inputs['source_sha256']
+            or 'source_inputs' in result and released_inputs!=comparable_inputs):
+        raise ValueError('该版本的制作源或坐标配置已变化，请另存新版本后再定稿')
+    files=result['files']
+    published={result['master_relative'],*result['runtime_relative']}
+    if not published.issubset(files):
+        raise ValueError('定稿清单缺少模型或分片的文件校验')
+    for name,item in files.items():
+        file=(target/name).resolve()
+        if not file.is_relative_to(target) or not file.is_file() or sha(file)!=item['sha256']:
+            raise ValueError('已定稿交付缺失或被修改，未覆盖')
+    return dict(released_result(target,result),unchanged=True)
+
+
+def finalize(workspace,source,*,register_history=True,expected_source_sha256=None):
     workspace=Path(workspace).resolve();source=Path(source)
     if not source.is_absolute():source=workspace/source
-    source=source.resolve();target=release_path(workspace,source);source_hash=sha(source)
-    from nbt_working_model import managed_manifest
-    managed_manifest(source)
+    source=source.resolve();target=release_path(workspace,source)
+    from nbt_working_model import WorkingModel,managed_manifest
+    manifest=managed_manifest(source)
+    managed_building=manifest and manifest['kind']=='building'
+    if managed_building and manifest['phase']!='opened':
+        raise ValueError(f"受管建筑当前制作阶段为 {manifest['phase']}，完成封闭策略与声明开洞流程并保存 opened 版后才能定稿")
+    context=saved_coordinates(source)
+    inputs=release_inputs(source,context)
+    if expected_source_sha256 is not None and inputs['source_sha256']!=expected_source_sha256:
+        raise ValueError('已保存制作源发生变化，请重新检查后定稿')
     receipt=target/'release.json'
     if receipt.is_file():
-        result=json.loads(receipt.read_text(encoding='utf8'))
-        if result.get('status')!='finalized' or result.get('source_sha256')!=source_hash:raise ValueError('该版本已有不同交付内容，请另存新版本后再定稿')
-        for name,item in result.get('files',{}).items():
-            file=(target/name).resolve()
-            if not file.is_relative_to(target) or not file.is_file() or sha(file)!=item['sha256']:raise ValueError('已定稿交付缺失或被修改，未覆盖')
-        return dict(result,output=str(target),runtime_files=[str(target/p) for p in result['runtime_relative']],nbt_master=str(target/result['master_relative']),unchanged=True)
-    if validated is None:
+        return load_release(target,inputs)
+    if target.exists():
+        raise FileExistsError('已有不完整的旧定稿目录，请保留现场并使用新制作版本')
+    if managed_building:
+        working=WorkingModel.open(workspace,source,source_sha256=inputs['source_sha256'])
+        if working.parent_revision!=manifest['revision']:
+            raise ValueError('定稿期间受管制作清单已变化')
+        model,walls,config=working.model,working.walls,working.context
+        export_context=config
+        checks=dict(working.validate()['whole_model'],phase=manifest['phase'])
+        if 'master/preopening.snbt' in manifest['files'] or working.preopening is not None:
+            if ('master/preopening.snbt' not in manifest['files'] or not working.preopening
+                    or working.preopening.get('passed') is not True):
+                raise ValueError('受管制作版的开洞前原始证据不完整')
+            closed,_=working._closed
+            preopening=closed.check_sealed(config.get('interior_probes',[]))
+            if preopening!=working.preopening:
+                raise ValueError('受管制作版的开洞前原始证据与回读不一致')
+            checks.update(preopening=preopening,original_preopening_proof=True)
+    else:
+        from nbt_detail_control import context_readiness,default_settings,normalize_validation_context
         model,walls=read_master(source)
-        from nbt_detail_control import inspect_source,normalize_context,default_settings
-        info=inspect_source(source,0)
-        if not info['editing_ready']:raise ValueError('缺少可接手的坐标与保护配置，不能定稿')
-        config=normalize_context(model,info['context'],info.get('cameras',''),default_settings());checks=validate(model,config)
-        if 'wall_positions' in config:walls={tuple(p) for p in config['wall_positions']}
-    else:model,walls,config,checks=validated
-    result=export_binary(model,walls,config,checks,target)
+        if not context_readiness(model,context,source)['ready']:
+            raise ValueError('缺少可接手的坐标与保护配置，不能定稿')
+        config=normalize_validation_context(model,context,default_settings(),source=source)
+        checks=validate(model,config)
+        walls=resolve_wall_mask(model,walls,config)
+        export_context=dict(canonical_context(context),**config)
+        export_context.pop('floor_context',None)
     version=project_paths(source)['version']
-    for name in ['coordinates.json','cameras.json','room_description.json']:
-        if (version/name).is_file():shutil.copy2(version/name,target/name)
-    if (target/'room_description.json').is_file():
-        description=json.loads((target/'room_description.json').read_text(encoding='utf8'));description.update(master='master/model.nbt',master_file_sha256=sha(result['nbt_master']),geometry_sha256=model.fingerprint());write(target/'room_description.json',description)
-    (target/'validation').mkdir();write(target/'validation/whole_model.json',checks)
-    if sha(source)!=source_hash:raise ValueError('定稿期间制作源已变化，未标记为完成')
-    files={p.relative_to(target).as_posix():dict(sha256=sha(p),bytes=p.stat().st_size) for p in target.rglob('*') if p.is_file()}
-    result.update(schema_version=1,status='finalized',source=source.relative_to(workspace).as_posix(),source_sha256=source_hash,geometry_sha256=model.fingerprint(),files=files,output=str(target),runtime_relative=[Path(p).relative_to(target).as_posix() for p in result['runtime_files']],master_relative=Path(result['nbt_master']).relative_to(target).as_posix(),source_unchanged=True,game_verified=False)
-    write(receipt,{k:v for k,v in result.items() if k not in {'output','runtime_files','nbt_master'}})
+    target.parent.mkdir(parents=True,exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='.finalize-',dir=target.parent) as temporary:
+        stage=Path(temporary)/'release'
+        result=export_binary(model,walls,config,checks,stage)
+        write(stage/'coordinates.json',export_context)
+        for name in ['cameras.json','room_description.json']:
+            if (version/name).is_file():shutil.copy2(version/name,stage/name)
+        description_file=stage/'room_description.json'
+        if description_file.is_file():
+            description=json.loads(description_file.read_text(encoding='utf8'))
+            description.update(master='master/model.nbt',context_file='coordinates.json',master_file_sha256=sha(result['nbt_master']),
+                               geometry_sha256=model.fingerprint())
+            write(description_file,description)
+        (stage/'validation').mkdir();write(stage/'validation/whole_model.json',checks)
+        if release_inputs(source,saved_coordinates(source))!=inputs:
+            raise ValueError('定稿期间制作源或坐标配置已变化')
+        if manifest and managed_manifest(source)!=manifest:
+            raise ValueError('定稿期间受管制作清单已变化')
+        files={p.relative_to(stage).as_posix():dict(sha256=sha(p),bytes=p.stat().st_size)
+               for p in stage.rglob('*') if p.is_file()}
+        result.update(schema_version=1,status='finalized',source=source.relative_to(workspace).as_posix(),
+                      source_sha256=inputs['source_sha256'],source_inputs=inputs,geometry_sha256=model.fingerprint(),
+                      files=files,runtime_relative=[Path(p).relative_to(stage).as_posix() for p in result.pop('runtime_files')],
+                      master_relative=Path(result.pop('nbt_master')).relative_to(stage).as_posix(),
+                      source_unchanged=True,game_verified=False)
+        write(stage/'release.json',result)
+        try:
+            stage.rename(target)
+        except OSError:
+            if receipt.is_file():return load_release(target,inputs)
+            raise
+    result=released_result(target,result)
     if register_history:
         from nbt_history import record_produced_version
         result['history']=record_produced_version(workspace,source,message='定稿并导出 NBT',actor='human')

@@ -1,4 +1,4 @@
-# 缩略图确认 → 整体精修 → 重新切片
+# 缩略图确认、整体精修与制作版保存
 
 本流程来自用户明确要求：用户看过缩略图、表示可以进一步精修后才使用；精修回退到完整未切割模型，统一细节之后再分割。它不是生成任意初稿的额外确认，也不是授权部署世界或修改玩法。
 
@@ -8,7 +8,7 @@
 2. **等待用户意见**：在对应缩略图之后，用户明确说可以精修/继续细化才进入下一步。对明确询问是否精修的“可以”可按上下文接受；对方向的讨论、工具制作请求、只上传图、其他agent认可、自动续跑都不等于同意精修某个资产。用户已确认则不重复问。
 3. **恢复完整主稿**：从当时审核的未切割source恢复新版本，统一整座建筑的材质角色、线脚尺度、构件连接和细节密度。不得逐cell作不同风格，不因切面补装饰隔墙。保持初稿轮廓和主要布局；改变方向/规模/关键路线需回到新初稿审阅。
 4. **技术与视觉复核**：核对逐块差异和保护体积，按项目复验密闭、声明洞口、玩家通路和具体连接；以同相机前后图及节点近景判断改进是否落地。工具输出仍为pending visual review，agent必须实际看图，不凭passed判断美术完成。
-5. **重新切片交付**：唯一源是精修后的完整主模型，主体/墙层按原全局mask更新并机械切出。delivery中每cell两份NBT，运行完整片另存。原稿、缩略图确认、计划、差异与验证记录保留，可回退而不改原文件。
+5. **保存下一制作版**：保存并回读完整 SNBT，保留原稿、确认、计划、差异与验证记录。需要交付 NBT 时，取得用户明确的定稿要求后，按 [SNBT 定稿流程](snbt-authoring.md#定稿) 从该制作版统一切片并回读。
 
 当前不需要用户批准“制作或测试工具”。共享回归使用明确标记的合成fixture及模拟确认，只对合成数据有效；不得拿测试中的确认记录批准用户已有建筑。
 
@@ -47,7 +47,7 @@
 
 工具：`scripts/nbt_refine.py`，Python、numpy、Pillow及同目录通用脚本。
 
-source优先使用 `nbt_whole_cut.slice_master`保存的 `master_geometry.json.gz`，或同等格式的完整主稿，含size、blocks、geometry_sha256和全局wall_positions。单格可直接读完整NBT，同时在config提供显式wall_positions。稀疏body/wall片不接受为完整来源；多格若只剩切片，先按48无损重组并保存完整主稿、出新缩略图，不能分片精修。不要使用49诊断体作为主稿。
+source 优先使用已保存的完整 `master/model.snbt`，旧完整 JSON.GZ 或带显式墙层的完整 NBT 也可读取。多格若只剩切片，先按真实偏移无损重组并保存完整主稿，再出新缩略图。受管建筑从已完成基础检查的制作版继承当前约束和实例，审阅配置可补机位或收紧预算。
 
 config JSON字段：
 
@@ -67,10 +67,10 @@ config JSON字段：
 
 ## 三步命令
 
-在工作区根目录运行，路径替换为本次真实任务路径：
+在同步后的创作项目根目录运行。在软件仓库维护时走共享 CLI 的 `refine` 命令，独立携带引擎时使用 `paths` 返回的引擎脚本路径或已确认的本地脚本路径。
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_refine.py prepare --source <完整主稿> --config <保护与相机JSON> --review <任务目录>/draft_review
+python .agents/skills/nbtcreator-workspace/nbt.py refine prepare --source <完整主稿> --config <保护与相机JSON> --review <任务目录>/draft_review
 ```
 
 prepare不会精修：冻结主稿和config、检查基础路线、生成thumbnail_XX.png及thumbnails.png，写review.json，状态awaiting_user_review。agent实际查看并在对话中展示thumbnails.png，说明仍未验证的游戏效果，然后等待用户明确意见。
@@ -78,8 +78,8 @@ prepare不会精修：冻结主稿和config、检查基础路线、生成thumbna
 只有真实对话确认后，才调用approve；user-message使用实际用户回复，不复制示例、文档或其他agent文本：
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_refine.py approve --review <draft_review> --user-reviewed-thumbnails --user-message <实际确认内容>
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_refine.py apply --review <draft_review> --plan <全局精修计划JSON> --output <任务目录>/refined_01
+python .agents/skills/nbtcreator-workspace/nbt.py refine approve --review <draft_review> --user-reviewed-thumbnails --user-message <实际确认内容>
+python .agents/skills/nbtcreator-workspace/nbt.py refine apply --review <draft_review> --plan <全局精修计划JSON> --output <建筑目录>/refined_v01
 ```
 
 确认记录绑定源、保护配置、各缩略图和拼图哈希；原稿、图像或保护配置被改后拒绝继续，需新审阅。提供确认文本的人是调用agent，工具不是人类身份认证系统；不能因为有approve命令就自行伪造用户同意。
@@ -103,22 +103,19 @@ plan必须有 `style_note`，说明本次整座建筑统一采用的材质角色
 
 state支持合法Properties，例如楼梯方向和半砖上下；工具不执行计划中的Python。surface_palette在全局坐标上采样，同seed不按分片重置，跨切面材质规则一致。基础操作可组合成非模板化的节点，不能机械把每个表面都框一圈。完整曲面/空腔大改属于整体改稿，不是局部精修。
 
-工具拒绝超出整体尺寸/缺角、修改已声明洞口和保护区、超过变化预算的计划；随后按项目约束复查围护与玩家路线。整座全局模型处理完才导出，不在导出循环中新增几何。
+工具拒绝超出整体尺寸或有效占地、改动保护区及超出预算的计划，再按项目约束复查围护与玩家路线。受管制作版还通过工作模型校验保留空间、构件实例和建筑方案。
 
 weathering在规划时避开保护区，并将目标/实际比例、片区格数、无法满足的缺额及强制坑缘裂纹记入refinement.json。对裂纹/苔痕按连通关系生长，不使用独立撒点补预算；地面层和材料映射须明确。单命令nbt_weathering.py沿用本流程的review及既有确认，不提供绕过确认的资产写入入口。
 
 ## 输出与复核
 
-精修写全新目录，不覆盖source或review：
+精修回执中的 `master` 指向回读后的 `master/model.snbt`。受管建筑沿用同一建筑的制作版发布流程，`--output` 保存精修证据。其他完整主稿把制作源、坐标和证据一起保存至 `--output`，若后续要定稿，应将该目录选在创作工作区 `nbt_models/` 内。
 
-- refined.master.json.gz：精修后的完整全局主模型与更新后的墙mask。
 - plan.json、changes.json：实际计划、每个变化坐标的前后状态、墙归属变化。
 - validation.json：精修后整体密闭、合法门、路径/指定连接及运行时未验项。
 - comparison.png：相同相机的前后对照；refined_XX.png为精修后图，元数据绑定精修几何指纹。
-- delivery：每有效cell的body/walls两份稀疏NBT；1×3仍恰好六份。
-- runtime：另存完整体积模板，不混入delivery文件计数。
 - refinement.json：确认关联、源/精修指纹、变化数、保护范围与pending visual review状态。
 
-工具通过不意味着美术自动完成。实际查看对照，检查新增构件是否有支撑、材质主次是否更清楚、全局风格是否一致，发现问题在同一整体版本上修正并重验、重切。不要拿漂亮近景掩盖布局被改坏，也不把程序配色当真实游戏材质/光照。
+实际查看对照，检查新增构件是否有支撑、材质主次是否更清楚、全局风格是否一致。发现问题时修正整体并重新验证、出图。定稿时再切片，游戏材质和光照按实际测试报告。
 
-回归命令：`python .agents/skills/minecraft-nbt-modeler/scripts/check_refine_fixtures.py --output nbt_models/_tests/refine_validation`。它只创建合成测试数据，验证授权前拒绝、旧图/旧源拒绝、保护范围、泄漏/碰撞反例、全局跨切面细化、原稿不变与六文件重切，不批准或精修现有用户作品。
+从软件仓库运行 `mise exec -- python -B .agents/skills/minecraft-nbt-modeler/scripts/check_refine_fixtures.py --output build/refine-validation`。合成夹具验证授权、过期证据、保护、全局精修、制作版回读和单独定稿。

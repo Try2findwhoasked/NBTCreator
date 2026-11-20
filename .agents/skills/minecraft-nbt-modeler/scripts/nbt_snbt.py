@@ -29,9 +29,12 @@ _parsed_lock=RLock()
 
 def _source_bytes(file):
     file=Path(file)
-    if not file.is_file() or file.stat().st_size>MAX_SOURCE_BYTES:raise ValueError('SNBT 文件缺失或超过256MiB')
-    with file.open('rb') as stream:raw=stream.read(MAX_SOURCE_BYTES+1)
-    if len(raw)>MAX_SOURCE_BYTES:raise ValueError('SNBT 文件缺失或超过256MiB')
+    if not file.is_file():raise ValueError('SNBT 文件缺失')
+    with file.open('rb') as stream:
+        size=os.fstat(stream.fileno()).st_size
+        if size>MAX_SOURCE_BYTES:raise ValueError('SNBT 文件超过256MiB')
+        raw=stream.read(size)
+        if len(raw)!=size or stream.read(1):raise ValueError('SNBT 文件大小在读取期间变化，请重试')
     return raw
 
 def _root_bytes(raw):
@@ -59,6 +62,7 @@ def decode(data):
     metadata=data.get('nbtcreator',{});walls={tuple(map(int,p)) for p in metadata.get('wall_positions',[])}
     if any(len(p)!=3 or not model.in_bounds(p) or p not in model.blocks for p in walls):raise ValueError('SNBT 墙层归属越界或指向空气')
     model._snbt_metadata_stale=bool(metadata.get('geometry_sha256') and str(metadata['geometry_sha256'])!=model.fingerprint())
+    model._wall_mask_declared='wall_positions' in metadata
     model._snbt_palette=palette;model._snbt_extras={k:v for k,v in data.items() if k not in {'DataVersion','size','palette','blocks','entities','nbtcreator'}}
     return model,walls
 def _retained_size(model,mask):
@@ -95,13 +99,19 @@ def _parsed_source(raw):
 def read_snbt(file):
     base,mask=_parsed_source(_source_bytes(file))
     model=Volume(base.size);model.blocks=dict(base.blocks);model._snbt_palette=list(base._snbt_palette);model._snbt_extras=deepcopy(base._snbt_extras);model._snbt_metadata_stale=base._snbt_metadata_stale
+    model._wall_mask_declared=base._wall_mask_declared
     return model,set(mask)
 def read_binary(file):
     file=Path(file);model,walls=decode(N.load(file))
     sidecar=file.parent/'wall_mask.json'
     if sidecar.is_file():
-        meta=json.loads(sidecar.read_text(encoding='utf8'));walls={tuple(p) for p in meta.get('wall_positions',[])}
+        meta=json.loads(sidecar.read_text(encoding='utf8'))
+        if 'wall_positions' not in meta:raise ValueError('NBT 墙层附属数据缺少 wall_positions')
+        declared={tuple(p) for p in meta['wall_positions']}
+        if model._wall_mask_declared and walls!=declared:raise ValueError('NBT 内嵌墙层与附属文件不一致')
+        walls=declared
         if meta.get('geometry_sha256')!=model.fingerprint() or any(len(p)!=3 or not model.in_bounds(p) or p not in model.blocks for p in walls):raise ValueError('NBT 墙层附属数据与主模型不一致')
+        model._wall_mask_declared=True
     return model,walls
 def write_binary(file,model,walls):
     values=sorted(set(model.blocks.values())) or ['minecraft:air'];palette=[]

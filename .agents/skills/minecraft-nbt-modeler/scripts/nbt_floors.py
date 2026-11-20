@@ -402,7 +402,7 @@ def main():
     if args.command == 'apply':
         op = json.loads(args.operation.read_text(encoding='utf-8-sig')); op.setdefault('kind', 'auto_floor')
         result = refine(args.review, dict(style_note=args.style_note, operations=[op]), args.output)
-        print(json.dumps(dict(state=result['state'], changed_blocks=result['changed_blocks'])))
+        print(json.dumps(dict(state=result['state'], master=result['master'], changed_blocks=result['changed_blocks'])))
         return
     model, _ = read_master(args.source); context = json.loads(args.context.read_text(encoding='utf-8-sig'))
     if args.command == 'detect':

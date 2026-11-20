@@ -56,6 +56,12 @@ def normalize(plan):
     for view in plan['views']:
         if ('feet' in view)==('eye' in view):raise ValueError('视角须选择feet或eye之一：'+view['id'])
         if view.get('target_part') and view['target_part'] not in valid_parts:raise ValueError('视角目标构件不存在')
+        if 'sample_box' in view:
+            if not view.get('target_part') or view['layer']=='massing':
+                raise ValueError('局部取景范围须绑定构造或细节视角的 target_part：'+view['id'])
+            box=view['sample_box']
+            if any(not 0<=a<=b<n for a,b,n in zip(box['lo'],box['hi'],plan['size'])):
+                raise ValueError('局部取景范围越界或倒置：'+view['id'])
     if plan.get('envelope'):
         ids=[row['id'] for row in plan['envelope']['volumes']]
         if len(ids)!=len(set(ids)):raise ValueError('围护体积ID重复')
@@ -197,6 +203,16 @@ def actual_part(model,binding,name):
     return row,{tuple(item['pos']) for item in row['baseline'] if model.model.get(tuple(item['pos'])) not in AIR_NAMES}
 
 
+def view_sample_points(points, view):
+    box=view.get('sample_box')
+    if box is None:
+        return points
+    selected={p for p in points if all(a<=v<=b for v,a,b in zip(p,box['lo'],box['hi']))}
+    if not selected:
+        raise ValueError('局部取景范围内没有目标构件的实际方块：'+view['id']+' / '+view['target_part'])
+    return selected
+
+
 def surface(model,binding,reference):
     if reference['part']=='envelope':
         from nbt_scene_interfaces import compile_interfaces
@@ -208,14 +224,18 @@ def surface(model,binding,reference):
     row,_=actual_part(model,binding,reference['part'])
     name=reference.get('object','body')
     node=next((item for item in row['compiled'].get('objects',[]) if item['id']==name),None)
-    if node is None or reference['interface'] not in node.get('interfaces',{}):raise ValueError('构件接口不存在：'+reference['part']+'.'+name+'.'+reference['interface'])
-    result=deepcopy(node['interfaces'][reference['interface']]);result['object']=reference['part']+'.'+name
-    actual=cells(model.model,{tuple(p) for p in node.get('voxel_positions',[])})
-    result['faces_half']=[p for p in result['faces_half'] if tuple(p) in actual]
-    if not result['faces_half']:raise ValueError('承托接口的当前几何已被移除')
-    result['lo_half']=[min(p[i] for p in result['faces_half']) for i in range(3)]
-    result['hi_half']=[max(p[i] for p in result['faces_half']) for i in range(3)]
-    result['area']=len(result['faces_half'])/4
+    from nbt_scene_interfaces import InterfaceError, check_interface_geometry
+    interface=reference['interface'];owner=reference['part']+'.'+name
+    if node is None or interface not in node.get('interfaces',{}):
+        raise InterfaceError('INTERFACE_MISSING','构件接口不存在',interface,owner)
+    result=deepcopy(node['interfaces'][interface]);result['object']=owner
+    geometry=check_interface_geometry(model.model,set(map(tuple,node.get('voxel_positions',[]))),result,check_external=True)
+    if geometry['unknown_shapes']:
+        raise InterfaceError('INTERFACE_UNSUPPORTED_SHAPE','接口当前形状无法精确核验',interface,owner,
+                             **geometry['unknown_shapes'][0],coordinate_space='world')
+    if not geometry['passed']:
+        raise InterfaceError('INTERFACE_REMOVED','承托接口的当前几何已移除或被遮挡',interface,owner,
+                             missing_faces_half=geometry['missing_faces_half'])
     return result
 
 
@@ -257,11 +277,48 @@ def wrapped_recipe(workspace,part):
     if recipe['tool']=='scene_compile':return recipe
     data,metadata=compile_recipe(workspace,recipe)
     interfaces=part.get('interfaces',[])
-    if not interfaces and not metadata.get('interfaces') and all(not collision_cells(value)[1] for value in data['palette']):
+    if 'interfaces' not in part and not metadata.get('interfaces') and all(not collision_cells(value)[1] for value in data['palette']):
         interfaces=[dict(id=face,face=face,lo=[0,0,0],hi=[v-1 for v in data['size']]) for face in ('up','down','north','south','east','west')]
     node=dict(id='body',recipe=recipe,lo=[0,0,0])
     if interfaces:node['interfaces']=interfaces
     return dict(tool='scene_compile',arguments=dict(graph=dict(schema_version=1,name=part['id'],size=data['size'],objects=[node])))
+
+
+def preflight(workspace,request):
+    from nbt_collision import state_support
+    from nbt_scene_interfaces import InterfaceError
+    from nbt_working_model import WorkingModel
+    resolved=resolve(select(workspace,request))
+    model=WorkingModel(workspace,resolved['size'])
+    parts=[]
+    for part in resolved['parts']:
+        if request.get('part') and request['part']!=part['id']:
+            continue
+        transform=dict(position=part['position'],quarter_turns=part.get('quarter_turns',0),mirror=part.get('mirror'))
+        issues=[]
+        try:
+            values,compiled=model._compile(wrapped_recipe(workspace,part),transform)
+        except InterfaceError as error:
+            issues=[dict(row,code=error.code,error=str(error)) for row in error.conflicts]
+            # For ordinary recipes, report states even when an interface failed.
+            if part['recipe']['tool']=='scene_compile':
+                parts.append(dict(id=part['id'],interface_issues=issues,states=None))
+                continue
+            values,compiled=model._compile(part['recipe'],transform)
+        states={}
+        for pos,(state,_) in values.items():
+            if state in AIR_NAMES:
+                continue
+            row=states.setdefault(state,dict(count=0,positions=[]))
+            row['count']+=1
+            if len(row['positions'])<8:
+                row['positions'].append(list(pos))
+        parts.append(dict(id=part['id'],interface_issues=issues,
+                          interfaces=[dict(object=obj['id'],ids=sorted(obj['interfaces'])) for obj in compiled.get('objects') or []],
+                          states=[dict(state=state,**state_support(state),**row) for state,row in sorted(states.items())]))
+    if request.get('part') and not parts:
+        raise ValueError('预检构件不存在：'+request['part'])
+    return dict(parts=parts,read_only=True,scope='individual_parts',asset_written=False)
 
 
 def build(workspace,request):
@@ -434,6 +491,14 @@ def check_model(model,binding):
     normalized=model.__class__(model.workspace,resolved['size'],context=resolved['context']).context
     if normalized!=model.context or list(model.model.size)!=resolved['size']:raise ValueError('建筑方案与制作源画布或上下文绑定不符')
     checks=[];space=_Space(model.model)
+    for view in resolved['views']:
+        if 'sample_box' in view:
+            try:
+                _,points=actual_part(model,binding,view['target_part'])
+                view_sample_points(points,view)
+                checks.append(dict(id=view['id'],kind='review_sample_box',passed=True))
+            except ValueError as error:
+                checks.append(dict(id=view['id'],kind='review_sample_box',passed=False,error=str(error)))
     try:
         model._instance_policy(model.model,model.walls,binding.get('retained_policies',{}))
         checks.append(dict(id='retained_constraints',kind='source_policy',passed=True))

@@ -21,13 +21,15 @@ python .agents/skills/nbtcreator-workspace/nbt.py render --help
 
 control plan/preview 输出候选计划/展示快照；refine prepare 创建审阅资料；真实确认之后才 approve/apply。用户明确导出已看过的网页效果另走 convert，两者不混用。
 
-`nbt.py validate --request <参数JSON> --snapshot <preview/after.json> --output <新目录>` 是与应用“检查当前效果”相同的候选校验；会重新计算参数并绑定实际快照，检查保护、预算和整体几何。通过仍需看图；失败有独立报告，不更改源。缺少start/targets/interior_probes或独立开口声明时先补上下文，不能用空目标获得通过。
+`nbt.py validate --request <参数JSON> --snapshot <preview/after.json> --output <新目录>` 与应用的“检查当前效果”使用同一候选校验。它按实际制作阶段复算并检查快照、保护、预算和几何，另存报告。
+
+完整建筑的通路检查需要实际 `start` 和非空 `targets`。要求密闭时还需 `interior_probes`，且独立模式必须声明 `openings`，无洞口时用 `[]`。无需密闭且项目允许无声明洞口时，可省略 `openings`。策略为 `required` 时至少声明一个实际洞口。SAODG 接入使用 `ports`。详见[分项验收](validation-workflow.md#独立建筑的显式上下文)。
 
 ## 文件与共用交接
 
 应用生成的计划与审阅目录在当前结构版本的 `Agent交接/plan-*`、`Agent交接/review-*`。交给 Agent 的 Markdown 包含源哈希、参数、计划、配置和意见位置；旧建筑根的审阅目录仍可发现，但内容必须匹配源/配置/确认哈希。
 
-下一版建筑位于同一建筑工作文件夹的新兄弟版本目录，不覆盖旧文件。新评论保存和导出会更新当前版本 `修改意见/评论索引.json`；证据在版本内 `修改意见/证据/`，原意见和可迁移的相对证据索引保留在建筑根修改意见目录。
+下一版建筑保存在同一建筑下的新版本目录。新标注 JSON、旁边的 `.evidence.json` 和 `评论索引.json` 都写入被标注版本的 `修改意见/`，归档证据位于其 `证据/` 子目录。建筑根目录用于兼容读取旧标注。首次修改旧标注时，更新后的记录及证据索引写入对应版本，旧文件原样保留。详见[标注归档](agent-feedback.md#归档与迁移)。
 
 工作区 `.nbtcreator` 包含 skill-exposure、internal-ai、preferences、runtimes 及渲染环境绑定，不能当旧缓存整删。相对实现、知识文件和资产可随工作区移动；共享渲染环境可能位于应用/便携包中，移机后按 rendering.md 检查或重新同步。
 

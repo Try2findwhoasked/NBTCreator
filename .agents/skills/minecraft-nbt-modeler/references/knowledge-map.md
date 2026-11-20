@@ -1,12 +1,12 @@
 # 知识库的任务路线与内容归属
 
-这份资料用于选路和维护，不要求建模时通读全部专题。创作工作区以生成的 `nbtcreator-workspace/SKILL.md` 和其 `knowledge.md` 为入口；已启用表示本次允许按需引用，不表示每次都要加载。软件源码维护直接读共享引擎及相关专题，不在这里生成创作入口。
+这份资料用于选路和维护。创作工作区以 `nbtcreator-workspace/SKILL.md` 和其 `knowledge.md` 为入口，按任务读取索引中已启用的专题，或用户本次明确指定的资料。下表也包含软件源码维护和独立分发时的路线。
 
 ## 按阶段阅读
 
 | 当前要解决的问题 | 先读 | 需要时再展开 |
 | --- | --- | --- |
-| 从用途形成整栋初稿 | [整体流程](whole-model-workflow.md)、[玩家尺度](player-scale.md)、[创作原则](design-principles.md)、[空间细节](spatial-detail-design.md) | [需求与活动落实](architecture-workflow.md#需求落实与活动动线)、[空间语法](design-grammar.md)、[建筑知识](architecture-knowledge-base.md)中的人工作品、飞檐及适用构造、[场所原型](structure-atlas.md) |
+| 从用途形成简单独立初稿 | [简单独立建筑初稿](simple-building.md) | 复杂空间与构造按需读[整体流程](whole-model-workflow.md)、[玩家尺度](player-scale.md)、[创作原则](design-principles.md)、[空间细节](spatial-detail-design.md)及[建筑方案](architecture-workflow.md)对应章节 |
 | 整栋初稿有地面嵌纹、屏风边饰或墙面徽记 | [纹样来源](pattern-authoring.md)、[纹样拟合](pattern-fitting.md)中的适用章节 | 选定代表单元、承载面和观看距离，回主模型出近景并复核通路 |
 | 把设计落实为完整主模型 | [建筑方案闭环](architecture-workflow.md)、[工作模型](working-model.md) | [参数化构件](parametric-components.md)、[对象图](object-scenes.md)、[通用几何](modelling-tools.md) |
 | 制作或准备图案来源 | [纹样来源与制作](pattern-authoring.md) | [频域预处理](pattern-spectral.md)；已有合适图源时直接拟合 |
@@ -17,7 +17,7 @@
 | 保存制作源、续版或交付 | [SNBT与定稿](snbt-authoring.md)、[版本历史](version-history.md) | [交付](delivery-workflow.md)、[存放](output-storage.md) |
 | 协作、批注或维护接口 | 对应任务的[机器接口](agent-protocol.md)、[批注](agent-feedback.md)或[维护](state-and-maintenance.md) | [扩展注册器](extensions.md)、[会话](modeling-sessions.md)；不因此加载全部创作知识 |
 
-新建整栋建筑需完整阅读第一行的基础文件；其余按当前任务读取适用的完整章节。原型库是可选的设计资料，不是必须照抄的建筑菜单。独立纹样、构件和工具维护不继承整栋的所有制作步骤。
+先按入口选择本次路线，再读取当前任务需要的章节。原型库供按场所选择。独立纹样、构件和工具维护走各自路线。
 
 ## 事实与规则由谁负责
 

@@ -14,7 +14,6 @@ import tempfile
 
 from nbt_assembly import Volume
 from nbt_collision import check_routes
-from nbt_delivery import verify_delivery
 from nbt_model import AIR_NAMES, state
 from nbt_refine import (operation_candidates, prepare, protections, read_master,
                         record_user_approval, refine, save_master)
@@ -197,9 +196,9 @@ def main():
                  '--operation',str(operation_path),'--output',str(out/'revision'),'--style-note',plan['style_note']]
         subprocess.run(command,check=True,capture_output=True,text=True)
         workflow=json.loads((out/'revision/refinement.json').read_text(encoding='utf8'))
-        final,final_walls=read_master(out/'revision/refined.master.json.gz')
+        final,final_walls=read_master(workflow['master'])
         expected_edits,expected_report=weathering_plan(model,operation,protections(model,config))
-        checks['cli_runs_full_review_validation_export']=workflow['validation_passed'] and verify_delivery(out/'revision/delivery')['actual_nbt_files']==4
+        checks['cli_validates_and_saves_snbt']=workflow['validation_passed'] and Path(workflow['master']).suffix=='.snbt' and not list((out/'revision').rglob('*.nbt'))
         checks['workflow_uses_protections_and_reports_ratios']=final.blocks==patched(model,expected_edits).blocks and workflow['operations'][0]['weathering']==expected_report
         checks['wall_layer_membership_preserved']=final_walls==walls-{p for p,v in expected_edits if v in AIR_NAMES}
         checks['original_file_unchanged']=source.read_bytes()==source_bytes

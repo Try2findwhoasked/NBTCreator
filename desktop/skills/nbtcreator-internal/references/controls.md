@@ -1,2 +1,3 @@
-仅改已有步骤参数时，省略operations，优先返回operation_patch:{changes:[{step:12,set:{state:"minecraft:andesite"}}]}。
-step从1开始，≤16步，只给变化字段，不改kind/overwrite/write_group/max_writes。baseline与expected由本地脚本从原请求绑定，无需复制或计算；若主动提供则必须匹配。operation_patch与operations互斥。只改设计文字时都省略；新增、删除或重排才返回完整operations(≤64步)。
+仅改已有步骤参数时使用 operation_patch。step 从 1 开始，指向已有步骤，1～16 项且 step 不重复。set 至少改动一个参数，参数须属于该步的工具；保留 kind、overwrite、write_bounds、write_group 与 max_writes。baseline 和 expected 由本地脚本绑定。
+普通 JSON 的 box 改材示例为 {"summary":"换材","operation_patch":{"changes":[{"step":1,"set":{"state":"minecraft:andesite"}}]}}。严格 JSON 对应的 operation_patch 为 {"baseline":null,"changes":[{"step":1,"expected":null,"set":{"label":null,"classification":null,"lo":null,"hi":null,"enabled":null,"state":"minecraft:andesite"}}]}。其他工具按原工具的 set 分支填全键，未改变的字段填 null。外层仍需 summary、project_patch 与 operations；未修改的设计项填 null，增量时 operations 填 null。
+新增、删除或重排时返回完整 operations（最多64步），清空序列用 []。只改设计文字时，严格 JSON 的 operations 和 operation_patch 均填 null；给完整序列时 operation_patch 填 null。普通 JSON 省略未使用的键。严格增量中的 null 会被移除，无法用它清除已有 mirror；普通 JSON 可在对应工具的 set 中显式给出 "mirror":null。

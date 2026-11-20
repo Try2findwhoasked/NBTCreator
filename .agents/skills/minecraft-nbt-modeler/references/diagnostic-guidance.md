@@ -36,6 +36,6 @@ python $entry diagnostics --kind model --report <当前回执> --baseline <同�
 python $entry diagnostics --kind review --report <review-notes.json>
 ```
 
-结果按错误码、构件或路线分组，列出 `new` 和 `ongoing`。坐标变化时同一目标仍可归入持续问题，证据始终取自本次回执。`evidence_pointer` 是 `report.path` 文件中的 JSON Pointer，空字符串表示报告根；结合报告哈希查原始记录。省略 `--baseline` 时只汇总本次问题。`walk`、`protection`、`candidate` 使用 `--baseline` 或 `--incremental` 时也输出分组视图。
+结果按错误码与目标身份分组，列出 `new` 和 `ongoing`。装配失败保留实例、子对象与接口，附报告已有的未知碰撞或缺失半格面样本。取景失败可定位到受影响机位，附报告已有的失败类型、目标方块与遮挡位置。坐标变化时同一目标仍可归入持续问题，证据取自本次回执。`evidence_pointer` 是 `report.path` 文件中的 JSON Pointer，空字符串表示报告根。省略 `--baseline` 时只汇总本次问题。`walk`、`protection`、`candidate` 使用 `--baseline` 或 `--incremental` 时也输出分组视图。使用建筑命令的 `--compact-report` 时，`--report` 传简明回执中 `report.path` 指向的完整文件。
 
 审阅结果另外列出 `pending_views` 和原始 `delivery_summary`。本命令读取既有证据，实际看图后才登记观察。一次运行缺少某条问题可能只是未执行相关检查，继续核对本次检查覆盖范围和源绑定。

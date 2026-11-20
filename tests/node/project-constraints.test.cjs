@@ -41,7 +41,11 @@ test('opening requirements are optional and the SAODG extension is an explicit s
  const saodg=constraint(extension.rules,extension.name,extension.id)
  const open=constraint({require_enclosure:false,openings_policy:'optional',opening_size:[3,4]})
  assert.equal(C.effectiveProject(doc).context.mode,'standalone')
+ Object.assign(doc.project.context,{mode:'saodg',ports:[],door_y:2})
  doc.constraints=[open]
+ assert.deepEqual(plain(C.validate(doc)),[])
+ assert.equal(C.exportContext(doc).mode,'standalone')
+ assert.ok(!Object.hasOwn(C.exportContext(doc),'ports'))
  assert.equal(C.effectiveProject(doc).context.require_enclosure,false)
  assert.deepEqual(plain(C.effectiveProject(doc).context.opening_size),[3,4])
  assert.match(C.prompt(doc),/洞口净宽 × 净高为 3 × 4 格/)

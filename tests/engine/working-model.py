@@ -204,6 +204,8 @@ class WorkingModels(unittest.TestCase):
         return m
 
     def test_complete_building_keeps_preopening_source_and_checks_real_routes(self):
+        from nbt_finalize import finalize
+
         m = self.room()
         saved = m.save_draft('封闭开洞测试')
         version = Path(saved['output'])
@@ -212,6 +214,39 @@ class WorkingModels(unittest.TestCase):
         self.assertEqual(closed.get((5,1,0)),'minecraft:stone')
         self.assertEqual(read_master(saved['source'])[0].get((5,1,0)),'minecraft:air')
         self.assertTrue(m.validate()['whole_model']['routes']['passed'])
+        release = finalize(self.root, saved['source'], register_history=False)
+        checks = json.loads((Path(release['output'])/'validation/whole_model.json').read_text(encoding='utf8'))
+        self.assertEqual(checks['phase'], 'opened')
+        self.assertTrue(checks['original_preopening_proof'])
+        self.assertEqual(checks['preopening']['geometry_sha256'], closed.fingerprint())
+        self.assertEqual(read_master(release['nbt_master'])[0].blocks, m.model.blocks)
+
+    def test_finalize_rejects_managed_buildings_before_the_opened_phase(self):
+        from nbt_finalize import finalize, release_path
+        from nbt_whole_validation import validate_whole
+
+        context = dict(mode='standalone', openings=[], require_enclosure=True, interior_probes=[[3,2,3]],
+                       start=[2.5,1,2.5], targets={'inside':[5.5,1,5.5]})
+        model = WorkingModel(self.root, [8,6,8], context)
+        model.apply_operations([
+            dict(kind='box', label='外壳', classification='wall', lo=[0,0,0], hi=[7,5,7], state='stone'),
+            dict(kind='box', label='内部空间', classification='body', lo=[1,1,1], hi=[6,4,6], state='air')])
+        self.assertFalse(validate_whole(model.model, context)['original_preopening_proof'])
+
+        def assert_rejected(saved, phase):
+            target = release_path(self.root, saved['source'])
+            run = subprocess.run([sys.executable,'-B',str(SCRIPTS/'nbt_finalize.py'),
+                '--workspace',str(self.root),'--source',saved['source']],capture_output=True,text=True,encoding='utf8')
+            self.assertEqual(run.returncode, 1, run.stdout+run.stderr)
+            self.assertIn(phase, json.loads(run.stdout)['error'])
+            self.assertFalse(target.exists())
+
+        assert_rejected(model.save_draft('阶段检查'), 'design')
+        model.seal()
+        assert_rejected(model.save_draft(), 'sealed')
+        model.open_declared()
+        opened = model.save_draft()
+        self.assertTrue(finalize(self.root, opened['source'],register_history=False)['binary_roundtrip'])
 
     def test_open_air_courtyard_can_save_reopen_and_finalize_without_seal(self):
         from nbt_finalize import finalize
@@ -232,6 +267,39 @@ class WorkingModels(unittest.TestCase):
         release = finalize(self.root, saved['source'], register_history=False)
         self.assertTrue(release['binary_roundtrip'])
         self.assertEqual(read_master(release['nbt_master'])[0].blocks, model.model.blocks)
+
+    def test_open_air_conversion_finalizes_with_only_an_overview_camera(self):
+        from nbt_detail_control import default_settings
+        from nbt_web_revision import convert_web_json
+
+        context = dict(mode='standalone', require_enclosure=False, allow_empty_wall_mask=True,
+                       start=[3.5,1,1.5], targets={'court':[3.5,1,6.5]})
+        for draft_only in (False, True):
+            with self.subTest(draft_only=draft_only):
+                model = WorkingModel(self.root,[8,6,8],context)
+                model.apply_operations([dict(kind='box',label='地面',classification='body',
+                    lo=[0,0,0],hi=[7,0,7],state='stone')])
+                model.open_declared()
+                first = model.save_draft('露天回导另行定稿' if draft_only else '露天回导同时定稿')
+                settings = default_settings()
+                settings['operations'] = [dict(kind='box',label='更换铺装',classification='body',
+                    lo=[1,0,1],hi=[1,0,1],state='stone_bricks')]
+                request = self.root/'courtyard.json'
+                request.write_text(json.dumps(dict(source=first['source'],source_sha256=file_hash(first['source']),
+                    context=str(Path(first['output'])/'coordinates.json'),settings=settings,draft_only=draft_only)),encoding='utf8')
+                result = convert_web_json(request)
+                source = Path(result['master'])
+                coords = json.loads((Path(result['output'])/'coordinates.json').read_text(encoding='utf8'))
+                self.assertEqual([camera['role'] for camera in coords['cameras']],['whole'])
+                if draft_only:
+                    self.assertEqual(result['delivery_nbt'],0)
+                    run = subprocess.run([sys.executable,'-B',str(SCRIPTS/'nbt_finalize.py'),
+                        '--workspace',str(self.root),'--source',str(source)],capture_output=True,text=True,encoding='utf8')
+                    self.assertEqual(run.returncode,0,run.stdout+run.stderr)
+                    result = json.loads(run.stdout)
+                else:
+                    self.assertTrue(result['finalized'])
+                self.assertEqual(read_master(result['nbt_master'])[0].blocks,read_master(source)[0].blocks)
 
     def test_adjustable_aperture_is_checked_without_a_seal_and_fails_atomically(self):
         opening = dict(id='gate', lo=[2,1,0], hi=[4,4,0], facing='north')
@@ -274,6 +342,38 @@ class WorkingModels(unittest.TestCase):
         self.put(other,[8,1,8],'gold_block')
         with self.assertRaisesRegex(ModelConflict,'STALE_PARENT'):
             other.save_draft()
+
+    def test_reviewed_refinement_preserves_managed_constraints_and_instances(self):
+        from nbt_detail_control import apply_approved, create_review, default_settings, export_plan
+        from nbt_refine import prepare, record_user_approval, refine
+
+        model = self.room()
+        model.context['reserved_boxes'] = [dict(lo=[8,1,8],hi=[8,1,8])]
+        saved = model.save_draft('受管精修')
+        source = Path(saved['source'])
+        bad_config = dict(model.context, reserved_boxes=[])
+        with self.assertRaisesRegex(ValueError,'坐标或保护约束不一致'):
+            prepare(source,bad_config,self.root/'invalid-review')
+
+        settings = default_settings()
+        settings['operations'] = [dict(kind='box',label='调整墙面',classification='inherit',
+                                       lo=[0,2,6],hi=[0,2,6],state='stone_bricks')]
+        request = dict(source=str(source),source_sha256=file_hash(source),
+                       context=str(Path(saved['output'])/'coordinates.json'),settings=settings)
+        review = self.root/'review'
+        bundle = export_plan(request,self.root/'plan')['bundle']
+        create_review(request,review)
+        record_user_approval(review,'Synthetic review for this test fixture only',True)
+        blocked = dict(style_note='保留留白',operations=[
+            dict(kind='box',label='占用留白',lo=[8,1,8],hi=[8,1,8],state='stone_bricks')])
+        with self.assertRaisesRegex(ModelConflict,'RESERVED_SPACE'):
+            refine(review,blocked,self.root/'blocked')
+        result = apply_approved(request,bundle,review,self.root/'evidence')
+        revised = WorkingModel.open(self.root,result['preview_source'])
+        self.assertEqual(revised.instances,model.instances)
+        self.assertEqual(revised.context['reserved_boxes'],model.context['reserved_boxes'])
+        self.assertEqual(revised.model.get((0,2,6)),'minecraft:stone_bricks')
+        self.assertFalse(list(self.root.rglob('*.nbt')))
 
     def test_same_session_can_save_twice_and_retry_head_publication(self):
         m = self.new(kind='component')
@@ -504,6 +604,23 @@ class WorkingModels(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'ROUTE'):
             m.save_draft('路线检查')
 
+    def test_candidate_validation_uses_saved_managed_reserved_space(self):
+        from nbt_candidate import validate_candidate
+        from nbt_detail_control import default_settings,preview_effect
+
+        model=self.room()
+        model.context['reserved_boxes']=[dict(lo=[8,1,8],hi=[8,1,8])]
+        source=model.save_draft('候选检查留白')
+        settings=default_settings()
+        settings['operations']=[dict(kind='box',label='Test reserved space',
+            lo=[8,1,8],hi=[8,1,8],state='stone',classification='body')]
+        request=dict(source=source['source'],context=str(Path(source['output'])/'coordinates.json'),settings=settings)
+        preview=preview_effect(request,self.root/'preview')
+        result=validate_candidate(request,preview['snapshot'],self.root/'validation')
+        self.assertFalse(result['passed'])
+        self.assertIn('RESERVED_SPACE',result['checks']['candidate_geometry']['error'])
+        self.assertTrue(read_master(source['source'])[0].get((8,1,8)).endswith(':air'))
+
     def test_legacy_floor_context_protection_is_effective(self):
         source = self.legacy_room()
         context = source.parent.parent/'coordinates.json'
@@ -545,7 +662,8 @@ class WorkingModels(unittest.TestCase):
 
     def test_desktop_component_draft_uses_component_validation(self):
         from nbt_web_revision import convert_web_json
-        from nbt_detail_control import default_settings
+        from nbt_candidate import validate_candidate
+        from nbt_detail_control import default_settings,preview_effect
         m = self.new(kind='component')
         m.install('panel',block_recipe(),[4,1,4])
         first = m.save_draft('独立构件')
@@ -558,6 +676,14 @@ class WorkingModels(unittest.TestCase):
         self.assertTrue(inspect_source(first['source'])['editing_ready'])
         baseline = source_snapshot(json.loads(request.read_text(encoding='utf8')),self.root/'baseline')
         self.assertFalse(baseline['read_only_view'])
+        payload=json.loads(request.read_text(encoding='utf8'))
+        preview=preview_effect(payload,self.root/'preview')
+        result=validate_candidate(payload,preview['snapshot'],self.root/'validation')
+        self.assertTrue(result['passed'],result)
+        from nbt_project_batch import check_source
+        batch=check_source(Path(first['source']))
+        self.assertTrue(batch['passed'],batch)
+        self.assertEqual(batch['checks']['geometry_routes']['details']['whole_model'],'not_applicable_to_component')
         result = convert_web_json(request)
         reopened = WorkingModel.open(self.root,result['master'])
         self.assertEqual(reopened.kind,'component')

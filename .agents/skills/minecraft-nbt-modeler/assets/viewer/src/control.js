@@ -645,7 +645,7 @@ $('image-select').addEventListener('change',handle(()=>{imageMode();return selec
 $('more-images').addEventListener('click',handle(async()=>{state.imageLimit=32;await loadModel(true)}))
 $('review-image').addEventListener('load',renderPins)
 new ResizeObserver(renderPins).observe($('review-canvas'))
-$('export-revision').addEventListener('click',handle(async()=>{if(!state.preview||state.previewSettings!==JSON.stringify(gather()))throw new Error('请先更新效果预览，确认当前设置后再导出下一版');return runJob('revision')}))
+$('export-revision').addEventListener('click',handle(async()=>{if(!state.preview||state.previewSettings!==JSON.stringify(gather()))throw new Error('请先更新效果预览，确认当前设置后再导出下一版');return runJob('revision',{draft_only:false})}))
 $('plan').addEventListener('click',handle(()=>runJob('plan')))
 $('copy-agent-plan').addEventListener('click',handle(async()=>{
   if(!state.bundle||!state.agentText)throw Error('请先生成当前参数的 Agent 修改方案')

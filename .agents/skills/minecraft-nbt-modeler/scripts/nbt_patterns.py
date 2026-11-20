@@ -261,7 +261,7 @@ def main():
     if args.command == 'apply':
         from nbt_refine import refine
         result = refine(args.review, dict(style_note=args.style_note, operations=[operation]), args.output)
-        print(json.dumps({k: result[k] for k in ('state', 'changed_blocks')}, ensure_ascii=False))
+        print(json.dumps({k: result[k] for k in ('state', 'master', 'changed_blocks')}, ensure_ascii=False))
     else:
         from nbt_refine import read_master
         model, _ = read_master(args.source)

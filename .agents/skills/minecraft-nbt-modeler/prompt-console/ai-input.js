@@ -49,7 +49,7 @@
     for (const change of patch.changes) {
       if (!Number.isInteger(change.step) || change.step < 1 || change.step > merged.length || seen.has(change.step)) throw Error('增量目标步骤无效');
       seen.add(change.step);
-      if (!change.set || typeof change.set !== 'object' || Array.isArray(change.set) || Object.keys(change.set).some(key=>['__proto__','constructor','prototype','kind','overwrite','write_group','max_writes'].includes(key))) throw Error('增量不能修改工具权限或执行字段');
+      if (!change.set || typeof change.set !== 'object' || Array.isArray(change.set) || Object.keys(change.set).some(key=>['__proto__','constructor','prototype','kind','overwrite','write_bounds','write_group','max_writes'].includes(key))) throw Error('增量不能修改工具权限或执行字段');
       Object.assign(merged[change.step-1],JSON.parse(JSON.stringify(change.set)));
     }
     return merged;

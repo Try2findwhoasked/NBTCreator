@@ -31,6 +31,56 @@ test('task contracts stay small while retaining requested tools and existing ope
  assert.ok(buildInternalPrompt('workbench',{task:'brief'}).includes('待验证'))
 })
 
+test('the small-structure prompt uses inline states for boxes',()=>{
+ const prompt=buildInternalPrompt('small_structure')
+ assert.match(prompt,/不得用全局坐标或palette索引/)
+ assert.doesNotMatch(prompt,/可选palette/)
+})
+
+test('structure prompt example uses model coordinates and decodes in strict mode',()=>{
+ const {buildOutputSchema,decodeOutput}=require('../../desktop/ai-output-schema.cjs')
+ const {validatePatch}=require('../../desktop/api-service.cjs')
+ const context={lo:[12,3,20],hi:[15,6,25]}
+ const prompt=buildInternalPrompt('structure',context,{strictSchema:true})
+ const example=JSON.parse(prompt.match(/可返回 (\{.*\})。/)[1])
+ const decoded=decodeOutput(example,buildOutputSchema('structure',context))
+ assert.deepEqual(validatePatch(decoded,context).settings_patch.lo,context.lo)
+ assert.throws(()=>validatePatch({...decoded,settings_patch:{...decoded.settings_patch,lo:[0,0,0]}},context),/超出当前选区/)
+})
+
+test('strict controls example and constraint placeholders pass local validation',()=>{
+ const {buildOutputSchema,decodeOutput}=require('../../desktop/ai-output-schema.cjs')
+ const {normalizeReply}=require('../../desktop/ai-output-normalize.cjs')
+ const {validateWorkbench}=require('../../desktop/workbench-contract.cjs')
+ const context={task:'controls',project:{size:[4,4,4]},operations:[
+  {kind:'box',label:'石柱',classification:'body',lo:[0,0,0],hi:[0,2,0],state:'minecraft:stone'}
+ ]}
+ const schema=buildOutputSchema('workbench',context)
+ const prompt=buildInternalPrompt('workbench',context,{strictSchema:true})
+ const operation_patch=JSON.parse(prompt.match(/对应的 operation_patch 为 (\{.*\})。其他工具/)[1])
+ const project_patch=Object.fromEntries(schema.properties.project_patch.required.map(key=>[key,null]))
+ const reply={summary:'换材',project_patch,operations:null,operation_patch}
+ const normalized=normalizeReply(decodeOutput(reply,schema),'workbench',context)
+ assert.equal(validateWorkbench(normalized,context).operations[0].state,'minecraft:andesite')
+ const full={...reply,operations:[{...context.operations[0],enabled:null}],operation_patch:null}
+ assert.deepEqual(validateWorkbench(decodeOutput(full,schema),context).operations,context.operations)
+ delete reply.operation_patch.changes[0].set.label
+ assert.throws(()=>decodeOutput(reply,schema),/严格输出约束/)
+
+ const constraint={task:'constraint'},constraintSchema=buildOutputSchema('workbench',constraint)
+ assert.match(buildInternalPrompt('workbench',constraint,{strictSchema:true}),/全部规则键都须出现/)
+ assert.match(buildInternalPrompt('workbench',constraint),/未指定的键省略/)
+ const rules=Object.fromEntries(constraintSchema.properties.rules.required.map(key=>[key,null]))
+ const decoded=decodeOutput({name:'开放建筑',rules:{...rules,require_enclosure:false}},constraintSchema)
+ assert.deepEqual(validateWorkbench(decoded,constraint).rules,{require_enclosure:false})
+
+ const {validateSelectionResult}=require('../../desktop/selection-edit.cjs')
+ const selection={lo:[12,3,20],hi:[15,6,25],selection:{geometry_sha256:'a'.repeat(64)}}
+ const noAction={coordinate_space:'local',summary:'选区缺少安全施工空间',operations:[]}
+ const decodedSelection=decodeOutput(noAction,buildOutputSchema('selection_edit',selection))
+ assert.deepEqual(validateSelectionResult(decodedSelection,selection).settings_patch.operations,[])
+})
+
 test('a parameter repair can expand the tool contract without changing the request context',async t=>{
  const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path')
  const {createApiService}=require('../../desktop/api-service.cjs')

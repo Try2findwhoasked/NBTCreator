@@ -78,8 +78,12 @@ def validate_selection(items,project=None):
     if merged:validate_rules(merged)
     if project:
         integration = merged.get('integration', project.get('integration', 'standalone'))
-        if project.get('source') and 'integration' in merged and project.get('context', {}).get('mode', project.get('integration')) != integration:
-            raise ValueError('接入约束与已有建筑不符')
+        if project.get('source'):
+            from nbt_whole_validation import validation_mode
+            source_mode = validation_mode(project.get('context') or {})
+            if 'integration' in merged and source_mode != integration:
+                raise ValueError('接入约束与已有建筑不符')
+            integration = source_mode
         if integration == 'saodg' and merged:
             validate_rules(dict(merged, integration=integration))
         effective=dict(project,**{key:value for key,value in merged.items() if key in ('size','buildingShape')})

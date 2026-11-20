@@ -4,7 +4,13 @@
 
 当前默认作者资产目录为工作区 `nbt_models/<形状>/<中文房间名>/<版本>/`，SAODG中即 `SAODG/nbt_models/...`。形状目录固定为 `single`、`long`、`square`、`l_shape`、`t_shape`、`cross`、`irregular`、`standalone`；以完整主模型的实际有效cells判定，不能只凭文件夹名猜。测试夹具放 `_tests`，控制台缓存/任务放 `_workspaces`，不合规或待补证据资产保留在 `bugged`，迁移清单和原始JSON证据放 `_migration`。build不再是作者资产默认目录。
 
-先运行 `python <skill>/scripts/nbt_library.py new --workspace <工作区> --shape l_shape --name-zh 冷铸阶地工场` 获取独立版本目录，任务生成器全部写到该目录。完成主模型落盘后调用 `nbt_library.register_building(master_path, name_zh, cells)`，或CLI `register --master <完整主模型JSON.GZ> --name-zh <中文名>`。每版必须有 `room_description.json`：name_zh为房间中文名，shape为标准目录键，shape_zh为中文形状，display_name与description_zh统一为“中文房间名-形状”，master为实际完整主模型路径，geometry_sha256/size/cells绑定实际几何。中文名沿用设计材料；从旧slug翻译时记录name_source，不把译名当作设计验收。
+从创作项目根目录使用工作区 `nbt.py`：
+
+- 新建制作版用 [WorkingModel.save_draft](working-model.md)，例如 `model.save_draft(name_zh="冷铸阶地工场", shape="standalone")`。CLI 对应 `model --request <请求.json>`，请求中写入 `"save_draft":{"name_zh":"冷铸阶地工场","shape":"standalone"}`。按实际占地填写形状和坐标上下文，由保存入口发布版本、回读 `master/model.snbt` 并登记元数据。
+- 兼容导入用 `library register --master <旧完整JSON.GZ或NBT> --name-zh <中文名>`。保留旧源，在其旁创建或复用 `model.snbt`，以登记回执的 `master` 和 `history` 为准。旧命令按尺寸及有效格推断形状，48×4×48 的独立完整源可能被归为 `single`，因而拒绝登记到 `standalone` 目录。已有不同几何的 SNBT 时另建版本。
+- 用户明确要求定稿后，用 `finalize --workspace . --source <已保存制作源>`。以回执的 `output`、`nbt_master`、`runtime_files` 和交付目录内 `release.json` 为准。
+
+每版的 `room_description.json` 保存中文名、实际形状、显示名称和相对于版本目录的主模型路径，并用几何哈希、尺寸和占地绑定实际主模型。中文名沿用设计材料；从旧 slug 翻译时记录 name_source。
 
 网页按 `display_name` 显示“中文名-形状”，完整源路径在提示和高级信息中保留；同名版本通过版本选择区分。metadata中的audit只表示实际执行的文件/静态检查，不能把迁移归档当作新的视觉、49布局或游戏通过。所有新建、精修、网页回导都保留中文描述。不要再往build创建真实建筑或把整份历史副本标为新作品。
 
@@ -14,11 +20,11 @@
 
 ## 日期命名与版本
 
-- 新建NBT、图片、可下载文档/压缩包、任务生成脚本采用`YYYY-MM-DD_<房间编号>_<用途>.<扩展名>`，例如`2026-10-31_r001_p00.nbt`、`2026-10-31_r001_p00_body.nbt`、`2026-10-31_r001_p00_walls.nbt`、`2026-10-31_r001_overview.png`。批次汇总使用`YYYY-MM-DD_<批次短名>_gallery.png`等名称。
-- `coordinates.json`、`reading_record.json`、`design_review.json`、`delivery.json`和工具固定清单可保持稳定basename，放在上述日期/房间/版本目录内；通过清单记录实际带日期的文件路径，不为同一几何额外复制一套无日期NBT。
+- 自行生成的图片、可下载文档、压缩包和任务脚本可使用 `YYYY-MM-DD_<房间编号>_<用途>.<扩展名>`。批次汇总可使用 `YYYY-MM-DD_<批次短名>_gallery.png`。
+- `coordinates.json`、`reading_record.json`、`design_review.json`、`delivery.json` 和工具清单使用稳定文件名，保存在各自的制作或交付版本内。分片文件路径以清单为准。
 - 重生成、精修和回导采用新的`versions/YYYY-MM-DD_HHmmss_<阶段>/`或`exports/YYYY-MM-DD_HHmmss/`目录。需要同目录并存时增加时间或明确迭代号，不能覆盖已审阅初稿、图像、墙mask与哈希。并发agent先由主agent分配唯一房间编号，禁止多个agent写同一路径。
 - 跨日的新产物用其实际创建日期；保留`created_at`与`source_version`等对应关系，用户确认仍绑定所看的源模型和图像哈希，不因日期变化自动失效或自动取得批准。
-- `nbt_delivery.export_delivery`接受`file_prefix='YYYY-MM-DD_r001_'`；`nbt_whole_cut.slice_master`接受相同参数并同步用于完整分片和两层交付。工具默认空前缀仅为兼容旧调用，新任务需显式传入。工具固定的JSON/GZ主模型清单留在日期目录。
+- `finalize` 自动生成分片文件名，当前前缀为 `YYYY-MM-DD_building_`，完整 NBT 固定为 `master/model.nbt`。既有工程直接调用 `nbt_delivery.export_delivery` 或 `nbt_whole_cut.slice_master` 时可继续使用其 `file_prefix` 参数。
 - 已有任务保持原路径和引用，不自动迁移；用户另外指定目的地或名称时沿用其要求。
 
 ## 文件分区
@@ -37,7 +43,7 @@
 
 ## 可继续编辑的坐标上下文
 
-coordinates.json 也是应用继续编辑与 Agent 换人接手的正式上下文，不能只写设计说明而把可执行字段分散到旧验证报告。必须包含真实 `start`（玩家脚位XYZ）、非空 `targets`、非空 `interior_probes`、适用的 `protected_paths/protected_boxes/route_legs`。SAODG 使用 `mode: "saodg"`、`cells/door_y/ports`；独立建筑使用 `mode: "standalone"`、显式 `openings`（无开口填[]），不套用SAODG门洞。墙mask在主模型或显式配置中保存，不按材质补造。相机可放独立 cameras.json。
+coordinates.json 保存继续编辑所需的真实 `start`、非空 `targets` 和适用的 `protected_paths/protected_boxes/route_legs`。要求密闭时提供非空 `interior_probes`。独立开放建筑可显式设置 `require_enclosure: false`。SAODG 使用 `mode: "saodg"` 与 `cells/door_y/ports`，独立建筑使用 `mode: "standalone"` 和 `openings`（无开口填 []）。墙层保存在主模型或显式配置中，相机可放在 cameras.json。
 
 交付前运行 `nbt.py control inspect --source <主模型>` 核对 `editing_ready` 和 `context_readiness`，再做实际整体验证。editing_ready 只表示上下文字段可用，不证明通路或设计合格；缺少配置时应用允许只读看图/3D和评论，不能宣称已经可修改或导出。
 

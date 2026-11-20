@@ -146,6 +146,17 @@ def protective_openings(model, config):
 
 
 def validate_whole(model, config):
+    from nbt_change_policy import reserved_position
+    from nbt_refine import point
+
+    reserved=config.get('reserved_boxes',[])
+    for box in reserved:
+        lo,hi=point(box['lo']),point(box['hi'])
+        if not model.in_bounds(lo) or not model.in_bounds(hi) or any(a>b for a,b in zip(lo,hi)):
+            raise ValueError('留白区域边界无效')
+    conflict=reserved_position(model.blocks,reserved)
+    if conflict is not None:
+        raise ValueError(f'RESERVED_SPACE: 留白区域被占用 {conflict}')
     seal_required = requires_enclosure(config)
     if validation_mode(config) != 'standalone':
         from nbt_refine import validate_saodg

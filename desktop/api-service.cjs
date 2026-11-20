@@ -138,7 +138,8 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   let context=input.mode==='workbench'?cleanContext(input.context):input.mode==='component'?componentContext(input.context):input.mode==='selection_edit'?cleanSelectionContext(input.context):contextOf(input.context)
   if(['structure','small_structure'].includes(input.mode)&&!context)throw Error('结构规划需要先打开模型并选择局部范围')
   const promptBuilder=require('./internal-skill.cjs').buildInternalPrompt
-  const taskPrompt=promptBuilder(input.mode,context,{instruction:input.instruction})
+  const promptOptions={instruction:input.instruction,strictSchema:config.strictSchema}
+  const taskPrompt=promptBuilder(input.mode,context,promptOptions)
   let system=(config.outputCharLimit?`最终结果限制为 ${config.outputCharLimit} 字（Unicode字符，含空白和JSON标点）；不计可分离的思考与说明。`:'最终结果不设应用字数限制。')+'返回完整最终结果，不输出思考。JSON任务返回一个完整对象；文字任务可用单独的<final>与</final>包围正文。保留必要设计，超长时先合并重复内容。\n'+taskPrompt
   const internal=await token.workflowPromise;if(token.cancelled)throw Error('API 请求已取消')
   if(internal?.retrieved_assets?.length&&input.mode==='component'){const references=[...context.references];for(const item of internal.retrieved_assets){const old=references.find(ref=>ref.id===item.id);if(old&&old.content_sha256!==item.content_sha256)throw Error('引用资产已变化，请重新选择');if(!old)references.push(item)}context=componentContext({...context,references})}
@@ -160,7 +161,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     const hints=Object.fromEntries(Object.entries(require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').tools).map(([kind,[,,hint]])=>[kind,hint]))
     system+=' 工具语义：'+JSON.stringify(hints)
    }
-   system+=' 严格按response_format的JSON Schema返回，summary最多160字。可选字段不使用时返回null；material_map和slab_overrides用[{key:原状态,value:目标状态}]表示。只返回完整紧凑JSON。Schema不取代本地保护、预算、源哈希、真实预览或用户显式导出。'
+   system+=' 严格按response_format的JSON Schema返回完整紧凑JSON。Schema不取代本地保护、预算、源哈希、真实预览或用户显式导出。'
   }
   const payload={model:config.model,messages:[{role:'system',content:system},{role:'user',content:JSON.stringify({instruction:input.instruction,context:apiContext,...(internal?{internal_workflow:providerWorkflow}:{})})}],max_tokens:input.mode==='prompt'?6144:12288,stream:false}
   if(new URL(config.baseUrl).hostname==='api.deepseek.com'&&['deepseek-flash','deepseek-v4-pro'].includes(config.model)&&config.requestOptions.thinking===undefined&&config.requestOptions.reasoning_effort===undefined)payload.thinking={type:'disabled'}
@@ -169,6 +170,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   if(image)payload.messages[1].content=[{type:'text',text:payload.messages[1].content+'\n附图是当前建模视口，仅用于理解外观；坐标以本地上下文为准，不能从图片推定已验证或已批准。'},{type:'image_url',image_url:{url:image,detail:'auto'}}]
   if(outputSchema)payload.response_format={type:'json_schema',json_schema:{name:'nbt_'+input.mode,strict:true,schema:providerSchema(outputSchema)}}
   else if(input.mode!=='prompt'&&config.jsonMode)payload.response_format={type:'json_object'}
+  if(outputSchema)api_metrics.output_schema_bytes=Buffer.byteLength(JSON.stringify(payload.response_format.json_schema.schema),'utf8')
   api_metrics.output_format=payload.response_format?.type??'text'
   api_metrics.prepare_ms=Math.round(performance.now()-token.started)
   const textChars=()=>payload.messages.reduce((n,message)=>n+(typeof message.content==='string'?message.content.length:message.content.filter(item=>item.type==='text').reduce((sum,item)=>sum+item.text.length,0)),0)
@@ -231,13 +233,13 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     const reason=response.choices?.[0]?.finish_reason,text=response.choices?.[0]?.message?.content
     if(error.retryable===false||reason==='content_filter'||api_metrics.attempts>=3||reason==='length'&&compactRetries>=1)throw error
     const issue=api_metrics.calls.at(-1).validation_issue
-    if(['invalid_tool','invalid_parameter','invalid_geometry'].includes(issue?.code)&&['component','selection_edit','workbench'].includes(input.mode)&&!(input.mode==='workbench'&&['brief','constraint'].includes(context.task))){
-     originalMessages[0].content=originalMessages[0].content.replace(taskPrompt,promptBuilder(input.mode,context,{instruction:input.instruction,fullTools:true}))
+    if(!outputSchema&&['invalid_tool','invalid_parameter','invalid_geometry'].includes(issue?.code)&&['component','selection_edit','workbench'].includes(input.mode)&&!(input.mode==='workbench'&&['brief','constraint'].includes(context.task))){
+     originalMessages[0].content=originalMessages[0].content.replace(taskPrompt,promptBuilder(input.mode,context,{...promptOptions,fullTools:true}))
      api_metrics.expanded_tool_contract=true
     }
     if(reason==='length'){compactRetries++;api_metrics.retried_compact=true}
     if(reason==='length'&&input.mode==='small_structure'&&outputSchema){outputSchema.properties.settings_patch.properties.operations.maxItems=24;outputSchema.properties.summary.maxLength=80;payload.response_format.json_schema.schema=providerSchema(outputSchema)}
-    const feedback=reason==='length'?(input.mode==='workbench'&&context.task==='constraint'?'上次输出达到长度上限。重新给出完整精简的{name,rules}约束候选，不返回工具步骤、路径或权限。':input.mode==='workbench'&&context.task==='brief'?'上次输出达到长度上限。重新给出完整精简的project_patch，仅包含本次允许修改的设计文字；不续写、不生成工具步骤，保留人工硬条件。':input.mode==='prompt'?'上次文字达到长度上限。重新给出完整精简的设计说明，保留用户硬条件，不续写或生成工具步骤。':'上次输出达到长度上限。重新给出完整精简答案，不续写；小构件只保留最多24个box/beam/frame操作。'):('本地校验未通过：'+error.message.replace(/[\r\n]/g,' ').slice(0,300)+'。仅修正格式、长度或错误参数，保持原任务和原上下文，不扩大权限。')
+    const feedback=reason==='length'?(input.mode==='workbench'&&context.task==='constraint'?'上次输出达到长度上限。重新给出完整精简的{name,rules}约束候选，不返回工具步骤、路径或权限。':input.mode==='workbench'&&context.task==='brief'?'上次输出达到长度上限。重新给出完整精简的project_patch，仅包含本次允许修改的设计文字；不续写、不生成工具步骤，保留人工硬条件。':input.mode==='prompt'?'上次文字达到长度上限。重新给出完整精简的设计说明，保留用户硬条件，不续写或生成工具步骤。':'上次输出达到长度上限。重新给出完整精简答案，不续写。'+(input.mode==='small_structure'?'小构件只保留最多24个box/beam/frame操作。':'')):('本地校验未通过：'+error.message.replace(/[\r\n]/g,' ').slice(0,300)+'。仅修正格式、长度或错误参数，保持原任务和原上下文，不扩大权限。')
     payload.messages=structuredClone(originalMessages)
     if(reason!=='length'&&typeof text==='string'&&text.length<=48000&&Array.from(text).length<=Math.min(config.outputCharLimit?config.outputCharLimit*2:24000,24000))payload.messages.push({role:'assistant',content:text})
     else payload.messages.push({role:'assistant',content:'（本地已省略上一次不完整或过长的输出，不能视为已完成的候选。）'})

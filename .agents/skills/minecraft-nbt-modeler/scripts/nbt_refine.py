@@ -12,16 +12,21 @@ import json
 import math
 from pathlib import Path
 
-from nbt_model import AIR, AIR_NAMES, Model, load, state
+from nbt_model import AIR, AIR_NAMES, state
 from nbt_assembly import Volume
 from nbt_collision import check_routes
-from nbt_delivery import export_delivery
 from nbt_tools import KINDS as MODELLING_KINDS
 SUPPORTED_OPERATION_KINDS=MODELLING_KINDS|{'box','hollow_box','frame','beam','surface_palette','pattern','weathering','auto_floor','move_region'}
 
 
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def binary_wall_mask_hash(source):
+    source=Path(source)
+    sidecar=source.with_name('wall_mask.json')
+    return digest(sidecar) if source.suffix.lower()=='.nbt' and sidecar.is_file() else None
 
 
 def write_json(path, value):
@@ -59,7 +64,22 @@ def read_master(path):
     if data.get('geometry_sha256')!=model.fingerprint():raise ValueError('Master fingerprint mismatch')
     walls={point(p) for p in data.get('wall_positions',[])}
     if any(not model.in_bounds(p) for p in walls):raise ValueError('Wall mask exceeds source bounds')
+    model._wall_mask_declared='wall_positions' in data
     return model,walls
+
+
+def resolve_wall_mask(model, walls, context):
+    # Legacy geometry can include old wall positions cleared when openings were cut.
+    walls=set(walls) & model.blocks.keys()
+    if 'wall_positions' not in context:
+        return walls
+    declared={point(p) for p in context['wall_positions']}
+    if not declared <= model.blocks.keys():
+        raise ValueError('显式墙层归属越界或指向空气')
+    if getattr(model,'_wall_mask_declared',False) and declared!=walls:
+        from nbt_working_model import ModelConflict
+        raise ModelConflict('WALL_SOURCE_MISMATCH', [dict(source_walls=len(walls), context_walls=len(declared))])
+    return declared
 
 
 def save_master(path,model,walls):
@@ -184,16 +204,47 @@ def _render(model,camera,path):
                 source_geometry_sha256=model.fingerprint(),approximations=approx)
 
 
+def refinement_context(source, config, source_hash):
+    from nbt_history import source_workspace
+    from nbt_working_model import WorkingModel, managed_manifest
+
+    if not managed_manifest(source):
+        from nbt_library import inherit_edit_constraints
+        return None, inherit_edit_constraints(config,source)
+    working = WorkingModel.open(source_workspace(source), source, source_sha256=source_hash)
+    options = {'cameras', 'max_changed_blocks', 'wall_positions'}
+    if any(key not in options and (key not in working.context or value != working.context[key])
+           for key, value in config.items()):
+        raise ValueError('审阅配置与受管制作版的坐标或保护约束不一致')
+    if 'wall_positions' in config and {point(p) for p in config['wall_positions']} != working.walls:
+        raise ValueError('审阅配置与源制作版墙层不一致')
+    budget = config.get('max_changed_blocks', 4096)
+    if type(budget) is not int or budget < 1:
+        raise ValueError('精修改动预算须为正整数')
+    effective = dict(working.context, cameras=config.get('cameras', working.context.get('cameras', [])),
+                     max_changed_blocks=min(budget, working._budget()))
+    return working, effective
+
+
 def prepare(source,config,review_dir):
+    from nbt_library import saved_coordinates_hash
+
     source=Path(source).resolve();review=Path(review_dir).resolve()
     if review.exists():raise FileExistsError('Use a new review directory to preserve previous review')
-    source_bytes=source.read_bytes()
-    model,walls=read_master(source);config=json.loads(json.dumps(config))
+    source_hash=digest(source)
+    mask_hash=binary_wall_mask_hash(source)
+    context_hash=saved_coordinates_hash(source)
+    working,config=refinement_context(source,json.loads(json.dumps(config)),source_hash)
+    if working and (working.kind!='building' or working.phase!='opened'):
+        raise ValueError('整栋精修需要已完成基础检查的建筑制作版')
+    model,walls=(working.model,working.walls) if working else read_master(source)
     cells=layout(model,config)
-    if 'wall_positions' in config:walls={point(p) for p in config.pop('wall_positions')}
+    walls=resolve_wall_mask(model,walls,config)
+    config.pop('wall_positions',None)
     from nbt_whole_validation import validation_mode
     standalone=validation_mode(config)=='standalone'
     if any(not model.in_bounds(p) or (not standalone and (p[0]//48,p[2]//48) not in cells) for p in walls):raise ValueError('Invalid wall mask')
+    walls.intersection_update(model.blocks)
     if standalone and not walls and config.get('allow_empty_wall_mask') is not True:
         raise ValueError('An empty standalone wall mask requires an explicit allow_empty_wall_mask=true')
     if not standalone and any(not any((p[0]//48,p[2]//48)==cell and model.get(p) not in AIR_NAMES for p in walls) for cell in cells):
@@ -211,20 +262,34 @@ def prepare(source,config,review_dir):
     for i,t in enumerate(thumbs):
         sheet.paste(Image.open(review/t['file']),(i*640,32));draw.text((i*640+12,10),t['role'],fill='white')
     sheet.save(review/'thumbnails.png')
-    if source.read_bytes()!=source_bytes:raise ValueError('Original changed while generating thumbnails; prepare a new review')
-    record=dict(stage='awaiting_user_review',source=str(source),source_sha256=digest(source),
+    if (digest(source)!=source_hash or binary_wall_mask_hash(source)!=mask_hash
+            or saved_coordinates_hash(source)!=context_hash):
+        raise ValueError('Original changed while generating thumbnails; prepare a new review')
+    record=dict(stage='awaiting_user_review',source=str(source),source_sha256=source_hash,
+                binary_wall_mask_sha256=mask_hash,
+                source_coordinates_sha256=context_hash,
                 snapshot_sha256=digest(review/'source.master.json.gz'),source_geometry_sha256=model.fingerprint(),
                 config_sha256=digest(review/'config.json'),thumbnails=thumbs,
                 sheet=dict(file='thumbnails.png',sha256=digest(review/'thumbnails.png')),
-                workflow='restore_approved_whole_uncut_master_then_refine_globally_then_reslice',
+                workflow='restore_approved_whole_uncut_master_then_refine_and_save',
                 instruction='Show these thumbnails to the human and wait for an explicit request to refine this draft.')
     write_json(review/'review.json',record)
     return record
 
 
-def _current_review(review):
-    review=Path(review);record=json.loads((review/'review.json').read_text(encoding='utf8'))
-    if digest(record['source'])!=record['source_sha256']:raise ValueError('Original source changed; prepare new thumbnails')
+def _current_review(review, expected_hash=None):
+    from nbt_library import saved_coordinates_hash
+
+    review=Path(review);raw=(review/'review.json').read_bytes()
+    if expected_hash is not None and hashlib.sha256(raw).hexdigest()!=expected_hash:
+        raise ValueError('Approval does not match current thumbnails')
+    record=json.loads(raw)
+    if (digest(record['source'])!=record['source_sha256']
+            or binary_wall_mask_hash(record['source'])!=record.get('binary_wall_mask_sha256')):
+        raise ValueError('Original source or wall mask changed; prepare new thumbnails')
+    if ('source_coordinates_sha256' in record
+            and saved_coordinates_hash(record['source'])!=record['source_coordinates_sha256']):
+        raise ValueError('Original coordinates changed; prepare new thumbnails')
     for name,key in [('source.master.json.gz','snapshot_sha256'),('config.json','config_sha256')]:
         if digest(review/name)!=record[key]:raise ValueError('Review snapshot/config changed')
     for item in [*record['thumbnails'],record['sheet']]:
@@ -234,15 +299,18 @@ def _current_review(review):
 
 def record_user_approval(review,user_message,user_reviewed_thumbnails=False):
     """Call only with a human's actual conversational authorization, never inferred."""
-    review=Path(review);_current_review(review)
+    review=Path(review);review_hash=digest(review/'review.json')
+    _current_review(review,review_hash)
     if not user_reviewed_thumbnails or not isinstance(user_message,str) or not user_message.strip():
         raise ValueError('Explicit human response after thumbnail review is required')
     approval=review/'approval.json'
-    if approval.exists():raise FileExistsError('Approval already recorded')
-    result=dict(stage='approved_for_refinement',review_sha256=digest(review/'review.json'),user_message=user_message,
+    result=dict(stage='approved_for_refinement',review_sha256=review_hash,user_message=user_message,
                 user_reviewed_thumbnails=True,
                 boundary='Agent-provided receipt of actual human consent; not an authentication mechanism.')
-    write_json(approval,result);return result
+    with approval.open('x',encoding='utf8') as file:
+        json.dump(result,file,ensure_ascii=False,indent=2)
+        file.write('\n')
+    return result
 
 
 def operation_candidates(model,operation,protected=()):
@@ -319,17 +387,26 @@ def _operation_candidates(model,operation,protected=()):
 
 
 def refine(review_dir,plan,output_dir):
-    review=Path(review_dir).resolve();record=_current_review(review)
+    review=Path(review_dir).resolve()
     approval_path=review/'approval.json'
     if not approval_path.is_file():raise PermissionError('Waiting for human thumbnail approval; no refinement performed')
-    approval=json.loads(approval_path.read_text(encoding='utf8'))
-    if approval.get('review_sha256')!=digest(review/'review.json') or not approval.get('user_reviewed_thumbnails'):
+    approval_bytes=approval_path.read_bytes();approval=json.loads(approval_bytes)
+    review_hash=approval.get('review_sha256')
+    if (approval.get('stage')!='approved_for_refinement' or approval.get('user_reviewed_thumbnails') is not True
+            or not isinstance(review_hash,str) or not isinstance(approval.get('user_message'),str)
+            or not approval['user_message'].strip()):
         raise ValueError('Approval does not match current thumbnails')
+    record=_current_review(review,review_hash)
     out=Path(output_dir).resolve()
     if out.exists() or out==review or out in review.parents or review in out.parents:
         raise ValueError('Use a separate, new revision directory; source/review cannot be overwritten')
     model,walls=read_master(review/'source.master.json.gz');original=dict(model.blocks);old_walls=set(walls)
-    config=json.loads((review/'config.json').read_text(encoding='utf8'));cells=layout(model,config)
+    config=json.loads((review/'config.json').read_text(encoding='utf8'))
+    working,effective=refinement_context(Path(record['source']),config,record['source_sha256'])
+    if effective!=config or working and (working.kind!='building' or working.phase!='opened'
+                                        or working.model.blocks!=original or working.walls!=walls):
+        raise ValueError('制作源或约束与审阅快照不一致，请重新生成审阅图')
+    cells=layout(model,config)
     from nbt_whole_validation import validation_mode
     standalone=validation_mode(config)=='standalone'
     protected=protections(model,config);operations=plan['operations']
@@ -387,32 +464,19 @@ def refine(review_dir,plan,output_dir):
     budget=config.get('max_changed_blocks',4096)
     difference=enforce_changes(original,model.blocks,old_walls,walls,protected=protected,maximum=budget,require_change=True)
     geometry_changed,layers_changed=change_sets(original,model.blocks,old_walls,walls)
-    checks=validate(model,config)
-    _current_review(review)
-    # Whole-source checks, followed by mechanical export; never rebuild per cell.
-    if not standalone:
-        model.seal_record=dict(checks['recapped_seal'],scope='refined_whole_model_legal_ports_recapped')
-        model.stage='opened';model.final_fingerprint=model.fingerprint()
+    if working:
+        working.patch_candidate(model,walls)
+        working.context['cameras']=config['cameras']
+        checks=working.validate()['whole_model']
+    else:
+        checks=validate(model,config)
+    _current_review(review,review_hash)
     out.mkdir(parents=True)
     write_json(out/'refinement.json',dict(state='writing',source=record['source'],source_geometry_sha256=record['source_geometry_sha256'],runtime_verified=False))
-    save_master(out/'refined.master.json.gz',model,walls)
     diff=[dict(pos=list(p),before=original.get(p,AIR),after=model.get(p)) for p in sorted(geometry_changed)]
     write_json(out/'changes.json',dict(changes=diff,wall_membership_changed=[list(p) for p in sorted(layers_changed)],
                wall_changes=[dict(pos=list(p),before_wall=p in old_walls and p in original,after_wall=p in walls and p in model.blocks) for p in sorted(layers_changed)],**difference))
     write_json(out/'plan.json',plan);write_json(out/'validation.json',checks)
-    if standalone:
-        from nbt_standalone_delivery import export_standalone
-        exported=export_standalone(model,walls,out,allow_empty_wall_mask=config.get('allow_empty_wall_mask',False),active_cells=config.get('cells'),checks=checks,cell_size=config.get('cell_size',48))
-        delivery=exported['delivery'];runtime=exported['runtime_templates']
-    else:
-        delivery=export_delivery(model,cells,walls,out/'delivery','Approved detail revision of explicit whole-source wall mask')
-        runtime=[]
-        for cx,cz in sorted(cells):
-            part=Model((48,model.size[1],48))
-            for (x,y,z),v in model.blocks.items():
-                if (x//48,z//48)==(cx,cz):part.put((x-cx*48,y,z-cz*48),v)
-            part.seal_record=model.seal_record;part.stage='opened';part.final_fingerprint=part.fingerprint()
-            runtime.append(part.save(out/'runtime'/f'p{cx}{cz}.nbt'))
     previews=[_render(model,c,out/f'refined_{i:02}.png') for i,c in enumerate(config['cameras'])]
     from PIL import Image,ImageDraw
     comparison=Image.new('RGB',(1280,438*len(previews)),'#14202b');draw=ImageDraw.Draw(comparison)
@@ -422,13 +486,28 @@ def refine(review_dir,plan,output_dir):
         with Image.open(review/before['file']) as img:comparison.paste(img,(0,i*438+32))
         with Image.open(out/after['file']) as img:comparison.paste(img,(640,i*438+32))
     comparison.save(out/'comparison.png')
-    _current_review(review)
+    _current_review(review,review_hash)
+    if approval_path.read_bytes()!=approval_bytes:
+        raise ValueError('Approval changed while refining')
+    approval_hash=hashlib.sha256(approval_bytes).hexdigest()
+    if working:
+        master=Path(working.save_draft(attachments={'refinement.json':dict(
+            source_sha256=record['source_sha256'],approval_receipt_sha256=approval_hash,
+            plan=plan)})['source'])
+    else:
+        from nbt_snbt import save_snbt
+        source=Path(record['source'])
+        baseline=read_master(source)[0] if source.suffix.lower()=='.snbt' else None
+        master=out/'master/model.snbt'
+        save_snbt(master,model,walls,palette=getattr(baseline,'_snbt_palette',None),extras=getattr(baseline,'_snbt_extras',None))
+        write_json(out/'coordinates.json',config)
     final=dict(source_geometry_sha256=record['source_geometry_sha256'],refined_geometry_sha256=model.fingerprint(),
-               approval_receipt_sha256=digest(approval_path),operations=summary,**difference,
-               protected_cells=len(protected),validation_passed=True,delivery_nbt_files=delivery['actual_nbt_files'],
-               runtime_templates=runtime,previews=previews,original_source_unchanged=digest(record['source'])==record['source_sha256'],
+               approval_receipt_sha256=approval_hash,operations=summary,**difference,
+               protected_cells=len(protected),validation_passed=True,master=str(master),
+               delivery_nbt_files=0,runtime_templates=[],previews=previews,
+               original_source_unchanged=digest(record['source'])==record['source_sha256'],
                state='refined_pending_agent_visual_review',runtime_verified=False,
-               workflow='whole_uncut_source_restored_then_global_details_then_mechanical_reslice',
+               workflow='whole_uncut_source_restored_then_global_details_then_save_snbt',
                shared_style_note=plan['style_note'],
                comparison=dict(file='comparison.png',sha256=digest(out/'comparison.png')),
                next_action='Inspect actual refined images; keep original draft and report limitations.')
@@ -444,7 +523,7 @@ def main():
     if args.command=='prepare':result=prepare(args.source,json.loads(args.config.read_text(encoding='utf8')),args.review)
     elif args.command=='approve':result=record_user_approval(args.review,args.user_message,args.user_reviewed_thumbnails)
     else:result=refine(args.review,json.loads(args.plan.read_text(encoding='utf8')),args.output)
-    print(json.dumps({k:v for k,v in result.items() if k in ('stage','state','changed_blocks','wall_membership_changes','changed_positions','delivery_nbt_files','instruction')},ensure_ascii=False))
+    print(json.dumps({k:v for k,v in result.items() if k in ('stage','state','master','changed_blocks','wall_membership_changes','changed_positions','delivery_nbt_files','instruction')},ensure_ascii=False))
 
 
 if __name__=='__main__':main()

@@ -204,4 +204,27 @@ class Contracts(unittest.TestCase):
   self.assertEqual((issue['target'],issue['evidence']['reason']),('return_desk.intake','wrong_side'))
   new.write_text(json.dumps(dict(images={'entry':{},'roof':{}},observations=[dict(image='entry')],issues=[],delivery_summary=['1/2'])),encoding='utf8')
   self.assertEqual(delta('review',new)['review']['pending_views'],['roof'])
+
+ def test_assembly_identity_and_review_candidate_evidence(self):
+  old,new=self.w/'old.json',self.w/'new.json'
+  tea=dict(instance='tea_table',object='body',passed=False,unknown_shapes=[dict(pos=[8,3,7],state='minecraft:red_carpet')])
+  joint=dict(instance='post',object='top',interface='beam',passed=False,missing_faces_half=[[26,10,10]])
+  def save(path,data):path.write_text(json.dumps(data),encoding='utf8')
+  save(old,dict(ok=False,code='ASSEMBLY_INVALID',conflicts=[tea]))
+  save(new,dict(ok=False,code='ASSEMBLY_INVALID',conflicts=[joint,tea]))
+  result=delta('model',new,old)
+  self.assertEqual(result['ongoing'][0]['scope'],'tea_table')
+  self.assertEqual(result['ongoing'][0]['evidence']['unknown_shapes'][0]['pos'],[8,3,7])
+  issue,=result['new']
+  self.assertEqual((issue['scope'],issue['target'],issue['evidence_pointer']),('post','top.beam','/conflicts/0'))
+  self.assertEqual(issue['evidence']['missing_faces_half'],[[26,10,10]])
+  view=dict(view='joinery',passed=False,visibility=dict(failure='occluded',blocker=[13,5,5],
+   target_cell=[14,6,5],target_state='minecraft:stripped_spruce_log[axis=x]',target_inside_solid=True))
+  location=dict(id='joint',passed=False,position=[14,6.15,5.6],candidates=[view])
+  save(old,dict(coverage=dict(views=[],review_locations=[location])))
+  save(new,dict(coverage=dict(views=[],review_locations=[dict(location,candidates=[view,dict(view,view='roof')])])))
+  result=delta('review',new,old)
+  self.assertEqual(result['ongoing'][0]['evidence_pointer'],'/coverage/review_locations/0/candidates/0/visibility')
+  self.assertEqual(result['new'][0]['evidence']['view'],'roof')
+  self.assertEqual(result['new'][0]['evidence']['blocker'],[13,5,5])
 if __name__=='__main__':unittest.main(verbosity=2)

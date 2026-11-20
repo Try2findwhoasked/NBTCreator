@@ -21,7 +21,49 @@ class Batch(unittest.TestCase):
  def test_checks_actual_models_and_keeps_reports_without_writing_assets_or_approvals(self):
   queue=self.create();result=batch.run(self.workspace,queue['id']);self.assertEqual(result['status'],'complete');self.assertEqual(result['progress']['complete'],2);self.assertEqual([s.read_bytes() for s in self.sources],self.before)
   for item in result['items']:
-   report=json.loads((self.workspace/item['steps']['check']['report']).read_text(encoding='utf8'));self.assertTrue(report['passed']);self.assertFalse(report['asset_written']);self.assertFalse(report['runtime_verified']);self.assertIn('geometry_routes',report['checks'])
+   report=json.loads((self.workspace/item['steps']['check']['report']).read_text(encoding='utf8'));self.assertTrue(report['passed']);self.assertFalse(report['asset_written']);self.assertFalse(report['runtime_verified']);self.assertEqual(report['checks']['geometry_routes']['status'],'passed')
+
+ def test_reports_stage_skips_and_components_separately_from_route_success(self):
+  from nbt_refine import read_master,save_master
+  from nbt_whole_validation import validate_whole
+  from nbt_working_model import WorkingModel
+
+  context=dict(mode='standalone',openings=[],require_enclosure=True,interior_probes=[[2,2,2]],
+               start=[2.5,1,2.5],targets={'far':[5.5,1,5.5]})
+  draft=WorkingModel(self.workspace,[8,6,8],context)
+  draft.apply_operations([
+   dict(kind='box',label='外壳',classification='wall',lo=[0,0,0],hi=[7,5,7],state='stone'),
+   dict(kind='box',label='内部空间',classification='body',lo=[1,1,1],hi=[6,4,6],state='air'),
+   dict(kind='box',label='阻断通行',classification='body',lo=[4,1,1],hi=[4,4,6],state='stone')])
+  with self.assertRaisesRegex(ValueError,'route validation failed'):
+   validate_whole(draft.model,context)
+  design=draft.save_draft('断路草稿')
+  draft.seal()
+  sealed=draft.save_draft()
+  component=WorkingModel(self.workspace,[3,3,3],kind='component')
+  component.apply_operations([dict(kind='box',label='构件',classification='body',lo=[1,0,1],hi=[1,2,1],state='stone')])
+  component=component.save_draft('独立构件')
+  blocked=self.sources[1]
+  model,walls=read_master(blocked)
+  model.box((2,4,15),(45,13,15),'stone')
+  save_master(blocked,model,walls)
+  self.sources=[Path(saved['source']) for saved in (design,sealed,component)]+self.sources
+  result=batch.run(self.workspace,self.create()['id'])
+  self.assertEqual(result['progress']['complete'],4)
+  self.assertEqual(result['progress']['failed'],1)
+  for item,status,passed,overall,reason in zip(result['items'],
+        ('not_checked','not_checked','not_applicable','passed','failed'),
+        (None,None,None,True,False),(None,None,True,True,False),
+        ('not_checked_in_design_phase','not_checked_in_sealed_phase','not_applicable_to_component',None,None)):
+   step=item['steps']['check']
+   report=batch.read_json(self.workspace/step['report'])
+   check=report['checks']['geometry_routes']
+   self.assertEqual(check['status'],status)
+   self.assertIs(check['passed'],passed)
+   self.assertIs(report['passed'],overall)
+   self.assertEqual(check.get('reason'),reason)
+   self.assertEqual(step['result']['checks']['geometry_routes']['status'],status)
+   self.assertIs(step['result']['passed'],overall)
  def test_failure_does_not_stop_other_items_and_retry_only_reexecutes_failed_steps(self):
   self.sources[1].write_bytes(b'corrupt');queue=self.create();result=batch.run(self.workspace,queue['id']);self.assertEqual(result['progress']['failed'],1);self.assertEqual(result['progress']['complete'],1)
   self.sources[1].write_bytes(self.before[1]);batch.retry(self.workspace,queue['id']);result=batch.run(self.workspace,queue['id']);self.assertEqual(result['progress']['complete'],2);self.assertEqual([item['steps']['check']['attempts'] for item in result['items']],[1,2]);self.assertEqual(self.sources[0].read_bytes(),self.before[0])
@@ -47,6 +89,94 @@ class Batch(unittest.TestCase):
   image=self.workspace/'.nbtcreator/cache/section-covers/generated/test/overview.png';image.parent.mkdir(parents=True);image.write_bytes(b'cache');queue=self.create(['preview','check'])
   with patch('nbt_cover.section_cover',return_value=dict(image=str(image),thumbnail=str(image),cached=True,section=True)) as render:
    result=batch.run(self.workspace,queue['id']);self.assertEqual(render.call_count,2);self.assertEqual(result['progress']['total'],4);self.assertEqual(result['progress']['complete'],4);self.assertTrue(result['items'][0]['steps']['preview']['result']['image'].startswith('.nbtcreator/'))
+
+ def test_retry_does_not_mix_completed_preview_with_changed_coordinates(self):
+  self.sources=self.sources[:1];source=self.sources[0]
+  context=source.parent/'coordinates.json'
+  image=self.workspace/'overview.png';image.write_bytes(b'fixture')
+  queue=self.create(['preview','check'])
+  identifier=queue['id']
+  with patch('nbt_cover.section_cover',return_value=dict(image=str(image),thumbnail=str(image))):
+   with patch.object(batch,'check_source',side_effect=OSError('synthetic check failure')):
+    result=batch.run(self.workspace,identifier)
+   preview=result['items'][0]['steps']['preview']
+   self.assertEqual(preview['status'],'complete')
+   old_report=self.workspace/preview['report']
+   config=json.loads(context.read_text(encoding='utf8'))
+   config['max_changed_blocks']=1
+   context.write_text(json.dumps(config),encoding='utf8')
+   self.assertEqual(batch.retry(self.workspace,identifier)['progress']['pending'],2)
+   result=batch.run(self.workspace,identifier)
+  self.assertEqual(result['progress']['complete'],2)
+  self.assertEqual(result['items'][0]['steps']['preview']['attempts'],2)
+  self.assertTrue(old_report.is_file())
+
+ def test_context_change_between_queue_and_run_requires_retry(self):
+  queue=self.create()
+  context=self.sources[0].parent/'coordinates.json'
+  context.write_bytes(context.read_bytes()+b'\n')
+  result=batch.run(self.workspace,queue['id'])
+  self.assertEqual(result['items'][0]['steps']['check']['status'],'failed')
+  self.assertIn('排队后',result['items'][0]['steps']['check']['error'])
+
+ def test_recovered_probes_are_bound_before_running_and_rebound_on_retry(self):
+  from nbt_library import saved_coordinates_hash
+
+  self.sources=self.sources[:1]
+  source=self.sources[0]
+  context=source.parent/'coordinates.json'
+  config=batch.read_json(context);del config['interior_probes'];batch.write(context,config)
+  proof=source.parent/'validation.json'
+  first=[[12,8,12]]
+  second=[[14,8,14]]
+  primary_hash=hashlib.sha256(context.read_bytes()).hexdigest()
+  self.assertNotEqual(saved_coordinates_hash(source),primary_hash)
+
+  for name,probes in [('added',first),('changed',second),('deleted',None)]:
+   with self.subTest(case=name):
+    before=batch.stamp(source)
+    queue=self.create()
+    if probes is None:proof.unlink()
+    else:batch.write(proof,dict(sealed_before_opening=dict(passed=True,probes=probes)))
+    self.assertNotEqual(batch.stamp(source),before)
+    self.assertEqual(hashlib.sha256(context.read_bytes()).hexdigest(),primary_hash)
+    step=batch.run(self.workspace,queue['id'])['items'][0]['steps']['check']
+    self.assertEqual(step['status'],'failed')
+    self.assertIn('排队后',step['error'])
+    self.assertNotIn('report',step)
+    batch.retry(self.workspace,queue['id'])
+    step=batch.run(self.workspace,queue['id'])['items'][0]['steps']['check']
+    report=batch.read_json(self.workspace/step['report'])
+    if probes is None:
+     self.assertIn('interior_probes',report['checks']['context']['details']['missing'])
+    else:
+     self.assertTrue(report['passed'])
+     self.assertEqual(report['checks']['geometry_routes']['details']['recapped_seal']['probes'],probes)
+
+  for recovered in (False,True):
+   with self.subTest(old_stamp=True,recovered=recovered):
+    if recovered:batch.write(proof,dict(sealed_before_opening=dict(passed=True,probes=first)))
+    queue=self.create()
+    stored=batch.load(self.workspace,queue['id'])
+    stored['items'][0]['stamp'].update(coordinates=primary_hash,context=primary_hash)
+    batch.write(batch.folder(self.workspace,queue['id'])/'queue.json',stored)
+    step=batch.run(self.workspace,queue['id'])['items'][0]['steps']['check']
+    self.assertIn('排队后',step['error'])
+    batch.retry(self.workspace,queue['id'])
+    self.assertEqual(batch.run(self.workspace,queue['id'])['progress']['complete'],int(recovered))
+
+ def test_broken_optional_description_reports_context_failure_without_marking_geometry_passed(self):
+  self.sources=self.sources[:1]
+  source=self.sources[0]
+  (source.parent/'coordinates.json').unlink()
+  (source.parent/'room_description.json').write_text('{"context_file":',encoding='utf8')
+  result=batch.run(self.workspace,self.create()['id'])
+  step=result['items'][0]['steps']['check']
+  report=batch.read_json(self.workspace/step['report'])
+  self.assertTrue(report['checks']['file']['passed'])
+  self.assertIn('room_description.json',report['checks']['context']['details']['errors'][0])
+  self.assertEqual(report['checks']['geometry_routes']['status'],'not_checked')
+  self.assertFalse(report['passed'])
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

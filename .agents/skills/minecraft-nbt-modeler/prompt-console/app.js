@@ -39,7 +39,8 @@
  function requestBinding(){return JSON.stringify({design:binding(),brief_fields:briefFields(state)});}
  function aiDraft(){return state.aiDraft&&typeof state.aiDraft.text==='string'&&state.aiDraft.text.length<=60000&&state.aiDraft.binding===binding()?state.aiDraft:null;}
  function composeAI(text){return C.prompt(state,{designText:text});}
- function outputText(){const cached=archivedPrompts.get(state.export_id);if(cached?.binding===JSON.stringify(state))return cached.original.text;return aiDraft()?composeAI(aiDraft().text):C.prompt(state);}
+ function frozenExport(doc){const cached=archivedPrompts.get(doc.export_id);return cached?.binding===JSON.stringify(doc)?cached.original:null;}
+ function outputText(){const frozen=frozenExport(state);if(frozen)return frozen.text;return aiDraft()?composeAI(aiDraft().text):C.prompt(state);}
  function update(){const errors=[...pending.values(),...C.validate(state)];const invalid=errors.length>0;if(!invalid&&state.project.stage==='draft'){state.project.output=C.outputPath(C.effectiveProject(state));const output=document.querySelector('[data-field=output]');if(output)output.value=state.project.output;}if(state.proposal_draft&&state.proposal_draft.binding!==requestBinding())delete state.proposal_draft;for(const id of ['copy','markdown','plan','config','save','left-save'])$(id).disabled=invalid;
    $('result').value=invalid?'请先补齐以下内容：\n'+errors.join('\n'):outputText();notify(invalid?errors.join('\n'):state.operations.length?`${state.operations.filter(op=>op.enabled!==false).length} 个启用 / ${state.operations.length} 个高级步骤 · 供建造助手核对`:'请核对建筑要求，审查后交给建造助手制作',invalid);$('count').textContent=state.operations.length;
    $('output-mode').textContent=aiDraft()?'当前任务包含：已采用的 AI 建议、建筑要求及校验配置':state.aiDraft?'建筑要求已修改，任务已更新为当前表单内容；请重新核对 AI 建议':'当前任务使用表单中的建筑要求';
@@ -367,7 +368,7 @@
  $('prompt-task-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('prompt-task-command').textContent);notify('Agent读取命令已复制')}catch{notify($('prompt-task-command').textContent)}}
  $('markdown').onclick=()=>download('NBT建模完整提示词.md',outputText(),'text/markdown;charset=utf-8');
  $('plan').onclick=()=>download('plan.json',C.plan(state));
- $('config').onclick=()=>download('context_draft.json',{...C.effectiveProject(state).context,max_changed_blocks:state.project.budget});
+ $('config').onclick=()=>download('context_draft.json',frozenExport(state)?.context??C.exportContext(state));
  $('copy').onclick=async()=>{try{await autosave?.flush();if(navigator.clipboard?.writeText)await navigator.clipboard.writeText($('result').value);else throw Error('fallback');notify('完整提示词已复制');}catch{$('result').focus();$('result').select();notify(document.execCommand('copy')?'完整提示词已复制':'已选中提示词，请按 Ctrl+C');}};
  $('import').onclick=()=>$('file').click();$('file').onchange=async()=>{const f=$('file').files[0];if(!f)return;try{const v=JSON.parse(await f.text());const candidate=C.normalize(v);const errors=C.validate(candidate);if(errors.length)throw Error(errors.join('；'));state=candidate;uncheckedDefaults.clear();pending.clear();renderProject();renderOperations();update();refreshConstraints();}catch(e){notify('导入失败：'+e.message,true);}finally{$('file').value='';}};
  $('reset').onclick=()=>studio.addBlank();
@@ -396,8 +397,7 @@
    const p=C.effectiveProject(doc),keys=[...Object.keys(C.designContract.fields),'size_policy','integration'];
    const project=Object.fromEntries(keys.map(k=>[k,p[k]]));
    project.extras=String(p.extras??'').split('\n').filter(line=>!line.startsWith('源文件 SHA256：')).join('\n');
-   const allowed=new Set(['kind','label','enabled','classification','lo','hi','geometry','mode','state','from_states','seed','max_writes','offset','count','destination','quarter_turns','mirror','move','include_air','overwrite','iterations','seeds','steps','decay','surface_only','centre','radius','roughness','rays','ray_length','ray_width','fraction','spacing','supported','action','scope','scale','palette','preserve_properties','shape_policy','profile','style_note','slab_share','patch_size','pit_depth','route_margin','exclude_boxes','include_boxes','slab_overrides','moss','cracks','floor','thickness','width','start','end']);
-   return {project,...(doc.constraints?.length?{constraints:C.clone(doc.constraints)}:{}),task:mode==='draft'?'draft':'controls',...(mode==='draft'?{brief_scope:{editable_fields:briefFields(doc)}}:{}),existing_model:!!p.source,...(doc.design_standard?{project_standard:C.standardText(doc)}:{}),operations:doc.operations.map(op=>Object.fromEntries(Object.entries(op).filter(([key])=>allowed.has(key))))};
+   return {project,...(doc.constraints?.length?{constraints:C.clone(doc.constraints)}:{}),task:mode==='draft'?'draft':'controls',...(mode==='draft'?{brief_scope:{editable_fields:briefFields(doc)}}:{}),existing_model:!!p.source,...(doc.design_standard?{project_standard:C.standardText(doc)}:{}),operations:doc.operations.map(C.aiOperation)};
  }
  $('prompt-ai-generate').onclick=async()=>{
    if(aiRunning)return;const epoch=++aiEpoch;
@@ -466,7 +466,7 @@
    const next=same?C.clone(state):C.defaults();
    next.project={...next.project,name:same?next.project.name:payload.name||next.project.name,source:payload.source,size:payload.size,buildingShape:C.buildingShapes[payload.buildingShape]?payload.buildingShape:C.shapeOf({size:payload.size}),
      stage:'plan',size_policy:'fixed',contextPath:payload.contextPath||'',reviewPath:payload.reviewPath||'',output:payload.output||'',
-     context:payload.context,integration:payload.context?.mode==='saodg'?'saodg':'standalone',style:payload.plan.style_note,budget:payload.budget};
+     context:payload.context,integration:C.contextMode(payload.context??{}),style:payload.plan.style_note,budget:payload.budget};
    next.project.extras=(same?next.project.extras+'\n':'')+'源文件 SHA256：'+payload.source_sha256+'。本次从细节控制台载入参数，仅作规划，不代表已执行或已批准。';
    next.source_sha256=payload.source_sha256;
    next.operations=C.clone(payload.plan.operations);
@@ -495,7 +495,7 @@
    studio.showOutput(false);document.querySelector('[data-tab=project]').click();
  }};
  if(window.parent!==window){document.body.classList.add('embedded');}
- const payload=doc=>{const cached=archivedPrompts.get(doc.export_id);if(cached?.binding===JSON.stringify(doc))return {session_id:doc.export_id,document:C.clone(cached.original.document),text:cached.original.text,plan:cached.original.plan,context:cached.original.context};const designText=doc.aiDraft?.binding===binding(doc)?doc.aiDraft.text:undefined;return {session_id:doc.export_id,document:C.clone(doc),text:C.prompt(doc,designText===undefined?{}:{designText}),plan:C.plan(doc),context:{...C.effectiveProject(doc).context,max_changed_blocks:doc.project.budget}}};
+ const payload=doc=>{const frozen=frozenExport(doc);if(frozen)return {session_id:doc.export_id,document:C.clone(frozen.document),text:frozen.text,plan:frozen.plan,context:frozen.context};const designText=doc.aiDraft?.binding===binding(doc)?doc.aiDraft.text:undefined;return {session_id:doc.export_id,document:C.clone(doc),text:C.prompt(doc,designText===undefined?{}:{designText}),plan:C.plan(doc),context:C.exportContext(doc)}};
  autosave=createPromptAutosave({host:$('output-mode'),read:()=>payload(state),onSaved:result=>studio?.saved(result)});
  studio=createPromptWorkspace({prepareDraft,registerDraftRoom,newDocument:async()=>{const entry=constraintStorage?.startConstraint?.();if(entry){try{const snapshot=await lookupConstraint(entry.folder,entry.id);if(snapshot)await window.NbtPromptUI.applyConstraints([snapshot])}catch(error){notify(error.message,true)}}},remember:(id,original,doc)=>archivedPrompts.set(id,{original,binding:JSON.stringify(doc)}),document:()=>state,valid:()=>!pending.size&&!C.validate(state).length,isGenerating:()=>aiRunning,flush:()=>autosave.flush(),discard:()=>autosave.discard(),bridge:parent!==window?parent.nbtPromptStorage:null,message:notify,update,saveDocument:doc=>parent.nbtPromptStorage.save(payload(doc)),generateDocument,concurrency:async()=>(await aiBridge?.config())?.maxConcurrent??2,cancelDocument:id=>aiBridge?.cancel('prompt:'+id),instruction:text=>{$('prompt-ai-instruction').value=text},cancel:()=>aiBridge?.cancel(),restoreTask(task){
    const handoff=$('prompt-task-handoff'), status=$('prompt-task-state');

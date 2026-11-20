@@ -32,7 +32,19 @@ def source_path(workspace,value):
 
 
 def stamp(source):
-    stat=source.stat();return [stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns]
+    from nbt_detail_control import nearby
+    from nbt_library import saved_coordinates_hash
+
+    def file_hash(file):
+        if not file:return None
+        with Path(file).open('rb') as stream:
+            return hashlib.file_digest(stream,'sha256').hexdigest()
+
+    wall_mask=source.with_name('wall_mask.json') if source.suffix.lower()=='.nbt' else None
+    coordinates_hash=saved_coordinates_hash(source,allow_invalid_description=True)
+    return dict(source=file_hash(source),coordinates=coordinates_hash,context=coordinates_hash,
+        cameras=file_hash(nearby(source,('cameras.json',))),
+        walls=file_hash(wall_mask) if wall_mask and wall_mask.is_file() else None)
 
 
 def read_json(file):
@@ -120,21 +132,50 @@ def create(workspace,data):
 
 
 def check_source(source):
-    from nbt_detail_control import inspect_source,normalize_context,default_settings
-    from nbt_refine import read_master
+    from nbt_detail_control import inspect_source,normalize_validation_context,default_settings,load_managed_model
+    from nbt_library import saved_coordinates_hash
+    from nbt_refine import read_master,digest,binary_wall_mask_hash,resolve_wall_mask
     from nbt_whole_validation import validate_whole
-    before=hashlib.sha256(source.read_bytes()).hexdigest()
+    before=digest(source)
+    mask_hash=binary_wall_mask_hash(source)
+    coordinates_hash=saved_coordinates_hash(source,allow_invalid_description=True)
     try:info=inspect_source(source,1)
     except (ValueError,AssertionError,KeyError,TypeError,IndexError,OSError) as error:return dict(passed=False,source_sha256=before,checks=dict(file=dict(passed=False,error=str(error))),asset_written=False,approval_created=False,runtime_verified=False)
     report=dict(passed=False,source_sha256=before,geometry_sha256=info['geometry_sha256'],size=info['size'],checks=dict(file=dict(passed=True,solid_blocks=info['solid_blocks'],wall_blocks=info['wall_blocks'])),runtime_verified=False,design='pending_visual_review',asset_written=False,approval_created=False)
-    if not info['editing_ready']:report['checks']['context']=dict(passed=False,error='缺少或无效的坐标资料',details=info['context_readiness'])
+    checks=report['checks']
+    if not info['editing_ready']:
+        checks['context']=dict(passed=False,error='缺少或无效的坐标资料',details=info['context_readiness'])
+        checks['geometry_routes']=dict(status='not_checked',passed=None,reason='missing_or_invalid_context')
     else:
-        model,_=read_master(source)
         try:
-            config=normalize_context(model,info['context'],info['cameras'],default_settings());details=validate_whole(model,config);report['checks']['geometry_routes']=dict(passed=True,details=details)
-        except (ValueError,AssertionError,KeyError,TypeError,IndexError,OSError) as error:report['checks']['geometry_routes']=dict(passed=False,error=str(error))
-    if hashlib.sha256(source.read_bytes()).hexdigest()!=before:raise ValueError('检查期间源文件已改变，请重新加入队列')
-    report['passed']=all(item['passed'] for item in report['checks'].values());return report
+            working=load_managed_model(dict(source=str(source),source_sha256=before,context=info['context']))
+            if working:
+                details=working.validate()
+                if working.kind=='component':
+                    route_check=dict(status='not_applicable',passed=None,reason='not_applicable_to_component')
+                elif working.phase!='opened':
+                    route_check=dict(status='not_checked',passed=None,reason=f'not_checked_in_{working.phase}_phase')
+                else:
+                    route_check=dict(status='passed',passed=True)
+            else:
+                model,walls=read_master(source)
+                config=normalize_validation_context(model,info['context'],default_settings(),source=source)
+                resolve_wall_mask(model,walls,config)
+                details=validate_whole(model,config)
+                route_check=dict(status='passed',passed=True)
+            checks['geometry_routes']=dict(route_check,details=details)
+        except (ValueError,AssertionError,KeyError,TypeError,IndexError,OSError) as error:
+            checks['geometry_routes']=dict(status='failed',passed=False,error=str(error) or type(error).__name__)
+    if (digest(source)!=before or binary_wall_mask_hash(source)!=mask_hash
+            or saved_coordinates_hash(source,allow_invalid_description=True)!=coordinates_hash):
+        raise ValueError('检查期间源文件或关联配置已改变，请重新加入队列')
+    if any(item['passed'] is False for item in checks.values()):
+        report['passed']=False
+    elif checks['geometry_routes']['status']=='not_checked':
+        report['passed']=None
+    else:
+        report['passed']=True
+    return report
 
 
 def run(workspace,identifier):
@@ -164,10 +205,10 @@ def run(workspace,identifier):
                                 result[key]=image.relative_to(Path(workspace).resolve()).as_posix()
                         if stamp(source)!=item['stamp']:raise ValueError('处理期间源文件已改变，结果未采用')
                         report=directory/f'{number:03d}-{action}-attempt{step["attempts"]}.json';write(report,result)
-                        summary=result if action=='preview' else {k:v for k,v in result.items() if k!='checks'}|dict(checks={k:{field:v[field] for field in ('passed','error') if field in v} for k,v in result['checks'].items()})
-                        step.update(status='complete' if result.get('passed',True) else 'failed',result=summary,report=report.relative_to(Path(workspace).resolve()).as_posix())
+                        summary=result if action=='preview' else {k:v for k,v in result.items() if k!='checks'}|dict(checks={k:{field:v[field] for field in ('status','passed','reason','error') if field in v} for k,v in result['checks'].items()})
+                        step.update(status='failed' if result.get('passed') is False else 'complete',result=summary,report=report.relative_to(Path(workspace).resolve()).as_posix())
                         step.pop('error',None)
-                        if step['status']=='failed':step['error']='检查未通过：'+'；'.join(v.get('error','检查未通过') for v in result.get('checks',{}).values() if not v.get('passed'))
+                        if step['status']=='failed':step['error']='检查未通过：'+'；'.join(v.get('error','检查未通过') for v in result.get('checks',{}).values() if v.get('passed') is False)
                     except (ValueError,AssertionError,KeyError,TypeError,IndexError,OSError) as error:step.update(status='failed',error=str(error)[:4000]);step.pop('result',None)
                     step['completed_at']=now();queue['updated_at']=now();write(file,queue)
             queue['status']='complete';return exposed(queue)
@@ -181,10 +222,11 @@ def retry(workspace,identifier):
         queue=load(workspace,identifier)
         for item in queue['items']:
             if any(step['status']!='complete' for step in item['steps'].values()):
+                previous=item['stamp']
                 try:item['stamp']=stamp(source_path(workspace,item['source']))
-                except (ValueError,OSError):pass
+                except (ValueError,OSError):item['stamp']=None
                 for step in item['steps'].values():
-                    if step['status']!='complete':
+                    if step['status']!='complete' or item['stamp']!=previous:
                         step['status']='pending'
                         for key in ('error','result','report'):step.pop(key,None)
         queue['status']='pending';queue['updated_at']=now();(folder(workspace,identifier)/'cancel.request').unlink(missing_ok=True);write(folder(workspace,identifier)/'queue.json',queue)

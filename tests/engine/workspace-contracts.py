@@ -1,5 +1,5 @@
 """Synthetic checks for shared catalogue, relocation and non-destructive migration."""
-import json,sys,tempfile,unittest,shutil,subprocess,os
+import hashlib,json,sys,tempfile,unittest,shutil,subprocess,os
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];ENGINE=ROOT/'.agents/skills/minecraft-nbt-modeler';sys.path.insert(0,str(ENGINE/'scripts'))
 from nbt_capabilities import capabilities
@@ -85,6 +85,8 @@ class Contracts(unittest.TestCase):
    for name in ('pattern-fitting.md','pattern-authoring.md','surface-mounting.md','modeling-sessions.md'):
     self.assertIn(name,index)
    self.assertIn('pattern-fitting.md',entry);self.assertIn('knowledge.md',entry)
+   for route in ('task-client inspect prompts <id>','task-client inspect tasks <id>'):
+    self.assertIn(route,entry)
    self.assertNotIn('micro-props.md',entry);self.assertNotIn('micro-props.md',index)
    self.assertNotIn(str(ENGINE),entry+index)
    marker=json.loads((root/'.nbtcreator/facade-manifest.json').read_text(encoding='utf8'))
@@ -100,6 +102,29 @@ class Contracts(unittest.TestCase):
    backups=list((root/'.nbtcreator/skill-backups').glob('*/knowledge.md'))
    self.assertEqual(len(backups),1);self.assertEqual(backups[0].read_text(encoding='utf8'),edited)
    self.assertNotIn('用户补充的索引注记',index.read_text(encoding='utf8'))
+
+ def test_facade_manifest_matches_disk_and_resync_accepts_legacy_windows_newlines(self):
+  with tempfile.TemporaryDirectory() as temp:
+   root=Path(temp);config=dict(schema_version=1,enabled_groups=['core']);expose(root,config)
+   facade=root/'.agents/skills/nbtcreator-workspace'
+   marker=root/'.nbtcreator/facade-manifest.json'
+   for name,checksum in json.loads(marker.read_text(encoding='utf8')).items():
+    file=facade/name
+    self.assertEqual(hashlib.sha256(file.read_bytes()).hexdigest(),checksum)
+    file.write_bytes(file.read_text(encoding='utf8').replace('\n','\r\n').encode('utf8'))
+   expose(root,dict(config,enabled_groups=['core','props']))
+   self.assertFalse((root/'.nbtcreator/skill-backups').exists())
+   entry=(facade/'SKILL.md').read_text(encoding='utf8')
+   self.assertIn('render --help',entry);self.assertIn('只有在索引中已启用',entry)
+   self.assertNotIn('rendering.md',entry)
+   self.assertEqual(entry.count('/references/validation-workflow.md'),1)
+   self.assertIn('查看实际图片',entry)
+   expose(root,dict(config,enabled_groups=['core','rendering']))
+   entry=(facade/'SKILL.md').read_text(encoding='utf8')
+   route,=[line for line in entry.splitlines() if '/references/validation-workflow.md' in line]
+   self.assertIn('/references/diagnostic-guidance.md',route)
+   self.assertIn('/references/rendering.md',route)
+   self.assertIn('查看实际图片',route)
 
  def test_authoring_entry_keeps_pattern_tools_and_loads_maintenance_only_when_enabled(self):
   with tempfile.TemporaryDirectory() as temp:
@@ -123,8 +148,13 @@ class Contracts(unittest.TestCase):
    expose(root, dict(schema_version=1, enabled_groups=['core']))
    facade = root / '.agents/skills/nbtcreator-workspace'
    entry = (facade / 'SKILL.md').read_text(encoding='utf8')
+   index = (facade / 'knowledge.md').read_text(encoding='utf8')
    self.assertIn('整栋初稿：纯文字', entry)
    self.assertIn('整栋初稿：有参考图', entry)
+   for reference in ('design-grammar.md','architecture-knowledge-base.md','structure-atlas.md',
+                     'organic-spaces.md','linked-spaces.md'):
+    self.assertNotIn(reference,entry)
+    self.assertNotIn(reference,index)
    paths = subprocess.check_output([sys.executable, str(facade / 'nbt.py'), 'paths'], cwd=root)
    example = Path(json.loads(paths)['engine']) / 'assets/examples/reading-loft'
    self.assertIn(os.path.relpath(example / 'README.md', facade).replace(os.sep, '/'), entry)

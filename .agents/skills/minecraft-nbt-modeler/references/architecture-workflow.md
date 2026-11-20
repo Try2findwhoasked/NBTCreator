@@ -4,15 +4,18 @@
 
 ## 入口与设计责任
 
-在创作项目根目录使用冻结入口，先查询契约：
+在创作项目根目录使用冻结入口。小型建筑可以从[可运行的开放平台示例](#构件查询与预检)开始，按需查询：
 
 ```powershell
-mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py capabilities --architecture
+mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py capabilities --recipe structure
+mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py capabilities --architect-action plan-save --field plan.parts.interfaces
 mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py architect plan-save --request plan-save.json
 mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py architect plan-build --request build.json
 ```
 
 软件维护使用 `mise exec -- node scripts/cli.mjs --workspace <隔离创作项目> architect <action> --request <JSON>`。全部参数以 `tool-catalog.json` 的 `architecture` 为准，不把 schema 复制进脚本或提示词。无需启动 Electron。
+
+`plan-build`、`plan-check`、`part-preflight` 和 `review-prepare` 支持 `--compact-report <nbt_models 内全新JSON路径>`，父目录须已存在。完整回执写入指定文件，终端给出报告路径、哈希及重点问题。保存后的 `plan-build` 回执含 `next.request`，可直接交给 `review-prepare`，此操作会重开制作源复验。准备成功后按 `render_command` 出图，再用 `review_record_bindings` 和真实看图观察提交 `review-record`。默认输出仍为完整 JSON。
 
 Agent 把自然语言设计转为以下数据，而不是直接猜一串工具调用：
 
@@ -114,3 +117,71 @@ Agent 把自然语言设计转为以下数据，而不是直接猜一串工具�
 本流程默认交付 SNBT 制作源。真实游戏测试仍需隔离的 Minecraft Java 1.20.1 环境及明确授权的测试 NBT；最终导出使用独立的显式定稿入口。静态路线、纹理图和游戏内表现分别报告。
 
 维护回归从软件根目录运行 `mise run architecture:test`；真实出图、公共 CLI 与冻结入口回归运行 `mise run architecture:preview`。测试输出放在隔离的 `build/architecture-*` 项目，不写入用户作品。
+## 构件查询与预检
+
+下例从创作项目根目录运行。已有冻结入口的项目可在同步后运行。
+
+```powershell
+$nbt = '.agents/skills/nbtcreator-workspace/nbt.py'
+python $nbt capabilities --recipe structure
+python $nbt capabilities --operation box
+python $nbt capabilities --architect-action part-preflight
+python $nbt capabilities --architect-action part-preflight --field plan.parts.interfaces
+python $nbt capabilities --block-state 'spruce_button[face=floor,facing=north,powered=false]'
+python $nbt architect part-preflight --request preflight.json
+```
+
+将 `--recipe structure` 返回的 `example` 放进 `parts[].recipe` 可编译一格石座。建筑配方直接接收 `arguments`。调用 `--agent-tool structure_preview` 查询独立候选工具时，同一份结构规格放在 `spec`；`structure_write` 使用候选回执保存资产。
+
+`--field plan.parts.interfaces` 在 `plan-save`、`plan-build` 和 `part-preflight` 下返回相同的局部契约和例子。北侧台沿用 `{"id":"serving_edge","face":"north","lo":[0,0,0],"hi":[2,0,0]}` 指定构件局部范围。若 `tea_table` 放在 `[8,2,9]`，活动脚位可以从 `[9.5,2,7.5]` 用 `"use_face":{"part":"tea_table","interface":"serving_edge","height":0.5,"max_distance":2}` 引用台沿。实际站立和操作净空由整栋验证。
+
+把下面的请求保存为 `platform.json`，执行 `python $nbt architect plan-build --request platform.json`。这个小型开放平台只编译和检查，不保存制作版。要生成制作源供审阅，在请求顶层加入 `"save_draft":{}`。
+
+```json
+{
+  "plan": {
+    "schema_version": 1, "name": "开放平台", "size": [8,5,8],
+    "context": {"mode":"standalone","openings_policy":"none","require_enclosure":false,"openings":[],
+      "start":[2.5,1,2.5],"targets":{"far_edge":[5.5,1,5.5]}},
+    "style": {"name":"石平台","materials":{"floor":"stone_bricks"}},
+    "spaces": [{"id":"deck","purpose":"通过与停留","lo":[1,1,1],"hi":[6,4,6],"feet_y":1,"samples":[[5.5,1,5.5]]}],
+    "parts": [{"id":"platform","role":"floor","position":[1,0,1],"recipe":{"tool":"structure","arguments":{
+      "name":"平台地面","size":[6,1,6],"operations":[
+        {"kind":"box","label":"平台地面","classification":"body","lo":[0,0,0],"hi":[5,0,5],"state":"stone_bricks"}
+      ]}}}],
+    "views": [
+      {"id":"overview","layer":"massing","eye":[10,9,-7],"target":[4,0.5,4]},
+      {"id":"edge","layer":"structure","eye":[-3,3,4],"target_part":"platform"},
+      {"id":"surface","layer":"detail","feet":[4.5,1,4.5],"target_part":"platform"}
+    ]
+  }
+}
+```
+
+`preflight.json` 最小例为 `{"plan_id":"my_building","part":"tea_table"}`。也可用内联 `plan`，或省略 `part` 遍历构件。预检编译单件并应用放置变换，列出状态、世界坐标样本和接口错误。接口错误的 `scene` 坐标属于变换前场景，`bounds` 属于接口定义的局部坐标。跨件支承、实际重叠、全局路线与预算由 `plan-build` 验证。正常的 `INSTALL_OCCUPIED` 回执给出位置、现有归属与双方状态。
+
+省略 `parts[].interfaces` 时沿用原自动接口规则。普通结构使用 `"interfaces":[]` 可明示禁止自动生成接口，适合无碰撞的纯花饰。引用该构件时仍须存在真实接口。地毯等具有已核实保守包络的细件只有与接口区域及其外侧相邻格无交集时才可从精确检查中排除。保守包络只用于静态避障；精确支撑仍须核对对应位置及当前几何。合法但形状未知的按钮仍会阻止通路认证，即使各目标报告 `reachable=true`，可从 `unknown_shapes[].positions` 定位。
+
+整栋保存和回读会复验具名接口的方块与外露面。被接触关系或操作面引用的接口还检查邻近构件的保守包络是否可能盖住接口。声明整件接触时，双方仍需提供完整的精确接触几何。
+
+## 近景和回执接力
+
+在 `views[]` 的近景中，`target_part` 指定取样对象，并在省略 `target` 时以实际构件范围中心为朝向。仅提供 `target` 时，坐标控制朝向，取样仍覆盖整栋。存在多个可能构件时填写稳定 ID，例如 `{"id":"tea","layer":"detail","feet":[8.5,2,7.5],"target_part":"tea_table","fov":60}`。具体脚位按实际模型选择。
+
+大型梁架只需看一处榫接时，可在构造或细节视角同时填写 `"target_part":"timber_frame"` 和 `"sample_box":{"lo":[13,2,5],"hi":[14,5,5]}`。盒坐标使用整栋模型的整数 XYZ，包含两端。取样只包括盒内属于该构件的实际方块，范围越界、倒置、缺少目标构件或交集为空会被拒绝。相机朝向、最低可见比例和审阅位置仍由原字段控制，盒外方块仍参与遮挡判断。用 `capabilities --architect-action plan-save --field plan.views.sample_box` 查看契约及完整机位例子。
+
+回执 `coverage.views[]` 给出取样范围、眼位、视锥覆盖与遮挡格。`coverage.review_locations[].candidates[].visibility` 给出目标方块、是否在已知实体内部及沿路遮挡。优先从可站脚位调整机位，将审阅位置放到实际可见表面前。静态通过后仍须查看真实出图并记录观察。
+
+```powershell
+$inspection = python $nbt control inspect --source $source | ConvertFrom-Json
+$inspection.result.editing_ready
+$inspection.result.context_readiness
+$record = python $nbt architect review-record --request record.json | ConvertFrom-Json
+$compare = $record.review_compare
+$compare | Add-Member -NotePropertyName source -NotePropertyValue $newSource
+$compare | Add-Member -NotePropertyName source_sha256 -NotePropertyValue $newSourceHash
+$compare | ConvertTo-Json | Set-Content -Encoding utf8 compare.json
+python $nbt architect review-compare --request compare.json
+```
+
+`review-record.path` 是 `review-notes.json` 的路径。比较时检查原 `pack` 同目录下的该文件，`review-record.sha256` 对应请求的 `notes_sha256`。使用回执的 `review_compare` 可同时沿用原审阅包和哈希。

@@ -4,7 +4,7 @@ import json
 import math
 from pathlib import Path
 
-from nbt_architecture_plan import fingerprint,resolve,actual_part
+from nbt_architecture_plan import fingerprint,resolve,actual_part,view_sample_points
 from nbt_prompts import inside,relative,index_lock
 from nbt_project_batch import write
 from nbt_history import file_hash
@@ -105,12 +105,29 @@ def prepare(workspace,request):
             target=view.get('target') or [(box['lo'][i]+box['hi'][i])/2 for i in range(3)]
         else:
             points=set(model.model.blocks);target=view.get('target') or [v/2 for v in model.model.size]
+        points=view_sample_points(points,view)
         if sum((eye[i]-target[i])**2 for i in range(3))<.01:raise ValueError('视角方向长度为零')
         seen=visibility(model.model,eye,points,target,view.get('fov',60))
         standing=space.standing(pose) if pose else None
         eye_clear=space.clear_box([v-.01 for v in eye],[v+.01 for v in eye]) if all(0<=eye[i]<model.model.size[i] for i in range(3)) else True
         passed=(eye_clear and standing is not False and seen['visible_fraction']>=view.get('minimum_visible',.2))
-        checks.append(dict(id=view['id'],layer=view['layer'],part=view.get('target_part'),feet=pose,standing=standing,eye_clear=eye_clear,passed=passed,visibility=seen))
+        minimum=view.get('minimum_visible',.2)
+        failures=[]
+        if not eye_clear:failures.append('eye_blocked')
+        if standing is False:failures.append('feet_not_standing')
+        if seen['visible_fraction']<minimum:
+            if seen['framing_fraction']<minimum:failures.append('targets_outside_view')
+            if seen['blockers']:failures.append('targets_occluded')
+            if seen['uncertain_fraction']:failures.append('uncertain_collision')
+            if not view.get('target_part') and view['layer']=='detail':failures.append('detail_target_part_unspecified')
+            failures.append('visibility_below_minimum')
+        checks.append(dict(id=view['id'],layer=view['layer'],part=view.get('target_part'),feet=pose,
+                           eye=eye,look_at=target,standing=standing,eye_clear=eye_clear,passed=passed,
+                           eye_cell=dict(pos=[math.floor(v) for v in eye],state=model.model.get(tuple(math.floor(v) for v in eye))),
+                           sampling='part_box' if 'sample_box' in view else 'part' if view.get('target_part') else 'whole_model',
+                           target_bounds=bounds(points),minimum_visible=minimum,failures=failures,visibility=seen))
+        if 'sample_box' in view:
+            checks[-1].update(sample_box=view['sample_box'],target_voxel_count=len(points))
         cameras.append(dict(id=view['id'],role=view['layer'],eye=eye,target=target,fov=view.get('fov',60)))
     from nbt_architecture_intent import prepare_locations
     locations = prepare_locations(model.model, plan, cameras, checks)
@@ -198,7 +215,9 @@ def record(workspace,request):
         history=file.parent/'observations'/f"{data['revision']}-{fingerprint(data)}.json"
         if history.exists():raise ValueError('观察修订已存在，未覆盖')
         write(history,data);write(notes_file,data)
-    return dict(data,path=relative(workspace,notes_file),sha256=file_hash(notes_file))
+    path,sha256=relative(workspace,notes_file),file_hash(notes_file)
+    return dict(data,path=path,sha256=sha256,
+                review_compare=dict(pack=request['pack'],pack_sha256=request['pack_sha256'],notes_sha256=sha256))
 
 
 def compare(workspace,request):

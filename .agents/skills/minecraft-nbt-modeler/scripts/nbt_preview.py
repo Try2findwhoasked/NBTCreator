@@ -1,14 +1,13 @@
-"""Offline perspective inspection of a Java 1.20.1 structure NBT.
+"""Offline perspective inspection of Java 1.20.1 SNBT and full-volume NBT.
 
-This is a geometry inspection tool, not a Minecraft renderer. It reads the actual
-NBT with nbt_model.load, ray traces half-block voxels, and records approximations
-in <output>.json. Only numpy and Pillow are required beyond the authoring tools.
+The tool ray traces half-block voxels from the saved model and records its
+geometry and rendering approximations in <output>.json.
 
 Example:
   python nbt_preview.py --nbt room.nbt --output entrance.png \
       --eye 24,6,-8 --target 24,6,24 --width 1280 --height 800
-  python nbt_preview.py --nbt room.nbt --output cut.png \
-      --eye 58,45,-18 --target 24,5,24 --cut-height 12
+  python nbt_preview.py --source model.snbt --output cut.png \
+      --eye 58,45,-18 --target 24,5,24 --cut y:12.5:above
 Coordinates are Minecraft structure coordinates: +Y up, north is -Z. A cut
 position is a block boundary coordinate, not an inclusive block index.
 Repeat --cut AXIS:POSITION:above|below to combine planes, for example
@@ -362,7 +361,8 @@ def cut_argument(value):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--nbt', type=Path, required=True)
+    parser.add_argument('--source', '--nbt', type=Path, required=True,
+                        help='Saved SNBT master or legacy full-volume NBT')
     parser.add_argument('--output', type=Path, required=True, help='PNG image path; metadata is written to <output>.json')
     parser.add_argument('--eye', type=vector, required=True)
     parser.add_argument('--target', type=vector, required=True)
@@ -402,10 +402,16 @@ def main():
             planes.append(cut_definition('y', args.cut_height, 'above'))
     except ValueError as exc:
         parser.error(str(exc))
-    source = args.nbt.read_bytes()
-    model = load(args.nbt)
-    if args.nbt.read_bytes() != source:
-        parser.error('Source NBT changed while loading; retry against a stable file')
+    source = args.source.resolve()
+    source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+    is_snbt = source.suffix.lower() == '.snbt'
+    if is_snbt:
+        from nbt_snbt import read_snbt
+        model, _ = read_snbt(source)
+    else:
+        model = load(source)
+    if hashlib.sha256(source.read_bytes()).hexdigest() != source_hash:
+        parser.error('Source model changed while loading; retry against a stable file')
     grid, colors, approximations = make_grid(model, cuts=planes)
     image, visible = render(grid, colors, args.eye, args.target, args.width, args.height, args.fov)
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -414,8 +420,8 @@ def main():
     if occupied(grid, args.eye[None, :])[0]:
         warnings.append('Camera eye is inside solid rendered geometry; move the camera or apply a cut.')
     metadata = dict(
-        renderer='nbt_preview_half_voxel_v1', source_nbt=str(args.nbt.resolve()),
-        source_nbt_sha256=hashlib.sha256(source).hexdigest(), structure_size=list(model.size),
+        renderer='nbt_preview_half_voxel_v1', source=str(source),
+        source_sha256=source_hash, structure_size=list(model.size),
         camera=dict(eye=args.eye.tolist(), target=args.target.tolist(), up=[0, 1, 0],
                     projection='perspective', vertical_fov_degrees=args.fov, width=args.width, height=args.height),
         cut=planes[0] if len(planes) == 1 else None,
@@ -430,9 +436,11 @@ def main():
             'All rendered geometry is opaque, including glass, leaves, ice, and fluids when present.',
             'Fixed ambient/directional light and sampled short-range occlusion; no Minecraft block/sky light, emission, or full shadows.',
             'Block entities, entity models, animation, biome tint, and connected/neighbour-dependent shape updates are not rendered.',
-            'NBT block states are used as saved; stair shape is not recomputed from neighbours.'
+            'Block states are used as saved; stair shape is not recomputed from neighbours.'
         ], visible_structure_pixels=visible,
         warnings=warnings)
+    if not is_snbt:
+        metadata.update(source_nbt=str(source), source_nbt_sha256=source_hash)
     metadata_path = Path(str(args.output) + '.json')
     metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + '\n', encoding='utf8')
     print(json.dumps(dict(image=str(args.output.resolve()), metadata=str(metadata_path.resolve()),

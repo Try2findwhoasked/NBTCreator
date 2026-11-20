@@ -141,13 +141,87 @@ def dispatch(workspace,action,request):
     if action in ('cross-list','cross-save'):return cross(workspace,action,request)
     raise ValueError('未知建筑师工具')
 
+COMPACT_ACTIONS = ('part-preflight', 'plan-build', 'plan-check', 'review-prepare')
+
+
+def compact(workspace, action, request, result, report_file):
+    from nbt_diagnostic_delta import summary
+
+    keys = ('plan_sha256', 'pack', 'pack_sha256', 'source', 'cameras', 'render_command',
+            'read_only', 'asset_written', 'approval_created', 'nbt_exported', 'code')
+    reply = {key: result[key] for key in keys if key in result}
+    reply.update(ok=result.get('ok', True), report=dict(path=str(report_file), sha256=file_hash(report_file)))
+    if not reply['ok']:
+        reply['error'] = result['code'] if result['conflicts'] else result['error']
+    if action == 'review-prepare' and reply['ok']:
+        coverage = result['coverage']
+        render_manifest = Path(result['render_command'][-1])/'render_manifest.json'
+        reply.update(source_sha256=coverage['source_sha256'], coverage_passed=coverage['coverage_passed'],
+                     visual_status=coverage['visual_status'], approval_created=False,
+                     review_record_bindings=dict(pack=result['pack'], pack_sha256=result['pack_sha256'],
+                         revision=0, render_manifest=relative(workspace, render_manifest)),
+                     review_locations=[{key: row[key] for key in ('id', 'views', 'position', 'passed')}
+                         for row in coverage['review_locations'][:16]],
+                     review_location_count=len(coverage['review_locations']))
+        kind = 'review'
+    else:
+        kind = 'model'
+    if action == 'part-preflight' and reply['ok']:
+        reply['parts'] = [dict(id=part['id'], interface_issue_count=len(part['interface_issues']),
+            interface_issues=part['interface_issues'][:2], state_count=len(part['states'] or []),
+            state_limitations=[row for row in (part['states'] or []) if row['reason']][:4])
+            for part in result['parts'][:16]]
+        reply['part_count'] = len(result['parts'])
+    else:
+        issues, review = summary(kind, result)
+        reply.update(issues=list(issues.values())[:12], issue_count=len(issues))
+        if review is not None:
+            reply['pending_views'] = review['pending_views']
+    saved = result.get('saved')
+    source = {}
+    if saved:
+        source = {key: saved[key] for key in ('source', 'source_sha256')}
+        reply['saved'] = dict(source, revision=saved['revision'], draft_only=saved['draft_only'])
+    elif action == 'plan-check':
+        source = {key: request[key] for key in ('source', 'source_sha256') if key in request}
+    if reply['ok'] and len(source) == 2:
+        output = report_file.with_name(report_file.stem + '-review')
+        reply['next'] = dict(action='review-prepare', request=dict(source, output=relative(workspace, output)))
+    return reply
+
+
 def main():
     from nbt_catalog import catalog
     from nbt_constraints import ACTIONS
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['standards-get','standards-save','deliveries','continue','cross-list','cross-save',*ACTIONS,*catalog().get('architecture',{}).get('actions',{})]);parser.add_argument('--request',type=Path);args=parser.parse_args()
-    try:print(json.dumps(dispatch(args.workspace,args.action,read(args.request,{}) if args.request else {}),ensure_ascii=False));return 0
-    except (ValueError,OSError,KeyError,TypeError) as error:
-        print(json.dumps(dict(ok=False,error=str(error),code=getattr(error,'code','ARCHITECT_INVALID'),
-            conflicts=getattr(error,'conflicts',[])),ensure_ascii=False));return 1
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['standards-get','standards-save','deliveries','continue','cross-list','cross-save',*ACTIONS,*catalog().get('architecture',{}).get('actions',{})]);parser.add_argument('--request',type=Path)
+    parser.add_argument('--compact-report', type=Path, help='简明回执，显式写完整JSON到 nbt_models 内的全新文件，父目录须已存在（part-preflight / plan-build / plan-check / review-prepare）')
+    args=parser.parse_args()
+
+    def run():
+        try:
+            request=read(args.request,{}) if args.request else {}
+            return request,dispatch(args.workspace,args.action,request),0
+        except (ValueError,OSError,KeyError,TypeError) as error:
+            return {},dict(ok=False,error=str(error),code=getattr(error,'code','ARCHITECT_INVALID'),
+                conflicts=getattr(error,'conflicts',[])),1
+
+    if args.compact_report:
+        if args.action not in COMPACT_ACTIONS:
+            parser.error('--compact-report 不支持此操作')
+        try:
+            report_file = inside(args.workspace, args.compact_report)
+            if (report_file.is_relative_to(args.workspace.resolve()/'nbt_models/_exports')
+                    or any((parent/'model-version.json').is_file() for parent in report_file.parents)):
+                raise ValueError('完整回执不能写入定稿目录或已发布制作版')
+            with report_file.open('xb') as stream:
+                request,result,status=run()
+                stream.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+            result=compact(args.workspace.resolve(),args.action,request,result,report_file)
+        except (ValueError,OSError,KeyError,TypeError) as error:
+            result,status=dict(ok=False,error=str(error),code='ARCHITECT_INVALID',conflicts=[]),1
+    else:
+        _,result,status=run()
+    print(json.dumps(result,ensure_ascii=False))
+    return status
 
 if __name__=='__main__':raise SystemExit(main())

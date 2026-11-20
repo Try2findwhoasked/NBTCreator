@@ -1,6 +1,6 @@
 # 连片风化：苔痕、裂纹与地面破损
 
-`scripts/nbt_weathering.py`提供统一的`weathering`操作，可放入`nbt_refine.py`的operations，也可用单命令入口调用。它在完整主模型的全局坐标中处理，再由精修流程重验、切片；不能逐片重置种子。仅制作/测试工具无需建筑精修授权；对已有作品实际应用仍沿用[精修流程](refinement.md)中对应缩略图后的真实用户确认。
+`scripts/nbt_weathering.py` 提供 `weathering` 操作，可用于精修计划或单命令调用。工具在完整主模型的全局坐标中处理，重验后保存 SNBT。对已有作品实际应用时，遵循 [精修流程](refinement.md) 的对应缩略图确认。
 
 ## 三类效果
 
@@ -82,10 +82,11 @@
 对已按精修流程prepare并记录真实用户确认的review，一条命令组合三类效果：
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_weathering.py --review <任务目录>/draft_review --operation <任务目录>/weathering.json --output <任务目录>/weathered_01 --style-note "按潮湿区域成片长苔、连续开裂，地面局部破损并保留主路"
+$engine = python .agents/skills/nbtcreator-workspace/nbt.py paths | ConvertFrom-Json
+python (Join-Path $engine.scripts 'nbt_weathering.py') --review <任务目录>/draft_review --operation <任务目录>/weathering.json --output <任务目录>/weathered_01 --style-note "按潮湿区域成片长苔、连续开裂，地面局部破损并保留主路"
 ```
 
-CLI沿用原确认和原保护配置，不另造确认、不覆盖原稿。输出与nbt_refine一致：完整主模型、逐块diff、同相机对比、重验报告、重新切片的body/walls与独立runtime模板。`refinement.json`的operations[].weathering保存目标/实际数量、实际比例、缺额、片区大小、半砖/坑洞列数、坑深和坑缘裂纹数量。尚未进行游戏运行验收时runtime_verified保持false。
+CLI 沿用原确认和保护配置，另存 SNBT、差异、同机位对比与验证证据。`refinement.json` 的 operations[].weathering 保存目标与实际数量、比例、缺额、片区大小、半砖和坑洞列数、坑深及坑缘裂纹数量。
 
 也可把上面的操作直接放入精修plan.operations，与其他节点操作组合。需要在自定义生成器或合成测试中复用算法时：
 
@@ -94,7 +95,7 @@ from nbt_weathering import weathering_plan
 edits, report = weathering_plan(whole_master, operation, protected=protected_positions)
 ```
 
-该函数只返回坐标/状态和报告，不修改输入、不导出文件、不证明真实用户授权。对现有作品落盘仍走精修入口，以保留墙mask、保护验证和统一重切；不要循环调用单片模型。
+该函数只返回坐标、状态和报告。对现有作品按精修入口保存制作版，保留墙层和保护验证。
 
 验证命令：
 
@@ -102,4 +103,4 @@ edits, report = weathering_plan(whole_master, operation, protected=protected_pos
 python .agents/skills/minecraft-nbt-modeler/scripts/check_weathering_fixtures.py --output nbt_models/_tests/weathering_validation
 ```
 
-只创建合成fixture的新运行目录，覆盖连片/裂纹、比例、跨切面、跨进程复现、坑深与支撑、状态保留、保护路线、授权/预算和CLI整体重切。`--skip-workflow`仅跑算法用例，不代表完整精修流程通过。诊断图使用程序配色，不能当作真实游戏材质或光照预览。
+只创建合成夹具，覆盖连片裂纹、比例、跨切面和跨进程复现、坑深与支承、状态保留、路线保护、授权、预算和 CLI 制作版保存。`--skip-workflow` 只跑算法用例。诊断图使用程序配色。

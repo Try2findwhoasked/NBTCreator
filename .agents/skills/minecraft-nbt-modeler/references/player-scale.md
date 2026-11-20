@@ -57,7 +57,7 @@
 
 模型编辑视口的“玩家 / 通路”读取当前3D画面，显示宽0.6、高1.8格的实际玩家占位盒。默认使用坐标资料的 `start` / `targets`；也可点击地面顶面填入玩家脚底，或手工输入有限XYZ。脚底不是脚下方块编号，例如方块(2,0,3)上的玩家脚底是[2.5,1,3.5]。台阶点位可以手调，脚下支撑与净空仍由引擎验证。选点不会创建评论或改变编辑选区。
 
-外部 Agent 无需打开应用：`python .agents/skills/nbtcreator-workspace/nbt.py control walk-inspect --request walk-request.json --output build/walk/本次新目录`。请求使用相对 `source`、其 `source_sha256`，可选 `context`、`geometry_sha256`、`start` 和最多32个 `targets`。未显式提供的起终点从坐标资料读取，缺失时明确报错。检查候选可提供 `--snapshot`，快照必须绑定原源哈希及完整主模型几何指纹；应用只允许使用已注册的快照键，不接收任意快照路径。
+外部 Agent 无需打开应用：`python .agents/skills/nbtcreator-workspace/nbt.py control walk-inspect --request walk-request.json --output build/walk/本次新目录`。请求使用相对 `source`、其 `source_sha256`，可选 `context`、`geometry_sha256`、`start` 和最多32个 `targets`。显式 `start` 和 `targets` 各自优先。缺少任一字段时，从显式 `context` 补齐；省略 `context` 时，从制作源所属版本的坐标资料补齐。只给源和匹配的哈希即可检查已保存起终点的版本。仍缺起终点时会报错。检查候选可提供 `--snapshot`，快照必须绑定原源哈希及完整主模型几何指纹；应用只允许使用已注册的快照键，不接收任意快照路径。
 
 返回的 `poses` 区分超出模型边界、没有支撑、玩家占位被阻挡，`collisions` 是与玩家占位真正相交的半格碰撞单元。`report.targets[].path` 来自同一 `nbt_collision.check_routes` 引擎，不画虚构直线代替未找到的路径。蓝色表示可站立，红色表示无效占位/碰撞单元；绿色路径表示本次静态检查通过，黄色路径表示仍存在未支持形状等未定问题。高亮跟随剖切，定位会暂时取消剖切并显示全部图层。
 

@@ -35,12 +35,22 @@ test('strict briefs follow the selected new design fields without geometry outpu
 
 test('strict brief schemas cannot override fixed dimensions or add unselected fields',async t=>{
  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-merged-scope-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}))
+ let size=[17,9,16]
  const api=createApiService({directory,safeStorage:{},fetchImpl:async(_url,options)=>{
-  const sent=JSON.parse(options.body),schema=sent.response_format.json_schema.schema
-  return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify(wire({summary:'错误尺寸',project_patch:{size:[64,18,40],layout:'中轴布局'}},schema))}}]}))
+  const sent=JSON.parse(options.body),schema=sent.response_format?.json_schema?.schema
+  const reply={summary:'调整风格',project_patch:{size,style:'素木'}}
+  return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify(schema?wire(reply,schema):reply)}}]}))
  }})
  await api.save({enabled:true,provider:'compatible',strictSchema:true})
- await assert.rejects(api.generate({mode:'workbench',instruction:'整理布局',context:{task:'brief',project:{size:[32,18,40],size_policy:'fixed'},brief_scope:{editable_fields:['size','layout']}}}),/尺寸|固定/)
+ const context={task:'brief',project:{size:[16,9,16],size_policy:'fixed'},brief_scope:{editable_fields:['size','style']}}
+ const request={mode:'workbench',instruction:'整理风格和尺寸',context}
+ await assert.rejects(api.generate(request),/严格输出约束/)
+ const unlocked={...request,context:{...context,project:{...context.project,size_policy:'reference'}}}
+ assert.deepEqual((await api.generate(unlocked)).project_patch.size,[17,9,16])
+ size=[16,9,16]
+ assert.deepEqual((await api.generate(request)).project_patch.size,[16,9,16])
+ await api.save({strictSchema:false})
+ assert.deepEqual((await api.generate(request)).project_patch.size,[16,9,16])
  const {buildOutputSchema,decodeOutput}=require('../../desktop/ai-output-schema.cjs')
  const schema=buildOutputSchema('workbench',{task:'brief',brief_scope:{editable_fields:['layout']}})
  assert.throws(()=>decodeOutput({summary:'越权修改',project_patch:{layout:'布局',materials:'擅自换材质'}},schema),/约束/)

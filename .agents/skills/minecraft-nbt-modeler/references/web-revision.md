@@ -1,40 +1,54 @@
 # 网页保存JSON、修改意见与下一版建筑
 
-本流程用于用户手动调参后的明确导出，不是自动批准agent精修。用户在网页查看本次参数效果后主动点“导出建筑下一版”，或明确指定某份保存JSON交给agent转换，才能生成对应新版本。制作脚本和合成测试无需资产确认。不制造approval.json，不借测试或留言文本取得批准。既有nbt_refine确认流程继续适用于agent自主精修。
+本流程把当前参数效果保存为下一制作版。用户看过效果并明确要求导出时可以同时定稿。Agent 自主精修按 [缩略图确认流程](refinement.md) 执行。
 
 ## 意见文件位置
 
-原建筑工作文件夹下使用 `修改意见/`：图片文字意见仍按 `<源文件SHA256>/<图片SHA256>.json` 保存，导出Markdown同位置；设置副本在转换成功过程中另存为 `设置/<源SHA256>/<设置记录哈希>.json`。信息仍绑定原图、原建筑、标记与引用的效果文件。旧 `build/nbt_feedback` 意见保留且可回读；后续保存写到新位置，不删除或覆盖旧目录。
+新标注自动保存在被标注建筑版本的 `修改意见/`。图片意见使用 `<源文件SHA256>/<图片SHA256>.json`，导出的 Markdown 在同一位置。建筑根目录的 `修改意见/` 和旧 `build/nbt_feedback` 中的历史标注可兼容读取。旧式源回导所用的参数副本仍归档在建筑目录的 `修改意见/设置/`。
 
-网页中的“保存调整设置”仍保存参数JSON到选定文件夹，便于分享和@引用；只有“导出建筑下一版”或下列脚本生成NBT。该按钮要求当前设置已有对应效果预览，避免把未更新的设置当成已看到的结果。
+网页中的“保存调整设置”只保存参数 JSON。“保存制作版”和“定稿导出 NBT”均绑定当前预览。CLI 默认保存制作版，明确要求定稿时才在请求 JSON 中设置 `"draft_only": false`。
 
 ## 转换命令
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_web_revision.py --input "D:/实际路径/保存的效果设置.json"
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_web_revision.py --input "D:/实际任务/jobs/编号/result/after.json"
+python .agents/skills/nbtcreator-workspace/nbt.py control revision --request "D:/实际路径/保存的效果设置.json"
 ```
 
-脚本也提供可导入API `convert_web_json(input_file, workdir=None)`。参数JSON须带source、settings和坐标配置路径，原稿哈希有记录时必须匹配。支持完整任务目录、plan.json/bundle.json/job.json，通过同任务的request.json/settings.json取回参数。after.json不是独立NBT源：须保留同任务request.json，脚本重新计算并逐项核对原稿哈希、几何哈希、尺寸、方块和墙归属，拒绝脱离上下文的单张快照或被改动的快照。不会执行JSON中的任何代码或指令。
+转换器根据源建筑分配下一版本目录，回执给出实际制作源路径。
+
+独立脚本 `nbt_web_revision.py --input` 和 Python API `convert_web_json(input_file, workdir=None)` 还支持旧任务目录和 `after.json`。快照转换需保留同任务的原始请求，脚本复算并核对源、尺寸、状态与墙归属。参数 JSON 指明 source、settings 和坐标配置路径。
 
 ## 工作文件夹与版本
 
-从source路径识别原建筑目录：跳过master/runtime/parts，v05→同建筑v06，detail_v02→detail_v03，refined_v3→refined_v4；编号按现有同前缀最大值递增，通过mkdir排他创建，已有版本不覆盖。无编号版本时在原工作文件夹 `versions/YYYY-MM-DD_HHmmss_web_edit[_序号]/` 保存。时间使用Asia/Shanghai。异常旧布局可显式传 `--workdir "D:/原建筑工作文件夹"`，不能指向skill安装目录或磁盘根目录。
+### 旧式源
 
-新版本目录：
+从源路径识别原建筑目录。已有编号前缀按同前缀最大编号递增，例如 `v05` 之后分配 `v06`，`detail_v02` 之后分配 `detail_v03`。无编号时创建 `versions/YYYY-MM-DD_HHmmss_web_edit[_序号]/`，时间使用 Asia/Shanghai。历史布局需要指定工作文件夹时，独立脚本的 `--workdir` 指向同一工作区 `nbt_models/` 内的实际建筑目录。
 
-- `master/master_geometry.json.gz`：完整未切割主模型，保留真实方块状态与显式全局墙mask；同目录wall_mask.json提供独立归属记录。
-- `runtime/parts/<日期>_<建筑编号>_pXX.nbt`：完整含空气的48网格运行切片；runtime/parts.json记录偏移、哈希及48连续回读重组结果。
-- `delivery/`：每个有效cell恰好body/walls两份稀疏NBT，L形缺角不产片，delivery.json记录分层重建验证。
-- `coordinates.json`、`cameras.json`、`settings.json`、`input.json`、`changes.json`：原配置、视角、参数记录和改动明细。
-- `validation/baseline.json`、`validation/whole_model.json`：原稿及修改后完整模型的端口回封密闭、碰撞路线和已声明路线检查。
-- `conversion.json`：来源及输入哈希、原版本、新版本、改动数、交付数量和complete/failed状态。只有complete表示该次转换完成。
-- `previews/README.json`：明确尚未为新版本重新渲染。原版本图片不冒充新图；需要看图时按render流程对新主模型批量出图。
+- `master/model.snbt` 保存完整主模型和显式墙层。同目录的 `wall_mask.json` 提供墙层副本。
+- 版本根目录的 `coordinates.json`、`cameras.json`、`settings.json`、`input.json` 和 `changes.json` 保存配置、视角、参数和变化记录。
+- `validation/baseline.json` 和 `validation/whole_model.json` 保存原稿及候选的适用检查。
+- `previews/README.json` 记录新版尚未出图。
 
-先在完整模型上重新计算和校验，再纯切割并回读；保留源文件、原墙归属和源哈希。严格执行变化预算，不支持的碰撞、缺墙mask、缺坐标配置会报错。SAODG模式仍要求48有效cells；独立模式必须显式给 `mode: "standalone"`、`openings`、真实路线与探针，可回导非48倍数和高度跨48的完整模型。校验失败通常不分配版本；写出中失败保留failed诊断目录，后续分配新编号。不会自动放宽检查、删除未知形状或补造墙归属。48连续重建与49运行间距、真实客户端及多人验收仍分别报告。
+### 受管制作版
 
-独立回导的 `runtime/parts.json` 和 `delivery/delivery.json` 使用 `kind: standalone_xyz_tiles`，保存每块XYZ索引、实际offset和边块size；每块一份完整含空气NBT、独立两份稀疏body/walls。空墙层在清单明确列出，整件空墙归属需用户上下文 `allow_empty_wall_mask: true`；不能据此把SAODG房间的缺墙mask变成通过。`nbt_standalone_delivery.verify_standalone(<版本目录>)` 会回读完整和分层文件，验证尺寸/偏移/哈希/层互斥、完整重建及墙mask指纹。
+在同一建筑目录下通过[工作模型](working-model.md#检查保存与恢复)发布 `v_model_<清单摘要前24位>/`，保留实例和父版本。
 
-非空cells在独立模式仍是有效XZ占地，回导与精修会保留并传给机械切片器。清单的active_cells和建筑描述记录同一占地；L形缺角不产空片。无cells/空cells的自由尺寸模式仍使用完整包围盒XYZ存储。
+- `master/model.snbt`、`coordinates.json` 和 `model-instances.json` 保存完整主模型、墙层、坐标和实例。回导使用的机位保存在 `coordinates.json` 的 `cameras` 字段。
+- `editing/settings.json` 和 `editing/input.json` 保存此次转换的参数与输入。版本根目录的 `changes.json` 保存相对父版本的变化。
+- `validation/working-model.json` 记录当前制作阶段的检查。版本核心文件与父版本由 `model-version.json` 绑定。
+
+### 回执与定稿
+
+两种流程的 `conversion.json` 都记录实际来源、制作版路径和转换状态。制作版已发布但定稿失败时，错误给出实际 SNBT 路径，回执保留 `status: complete` 并记录 `release_status: failed`。从该 SNBT 单独重试定稿。需要看图时按 [渲染流程](rendering.md) 对新制作源出图。
+
+定稿生成的完整 NBT、运行切片和分层交付写入 `nbt_models/_exports/` 的镜像版本目录，清单记录分片偏移、哈希和回读重组结果。
+
+先在完整模型上复算并校验，再保存制作版。定稿时才机械切片和回读。独立模式支持非 48 倍数尺寸，按实际 `openings` 和路线检查，要求密闭时才提供探针。SAODG 模式沿用 48 格占地和专用端口。
+
+旧模型的原坐标先在版本根目录查找，再查找该版本内的主稿所在目录及其父目录。每处按 `coordinates.json`、`config.json`、`context.json` 查找，最后可使用版本描述中指向本版本文件的 `context_file`。选择其他配置或单独调整机位时，原有的洞口或端口、密闭要求与探针、起点与目标、声明路线及占地继续生效。保护路径、保护区和留白也继续生效，改动预算取原制作版与本次设置中的较小值。下一版的显式墙层保存在 SNBT 内。
+
+独立模式的定稿清单 `runtime/parts.json` 和 `delivery/delivery.json` 使用 `kind: standalone_xyz_tiles`，记录分片的 XYZ 索引、偏移和尺寸。每片保存含空气的运行模板，以及 body 和 walls 两层。整件没有墙层时，独立模式的上下文须显式设置 `allow_empty_wall_mask: true`。`nbt_standalone_delivery.verify_standalone(<定稿目录>)` 回读运行和分层文件，核对几何与墙层重组。
+
+独立模式的非空 cells 描述有效 XZ 占地，保存时继承，定稿时据此切片。无 cells 或空 cells 使用完整包围盒的 XYZ 分片。
 
 回归：`check_web_revision_fixtures.py --output <全新目录>` 验证L形三片/六份分层、下一版编号、原稿保留、快照篡改拒绝与预算检查；这些只处理合成模型。

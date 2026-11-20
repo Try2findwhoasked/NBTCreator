@@ -12,12 +12,14 @@ from pathlib import Path
 import subprocess
 import sys
 
-from nbt_refine import read_master, prepare, refine, validate, protections, _current_review, operation_candidates
+from nbt_refine import (read_master, prepare, refine, validate, protections, _current_review,
+                        operation_candidates, refinement_context, resolve_wall_mask, binary_wall_mask_hash)
 from nbt_model import state
 from nbt_request_paths import read_request, metadata_path
 from nbt_web_paths import project_paths, workspace_path
 from nbt_collision import collision_cells
 from nbt_catalog import catalog as tool_catalog
+from nbt_library import InvalidCoordinateDescription,saved_coordinates
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -44,6 +46,11 @@ def nearby(source, names):
             candidate = parent/name
             if candidate.is_file(): return str(candidate)
     return ''
+
+
+def viewing_context(source):
+    try:return str(saved_coordinates(source) or ''),''
+    except InvalidCoordinateDescription as error:return '',str(error)
 
 
 def link_legacy_room_constraints(workspace, models, groups, errors):
@@ -197,7 +204,10 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
         try:
             descriptor=description_near(p)
             if descriptor:
-                if descriptor not in descriptions:descriptions[descriptor]=read_json(descriptor)
+                if descriptor not in descriptions:
+                    try:metadata=read_json(descriptor)
+                    except (OSError,ValueError):metadata={}
+                    descriptions[descriptor]=metadata if isinstance(metadata,dict) else {}
                 declaration=descriptions[descriptor]
                 if declaration.get('audit',{}).get('compliant') is False and not bugged:continue
                 declared_master=declaration.get('master')
@@ -272,7 +282,7 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
                     version='/'.join(canonical_parts[2:])
             models.append(dict(source=str(p.resolve()), label=room_description.get('display_name') or str(relative), name=name, name_zh=room_description.get('name_zh'), shape=room_description.get('shape'), shape_zh=room_description.get('shape_zh'), group=group, batch=batch,
                                version=room_description.get('version_name') or version or '原稿', intermediate=p.name.startswith(('pre_', 'sealed_', 'source.')), geometry_sha256=data['geometry_sha256'],
-                               context=str(description_file.parent/room_description['context_file']) if room_description.get('context_file') else nearby(p, ('coordinates.json', 'config.json', 'context.json')),
+                               context=viewing_context(p)[0],
                                cameras=nearby(p, ('cameras.json',)), size=room_description.get('size') or data.get('size'),
                                cells=room_description.get('cells'), description_zh=room_description.get('description_zh',''),
                                modified_ns=str(stat.st_mtime_ns), file_size=stat.st_size, relative_path=str(relative),bugged=bugged,unreadable=False,unverified=bool(data.get('unverified'))))
@@ -357,7 +367,7 @@ def inspect_source(source, image_limit=8):
     unknown = [dict(state=value, count=count, reason=collision_cells(value)[1])
                for value, count in sorted(counts.items()) if collision_cells(value)[1] and not bounded_obstacle(value)]
     conservative = [dict(state=value,count=count) for value,count in sorted(counts.items()) if bounded_obstacle(value)]
-    context = nearby(source, ('coordinates.json', 'config.json', 'context.json'))
+    context,context_error=viewing_context(source)
     cameras = nearby(source, ('cameras.json',))
     images = preview_images(source, geometry_hash, image_limit)
     sx,sy,sz=model.size
@@ -367,7 +377,8 @@ def inspect_source(source, image_limit=8):
         data = read_json(context) if context else {}
         if not isinstance(data,dict):data={}
     except (OSError,ValueError):data={}
-    readiness=context_readiness(model,context,source)
+    readiness=(dict(ready=False,missing=['context'],errors=[context_error],scope='schema_only')
+               if context_error else context_readiness(model,context,source))
     return dict(source=str(source), source_sha256=digest(source), workdir=str(project_paths(source)['workdir']), version_dir=str(project_paths(source)['version']), geometry_sha256=model.fingerprint(),
                 projections=projections,size=list(model.size), solid_blocks=len(model.blocks), wall_blocks=len(walls),
                 context=context, cameras=cameras, images=images, unknown_shapes=unknown,
@@ -380,20 +391,27 @@ def inspect_source(source, image_limit=8):
 
 def context_readiness(model, context, source=None):
     """Schema readiness only; never a seal, route or visual acceptance result."""
-    from nbt_library import canonical_context
+    from nbt_library import canonical_context,inherit_edit_constraints
     from nbt_whole_validation import check_opening_policy, requires_enclosure, validation_mode
     missing=[];errors=[]
-    if not context:return dict(ready=False,missing=['context'],errors=[],scope='schema_only')
+    if not context:
+        if source:
+            _,context_error=viewing_context(source)
+            if context_error:errors.append(context_error)
+        return dict(ready=False,missing=['context'],errors=errors,scope='schema_only')
     try:data=canonical_context(context)
     except (OSError,ValueError,TypeError) as error:return dict(ready=False,missing=[],errors=[str(error)],scope='schema_only')
     if source:
         try:
+            saved_coordinates(source)
             from nbt_working_model import managed_manifest, WorkingModel
             from nbt_history import source_workspace
             manifest=managed_manifest(source)
             if manifest and (manifest['kind']=='component' or manifest['phase']!='opened'):
                 WorkingModel.open(source_workspace(source),source,context)
                 return dict(ready=True,missing=[],errors=[],scope='schema_only',kind=manifest['kind'],phase=manifest['phase'])
+            if manifest is None:
+                data=inherit_edit_constraints(data,source)
         except (OSError,ValueError,TypeError) as error:
             return dict(ready=False,missing=[],errors=[str(error)],scope='schema_only')
     try:
@@ -601,25 +619,36 @@ def compile_plan(settings, size):
     return dict(style_note=note, operations=operations)
 
 
-def normalize_context(model, context_path, camera_path, settings, *, preview_only=False):
-    from nbt_library import canonical_context
+def normalize_validation_context(model, context_path, settings, *, preview_only=False, source=None):
+    from nbt_library import canonical_context,inherit_edit_constraints
     from nbt_whole_validation import requires_enclosure, validation_mode
     data = canonical_context(context_path)
+    if source is not None:
+        data = inherit_edit_constraints(data,source)
     keys = ('mode', 'openings', 'require_enclosure', 'openings_policy', 'opening_size',
             'allow_empty_wall_mask', 'cells', 'cell_size', 'door_y', 'ports', 'start', 'targets', 'interior_probes', 'protected_paths',
-            'protected_boxes', 'route_legs', 'cameras', 'wall_positions')
+            'protected_boxes', 'reserved_boxes', 'route_legs', 'cameras', 'wall_positions')
     config = {key: data[key] for key in keys if key in data}
     config['mode'] = validation_mode(config)
     if config['mode'] == 'saodg':
         if 'cells' not in config and model.size[0] == model.size[2] == 48: config['cells'] = [[0, 0]]
         config.setdefault('ports', []); config.setdefault('door_y', 2)
-    config['max_changed_blocks'] = settings.get('max_changed_blocks', 4096)
+    budget = settings.get('max_changed_blocks', 4096)
+    source_budget = data.get('max_changed_blocks', budget)
+    if any(type(value) is not int or value < 0 for value in (budget, source_budget)):
+        raise ValueError('变化上限必须为非负整数')
+    config['max_changed_blocks'] = min(budget, source_budget)
     for key in ('start', 'targets', *(('interior_probes',) if requires_enclosure(config) else ())):
         if not config.get(key):
             if preview_only and key == 'interior_probes':
                 config['missing_checks'] = [key]
             else:
                 raise ValueError(f'Context is missing non-empty {key}; choose coordinates/config JSON')
+    return config
+
+
+def normalize_context(model, context_path, camera_path, settings, *, preview_only=False, source=None):
+    config = normalize_validation_context(model, context_path, settings, preview_only=preview_only, source=source)
     raw_cameras = read_json(camera_path) if camera_path else config.get('cameras', [])
     if not raw_cameras:
         start = config['start']; targets = config['targets']
@@ -646,12 +675,26 @@ def reserve_output(output):
     return output
 
 
+def review_config(request, model):
+    from nbt_library import canonical_context
+    from nbt_working_model import managed_manifest
+
+    source = Path(request['source']).resolve()
+    config = normalize_context(model, request['context'], request.get('cameras', ''), request['settings'],source=source)
+    if managed_manifest(source):
+        supplied = canonical_context(request['context'])
+        supplied.update(cameras=config['cameras'], max_changed_blocks=config['max_changed_blocks'])
+        _, config = refinement_context(source, supplied, request.get('source_sha256'))
+    return config
+
+
 def export_plan(request, output):
     source = Path(request['source']).resolve(); model, walls = read_master(source)
     if request.get('source_sha256') and request['source_sha256'] != digest(source):
         raise ValueError('Baseline changed since it was displayed; reload the model before exporting a plan')
     settings = request['settings']; plan = compile_plan(settings, model.size)
-    config = normalize_context(model, request['context'], request.get('cameras', ''), settings)
+    config = review_config(request, model)
+    walls = resolve_wall_mask(model, walls, config)
     output = reserve_output(output)
     baseline_hash = digest(source)
     bundle = dict(source=str(source), source_sha256=baseline_hash, geometry_sha256=model.fingerprint(),
@@ -741,15 +784,22 @@ def simulate_plan(model, walls, plan, config):
     return virtual,walls,difference
 
 
-def authoring_context(request, model, settings, *, preview_only=False):
-    """Use the saved scope and stage for managed components and design drafts."""
+def load_managed_model(request):
     from nbt_working_model import managed_manifest, WorkingModel
     from nbt_history import source_workspace
     source = Path(request['source']).resolve()
-    if not managed_manifest(source):
-        return normalize_context(model, request['context'], request.get('cameras',''), settings, preview_only=preview_only)
-    working = WorkingModel.open(source_workspace(source),source,request['context'],
-        source_sha256=request.get('source_sha256'))
+    if managed_manifest(source):
+        return WorkingModel.open(source_workspace(source),source,request['context'],
+            source_sha256=request.get('source_sha256'))
+    return None
+
+
+def authoring_context(request, model, settings, *, preview_only=False, working=None):
+    """Use the saved scope and stage for managed components and design drafts."""
+    working = working or load_managed_model(request)
+    if working is None:
+        return normalize_context(model, request['context'], request.get('cameras',''), settings,
+                                 preview_only=preview_only,source=request['source'])
     config = working._protection_context()
     config['max_changed_blocks'] = min(working._budget(), settings.get('max_changed_blocks',4096))
     config['max_written_positions'] = working.limits['max_written_positions']
@@ -762,20 +812,17 @@ def authoring_context(request, model, settings, *, preview_only=False):
 
 def preview_effect(request, output):
     # User-requested visual experiment only: no master/NBT, approval or delivery.
-    from nbt_assembly import Volume
-    from nbt_patterns import pattern_plan
-    from nbt_weathering import weathering_plan
-    from nbt_floors import auto_floor_plan
     from nbt_registry import effective, normalize, registry
+    from nbt_library import coordinates_hash,saved_coordinates_hash
     source=Path(request['source']).resolve(); baseline=digest(source)
+    mask_hash=binary_wall_mask_hash(source)
+    source_context_hash=saved_coordinates_hash(source)
+    context_hash=coordinates_hash(request['context'])
+    camera_hash=digest(request['cameras']) if request.get('cameras') else None
     if request.get('source_sha256') and request['source_sha256']!=baseline: raise ValueError('原建筑已变化，请重新打开')
     model,walls=read_master(source);settings=request['settings'];plan=compile_plan(settings,model.size)
     config=authoring_context(request,model,settings,preview_only=True)
-    if 'wall_positions' in config:
-        from nbt_refine import point
-        walls={point(p) for p in config['wall_positions']}
-        if any(not model.in_bounds(p) for p in walls):raise ValueError('墙mask超出原建筑范围')
-    walls={p for p in walls if p in model.blocks};source_walls=set(walls)
+    walls=resolve_wall_mask(model,walls,config);source_walls=set(walls)
     virtual,walls,difference=simulate_plan(model,walls,plan,config)
     changed=difference['changed_blocks']
     output=reserve_output(output)
@@ -784,6 +831,7 @@ def preview_effect(request, output):
         for position,value in sorted(current.blocks.items()):
             name,props=effective(value);blocks.append([list(position),normalize(dict(Name=name,Properties=props))])
         return dict(name=source.name,source=str(source),source_sha256=baseline,geometry_sha256=current.fingerprint(),
+                    binary_wall_mask_sha256=mask_hash,
                     size=list(current.size),blocks=blocks,master_blocks=[[list(p),value] for p,value in sorted(current.blocks.items())],wall_positions=sorted(mask),cameras=config['cameras'],
                     registry_sha256=registry()['blocks_sha256'],preview_only=True,
                     verification=dict(routes='not_checked',game='not_checked',design='pending_visual_review'))
@@ -792,7 +840,11 @@ def preview_effect(request, output):
     diff=describe(model,virtual,source_walls,walls)
     diff.update(before_source_sha256=baseline,after_source_sha256=baseline,before_geometry_sha256=model.fingerprint(),after_geometry_sha256=virtual.fingerprint())
     write_json(output/'difference.json',diff)
-    if digest(source)!=baseline: raise ValueError('原建筑在计算中变化，请重新打开')
+    if digest(source)!=baseline or binary_wall_mask_hash(source)!=mask_hash:
+        raise ValueError('原建筑或墙层附属文件在计算中变化，请重新打开')
+    if (saved_coordinates_hash(source)!=source_context_hash or coordinates_hash(request['context'])!=context_hash
+            or (camera_hash is not None and digest(request['cameras'])!=camera_hash)):
+        raise ValueError('坐标或机位在计算中变化，请重新生成预览')
     return dict(status='visual_preview_only',snapshot=str(output/'after.json'),baseline_snapshot=str(output/'before.json'),
                 geometry_sha256=virtual.fingerprint(),source_sha256=baseline,size=list(model.size),
                 cameras=config['cameras'],changed_blocks=changed,wall_membership_changes=difference['wall_membership_changes'],settings_sha256=canonical(settings),preview_only=True,difference=str(output/'difference.json'),
@@ -804,7 +856,7 @@ def create_review(request, output):
     if request.get('source_sha256') and request['source_sha256'] != digest(source):
         raise ValueError('Baseline changed since it was displayed; reload the model before review')
     compile_plan(request['settings'], model.size)
-    config = normalize_context(model, request['context'], request.get('cameras', ''), request['settings'])
+    config = review_config(request, model)
     prepare(source, config, output)
     return dict(status='awaiting_user_review', review=str(Path(output).resolve()),
                 images=[str(Path(output).resolve()/'thumbnails.png')],
@@ -820,19 +872,31 @@ def apply_approved(request, bundle_path, review, output):
         raise ValueError('Source/settings changed since plan export; export a new plan')
     plan = read_json(bundle_path.parent/'plan.json')
     if canonical(plan) != bundle['plan_sha256']: raise ValueError('Plan changed after export')
-    review_config = read_json(Path(review)/'config.json')
+    approved_config = read_json(Path(review)/'config.json')
     expected = {k: v for k, v in bundle['context'].items() if k != 'wall_positions'}
-    if canonical(review_config) != canonical(expected): raise ValueError('Reviewed protection/config differs from this plan; use matching context and a new review when needed')
+    current = review_config(request, read_master(source)[0])
+    if canonical(approved_config) != canonical(expected) or canonical(bundle['context']) != canonical(current):
+        raise ValueError('Reviewed protection/config differs from this plan; use matching context and a new review when needed')
+    if 'wall_positions' in current:
+        snapshot, approved_walls = read_master(Path(review)/'source.master.json.gz')
+        expected_walls = {tuple(p) for p in current['wall_positions']} & snapshot.blocks.keys()
+        if approved_walls != expected_walls:
+            raise ValueError('Reviewed wall mask differs from this plan; prepare new thumbnails')
     result = refine(review, plan, output)
     return dict(status=result['state'], output=str(Path(output).resolve()), changed_blocks=result['changed_blocks'],
                 wall_membership_changes=result.get('wall_membership_changes',0),changed_positions=result.get('changed_positions',result['changed_blocks']),
-                preview_source=str(Path(output).resolve()/'refined.master.json.gz'),
+                preview_source=result['master'],
                 images=[str(Path(output).resolve()/'comparison.png')])
 
 
 def render_source(request, output):
-    source = Path(request['source']).resolve(); model, _ = read_master(source)
-    config = normalize_context(model, request['context'], request.get('cameras', ''), request['settings'])
+    source = Path(request['source']).resolve()
+    source_hash=digest(source)
+    mask_hash=binary_wall_mask_hash(source)
+    if request.get('source_sha256') and request['source_sha256']!=source_hash:
+        raise ValueError('原建筑已变化，请重新打开后出图')
+    model, _ = read_master(source)
+    config = authoring_context(request,model,request['settings'])
     output = reserve_output(output); camera_file = output/'cameras.json'
     views = []
     for i, camera in enumerate(config['cameras']):
@@ -844,6 +908,8 @@ def render_source(request, output):
     (output/'render.log').write_text(run.stdout+run.stderr, encoding='utf8')
     if run.returncode: raise ValueError('Source rendering failed; see '+str(output/'render.log'))
     manifest = read_json(target/'render_manifest.json')
+    if manifest['source_sha256']!=source_hash or digest(source)!=source_hash or binary_wall_mask_hash(source)!=mask_hash:
+        raise ValueError('源模型或墙层附属文件在出图期间发生变化')
     return dict(status='source_rendered', output=str(output), images=[str(target/item['image']) for item in manifest['images']])
 
 
@@ -922,8 +988,12 @@ def main():
     cmd = sub.add_parser('batches');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['create','import','list','get','record','run','ack','locate','discover'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('feedback-tasks');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','create','update','merge','evidence'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('validate'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True)
-    for name in ('plan', 'prepare', 'render', 'snapshot', 'preview', 'revision', 'compare'):
+    for name in ('plan', 'prepare', 'render', 'snapshot', 'preview', 'compare'):
         cmd = sub.add_parser(name); cmd.add_argument('--request', type=Path, required=True); cmd.add_argument('--output', type=Path, required=True)
+    cmd = sub.add_parser('revision', help='Save the next version in the source building directory')
+    cmd.add_argument('--request', type=Path, required=True)
+    # Older desktop clients supplied an unused output directory.
+    cmd.add_argument('--output', type=Path, help=argparse.SUPPRESS)
     cmd = sub.add_parser('apply'); cmd.add_argument('--request', type=Path, required=True)
     cmd.add_argument('--bundle', type=Path, required=True); cmd.add_argument('--review', type=Path, required=True)
     cmd.add_argument('--output', type=Path, required=True)

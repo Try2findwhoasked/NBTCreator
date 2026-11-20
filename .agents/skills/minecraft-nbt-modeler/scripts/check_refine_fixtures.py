@@ -13,6 +13,7 @@ from nbt_assembly import Volume
 from nbt_collision import check_routes
 from nbt_refine import prepare,record_user_approval,refine,save_master,read_master,operation_candidates
 from nbt_delivery import verify_delivery
+from nbt_finalize import export_binary
 
 
 def rejected(action,types=(ValueError,PermissionError,FileExistsError,AssertionError)):
@@ -80,14 +81,17 @@ def main():
     checks['selection_escape_writes_no_nbt']=not list((out/'scope_escape').rglob('*.nbt')) and source.read_bytes()==source_bytes
     final=refine(review,plan,out/'revision_01')
     checks['whole_master_revision_succeeded']=final['validation_passed'] and final['workflow'].startswith('whole_uncut')
-    revised,revised_walls=read_master(out/'revision_01/refined.master.json.gz')
+    revised,revised_walls=read_master(final['master'])
     checks['modelling_integrated_into_reviewed_refinement']=revised.get((6,4,11))=='minecraft:stone_bricks' and final['operations'][0]['modelling']['changed']>0
     checks['pattern_integrated_into_reviewed_refinement']=revised.get((1,10,70))=='minecraft:granite' and (1,10,70) in revised_walls and final['operations'][-2]['pattern']['changed']==21
     checks['auto_floor_integrated_into_reviewed_refinement']=final['operations'][-1]['auto_floor']['actual_blocks']>0 and final['operations'][-1]['auto_floor']['original_necessary_paths_preserved']
     checks['dimensions_and_source_preserved']=revised.size==m.size and source.read_bytes()==source_bytes
     checks['details_span_cut_in_one_master']=revised.get((1,6,47))=='minecraft:chiseled_stone_bricks' and revised.get((1,6,48))=='minecraft:chiseled_stone_bricks'
-    checks['three_cell_delivery_exactly_six']=verify_delivery(out/'revision_01/delivery')['actual_nbt_files']==6
-    checks['runtime_composites_separate']=len(list((out/'revision_01/runtime').glob('*.nbt')))==3
+    checks['refinement_saves_only_snbt']=final['delivery_nbt_files']==0 and not list((out/'revision_01').rglob('*.nbt'))
+    release=out/'explicit_export'
+    exported=export_binary(revised,revised_walls,config,json.loads((out/'revision_01/validation.json').read_text(encoding='utf8')),release)
+    checks['three_cell_delivery_exactly_six']=verify_delivery(release/'delivery')['actual_nbt_files']==6
+    checks['runtime_composites_separate']=exported['runtime_parts']==3
     checks['before_after_manifest_exists']=(out/'revision_01/changes.json').is_file() and len(final['previews'])==3 and (out/'revision_01/comparison.png').is_file()
     checks['existing_revision_not_overwritten']=rejected(lambda:refine(review,plan,out/'revision_01'))
     checks['review_dir_not_overwritten']=rejected(lambda:refine(review,plan,review))
@@ -125,9 +129,12 @@ def main():
         detail=dict(style_note='Same planar stone detail in the complete source.',operations=[
             dict(label='West source trim',kind='frame',lo=[1,6,10],hi=[1,10,20],state='chiseled_stone_bricks',classification='wall')])
         r=refine(sub/'review',detail,sub/'revision')
-        checks[name+'_whole_master_resliced']=r['validation_passed'] and r['delivery_nbt_files']==2*len(cells)
+        refined,refined_walls=read_master(r['master'])
+        validation=json.loads((sub/'revision/validation.json').read_text(encoding='utf8'))
+        release=export_binary(refined,refined_walls,c,validation,sub/'explicit_export')
+        checks[name+'_whole_master_resliced']=r['validation_passed'] and release['delivery_nbt']==2*len(cells)
         checks[name+'_no_source_overwrite']=r['original_source_unchanged']
-        if name=='l_shape':checks['l_shape_missing_cell_not_exported']=not (sub/'revision/delivery/p11_body.nbt').exists()
+        if name=='l_shape':checks['l_shape_missing_cell_not_exported']=not list((sub/'explicit_export/delivery').glob('*p11*.nbt'))
         shape_revisions[name]=str(sub/'revision')
     if not all(checks.values()):raise AssertionError(checks)
     report=dict(passed=True,checks=checks,fixture_only=True,review=str(review),revision=str(out/'revision_01'),

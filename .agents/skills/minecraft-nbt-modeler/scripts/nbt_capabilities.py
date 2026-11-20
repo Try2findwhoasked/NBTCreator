@@ -36,8 +36,51 @@ if __name__=='__main__':
     parser.add_argument('--agent-tool',choices=sorted(data['agent_tools']),help='只读取指定高层工具的完整参数Schema')
     parser.add_argument('--model',action='store_true',help='只读取统一工作模型的请求契约')
     parser.add_argument('--architecture',action='store_true',help='只读取建筑方案与评审工作流契约')
+    recipes=data['architecture']['plan']['properties']['parts']['items']['properties']['recipe']['properties']['tool']['enum']
+    parser.add_argument('--recipe',choices=recipes,help='查询建筑构件 recipe.tool 的 arguments；structure 对应 structure_preview.spec')
+    parser.add_argument('--operation',choices=sorted(data['operation_parameters']),help='查询 operations 中一个 kind 的字段')
+    parser.add_argument('--architect-action',choices=sorted(data['architecture']['actions']),help='查询一项 architect 请求')
+    parser.add_argument('--field',help='配合 --architect-action 查询字段，例如 plan.parts.interfaces')
+    parser.add_argument('--block-state',help='查询 Java 1.20.1 状态、静态通路包络和精确接触支持')
     args=parser.parse_args()
-    if sum(map(bool,(args.model,args.agent_tool,args.architecture)))>1:parser.error('--model、--architecture 与 --agent-tool 只能选一个')
+    if sum(map(bool,(args.model,args.agent_tool,args.architecture,args.recipe,args.operation,args.architect_action,args.block_state)))>1:
+        parser.error('一次只选择一种能力查询')
+    if args.field and not args.architect_action:
+        parser.error('--field 须与 --architect-action 一起使用')
+    header=dict(capabilities_sha256=data['capabilities_sha256'],gui_required=False)
+    if args.recipe:
+        tool='structure_preview' if args.recipe=='structure' else args.recipe
+        schema=data['agent_tools'][tool]['parameters']
+        if args.recipe=='structure':
+            schema=schema['properties']['spec']
+        data=dict(**header,tool=args.recipe,arguments=schema,
+                  example=data['architecture'].get('recipe_examples',{}).get(args.recipe))
+    if args.operation:
+        data=dict(**header,kind=args.operation,parameters=data['operation_parameters'][args.operation],
+                  common_example=data['common'],optional_fields=data['optional_operation_fields'])
+    if args.architect_action:
+        architecture=data['architecture']
+        schema=architecture['actions'][args.architect_action]
+        result=dict(**header,action=args.architect_action)
+        if args.field:
+            keys=args.field.split('.')
+            if keys[0]=='plan' and 'plan' in schema.get('properties',{}):
+                schema=architecture['plan']
+                keys=keys[1:]
+            for key in keys:
+                if schema.get('type')=='array':
+                    schema=schema['items']
+                schema=schema.get('properties',{}).get(key)
+                if schema is None:
+                    parser.error('未知建筑请求字段：'+args.field)
+            result['field']=args.field
+            example=architecture.get('field_examples',{}).get(args.field)
+            if example is not None:
+                result['example']=example
+        data=dict(**result,parameters=schema)
+    if args.block_state:
+        from nbt_collision import state_support
+        data=dict(**header,state=args.block_state,**state_support(args.block_state))
     if args.architecture:data=dict(architecture=data['architecture'],capabilities_sha256=data['capabilities_sha256'],gui_required=False)
     if args.model:data=dict(working_model=data['working_model'],capabilities_sha256=data['capabilities_sha256'],gui_required=False)
     if args.agent_tool:

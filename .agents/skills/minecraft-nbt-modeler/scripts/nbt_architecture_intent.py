@@ -117,6 +117,12 @@ def visible_location(model, eye, target, look_at, fov):
     """Sample one authored target point, including targets in doorway air."""
     from nbt_collision import collision_cells
     from nbt_registry import effective
+    target_cell = tuple(math.floor(value) for value in target)
+    target_state = model.get(target_cell)
+    occupied, reason = collision_cells(target_state)
+    target_inside = not reason and tuple(math.floor(2*(value-cell)) for value,cell in zip(target,target_cell)) in occupied
+    evidence = dict(target_cell=list(target_cell), target_state=target_state,
+                    target_inside_solid=target_inside, target_shape_uncertain=bool(reason))
     delta = [target[i] - eye[i] for i in range(3)]
     forward = [look_at[i] - eye[i] for i in range(3)]
     distance = math.sqrt(sum(value * value for value in delta))
@@ -124,7 +130,8 @@ def visible_location(model, eye, target, look_at, fov):
     framed = bool(distance and length and sum(delta[i] * forward[i] for i in range(3)) /
                   (distance * length) >= math.cos(math.radians(fov / 2)))
     if not framed:
-        return dict(passed=False, framed=False, uncertain=False, blocker=None)
+        return dict(passed=False, framed=False, uncertain=False, blocker=None,
+                    failure='target_outside_view', **evidence)
     uncertain = False
     steps = max(1, math.ceil(distance * 8))
     for step in range(1, steps):
@@ -142,8 +149,11 @@ def visible_location(model, eye, target, look_at, fov):
             continue
         local = tuple(math.floor(2 * (point[i] - position[i])) for i in range(3))
         if local in occupied:
-            return dict(passed=False, framed=True, uncertain=uncertain, blocker=list(position))
-    return dict(passed=not uncertain, framed=True, uncertain=uncertain, blocker=None)
+            failure = 'target_inside_solid' if target_inside and position == target_cell else 'occluded'
+            return dict(passed=False, framed=True, uncertain=uncertain, blocker=list(position),
+                        blocker_state=value, failure=failure, **evidence)
+    return dict(passed=not uncertain, framed=True, uncertain=uncertain, blocker=None,
+                failure='uncertain_collision' if uncertain else None, **evidence)
 
 
 def prepare_locations(model, plan, cameras, view_checks):

@@ -52,9 +52,16 @@ def main():
     record_user_approval(review,'SYNTHETIC FIXTURE ONLY: reviewed generated test thumbnails.',True)
     result=apply_approved(request,exported['bundle'],review,out/'revision')
     checks['approved_application_outputs_new_version']=result['changed_blocks']>0 and (out/'revision/comparison.png').is_file()
+    checks['approved_application_saves_snbt_only']=Path(result['preview_source']).suffix=='.snbt' and not list((out/'revision').rglob('*.nbt'))
     checks['original_baseline_never_overwritten']=digest(source)==original
     altered=copy.deepcopy(request);altered['settings']['seed']=77
     checks['stale_settings_cannot_apply_old_bundle']=refuses(lambda:apply_approved(altered,exported['bundle'],review,out/'stale'))
+    write_json(out/'changed-context.json',dict(context,protected_boxes=[dict(lo=[1,2,1],hi=[1,3,2])]))
+    altered=dict(request,context=str(out/'changed-context.json'))
+    checks['changed_context_cannot_apply_old_review']=refuses(lambda:apply_approved(altered,exported['bundle'],review,out/'stale-context'))
+    write_json(out/'changed-walls.json',dict(context,wall_positions=[[0,2,0]]))
+    altered=dict(request,context=str(out/'changed-walls.json'))
+    checks['changed_wall_assignment_cannot_apply_old_review']=refuses(lambda:apply_approved(altered,exported['bundle'],review,out/'stale-walls'))
     saved=(out/'plan/plan.json').read_bytes();modified=read_json(out/'plan/plan.json');modified['style_note']='changed'
     write_json(out/'plan/plan.json',modified)
     checks['changed_plan_is_refused']=refuses(lambda:apply_approved(request,exported['bundle'],review,out/'modified'))

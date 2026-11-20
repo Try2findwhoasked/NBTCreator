@@ -4,17 +4,12 @@ Run only for a human-selected saved effect. This script never fabricates approva
 receipts, changes the source version or installs files into a world/room pool.
 """
 import argparse
-import hashlib
 import json
 from pathlib import Path
-import re
 import tempfile
-from datetime import datetime,timezone,timedelta
-from nbt_detail_control import read_json,write_json,digest,canonical,preview_effect,normalize_context
-from nbt_refine import read_master,save_master,validate,layout,protections,point
-from nbt_model import Model,load
+from nbt_detail_control import read_json,write_json,digest,canonical,preview_effect
+from nbt_refine import read_master,validate,layout,protections,resolve_wall_mask,binary_wall_mask_hash
 from nbt_assembly import Volume
-from nbt_delivery import export_delivery,verify_delivery
 from nbt_web_paths import project_paths,reserve_version
 from nbt_request_paths import read_request,portable_request
 from nbt_whole_validation import validation_mode
@@ -55,26 +50,27 @@ def convert_web_json(input_file,workdir=None):
 
 
 def _convert_web_json(input_file,workdir,resolved):
+    from nbt_library import canonical_context,coordinates_hash,inherit_edit_constraints,saved_coordinates_hash
+
     request_file,request,expected=resolved
     source=Path(request['source']).resolve();source_hash=digest(source)
-    context_hash=digest(request['context'])
+    mask_hash=binary_wall_mask_hash(source)
+    source_context_hash=saved_coordinates_hash(source)
+    context_hash=coordinates_hash(request['context'])
     camera_hash=digest(request['cameras']) if request.get('cameras') else None
-    draft_only=request.get('draft_only',False)
+    draft_only=request.get('draft_only',True)
     if type(draft_only) is not bool:raise ValueError('制作版保存选项无效')
     if request.get('source_sha256') and request['source_sha256']!=source_hash:raise ValueError('原建筑已变化，请重新打开原版本并保存设置')
-    from nbt_working_model import WorkingModel, managed_manifest, value_at
-    from nbt_history import source_workspace
-    from nbt_detail_control import authoring_context
-    managed=managed_manifest(source)
-    working=WorkingModel.open(source_workspace(source),source,request['context'],source_sha256=source_hash) if managed else None
-    baseline,base_walls=read_master(source)
-    settings=request['settings'];config=authoring_context(request,baseline,settings)
-    if 'wall_positions' in config:
-        base_walls={point(p) for p in config['wall_positions']}
-        if any(not baseline.in_bounds(p) for p in base_walls):raise ValueError('显式墙mask超出原模型边界')
-    base_walls={p for p in base_walls if p in baseline.blocks}
+    from nbt_detail_control import authoring_context,load_managed_model
+    working=load_managed_model(dict(request,source_sha256=source_hash))
+    baseline,base_walls=(working.model,working.walls) if working else read_master(source)
+    settings=request['settings'];config=authoring_context(request,baseline,settings,working=working)
+    base_walls=resolve_wall_mask(baseline,base_walls,config)
     standalone=validation_mode(config)=='standalone'
-    original_config=read_json(request['context']);baseline_checks=working.validate() if working else validate(baseline,config)
+    original_config=canonical_context(request['context'])
+    if not working:
+        original_config=inherit_edit_constraints(original_config,source)
+    baseline_checks=working.validate() if working else validate(baseline,config)
     root=Path(workdir).resolve() if workdir else project_paths(source)['workdir']
     skill=Path(__file__).resolve().parents[1]
     if root==skill or skill in root.parents or root==Path(root.anchor):raise ValueError('不能把skill安装目录或磁盘根目录当建筑工作目录')
@@ -84,31 +80,37 @@ def _convert_web_json(input_file,workdir,resolved):
         after=read_json(result['snapshot'])
         if expected is not None:
             # Match the exact displayed state array as well as source/geometry identity.
-            if any(expected.get(key)!=after.get(key) for key in ('source_sha256','geometry_sha256','size','blocks','wall_positions')):raise ValueError('预览JSON与原稿/设置不一致，拒绝导出不同于所看效果的建筑')
+            if any(expected.get(key)!=after.get(key) for key in (
+                    'source_sha256','binary_wall_mask_sha256','geometry_sha256','size','master_blocks','blocks','wall_positions')):
+                raise ValueError('预览JSON与原稿/设置不一致，拒绝导出不同于所看效果的建筑')
         model=Volume(after['size'])
         for p,value in after['master_blocks']:
             p=tuple(p)
             if p in model.blocks:raise ValueError('预览中有重复坐标')
             model.put(p,value)
         if model.fingerprint()!=after['geometry_sha256']:raise ValueError('修改后几何哈希不符')
-        walls={tuple(p) for p in after['wall_positions'] if model.get(tuple(p)) not in {'minecraft:air','minecraft:cave_air','minecraft:void_air'}};cells=layout(model,config)
-        if standalone:
-            if not managed and not walls and config.get('allow_empty_wall_mask') is not True:raise ValueError('独立素材的空墙mask须显式设置allow_empty_wall_mask=true')
-        elif any(not any((p[0]//48,p[2]//48)==tuple(cell) for p in walls) for cell in cells):raise ValueError('每个有效分片都需要原稿中明确记录的墙体归属，不能按方块材质猜测')
+        walls={tuple(p) for p in after['wall_positions']}
+        if working is None:
+            cells=layout(model,config)
+            if standalone and not walls and config.get('allow_empty_wall_mask') is not True:
+                raise ValueError('独立素材的空墙mask须显式设置allow_empty_wall_mask=true')
+            if not standalone and any(not any((p[0]//48,p[2]//48)==tuple(cell) for p in walls) for cell in cells):
+                raise ValueError('每个有效分片都需要原稿中明确记录的墙体归属，不能按方块材质猜测')
         from nbt_change_policy import enforce_changes,change_sets
         difference=enforce_changes(baseline.blocks,model.blocks,base_walls,walls,
-            protected=protections(baseline,config),maximum=settings.get('max_changed_blocks',4096))
+            protected=protections(baseline,config),maximum=config['max_changed_blocks'])
         geometry_changed,layers_changed=change_sets(baseline.blocks,model.blocks,base_walls,walls)
         if working:
-            changed,layers=change_sets(working.model.blocks,model.blocks,working.walls,walls)
-            working.patch([dict(pos=list(p),before=value_at(working.model,working.walls,p),after=value_at(model,walls,p)) for p in sorted(changed|layers)])
-            checks=working.validate()
+            working.patch_candidate(model,walls)
         else:
             checks=validate(model,config)
-        if digest(source)!=source_hash:raise ValueError('转换期间原建筑变化，请重新导出')
-        if digest(request['context'])!=context_hash or (camera_hash and digest(request['cameras'])!=camera_hash):raise ValueError('转换期间坐标上下文或机位变化，请重新预览')
-        if (project_paths(source)['version']/'model-version.json').is_file():
-            return save_managed_revision(source,source_hash,model,walls,config,checks,request,input_file,draft_only)
+        if digest(source)!=source_hash or binary_wall_mask_hash(source)!=mask_hash:
+            raise ValueError('转换期间原建筑或墙层附属文件变化，请重新预览')
+        if coordinates_hash(request['context'])!=context_hash or (camera_hash and digest(request['cameras'])!=camera_hash):raise ValueError('转换期间坐标上下文或机位变化，请重新预览')
+        if saved_coordinates_hash(source)!=source_context_hash:
+            raise ValueError('转换期间源制作版坐标发生变化，请重新预览')
+        if working:
+            return save_managed_revision(working,config,request,input_file,draft_only)
         work,target=reserve_version(source,workdir)
         input_hash=digest(input_file) if Path(input_file).is_file() else digest(request_file)
         receipt=dict(schema_version=1,status='writing',source=str(source),source_sha256=source_hash,
@@ -119,7 +121,8 @@ def _convert_web_json(input_file,workdir,resolved):
         try:
             master=target/'master';master.mkdir()
             from nbt_snbt import save_snbt
-            authored=master/'model.snbt';save_snbt(authored,model,walls,palette=getattr(baseline,'_snbt_palette',None),extras=getattr(baseline,'_snbt_extras',None))
+            authored=master/'model.snbt'
+            saved=save_snbt(authored,model,walls,palette=getattr(baseline,'_snbt_palette',None),extras=getattr(baseline,'_snbt_extras',None))
             write_json(master/'wall_mask.json',dict(geometry_sha256=model.fingerprint(),wall_positions=[list(p) for p in sorted(walls)]))
             disk,disk_walls=read_master(authored)
             if disk.blocks!=model.blocks or disk_walls!=walls:raise ValueError('完整主模型回读不一致')
@@ -131,6 +134,10 @@ def _convert_web_json(input_file,workdir,resolved):
                 if canonical(read_json(archive_file))!=canonical(request):raise ValueError('已归档设置内容不符')
             receipt['settings_archive']=str(archive_file)
             write_json(target/'settings.json',portable_request(request));write_json(target/'input.json',read_json(input_file) if Path(input_file).is_file() else read_json(request_file))
+            # Published SNBT owns the new mask. Do not carry a legacy mask override into the next version.
+            original_config.pop('wall_positions',None)
+            if 'floor_context' in original_config:
+                original_config['floor_context'].pop('wall_positions',None)
             write_json(target/'coordinates.json',original_config)
             cameras=read_json(request['cameras']) if request.get('cameras') else config['cameras'];write_json(target/'cameras.json',cameras)
             validation=target/'validation';validation.mkdir();write_json(validation/'baseline.json',baseline_checks);write_json(validation/'whole_model.json',checks)
@@ -145,27 +152,38 @@ def _convert_web_json(input_file,workdir,resolved):
                 register_building(authored,read_json(description)['name_zh'],cells,mode='standalone' if standalone else None,cell_size=config.get('cell_size',48))
             receipt.update(status='complete',master=str(authored),runtime_parts=0,runtime_files=[],delivery_nbt=0,geometry_sha256=model.fingerprint(),source_unchanged=True,source_format='snbt',draft_only=draft_only)
             write_json(target/'conversion.json',receipt)
-            from nbt_history import source_workspace,record_produced_version
-            workspace=source_workspace(authored)
-            if not draft_only:
-                from nbt_finalize import finalize
-                released=finalize(workspace,authored,validated=(model,walls,config,checks),register_history=False)
-                receipt.update(runtime_parts=released['runtime_parts'],runtime_files=released['runtime_files'],delivery_nbt=released['delivery_nbt'],nbt_master=released['nbt_master'],release_dir=released['output'],finalized=True)
-                write_json(target/'conversion.json',receipt)
-            receipt['history']=record_produced_version(workspace,authored,parent=source,message='保存 SNBT 制作版' if draft_only else '定稿并导出 NBT',actor='human',set_current=True)
-            return receipt
         except Exception as error:
             receipt.update(status='failed',error=str(error));write_json(target/'conversion.json',receipt);raise
+        from nbt_history import source_workspace,record_produced_version
+        workspace=source_workspace(authored)
+        try:
+            release_converted_version(workspace,receipt,saved['source_sha256'])
+        finally:
+            message='定稿并导出 NBT' if receipt.get('finalized') else '保存 SNBT 制作版'
+            receipt['history']=record_produced_version(workspace,authored,parent=source,message=message,
+                                                       actor='human',set_current=True)
+            write_json(target/'conversion.json',receipt)
+        return receipt
 
-def save_managed_revision(source,source_hash,model,walls,config,checks,request,input_file,draft_only):
+
+def release_converted_version(workspace, receipt, source_hash):
+    if receipt['draft_only']:
+        return
+    from nbt_finalize import finalize
+
+    try:
+        released=finalize(workspace,receipt['master'],register_history=False,expected_source_sha256=source_hash)
+    except (ValueError,OSError,KeyError,TypeError,AssertionError) as error:
+        receipt.update(release_status='failed',release_error=str(error))
+        raise ValueError(f"制作版已保存至 {receipt['master']}，定稿失败：{error}") from error
+    receipt.update(runtime_parts=released['runtime_parts'],runtime_files=released['runtime_files'],
+        delivery_nbt=released['delivery_nbt'],nbt_master=released['nbt_master'],release_dir=released['output'],
+        finalized=True,release_status='complete')
+
+
+def save_managed_revision(working,config,request,input_file,draft_only):
     """Desktop/manual edits preserve managed baselines and share draft publication."""
-    from nbt_working_model import WorkingModel,value_at
-    from nbt_change_policy import change_sets
-    from nbt_history import source_workspace
-    workspace=source_workspace(source)
-    working=WorkingModel.open(workspace,source,request['context'],source_sha256=source_hash)
-    changed,layers=change_sets(working.model.blocks,model.blocks,working.walls,walls)
-    working.patch([dict(pos=list(p),before=value_at(working.model,working.walls,p),after=value_at(model,walls,p)) for p in sorted(changed|layers)])
+    workspace,source,source_hash=working.workspace,working.source,working.source_sha256
     working.context['cameras']=config['cameras']
     saved=working.save_draft(actor='human',attachments={
         'settings.json':portable_request(request,workspace),
@@ -173,20 +191,18 @@ def save_managed_revision(source,source_hash,model,walls,config,checks,request,i
     })
     target=Path(saved['output']);authored=Path(saved['source'])
     receipt=dict(schema_version=1,status='complete',source=str(source),source_sha256=source_hash,
-        master=str(authored),output=str(target),geometry_sha256=model.fingerprint(),draft_only=draft_only,
+        master=str(authored),output=str(target),geometry_sha256=working.model.fingerprint(),draft_only=draft_only,
         source_format='snbt',source_unchanged=True,runtime_parts=0,runtime_files=[],delivery_nbt=0,
         managed_revision=saved['revision'],history=saved.get('history'),history_pending=saved['history_pending'])
-    if not draft_only:
-        from nbt_finalize import finalize
-        released=finalize(workspace,authored,register_history=False)
-        receipt.update(runtime_parts=released['runtime_parts'],runtime_files=released['runtime_files'],
-            delivery_nbt=released['delivery_nbt'],nbt_master=released['nbt_master'],release_dir=released['output'],finalized=True)
     write_json(target/'conversion.json',receipt)
-    # Conversion receipts are derived evidence. Refresh history without changing
-    # the immutable authoring manifest or advancing over a newer working version.
-    history=working._history_receipt(target,read_json(target/'model-version.json'),working._building)
-    receipt['history']=history.get('history');receipt['history_pending']=history['history_pending']
-    if history.get('history_error'):receipt['history_error']=history['history_error']
+    try:
+        release_converted_version(workspace,receipt,working.source_sha256)
+    finally:
+        write_json(target/'conversion.json',receipt)
+        # Refresh derived history without changing the immutable authoring manifest.
+        history=working._history_receipt(target,read_json(target/'model-version.json'),working._building)
+        receipt['history']=history.get('history');receipt['history_pending']=history['history_pending']
+        if history.get('history_error'):receipt['history_error']=history['history_error']
     return receipt
 
 

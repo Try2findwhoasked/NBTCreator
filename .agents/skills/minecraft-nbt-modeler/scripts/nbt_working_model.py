@@ -19,7 +19,7 @@ import tempfile
 from nbt_assembly import Volume
 from nbt_model import AIR, AIR_NAMES, state
 from nbt_modeling_session import canonical
-from nbt_change_policy import change_sets, enforce_changes
+from nbt_change_policy import change_sets, enforce_changes, reserved_position
 
 _publication_locks = ContextVar('working_model_publication_locks', default=frozenset())
 
@@ -135,10 +135,9 @@ class WorkingModel:
         context_binding = None
         if isinstance(context, (str, Path)):
             context_file = (self.workspace / context).resolve()
-            raw = context_file.read_bytes()
-            context_binding = (context_file, hashlib.sha256(raw).hexdigest())
-            from nbt_library import canonical_context
-            context = canonical_context(context_file)
+            from nbt_library import coordinate_snapshot
+            context, context_hash = coordinate_snapshot(context_file)
+            context_binding = (context_file, context_hash)
         self.context = deepcopy(context if context is not None else dict(mode='standalone', openings=[]))
         from nbt_library import adapt_coordinates
         self.context = adapt_coordinates(self.context)
@@ -165,6 +164,7 @@ class WorkingModel:
         self.source, self.source_sha256, self.context_binding = None, None, context_binding
         self._version_binding = None
         self._bound_context = None
+        self._source_coordinates_hash = None
         self._source_sidecars = {}
         self._palette, self._extras, self._closed = None, None, None
         self.parent_revision = None
@@ -175,7 +175,7 @@ class WorkingModel:
 
     @classmethod
     def open(cls, workspace, source, context=None, source_sha256=None, **options):
-        from nbt_refine import read_master
+        from nbt_refine import read_master, resolve_wall_mask
         from nbt_web_paths import project_paths
         workspace = Path(workspace).resolve()
         source = (workspace / source).resolve()
@@ -194,18 +194,18 @@ class WorkingModel:
         version = project_paths(source)['version']
         manifest_file = version / 'model-version.json'
         manifest = managed_manifest(source)
-        if context is None and (version / 'coordinates.json').is_file():
-            context = version / 'coordinates.json'
+        from nbt_library import adapt_coordinates,canonical_context,coordinate_snapshot,inherit_edit_constraints,saved_coordinates,saved_coordinates_hash
+        coordinates = saved_coordinates(source)
+        source_coordinates_hash = None if manifest else saved_coordinates_hash(source)
+        if context is None:
+            context = coordinates
         binding = None
         if isinstance(context, (str, Path)):
             path = (workspace / context).resolve()
-            raw = path.read_bytes()
-            from nbt_library import canonical_context
-            data = canonical_context(path)
-            binding = (path, hashlib.sha256(raw).hexdigest())
+            data, context_hash = coordinate_snapshot(path)
+            binding = (path, context_hash)
         else:
             data = deepcopy(context or dict(mode='standalone', openings=[]))
-        from nbt_library import adapt_coordinates, canonical_context
         data = adapt_coordinates(data)
         if manifest:
             bound = canonical_context(version / 'coordinates.json')
@@ -214,16 +214,10 @@ class WorkingModel:
             supplied.pop('wall_positions', None)
             if constraint_context(supplied) != constraint_context(bound):
                 raise ModelConflict('CONTEXT_CONSTRAINT_MISMATCH', [dict(version=str(version))])
-        if 'wall_positions' in data:
-            declared = {point(p) for p in data['wall_positions']}
-            if any(not model.in_bounds(p) or p not in model.blocks for p in declared):
-                raise ValueError('显式墙层归属越界或指向空气')
-            # Legacy binary structures have no intrinsic wall-ownership layer.
-            if not manifest and source.suffix.lower() == '.nbt' and not walls and not (source.parent/'wall_mask.json').exists():
-                walls = declared
-            elif declared != walls:
-                raise ModelConflict('WALL_SOURCE_MISMATCH', [dict(source_walls=len(walls), context_walls=len(declared))])
-            data.pop('wall_positions')
+        else:
+            data=inherit_edit_constraints(data,source)
+        walls = resolve_wall_mask(model, walls, data)
+        data.pop('wall_positions', None)
         working = cls(workspace, model.size, data, **options)
         working.model, working.walls = model, walls
         working._baseline.blocks = dict(model.blocks)
@@ -233,6 +227,7 @@ class WorkingModel:
         working._extras = getattr(model, '_snbt_extras', None)
         working.context_binding = binding
         working._bound_context = deepcopy(constraint_context(working.context))
+        working._source_coordinates_hash = source_coordinates_hash
         working._source_sidecars = sidecars
         working.phase = manifest['phase'] if manifest else 'opened'
         working._baseline_phase = working.phase
@@ -272,6 +267,8 @@ class WorkingModel:
         return working
 
     def _unchanged(self):
+        from nbt_library import coordinates_hash,saved_coordinates_hash
+
         if self._bound_context is not None and constraint_context(self.context) != self._bound_context:
             raise ModelConflict('CONTEXT_CONSTRAINT_MISMATCH', [])
         for file, expected in self._source_sidecars.items():
@@ -280,8 +277,10 @@ class WorkingModel:
                 raise ModelConflict('STALE_SOURCE', [dict(source=str(file))])
         if self.source and file_hash(self.source) != self.source_sha256:
             raise ModelConflict('STALE_SOURCE', [dict(source=str(self.source))])
-        if self.context_binding and file_hash(self.context_binding[0]) != self.context_binding[1]:
+        if self.context_binding and coordinates_hash(self.context_binding[0]) != self.context_binding[1]:
             raise ModelConflict('STALE_CONTEXT', [dict(context=str(self.context_binding[0]))])
+        if self.source and self._version_binding is None and saved_coordinates_hash(self.source)!=self._source_coordinates_hash:
+            raise ModelConflict('STALE_CONTEXT', [dict(source=str(self.source))])
         if self._version_binding:
             version, expected = self._version_binding
             if file_hash(version / 'model-version.json') != expected:
@@ -345,9 +344,9 @@ class WorkingModel:
         total = enforce_changes(self._baseline.blocks, candidate.blocks, self._baseline_walls, walls,
                                 protections(self._baseline, self._protection_context(self._baseline_phase)), self._budget())
         changed, layer_changed = change_sets(self.model.blocks, candidate.blocks, self.walls, walls)
-        for p in changed | layer_changed:
-            if candidate.get(p) not in AIR_NAMES and any(all(box['lo'][i] <= p[i] <= box['hi'][i] for i in range(3)) for box in self.context.get('reserved_boxes', [])):
-                raise ModelConflict('RESERVED_SPACE', [dict(pos=list(p))])
+        conflict = reserved_position((changed | layer_changed) & candidate.blocks.keys(), self.context.get('reserved_boxes'))
+        if conflict is not None:
+            raise ModelConflict('RESERVED_SPACE', [dict(pos=list(conflict))])
         # Declared routes are checked against the entire host, including free voxels.
         if self.context.get('require_routes'):
             self._routes(candidate)
@@ -371,6 +370,14 @@ class WorkingModel:
     def patch(self, changes):
         """Host-dependent patches require explicit expected state AND wall layer."""
         return self._commit_edits(changes)
+
+    def patch_candidate(self, candidate, walls):
+        if candidate.size != self.model.size:
+            raise ValueError('候选与制作源的完整尺寸不一致')
+        changed, layers = change_sets(self.model.blocks, candidate.blocks, self.walls, walls)
+        edits = [dict(pos=list(p), before=value_at(self.model, self.walls, p),
+                      after=value_at(candidate, walls, p)) for p in sorted(changed | layers)]
+        return self.patch(edits)
 
     def apply_operations(self, operations):
         from nbt_detail_control import default_settings, compile_plan, simulate_plan
@@ -547,20 +554,30 @@ class WorkingModel:
         """Recheck declared interfaces after host carving and manual edits."""
         from nbt_collision import collision_cells
         from nbt_object_scene import attached, touches
-        from nbt_scene_interfaces import interface_contact
+        from nbt_scene_interfaces import check_interface_geometry, interface_contact
         model = model or self.model
         checks = []
         for identifier, instance in self.instances.items():
             nodes = {item['id']:item for item in instance['compiled'].get('objects') or []}
             actual = {}
-            required = {target for node in nodes.values() for target in node.get('contact_targets', [])}
+            required = {name for name,node in nodes.items() if node.get('contact_targets') or node.get('span_interfaces')}
+            required.update(target for node in nodes.values() for target in node.get('contact_targets', [])
+                            if not (node.get('attach_target') == target and node.get('attachment_interface')))
+            used_surfaces = {(node.get('attach_target'),node.get('attachment_interface'))
+                             for node in nodes.values() if node.get('attachment_interface')}
+            used_surfaces.update((surface['object'],surface['id']) for node in nodes.values()
+                                 for surface in node.get('span_interfaces', []))
             for name, node in nodes.items():
-                if not (name in required or node.get('contact_targets') or node.get('interfaces')):
+                positions = set(map(tuple,node.get('voxel_positions', [])))
+                for surface in node.get('interfaces', {}).values():
+                    geometry = check_interface_geometry(model,positions,surface,
+                        check_external=(name,surface['id']) in used_surfaces)
+                    checks.append(dict(instance=identifier,object=name,interface=surface['id'],**geometry))
+                if name not in required:
                     continue
                 cells = set()
                 unknown = []
-                for position in node.get('voxel_positions', []):
-                    p = tuple(position)
+                for p in sorted(positions):
                     value = model.get(p)
                     if value in AIR_NAMES:
                         continue
@@ -572,13 +589,6 @@ class WorkingModel:
                 actual[name] = cells
                 if unknown:
                     checks.append(dict(instance=identifier,object=name,passed=False,unknown_shapes=unknown))
-                for surface in node.get('interfaces', {}).values():
-                    faces = set(map(tuple,surface['faces_half']))
-                    normal = surface['normal']
-                    buried = {p for p in faces if tuple(p[i]+normal[i] for i in range(3)) in cells}
-                    missing = sorted((faces - cells) | buried)
-                    checks.append(dict(instance=identifier,object=name,interface=surface['id'],passed=not missing,
-                        missing_faces_half=[list(p) for p in missing[:32]]))
             for name, node in nodes.items():
                 cells = actual.get(name, set())
                 for target in node.get('contact_targets', []):
@@ -606,10 +616,9 @@ class WorkingModel:
             raise ValueError('显式墙层指向空气或越界')
         enforce_changes(self._baseline.blocks, self.model.blocks, self._baseline_walls, self.walls,
                         protections(self._baseline, self._protection_context(self._baseline_phase)), self._budget())
-        for p in self.model.blocks:
-            if any(all(box['lo'][i] <= p[i] <= box['hi'][i] for i in range(3))
-                   for box in self.context.get('reserved_boxes', [])):
-                raise ModelConflict('RESERVED_SPACE', [dict(pos=list(p))])
+        conflict = reserved_position(self.model.blocks, self.context.get('reserved_boxes'))
+        if conflict is not None:
+            raise ModelConflict('RESERVED_SPACE', [dict(pos=list(conflict))])
         if self.context.get('require_routes'):
             self._routes(self.model)
         if self.kind == 'component' and len(self.model.blocks) > self.limits['max_component_blocks']:
@@ -766,7 +775,8 @@ class WorkingModel:
 
     def _history_receipt(self, target, manifest, building):
         source = target / 'master/model.snbt'
-        receipt = dict(source=str(source.resolve()), revision=manifest['revision'], output=str(target.resolve()),
+        receipt = dict(source=str(source.resolve()), source_sha256=manifest['files']['master/model.snbt'],
+            revision=manifest['revision'], output=str(target.resolve()),
             draft_only=True, nbt_exported=False, approval_created=False)
         head = self._read_head(building)
         try:
@@ -881,7 +891,8 @@ class WorkingModel:
                 self._building, self._opened_head = building, self._read_head(building)
                 self._opened_history_source = self._history_source(building)
                 self.parent_revision = manifest['revision']
-                self.context_binding = (target / 'coordinates.json', files['coordinates.json'])
+                from nbt_library import coordinates_hash
+                self.context_binding = (target / 'coordinates.json', coordinates_hash(target / 'coordinates.json'))
                 self._version_binding = (target, file_hash(target / 'model-version.json'))
                 self._bound_context = deepcopy(constraint_context(self.context))
                 self._source_sidecars = {}
@@ -953,6 +964,11 @@ def world_objects(objects, component, transform):
             plane_half=faces[0][axis] + (1 if sign > 0 else 0),
             lo_half=[min(p[i] for p in faces) for i in range(3)],
             hi_half=[max(p[i] for p in faces) for i in range(3)], tangent_axes=[i for i in range(3) if i != axis])
+        if record.get('region_half'):
+            region=record['region_half']
+            corners=[position(p,2) for p in product(*zip(region['lo'],region['hi']))]
+            output['region_half']=dict(lo=[min(p[i] for p in corners) for i in range(3)],
+                                       hi=[max(p[i] for p in corners) for i in range(3)])
         return output
     result = deepcopy(objects)
     for item in result:

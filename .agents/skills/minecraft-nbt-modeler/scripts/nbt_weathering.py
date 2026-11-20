@@ -297,7 +297,7 @@ def main():
     operation.setdefault('kind','weathering');operation.setdefault('label','Connected masonry weathering')
     from nbt_refine import refine
     result=refine(args.review,dict(style_note=args.style_note,operations=[operation]),args.output)
-    print(json.dumps(dict(state=result['state'],changed_blocks=result['changed_blocks'],
+    print(json.dumps(dict(state=result['state'],master=result['master'],changed_blocks=result['changed_blocks'],
                           operations=result['operations']),ensure_ascii=False))
 
 

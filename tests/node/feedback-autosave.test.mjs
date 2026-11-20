@@ -11,6 +11,13 @@ async function fixture(t){const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt
 test('autosave revises one formal note, retries idempotently and rejects stale writes',async t=>{
  const f=await fixture(t),store=createFeedbackStore(b=>path.join(b.version_dir,'修改意见')),id=randomUUID(),input={note_id:id,expected_revision:0,text:'第一稿',anchors:[],references:[]}
  let record=await store.upsert(f.binding,input);assert.equal(record.notes.length,1);assert.ok(record.file.startsWith(f.version+path.sep));assert.equal(record.notes[0].revision,1)
+ const expectedFile=path.join(f.version,'修改意见',f.binding.source_sha256,f.binding.image_sha256+'.json')
+ assert.equal(record.file,expectedFile)
+ const evidence=JSON.parse(await fs.readFile(expectedFile+'.evidence.json','utf8'))
+ const image=evidence.files.find(item=>item.role==='image')
+ const archived=path.join(f.version,'修改意见','证据',f.binding.source_sha256,f.binding.image_sha256+'.png')
+ assert.equal(path.resolve(path.dirname(expectedFile),image.path),archived)
+ assert.deepEqual(await fs.readFile(archived),await fs.readFile(f.image))
  record=await store.upsert(f.binding,{...input,expected_revision:1,text:'修改后的同一条'});assert.equal(record.notes.length,1);assert.equal(record.notes[0].revision,2)
  const before=await fs.readFile(record.file);record=await store.upsert(f.binding,{...input,text:'修改后的同一条'});assert.deepEqual(await fs.readFile(record.file),before)
  await assert.rejects(()=>store.upsert(f.binding,{...input,expected_revision:1,text:'过时的覆盖'}),e=>e.code==='feedback_conflict')
@@ -25,9 +32,15 @@ test('same geometry in another version has a separate formal note directory',asy
 })
 test('legacy notes migrate on edit without deleting originals or duplicating the version index',async t=>{
  const f=await fixture(t),legacy=path.join(f.binding.workdir,'修改意见'),old=createFeedbackStore(legacy),record=await old.add(f.binding,'旧标注',{x:.2,y:.5}),original=await fs.readFile(record.file)
+ const originalEvidence=await fs.readFile(record.file+'.evidence.json')
  const store=createFeedbackStore(b=>path.join(b.version_dir,'修改意见'),()=>[legacy]);assert.equal((await store.list(f.binding)).notes.length,1)
  const updated=await store.upsert(f.binding,{note_id:record.notes[0].id,expected_revision:0,text:'在当前版本内更新',anchors:[{kind:'image',number:1,x:.2,y:.5}],references:[]})
  assert.ok(updated.file.startsWith(f.version+path.sep));assert.deepEqual(await fs.readFile(record.file),original)
+ assert.deepEqual(await fs.readFile(record.file+'.evidence.json'),originalEvidence)
+ const evidence=JSON.parse(await fs.readFile(updated.file+'.evidence.json','utf8'))
+ const originalImage=JSON.parse(originalEvidence).files.find(item=>item.role==='image')
+ const image=evidence.files.find(item=>item.role==='image')
+ assert.equal(path.resolve(path.dirname(updated.file),image.path),path.resolve(path.dirname(record.file),originalImage.path))
  const index=JSON.parse(await fs.readFile(path.join(f.version,'修改意见/评论索引.json'),'utf8'));assert.equal(index.records.length,1);assert.ok(!index.records[0].feedback_file.includes('..'))
 })
 test('legacy shared hash directories do not leak notes into another identical-content version',async t=>{

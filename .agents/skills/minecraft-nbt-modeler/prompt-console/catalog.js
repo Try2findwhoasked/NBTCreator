@@ -25325,7 +25325,186 @@ globalThis.NbtToolCatalog = {
               "interfaces": {
                 "type": "array",
                 "items": {
-                  "type": "object"
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "design_ref": {
+                                  "type": "string"
+                                },
+                                "add": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "design_ref"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
+                        "face": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "up",
+                                "down",
+                                "north",
+                                "south",
+                                "east",
+                                "west"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "design_ref": {
+                                  "type": "string"
+                                },
+                                "add": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "design_ref"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
+                        "lo": {
+                          "anyOf": [
+                            {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 293
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "design_ref": {
+                                        "type": "string"
+                                      },
+                                      "add": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "design_ref"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              },
+                              "minItems": 3,
+                              "maxItems": 3
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "design_ref": {
+                                  "type": "string"
+                                },
+                                "add": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "design_ref"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        },
+                        "hi": {
+                          "anyOf": [
+                            {
+                              "type": "array",
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 293
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "design_ref": {
+                                        "type": "string"
+                                      },
+                                      "add": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "design_ref"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              },
+                              "minItems": 3,
+                              "maxItems": 3
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "design_ref": {
+                                  "type": "string"
+                                },
+                                "add": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "design_ref"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "face",
+                        "lo",
+                        "hi"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "design_ref": {
+                          "type": "string"
+                        },
+                        "add": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "design_ref"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
                 },
                 "minItems": 0,
                 "maxItems": 12
@@ -25745,6 +25924,37 @@ globalThis.NbtToolCatalog = {
                 "minItems": 3,
                 "maxItems": 3
               },
+              "sample_box": {
+                "type": "object",
+                "description": "世界 XYZ 方块坐标，lo 和 hi 均包含。仅用于构造或细节视角，采样 target_part 实际体素与此盒的交集。target 仍控制相机朝向。",
+                "additionalProperties": false,
+                "properties": {
+                  "lo": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 293
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "hi": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 293
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  }
+                },
+                "required": [
+                  "lo",
+                  "hi"
+                ]
+              },
               "target_part": {
                 "type": "string",
                 "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
@@ -26004,7 +26214,129 @@ globalThis.NbtToolCatalog = {
         "views"
       ]
     },
+    "field_examples": {
+      "plan.views.sample_box": {
+        "id": "joinery",
+        "layer": "structure",
+        "feet": [
+          10.5,
+          2,
+          8.5
+        ],
+        "target": [
+          13.9,
+          5.4,
+          5.5
+        ],
+        "fov": 64,
+        "target_part": "timber_frame",
+        "sample_box": {
+          "lo": [
+            13,
+            2,
+            5
+          ],
+          "hi": [
+            14,
+            5,
+            5
+          ]
+        }
+      },
+      "plan.parts.interfaces": {
+        "part": {
+          "id": "tea_table",
+          "position": [
+            8,
+            2,
+            9
+          ],
+          "interfaces": [
+            {
+              "id": "serving_edge",
+              "face": "north",
+              "lo": [
+                0,
+                0,
+                0
+              ],
+              "hi": [
+                2,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "stop": {
+          "feet": [
+            9.5,
+            2,
+            7.5
+          ],
+          "use_face": {
+            "part": "tea_table",
+            "interface": "serving_edge",
+            "height": 0.5,
+            "max_distance": 2
+          }
+        }
+      }
+    },
+    "recipe_examples": {
+      "structure": {
+        "tool": "structure",
+        "arguments": {
+          "name": "Stone seat",
+          "size": [
+            1,
+            1,
+            1
+          ],
+          "operations": [
+            {
+              "kind": "box",
+              "label": "Stone seat",
+              "classification": "body",
+              "lo": [
+                0,
+                0,
+                0
+              ],
+              "hi": [
+                0,
+                0,
+                0
+              ],
+              "state": "stone_bricks"
+            }
+          ]
+        }
+      }
+    },
     "actions": {
+      "part-preflight": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "object"
+          },
+          "plan_id": {
+            "type": "string",
+            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+            "maxLength": 32
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "part": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "plan-save": {
         "type": "object",
         "additionalProperties": false,
@@ -26440,7 +26772,186 @@ globalThis.NbtToolCatalog = {
                     "interfaces": {
                       "type": "array",
                       "items": {
-                        "type": "object"
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "id": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64,
+                                    "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "design_ref": {
+                                        "type": "string"
+                                      },
+                                      "add": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "design_ref"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              },
+                              "face": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "up",
+                                      "down",
+                                      "north",
+                                      "south",
+                                      "east",
+                                      "west"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "design_ref": {
+                                        "type": "string"
+                                      },
+                                      "add": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "design_ref"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              },
+                              "lo": {
+                                "anyOf": [
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "anyOf": [
+                                        {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 293
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "design_ref": {
+                                              "type": "string"
+                                            },
+                                            "add": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": [
+                                            "design_ref"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    },
+                                    "minItems": 3,
+                                    "maxItems": 3
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "design_ref": {
+                                        "type": "string"
+                                      },
+                                      "add": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "design_ref"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              },
+                              "hi": {
+                                "anyOf": [
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "anyOf": [
+                                        {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 293
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "design_ref": {
+                                              "type": "string"
+                                            },
+                                            "add": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": [
+                                            "design_ref"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    },
+                                    "minItems": 3,
+                                    "maxItems": 3
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "design_ref": {
+                                        "type": "string"
+                                      },
+                                      "add": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "design_ref"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "face",
+                              "lo",
+                              "hi"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "design_ref": {
+                                "type": "string"
+                              },
+                              "add": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "design_ref"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
                       },
                       "minItems": 0,
                       "maxItems": 12
@@ -26859,6 +27370,37 @@ globalThis.NbtToolCatalog = {
                       },
                       "minItems": 3,
                       "maxItems": 3
+                    },
+                    "sample_box": {
+                      "type": "object",
+                      "description": "世界 XYZ 方块坐标，lo 和 hi 均包含。仅用于构造或细节视角，采样 target_part 实际体素与此盒的交集。target 仍控制相机朝向。",
+                      "additionalProperties": false,
+                      "properties": {
+                        "lo": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 293
+                          },
+                          "minItems": 3,
+                          "maxItems": 3
+                        },
+                        "hi": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 293
+                          },
+                          "minItems": 3,
+                          "maxItems": 3
+                        }
+                      },
+                      "required": [
+                        "lo",
+                        "hi"
+                      ]
                     },
                     "target_part": {
                       "type": "string",
@@ -27589,7 +28131,186 @@ globalThis.NbtToolCatalog = {
                     "interfaces": {
                       "type": "array",
                       "items": {
-                        "type": "object"
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "id": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64,
+                                    "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "design_ref": {
+                                        "type": "string"
+                                      },
+                                      "add": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "design_ref"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              },
+                              "face": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "up",
+                                      "down",
+                                      "north",
+                                      "south",
+                                      "east",
+                                      "west"
+                                    ]
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "design_ref": {
+                                        "type": "string"
+                                      },
+                                      "add": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "design_ref"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              },
+                              "lo": {
+                                "anyOf": [
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "anyOf": [
+                                        {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 293
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "design_ref": {
+                                              "type": "string"
+                                            },
+                                            "add": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": [
+                                            "design_ref"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    },
+                                    "minItems": 3,
+                                    "maxItems": 3
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "design_ref": {
+                                        "type": "string"
+                                      },
+                                      "add": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "design_ref"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              },
+                              "hi": {
+                                "anyOf": [
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "anyOf": [
+                                        {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "maximum": 293
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "design_ref": {
+                                              "type": "string"
+                                            },
+                                            "add": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": [
+                                            "design_ref"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    },
+                                    "minItems": 3,
+                                    "maxItems": 3
+                                  },
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "design_ref": {
+                                        "type": "string"
+                                      },
+                                      "add": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "required": [
+                                      "design_ref"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "face",
+                              "lo",
+                              "hi"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "design_ref": {
+                                "type": "string"
+                              },
+                              "add": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "design_ref"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
                       },
                       "minItems": 0,
                       "maxItems": 12
@@ -28008,6 +28729,37 @@ globalThis.NbtToolCatalog = {
                       },
                       "minItems": 3,
                       "maxItems": 3
+                    },
+                    "sample_box": {
+                      "type": "object",
+                      "description": "世界 XYZ 方块坐标，lo 和 hi 均包含。仅用于构造或细节视角，采样 target_part 实际体素与此盒的交集。target 仍控制相机朝向。",
+                      "additionalProperties": false,
+                      "properties": {
+                        "lo": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 293
+                          },
+                          "minItems": 3,
+                          "maxItems": 3
+                        },
+                        "hi": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 293
+                          },
+                          "minItems": 3,
+                          "maxItems": 3
+                        }
+                      },
+                      "required": [
+                        "lo",
+                        "hi"
+                      ]
                     },
                     "target_part": {
                       "type": "string",

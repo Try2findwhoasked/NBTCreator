@@ -17,6 +17,7 @@ class Action:
 
 for name,module,handler in (
     ('plan-save','nbt_architecture_plan','save'),('plan-get','nbt_architecture_plan','stored'),
+    ('part-preflight','nbt_architecture_plan','preflight'),
     ('plan-build','nbt_architecture_plan','build'),('review-prepare','nbt_architecture_review','prepare'),
     ('review-record','nbt_architecture_review','record'),('review-compare','nbt_architecture_review','compare'),
     ('game-checklist','nbt_architecture_review','game_checklist'),('game-record','nbt_architecture_review','game_record')):

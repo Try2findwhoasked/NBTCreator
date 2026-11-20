@@ -15,7 +15,7 @@ from nbt_model import Model
 
 ## nbt_refine.py：用户确认后的整体精修
 
-先出缩略图给用户，明确同意后才从完整未切割主稿恢复精修，最后重验、重切。prepare仅冻结初稿与生成缩略图；approve记录真实用户对话的确认；apply执行全局局部构件/表面计划并输出新版本、差异、前后对照及2N分层文件。没有确认不得调用apply，也不能拿其他agent/测试fixture的确认代替用户。
+先出缩略图给用户，明确同意后才从完整未切割主稿恢复精修。`prepare` 冻结初稿并出图，`approve` 记录真实用户确认，`apply` 执行全局计划、重验并保存 SNBT 制作版及前后对照。显式定稿时再机械切片。
 
 详细config、计划操作、命令和输出见 [精修工作流](refinement.md)。这不是逐片编辑器；入口是完整主模型，不是49展开体或单个稀疏分层片。工具保留原稿与确认哈希，保护门洞和指定通路，精修后仍需实际看图。合成回归：`python .agents/skills/minecraft-nbt-modeler/scripts/check_refine_fixtures.py`。
 
@@ -65,7 +65,7 @@ lo/hi 含边界，可覆盖不在包围盒边缘的厚墙；facing 从室内朝�
 
 ## nbt_preview.py
 
-从最终落盘NBT渲染，提供可配置透视相机。生成后必须通过图像查看工具审阅；输出元数据标明源NBT哈希和几何近似。先用 `python <skill>/scripts/nbt_preview.py --help` 查看实际可用参数，再给每个模型选取恰当相机。
+从落盘 SNBT 或完整 NBT 生成纯色诊断图，可选半格切面和透视相机。出图后实际查看，元数据记录源文件哈希和几何近似。创作工作区的用法见[半格诊断](rendering.md#半格诊断)。
 
 相机与target都使用Minecraft X/Y/Z，Y向上。入口视角设置在真实落脚点上方约1.62格，近景针对实际构造节点，剖视用于理解竖向路线。入口被墙挡住、剖切删掉主体、相机拍到天花或近景只有材质色块时，应调整相机，不能把无效视图当验收。
 
@@ -148,9 +148,9 @@ NBT读写与阶段顺序回归可运行 `python .agents/skills/minecraft-nbt-mod
 
 ## 输出与迭代
 
-每个任务保存设计笔记、独立生成脚本、NBT、coordinates.json、验证报告和内部质检图。先由主agent实际查看一件代表初稿的整体、入口和构造/主题近景，修复共性设计缺项，再展开其余主体建模。阅读落实按 [委派与阅读落实](delegation-and-review.md)，初稿质量与证据按 [初稿设计验收](spatial-detail-design.md#初稿设计验收) 和 [设计验收记录](spatial-detail-design.md#设计验收记录)。工具的passed、格式回读、密闭与通路只证明其检查范围；不认证空间、构造细节或主题表达完成。验证报告区分源模型、最终文件回读、门洞、通路近似、48/49兼容和游戏未验证项，并单独报告设计未达标项目。
+整栋任务保存制作源、坐标、实际检查和审阅图，按需保留生成脚本与设计笔记。批量制作先查看代表初稿的整体、入口和节点，再处理同批其他建筑。委派按 [整体流程](whole-model-workflow.md) 落实，整栋初稿按 [设计验收](spatial-detail-design.md#初稿设计验收) 复核。只有明确要求定稿时才写交付 NBT。
 
-## nbt_whole_cut.py：先生成整体，再纯切割
+## nbt_whole_cut.py：SAODG 旧式脚本切割
 
 大建筑先用nbt_assembly.Volume(size)在连续的全局坐标中完成。完成整体密闭检查后用open_master_ports(master,definitions,door_y)开外门，再调用：
 
@@ -165,7 +165,9 @@ assert actual.blocks == master.blocks
 
 slice_master保存真正完整的master_geometry.json.gz（含全局尺寸、实体状态、默认空气、墙mask与指纹），然后按48网格只做坐标转换。切割循环没有建筑生成、隔墙或补路逻辑。各片完整NBT回读后，48连续重组须逐块等于源主模型；墙层同步切到layers目录。
 
-当前工具支持完整矩形包围的整体，X/Z为48倍数、高8～48；不存在的稀疏单元不能静默删掉，需要明确的占地排除设计。JSON里仅选择parts清单的template/offset；file和sha256保留在制作清单中。48连续还原通过不代表49运行放置通过，后者另行assemble检查。别为掩盖引擎接缝限制先分建小房间。
+当前工具支持完整矩形包围的整体，X/Z为48倍数、高8～48；稀疏占地须明确声明。JSON只取parts清单的template/offset，file和sha256保留在制作清单中。48连续还原与49接入分别记录；当前接入需要与本次加载器一致的诊断或实际 Forge 放置。
+
+## 独立建筑的分片与定稿
 
 独立自由尺寸模型使用 `nbt_standalone_delivery.export_standalone(master, explicit_walls, version_dir, file_prefix=...)`；它沿XYZ各48格分块，边块保留实际尺寸，runtime与body/walls分层均逐状态回读重建，不强制48倍数。master须先经 `nbt_whole_validation.validate_whole` 对显式独立上下文验证并冻结；`verify_standalone(version_dir)` 复查清单和实际文件。整件无墙素材需显式 `allow_empty_wall_mask=True`，不影响SAODG严格交付。
 
@@ -173,7 +175,7 @@ slice_master保存真正完整的master_geometry.json.gz（含全局尺寸、实
 
 回归：`python .agents/skills/minecraft-nbt-modeler/scripts/check_whole_cut_fixtures.py --output nbt_models/_tests/whole_cut_validation`。检查完整主模型保存、逐块连续重建、跨切面状态保留、切割不自动砌墙、全局墙mask同步拆层及49不兼容反例。
 
-## nbt_assembly.py：49格运行诊断与旧的单元式工具
+## nbt_assembly.py：SAODG 旧单元式工具与旧桥诊断
 
 `LogicalAssembly(cells,height)`在48作者网格中设计一个连通的稀疏逻辑房间，沿用Model的put/box/check_sealed。缺角不可写入。整体密闭通过后，`open_external_ports(definitions,door_y)`仅切合法外门；`export_parts(directory,resource_prefix)`导出<=48格分片，返回包含file/template/offset/cell/sha256的清单。JSON的parts只取template/offset，其他字段保留在检查清单中。
 
@@ -187,7 +189,7 @@ parts = logical.export_parts(output_dir / 'parts', 'saodg:custom/my_linked_room'
 physical, placement = assemble(parts, height=40, door_y=10)
 ```
 
-`assemble`回读真实分片，按49放置，复现内部桥的地板、顶板和侧墙，不自动清除模板两侧墙。`expand(point)`将作者XYZ标记或玩家脚位映射到运行局部XYZ；世界Y仍为66-door_y+局部Y。
+`assemble`回读真实分片，按49放置并复现旧中央短桥的地板、顶板和侧墙。当前加载器还涉及内部边缘延伸与角部补块，接入验收须使用与该加载器一致的诊断或实际 Forge 放置。`expand(point)`将作者XYZ标记或玩家脚位映射到运行局部XYZ；世界Y仍为66-door_y+局部Y。
 
 返回的physical是只用于诊断的Volume，可传给check_routes、air_components及nbt_preview的make_grid/render API；它的save会拒绝巨型NBT导出。需要重封外门做诊断时，在副本用expand后的门坐标填回，不能修改实际分片。当前仅镜像0度连接；它没有执行Forge、外部房间布局图、钥匙门或动态方块更新。
 

@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
@@ -69,6 +70,70 @@ class Candidate(unittest.TestCase):
     def test_changed_protection_refuses_candidate_without_removing_it(self):
         self.preview();context=json.loads(Path(self.request['context']).read_text());context['protected_boxes'].append(dict(lo=[8,2,8],hi=[8,4,8]));Path(self.request['context']).write_text(json.dumps(context))
         result=self.check();self.assertFalse(result['passed']);self.assertFalse(result['checks']['protected_geometry']['passed'])
+    def test_legacy_candidate_checks_saved_budget_and_reserved_space(self):
+        context=Path(self.request['context'])
+        config=json.loads(context.read_text())
+        self.preview()
+        config.update(max_changed_blocks=1,reserved_boxes=[dict(lo=[8,2,8],hi=[8,2,8])])
+        context.write_text(json.dumps(config),encoding='utf8')
+        result=self.check()
+        self.assertFalse(result['checks']['change_budget']['passed'])
+        self.assertFalse(result['checks']['candidate_geometry']['passed'])
+        # A large enough budget must still preserve the reserved box.
+        config['max_changed_blocks']=3
+        context.write_text(json.dumps(config),encoding='utf8')
+        result=validate_candidate(self.request,self.root/'preview/after.json',self.root/'reserved-check')
+        self.assertFalse(result['passed'])
+        self.assertIn('RESERVED_SPACE',result['checks']['candidate_geometry']['error'])
+
+    def test_binary_wall_sidecar_counts_as_explicit_ownership(self):
+        from nbt_refine import read_master
+        from nbt_snbt import write_binary
+
+        source=self.root/'binary-source'/'model.nbt'
+        model,walls=read_master(self.source)
+        write_binary(source,model,walls)
+        request=dict(self.request,source=str(source),source_sha256=digest(source))
+        self.preview(request)
+        self.assertTrue(self.check(request)['passed'])
+        sidecar=source.with_name('wall_mask.json')
+        data=json.loads(sidecar.read_text(encoding='utf8'))
+        data['wall_positions'].pop()
+        sidecar.write_text(json.dumps(data),encoding='utf8')
+        result=validate_candidate(request,self.root/'preview/after.json',self.root/'changed-wall')
+        self.assertFalse(result['passed'])
+        self.assertIn('wall mask has changed',result['checks']['inputs']['error'])
+
+    def test_render_marks_completed_child_output_failed_when_preview_changes(self):
+        import nbt_task
+
+        snapshot=Path(self.preview()['snapshot'])
+        cameras=self.root/'cameras.json'
+        cameras.write_text(json.dumps([dict(id='overview',eye=[70,40,-30],target=[24,5,24])]),encoding='utf8')
+        frontend=self.root/'assets/viewer/web-dist/frontend-manifest.json'
+        frontend.parent.mkdir(parents=True)
+        frontend.write_text('{}',encoding='utf8')
+        output=self.root/'render'
+        manifest=output/'render_manifest.json'
+        images=[dict(image='overview.png')]
+
+        def render(*args,**kwargs):
+            output.mkdir()
+            manifest.write_text(json.dumps(dict(status='complete',images=images)),encoding='utf8')
+            snapshot.write_bytes(snapshot.read_bytes()+b'\n')
+            return 0
+
+        argv=['nbt.py','render','--snapshot',str(snapshot),'--cameras',str(cameras),'--output',str(output)]
+        with (patch.object(nbt_task,'ROOT',self.root),patch.object(sys,'argv',argv),
+              patch('nbt_render_runtime.render_environment',return_value={}),
+              patch.object(nbt_task.subprocess,'call',side_effect=render)):
+            with self.assertRaisesRegex(ValueError,'changed while rendering'):
+                nbt_task.main()
+        report=json.loads(manifest.read_text(encoding='utf8'))
+        self.assertEqual(report['status'],'failed')
+        self.assertEqual(report['images'],images)
+        self.assertIn('changed while rendering',report['error'])
+
     def test_tampered_display_and_repeated_output_rejected(self):
         self.preview();file=self.root/'preview/after.json';data=json.loads(file.read_text());data['blocks'][0][1]='minecraft:gold_block';file.write_text(json.dumps(data))
         result=self.check();self.assertFalse(result['passed']);self.assertFalse(result['checks']['inputs']['passed'])
@@ -81,6 +146,54 @@ class Candidate(unittest.TestCase):
         context.write_text('[]')
         info=inspect_source(self.source);self.assertFalse(info['editing_ready'])
         viewed=source_snapshot(self.request,self.root/'malformed-read-only');self.assertTrue(viewed['read_only_view'])
+
+    def test_broken_legacy_description_keeps_the_source_viewable_but_blocks_edits(self):
+        version=self.root/'nbt_models/single/只读建筑/v01'
+        request=make_fixture(version)
+        source=Path(request['source'])
+        context=Path(request['context'])
+        replacement=version/'replacement.json'
+        context.rename(replacement)
+        (version/'room_description.json').write_text('{"context_file":',encoding='utf8')
+        item=next(item for item in catalog(self.root,index_only=True)['models'] if Path(item['source'])==source)
+        self.assertFalse(item['unreadable'])
+        info=inspect_source(source,0)
+        self.assertFalse(info['editing_ready'])
+        self.assertIn('room_description.json',info['context_readiness']['errors'][0])
+        self.assertGreater(info['solid_blocks'],0)
+        viewed=source_snapshot(dict(request,context=str(replacement)),self.root/'read-only-description')
+        self.assertTrue(viewed['read_only_view'])
+        self.assertIn('room_description.json',viewed['context_warning'])
+        with self.assertRaisesRegex(ValueError,'room_description.json'):
+            preview_effect(dict(request,context=str(replacement)),self.root/'must-not-preview-description')
+
+    def test_context_requirements_follow_enclosure_and_opening_policy(self):
+        from nbt_assembly import Volume
+        from nbt_detail_control import context_readiness
+        from nbt_whole_validation import validate_whole
+
+        context=Path(self.request['context'])
+        model=Volume((8,6,8))
+        model.box((0,0,0),(7,0,7),'stone')
+        outdoor=dict(mode='standalone',require_enclosure=False,start=[2.5,1,2.5],targets=[[5.5,1,2.5]])
+        context.write_text(json.dumps(outdoor),encoding='utf8')
+        self.assertTrue(context_readiness(model,context)['ready'])
+        self.assertTrue(validate_whole(model,outdoor)['passed'])
+
+        closed=dict(outdoor,require_enclosure=True)
+        context.write_text(json.dumps(closed),encoding='utf8')
+        self.assertCountEqual(context_readiness(model,context)['missing'],['openings','interior_probes'])
+        model.box((0,1,0),(7,5,7),'stone')
+        model.box((1,1,1),(6,4,6),'air')
+        closed.update(interior_probes=[[3,2,3]],openings=[])
+        context.write_text(json.dumps(closed),encoding='utf8')
+        self.assertTrue(context_readiness(model,context)['ready'])
+        self.assertTrue(validate_whole(model,closed)['recapped_seal']['passed'])
+
+        required=dict(outdoor,openings_policy='required')
+        context.write_text(json.dumps(required),encoding='utf8')
+        self.assertFalse(context_readiness(model,context)['ready'])
+
     def test_interrupted_refinement_output_is_preserved_but_not_catalogued_as_ready(self):
         context=json.loads(Path(self.request['context']).read_text())
         context['cameras'][1]['eye']=[8.5,3.62,8.5];context['cameras'][1]['target']=[12,4,12]
@@ -90,7 +203,9 @@ class Candidate(unittest.TestCase):
         plan=dict(style_note='Synthetic failed-output lifecycle',operations=self.request['settings']['operations'])
         with self.assertRaisesRegex(ValueError,'Entry thumbnail'):
             refine(review,plan,output)
-        self.assertTrue((output/'refined.master.json.gz').is_file())
+        self.assertTrue((output/'validation.json').is_file())
+        self.assertFalse((output/'master/model.snbt').exists())
+        self.assertFalse(list(output.rglob('*.nbt')))
         self.assertEqual(json.loads((output/'refinement.json').read_text())['state'],'writing')
         self.assertEqual(catalog(self.root)['models'],[])
 

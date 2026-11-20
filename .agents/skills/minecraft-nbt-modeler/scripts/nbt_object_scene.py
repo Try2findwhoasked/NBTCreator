@@ -171,7 +171,8 @@ def compile_scene(workspace,graph):
         inset=0
         if 'attach' in node:
             anchor=node['attach'];axis,sign=FACES[anchor['face']];other=geometry[anchor['target']]
-            if other['cells'] is None:other['cells']=halfcells(other['voxels'])
+            if not anchor.get('interface') and other['cells'] is None:
+                other['cells']=halfcells(other['voxels'])
             for inset in range(anchor.get('max_inset',4)+1):
                 trial=list(origin);trial[axis]-=sign*inset
                 proposed={tuple(p[i]+trial[i] for i in range(3)):v for p,v in local.items()}
@@ -207,7 +208,7 @@ def compile_scene(workspace,graph):
         completed[name]['attachment_interface']=node.get('attach',{}).get('interface')
         from nbt_scene_interfaces import compile_interfaces
         definitions=deepcopy(compiled.get('interfaces',[]))+resolve(node.get('interfaces',[]),completed)
-        completed[name]['interfaces']=compile_interfaces(definitions,local,data['size'],turns,origin)
+        completed[name]['interfaces']=compile_interfaces(definitions,local,data['size'],turns,origin,owner=graph['name']+'.'+name)
         completed[name]['span_interfaces']=span_interfaces
         geometry[name]=dict(voxels=voxels,cells=cells);occupancy.update(voxels)
         if len(occupancy)>graph.get('max_changed_blocks',65536):raise ValueError('建筑对象图超过实际方块预算')
@@ -219,12 +220,14 @@ def compile_scene(workspace,graph):
         if required and current['cells'] is None:current['cells']=halfcells(current['voxels'])
         for target in sorted(required):
             other=geometry[target]
-            if other['cells'] is None:other['cells']=halfcells(other['voxels'])
-            ok=attached(current['cells'],other['cells']) if 'attach' in node and node['attach']['target']==target else touches(current['cells'],other['cells'])
-            if 'attach' in node and node['attach'].get('interface') and node['attach']['target']==target:
+            attach=node.get('attach',{})
+            if attach.get('interface') and attach['target']==target:
                 from nbt_scene_interfaces import interface_contact,selected_interface
-                surface=selected_interface(completed,dict(object=target,interface=node['attach']['interface']))
+                surface=selected_interface(completed,dict(object=target,interface=attach['interface']))
                 ok=interface_contact(current['cells'],surface)
+            else:
+                if other['cells'] is None:other['cells']=halfcells(other['voxels'])
+                ok=attached(current['cells'],other['cells']) if attach.get('target')==target else touches(current['cells'],other['cells'])
             if not ok:raise ValueError('建筑对象未与声明支承面连接：'+name+' → '+target)
         if 'span' in node:
             from nbt_scene_interfaces import interface_contact

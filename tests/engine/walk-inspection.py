@@ -37,9 +37,47 @@ class WalkInspection(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'32'):inspect_walk(dict(self.request,targets=[[1,1,1]]*33))
   data=check_routes(self.model,self.request['start'],self.request['targets'],max_poses=2);self.assertTrue(data['search_limit_reached']);self.assertFalse(data['passed']);self.assertEqual(data['targets'][0]['reason'],'search_limit_reached')
  def test_context_is_optional_but_can_supply_authored_positions(self):
-  context=self.folder/'coordinates.json';context.write_text(json.dumps(dict(start=self.request['start'],targets=self.request['targets'])))
+  context=self.folder/'explicit-coordinates.json';context.write_text(json.dumps(dict(start=self.request['start'],targets=self.request['targets'])))
   request={k:v for k,v in self.request.items() if k not in ('start','targets')};data=inspect_walk(dict(request,context=str(context)));self.assertTrue(data['report']['passed']);self.assertTrue(data['context_sha256'])
   with self.assertRaisesRegex(ValueError,'填写'):inspect_walk(request)
+ def test_cli_uses_version_coordinates_only_for_missing_positions(self):
+  building=self.folder/'nbt_models'/'standalone'/'floor'
+  version=building/'v_model_1'
+  master=version/'master'/'model.snbt'
+  master.parent.mkdir(parents=True)
+  save_master(master,self.model,set())
+  source_bytes=master.read_bytes()
+  request=dict(source=str(master.relative_to(self.folder)),source_sha256=hashlib.sha256(source_bytes).hexdigest())
+  coordinates=dict(start=self.request['start'],targets=self.request['targets'])
+  def run(name,**overrides):
+   file=self.folder/'request.json'
+   file.write_text(json.dumps(dict(request,**overrides)),encoding='utf8')
+   command=[sys.executable,'-B',str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_detail_control.py'),
+            'walk-inspect','--request','request.json','--output',name]
+   response=subprocess.run(command,cwd=self.folder,capture_output=True,text=True,encoding='utf8')
+   return response.returncode,json.loads(response.stdout)
+  (building/'coordinates.json').write_text(json.dumps(coordinates),encoding='utf8')
+  self.assertNotEqual(run('no-version-context')[0],0)
+  saved=version/'coordinates.json'
+  saved.write_text(json.dumps(coordinates),encoding='utf8')
+  saved_bytes=saved.read_bytes()
+  code,response=run('default')
+  self.assertEqual(code,0,response)
+  self.assertTrue(response['result']['report']['passed'])
+  self.assertEqual(response['result']['context_sha256'],hashlib.sha256(saved_bytes).hexdigest())
+  explicit=self.folder/'explicit.json'
+  explicit.write_text(json.dumps(dict(start=[3.5,1,1.5],targets={'explicit':[6.5,1,1.5]})),encoding='utf8')
+  code,response=run('override',context=explicit.name,start=[2.5,1,1.5])
+  self.assertEqual(code,0,response)
+  self.assertEqual([p['feet'] for p in response['result']['poses']],[[2.5,1,1.5],[6.5,1,1.5]])
+  code,response=run('partial',targets={'chosen':[7.5,1,1.5]})
+  self.assertEqual(code,0,response)
+  self.assertEqual([p['feet'] for p in response['result']['poses']],[coordinates['start'],[7.5,1,1.5]])
+  code,response=run('all-explicit',**coordinates)
+  self.assertEqual(code,0,response)
+  self.assertIsNone(response['result']['context_sha256'])
+  self.assertEqual(master.read_bytes(),source_bytes)
+  self.assertEqual(saved.read_bytes(),saved_bytes)
  def test_same_cli_contract_writes_only_a_report_and_retains_source(self):
   request=self.folder/'request.json';request.write_text(json.dumps(self.request));output=self.folder/'report'
   run=subprocess.run([sys.executable,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_detail_control.py'),'walk-inspect','--request',str(request),'--output',str(output)],capture_output=True,text=True,encoding='utf8');self.assertEqual(run.returncode,0,run.stdout+run.stderr);self.assertTrue(json.loads(run.stdout)['result']['report']['passed']);self.assertTrue((output/'walk-inspection.json').is_file());self.assertEqual(self.source.read_bytes(),self.original)

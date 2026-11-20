@@ -34,6 +34,13 @@ def change_sets(before, after, old_walls, walls):
     return geometry,old^new
 
 
+def reserved_position(positions, boxes):
+    if not boxes:
+        return None
+    return next((p for p in positions if any(
+        all(box['lo'][i] <= p[i] <= box['hi'][i] for i in range(3)) for box in boxes)),None)
+
+
 def enforce_changes(before,after,old_walls,walls,protected=(),maximum=None,require_change=False):
     geometry,layers=change_sets(before,after,old_walls,walls)
     changed=geometry|layers;touched=sorted(changed&set(protected))

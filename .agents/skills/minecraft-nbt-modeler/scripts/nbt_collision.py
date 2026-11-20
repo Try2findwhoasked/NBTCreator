@@ -169,6 +169,15 @@ def collision_cells(value):
     return full, 'unsupported_collision_shape'
 
 
+def state_support(value):
+    cells, reason = collision_cells(value)
+    bounded = reason == 'unsupported_collision_shape' and bounded_obstacle(value)
+    return dict(valid=reason != 'invalid_minecraft_1_20_1_state',
+                route_collision='bounded' if bounded else 'unknown' if reason else 'exact' if cells else 'empty',
+                exact_contact=not reason and bool(cells),
+                support_geometry=not reason and bool(cells), reason=reason)
+
+
 class _Space:
     def __init__(self, model, conservative_obstacles=True):
         self.size = tuple(model.size)
@@ -179,6 +188,7 @@ class _Space:
         # Keep exact support cells independent from obstacle rasterization.
         self.support_rows = [0] * (self.sy*self.sz)
         self.unknown = Counter()
+        self.unknown_positions = {}
         self.conservative = Counter()
         for (x, y, z), value in model.blocks.items():
             cells, reason = collision_cells(value)
@@ -191,6 +201,9 @@ class _Space:
                     cells = tuple((dx,dy,dz) for dx in (0,1) for dy in range(height) for dz in (0,1))
                 else:
                     self.unknown[(value, reason)] += 1
+                    positions = self.unknown_positions.setdefault((value, reason), [])
+                    if len(positions) < 8:
+                        positions.append([x, y, z])
             for dx, dy, dz in cells:
                 # Only poses inside model bounds are considered. Tall envelope
                 # cells above the model top cannot affect any accepted pose.
@@ -358,7 +371,8 @@ def _check_routes(model,start,targets,*,conservative_obstacles,max_poses,space,g
                   player_width=.6, player_height=1.8, horizontal_grid=.5,
                   maximum_step_up=.5, maximum_step_down=.5, jumps_allowed=False,
                   runtime_verified=False, registry_verified=False,
-                  unknown_shapes=[dict(state=s, reason=r, count=n) for (s, r), n in sorted(space.unknown.items())],
+                  unknown_shapes=[dict(state=s, reason=r, count=n, positions=space.unknown_positions[(s, r)])
+                                  for (s, r), n in sorted(space.unknown.items())],
                   conservative_obstacles=[dict(state=s, count=n) for s, n in sorted(space.conservative.items())],
                   obstacle_envelope_version=ENVELOPE_VERSION if space.conservative else None,
                   collision_mode='bounded_obstacles_exact_support' if space.conservative else 'exact_half_cells',

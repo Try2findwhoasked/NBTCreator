@@ -63,6 +63,38 @@ class ArchitectureWorkflow(unittest.TestCase):
     def make(self,wood=False):
         return dispatch(self.workspace,'plan-build',dict(plan=plan(wood),save_draft={}))
 
+    def test_compact_saved_build_handoff_and_read_only_candidate(self):
+        script=ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_architect.py'
+        reports=self.workspace/'nbt_models/_workspaces/compact'
+        reports.mkdir(parents=True)
+        def cli(action,request,name):
+            args=self.workspace/'request.json'
+            args.write_text(json.dumps(request),encoding='utf8')
+            run=subprocess.run([sys.executable,'-B',str(script),action,'--request',str(args),
+                '--compact-report',str(reports/(name+'.json'))],cwd=self.workspace,capture_output=True,text=True,encoding='utf8')
+            self.assertEqual(run.returncode,0,run.stdout+run.stderr)
+            compact=json.loads(run.stdout)
+            report=Path(compact['report']['path'])
+            self.assertEqual(compact['report']['sha256'],file_hash(report))
+            self.assertLess(len(run.stdout.encode()),report.stat().st_size)
+            return compact
+        built=cli('plan-build',dict(plan=plan(),save_draft={}), 'build')
+        bound=built['next']['request']
+        self.assertEqual(bound['source_sha256'],file_hash(bound['source']))
+        review=cli(built['next']['action'],bound,'review')
+        self.assertEqual(review['source_sha256'],bound['source_sha256'])
+        self.assertFalse(review['approval_created'])
+        self.assertEqual(review['render_command'][0],'render')
+        bindings=review['review_record_bindings']
+        self.assertEqual(bindings['revision'],0)
+        self.assertEqual((self.workspace/bindings['render_manifest']).resolve(),
+                         Path(review['render_command'][-1])/'render_manifest.json')
+        source={key:bound[key] for key in ('source','source_sha256')}
+        checked=cli('plan-check',source,'check')
+        self.assertEqual(checked['next']['request']['source_sha256'],bound['source_sha256'])
+        candidate=cli('plan-build',dict(source,plan=plan(),expected_plan_sha256=built['plan_sha256']),'candidate')
+        self.assertNotIn('next',candidate)
+
     def test_two_different_building_systems_compile_seal_open_and_roundtrip(self):
         first=self.make();second=self.make(True)
         for result in (first,second):
@@ -94,6 +126,98 @@ class ArchitectureWorkflow(unittest.TestCase):
         run=subprocess.run([sys.executable,'-B',str(entry),'capabilities','--architecture'],cwd=self.workspace,capture_output=True,text=True,encoding='utf8')
         self.assertEqual(run.returncode,0,run.stderr)
         self.assertIn('plan-build',json.loads(run.stdout)['architecture']['actions'])
+        def query(*args):
+            return json.loads(subprocess.check_output([sys.executable,'-B',str(entry),'capabilities',*args],
+                                                      cwd=self.workspace,encoding='utf8'))
+        recipe=query('--recipe','structure')['example']
+        from nbt_extensions import compile_recipe
+        self.assertEqual(len(compile_recipe(self.workspace,recipe)[0]['blocks']),1)
+        self.assertIn('state',query('--operation','box')['parameters']['properties'])
+        self.assertIn('part',query('--architect-action','part-preflight')['parameters']['properties'])
+        interfaces=[query('--architect-action',action,'--field','plan.parts.interfaces')
+                    for action in ('plan-save','plan-build','part-preflight')]
+        schema=interfaces[0]['parameters']
+        self.assertTrue(all(result['parameters']==schema for result in interfaces))
+        example=interfaces[0]['example']
+        from nbt_structure_agent import _schema
+        _schema(example['part']['interfaces'],schema)
+        self.assertEqual(example['part']['interfaces'][0]['id'],example['stop']['use_face']['interface'])
+        sample_box=query('--architect-action','plan-save','--field','plan.views.sample_box')
+        _schema(sample_box['example']['sample_box'],sample_box['parameters'])
+
+    def test_part_preflight_and_localized_exact_interfaces(self):
+        spec=plan()
+        part=next(row for row in spec['parts'] if row['id']=='left')
+        spec['style']['parameters']['interface_y']=1
+        part['interfaces']=[dict(id='up',face='up',lo=[0,1,0],hi=[0,dict(design_ref='style.parameters.interface_y'),0])]
+        operations=part['recipe']['arguments']['operations']
+        operations[0]['hi']=[2,1,2]
+        def detail(pos,state):
+            return dict(kind='box',label='detail',classification='body',lo=pos,hi=pos,state=state)
+        operations.append(detail([2,2,2],'red_carpet'))
+        def preflight():
+            return dispatch(self.workspace,'part-preflight',dict(plan=spec,part='left'))['parts'][0]
+        self.assertFalse(preflight()['interface_issues'])
+        operations[-1]=detail([0,2,0],'red_carpet')
+        issue=preflight()['interface_issues'][0]
+        self.assertEqual((issue['code'],issue['interface'],issue['pos']),
+                         ('INTERFACE_UNSUPPORTED_SHAPE','up',[0,2,0]))
+        operations[-1]=detail([2,2,2],'spruce_button[face=floor,facing=north,powered=false]')
+        button=next(row for row in preflight()['states'] if 'spruce_button' in row['state'])
+        self.assertEqual(button['positions'],[[13,4,14]])
+        self.assertEqual(button['route_collision'],'unknown')
+        self.assertFalse(button['support_geometry'])
+        operations[:]=[detail([0,1,0],'allium')]
+        self.assertEqual(preflight()['interface_issues'][0]['code'],'INTERFACE_EMPTY')
+        part['interfaces']=[]
+        self.assertFalse(preflight()['interface_issues'])
+        with self.assertRaises(ValueError):
+            dispatch(self.workspace,'part-preflight',dict(plan=spec,output='unwanted'))
+        self.assertEqual(list(self.workspace.iterdir()),[])
+
+    def test_named_interface_decoration_survives_build_save_and_reopen(self):
+        spec=plan()
+        table=box_part('tea_table',[0,1,1],[1,2,2])
+        operations=table['recipe']['arguments']['operations']
+        operations[0]['hi']=[0,0,1]
+        table['interfaces']=[dict(id='serving_edge',face='north',lo=[0,0,0],hi=[0,0,0])]
+        decoration=box_part('tea_setting',[0,2,1],[1,1,1])
+        decoration['interfaces']=[]
+        carpet=decoration['recipe']['arguments']['operations'][0]
+        carpet['state']='red_carpet'
+        spec['parts'] += [table,decoration]
+        original=dispatch(self.workspace,'plan-build',dict(plan=spec))
+        spec['parts'].remove(decoration)
+        operations.append(dict(carpet,lo=[0,1,0],hi=[0,1,0]))
+        preflight=dispatch(self.workspace,'part-preflight',dict(plan=spec,part='tea_table'))
+        self.assertFalse(preflight['parts'][0]['interface_issues'])
+        built=dispatch(self.workspace,'plan-build',dict(plan=spec,save_draft={}))
+        self.assertEqual(original['checks']['model_sha256'],built['checks']['model_sha256'])
+        opened=WorkingModel.open(self.workspace,built['saved']['source'])
+        self.assertEqual(opened.model.get((0,2,1)),'minecraft:red_carpet')
+        self.assertTrue(opened.validate()['assembly']['passed'])
+        from nbt_architecture_plan import surface
+        from nbt_scene_interfaces import InterfaceError
+        opened.model.put((0,1,0),'red_carpet')
+        with self.assertRaises(InterfaceError) as blocked:
+            surface(opened,opened.architecture,dict(part='tea_table',interface='serving_edge'))
+        self.assertEqual(blocked.exception.conflicts[0]['pos'],[0,1,0])
+        opened.model.put((0,1,0),'air')
+        opened.model.put((0,1,1),'red_carpet')
+        failures=[row for row in opened._assembly_checks()['checks'] if not row['passed']]
+        self.assertEqual(failures[0]['interface'],'serving_edge')
+        self.assertEqual(failures[0]['unknown_shapes'][0]['pos'],[0,1,1])
+
+        # A generic contact requires exact geometry for both entire objects.
+        instance=opened.instances['part_tea_table']
+        node=instance['compiled']['objects'][0]
+        instance['compiled']['objects'].append(dict(id='support',voxel_positions=[[0,1,3]]))
+        node['contact_targets']=['support']
+        opened.model.put((0,1,1),'stone_bricks')
+        opened.model.put((0,1,3),'stone_bricks')
+        failures=[row for row in opened._assembly_checks()['checks'] if not row['passed']]
+        self.assertTrue(any(row.get('unknown_shapes') and not row.get('interface')
+                            and row['unknown_shapes'][0]['pos']==[0,2,1] for row in failures))
 
 
     def test_source_rebuild_keeps_history_and_rejects_stale_plan_identity(self):
@@ -154,6 +278,57 @@ class ArchitectureWorkflow(unittest.TestCase):
         bad=dispatch(self.workspace,'review-prepare',dict(source=revised['source'],source_sha256=file_hash(revised['source']),output='nbt_models/_workspaces/reviews/bad'))
         self.assertFalse(bad['coverage']['coverage_passed'])
         self.assertFalse(next(row for row in bad['coverage']['views'] if row['id']=='beam')['standing'])
+
+    def test_sample_box_narrows_a_real_part_without_changing_camera_or_geometry(self):
+        from nbt_architecture_plan import actual_part
+        from nbt_architecture_review import visibility
+        spec=plan()
+        view=spec['views'][1]
+        view.update(target=[15.5,5.5,12.5],fov=10)
+        baseline=dispatch(self.workspace,'plan-build',dict(plan=spec,save_draft={}))
+        source=baseline['saved']['source']
+        original=WorkingModel.open(self.workspace,source)
+        binding=original.architecture
+        _,points=actual_part(original,binding,view['target_part'])
+        p=[15,5,12]
+        self.assertIn(tuple(p),points)
+        original_review=dispatch(self.workspace,'review-prepare',dict(
+            source=source,source_sha256=file_hash(source),output='nbt_models/wide-review'))
+
+        view['sample_box']=dict(lo=p,hi=p)
+        request=dict(plan=spec,source=source,source_sha256=file_hash(source),
+                     expected_plan_sha256=baseline['plan_sha256'],save_draft={})
+        built=dispatch(self.workspace,'plan-build',request)
+        revised=built['saved']['source']
+        reopened=WorkingModel.open(self.workspace,revised)
+        self.assertEqual(original.model.blocks,reopened.model.blocks)
+        self.assertEqual(binding['parts'],reopened.architecture['parts'])
+        review=dispatch(self.workspace,'review-prepare',dict(
+            source=revised,source_sha256=file_hash(revised),output='nbt_models/boxed-review'))
+        before=next(v for v in original_review['coverage']['views'] if v['id']==view['id'])
+        after=next(v for v in review['coverage']['views'] if v['id']==view['id'])
+        self.assertEqual((after['eye'],after['look_at'],after['minimum_visible']),
+                         (before['eye'],before['look_at'],before['minimum_visible']))
+        self.assertEqual((after['sampling'],after['target_voxel_count'],after['visibility']['samples']),('part_box',1,1))
+        self.assertFalse(before['passed'])
+        self.assertTrue(after['passed'])
+        behind=(15,5,13)
+        self.assertIn(behind,points)
+        occluded=visibility(reopened.model,after['eye'],{behind},[15.5,5.5,13.5],view['fov'])
+        self.assertEqual(occluded['visible_fraction'],0)
+        self.assertEqual(occluded['blockers'][0]['pos'],p)
+
+        for box in (dict(lo=[0,0,0],hi=spec['size']),dict(lo=[1,0,0],hi=[0,0,0])):
+            view['sample_box']=box
+            with self.assertRaisesRegex(ValueError,'越界或倒置'):
+                normalize(spec)
+        view['sample_box']=dict(lo=[0,0,0],hi=[0,0,0])
+        request.update(source=revised,source_sha256=file_hash(revised),expected_plan_sha256=built['plan_sha256'])
+        with self.assertRaisesRegex(ValueError,'没有目标构件的实际方块'):
+            dispatch(self.workspace,'plan-build',request)
+        del view['target_part']
+        with self.assertRaisesRegex(ValueError,'target_part'):
+            normalize(spec)
 
     def test_unperformed_game_checks_remain_unverified_and_require_evidence(self):
         result=self.make();source=result['saved']['source'];request=dict(source=source,source_sha256=file_hash(source))
@@ -255,7 +430,8 @@ class ArchitectureWorkflow(unittest.TestCase):
         self.assertFalse(notes['approval_created']);self.assertTrue(notes['coverage_complete'])
         changed=plan();changed['parts'][2]['recipe']['arguments']['size'][1]=4;changed['parts'][2]['recipe']['arguments']['operations'][0]['hi'][1]=3
         new=dispatch(self.workspace,'plan-build',dict(plan=changed,source=source,source_sha256=file_hash(source),expected_plan_sha256=original['plan_sha256'],save_draft={}))
-        compared=dispatch(self.workspace,'review-compare',dict(pack=pack['pack'],pack_sha256=pack['pack_sha256'],notes_sha256=notes['sha256'],source=new['saved']['source'],source_sha256=file_hash(new['saved']['source'])))
+        self.assertEqual(notes['review_compare']['notes_sha256'],notes['sha256'])
+        compared=dispatch(self.workspace,'review-compare',dict(**notes['review_compare'],source=new['saved']['source'],source_sha256=file_hash(new['saved']['source'])))
         issue=compared['issues'][0]
         self.assertEqual(issue['state'],'needs_new_visual_observation');self.assertFalse(issue['old_positions_are_current'])
         self.assertNotEqual(issue['current_bounds'],issue['previous_bounds'])

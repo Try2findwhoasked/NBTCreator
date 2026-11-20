@@ -17,7 +17,7 @@ def main():
     source=version/'master/master_geometry.json.gz';save_master(source,model,walls);original=digest(source)
     context=version/'coordinates.json';write_json(context,dict(cells=cells,start=[3.5,2,3.5],targets={'exit':[10.5,2,3.5]},interior_probes=[[24,8,24],[72,8,24],[24,8,72]],ports=[]))
     settings=default_settings();settings['pattern'].update(enabled=True,fraction=.01)
-    request=dict(schema_version=1,source=str(source),source_sha256=original,context=str(context),cameras='',settings=settings)
+    request=dict(schema_version=1,source=str(source),source_sha256=original,context=str(context),cameras='',settings=settings,draft_only=False)
     file=out/'settings.json';write_json(file,request)
     result=convert_web_json(file);target=Path(result['output']);released=Path(result['release_dir']);checks={}
     checks['sibling_next_version']=target==project/'v02'

@@ -51,7 +51,7 @@ function mergeOperationPatch(result,context){
   seen.add(change.step)
   if(change.expected!==base.steps[change.step-1].expected)throw Error('增量原步骤指纹不匹配，请重新生成')
   const op=operations[change.step-1]
-  const allowed=[...Object.keys(catalog.common),...Object.keys(catalog.operation_parameters[op.kind]?.properties??{})].filter(key=>!['overwrite','write_group','max_writes'].includes(key))
+  const allowed=Object.keys(catalog.operation_parameters[op.kind]?.properties??{}).filter(key=>!['overwrite','write_bounds','write_group','max_writes'].includes(key))
   if(!own(change.set,allowed)||!Object.keys(change.set).length)throw Error('增量只能修改工具参数，不能改变工具类型、覆盖权限、预算或执行字段')
   for(const [key,value]of Object.entries(change.set)){
    const schema=catalog.operation_parameters[op.kind]?.properties[key]

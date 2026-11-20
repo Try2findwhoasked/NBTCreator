@@ -35,8 +35,7 @@ export async function renderBatch(options) {
   const snapshot = JSON.parse(snapshotBytes)
   const cameraBytes = options.cameras ? await fs.readFile(options.cameras) : null
   const views = normalizeViews(cameraBytes ? JSON.parse(cameraBytes) : snapshot.cameras, snapshot.size)
-  // Python reserves a new output directory and places snapshot.json in it.
-  // A standalone Node call may instead reference a snapshot outside a new directory.
+  // Direct callers may keep their input snapshot in the output directory.
   await fs.mkdir(output, { recursive: true })
   const existing = await fs.readdir(output)
   if (existing.some(name => path.join(output, name) !== model)) throw new Error('Render output must be new or contain only its input snapshot; never overwrite a previous batch')
@@ -102,20 +101,26 @@ export async function renderBatch(options) {
     }
     if (hash(await fs.readFile(model)) !== report.snapshot_sha256) throw new Error('Snapshot changed during rendering')
     if (snapshot.source && hash(await fs.readFile(snapshot.source)) !== snapshot.source_sha256) throw new Error('Source model changed during rendering')
-    report.status = 'complete'
+    report.status = options.deferCompletion ? 'awaiting_input_check' : 'complete'
   } catch (error) {
     report.status = 'failed'
     report.error = error.message
     throw error
   } finally {
-    try { if (browser) await browser.close(); report.cleanup.browser_closed = true }
-    finally {
-      try { if (viewer) await viewer.close(); report.cleanup.server_closed = true }
+    try {
+      try { if (browser) await browser.close(); report.cleanup.browser_closed = true }
       finally {
-        report.duration_ms = performance.now() - started
-        await writeJson(path.join(output, 'render_manifest.json'), report)
-        await fs.unlink(lock)
+        if (viewer) await viewer.close()
+        report.cleanup.server_closed = true
       }
+    } catch (error) {
+      report.status = 'failed'
+      report.error ??= error.message
+      throw error
+    } finally {
+      report.duration_ms = performance.now() - started
+      try { await writeJson(path.join(output, 'render_manifest.json'), report) }
+      finally { await fs.unlink(lock) }
     }
   }
   return report
@@ -126,11 +131,13 @@ async function main() {
     model: { type: 'string' }, cameras: { type: 'string' }, output: { type: 'string' },
     width: { type: 'string' }, height: { type: 'string' }, quality: { type: 'string' },
     timeout: { type: 'string' }, 'file-prefix': { type: 'string' }, 'browser-executable': { type: 'string' },
+    'defer-completion': { type: 'boolean' },
   } })
   if (!values.model || !values.output) throw new Error('Usage: node render-batch.mjs --model snapshot.json --output new-directory [--cameras views.json]')
-  const report = await renderBatch({ ...values, filePrefix: values['file-prefix'], browserExecutable: values['browser-executable'] })
-  console.log(JSON.stringify({ status: report.status, images: report.images.length, duration_ms: report.duration_ms,
-    manifest: path.resolve(values.output, 'render_manifest.json') }))
+  const report = await renderBatch({ ...values, filePrefix: values['file-prefix'],
+    browserExecutable: values['browser-executable'], deferCompletion: values['defer-completion'] })
+  if (!values['defer-completion']) console.log(JSON.stringify({ status: report.status, images: report.images.length,
+    duration_ms: report.duration_ms, manifest: path.resolve(values.output, 'render_manifest.json') }))
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   main().catch(error => { console.error(`render-batch: ${error.message}`); process.exitCode = 1 })

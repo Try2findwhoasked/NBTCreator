@@ -10,10 +10,10 @@ NBTCreator 1.1的桌面包和已构建skill使用web-dist静态页面/资源，�
 
 ## Agent 默认走批量入口
 
-需要多角度纹理质检时，优先调用 `nbt_task.py render`，之后直接用图像查看工具读取输出PNG。不要为了常规出图启动computer use逐个切相机、点击下载、再从浏览器下载目录搬图。网页交互用于用户自由查看，或明确测试网页本身；仅生成图片不需要网页操作。
+从已同步的创作项目根目录批量出图，再用图像查看工具打开落盘 PNG。源码维护可从仓库根目录运行 `mise run nbt -- --workspace <隔离创作项目> render ...`。
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_task.py render --source <完整NBT或主模型JSON.GZ> --cameras <相机列表JSON> --output <任务目录>/previews/texture_v01 --file-prefix YYYY-MM-DD_r001_
+python .agents/skills/nbtcreator-workspace/nbt.py render --source <完整主模型SNBT> --cameras <相机列表JSON> --output <任务目录>/previews/texture_v01 --file-prefix YYYY-MM-DD_r001_
 ```
 
 control preview 的 before.json/after.json 是展示快照，不能传给 --source 或冒充已落盘主模型。候选出同相机图使用 `nbt.py render --snapshot <before或after.json> --cameras <相机列表JSON> --output <全新目录>`。此入口核对原稿 SHA256、预览原始几何指纹、实际展示状态与尺寸，仍只输出图片，不生成 NBT 或批准，也不认证候选通路。原稿或快照变化后重新计算候选。--snapshot 不和 --source/--provenance 混用。
@@ -52,13 +52,24 @@ npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
 - `cuts`：可选整数方块边界剖切列表，axis为x/y/z，removed_side为above/below。above移除坐标大于等于position的方块，below移除小于position的方块；多个剖面累加。`side`为兼容别名。
 - `cut_y`：可选的最大保留方块层，含该层，相当于Y轴position=cut_y+1的above剖切。
 
-纹理入口只支持整数切面，遇到半格切面会明确拒绝；不能静默近似。需半格诊断时用原nbt_preview，并如实记录它的几何近似。剖切只改变显示，不写入源模型。批量各视角独立应用默认值，上一张的剖切、图层、昼夜不会泄漏到下一张；无cuts的入口和仰视图保持完整顶构。
+纹理入口使用整数切面。批量纹理出图的各视角独立应用默认值，无 cuts 的入口与仰视图保留完整顶构。
+
+### 半格诊断
+
+半格剖切使用 `nbt_preview.py` 直接读取落盘的 SNBT 制作版，输出纯色诊断 PNG 和含源哈希、切面及几何近似的 JSON。旧完整 NBT 的 `--nbt` 用法继续有效。
+
+```powershell
+$engine = python .agents/skills/nbtcreator-workspace/nbt.py paths | ConvertFrom-Json
+python (Join-Path $engine.scripts 'nbt_preview.py') --source <制作版model.snbt> --cut 'y:12.5:above' --eye '58,45,-18' --target '24,5,24' --output <新诊断图.png>
+```
+
+剖切只改变显示。
 
 ## 输出与成本控制
 
 每个视角输出 `<前缀><id>.png` 和同名JSON。JSON记录源/几何/快照哈希、实际相机和FOV、剖切、图层、昼夜、像素尺寸、可见方块数、网格构建次数、帧号、图片SHA-256及耗时。相机计算可能有Float32精度差，记录实际值而非伪造为精确输入。
 
-批次保存 `snapshot.json` 和 `render_manifest.json`。清单status=complete才表示全部请求的图像已输出；失败时非零退出并在可建立输出目录的情况下记录failed及已有结果，不能把部分图当作整批通过。输入参数在创建渲染目录前验证；已经存在的输出拒绝重写。源或快照在渲染中变化会拒绝成功结论。
+批次保存 `snapshot.json` 和 `render_manifest.json`。出图后清单先标记 `awaiting_input_check`，源模型、墙层附属文件和原始候选快照复核通过后才发布 `complete`。输入变化时，命令非零退出，清单记录 `failed`、失败原因及已有图像。输入参数在创建渲染目录前验证，已有输出目录会保留。
 
 默认960×640、像素倍率1，`--width/--height` 可设64～4096。`--quality balanced`默认关闭阴影贴图，保留纹理和基础照明；high启用1024阴影贴图。模型构建和光栅化仍消耗CPU/GPU，批量入口减少的是交互、重复加载和重复网格生成，不是免除渲染成本。
 
@@ -69,7 +80,8 @@ npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
 ## 网页保留给用户交互
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/nbt_task.py preview --source <完整主模型> --cameras <相机列表JSON> --output <任务目录>/previews/新网页快照.json
+$engine = python .agents/skills/nbtcreator-workspace/nbt.py paths | ConvertFrom-Json
+python (Join-Path $engine.scripts 'nbt_task.py') preview --source <完整主模型> --cameras <相机列表JSON> --output <任务目录>/previews/新网页快照.json
 ```
 
 可加 `--no-open`只打印地址。服务绑定127.0.0.1；用户可旋转缩放、改Y剖切/墙层、切昼夜、查坐标与操作ID、下载截图/相机记录。任务结束用Ctrl+C关闭本次服务，重复看同一快照复用地址，不为每个相机新开服务。

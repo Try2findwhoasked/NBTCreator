@@ -9,7 +9,7 @@ SUPPORTED_INSPECTION_TOOLS = frozenset({'walk-inspect'})
 
 def inspect_walk(request, snapshot=None):
     from nbt_refine import read_master
-    from nbt_library import canonical_context
+    from nbt_library import canonical_context, saved_coordinates
     from nbt_assembly import Volume
     from nbt_collision import _Space, check_routes, RADIUS, PLAYER_HEIGHT
 
@@ -40,6 +40,9 @@ def inspect_walk(request, snapshot=None):
     if request.get('geometry_sha256') and request['geometry_sha256'] != geometry:
         raise ValueError('画面已变化，请对当前画面重新检查通路')
     context = Path(request['context']).resolve() if request.get('context') else None
+    discover_context = context is None and ('start' not in request or 'targets' not in request)
+    if discover_context:
+        context = saved_coordinates(source)
     context_hash = sha(context) if context else None
     config = canonical_context(context) if context else {}
     start = request.get('start', config.get('start'))
@@ -88,7 +91,10 @@ def inspect_walk(request, snapshot=None):
                   poses=[pose('起点', start)]+[pose(name, p) for name,p in targets.items()],
                   available=True, asset_written=False, runtime_verified=False,
                   inspected_snapshot=bool(snapshot))
-    if sha(source) != source_hash or (context and sha(context) != context_hash) or (snapshot and sha(snapshot) != snapshot_hash):
+    if (sha(source) != source_hash
+            or (discover_context and saved_coordinates(source) != context)
+            or (context and sha(context) != context_hash)
+            or (snapshot and sha(snapshot) != snapshot_hash)):
         raise ValueError('检查期间建筑或坐标资料已改变，请重新检查')
     from nbt_diagnostics import explain
     result['diagnostics']=explain('walk',result)

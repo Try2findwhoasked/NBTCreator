@@ -64,6 +64,6 @@ python .agents/skills/minecraft-nbt-modeler/scripts/nbt_task.py regress --output
 
 第一条检查本地引用、Python语法、注册表完整性及可选前端锁文件；第二条汇总现有check_*_fixtures.py和新增状态/来源回归，保存每套真实退出状态。合成fixture中模拟的确认只属于测试数据，不授权用户资产。维护skill无需重建SAODG或运行历史建筑示例；涉及模组接入或引擎行为另按工作区要求测试。
 
-建模工具的定向回归为 `python .agents/skills/minecraft-nbt-modeler/scripts/check_modelling_fixtures.py --output <全新目录>`，覆盖几何/CSG、复制状态、旋转轴、形态学、扩散障碍、爆炸确定性、散落间距与保护/预算拒绝。check_refine_fixtures同时覆盖新geometry操作经真实精修入口（仅合成确认）重验及重切。新增kind同步维护nbt_tools.KINDS、精修路由、参数文档与可观察行为测试；不要只登记名称或假造passed。
+建模工具的定向回归为 `python .agents/skills/minecraft-nbt-modeler/scripts/check_modelling_fixtures.py --output <全新目录>`，覆盖几何/CSG、复制状态、旋转轴、形态学、扩散障碍、爆炸确定性、散落间距及保护与预算。check_refine_fixtures 使用合成确认，覆盖精修的制作版回读和另行定稿切片。新增 kind 时同步工具目录、精修路由、文档和行为验证。
 
 复制分发前排除node_modules、__pycache__、任务生成物。`upstream-sources.json`记录参考仓库、固定提交、复用文件及修改说明；Apache预览源的原许可证保留在assets/viewer/LICENSE.upstream。minecraft-schematic-lab仅参考版本校验、操作ID和按版本反馈的思路，没有复制其AGPL代码、资源或指南。

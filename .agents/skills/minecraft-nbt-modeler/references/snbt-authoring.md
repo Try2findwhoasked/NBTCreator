@@ -14,7 +14,7 @@ CLI `library register --master <旧JSON.GZ/NBT> --name-zh <中文名>` 会保留
 
 ## 保存制作版
 
-编辑器“保存制作版”先核对当前候选和原保护规则，在新版本目录保存 SNBT、坐标与修改记录，不生成定稿 NBT；同时记录 Git 父版本。`control revision` 的请求可显式设置 `draft_only: true` 使用同一实现。
+编辑器“保存制作版”核对候选和原保护规则后保存 SNBT、坐标、修改记录和版本历史。`control revision` 默认保存制作版，等同于 `draft_only: true`。仅当用户明确要求将当前参数效果定稿时，才用 `draft_only: false`。
 
 ## 定稿
 
@@ -25,8 +25,10 @@ python .agents/skills/nbtcreator-workspace/nbt.py finalize --workspace . --sourc
 python .agents/skills/nbtcreator-workspace/nbt.py history finalize --workspace . --id <已登记版本ID>
 ```
 
-定稿重新检查完整主模型、保护/通路配置，输出到 `nbt_models/_exports/<形状>/<建筑>/<版本>/`，与制作版本保持相同相对层级。目录含 `master/model.nbt`、墙层附属数据、runtime 分片、body/walls 两层、验证结果和 `release.json`。实际从 NBT 回读核对几何，分片重组继续核对；SNBT、批注和证据不移动。重复定稿核对已有产物哈希，拒绝覆盖不同内容。
+受管建筑须保存为 `opened` 阶段才能定稿。要求密闭的建筑先对原始未开洞主模型执行 `seal`，再执行 `open_declared`。无声明洞口时，仍用 `open_declared` 进入完整验证阶段。定稿回读并复查清单绑定的原始封闭证据，有证据时在验证报告中记录 `preopening`。旧式源没有制作阶段清单时，继续按保存的坐标约束检查；重盖洞口得到的密闭报告只证明复验模型的围护。
+
+定稿重新检查完整主模型和坐标约束，再在临时目录生成并回读完整 NBT、运行分片及 body/walls 两层。通过后发布到 `nbt_models/_exports/<形状>/<建筑>/<版本>/`，其中包含 `master/model.nbt`、墙层附属数据、验证结果和 `release.json`。实际参与校验的配置随包写入 `coordinates.json`，交付版描述通过相对路径引用它。重复定稿核对制作源、坐标约束、二进制墙层附属文件以及交付文件的哈希。
 
 `_exports` 不作为新的可编辑主模型加入建筑库。后续修改从原制作源或历史节点另存版本，再生成该版本自己的交付目录。定稿不等于游戏实走通过，也不生成 `approval.json`；外部 Agent 不得自行把提示词、批注或任务状态当作精修批准。
 
-当前几何引擎与旧流程一样不处理实体和方块实体；遇到这些数据会明确拒绝转换，不静默丢失。运行环境内置锁定的 SNBT 解析库及 NumPy，无需在用户电脑临时安装依赖。
+转换遇到实体或方块实体会拒绝。引擎随包提供锁定的 SNBT 解析库。Python 与 NumPy 依赖按项目的运行环境配置安装。
