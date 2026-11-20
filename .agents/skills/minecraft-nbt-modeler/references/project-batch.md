@@ -52,7 +52,7 @@ node scripts/cli.mjs --workspace D:/MyProject project-repair --source nbt_models
 mise run nbt -- project-repair --source nbt_models/bugged/对象/source.master.json.gz --category square
 ```
 
-应用和CLI共用 nbt_project_repair.repair。可恢复过期/缺失几何哈希、同坐标同材质重复记录，以及能明确读取为体素的Java1.20.1结构NBT。拒绝冲突重复、非法方块状态、越界、指向空气的墙mask、实体/方块实体、多套调色板和版本转换；不丢弃资料以换取成功。源文件和新候选回读、几何与墙层保持一致后才入库。缺少坐标/通路/开口资料时仍需人工补齐，recovered_candidate不代表通过设计、路线或游戏验收。只写新主模型，NBT须之后明确导出。
+应用和CLI共用 nbt_project_repair.repair。可读取 Java 1.20.1 制作版 SNBT 并另存 SNBT 候选，保留方块、墙层和自定义标签。旧版主模型可恢复过期/缺失几何哈希、同坐标同材质重复记录，以及能明确读取为体素的Java1.20.1结构NBT。拒绝冲突重复、非法方块状态、越界、指向空气的墙mask、实体/方块实体、多套调色板和版本转换；不丢弃资料以换取成功。源文件和新候选回读、几何与墙层保持一致后才入库。缺少坐标/通路/开口资料时仍需人工补齐，recovered_candidate不代表通过设计、路线或游戏验收。只写新主模型，NBT须之后明确导出。
 
 新候选保存于 `nbt_models/<分类>/recovered_<名称>/repair_<编号>/`；逐次报告保存在 `.nbtcreator/repairs/<编号>/report.json`，包含原文件SHA256、实际处理项、分类依据、候选或失败原因。可传 `--source-sha256` 绑定已知版本。CLI失败保留JSON报告并返回非零退出码。仅接受当前工作区nbt_models内的源文件。
 

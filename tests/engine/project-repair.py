@@ -25,6 +25,22 @@ class Recovery(unittest.TestCase):
   m=Model((8,8,8));m.box([0,0,0],[7,7,7],'stone');m.box([2,2,2],[5,5,5],'air');m.check_sealed([[3,3,3]])
   source=self.folder/'room.nbt';m.save(source);original=source.read_bytes();r=repair(self.root,source,'standalone');self.assertEqual(r['status'],'recovered_candidate',r);self.assertEqual(read_master(self.root/r['candidate'])[0].blocks,m.blocks);self.assertEqual(source.read_bytes(),original)
   payload=gzip.decompress(original);old=b'\x09\x00\x08entities\x0a\x00\x00\x00\x00';self.assertIn(old,payload);source.write_bytes(gzip.compress(payload.replace(old,b'\x09\x00\x08entities\x0a\x00\x00\x00\x01\x00')));r=repair(self.root,source);self.assertEqual(r['status'],'failed');self.assertIn('实体',r['error'])
+ def test_snbt_recovery_preserves_geometry_wall_layer_and_custom_tags(self):
+  import nbtlib as N
+  source=self.folder/'model.snbt';self.model._snbt_extras={'custom':N.String('keep')}
+  save_master(source,self.model,self.walls)
+  from nbt_snbt import root
+  data=root(source);data['nbtcreator']['geometry_sha256']=N.String('0'*64)
+  source.write_text(data.snbt(),encoding='utf8');original=source.read_bytes()
+  result=repair(self.root,source)
+  self.assertEqual(result['status'],'recovered_candidate',result)
+  self.assertEqual(len(result['changes']),1)
+  candidate=self.root/result['candidate'];self.assertEqual(candidate.suffix,'.snbt')
+  model,walls=read_master(candidate)
+  self.assertEqual(model.blocks,self.model.blocks);self.assertEqual(walls,self.walls)
+  self.assertEqual(model._snbt_extras['custom'],'keep')
+  self.assertFalse(model._snbt_metadata_stale);self.assertFalse(result['nbt_exported'])
+  self.assertEqual(source.read_bytes(),original)
  def test_changed_hash_and_external_paths_rejected(self):
   with self.assertRaisesRegex(ValueError,'已变化'):repair(self.root,self.source,source_sha256='0'*64)
   with self.assertRaises(ValueError):repair(self.root,Path(self.temp.name).parent/'external.nbt')

@@ -17,6 +17,12 @@ CATEGORIES=('single','long','square','l_shape','t_shape','cross','standalone','i
 def recover_model(source):
     changes=[]
     if source.stat().st_size>64*1024*1024:raise ValueError('文件超过64MiB，需单独检查')
+    if source.suffix.lower()=='.snbt':
+        model,walls=read_master(source)
+        if math.prod(model.size)>2_000_000:raise ValueError('体积超过200万格')
+        if not model.blocks:raise ValueError('没有可恢复的实体方块')
+        if model._snbt_metadata_stale:changes.append('依据实际方块更新过期的几何哈希；未改变几何')
+        return model,walls,changes
     with gzip.open(source,'rb') as stream:raw=stream.read(256*1024*1024+1)
     if len(raw)>256*1024*1024:raise ValueError('解压后的模型超过256MiB')
     if source.suffix.lower()=='.nbt':
@@ -86,13 +92,14 @@ def repair(workspace,source,category='auto',source_sha256=None):
         target=(workspace/'nbt_models'/selected/('recovered_'+name)/('repair_'+identifier)).resolve()
         if not target.is_relative_to((workspace/'nbt_models').resolve()):raise ValueError('归类目标路径越界')
         staging=directory/'candidate';staging.mkdir(parents=True)
-        save_master(staging/'recovered.master.json.gz',model,walls)
-        disk,mask=read_master(staging/'recovered.master.json.gz')
+        filename='recovered.snbt' if source.suffix.lower()=='.snbt' else 'recovered.master.json.gz'
+        save_master(staging/filename,model,walls)
+        disk,mask=read_master(staging/filename)
         if disk.blocks!=model.blocks or mask!=walls:raise ValueError('候选回读不一致')
-        write(staging/'room_description.json',dict(name_zh='修复候选_'+name,shape=selected,size=list(model.size),master='recovered.master.json.gz',version_name='修复候选',repair_source=report['source'],repair_report=f'.nbtcreator/repairs/{identifier}/report.json',geometry_sha256=model.fingerprint(),verification='pending_visual_review'))
+        write(staging/'room_description.json',dict(name_zh='修复候选_'+name,shape=selected,size=list(model.size),master=filename,version_name='修复候选',repair_source=report['source'],repair_report=f'.nbtcreator/repairs/{identifier}/report.json',geometry_sha256=model.fingerprint(),verification='pending_visual_review'))
         if hashlib.sha256(source.read_bytes()).hexdigest()!=before:raise ValueError('恢复期间源文件变化，候选未入库')
         target.parent.mkdir(parents=True,exist_ok=True);staging.rename(target)
-        report.update(status='recovered_candidate',candidate=(target/'recovered.master.json.gz').relative_to(workspace).as_posix(),category=selected,category_basis=basis,changes=changes or ['源数据可读取，生成新的归类候选'],geometry_sha256=model.fingerprint(),size=list(model.size),solid_blocks=len(model.blocks),wall_blocks=len(walls))
+        report.update(status='recovered_candidate',candidate=(target/filename).relative_to(workspace).as_posix(),category=selected,category_basis=basis,changes=changes or ['源数据可读取，生成新的归类候选'],geometry_sha256=model.fingerprint(),size=list(model.size),solid_blocks=len(model.blocks),wall_blocks=len(walls))
     except Exception as error:report['error']=str(error) or '格式不受支持，需要人工检查'
     report['source_unchanged']=hashlib.sha256(source.read_bytes()).hexdigest()==before
     report['report']=f'.nbtcreator/repairs/{identifier}/report.json';write(directory/'report.json',report)
