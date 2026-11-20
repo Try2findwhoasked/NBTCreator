@@ -28,7 +28,7 @@ def load_index(workspace):
     return file,index
 def task_for(workspace,index,identifier):
     entry=next((entry for entry in index['tasks'] if entry['id']==identifier),None)
-    if not entry:raise ValueError('Agent任务不存在')
+    if not entry:protocol.error('TASK_NOT_FOUND','建筑修改任务不存在，请先 task-client list')
     file=inside(workspace,entry['manifest']);raw=file.read_bytes()
     if digest(raw)!=entry['sha256']:raise ValueError('任务登记已变化，请核对来源')
     data=json.loads(raw)
@@ -62,19 +62,24 @@ def return_parent(workspace,source,target):
         seen.add(ancestor);manifest=previous
     protocol.error('RETURN_LINEAGE_MISMATCH','回传制作版必须从任务原版本派生，不能回传其祖先或其他分支')
 
-def verify(workspace,data):
+def verify_source(workspace,data):
     source=inside(workspace,data['source'])
     if not source.is_file() or sha(source)!=data['source_sha256']:
-        protocol.error('SOURCE_CHANGED','任务原建筑已变化，请保留原版本后重新建立任务')
+        protocol.error('SOURCE_CHANGED','任务原建筑已变化，请保留原版本后重新建立任务',details={'path':data['source']})
     verify_binding(source,data.get('input_binding'))
+    return source
+
+def verify(workspace,data):
+    source=verify_source(workspace,data)
     for origin in data.get('origins',[]):
         path=inside(workspace,origin['path'])
         if not path.is_file() or sha(path)!=origin['sha256']:
-            protocol.error('SOURCE_CHANGED','原修改计划或校验包已变化，请核对任务来源')
+            protocol.error('SOURCE_CHANGED','原修改计划或校验包已变化，请核对任务来源',
+                           details={'path':origin['path'],'role':origin['role']})
     for entry in data['returns']:
         path=inside(workspace,entry['source'])
         if not path.is_file() or sha(path)!=entry['source_sha256']:
-            protocol.error('SOURCE_CHANGED','已回传版本被覆盖，请使用新版本重新登记')
+            protocol.error('SOURCE_CHANGED','已回传版本被覆盖，请使用新版本重新登记',details={'path':entry['source'],'return_id':entry['id']})
         verify_binding(path,entry.get('input_binding'))
     return source
 def output(workspace,data):
@@ -149,7 +154,7 @@ def comment_snapshot(workspace,source):
     _,comments=inventory(workspace,source)
     return [dict(key=entry['key'],content_sha256=entry['content_sha256'],text=entry['text'],anchors=entry['anchors'],verified=entry['verified'],geometry_matches_source=entry['geometry_matches_source']) for entry in comments]
 def discover(workspace,data):
-    source=verify(workspace,data);root=project_paths(source)['workdir'];base_version=project_paths(source)['version'];known={entry['source'] for entry in data['returns']};items=[]
+    source=verify_source(workspace,data);root=project_paths(source)['workdir'];base_version=project_paths(source)['version'];known={entry['source'] for entry in data['returns']};items=[]
     for folder,dirs,files in os.walk(root):
         dirs[:]=[name for name in dirs if name not in {'Agent交接','修改意见','delivery','runtime','parts','previews','validation','.git'} and not (Path(folder)/name).is_symlink()]
         for name in files:
@@ -170,11 +175,20 @@ def dispatch(workspace,action,request):
                 data=task_for(workspace,index,entry['id'])
                 if source and data['source']!=source and all(item['source']!=source for item in data['returns']):continue
                 verify(workspace,data);tasks.append(output(workspace,data))
-            except (ValueError,OSError,KeyError) as error:errors.append(dict(id=entry['id'],error=str(error)))
+            except (ValueError,OSError,KeyError) as error:
+                errors.append(dict(id=entry['id'],name=entry['name'],source=entry['source'],error=str(error),
+                                   code=getattr(error,'code','TASK_INVALID'),details=getattr(error,'details',{})))
         return dict(tasks=tasks,errors=errors)
     if action in ('get','discover'):
-        data=task_for(workspace,index,request['id']);verify(workspace,data)
-        return discover(workspace,data) if action=='discover' else output(workspace,data)
+        data=task_for(workspace,index,request['id'])
+        if action=='discover':
+            candidates=discover(workspace,data)
+            try:verify(workspace,data)
+            except protocol.ProtocolError as failure:
+                return dict(candidates,ready_for_execution=False,issue=dict(code=failure.code,error=str(failure),details=failure.details))
+            return dict(candidates,ready_for_execution=True)
+        verify(workspace,data)
+        return output(workspace,data)
     file.parent.mkdir(parents=True,exist_ok=True)
     with index_lock(workspace,file.parent):
         file,index=load_index(workspace)

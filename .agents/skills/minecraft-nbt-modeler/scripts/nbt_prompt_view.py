@@ -10,8 +10,8 @@ COORDINATE_FIELDS = ('cells', 'openings', 'ports', 'interior_probes', 'protected
 
 
 def compact(data, previous, older):
-    record, document, context = data['task'], data['document'], data['context']
-    project = document['project']
+    record, document, context = data['task'], data['document'] or {}, data['context'] or {}
+    project = document.get('project',{})
     clipped = []
 
     def excerpt(value, path):
@@ -40,8 +40,9 @@ def compact(data, previous, older):
               for key, value in standard.get('fields', {}).items() if value}
     change = None
     if previous is not None:
-        change = dict(task_id=previous['id'], revision=previous['revision'], available=older is not None)
-        if older is not None:
+        comparable = older is not None and not data['attachment_issues']
+        change = dict(task_id=previous['id'], revision=previous['revision'], available=comparable)
+        if comparable:
             change['sections'] = [key for key in ('text', 'document', 'plan', 'context') if data[key] != older[key]]
             old_project = older['document']['project']
             change['project_fields'] = sorted(key for key in project.keys() | old_project.keys()
@@ -51,12 +52,13 @@ def compact(data, previous, older):
                                        if document.get(key) != old_document.get(key)]
             change['context_fields'] = sorted(key for key in context.keys() | older['context'].keys()
                                               if context.get(key) != older['context'].get(key))
-    operations = data['plan'].get('operations', []) if isinstance(data['plan'], dict) else []
+    operations = data['plan'].get('operations', []) if isinstance(data['plan'], dict) else None
     boxes = context.get('protected_boxes', [])
     return dict(
         view='compact', task={key: record[key] for key in ('id', 'name', 'stage', 'status', 'revision',
             'source', 'source_sha256', 'state_revision', 'lease', 'lease_expired') if key in record},
         source_matches=data['source_matches'], approval=data['approval'],
+        attachment_issues=data['attachment_issues'],ready_for_execution=data['ready_for_execution'],
         brief={key: excerpt(project[key], f'document.project.{key}') for key in BRIEF_FIELDS if project.get(key)},
         effective=effective, constraints=constraints, design_standard=dict(revision=standard.get('revision'), fields=fields),
         design_override=excerpt(document.get('design_override'), 'document.design_override'),
@@ -64,6 +66,6 @@ def compact(data, previous, older):
         protected_boxes=boxes[:4] if isinstance(boxes, list) else [],
         context_path=project.get('contextPath') or None, review_path=project.get('reviewPath') or None,
         operation_count=len(operations) if isinstance(operations,list) else None,
-        design_supplement_present='# 补充设计说明（以人工参数和硬条件为准）\n' in data['text'],
+        design_supplement_present='# 补充设计说明（以人工参数和硬条件为准）\n' in data['text'] if data['text'] is not None else None,
         previous=change, clipped=clipped, expand=['text','document','plan','context'],
     )

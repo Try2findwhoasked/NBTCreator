@@ -1065,10 +1065,16 @@ globalThis.NbtToolCatalog = {
   "tool_routes": {
     "任务与交接": [
       {
-        "title": "读取已交接的提示词任务",
+        "title": "按编号读取已交接的任务",
         "call": "task --id <任务编号>",
-        "input": "从创作项目根目录运行，使用交接时生成的提示词任务编号。也可用 prompts task。",
-        "result": "回读任务文本、绑定文件与已校验的方案。读取任务与领取、建模、精修批准分开。"
+        "input": "从创作项目根目录运行。支持提示词和建筑修改编号。用 --view compact 查看下一步。",
+        "result": "回读已校验的内容和失效附件提示。读取任务与领取、建模、精修批准分开。"
+      },
+      {
+        "title": "查找两类交接任务",
+        "call": "task-client list --pending",
+        "input": "省略 --pending 可看其他任务；--kind 可限定 prompts 或 tasks。",
+        "result": "提供各任务的查看命令，建筑任务来源失效时返回诊断。"
       },
       {
         "title": "查看任务记录和绑定证据",
@@ -24309,6 +24315,7 @@ globalThis.NbtToolCatalog = {
           "fence": "integer",
           "review": "string",
           "review_sha256": "string",
+          "review_kind": "string",
           "summary": "string"
         },
         "required": [

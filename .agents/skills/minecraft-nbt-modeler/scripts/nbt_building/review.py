@@ -242,6 +242,42 @@ def record(workspace,request):
                 review_compare=dict(pack=request['pack'],pack_sha256=request['pack_sha256'],notes_sha256=sha256))
 
 
+def verify_for_return(workspace,review,expected):
+    """Accept recorded three-scale review evidence without preparing a second thumbnail set."""
+    from hashlib import sha256
+    from PIL import Image
+
+    notes_file=inside(workspace,review/'review-notes.json')
+    with notes_file.open('rb') as stream:raw=stream.read(8*1024*1024+1)
+    if len(raw)>8*1024*1024 or sha256(raw).hexdigest()!=expected:
+        raise ValueError('三尺度审阅记录已变化或过大')
+    notes=json.loads(raw)
+    file,pack=load_pack(workspace,dict(pack=str(review/'review-pack.json'),pack_sha256=notes['pack_sha256']))
+    if any(notes.get(key)!=pack[key] for key in ('source','source_sha256','plan_sha256')):
+        raise ValueError('三尺度审阅记录与制作源或方案不一致')
+    history=inside(workspace,file.parent/'observations'/f"{notes['revision']}-{fingerprint(notes)}.json")
+    if file_hash(history)!=expected:raise ValueError('三尺度审阅未绑定实际登记的观察修订')
+    views={row['id']:row['layer'] for row in pack['views']}
+    observed={row['image'] for row in notes['observations']}
+    if set(notes['images'])!=set(views) or set(views)!=observed or not {'massing','structure','detail'}<=set(views.values()):
+        raise ValueError('回传需要全景、构造和细部的实际图像与观察记录')
+    for row in notes['images'].values():
+        path=inside(workspace,row['path'])
+        if file_hash(path)!=row['sha256'] or file_hash(inside(workspace,row['metadata']))!=row['metadata_sha256']:
+            raise ValueError('原图像证据已变化')
+        with Image.open(path) as preview:
+            if preview.format!='PNG':raise ValueError('三尺度审阅图须为 PNG')
+            preview.verify()
+    model=load_model(workspace,pack)
+    validation=model.validate()
+    if not isinstance(validation.get('whole_model'),dict) or validation['architecture']['passed'] is not True:
+        raise ValueError('审阅缺少通过的完整建筑验证记录')
+    return dict(source=pack['source'],source_sha256=pack['source_sha256'],review=relative(workspace,review),
+                review_kind='architecture',review_sha256=expected,pack_sha256=notes['pack_sha256'],
+                images={identifier:row['sha256'] for identifier,row in notes['images'].items()},
+                coverage_complete=notes['coverage_complete'],game='not_checked')
+
+
 def compare(workspace,request):
     from nbt_web_paths import project_paths
     file,pack=load_pack(workspace,request);model=load_model(workspace,request)

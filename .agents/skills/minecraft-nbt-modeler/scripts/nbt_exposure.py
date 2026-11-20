@@ -261,7 +261,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         f'在创作项目根目录运行 `{launcher} <命令>`。下文省略该前缀。无需启动 Electron；资产在 `nbt_models/`。','',
         '## 先处理交接任务','',
         '有任务 ID 就先读紧凑视图：提示词工作台用 `task-client inspect prompts <id>`，建筑修改用 `task-client inspect tasks <id>`。按返回的 `source_matches`、`next` 和 `expand` 行动；源已变化则停下，明确选定任务后才领取。不用先查全量工具。',
-        '需要找已发布的提示词任务时用 `prompts tasks --status pending`。','',
+        '只知道任务 ID 时用 `task --id <id> --view compact` 自动识别类型。用 `task-client list --pending` 查找两类待领取任务。已有候选的建筑任务可先读 `--view candidates`。','',
         '## 没有交接任务时','',
         f'- 整栋初稿：纯文字从用途推导空间，有参考图先标出可见结构。读{link("simple-building")}；复杂布局再看{link("architecture-workflow")}。另有[归卷阁样例]({relative}/assets/examples/reading-loft/README.md)。',
         '- 局部修改、纹样、构件与维护：按[任务路线和已启用资料](knowledge.md)选读。不要从头读完整目录。',

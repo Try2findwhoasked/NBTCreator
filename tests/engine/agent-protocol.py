@@ -29,6 +29,30 @@ class Contracts(unittest.TestCase):
   self.source.write_bytes(b'edited')
   stale=inspect(self.w,'tasks',identifier);self.assertIs(stale['source_matches'],False);self.assertEqual(stale['next']['action'],'stop')
   with self.assertRaises(ProtocolError):TaskClient(self.w,'stale-inspect').start('tasks',identifier,'agent',60)
+ def test_prompt_attachment_damage_keeps_other_views_and_releases_owned_lease(self):
+  from nbt_task_client import discover_tasks
+  prompt=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'方案','buildingShape':'single'}},'仍可回读正文')
+  task=self.create()
+  self.assertEqual({(row['id'],row['kind']) for row in discover_tasks(self.w,'all',True)['tasks']},
+    {(prompt['id'],'prompts'),(task['id'],'tasks')})
+  route=subprocess.run([sys.executable,'-B',str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_prompts.py'),'task','--id',task['id']],cwd=self.w,encoding='utf8',capture_output=True)
+  self.assertEqual(json.loads(route.stdout)['stage'],'modification')
+  active=TaskClient(self.w,'active');active.start('prompts',prompt['id'],'agent',60)
+  attachment=self.w/prompt['files']['操作计划.json']['path']
+  attachment.write_bytes(attachment.read_bytes()+b' ')
+  compact=inspect(self.w,'prompts',prompt['id'])
+  self.assertFalse(compact['ready_for_execution'])
+  self.assertEqual(compact['attachment_issues'][0]['file'],'操作计划.json')
+  self.assertIsNone(compact['operation_count'])
+  self.assertEqual(compact['next']['action'],'stop')
+  self.assertEqual(inspect(self.w,'prompts',prompt['id'],'text')['text'],'仍可回读正文')
+  self.assertIsNone(inspect(self.w,'prompts',prompt['id'],'full')['plan'])
+  for action in (lambda: inspect(self.w,'prompts',prompt['id'],'plan'), lambda: active.change('heartbeat'),
+                 lambda: TaskClient(self.w,'other').start('prompts',prompt['id'],'agent',60)):
+   with self.assertRaises(ProtocolError) as failure:action()
+   self.assertEqual(failure.exception.code,'TASK_EVIDENCE_CHANGED')
+  self.assertEqual(active.change('release')['phase'],'released')
+
  def test_create_retry_is_exact_and_different_payload_is_rejected(self):
   req=self.request(source=str(self.source),source_sha256=hashlib.sha256(self.source.read_bytes()).hexdigest(),name='合成任务');a=dispatch(self.w,'create',req);self.assertEqual(dispatch(self.w,'create',req),a)
   with self.assertRaises(ProtocolError) as caught:dispatch(self.w,'create',dict(req,name='不同请求'))
