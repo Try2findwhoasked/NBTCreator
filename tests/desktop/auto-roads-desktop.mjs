@@ -26,7 +26,9 @@ try{
  await page.locator('#road-overwrite').check();assert.ok((await preview()).includes('道路已加入候选'));assert.equal(await voxel([6,3,6]),'minecraft:gold_block');assert.equal(await voxel([20,3,20]),'minecraft:gold_block');assert.equal(await voxel([2,3,2]),'minecraft:stone_bricks');checks.road_preview_changes_only_its_footprint=true
  const saved=await geometry(),operations=await page.evaluate(()=>window.detailControl.gather().operations)
  await page.locator('#road-route').selectOption('x_first');assert.ok((await preview()).includes('保护'));assert.equal(await geometry(),saved);assert.deepEqual(await page.evaluate(()=>window.detailControl.gather().operations),operations);checks.protection_failure_keeps_previous_candidate=true
- await page.locator('#road-end-x').fill('1000');assert.ok((await preview()).includes('超出'));assert.equal(await geometry(),saved);checks.out_of_bounds_keeps_previous_candidate=true
+ await page.locator('#road-end-x').fill('1000');const outOfBounds=await preview()
+ assert.match(outOfBounds,/占用范围.*越界.*x\+/);assert.equal(await geometry(),saved)
+ assert.deepEqual(await page.evaluate(()=>window.detailControl.gather().operations),operations);checks.out_of_bounds_keeps_previous_candidate=true
  assert.equal(digest(await fs.readFile(source)),before);assert.deepEqual(errors,[]);checks.source_unchanged_and_no_renderer_errors=true
  await page.screenshot({path:path.join(output,'auto-roads.png')});await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks},null,2));console.log(JSON.stringify({passed:true,checks,output}))
 }catch(e){console.error(JSON.stringify({output,checks,errors}));throw e}finally{await app?.close()}
