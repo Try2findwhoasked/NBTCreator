@@ -35,7 +35,7 @@ class RenderRuntime(unittest.TestCase):
             snapshot.write_text(json.dumps(altered),encoding='utf8')
             with self.assertRaisesRegex(ValueError,'fingerprint'):checked_preview_snapshot(snapshot)
             snapshot.write_text(json.dumps(data),encoding='utf8');source.write_bytes(source.read_bytes()+b'changed')
-            with self.assertRaisesRegex(ValueError,'source has changed'):checked_preview_snapshot(snapshot)
+            with self.assertRaisesRegex(ValueError,'source or wall mask has changed'):checked_preview_snapshot(snapshot)
 
     def fixture(self, root):
         engine = root / 'workspace/.nbtcreator/runtimes/test'
