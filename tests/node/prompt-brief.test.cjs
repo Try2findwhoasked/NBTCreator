@@ -46,3 +46,18 @@ test('length recovery for a brief stays prose-only and retains its edit scope',a
  const feedback=calls[1].messages.at(-1).content;assert.ok(!feedback.includes('box/beam/frame'));assert.ok(feedback.includes('设计文字'))
  assert.deepEqual(JSON.parse(calls[0].messages[1].content).context.brief_scope,JSON.parse(calls[1].messages[1].content).context.brief_scope)
 })
+
+test('prose uses the original at the provider but searches references only with the real topic',async t=>{
+ const {excerpts}=require('../../desktop/ai-knowledge.cjs')
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-prose-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));const calls=[]
+ const topic='悬索栈桥',original='与检索无关的原稿\n'+('保留原文。'.repeat(3400)),requirements='西塔保留原钟。'
+ const api=createApiService({directory,safeStorage:{},workflowContext:(_key,{instruction})=>{
+  assert.ok(instruction.includes(topic));assert.ok(!instruction.includes('与检索无关的原稿'));return {knowledge:excerpts([{label:'长资料',content:'甲'.repeat(7350)+topic+'乙'.repeat(750)}],instruction)}
+ },fetchImpl:async(_url,options)=>{calls.push(JSON.parse(options.body));return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:'修改后的说明'}}]}))}})
+ await api.save({enabled:true})
+ const context={task:'design_prose',project:{name:'观测工坊',size:[48,24,48],integration:'saodg',source:'local-private-path'},user_requirements:requirements,original_text:original,operation_intents:[{kind:'box',steps:2}]}
+ await api.generate({mode:'prompt',instruction:'只改'+topic+'的最后一句',context});assert.equal(calls.length,1)
+ const request=JSON.parse(calls[0].messages[1].content);assert.equal(request.context.original_text,original);assert.equal(request.context.project.integration,'saodg');assert.equal(request.context.user_requirements,requirements);assert.ok(request.internal_workflow.knowledge[0].content.includes(topic));assert.ok(!JSON.stringify(request).includes('local-private-path'));assert.match(calls[0].messages[0].content,/其余段落保留原措辞/)
+ await assert.rejects(api.generate({mode:'prompt',instruction:topic,context:{...context,operation_intents:[{kind:'box',steps:1,lo:[0,0,0]}]}}),/工具意图摘要无效/)
+ assert.equal(calls.length,1)
+})

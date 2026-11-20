@@ -10,7 +10,7 @@ export async function requestAI(input,capture,options={}){
  const started=performance.now(),timings={setup_ms:0,capture_ms:0,api_roundtrip_ms:0}
  const measure=async(key,operation)=>{const at=performance.now();try{return await operation()}finally{timings[key]=Math.round(performance.now()-at)}}
  try{
- const flow=input.mode==='workbench'&&input.context?.task==='draft'?'draft':input.mode
+ const flow=input.mode==='workbench'&&['draft','brief'].includes(input.context?.task)?'draft':input.mode
  const retrieval=structuredClone(window.nbtReferencePicker?.receipt(flow))
  const [config,connection]=await wait(Promise.all([window.nbtDesktop.internalAIConfig(),window.nbtDesktop.apiConfig()])),settings=config.workflows[flow]
  await wait(activity({action:'start',workflow:flow,label:config.flows[flow].label,instruction:input.instruction.slice(0,12000),screenshot:!!settings.attachViewport,model:connection.model,provider:connection.provider}).then(value=>{log=value;if(token.cancelled)finishCancelled();return value}))

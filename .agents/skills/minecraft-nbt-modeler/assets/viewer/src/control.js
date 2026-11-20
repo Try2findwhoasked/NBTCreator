@@ -197,7 +197,7 @@ window.nbtPromptStorage=Object.freeze({save:payload=>api('prompt-save',payload),
 // The iframe gets only prompt generation, never the native API/key management bridge.
 window.nbtPromptAI=Object.freeze({
  config:()=>window.nbtDesktop?.apiConfig?.()??Promise.resolve({enabled:false,available:false}),
- generate:instruction=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI 需要 Electron 桌面版');return requestAI({mode:'prompt',instruction,context:null},captureViewport,{scope:'prompt-editor'})},
+ generate:(instruction,context=null)=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI 需要 Electron 桌面版');return requestAI({mode:'prompt',instruction,context},captureViewport,{scope:'prompt-editor'})},
  generateWorkbench:(instruction,context,options={})=>{if(!window.nbtDesktop?.apiGenerate)throw Error('AI需要Electron桌面版');return requestAI({mode:'workbench',instruction,context},captureViewport,{scope:options.scope??'prompt-editor'})},
  cancel:scope=>cancelAI(scope??'prompt-editor'),
  settings:()=>$('open-api').click()
