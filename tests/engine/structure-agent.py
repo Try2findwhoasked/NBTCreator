@@ -45,7 +45,14 @@ class StructureAgent(unittest.TestCase):
    result=dispatch(self.root,'structure_preview',{'spec':self.spec});file=Path(result['source']).parent/name;file.write_bytes(file.read_bytes()+b'changed')
    with self.assertRaisesRegex(ValueError,'预览已改变'):dispatch(self.root,'structure_write',{k:result[k] for k in ['preview_id','preview_sha256']})
   spec=dict(self.spec,operations=[self.spec['operations'][0],dict(kind='pattern',label='连片换材',classification='inherit',lo=[0,0,0],hi=[4,7,4],action='replace',scope='surface',mode='independent',fraction=1,from_states=['stone_bricks'],palette=[dict(state='andesite',weight=1)],seed=2718)])
+  spec['operations'].append(dict(kind='box', label='局部铺木', classification='body',
+                               lo=[1,0,1], hi=[1,0,1], state='spruce_planks'))
   data=build(self.root,spec);self.assertIn('minecraft:andesite',data['palette'])
+  by_position = {tuple(row[:3]): data['palette'][row[3]] for row in data['blocks']}
+  self.assertEqual(by_position[1,0,1], 'minecraft:spruce_planks')
+  spec['operations'][1]['overwrite'] = True
+  with self.assertRaisesRegex(ValueError, '不支持字段 overwrite'):
+   build(self.root,spec)
  def test_existing_assets_are_composed_by_parameters_without_reemitting_voxels(self):
   result=dispatch(self.root,'structure_preview',{'spec':self.spec});item=dispatch(self.root,'structure_write',{k:result[k] for k in ['preview_id','preview_sha256']})
   spec=dict(name='组合双柱',size=[16,10,8],placements=[dict(id=item['id'],content_sha256=item['content_sha256'],position=[3,0,3]),dict(id=item['id'],content_sha256=item['content_sha256'],position=[11,0,3],quarter_turns=1)])

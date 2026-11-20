@@ -503,7 +503,9 @@
    if(handoff.hidden){delete status.dataset.id;delete status.dataset.path;status.textContent='';status.removeAttribute('title');$('prompt-task-command').textContent='';return}
    status.dataset.id=task.id;status.dataset.path=task.directory;status.title=task.directory;
    status.textContent='已交接，请手动让外部助手读取。';
-   $('prompt-task-command').textContent='python .agents/skills/nbtcreator-workspace/nbt.py prompts task --id '+task.id;
+   const command=$('prompt-task-command'),suffix=' task --id '+task.id;
+   command.textContent='mise run nbt --'+suffix;
+   parent.nbtDesktop?.exposureConfig?.().then(config=>{if(config?.launcher&&status.dataset.id===task.id)command.textContent=config.launcher+suffix}).catch(()=>{});
  },replace(doc){state=doc;uncheckedDefaults.clear();pending.clear();$('prompt-ai-mode').value=state.project.stage==='draft'?'draft':'text';renderProject();renderOperations();restoreCandidate();update();refreshConstraints()},async generate(){await $('prompt-ai-generate').onclick();if(!candidateBinding)throw Error($('prompt-ai-status').textContent);$('prompt-ai-apply').onclick();if(candidateBinding)throw Error($('prompt-ai-status').textContent)}});
  window.NbtPromptUI.defaultStandards=snapshot=>{if(!studio.pristine||studio.busy||aiRunning)return;state.design_standard=C.clone(snapshot);update()};
  window.NbtPromptUI.applyStandards=async(snapshot,override='')=>{if(studio.busy||aiRunning)throw Error('请先结束当前提示词操作');await autosave.flush();if(snapshot)state.design_standard=C.clone(snapshot);else delete state.design_standard;state.design_override=override;state.workbench={...state.workbench,status:'pending'};delete state.aiDraft;delete state.proposal_draft;candidateBinding=null;restoreCandidate();update();await autosave.flush()};

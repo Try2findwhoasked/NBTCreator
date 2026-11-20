@@ -165,7 +165,7 @@ def _handle_pattern_warp(workspace,tool,arguments):
 
 
 def _handle_architecture(workspace,tool,arguments):
-    from nbt_architectural_bay import compile_tracery,compile_vault,compile_bay,compile_facade
+    from nbt_building.architectural_bay import compile_tracery,compile_vault,compile_bay,compile_facade
     return dict(tracery_compile=compile_tracery,vault_compile=compile_vault,bay_compile=compile_bay,facade_compile=compile_facade)[tool](workspace,arguments)
 
 
@@ -221,27 +221,27 @@ def _handle_surface(workspace,tool,arguments):
 
 
 def _handle_composition(workspace,tool,arguments):
-    from nbt_parametric_composition import compose, regenerate
+    from nbt_building.parametric_composition import compose, regenerate
     return (compose if tool=='parametric_compose' else regenerate)(workspace,arguments)
 
 
 def _handle_contract(workspace,tool,arguments):
-    from nbt_parametric_contract import contract
+    from nbt_building.parametric_contract import contract
     return contract(arguments['constraints'])
 
 
 def _handle_parametric_validate(workspace,tool,arguments):
-    from nbt_parametric_contract import validate
+    from nbt_building.parametric_contract import validate
     return validate(workspace,arguments['proposal'],arguments['constraints'])
 
 
 def _handle_parametric_list(workspace,tool,arguments):
-    from nbt_parametric import listing
+    from nbt_building.parametric import listing
     return listing(arguments, workspace=workspace)
 
 
 def _handle_parametric(workspace,tool,arguments):
-    from nbt_parametric import compile_object
+    from nbt_building.parametric import compile_object
     result=compile_object(workspace,arguments)
     if tool=='parametric_preview':
         rendered=preview(workspace,build(workspace,result['spec']),result['spec'])

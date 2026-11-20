@@ -428,7 +428,8 @@ class WorkingModel:
         for p, after in sorted(values.items()):
             before = value_at(self.model, self.walls, p)
             if p in occupied or before[0] not in AIR_NAMES and before != after and not overwrite:
-                conflicts.append(dict(pos=list(p), owner=occupied.get(p), current=before, proposed=after))
+                conflicts.append(dict(pos=list(p), incoming=identifier, owner=occupied.get(p),
+                                      current=before, proposed=after))
             rows.append(dict(pos=list(p), after=after, underlay=before, owned=before != after))
             edits.append(dict(pos=list(p), before=before, after=after))
         if conflicts:
@@ -639,7 +640,7 @@ class WorkingModel:
         else:
             report['whole_model'] = 'not_checked_in_design_phase' if self.kind == 'building' else 'not_applicable_to_component'
         if self._architecture is not None:
-            from nbt_architecture_plan import check_model
+            from nbt_building.plan import check_model
             report['architecture'] = check_model(self,self._architecture)
             if self.phase == 'opened' and not report['architecture']['passed']:
                 raise ModelConflict('DESIGN_INVALID',[item for item in report['architecture']['checks'] if not item['passed']])

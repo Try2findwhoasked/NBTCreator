@@ -863,6 +863,13 @@ def create_review(request, output):
                 note='Display thumbnails and obtain the existing skill-required conversational confirmation; the GUI never invents an approval receipt.')
 
 
+def review_context_digest(config):
+    from nbt_whole_validation import requires_enclosure
+
+    # Review preparation can make the enclosure default explicit for legacy sources.
+    return canonical(dict(config, require_enclosure=requires_enclosure(config)))
+
+
 def apply_approved(request, bundle_path, review, output):
     bundle_path = Path(bundle_path).resolve(); bundle = read_json(bundle_path)
     source = Path(request['source']).resolve()
@@ -875,7 +882,8 @@ def apply_approved(request, bundle_path, review, output):
     approved_config = read_json(Path(review)/'config.json')
     expected = {k: v for k, v in bundle['context'].items() if k != 'wall_positions'}
     current = review_config(request, read_master(source)[0])
-    if canonical(approved_config) != canonical(expected) or canonical(bundle['context']) != canonical(current):
+    if (review_context_digest(approved_config) != review_context_digest(expected)
+            or review_context_digest(bundle['context']) != review_context_digest(current)):
         raise ValueError('Reviewed protection/config differs from this plan; use matching context and a new review when needed')
     if 'wall_positions' in current:
         snapshot, approved_walls = read_master(Path(review)/'source.master.json.gz')
@@ -977,7 +985,7 @@ def main():
     cmd = sub.add_parser('agent-tasks');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['create','list','get','discover','record','review'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('architect');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['standards-get','standards-save',*tool_catalog()['project_constraints']['actions'],'deliveries','continue','cross-list','cross-save'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('history');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','get','record','current','derive','finalize'],required=True);cmd.add_argument('--request',type=Path,required=True)
-    cmd = sub.add_parser('retrieve');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['search','source','bundle','read'],required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('retrieve');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['search','source','bundle','read','library','research','saved-web'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('selection-edit');cmd.add_argument('--action',choices=['context','compile'],required=True);cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
     cmd = sub.add_parser('thumbnails'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--cache',type=Path,required=True)
     sub.add_parser('defaults')

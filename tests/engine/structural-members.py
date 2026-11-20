@@ -16,7 +16,7 @@ from nbt_assembly import Volume
 from nbt_collision import check_routes
 from nbt_registry import effective
 from nbt_snbt import save_snbt,read_snbt
-from nbt_structural_members import selected
+from nbt_building.structural_members import selected
 
 
 def connected(voxels):
@@ -40,7 +40,7 @@ class StructuralMembers(unittest.TestCase):
     def recipe(self,identifier):return copy.deepcopy(next(row['arguments'] for row in library() if row['id']==identifier))
 
     def test_eight_recipes_have_real_material_contacts_and_pure_interfaces(self):
-        from nbt_window_frames import PROFILES as WINDOW_PROFILES
+        from nbt_building.window_frames import PROFILES as WINDOW_PROFILES
         rows=[row for row in library() if selected(row['arguments']['kind'],row['arguments'].get('form',{}))
               and row['arguments'].get('form',{}).get('profile') not in WINDOW_PROFILES]
         self.assertEqual(len(rows),8)

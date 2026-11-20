@@ -294,7 +294,7 @@ class ModularObjects(unittest.TestCase):
                 compiled = self.call(**row['arguments'])
                 voxels = self.voxels(compiled)
                 self.assertEqual(len(components(voxels)), 1, row['id'])
-                from nbt_window_frames import PROFILES as WINDOW_PROFILES
+                from nbt_building.window_frames import PROFILES as WINDOW_PROFILES
                 if kind in ('arch','frame') and row['arguments'].get('form',{}).get('profile') not in WINDOW_PROFILES:
                     w,h,d = compiled['spec']['size']
                     self.assertNotIn((2,1,d//2), voxels)

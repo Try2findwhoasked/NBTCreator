@@ -189,9 +189,9 @@ for _method in ('install', 'update', 'remove', 'detach', 'patch', 'apply_operati
 
 def revision_token():
     from nbt_fit_shapes import FIT_SHAPES
-    from nbt_construction_systems import CONSTRUCTION_SYSTEMS
-    from nbt_architecture_plan import DESIGN_CHECKS
-    from nbt_architecture import ARCHITECT_ACTIONS
+    from nbt_building.construction_systems import CONSTRUCTION_SYSTEMS
+    from nbt_building.plan import DESIGN_CHECKS
+    from nbt_building.workflow import ARCHITECT_ACTIONS
     return tuple(registry.revision() for registry in (AGENT_TOOLS, RECIPE_COMPILERS, MODEL_ACTIONS, FIT_SHAPES,CONSTRUCTION_SYSTEMS,DESIGN_CHECKS,ARCHITECT_ACTIONS))
 
 

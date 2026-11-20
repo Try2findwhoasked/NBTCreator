@@ -2,11 +2,17 @@
 import re
 
 
+def han_bigrams(text):
+    for match in re.finditer(r'[\u3400-\u9fff]+', text):
+        run = match.group()
+        yield from (run[index:index+2] for index in range(len(run)-1))
+
+
 def tokens(query):
     chunks=re.findall(r'[a-z0-9_]+|[\u3400-\u9fff]+',query.lower());values=[]
     for chunk in chunks:
         values.append(chunk)
-        if re.search('[\u3400-\u9fff]',chunk):values.extend(chunk[i:i+2] for i in range(len(chunk)-1))
+        values.extend(han_bigrams(chunk))
     return list(dict.fromkeys(values))[:128]
 
 def score(query,text):

@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {filterProjects,projectStage} from '../../.agents/skills/minecraft-nbt-modeler/assets/viewer/src/project-catalog.js'
+import {filterProjects,projectStage} from '../../.agents/skills/minecraft-nbt-modeler/assets/viewer/src/projects/project-catalog.js'
 
 const models=[
  {source:'draft',project_key:'A',shape_group:'long',object_key:'A/long/hall',modified_ns:50,intermediate:true},

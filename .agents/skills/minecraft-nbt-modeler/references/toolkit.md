@@ -1,6 +1,6 @@
 # 通用工具：自创几何，复用文件与验证能力
 
-本文 `.agents/skills/minecraft-nbt-modeler/` 示例是活动引擎源码路径。生成的工作区只有 nbtcreator-workspace 入口时，通过 `nbt.py` 调命令；`nbt.py paths` 返回实际冻结运行时的 scripts 等路径，不要假定旧目录存在，也不要修改冻结引擎。
+本文 `.agents/skills/minecraft-nbt-modeler/` 示例是活动引擎源码路径。生成的工作区只有 nbtcreator-workspace 入口时，通过 `nbt.py` 调命令；`mise run nbt -- paths` 返回实际冻结运行时的 scripts 等路径，不要假定旧目录存在，也不要修改冻结引擎。
 
 本目录工具只负责通用机制，不提供默认建筑骨架。把所需构想写成当前任务的独立生成器。在工作区根目录执行时可按下面方式导入；记录返回的 runtime_bundle_sha256 以追溯所用工具版本。Python 标准库用于NBT；渲染和碰撞工具需要 numpy，预览另需 Pillow。
 
@@ -17,7 +17,7 @@ from nbt_model import Model
 
 先出缩略图给用户，明确同意后才从完整未切割主稿恢复精修。`prepare` 冻结初稿并出图，`approve` 记录真实用户确认，`apply` 执行全局计划、重验并保存 SNBT 制作版及前后对照。显式定稿时再机械切片。
 
-详细config、计划操作、命令和输出见 [精修工作流](refinement.md)。这不是逐片编辑器；入口是完整主模型，不是49展开体或单个稀疏分层片。工具保留原稿与确认哈希，保护门洞和指定通路，精修后仍需实际看图。合成回归：`python .agents/skills/minecraft-nbt-modeler/scripts/check_refine_fixtures.py`。
+详细config、计划操作、命令和输出见 [精修工作流](refinement.md)。这不是逐片编辑器；入口是完整主模型，不是49展开体或单个稀疏分层片。工具保留原稿与确认哈希，保护门洞和指定通路，精修后仍需实际看图。合成回归：`python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_refine_fixtures.py`。
 
 ## nbt_tools.py：几何编辑与扩散/破坏效果
 
@@ -96,7 +96,7 @@ topology = connectivity(mask, [(10,12,12),(36,20,31)])
 
 `air_components(model, probes)`枚举实际模型的全部空气组件，记录边界连通、包围范围、设计探针与未声明封闭气泡，不修改几何。用于未开洞的模型，或恢复了合法门洞的检查副本；开门后的室内当然会接通外界。外围空气是正常的，未声明气泡需由作者判断是否为意外残留，不自动填充或连通。它补充探针密闭检查，不能替代玩家通路。
 
-修改几何工具后运行 `python .agents/skills/minecraft-nbt-modeler/scripts/check_field_fixtures.py --output nbt_models/_tests/field_validation`，涵盖弯曲多腔连通、断开反例、CSG、旋转、环孔、凹形缺角、形变复现、边界余量和落盘回读。
+修改几何工具后运行 `python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_field_fixtures.py --output nbt_models/_tests/field_validation`，涵盖弯曲多腔连通、断开反例、CSG、旋转、环孔、凹形缺角、形变复现、边界余量和落盘回读。
 
 ## nbt_sections.py：空腔多层切片
 
@@ -139,12 +139,12 @@ assert routes['passed'], routes
 改动碰撞工具后可运行：
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/check_collision_fixtures.py --output nbt_models/_tests/toolkit_validation/collision_regression.json
+python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_collision_fixtures.py --output nbt_models/_tests/toolkit_validation/collision_regression.json
 ```
 
 回归用例含上下行半砖楼梯、半格净空、头部阻断、断桥、完整块跳跃误判、未知形态和40种楼梯状态；这验证的是工具的几何假设，仍不等于Minecraft运行时验证。
 
-NBT读写与阶段顺序回归可运行 `python .agents/skills/minecraft-nbt-modeler/scripts/check_model_fixtures.py --output nbt_models/_tests/toolkit_validation/io`，验证状态往返、六面漏口、未验先开洞、错误门宽和验后修改拦截。
+NBT读写与阶段顺序回归可运行 `python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_model_fixtures.py --output nbt_models/_tests/toolkit_validation/io`，验证状态往返、六面漏口、未验先开洞、错误门宽和验后修改拦截。
 
 ## 输出与迭代
 
@@ -173,7 +173,7 @@ slice_master保存真正完整的master_geometry.json.gz（含全局尺寸、实
 
 若独立上下文已有非空cells（例如L形三格），export_standalone还须传 `active_cells=config['cells']`；只切这些XZ格的各Y层，缺角不补空片。该占地必须合法、连通并覆盖全部非空气几何，注册建筑时同样传入以保留有效cells。省略/空active_cells才切完整自由尺寸包围盒。
 
-回归：`python .agents/skills/minecraft-nbt-modeler/scripts/check_whole_cut_fixtures.py --output nbt_models/_tests/whole_cut_validation`。检查完整主模型保存、逐块连续重建、跨切面状态保留、切割不自动砌墙、全局墙mask同步拆层及49不兼容反例。
+回归：`python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_whole_cut_fixtures.py --output nbt_models/_tests/whole_cut_validation`。检查完整主模型保存、逐块连续重建、跨切面状态保留、切割不自动砌墙、全局墙mask同步拆层及49不兼容反例。
 
 ## nbt_assembly.py：SAODG 旧单元式工具与旧桥诊断
 
@@ -214,7 +214,7 @@ CLI支持 `--nbt <完整单片> --wall-mask <XYZ列表JSON> --output <目录> --
 
 当前SAODG支持schema 5：在同一项room.parts中使用body_template、wall_template、offset引用两层，不再填写template。加载器补空气并合成为完整分片。不能把两层作为两项普通parts重叠放置；旧schema和template方式仍使用完整显式体积模板。多格房每片各一份墙面，保持与原片相同原点与尺寸，不导出96格的单一墙层模板。
 
-回归：`python .agents/skills/minecraft-nbt-modeler/scripts/check_wall_layer_fixtures.py --output nbt_models/_tests/wall_layer_validation`。用例包括同材质内部道具不误拆、门口不填回、层间不擦除、状态往返、越界mask拒绝与源不变。
+回归：`python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_wall_layer_fixtures.py --output nbt_models/_tests/wall_layer_validation`。用例包括同材质内部道具不误拆、门口不填回、层间不擦除、状态往返、越界mask拒绝与源不变。
 
 ## nbt_delivery.py：严格的最终文件清单
 

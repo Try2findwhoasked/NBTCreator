@@ -43,7 +43,8 @@ def summary(kind, report):
                       'coordinate_space','sampling','failures','eye','eye_cell','target_bounds',
                       'instance','object','unknown_shapes','missing_faces_half','violations','position','view','failure',
                       'blocker','blockers','blocker_state','target_cell','target_state','target_inside_solid',
-                      'segment','start','end','feet','reason','count','search_limit_reached','start_standing')
+                      'segment','start','end','feet','reason','count','search_limit_reached','start_standing',
+                      'incoming','owner','current','proposed','operation','label','footprint','selection','model_bounds','overflow')
             evidence = {field: row[field][:8] if isinstance(row[field], list) else row[field][:240]
                         if isinstance(row[field], str) else row[field] for field in fields if field in row}
             issues[key] = dict(code=code, scope=scope, target=target, evidence_pointer='/error' if legacy_error else path,
@@ -130,7 +131,7 @@ def summary(kind, report):
                 for index, row in enumerate(conflicts):
                     path = f'/conflicts/{index}'
                     data = row.get('report', row)
-                    target = row.get('instance') or row.get('name') or row.get('owner')
+                    target = row.get('instance') or row.get('name') or row.get('owner') or row.get('part')
                     if target and row.get('interface'):
                         target += '.'+row['interface']
                     if 'targets' in data:

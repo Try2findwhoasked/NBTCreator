@@ -10,7 +10,7 @@ import unittest
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_architect import dispatch
-from nbt_architecture_plan import fingerprint,normalize,resolve
+from nbt_building.plan import fingerprint,normalize,resolve
 from nbt_working_model import WorkingModel,file_hash
 
 
@@ -79,21 +79,45 @@ class ArchitectureWorkflow(unittest.TestCase):
             self.assertLess(len(run.stdout.encode()),report.stat().st_size)
             return compact
         built=cli('plan-build',dict(plan=plan(),save_draft={}), 'build')
-        bound=built['next']['request']
-        self.assertEqual(bound['source_sha256'],file_hash(bound['source']))
-        review=cli(built['next']['action'],bound,'review')
+        persisted = json.loads(Path(built['report']['path']).read_text(encoding='utf8'))
+        self.assertEqual(persisted['next'], built['next'])
+        bound = persisted['next']['request']
+        self.assertEqual(bound['source_sha256'], file_hash(bound['source']))
+        review = cli(persisted['next']['action'], bound, 'review')
         self.assertEqual(review['source_sha256'],bound['source_sha256'])
         self.assertFalse(review['approval_created'])
         self.assertEqual(review['render_command'][0],'render')
-        bindings=review['review_record_bindings']
-        self.assertEqual(bindings['revision'],0)
+        reviewed = json.loads(Path(review['report']['path']).read_text(encoding='utf8'))
+        bindings = reviewed['review_record_bindings']
+        self.assertEqual(bindings, review['review_record_bindings'])
+        self.assertEqual(bindings['revision'], 0)
         self.assertEqual((self.workspace/bindings['render_manifest']).resolve(),
                          Path(review['render_command'][-1])/'render_manifest.json')
         source={key:bound[key] for key in ('source','source_sha256')}
         checked=cli('plan-check',source,'check')
         self.assertEqual(checked['next']['request']['source_sha256'],bound['source_sha256'])
-        candidate=cli('plan-build',dict(source,plan=plan(),expected_plan_sha256=built['plan_sha256']),'candidate')
-        self.assertNotIn('next',candidate)
+        revision = persisted['revision_request']
+        self.assertEqual(revision, built['revision_request'])
+        candidate = cli('plan-build', dict(revision, plan=plan()), 'candidate')
+        self.assertNotIn('next', candidate)
+        changed = plan()
+        changed['style']['materials']['structure'] = 'polished_andesite'
+        updated = cli('plan-build', dict(revision, plan=changed, save_draft={}), 'update')
+        self.assertNotEqual(updated['saved']['source'], bound['source'])
+        self.assertEqual(file_hash(bound['source']), bound['source_sha256'])
+
+    def test_preflight_returns_underside_in_world_coordinates(self):
+        spec = plan()
+        part = next(row for row in spec['parts'] if row['id'] == 'platform')
+        part.update(position=[10, 4, 20], quarter_turns=1)
+        report = dispatch(self.workspace, 'part-preflight',
+            dict(plan=spec, part='platform', underside_xz=[[8, 21], [1, 1]]))
+        underside = report['parts'][0]['underside']
+        self.assertEqual(underside['coordinate_space'], 'world')
+        self.assertFalse(underside['structural_support_verified'])
+        self.assertEqual(underside['samples'], [
+            dict(xz=[8, 21], bottom_y=4, state='minecraft:stone_bricks'),
+            dict(xz=[1, 1], bottom_y=None, state=None)])
 
     def test_two_different_building_systems_compile_seal_open_and_roundtrip(self):
         first=self.make();second=self.make(True)
@@ -210,7 +234,7 @@ class ArchitectureWorkflow(unittest.TestCase):
         opened=WorkingModel.open(self.workspace,built['saved']['source'])
         self.assertEqual(opened.model.get((0,2,1)),'minecraft:red_carpet')
         self.assertTrue(opened.validate()['assembly']['passed'])
-        from nbt_architecture_plan import surface
+        from nbt_building.plan import surface
         from nbt_scene_interfaces import InterfaceError
         opened.model.put((0,1,0),'red_carpet')
         with self.assertRaises(InterfaceError) as blocked:
@@ -294,8 +318,8 @@ class ArchitectureWorkflow(unittest.TestCase):
         self.assertFalse(next(row for row in bad['coverage']['views'] if row['id']=='beam')['standing'])
 
     def test_sample_box_narrows_a_real_part_without_changing_camera_or_geometry(self):
-        from nbt_architecture_plan import actual_part
-        from nbt_architecture_review import visibility
+        from nbt_building.plan import actual_part
+        from nbt_building.review import visibility
         spec=plan()
         view=spec['views'][1]
         view.update(target=[15.5,5.5,12.5],fov=10)
@@ -461,7 +485,7 @@ class ArchitectureWorkflow(unittest.TestCase):
         model=WorkingModel.open(self.workspace,result['saved']['source'])
         for x in range(11,14):
             for z in range(12,15):model.model.put((x,2,z),'air')
-        from nbt_architecture_plan import check_model
+        from nbt_building.plan import check_model
         checks=check_model(model,model.architecture)['checks']
         self.assertFalse(next(row for row in checks if row['id']=='pillar_extent')['passed'])
         self.assertFalse(next(row for row in checks if row['id']=='pillar_ratio')['passed'])
@@ -469,15 +493,15 @@ class ArchitectureWorkflow(unittest.TestCase):
 
     def test_catalogue_and_workflow_registries_are_consistent(self):
         from nbt_catalog import catalog
-        from nbt_architecture import ARCHITECT_ACTIONS
-        from nbt_architecture_plan import DESIGN_CHECKS
+        from nbt_building.workflow import ARCHITECT_ACTIONS
+        from nbt_building.plan import DESIGN_CHECKS
         contract=catalog()['architecture']
         self.assertEqual(set(contract['actions']),set(ARCHITECT_ACTIONS))
         self.assertEqual(set(contract['plan']['properties']['rules']['items']['properties']['kind']['enum']),set(DESIGN_CHECKS))
         for action in ('plan-save','plan-build'):self.assertEqual(contract['actions'][action]['properties']['plan'],contract['plan'])
 
     def test_requirements_and_ordered_activities_bind_to_real_geometry(self):
-        from nbt_architecture_plan import check_model
+        from nbt_building.plan import check_model
         spec = plan()
         spec['requirements'] = [dict(id='display', text='入口旁有可用展陈区', origin='user',
                                      reason='本次展馆用途', spaces=['hall'], parts=['left'])]
@@ -512,7 +536,7 @@ class ArchitectureWorkflow(unittest.TestCase):
         self.assertFalse(list(self.workspace.rglob('model-version.json')))
 
     def test_activity_uses_the_rotated_real_face_at_working_height(self):
-        from nbt_architecture_intent import check_use_face
+        from nbt_building.intent import check_use_face
         from nbt_collision import _Space
         spec = plan()
         shelf = box_part('desk', [18, 2, 6], [1, 2, 1])
@@ -539,7 +563,7 @@ class ArchitectureWorkflow(unittest.TestCase):
         self.assertEqual(check_use_face(model, model.architecture, _Space(model.model), stop)['reason'], 'approach_obstructed')
 
     def test_location_coverage_requires_the_assigned_image_observation(self):
-        from nbt_architecture_intent import observed_locations, visible_location
+        from nbt_building.intent import observed_locations, visible_location
         from nbt_assembly import Volume
         model = Volume([12, 8, 12])
         eye, target = [5.5, 3.5, 1.5], [5.5, 3.5, 8.5]
@@ -549,15 +573,23 @@ class ArchitectureWorkflow(unittest.TestCase):
         self.assertFalse(visible_location(model, eye, [10.5, 3.5, 1.5], target, 60)['passed'])
         pack = dict(review_locations=[dict(id='entry', views=['entry_view'],
                     candidates=[dict(view='entry_view', passed=True)])])
-        self.assertEqual(observed_locations(pack, [dict(image='entry_view', note='fixture')]), ([], ['entry']))
+        self.assertEqual(observed_locations(pack, [dict(image='entry_view', note='fixture')]), ([], ['entry'], []))
         covered = [dict(image='entry_view', note='fixture', locations=['entry'])]
-        self.assertEqual(observed_locations(pack, covered), (['entry'], []))
+        self.assertEqual(observed_locations(pack, covered), (['entry'], [], []))
+        manual = [dict(image='entry_view', note='fixture', manual_locations=['entry'])]
+        candidate = pack['review_locations'][0]['candidates'][0]
+        candidate.update(passed=False, visibility=dict(failure='uncertain_collision'))
+        self.assertEqual(observed_locations(pack, manual),
+                         (['entry'], [], [dict(id='entry', image='entry_view', auto_framing='uncertain_collision')]))
+        candidate['visibility']['failure'] = 'occluded'
+        with self.assertRaisesRegex(ValueError, '仅在碰撞取景不确定'):
+            observed_locations(pack, manual)
         with self.assertRaises(ValueError):
             observed_locations(pack, [dict(image='other', note='fixture', locations=['entry'])])
 
     def test_declared_openings_update_authored_shell_part_baselines_for_rebuild(self):
         from nbt_assembly import Volume
-        from nbt_construction_systems import enclosure
+        from nbt_building.construction_systems import enclosure
         spec = plan()
         voxels, _ = enclosure(Volume(spec['size']), resolve(spec)['envelope'], 30000)
         palette = sorted({value for value, _ in voxels.values()})

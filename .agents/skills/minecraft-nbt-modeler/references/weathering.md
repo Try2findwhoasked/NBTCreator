@@ -82,7 +82,7 @@
 对已按精修流程prepare并记录真实用户确认的review，一条命令组合三类效果：
 
 ```powershell
-$engine = python .agents/skills/nbtcreator-workspace/nbt.py paths | ConvertFrom-Json
+$engine = mise run nbt -- paths | ConvertFrom-Json
 python (Join-Path $engine.scripts 'nbt_weathering.py') --review <任务目录>/draft_review --operation <任务目录>/weathering.json --output <任务目录>/weathered_01 --style-note "按潮湿区域成片长苔、连续开裂，地面局部破损并保留主路"
 ```
 
@@ -100,7 +100,7 @@ edits, report = weathering_plan(whole_master, operation, protected=protected_pos
 验证命令：
 
 ```powershell
-python .agents/skills/minecraft-nbt-modeler/scripts/check_weathering_fixtures.py --output nbt_models/_tests/weathering_validation
+python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_weathering_fixtures.py --output nbt_models/_tests/weathering_validation
 ```
 
 只创建合成夹具，覆盖连片裂纹、比例、跨切面和跨进程复现、坑深与支承、状态保留、路线保护、授权、预算和 CLI 制作版保存。`--skip-workflow` 只跑算法用例。诊断图使用程序配色。

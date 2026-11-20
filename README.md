@@ -42,6 +42,8 @@ Windows Portable 按 PR 改动选择验证范围。纯文档改动只运行范�
 
 创作 Skill 在实际创作项目中生成：`.agents/skills/nbtcreator-workspace/SKILL.md`。软件源码及安装目录不作为默认创作工作区。
 
+同步后，从创作项目根目录运行 `mise run nbt -- capabilities --routes` 查找命令。项目有同名任务时按生成的入口说明运行。[共用工作区](docs/guides/SHARED_WORKSPACE.md#对齐目录和工具版本)
+
 ## 文档
 
 完整入口见[文档导航](docs/README.md)。
@@ -66,17 +68,18 @@ Windows Portable 按 PR 改动选择验证范围。纯文档改动只运行范�
 mise exec -- npm ci
 mise exec -- npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
 mise exec -- python -m pip install -r .agents/skills/minecraft-nbt-modeler/requirements.txt
-mise exec -- npm run build:web
-mise exec -- npm start
+mise run dev
 ```
 
 常用检查：
 
 ```powershell
-mise exec -- npm run doctor
-mise exec -- npm run check:tools
-mise exec -- npm run test:api
-mise exec -- npm run test:desktop
+mise run doctor
+mise run check
+mise run test -- --list
+mise run test -- api
+mise run build:web
+mise run test -- desktop
 mise run architecture:test
 mise run modular:test
 ```

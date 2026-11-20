@@ -2,6 +2,8 @@
 
 所有命令从 **NBTCreator 仓库根目录**执行，通过 `mise run <task>` 或 `mise exec -- <command>` 启动。环境安装见[开发指南](../docs/development/DEVELOPMENT.md)。
 
+使用 `mise run test -- --list` 列出套件。例如 `mise run test -- workspace` 运行工作区契约，`mise run test -- retrieval` 运行知识库回归。已有 `model:test`、`ui:test` 等专项任务继续可用。
+
 ## 目录职责
 
 | 目录 | 放什么 | 执行方式 |
@@ -19,11 +21,12 @@
 
 | 要验证的内容 | 命令 |
 | --- | --- |
-| API、AI 本地协议与引擎会话 | `mise exec -- npm run test:api` |
-| 桌面冒烟 | `mise exec -- npm run test:desktop` |
-| 工作区契约与路径选择 | `mise exec -- npm run test:workspace` |
-| 建模工具与操作参数 | `mise exec -- npm run test:modelling` |
-| 参数化构件与几何回归 | `mise exec -- npm run test:parametric` |
+| API、AI 本地协议与引擎会话 | `mise run test -- api` |
+| 桌面冒烟 | `mise run test -- desktop` |
+| 工作区契约与路径选择 | `mise run test -- workspace` |
+| 可移植引擎合成回归 | `mise run nbt -- regress --output <新目录>` |
+| 建模工具与操作参数 | `mise run test -- modelling` |
+| 参数化构件与几何回归 | `mise run test -- parametric` |
 | 主模型、对象关系与接口 | `mise run model:test` |
 | 建筑方案闭环 | `mise run architecture:test` |
 | 模块化对象、结构杆件与窗框 | `mise run modular:test` |
@@ -36,7 +39,8 @@
 ```powershell
 mise exec -- node --test tests/node/app-settings.test.cjs
 mise exec -- python -B tests/engine/roof-curves.py
-mise exec -- npm run build:web
+mise exec -- python -B .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_collision_fixtures.py --output build/collision-regression.json
+mise run build:web
 mise exec -- node tests/desktop/default-preview-desktop.mjs
 ```
 

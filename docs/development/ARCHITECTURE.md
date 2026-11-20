@@ -77,8 +77,16 @@ NBTCreator/
 │  ├─ SKILL.md、references/             共享工作流与可选专题
 │  ├─ tool-catalog.json                工具契约源
 │  ├─ scripts/                         建模、校验、渲染、归档、机器任务及检索
+│  │  ├─ nbt_building/                 建筑方案、审阅和参数化构造
+  │  ├─ nbt_knowledge/                书库连接、网页取证、网页读取与收藏索引
+  │  └─ fixtures/                     可移植的合成回归
 │  ├─ prompt-console/                  创作方案、提示词编译、任务队列
 │  ├─ assets/viewer/                   3D 工作台、静态服务、前端构建
+  │  └─ src/                          页面入口与共享界面模块
+  │     ├─ components/                构件编辑、操作手柄和变换
+  │     ├─ knowledge/                 知识引用、预览和设置
+  │     ├─ library/                   素材、配方、纹样和效果
+  │     └─ projects/                  项目目录、批次和历史
 │  ├─ assets/extension-library/        独立 AssetLibrary 的发行数据快照
 │  └─ constraint-extensions/           可选接入约束
 ├─ scripts/、mise.toml                  CLI、开发任务、前端构建与发行打包
@@ -88,6 +96,8 @@ NBTCreator/
 ├─ docs/{development,guides,archive}/    开发、用户和历史文档
 └─ references/                        只读迁移参考
 ```
+
+公共命令由 `tool-catalog.json` 路由到 `scripts/` 下的入口。冻结运行时和版本指纹都包含子目录。软件仓库根目录可运行 `mise run nbt -- regress --output <新目录>` 执行合成回归。单独重跑某套时，把夹具文件名传给 `scripts/fixtures/run.py`。
 
 ## 创作项目与外部数据
 

@@ -220,7 +220,7 @@ size 是整体设计包围空间，部分对象为薄浮雕或悬挂构造，不
 ```
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool parametric_contract --request contract.json
+mise run nbt -- components agent --tool parametric_contract --request contract.json
 ```
 
 模型只能返回 proposal 方案，不能附带或修改 constraints。调用方用自己保存的原始 constraints 组装验收请求：
@@ -233,7 +233,7 @@ python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool parame
 ```
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool parametric_validate --request validation.json
+mise run nbt -- components agent --tool parametric_validate --request validation.json
 ```
 
 Schema限制字段、枚举、明确数值与固定尺寸；本地验收另外检查解析后的默认参数、风格与纹样组合、实际材质白名单、方块数和操作数，并运行共享几何编译。缺省参数不能绕过上限。materials可指定合法状态白名单（使用规范化minecraft命名），会检查最终实际调色板，包括叶片、土壤、阶面等自动生成材质。require_decoration=true还要求实际产生装饰，不能用零变化糊弄通过。
@@ -254,9 +254,9 @@ Schema限制字段、枚举、明确数值与固定尺寸；本地验收另外�
 
 ```powershell
 # empty.json 内容为 {}
-python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool parametric_list --request empty.json
-python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool parametric_compile --request params.json
-python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool parametric_preview --request params.json
+mise run nbt -- components agent --tool parametric_list --request empty.json
+mise run nbt -- components agent --tool parametric_compile --request params.json
+mise run nbt -- components agent --tool parametric_preview --request params.json
 ```
 
 三个调用均返回 `{ok,result}`。compile 只在内存中生成并校验 spec，返回确定性配方 SHA256、内容 SHA256、方块数、安装约定和未验收状态；不创建文件。preview 另生成绑定预览、主模型草稿、快照、真实简化缩略图和相机，不保存资产、不修改建筑、不创建批准。

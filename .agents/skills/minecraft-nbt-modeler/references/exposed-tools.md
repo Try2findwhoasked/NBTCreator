@@ -25,17 +25,17 @@
 | weathering | 连片风化 / 苔痕 / 裂纹 | 完整块材质为主；地面自动识别优先auto_floor。 |
 | auto_floor | 多层地面识别 / 半砖坑 | 需要真实start/targets/ports/interior_probes；依赖实际模型，网页不能估算通过。 |
 | paste_component | 构件资产粘贴 | palette为完整状态数组；voxels为相对lo的[x,y,z,材质编号]，最多65536格。默认拒绝冲突；墙层与主体拆为不同操作。 |
-| auto_road | 自动道路铺设 | 起终点Y为路面高度且须相同；straight / x_first / z_first自动生成连续道路，宽1～16、厚1～8，完整路面须在选区内；覆盖已有路面须显式开启，不自动避障。 |
+| auto_road | 自动道路铺设 | 起终点Y为同一高度的路面。宽度在路径两侧和起终点前后扩张，完整占用须在选区内。ROAD_BOUNDS 给出占用范围与越界方向。覆盖已有路面须显式开启。 |
 | selection_replace | 连通 / 表面选区换材 | 从seed_position六邻接选取同状态或实体；surface按暴露朝向选面，thickness仅向实体内扩展。保护及预算继续生效。 |
 | align_region | 对齐 / 锚点 / 落地吸附 | lo/hi是源包围盒；align按轴min/center/max/keep对齐；anchor指定源和目标全局锚点；ground按destination的XZ和最高搜索Y落地，拒绝不平整或未知支承。归属请显式设置。 |
 | array_region | 环形 / 沿路径阵列 | lo/hi为源；source_anchor默认lo。path按折线弧长布置；radial用centre/radius/count/start_angle/sweep_angle。cardinal朝向取最近90°，不支持任意角度状态旋转；位置量化碰撞和预算均预检。 |
 | auto_stairs | 半格楼梯 / 坡道 / 平台 | start/end是玩家脚位，end.y必须高于start.y。straight须沿X或Z轴，水平路程L至少2*(end.y-start.y)+2*width+1，给两端平平台留白；放不下时改为明确box阶梯或另设计折返。不能自动清头顶或补支撑；须实际预览通行。 |
 | terrain_road | 地形道路 / 避障 / 有限填挖 | A*按真实地表绕开非地形障碍；端点Y为真实地表格。高度差最多1，自动楼梯并逐段通行检查；仅允许列出的地形材质填挖。桥段需显式max_bridge_span，不认证承重。 |
-| auto_roof | 屋顶 / 屋脊 / 屋檐 | roof=gable/hip/gambrel/dome/curved_hip。curved_hip 使用 curve_power、eave_lift、corner_lift 调整曲面、起翘与翼角，并连接相邻顶皮。footprint 为XZ角点，eaves 不得超选区。finish=blocks/slabs/stairs。屋面与宿主的梁柱支承、密闭和游戏表现另验。 |
+| auto_roof | 屋顶 / 屋脊 / 屋檐 | ridge_axis 仅控制 gable 和 gambrel 的屋脊。hip、dome、curved_hip 按足迹生成。curved_hip 使用 curve_power、eave_lift、corner_lift 调整曲面、起翘与翼角。用 architect part-preflight 的 underside_xz 按世界坐标查屋底，梁柱支承和密闭另验。 |
 
 GUI的“建模工具”支持同样的有序operations。每步 enabled 为可选布尔开关，省略等于 true；false 保留在设置/计划中，但编译与执行跳过，不写任何方块。名称由 label 保存，数组顺序决定执行顺序。Agent使用control plan/preview或原refine流程调用，旧的专用API保持兼容。计划、预览、应用、导出和精修确认是不同阶段；能力清单不授予任何批准。
 
-统一入口：`node scripts/cli.mjs capabilities`；独立复制skill后使用 `python <skill>/scripts/nbt_capabilities.py`。各命令参数请用 --help 查询。overwrite/write_group是可选操作元数据，见tool-catalog.json的optional_operation_fields；未提供时保留原工具行为。AI与构件放置的显式覆盖开关不能越过保护和预算。
+统一入口：`mise run nbt -- capabilities`；独立复制skill后使用 `python <skill>/scripts/nbt_capabilities.py`。各命令参数请用 --help 查询。overwrite/write_group是可选操作元数据，见tool-catalog.json的optional_operation_fields；未提供时保留原工具行为。AI与构件放置的显式覆盖开关不能越过保护和预算。
 
 ## 无界面命令
 
@@ -80,13 +80,32 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 - architect → scripts/nbt_architect.py
 - session → scripts/nbt_engine_session.py
 
-工作区入口为 `python .agents/skills/nbtcreator-workspace/nbt.py <命令>`。`feedback scan` 扫描结构版本的评论索引，`feedback collect/archive` 校验或归档意见证据，详见 [Agent读取意见](agent-feedback.md)。
+工作区入口为 `mise run nbt -- <命令>`。`feedback scan` 扫描结构版本的评论索引，`feedback collect/archive` 校验或归档意见证据，详见 [Agent读取意见](agent-feedback.md)。
 
 外部Agent改模后的版本登记和评论核对见 [任务回传](agent-task-return.md)，agent-tasks get/record 与应用共用源哈希；确定性检查的通俗解释与定位见 [检查结果解释](diagnostic-guidance.md)，diagnostics 只解释已保存报告，不重新验证或自动修复；按任务挑选资料片段和复用资产见 [本地参考检索](reference-retrieval.md)，retrieve search/bundle/read 共用来源哈希；选区自然语言工具步骤见 [选区编辑](selection-edit.md)，selection-edit context/compile 共用真实方块摘要、坐标平移与写入范围约束；构件的保存、整理、导入及候选放置见 [构件资产](component-assets.md)；参数化工具序列、材质主题和XYZ网格阵列见 [配方与主题](reusable-recipes.md)，recipes compile与components batch仅返回候选步骤；批量创作的过程目录、模型关联与交付图册见 [制作批次](batch-workspaces.md)，batches create/record/list/get/locate 在应用外也可使用；项目多选、只读批量预览与检查、进度及重试见 [项目批量任务](project-batch.md)；内部 API 与外部 Agent 共用的各区域创作参数见 [AI创作偏好](ai-creative-preferences.md)。
 
+兼容入口
+
+- `task` → `prompts task`
+
 ## 容易混淆的入口
 
-命令均通过创作工作区入口 `nbt.py` 调用。运行 `nbt.py capabilities --routes` 可单独查询这张表。
+从创作项目根目录运行 `mise run nbt -- capabilities --routes` 单独查询这张表。其他命令沿用工作区入口的 mise 前缀。
+
+### 任务与交接
+
+| 任务 | 调用或字段 | 输入 | 结果 |
+| --- | --- | --- | --- |
+| 读取已交接的提示词任务 | `task --id <任务编号>` | 从创作项目根目录运行，使用交接时生成的提示词任务编号。也可用 prompts task。 | 回读任务文本、绑定文件与已校验的方案。读取任务与领取、建模、精修批准分开。 |
+| 查看任务记录和绑定证据 | `task-client inspect <prompts 或 tasks> <任务编号>` | 提示词任务用 prompts，已有建筑修改任务用 tasks。 | 返回对应任务与来源绑定。需要执行时用 task-client start 明确领取。 |
+
+### 知识库
+
+| 任务 | 调用或字段 | 输入 | 结果 |
+| --- | --- | --- | --- |
+| 离线检索参考 | `retrieve search --request <请求JSON>` | 填 workflow 和 query。建筑方案用 prompt，独立构件用 component。 | 返回已启用书库、文档与网页收藏的命中。把结果 id 填入 retrieve bundle 的 selected 生成引用集合。 |
+| 联网补查公开原页 | `retrieve research --request <请求JSON>` | 任务明确要求联网时填 workflow，提供公开 query 或已知 HTTPS urls。 | 返回原文证据、来源和未完成项。默认取得一条即返回。 |
+| 管理网页证据收藏 | `retrieve saved-web --request <请求JSON>` | 填 workflow。action 为 list、add 或 remove，保存或移除时填已有的 web: 证据 id。 | 保存的证据进入本工作流离线搜索，既有引用集合仍绑定原快照。 |
 
 ### 检查
 

@@ -29,7 +29,7 @@ python tools/structures/workbench/launch.py --library
 
 ```powershell
 python .agents/skills/minecraft-nbt-modeler/scripts/check_skill.py
-python .agents/skills/minecraft-nbt-modeler/scripts/check_detail_control_fixtures.py --output <新后端测试目录>
+python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_detail_control_fixtures.py --output <新后端测试目录>
 node tools/structures/workbench/tests/test-library.mjs --fixture <上述后端测试目录> --output <新浏览器测试目录>
 ```
 

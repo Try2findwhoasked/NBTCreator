@@ -48,8 +48,8 @@
 在模型编辑的视口工具栏点击“房间综合评分”。选择普通房间或走廊；可以先只运行自动函数，再填写内部视觉评价，按需勾选外观。可下载完整报告，也可在源、坐标、场景、模型版本和外观开关均相同的条件下，与上次功能分比较。不同用途、范围或指标覆盖率的分数不宜直接排名。
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py room-score --rubric
-python .agents/skills/nbtcreator-workspace/nbt.py room-score --request room-request.json --output nbt_models/_workspaces/room_scores/run_001
+mise run nbt -- room-score --rubric
+mise run nbt -- room-score --request room-request.json --output nbt_models/_workspaces/room_scores/run_001
 ```
 
 请求包含 `source`、可选的 `source_sha256`、`context`、`profile`（room 或 corridor）、`include_exterior`，以及 `visual.interior` 和可选的 `visual.exterior`。视觉对象格式为 `{scores:{指标ID:0～100},evidence:"具体看图依据",reviewer:"human或external_ai"}`。完整指标 ID、公式与权重可通过 `--rubric` 读取，评审输入须基于当前真实几何。可用 `--snapshot` 绑定当前候选。

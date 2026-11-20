@@ -13,6 +13,9 @@ def enforce_overwrite(model, walls, operation, edits, owners):
     overwrite=operation.get('overwrite',False)
     if limited and type(overwrite) is not bool:raise ValueError('覆盖现有方块须为布尔开关')
     classification=operation.get('classification','inherit')
+    # Recolouring a cell keeps its existing component owner. It does not
+    # claim existing host geometry or opt any following step into overwrite.
+    recolour = operation.get('kind') == 'pattern' and operation.get('action', 'replace') == 'replace'
     claimed=[]
     for p,value in edits:
         solid=model.get(p) not in AIR_NAMES
@@ -20,8 +23,13 @@ def enforce_overwrite(model, walls, operation, edits, owners):
         changes=value!=model.get(p) or new_wall!=(p in walls)
         own=group is not None and owners.get(p)==group
         if limited and not overwrite and solid and changes and not own:
-            raise ValueError('目标位置已有方块或墙层；移动构件，或勾选“允许AI构件覆盖现有方块”：'+str(p))
-        claimed.append((p,group if group and (not solid or overwrite or own) else None))
+            label = operation.get('label') or operation['kind']
+            raise ValueError(f'步骤“{label}”({operation["kind"]}) 在 {p} 遇到已有方块或墙层。'
+                             '请移动构件，或在确需覆盖时为该步骤设置 overwrite: true。')
+        owner = group if group and (not solid or overwrite or own) else None
+        if recolour and not limited:
+            owner = owners.get(p)
+        claimed.append((p, owner))
     for p,owner in claimed:
         if owner:owners[p]=owner
         else:owners.pop(p,None)

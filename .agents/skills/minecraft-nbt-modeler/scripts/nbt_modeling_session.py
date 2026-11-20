@@ -65,7 +65,7 @@ def engine_revision():
     # Include implementation, registry and contract changes in cache identity.
     # Python implementation updates still require restarting the process.
     directory=Path(__file__).resolve().parent
-    files=[*directory.glob('*.py'),directory.parent/'tool-catalog.json',directory.parent/'references/block-registry-1.20.1.json']
+    files=[*directory.rglob('*.py'),directory.parent/'tool-catalog.json',directory.parent/'references/block-registry-1.20.1.json']
     from nbt_extensions import revision_token
     registrations=sha256(canonical(revision_token()).encode('utf8')).hexdigest()
-    return tuple((p.name,_file_digest(str(p),p.stat().st_size,p.stat().st_mtime_ns,p.stat().st_ctime_ns)) for p in sorted(files))+(('extension_registry',registrations),)
+    return tuple((p.relative_to(directory.parent).as_posix(),_file_digest(str(p),p.stat().st_size,p.stat().st_mtime_ns,p.stat().st_ctime_ns)) for p in sorted(files))+(('extension_registry',registrations),)

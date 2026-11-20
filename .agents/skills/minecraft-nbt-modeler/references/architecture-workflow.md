@@ -4,18 +4,18 @@
 
 ## 入口与设计责任
 
-在创作项目根目录使用冻结入口。小型建筑可以从[可运行的开放平台示例](#构件查询与预检)开始，按需查询：
+在创作项目根目录使用冻结入口。小型建筑可以从[可直接运行的入口亭示例](../assets/examples/entry-pavilion.json)开始，按需查询：
 
 ```powershell
-mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py capabilities --recipe structure
-mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py capabilities --architect-action plan-save --field plan.parts.interfaces
-mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py architect plan-save --request plan-save.json
-mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py architect plan-build --request build.json
+mise run nbt -- capabilities --recipe structure
+mise run nbt -- capabilities --architect-action plan-save --field plan.parts.interfaces
+mise run nbt -- architect plan-save --request plan-save.json
+mise run nbt -- architect plan-build --request build.json
 ```
 
-软件维护使用 `mise exec -- node scripts/cli.mjs --workspace <隔离创作项目> architect <action> --request <JSON>`。全部参数以 `tool-catalog.json` 的 `architecture` 为准，不把 schema 复制进脚本或提示词。无需启动 Electron。
+从源码根目录使用 `mise run nbt -- --workspace <创作项目根目录> architect <action> --request <JSON>`。全部参数以 `tool-catalog.json` 的 `architecture` 为准，不把 schema 复制进脚本或提示词。无需启动 Electron。
 
-`plan-build`、`plan-check`、`part-preflight` 和 `review-prepare` 支持 `--compact-report <nbt_models 内全新JSON路径>`，父目录须已存在。完整回执写入指定文件，终端给出报告路径、哈希及重点问题。保存后的 `plan-build` 回执含 `next.request`，可直接交给 `review-prepare`，此操作会重开制作源复验。准备成功后按 `render_command` 出图，再用 `review_record_bindings` 和真实看图观察提交 `review-record`。默认输出仍为完整 JSON。
+`plan-build`、`plan-check`、`part-preflight` 和 `review-prepare` 支持 `--compact-report <nbt_models 内全新JSON路径>`，父目录须已存在。完整回执写入指定文件，终端给出报告路径、哈希及重点问题。保存后的 `plan-build` 和成功的 `plan-check` 在完整回执与终端简报中都提供 `next.request`，可直接交给 `review-prepare` 回读复验。保存成功的回执还提供 `revision_request`，将这些字段与改好的 `plan`、`save_draft` 合并为下一版的请求。准备成功后按报告的 `render_command` 出图，再用其中的 `review_record_bindings` 和真实看图观察提交 `review-record`。相对路径以创作工作区为基准。默认输出仍为完整 JSON。
 
 Agent 把自然语言设计转为以下数据，而不是直接猜一串工具调用：
 
@@ -29,6 +29,8 @@ Agent 把自然语言设计转为以下数据，而不是直接猜一串工具�
 | 能看见的设计目标 | `views` 的层级、脚位/眼位和目标构件 | 生成真实相机；检查站位、取景范围和采样遮挡，再使用原渲染器出图 |
 
 `standards_snapshot` 可绑定项目规范的完整修订；它保留设计依据，不把自然语言自动转换成“已通过”。需要硬约束的条目应由 Agent 明确译为 style 参数、设计规则和上下文约束。
+
+需测屋顶底部时，在 `part-preflight` 中指定屋顶的 `part` 和 `underside_xz`，例如 `[[10, 12], [14, 12]]`。查询和结果都使用世界坐标。 `bottom_y` 是该列最低实体方块的 Y。空列返回 `null`。几何支承仍需验证。 `auto_roof` 的 `ridge_axis` 只控制 `gable` 和 `gambrel`。
 
 ## 需求落实与活动动线
 
@@ -76,7 +78,7 @@ Agent 把自然语言设计转为以下数据，而不是直接猜一串工具�
 
 参考图驱动的方案把轮廓、体量比例、屋面、立面节奏与材料部位写成具体目标，再用方向接近的模型视图对照。尺寸及构件比例可使用已有规则。参考未展示的背面与室内记录设计补全的依据。
 
-审阅位置的 `position` 选在可见表面或门洞、梯口等可观察空气点上。观察记录中的 `locations` 只填写该图实际看清的位置 ID。`coverage_complete` 同时核对三层审阅和已声明位置的观察覆盖。采样可见度、图片存在和观察文字各自保留结果，最终由 Agent 实际看图判断构造、用途与风格。位置被遮挡时调整机位并新出图。
+审阅位置的 `position` 选在可见表面或门洞、梯口等可观察空气点上。观察记录中的 `locations` 只填写该图实际看清的位置 ID。`coverage_complete` 同时核对三层审阅和已声明位置的观察覆盖。采样可见度、图片存在和观察文字各自保留结果，最终由 Agent 实际看图判断构造、用途与风格。位置被遮挡或在画外时调整机位并新出图。细件因 `uncertain_collision` 无法自动确认时，实际看清后在对应图片的 `manual_locations` 填写位置 ID，并在 `note` 记录看到的细节。`observations_complete` 说明所有机位和声明位置均已记录实际观察，`coverage_complete` 仍核对自动取景与所需审阅层次。
 
 ## 共享参数与构造边界
 

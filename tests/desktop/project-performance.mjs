@@ -9,6 +9,8 @@ const output=path.join(root,'build','project-performance-'+Date.now());await fs.
 process.env.PLAYWRIGHT_BROWSERS_PATH??=path.join(root,'build/portable-browser')
 const require=createRequire(path.join(skill,'assets/viewer/package.json')),{chromium}=require('playwright')
 const source=path.join(skill,'assets/viewer/src'),baselineIndex=process.argv.indexOf('--baseline')
+const benchModules=new Set(['projects/project-tree.js','projects/project-catalog.js','library/library-browser.js','floating-panel.js'])
+const baselineImports=new Map([['project-catalog.js','projects/project-catalog.js'],['library-browser.js','library/library-browser.js']])
 const baseline=baselineIndex>=0?await fs.readFile(path.resolve(process.argv[baselineIndex+1]),'utf8'):null
 const fixture=Array.from({length:1000},(_,index)=>{const n=Math.floor(index/2);return {source:path.join(output,`room-${n}-v${index%2+1}.nbt`),group:'room-'+n,object_key:'room-'+n,name:'测试建筑 '+n,object_name:'测试建筑 '+n,name_zh:'测试建筑 '+n,label:'测试建筑 '+n,project_key:'',project_name:'性能测试',shape_group:'single',shape_group_zh:'单格',version:'v'+(index%2+1),relative_path:`single/测试建筑${n}/v${index%2+1}/room.nbt`,geometry_sha256:index.toString(16).padStart(64,'0'),size:[16,12,16],context:'',cameras:'',modified_ns:index,is_delivery:false}})
 const defaults=spawnSync(python,[path.join(skill,'scripts/nbt_detail_control.py'),'defaults'],{encoding:'utf8',windowsHide:true});assert.equal(defaults.status,0,defaults.stderr)
@@ -17,11 +19,12 @@ let server,browser
 try{
  server=await createViewerServer({frontendMode:'production',apiHandler:async(req,res,url)=>{
   if(url.pathname.startsWith('/__bench__/')){
-   const name=url.pathname.split('/').at(-1);let text,type='text/javascript'
+   const name=url.pathname.slice('/__bench__/'.length);let text,type='text/javascript'
    if(name==='index.html'){type='text/html';text='<html><head><link rel="stylesheet" href="/ __bench__/style.css"></head><body><aside id="project-tree" style="width:270px;height:450px"></aside></body></html>'.replace('/ __bench__/','/__bench__/')}
-   else if(name==='style.css'){type='text/css';text=await fs.readFile(path.join(source,'project-manager.css'),'utf8')}
+   else if(name==='style.css'){type='text/css';text=await fs.readFile(path.join(source,'projects/project-manager.css'),'utf8')}
    else if(name==='before.js'&&baseline)text=baseline
-   else if(['project-tree.js','project-catalog.js','library-browser.js','floating-panel.js'].includes(name))text=(await fs.readFile(path.join(source,name),'utf8')).replace("import './library-browser.css'",'')
+   else if(benchModules.has(name))text=(await fs.readFile(path.join(source,name),'utf8')).replace("import './library-browser.css'",'')
+   else if(baseline&&baselineImports.has(name)){res.writeHead(302,{Location:'/__bench__/'+baselineImports.get(name)});res.end();return true}
    else return false
    res.setHeader('Content-Type',type);res.end(text);return true
   }
@@ -46,7 +49,7 @@ try{
   const list=container.querySelector('.project-tree-list');list.scrollTop=600;const scroll=list.scrollTop;view.update(items)
   return {expand_ms,objects:container.querySelectorAll('[data-node-kind=object]').length,scroll_preserved:Math.abs(list.scrollTop-scroll)<1}
  },{file,items:fixture})}
- const before=baseline?await measure('before.js'):null,after=await measure('project-tree.js');assert.equal(after.objects,500);assert.ok(after.expand_ms<1000);assert.ok(after.scroll_preserved);if(before?.expand_ms>200)assert.ok(after.expand_ms<before.expand_ms*.5)
+ const before=baseline?await measure('before.js'):null,after=await measure('projects/project-tree.js');assert.equal(after.objects,500);assert.ok(after.expand_ms<1000);assert.ok(after.scroll_preserved);if(before?.expand_ms>200)assert.ok(after.expand_ms<before.expand_ms*.5)
  checks.tree_large_folder_responsive=true;checks.tree_scroll_preserved=true
  await page.goto(server.url+'control.html');await page.locator('[data-workspace=project]').click();releaseInit()
  await page.waitForFunction(()=>document.querySelectorAll('.project-card').length===24)

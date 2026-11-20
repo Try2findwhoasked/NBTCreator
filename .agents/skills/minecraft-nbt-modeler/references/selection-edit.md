@@ -14,11 +14,11 @@ AI 只返回 JSON 数据：`{"coordinate_space":"local","summary":"修改与保�
 
 ## 无界面调用
 
-先从工作区根目录调用 `python .agents/skills/nbtcreator-workspace/nbt.py paths` 查询实际引擎；下文的 nbt.py 指该工作区入口。
+先从工作区根目录调用 `mise run nbt -- paths` 查询实际引擎。
 
-1. `nbt.py selection-edit context --request <请求JSON> [--snapshot <候选after.json>]`。
+1. `mise run nbt -- selection-edit context --request <请求JSON> [--snapshot <候选after.json>]`。
 2. 按返回的完整局部摘要规划工具步骤。UI 使用当前参数的已绑定候选；CLI 不提供 snapshot 时读取源模型。不用图片猜坐标，不把其他对象的同尺寸快照当作当前模型。
-3. `nbt.py selection-edit compile --request <含operations的请求JSON> [--snapshot <同一候选after.json>]`。
+3. `mise run nbt -- selection-edit compile --request <含operations的请求JSON> [--snapshot <同一候选after.json>]`。
 4. 将编译返回的全局 operations 追加到原计划，使用原 control plan/preview/validate 流程执行并实际看图。compile 只验证参数并转换坐标，不证明步骤成功写入、通路或设计已通过；实际写入边界在候选和最终导出中都会再次检查。
 
 context 请求：

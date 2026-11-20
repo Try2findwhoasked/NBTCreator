@@ -3,7 +3,7 @@ import hashlib,json,sys,tempfile,unittest,shutil,subprocess,os
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];ENGINE=ROOT/'.agents/skills/minecraft-nbt-modeler';sys.path.insert(0,str(ENGINE/'scripts'))
 from nbt_capabilities import capabilities
-from nbt_exposure import apply as expose,import_knowledge
+from nbt_exposure import MISE_TASK,apply as expose,import_knowledge
 from nbt_workspace import migrate
 from nbt_request_paths import read_request,metadata_path
 from nbt_detail_control import default_settings,compile_plan,preview_effect
@@ -11,6 +11,44 @@ from nbt_refine import save_master
 from nbt_assembly import Volume
 
 class Contracts(unittest.TestCase):
+ def run_mise(self,root,*args):
+  mise=shutil.which('mise.exe') or shutil.which('mise')
+  if not mise:self.skipTest('mise is unavailable on PATH')
+  env=dict(os.environ,PATH=str(Path(sys.executable).parent)+os.pathsep+os.environ.get('PATH',''))
+  run=subprocess.run([mise,'run',*args],cwd=root,capture_output=True,text=True,encoding='utf8',env=env,timeout=30)
+  self.assertEqual(run.returncode,0,run.stdout+run.stderr)
+  return run.stdout.strip()
+ def test_mise_uses_the_moved_creative_workspace_even_with_a_parent_task(self):
+  with tempfile.TemporaryDirectory() as temp:
+   parent=Path(temp);(parent/'mise.toml').write_text('[tasks.nbt]\nrun = "echo parent-nbt"\n',encoding='utf8')
+   root=parent/'创作 项目';root.mkdir();user_config=root/'mise.toml'
+   user_bytes=b'[tasks.local-check]\nrun = "echo my-project"\n';user_config.write_bytes(user_bytes)
+   result=expose(root)
+   self.assertEqual(result['launcher'],'mise run nbt --');self.assertEqual(user_config.read_bytes(),user_bytes)
+   self.assertTrue((root/MISE_TASK).is_file())
+   (root/'请求 & 样例.json').write_text(json.dumps(dict(workflow='prompt',query='石拱'),ensure_ascii=False),encoding='utf8')
+   moved=parent/'移动 后';root.rename(moved);subdir=moved/'sub';subdir.mkdir()
+   paths=json.loads(self.run_mise(subdir,'nbt','--','paths'))
+   self.assertEqual(Path(paths['workspace']),moved.resolve())
+   self.assertTrue((Path(paths['scripts'])/'nbt_knowledge/saved_references.py').is_file())
+   found=json.loads(self.run_mise(subdir,'nbt','--','retrieve','search','--request','请求 & 样例.json'))
+   self.assertEqual(found['query'],'石拱')
+   self.assertEqual(self.run_mise(subdir,'nbt','--','task','--help'),
+                    self.run_mise(subdir,'nbt','--','prompts','task','--help'))
+
+ def test_mise_preserves_a_user_owned_nbt_task_and_points_to_the_exact_launcher(self):
+  with tempfile.TemporaryDirectory() as temp:
+   root=Path(temp);expose(root)
+   config=root/'mise.toml';original=b'[tasks.nbt]\nrun = "echo own-nbt"\n';config.write_bytes(original)
+   result=expose(root)
+   self.assertEqual(config.read_bytes(),original);self.assertFalse((root/MISE_TASK).exists())
+   self.assertEqual(self.run_mise(root,'nbt'),'own-nbt')
+   path='./.agents/skills/nbtcreator-workspace/nbt.py'
+   self.assertEqual(result['launcher'],f'mise run {path} --')
+   text=(root/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8')
+   self.assertIn(f'mise run {path} -- capabilities --routes',text)
+   self.assertEqual(Path(json.loads(self.run_mise(root,path,'--','paths'))['workspace']),root.resolve())
+
  def test_software_source_root_does_not_regenerate_an_authoring_facade(self):
   with self.assertRaisesRegex(ValueError,'软件源码或安装目录'):expose(ROOT)
  def test_exposed_paths_are_callable_after_relocation_and_locate_importable_api(self):

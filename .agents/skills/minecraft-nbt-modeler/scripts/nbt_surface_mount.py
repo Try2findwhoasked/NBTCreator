@@ -93,7 +93,7 @@ def _reject(s,point,code,message,**facts):
     raise ValueError(message+'：'+json.dumps(details,ensure_ascii=False,separators=(',',':')))
 
 def _object(workspace,proposal,normal,pattern=False,reuse_backing=False):
-    from nbt_parametric import compile_object
+    from nbt_building.parametric import compile_object
     from nbt_structure_agent import build
     kind=proposal['surface'] if pattern else proposal['kind']
     if kind=='cylinder' and pattern:

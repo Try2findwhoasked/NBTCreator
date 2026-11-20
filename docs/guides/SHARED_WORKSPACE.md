@@ -8,6 +8,8 @@ NBTCreator 沿用原 minecraft-nbt-modeler 的模型与导出协议。主模型 
 
 建议 Codex 在当前项目目录工作，使用生成的 `.agents/skills/nbtcreator-workspace/SKILL.md` 和统一CLI；工具实现与清单位于 NBTCreator 的 minecraft-nbt-modeler 目录。原 SAODG 旧副本不会自动双向同步，新应用也不再使用它作为调用接口。
 
+同步后从创作项目根目录运行 `mise run nbt -- capabilities --routes`。知识库、建模、验证和渲染都沿用 `mise run nbt --`。任务单独登记在 `.mise/conf.d/nbtcreator.toml`，沿用项目选择的 Python。已有同名任务或自定义任务来源的项目按生成的 `SKILL.md` 显示的 mise 文件入口调用。旧脚本仍可直接运行生成的 `nbt.py`。便携版如果通过自己的 `mise.cmd` 启动，同样使用 `run nbt -- …`。有关任务发现和配置优先级，见 [mise 任务发现规则](https://mise.jdx.dev/tasks/task-discovery.html)。
+
 默认使用调用 Agent 的创作项目根目录，资产保存在该目录的 `nbt_models/` 中。支持显式 `--workspace`、`NBTCREATOR_WORKSPACE` 及手动选择；应用不会默认把安装资源或系统目录当作资产根目录。软件源码根目录也不作为创作项目，不在此生成 `nbtcreator-workspace`。旧用户资产通过迁移命令转入新的创作根目录。
 
 当前创作项目根目录的 `.nbtcreator/skill-exposure.json` 保存知识组选择，可在 AI 助手配置页修改，修改后会同步生成入口。这项配置控制知识路由与阅读范围，不控制文件访问权限，也不删除资料库。所有知识组共享同一份工具能力；`tool-catalog.json` 是定义源，`sync:tools` 生成网页目录与工具接口文档，`check:tools` 会在版本不一致时阻止打包。
@@ -15,6 +17,12 @@ NBTCreator 沿用原 minecraft-nbt-modeler 的模型与导出协议。主模型 
 生成的 `SKILL.md` 只保留任务路线、入口和必要约束；同目录 `knowledge.md` 列出本次已启用专题。纹样来源、拟合、宿主安装和会话复用分别阅读对应资料，不再从一篇参数化长文中查找所有步骤。重新同步会先备份用户修改过的生成入口及索引；现有创作项目不会因为软件源码里的文档整理而自动改写。
 
 可在 AI 设置中导入自己的 Markdown/TXT，文件复制到 `.nbtcreator/knowledge/`，选中的文档通过相对链接加入 Agent 入口。切换到尚无配置的工作区时，会携带自定义文档和开关；目标已有配置时，保留目标的列表。知识仅供参考，不授予执行或批准权限，也不自动上传到 API。
+
+已有建筑书库可在“检索本地参考 → 本地书库”按工作流连接。原书目录保留，索引与连接配置在当前工作区。桌面与 Agent 可以查到同一片段，选入参考集合后按原文、片段和清单哈希复核。[本地参考检索与书库入口](../../.agents/skills/minecraft-nbt-modeler/references/reference-retrieval.md#外部建筑书库)
+
+需要查公开网页时，打开参考选择器里的「联网补查」，填写公开搜索词或原页链接。可把网页摘录与本地书库片段一起选入同一份参考集合。[联网补查与引用](../../.agents/skills/minecraft-nbt-modeler/references/reference-retrieval.md#联网补查)
+
+常用摘录可以收藏到当前工作流。之后在「已收藏网页」浏览，或直接用本地参考检索查找。收藏保留原页及访问时间，取消收藏后已有引用仍可回查。[收藏网页证据](../../.agents/skills/minecraft-nbt-modeler/references/reference-retrieval.md#收藏网页证据)
 
 保存的 request/settings 文件尽量使用相对于工作区的 source/context/cameras/review 路径，room_description.master 则相对于描述文件定位；旧绝对路径仍可读取。外部文件或跨盘引擎无法使用相对路径时，保留绝对路径，因此并非任意单文件都能独立搬迁。Agent 应在项目根目录执行命令，或为统一 CLI 指定前置参数 `--workspace <根目录>`。
 
@@ -48,8 +56,8 @@ Agent 自主精修仍需真实看图确认；用户手动调整后明确导出�
 
 ## 评论和候选校验
 
-工作台在输入停顿后自动将文字和选点更新为正式标注，JSON、`修改意见/评论索引.json` 与哈希绑定的证据直接保存在被标注的结构版本目录内。继续输入更新同一条；“下一条标注”或 Ctrl+Enter 开始另一条。旧目录意见继续可读，首次修改时迁入版本目录并保留原文件。Agent 由人工手动触发 `nbt.py feedback scan/collect` 发现并验证意见；任务和批注接口保持分离。`nbt.py paths` 可查询当前工具API位置。
+工作台在输入停顿后自动将文字和选点更新为正式标注，JSON、`修改意见/评论索引.json` 与哈希绑定的证据直接保存在被标注的结构版本目录内。继续输入更新同一条；“下一条标注”或 Ctrl+Enter 开始另一条。旧目录意见继续可读，首次修改时迁入版本目录并保留原文件。Agent 由人工手动触发 `mise run nbt -- feedback scan/collect` 发现并验证意见；任务和批注接口保持分离。`mise run nbt -- paths` 可查询当前工具API位置。
 
-预览后使用应用“检查当前效果”或 `nbt.py validate --request <参数JSON> --snapshot <after.json> --output <新目录>` 检查同一候选。计划 planned、预览出图和候选通过是三个不同阶段；校验失败会生成独立报告，参数改变后需重新检查。独立建筑使用显式 mode/openings 和 XYZ 真实边块，SAODG 仍保留原 cells/端口规则。
+预览后使用应用“检查当前效果”或 `mise run nbt -- validate --request <参数JSON> --snapshot <after.json> --output <新目录>` 检查同一候选。计划 planned、预览出图和候选通过是三个不同阶段；校验失败会生成独立报告，参数改变后需重新检查。独立建筑使用显式 mode/openings 和 XYZ 真实边块，SAODG 仍保留原 cells/端口规则。
 
 返回[文档导航](../README.md)。

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {translateComponent} from '../../.agents/skills/minecraft-nbt-modeler/assets/viewer/src/component-move.js'
+import {translateComponent} from '../../.agents/skills/minecraft-nbt-modeler/assets/viewer/src/components/component-move.js'
 import {previewAI} from '../../.agents/skills/minecraft-nbt-modeler/assets/viewer/src/ai-request.js'
 test('whole component offsets preserve geometry, source steps and reject invalid destinations',()=>{
  const operations=[{kind:'beam',lo:[2,2,2],hi:[5,5,5],start:[2,2,2],end:[5,5,5],width:1,state:'oak_log'}]

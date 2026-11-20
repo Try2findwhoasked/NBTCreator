@@ -28,6 +28,17 @@ class RoofCurves(unittest.TestCase):
         self.assertGreater(top(lifted, 3, 3), top(lifted, 3, 15))
         self.assertEqual(self.model.blocks, {})
 
+    def test_axis_report_matches_profiles_that_use_it(self):
+        x, curved = modelling_plan(self.model, dict(self.operation, ridge_axis='x'))
+        z, _ = modelling_plan(self.model, dict(self.operation, ridge_axis='z'))
+        self.assertEqual(x, z)
+        self.assertIsNone(curved['ridge_axis_applied'])
+        gable = {key: value for key, value in self.operation.items() if key not in ('eave_lift', 'corner_lift')}
+        x, report = modelling_plan(self.model, dict(gable, roof='gable', ridge_axis='x'))
+        z, _ = modelling_plan(self.model, dict(gable, roof='gable', ridge_axis='z'))
+        self.assertNotEqual(x, z)
+        self.assertEqual(report['ridge_axis_applied'], 'x')
+
     def test_real_halfcell_skin_stays_face_connected_for_all_finishes(self):
         for finish in ('blocks', 'slabs', 'stairs'):
             edits, _ = modelling_plan(self.model, dict(self.operation, finish=finish, rise=15))

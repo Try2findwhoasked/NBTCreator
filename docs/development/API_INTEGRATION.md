@@ -58,8 +58,8 @@ AI 不得改变源/输出路径、阶段、保护上下文、预算、批准或�
 在创作项目根目录使用生成的 Skill，CLI 不要求启动 Electron：
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py machine --schema
-python .agents/skills/nbtcreator-workspace/nbt.py paths
+mise run nbt -- machine --schema
+mise run nbt -- paths
 ```
 
 `machine --request <JSON>` 提供版本化契约与统一错误封装。用 `prompts.get` 的 `compact` 视图按需读取任务，或用 `task-client` 查看、领取、续租和回传指定任务。任务登记与用户批准保持独立。参见[机器接口](../../.agents/skills/minecraft-nbt-modeler/references/agent-protocol.md)。
@@ -71,11 +71,11 @@ python .agents/skills/nbtcreator-workspace/nbt.py paths
 从软件源码根目录执行：
 
 ```powershell
-mise exec -- npm run test:api
-mise exec -- npm run build:web
-mise exec -- npm run test:api-desktop
-mise exec -- npm run test:ai-batch
-mise exec -- npm run test:agent-protocol
+mise run test -- api
+mise run build:web
+mise run test -- api-desktop
+mise run test -- ai-batch
+mise run test -- agent-protocol
 ```
 
 这些入口覆盖默认关闭、加密配置、最小上下文、受限操作、过期候选、取消与有界并发、工作区切换和机器任务回执。桌面检查使用本机模拟 HTTP 接口及真实 Electron/Python 引擎；通过不代表真实供应商兼容性或生成质量已经验收。

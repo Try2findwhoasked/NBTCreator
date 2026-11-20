@@ -1,9 +1,9 @@
 import './selection-edit.css'
 import {linkRange} from './range-control.js'
-import {componentPresets} from './component-presets.js'
+import {componentPresets} from './components/component-presets.js'
 import {requestAI,previewAI,cancelAI} from './ai-request.js'
-import {previewKnowledge,externalSummaries} from './knowledge-preview.js'
-import {initInternalAISettings} from './internal-ai-settings.js'
+import {previewKnowledge,externalSummaries} from './knowledge/knowledge-preview.js'
+import {initInternalAISettings} from './knowledge/internal-ai-settings.js'
 import {validateAICandidate} from './ai-candidate.mjs'
 import {initAPIAdvanced} from './api-advanced.js'
 export function initApiAssistant(hooks){

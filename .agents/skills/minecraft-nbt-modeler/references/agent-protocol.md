@@ -2,7 +2,7 @@
 
 由人手动触发工作区 Skill。应用不自动启动外部 Agent，不自动验收、不自动定稿导出。
 
-统一入口：`python .agents/skills/nbtcreator-workspace/nbt.py machine --request request.json`。
+统一入口：`mise run nbt -- machine --request request.json`。
 用 `machine --schema` 获取当前契约，定义来自 `tool-catalog.json` 的 `machine_protocol`，与 capabilities 共用源。
 源码维护时可用 `node scripts/cli.mjs --workspace <创作项目> machine --request <绝对请求路径>`，无需启动 Electron。
 
@@ -44,11 +44,10 @@ LEASE_EXPIRED、TASK_CLAIMED 和 REVISION_CONFLICT 的 retryable 表示可以重
 从已同步 Skill 的创作项目根目录执行。`inspect` 是只读命令，`start` 领取明确指定的任务。用 `--session` 区分并行任务，各命令使用同一会话名。省略时使用 `default`。
 
 ```powershell
-$entry = '.agents/skills/nbtcreator-workspace/nbt.py'
-python $entry task-client inspect prompts <任务ID>
-python $entry task-client inspect prompts <任务ID> --view text
-python $entry task-client --session room-a start prompts <任务ID> --owner <执行者>
-python $entry task-client --session room-a status
+mise run nbt -- task-client inspect prompts <任务ID>
+mise run nbt -- task-client inspect prompts <任务ID> --view text
+mise run nbt -- task-client --session room-a start prompts <任务ID> --owner <执行者>
+mise run nbt -- task-client --session room-a status
 ```
 
 - 长任务可在另一终端运行 `task-client --session room-a keepalive`。它约每三分之一租期续租，正常完成或释放后退出。短任务可按需调用 `renew`。重启终端后还可用同一会话名继续续租，未到期的租约继续有效。

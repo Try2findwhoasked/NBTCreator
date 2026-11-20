@@ -55,7 +55,7 @@ class OrnateLibrary(unittest.TestCase):
             server.shutdown();server.server_close();worker.join(timeout=2)
 
     def test_collection_covers_every_modular_kind_within_protocol_budget(self):
-        from nbt_parametric import KINDS
+        from nbt_building.parametric import KINDS
         manifest=json.loads((LIBRARY/'library.json').read_text(encoding='utf8'))
         rows=[r for r in manifest['assets'] if r['id'].startswith('ornate-')]
         coverage={tag for row in rows for tag in row.get('tags',[]) if tag in KINDS}

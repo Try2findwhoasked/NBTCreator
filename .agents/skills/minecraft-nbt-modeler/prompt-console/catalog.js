@@ -687,7 +687,7 @@ globalThis.NbtToolCatalog = {
         "overwrite": false,
         "max_writes": 4096
       },
-      "起终点Y为路面高度且须相同；straight / x_first / z_first自动生成连续道路，宽1～16、厚1～8，完整路面须在选区内；覆盖已有路面须显式开启，不自动避障。"
+      "起终点Y为同一高度的路面。宽度在路径两侧和起终点前后扩张，完整占用须在选区内。ROAD_BOUNDS 给出占用范围与越界方向。覆盖已有路面须显式开启。"
     ],
     "selection_replace": [
       "连通 / 表面选区换材",
@@ -852,7 +852,7 @@ globalThis.NbtToolCatalog = {
         "overwrite": false,
         "max_writes": 4096
       },
-      "roof=gable/hip/gambrel/dome/curved_hip。curved_hip 使用 curve_power、eave_lift、corner_lift 调整曲面、起翘与翼角，并连接相邻顶皮。footprint 为XZ角点，eaves 不得超选区。finish=blocks/slabs/stairs。屋面与宿主的梁柱支承、密闭和游戏表现另验。"
+      "ridge_axis 仅控制 gable 和 gambrel 的屋脊。hip、dome、curved_hip 按足迹生成。curved_hip 使用 curve_power、eave_lift、corner_lift 调整曲面、起翘与翼角。用 architect part-preflight 的 underside_xz 按世界坐标查屋底，梁柱支承和密闭另验。"
     ]
   },
   "labels": {
@@ -1042,7 +1042,61 @@ globalThis.NbtToolCatalog = {
     "architect": "nbt_architect.py",
     "session": "nbt_engine_session.py"
   },
+  "command_prefixes": {
+    "inspect": [
+      "inspect"
+    ],
+    "snapshot": [
+      "snapshot"
+    ],
+    "render": [
+      "render"
+    ],
+    "regress": [
+      "regress"
+    ]
+  },
+  "command_aliases": {
+    "task": [
+      "prompts",
+      "task"
+    ]
+  },
   "tool_routes": {
+    "任务与交接": [
+      {
+        "title": "读取已交接的提示词任务",
+        "call": "task --id <任务编号>",
+        "input": "从创作项目根目录运行，使用交接时生成的提示词任务编号。也可用 prompts task。",
+        "result": "回读任务文本、绑定文件与已校验的方案。读取任务与领取、建模、精修批准分开。"
+      },
+      {
+        "title": "查看任务记录和绑定证据",
+        "call": "task-client inspect <prompts 或 tasks> <任务编号>",
+        "input": "提示词任务用 prompts，已有建筑修改任务用 tasks。",
+        "result": "返回对应任务与来源绑定。需要执行时用 task-client start 明确领取。"
+      }
+    ],
+    "知识库": [
+      {
+        "title": "离线检索参考",
+        "call": "retrieve search --request <请求JSON>",
+        "input": "填 workflow 和 query。建筑方案用 prompt，独立构件用 component。",
+        "result": "返回已启用书库、文档与网页收藏的命中。把结果 id 填入 retrieve bundle 的 selected 生成引用集合。"
+      },
+      {
+        "title": "联网补查公开原页",
+        "call": "retrieve research --request <请求JSON>",
+        "input": "任务明确要求联网时填 workflow，提供公开 query 或已知 HTTPS urls。",
+        "result": "返回原文证据、来源和未完成项。默认取得一条即返回。"
+      },
+      {
+        "title": "管理网页证据收藏",
+        "call": "retrieve saved-web --request <请求JSON>",
+        "input": "填 workflow。action 为 list、add 或 remove，保存或移除时填已有的 web: 证据 id。",
+        "result": "保存的证据进入本工作流离线搜索，既有引用集合仍绑定原快照。"
+      }
+    ],
     "检查": [
       {
         "title": "校验候选快照",
@@ -23880,6 +23934,7 @@ globalThis.NbtToolCatalog = {
         },
         "ridge_axis": {
           "type": "string",
+          "description": "仅用于 gable 和 gambrel。hip、dome、curved_hip 根据足迹生成，回执的 ridge_axis_applied 为 null。",
           "enum": [
             "x",
             "z"
@@ -26419,6 +26474,20 @@ globalThis.NbtToolCatalog = {
           },
           "part": {
             "type": "string"
+          },
+          "underside_xz": {
+            "type": "array",
+            "description": "提供 part 后，可指定最多 32 个世界坐标 [x,z]，查询该构件每列最低的实体方块和材质。",
+            "minItems": 1,
+            "maxItems": 32,
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "integer"
+              }
+            }
           }
         },
         "additionalProperties": false
@@ -29252,6 +29321,17 @@ globalThis.NbtToolCatalog = {
                     "maxLength": 32
                   },
                   "minItems": 0,
+                  "maxItems": 128
+                },
+                "manual_locations": {
+                  "type": "array",
+                  "description": "从此图实际看清且自动取景结果为 uncertain_collision 的位置 ID。通过自动检查的位置用 locations。",
+                  "items": {
+                    "type": "string",
+                    "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                    "maxLength": 32
+                  },
+                  "minItems": 1,
                   "maxItems": 128
                 }
               },

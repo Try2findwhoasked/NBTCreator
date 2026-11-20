@@ -11,7 +11,7 @@
 ## 转换命令
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py control revision --request "D:/实际路径/保存的效果设置.json"
+mise run nbt -- control revision --request "D:/实际路径/保存的效果设置.json"
 ```
 
 转换器根据源建筑分配下一版本目录，回执给出实际制作源路径。
@@ -51,4 +51,4 @@ python .agents/skills/nbtcreator-workspace/nbt.py control revision --request "D:
 
 独立模式的非空 cells 描述有效 XZ 占地，保存时继承，定稿时据此切片。无 cells 或空 cells 使用完整包围盒的 XYZ 分片。
 
-回归：`check_web_revision_fixtures.py --output <全新目录>` 验证L形三片/六份分层、下一版编号、原稿保留、快照篡改拒绝与预算检查；这些只处理合成模型。
+回归：`python scripts/fixtures/run.py check_web_revision_fixtures.py --output <全新目录>` 验证L形三片/六份分层、下一版编号、原稿保留、快照篡改拒绝与预算检查；这些只处理合成模型。

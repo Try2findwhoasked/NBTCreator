@@ -19,9 +19,9 @@
 `control walk-inspect` 继续读取实际源／已绑定候选并输出报告，报告内含同样的解释。其他检查由原命令执行；无需为阅读解释再运行 GUI。
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py diagnostics --kind walk --report nbt_models/_workspaces/<任务>/walk-inspection.json
-python .agents/skills/nbtcreator-workspace/nbt.py diagnostics --kind candidate --report nbt_models/_workspaces/<任务>/validation.json
-python .agents/skills/nbtcreator-workspace/nbt.py diagnostics --kind protection --report <保存的结构化冲突details.json>
+mise run nbt -- diagnostics --kind walk --report nbt_models/_workspaces/<任务>/walk-inspection.json
+mise run nbt -- diagnostics --kind candidate --report nbt_models/_workspaces/<任务>/validation.json
+mise run nbt -- diagnostics --kind protection --report <保存的结构化冲突details.json>
 ```
 
 这个命令只解释已保存报告，输出 `input_report_sha256` 以绑定所读文件，并明确 `report_reverified:false`。它不重新读取模型，不能证明旧报告对当前版本仍有效。Agent 应先核对报告的 source_sha256、geometry_sha256、context_sha256 与当前任务；缺少绑定则重新运行实际检查。不得把通俗解释当作已经定位了唯一故障、已经完成修复或新的授权。
@@ -31,9 +31,8 @@ python .agents/skills/nbtcreator-workspace/nbt.py diagnostics --kind protection 
 在已同步 Skill 的创作项目根目录运行。先把每次 CLI 的 JSON 原始回执保存为文件。`model` 接受工作模型与建筑方案建模或验证回执。`review` 接受审阅包或 `review-record` 的观察记录。
 
 ```powershell
-$entry = '.agents/skills/nbtcreator-workspace/nbt.py'
-python $entry diagnostics --kind model --report <当前回执> --baseline <同一任务上次回执>
-python $entry diagnostics --kind review --report <review-notes.json>
+mise run nbt -- diagnostics --kind model --report <当前回执> --baseline <同一任务上次回执>
+mise run nbt -- diagnostics --kind review --report <review-notes.json>
 ```
 
 结果按错误码与目标身份分组，列出 `new` 和 `ongoing`。装配失败保留实例、子对象与接口，附报告已有的未知碰撞或缺失半格面样本。取景失败可定位到受影响机位，附报告已有的失败类型、目标方块与遮挡位置。坐标变化时同一目标仍可归入持续问题，证据取自本次回执。`evidence_pointer` 是 `report.path` 文件中的 JSON Pointer，空字符串表示报告根。省略 `--baseline` 时只汇总本次问题。`walk`、`protection`、`candidate` 使用 `--baseline` 或 `--incremental` 时也输出分组视图。使用建筑命令的 `--compact-report` 时，`--report` 传简明回执中 `report.path` 指向的完整文件。

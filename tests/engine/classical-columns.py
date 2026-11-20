@@ -3,7 +3,7 @@ import copy,sys,tempfile,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_structure_agent import dispatch,build
-from nbt_classical_column import ORDERS
+from nbt_building.classical_column import ORDERS
 
 
 class ClassicalColumns(unittest.TestCase):

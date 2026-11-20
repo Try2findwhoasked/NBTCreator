@@ -20,11 +20,12 @@ const input=process.argv.slice(2)
 let cliWorkspace=process.cwd()
 if(input[0]==='--workspace'){input.shift();const folder=input.shift();if(!folder)throw Error('--workspace requires a directory');cliWorkspace=path.resolve(folder)}
 let [command,...args]=input
-if(command==='task'){
- command='prompts'
- args=['task',...args]
+const {commands:scripts,command_prefixes:prefixes={},command_aliases:aliases={}}=JSON.parse(fs.readFileSync(path.join(skill,'tool-catalog.json'),'utf8'))
+if(Object.hasOwn(aliases,command)){
+ const [target,...prefix]=aliases[command]
+ command=target
+ args=[...prefix,...args]
 }
-const scripts=JSON.parse(fs.readFileSync(path.join(skill,'tool-catalog.json'),'utf8')).commands
 if(command==='doctor'){
  const run=spawnSync(python,['-c','import sys,numpy,PIL,nbtlib,json;print(json.dumps({"python":sys.executable,"version":sys.version,"numpy":numpy.__version__,"pillow":PIL.__version__,"nbtlib":nbtlib.__version__}))'],{encoding:'utf8',windowsHide:true,timeout:15000})
  const git=spawnSync(process.env.NBTCREATOR_GIT||'git',['--version'],{encoding:'utf8',windowsHide:true,timeout:15000})
@@ -38,9 +39,9 @@ if(command==='doctor'){
    python:run.status===0?JSON.parse(run.stdout):null,git:git.status===0?git.stdout.trim():null,
    error:run.error?.message||run.stderr?.trim()||git.error?.message||git.stderr?.trim()||null,hints},null,2))
  process.exitCode=hints.length?1:0
-}else if(scripts[command]){
+}else if(Object.hasOwn(scripts,command)){
  const script=path.join(skill,'scripts',scripts[command])
- const pass=['inspect','snapshot','render','regress'].includes(command)?[command,...args]:args
+ const pass=[...(prefixes[command]??[]),...args]
  const run=spawnSync(python,['-B',script,...pass],{cwd:cliWorkspace,stdio:'inherit',windowsHide:true,shell:false})
  if(run.error)console.error(launchError(run.error,cliWorkspace))
  process.exitCode=run.status??1
@@ -50,7 +51,7 @@ if(command==='doctor'){
   process.exitCode=1
  }else{
   console.log('Usage: nbt [--workspace <directory>] <command> [options]')
-  console.log('Commands: doctor | task | '+Object.keys(scripts).join(' | '))
+  console.log('Commands: '+['doctor',...Object.keys(scripts),...Object.keys(aliases)].join(' | '))
   console.log('用 capabilities --routes 速查入口，用 <命令> --help 查看参数。')
  }
 }

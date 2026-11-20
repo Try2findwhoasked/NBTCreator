@@ -69,7 +69,7 @@ clustered使用全局高斯值场、平滑插值、方差归一化和CDF映射�
 只查看会修改哪些方块，可用无写入主模型的计划入口：
 
 ```powershell
-$engine = python .agents/skills/nbtcreator-workspace/nbt.py paths | ConvertFrom-Json
+$engine = mise run nbt -- paths | ConvertFrom-Json
 python (Join-Path $engine.scripts 'nbt_patterns.py') plan --source <完整主模型> --operation <规则JSON> --output <新的计划目录>
 ```
 
@@ -85,4 +85,4 @@ apply 委托既有精修流程，沿用确认哈希、保护范围、变化预�
 
 NBT/世界互转继续原样保留。用户明确要随机处理时，在恢复的完整主模型中显式应用规则，另存新版本，再走适用验收；不改写既有存档、原始转换输出或房间池。
 
-回归：`python <skill>/scripts/check_pattern_fixtures.py --output <新的合成验证目录>`；该套也纳入nbt_task.py regress。只生成合成数据，不为用户资产制造确认。
+回归：`python <skill>/scripts/fixtures/run.py check_pattern_fixtures.py --output <新的合成验证目录>`；该套也纳入nbt_task.py regress。只生成合成数据，不为用户资产制造确认。

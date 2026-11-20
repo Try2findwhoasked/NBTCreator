@@ -125,9 +125,13 @@ def regress(output):
     results = []
     # Each existing probe has a distinct --output contract.
     files = {'check_collision_fixtures.py': 'collision.json'}
-    for script in sorted((ROOT / 'scripts').glob('check_*_fixtures.py')):
+    fixture_dir = ROOT / 'scripts' / 'fixtures'
+    suites = sorted(fixture_dir.glob('check_*_fixtures.py'))
+    if not suites:
+        raise FileNotFoundError(f'No regression fixtures in {fixture_dir}')
+    for script in suites:
         destination = output / files.get(script.name, script.stem)
-        cmd = [sys.executable, '-B', str(script), '--output', str(destination)]
+        cmd = [sys.executable, '-B', str(fixture_dir / 'run.py'), script.name, '--output', str(destination)]
         run = subprocess.run(cmd, capture_output=True, text=True, encoding='utf8', errors='replace')
         results.append(dict(script=script.name, passed=run.returncode == 0, stdout=run.stdout, stderr=run.stderr))
     report = dict(passed=all(r['passed'] for r in results), suites=len(results), results=results,

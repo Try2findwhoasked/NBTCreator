@@ -1,0 +1,171 @@
+import {latestSources,matchesProjectConstraint} from './project-catalog.js'
+import {createLibraryTreeRow} from '../library/library-browser.js'
+
+const idFor=(...parts)=>JSON.stringify(parts)
+const collator=new Intl.Collator('zh-CN',{numeric:true})
+
+export function createProjectTree({container,api,onSelect,onOpen,onStatus,onOrderChange,onManageRoom}){
+ const heading=document.createElement('div');heading.className='project-tree-heading'
+ const title=document.createElement('strong');title.textContent='项目文件夹'
+ const reset=document.createElement('button');reset.type='button';reset.id='project-tree-sort-reset';reset.className='project-tree-reset';reset.textContent='恢复文件夹排序';reset.title='恢复默认排序（bugged 放最后）';reset.setAttribute('aria-label','恢复默认排序')
+ heading.append(title,reset)
+ const hint=document.createElement('p');hint.className='project-tree-hint';hint.textContent='拖动排序 · Alt + ↑ / ↓ 移动'
+ const tree=document.createElement('div');tree.className='project-tree-list';tree.setAttribute('role','tree');tree.setAttribute('aria-label','项目文件')
+ container.replaceChildren(heading,hint,tree)
+ let models=[],orders={},roots=[],nodes=new Map(),expanded=new Set(),focused='',selected={},saving=Promise.resolve(),dragged='',initialized=false,sortCache=new Map(),objectOrder=null
+ function sorted(children,parent){
+  if(sortCache.has(parent))return sortCache.get(parent)
+  const saved=orders[parent]||[]
+  const positions=new Map(saved.map((id,index)=>[id,index]))
+  const result=[...children].sort((a,b)=>{
+   const x=positions.get(a.id)??-1,y=positions.get(b.id)??-1
+   if(x>=0||y>=0)return (x<0?Infinity:x)-(y<0?Infinity:y)
+   return Number(a.shape==='bugged')-Number(b.shape==='bugged')||collator.compare(a.label,b.label)
+  })
+  sortCache.set(parent,result);return result
+ }
+ function invalidate(){sortCache.clear();objectOrder=null}
+ function save(){
+  onStatus('正在保存项目排序…')
+  const snapshot=structuredClone({orders})
+  saving=saving.catch(()=>{}).then(()=>api('project-layout',snapshot))
+  saving.then(()=>onStatus('项目排序已保存到当前工作区')).catch(error=>onStatus('排序未保存：'+error.message))
+ }
+ function siblings(node){return node.parent==='root'?roots:nodes.get(node.parent)?.children||[]}
+ function move(node,target,after=false){
+  if(!target||target.id===node.id||target.parent!==node.parent)return
+  const list=sorted(siblings(node),node.parent).map(item=>item.id).filter(id=>id!==node.id),index=list.indexOf(target.id)
+  if(index<0)return
+  list.splice(index+(after?1:0),0,node.id);orders[node.parent]=list;invalidate();focused=node.id;render();onOrderChange();save()
+ }
+ function select(node){
+  const folder=node.children.length>0
+  selected={project:node.project,shape:node.kind==='project'?'*':node.shape,object:node.kind==='object'?node.object:'',constraint:node.constraint}
+  if(folder){if(expanded.has(node.id))expanded.delete(node.id);else expanded.add(node.id)}
+  focused=node.id;onSelect(selected)
+  if(folder)render();else for(const row of tree.querySelectorAll('[role=treeitem]'))row.setAttribute('aria-selected',String(isSelected(nodes.get(row.dataset.nodeId))))
+ }
+ function isSelected(node){if(selected.constraint!==node.constraint)return false;return node.kind==='object'?selected.object===node.object:node.kind==='shape'?selected.project===node.project&&selected.shape===node.shape&&!selected.object:selected.project===node.project&&selected.shape==='*'&&!selected.object}
+ function render(){
+  title.textContent=roots.length===1?'项目文件夹':'我的项目'
+  const wasFocused=tree.contains(document.activeElement),scrollTop=tree.scrollTop;tree.replaceChildren()
+  const all=document.createElement('button');all.type='button';all.className='project-tree-all';all.textContent='全部项目';all.onclick=()=>{selected={project:'*',shape:'*',object:''};onSelect(selected);render()};tree.append(all)
+  const visible=[]
+  function append(node,level){
+   const caption=node.kind==='project'&&roots.length===1?'我的项目':node.label
+   const {row,toggle,button:label}=createLibraryTreeRow({label:caption,level,folder:node.kind!=='object',count:node.count,expanded:node.children.length?expanded.has(node.id):undefined});row.dataset.nodeId=node.id;row.dataset.nodeKind=node.kind;row.dataset.shape=node.shape||'';row.setAttribute('aria-selected',String(isSelected(node)));row.setAttribute('aria-keyshortcuts','Alt+ArrowUp Alt+ArrowDown');row.draggable=true;row.title=node.kind==='object'?(node.item?caption+'\n'+(node.item.relative_path||'')+'\n双击进入模型编辑；拖动或 Alt + 方向键排序':caption+' · 等待制作版'):caption+'；拖动排序'
+   toggle.onclick=()=>{focused=node.id;if(expanded.has(node.id))expanded.delete(node.id);else expanded.add(node.id);render()}
+   row.onclick=event=>{if(event.target.closest('.project-tree-toggle,.project-tree-move'))return;select(node)}
+   if(node.kind==='object'&&node.item)label.ondblclick=()=>onOpen(node.item)
+   if(node.room&&!node.item){row.title=caption+' · 双击管理房间';label.ondblclick=()=>onManageRoom(node.room)}
+   const peers=sorted(siblings(node),node.parent),index=peers.findIndex(item=>item.id===node.id)
+   for(const [direction,symbol,title]of [[-1,'↑','上移'],[1,'↓','下移']]){const button=document.createElement('button');button.type='button';button.className='project-tree-move';button.tabIndex=-1;button.textContent=symbol;button.setAttribute('aria-label',title+caption);button.disabled=index+direction<0||index+direction>=peers.length;button.onclick=()=>move(node,peers[index+direction],direction>0);row.append(button)}
+   row.onfocus=()=>{focused=node.id;visible.forEach(element=>element.tabIndex=element===row?0:-1)}
+   row.onkeydown=event=>{
+    const target=visible.indexOf(row);let next
+    if(event.altKey&&(event.key==='ArrowUp'||event.key==='ArrowDown')){const delta=event.key==='ArrowUp'?-1:1;move(node,peers[index+delta],delta>0)}
+    else if(event.key==='ArrowDown')next=visible[target+1]
+    else if(event.key==='ArrowUp')next=visible[target-1]
+    else if(event.key==='Home')next=visible[0]
+    else if(event.key==='End')next=visible.at(-1)
+    else if(event.key==='ArrowRight'&&node.children.length){if(!expanded.has(node.id)){expanded.add(node.id);render()}else next=visible[target+1]}
+    else if(event.key==='ArrowLeft'){if(expanded.has(node.id)){expanded.delete(node.id);render()}else next=visible.find(element=>element.dataset.nodeId===node.parent)}
+    else if(event.key==='Enter'&&node.room&&!node.item)onManageRoom(node.room)
+    else if(event.key==='Enter')select(node)
+    else if(event.key===' '&&node.children.length){if(expanded.has(node.id))expanded.delete(node.id);else expanded.add(node.id);render()}
+    else return
+    event.preventDefault();next?.focus()
+   }
+   row.ondragstart=event=>{dragged=node.id;event.dataTransfer.setData('application/x-nbtcreator-node',node.id);event.dataTransfer.effectAllowed='move';row.classList.add('dragging')}
+   row.ondragover=event=>{const source=nodes.get(dragged);if(source&&source.parent===node.parent){event.preventDefault();event.dataTransfer.dropEffect='move';row.classList.add('drop-target')}}
+   row.ondragleave=()=>row.classList.remove('drop-target')
+   row.ondragend=()=>{dragged='';tree.querySelectorAll('.dragging,.drop-target').forEach(item=>item.classList.remove('dragging','drop-target'))}
+   row.ondrop=event=>{event.preventDefault();const source=nodes.get(dragged);row.classList.remove('drop-target');if(source)move(source,node,event.clientY>row.getBoundingClientRect().top+row.offsetHeight/2);dragged=''}
+   visible.push(row);tree.append(row)
+   if(expanded.has(node.id))for(const child of sorted(node.children,node.id))append(child,level+1)
+  }
+  for(const node of sorted(roots,'root'))append(node,0)
+  tree.scrollTop=scrollTop
+  const active=visible.find(row=>row.dataset.nodeId===focused)||visible[0];if(active){active.tabIndex=0;if(wasFocused)active.focus({preventScroll:true})}
+ }
+ function update(items,folders=[],layout={}){
+  models=items;nodes=new Map();roots=[];invalidate();const latest=latestSources(models)
+  const grouped=new Set((layout.layoutProjects??[]).map(folder=>folder==='nbt_models'?'':folder.slice('nbt_models/'.length)))
+  function addProject(project,label){
+   const id=idFor('project',project)
+   if(!nodes.has(id)){const node={id,kind:'project',project,label,parent:'root',children:[],count:0};nodes.set(id,node);roots.push(node)}
+   return nodes.get(id)
+  }
+  function addShape(parent,shape,label){
+   const id=idFor('shape',parent.project,shape)
+   if(!nodes.has(id)){const node={id,kind:'shape',project:parent.project,shape,label,parent:parent.id,children:[],count:0};nodes.set(id,node);parent.children.push(node)}
+   return nodes.get(id)
+  }
+  for(const item of models){
+   if(grouped.has(item.project_key)&&item.room_id)continue
+   const project=addProject(item.project_key,item.project_name),shape=addShape(project,item.shape_group,item.shape_group_zh),objectKey=item.object_key||item.group||item.source,objectId=idFor('object',objectKey)
+   if(!nodes.has(objectId)){const node={id:objectId,kind:'object',project:item.project_key,shape:item.shape_group,object:objectKey,label:item.object_name||item.name_zh||item.name||item.label,parent:shape.id,children:[],count:0,item};nodes.set(objectId,node);shape.children.push(node);project.count++;shape.count++}
+   const node=nodes.get(objectId);node.count++;if(latest.has(item.source))node.item=item
+  }
+  for(const folder of folders){const project=addProject(folder.project,folder.projectLabel);if(folder.shape&&!grouped.has(folder.project))addShape(project,folder.shape,folder.shapeLabel)}
+  const groups=new Map(),versions=new Map()
+  for(const item of models)if(item.room_id){
+   const prior=versions.get(item.room_id)??{count:0}
+   prior.count++;if(latest.has(item.source)||!prior.item)prior.item=item
+   versions.set(item.room_id,prior)
+  }
+  function addGroup(project,constraint,label){
+   const id=idFor('constraint',project.project,constraint)
+   if(!groups.has(id)){
+    const group={id,kind:'constraint',project:project.project,constraint,label,shape:'*',parent:project.id,children:[],count:0}
+    project.children.push(group);groups.set(id,group);nodes.set(id,group)
+   }
+   return groups.get(id)
+  }
+  const rules=layout.constraintGroups??[]
+  const builtinReferences=new Set([...(layout.rooms??[]),...models].flatMap(item=>(item.constraint_ids??[]).map(id=>idFor(item.project_key,id))))
+  for(const rule of rules){
+   if(rule.project_key!==null)addProject(rule.project_key,rule.project_key||'我的项目')
+  }
+  const legacyModels=models.filter(item=>!item.room_id&&item.constraint_ids?.length)
+  for(const rule of rules){
+   const projects=rule.project_key===null?roots:[nodes.get(idFor('project',rule.project_key))]
+   for(const project of projects){
+    if(rule.builtin&&!builtinReferences.has(idFor(project.project,rule.id)))continue
+    const group=addGroup(project,rule.id,rule.name+(rule.archived?'（已归档）':''))
+    const matched=new Map()
+    for(const item of legacyModels){
+     if(item.project_key!==project.project||!matchesProjectConstraint(item,rule))continue
+     const key=item.object_key||item.group||item.source
+     const record=matched.get(key)??{count:0,item}
+     record.count++;if(latest.has(item.source))record.item=item
+     matched.set(key,record)
+    }
+    for(const [key,{count,item}] of matched){
+     const id=idFor('constraint-room',group.id,key)
+     const node={id,kind:'object',project:project.project,constraint:rule.id,shape:item.shape_group,object:key,label:item.object_name||item.name_zh||item.name,parent:group.id,children:[],count,item}
+     nodes.set(id,node);group.children.push(node);group.count++
+    }
+   }
+  }
+  for(const room of layout.rooms??[]){
+   const project=addProject(room.project_key,room.project_key||'我的项目')
+   const refs=new Set(room.constraint_ids)
+   if(!room.owner_constraint_id)refs.add('unassigned')
+   for(const constraint of refs){
+    const id=idFor('constraint',project.project,constraint)
+    const group=groups.get(id)??(constraint==='unassigned'?addGroup(project,constraint,'未归组'):null)
+    if(!group)continue
+    const link=idFor('room',group.id,room.id),info=versions.get(room.id)
+    const node={id:link,kind:'object',project:project.project,constraint,shape:room.shape,object:room.id,label:room.name,parent:group.id,children:[],count:info?.count??0,item:info?.item,room}
+    nodes.set(link,node);group.children.push(node);group.count++
+   }
+   project.count++
+  }
+  if(!initialized&&roots.length){if(roots.length===1)expanded.add(roots[0].id);initialized=true}
+  render()
+ }
+ reset.onclick=()=>{orders={};invalidate();render();onOrderChange();save()}
+ api('project-layout').then(value=>{orders=value.orders||{};invalidate();render();onOrderChange()}).catch(error=>onStatus('无法读取项目排序：'+error.message))
+ return {update,revealProject(project){const id=idFor('project',project);if(!expanded.has(id)){expanded.add(id);render()}},orderedObjects(){if(objectOrder)return objectOrder;const result=new Set();function visit(children,parent){for(const node of sorted(children,parent)){if(node.kind==='object')result.add(node.object);else visit(node.children,node.id)}}visit(roots,'root');objectOrder=[...result];return objectOrder},select(value){selected=value;for(const row of tree.querySelectorAll('[role=treeitem]'))row.setAttribute('aria-selected',String(isSelected(nodes.get(row.dataset.nodeId))))}}
+}

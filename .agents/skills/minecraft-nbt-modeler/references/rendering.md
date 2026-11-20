@@ -2,7 +2,7 @@
 
 NBTCreator 1.1的桌面包和已构建skill使用web-dist静态页面/资源，由本机HTTP服务加载，不需要Vite运行服务。工作区同步会带上构建资源；无构建的源码副本仍可按下方npm ci安装开发依赖，或在NBTCreator根目录运行npm run build:web。批量出图仍需Node、Playwright及可用浏览器，不把移除Vite服务解释成移除了这些依赖。
 
-通过应用同步工作区 Skill 时，会同时保存 `.nbtcreator/render-runtime.json`：以该配置文件为基准的相对路径关联应用已安装的 Playwright、Node 和可选便携浏览器。外部 Agent 直接使用 `python .agents/skills/nbtcreator-workspace/nbt.py render ...`；无需打开 Electron、手工找安装路径或给每个工作区复制 node_modules。渲染脚本和前端仍使用工作区冻结版本，只共享依赖，并核对 Playwright 版本。跨磁盘无法相对表示时才保留绝对路径。
+通过应用同步工作区 Skill 时，会同时保存 `.nbtcreator/render-runtime.json`：以该配置文件为基准的相对路径关联应用已安装的 Playwright、Node 和可选便携浏览器。外部 Agent 直接使用 `mise run nbt -- render ...`；无需打开 Electron、手工找安装路径或给每个工作区复制 node_modules。渲染脚本和前端仍使用工作区冻结版本，只共享依赖，并核对 Playwright 版本。跨磁盘无法相对表示时才保留绝对路径。
 
 将应用和工作区一起保持相对位置移动，关联仍可解析；单独搬走工作区或卸载应用后若依赖不存在，在新应用中重新同步暴露配置，或按下方锁文件安装独立依赖。不要把工作区绑定文件或环境变量当作跨机器自带运行时的保证。需要显式指定共享 Playwright 时可设置 `NBTCREATOR_PLAYWRIGHT_MODULE` 为其模块目录，版本仍须匹配本 skill 的 package.json。
 
@@ -13,10 +13,10 @@ NBTCreator 1.1的桌面包和已构建skill使用web-dist静态页面/资源，�
 从已同步的创作项目根目录批量出图，再用图像查看工具打开落盘 PNG。源码维护可从仓库根目录运行 `mise run nbt -- --workspace <隔离创作项目> render ...`。
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py render --source <完整主模型SNBT> --cameras <相机列表JSON> --output <任务目录>/previews/texture_v01 --file-prefix YYYY-MM-DD_r001_
+mise run nbt -- render --source <完整主模型SNBT> --cameras <相机列表JSON> --output <任务目录>/previews/texture_v01 --file-prefix YYYY-MM-DD_r001_
 ```
 
-control preview 的 before.json/after.json 是展示快照，不能传给 --source 或冒充已落盘主模型。候选出同相机图使用 `nbt.py render --snapshot <before或after.json> --cameras <相机列表JSON> --output <全新目录>`。此入口核对原稿 SHA256、预览原始几何指纹、实际展示状态与尺寸，仍只输出图片，不生成 NBT 或批准，也不认证候选通路。原稿或快照变化后重新计算候选。--snapshot 不和 --source/--provenance 混用。
+control preview 的 before.json/after.json 是展示快照，不能传给 --source 或冒充已落盘主模型。候选出同相机图使用 `mise run nbt -- render --snapshot <before或after.json> --cameras <相机列表JSON> --output <全新目录>`。此入口核对原稿 SHA256、预览原始几何指纹、实际展示状态与尺寸，仍只输出图片，不生成 NBT 或批准，也不认证候选通路。原稿或快照变化后重新计算候选。--snapshot 不和 --source/--provenance 混用。
 
 将日期、房间编号、路径替换为本次实际值。输出目录必须不存在；已审阅的图像与哈希不覆盖，重出图另建版本目录。`--provenance <operations.json>` 可附带匹配当前几何的操作来源；不匹配则拒绝，不从材质猜墙或从单个稀疏层冒充完整来源。
 
@@ -59,7 +59,7 @@ npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
 半格剖切使用 `nbt_preview.py` 直接读取落盘的 SNBT 制作版，输出纯色诊断 PNG 和含源哈希、切面及几何近似的 JSON。旧完整 NBT 的 `--nbt` 用法继续有效。
 
 ```powershell
-$engine = python .agents/skills/nbtcreator-workspace/nbt.py paths | ConvertFrom-Json
+$engine = mise run nbt -- paths | ConvertFrom-Json
 python (Join-Path $engine.scripts 'nbt_preview.py') --source <制作版model.snbt> --cut 'y:12.5:above' --eye '58,45,-18' --target '24,5,24' --output <新诊断图.png>
 ```
 
@@ -80,7 +80,7 @@ python (Join-Path $engine.scripts 'nbt_preview.py') --source <制作版model.snb
 ## 网页保留给用户交互
 
 ```powershell
-$engine = python .agents/skills/nbtcreator-workspace/nbt.py paths | ConvertFrom-Json
+$engine = mise run nbt -- paths | ConvertFrom-Json
 python (Join-Path $engine.scripts 'nbt_task.py') preview --source <完整主模型> --cameras <相机列表JSON> --output <任务目录>/previews/新网页快照.json
 ```
 

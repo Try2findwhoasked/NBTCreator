@@ -13,6 +13,12 @@ const output=path.join(root,'build','retrieval-'+Date.now()),workspace=path.join
 await fs.mkdir(workspace,{recursive:true});const env={...process.env,NBTCREATOR_AUTOMATION:'1',OPENBLAS_NUM_THREADS:'1',OMP_NUM_THREADS:'1'};delete env.ELECTRON_RUN_AS_NODE
 const seed=spawnSync(python,['-c',`import sys,json;sys.path.insert(0,sys.argv[1]);from nbt_components import store;print(json.dumps(store(sys.argv[2],dict(schema_version=1,name='水渠桥',tags=['水渠','支承'],size=[9,4,3],anchor=[4,0,1],palette=['stone_bricks'],blocks=[[x,0,1,0,False] for x in range(9)]))))`,path.join(skill,'scripts'),workspace],{encoding:'utf8',windowsHide:true,env});assert.equal(seed.status,0,seed.stderr);const original=JSON.parse(seed.stdout),source=path.join(workspace,'.nbtcreator/components',original.id+'.json'),hash=file=>fs.readFile(file).then(raw=>createHash('sha256').update(raw).digest('hex')),sourceHash=await hash(source)
 const doc=path.join(output,'桥梁规范.md'),secret=path.join(output,'未选中的内部资料.md');await fs.writeFile(doc,'# 水渠桥支承\n水渠桥两侧要有支承，保留桥下排水。\n\n# 仓库规范\n无关的储物布局。');await fs.writeFile(secret,'水渠桥支承 NEVER_SEND_UNSELECTED_DOCUMENT')
+const library=path.join(workspace,'建筑参考书库');await fs.mkdir(library);const windowText='# 圆窗\n玫瑰窗的窗饰沿石环放射。\n'
+await fs.writeFile(path.join(library,'windows.md'),windowText)
+await fs.writeFile(path.join(library,'knowledge.json'),JSON.stringify({schema_version:1,id:'fixture-windows',version:'1',documents:[{
+ id:'windows',file:'windows.md',title:'窗饰图录',author:'Fixture Archive',styles:['gothic'],source:'https://example.org/rose',
+ bytes:Buffer.byteLength(windowText),sha256:createHash('sha256').update(windowText).digest('hex'),license:'fixture',
+}]}))
 const internal=createInternalAI({workspace:()=>workspace,skill});let config=await internal.importDocuments([doc,secret]);const document=config.documents.find(item=>item.label==='桥梁规范.md');config.workflows.component.knowledge=[document.id];config.workflows.prompt.knowledge=[document.id];await internal.save({workflows:config.workflows})
 const server=await createFetchServer(async(req,res)=>{let raw='';for await(const c of req)raw+=c;const body=JSON.parse(raw);requests.push(body);const data=JSON.parse(body.messages[1].content),asset=data.context?.references?.[0];res.setHeader('content-type','application/json');res.end(JSON.stringify({choices:[{finish_reason:'stop',message:{content:asset?JSON.stringify({name:'水渠桥复用',size:[4,6,10],placements:[{id:asset.id,content_sha256:asset.content_sha256,position:[1,0,4],quarter_turns:1,material_map:{'minecraft:stone_bricks':'gold_block'}}]}):'参考 R1：保留桥下排水，桥面由两侧支承。'}}]}))})
 try{
@@ -28,6 +34,53 @@ try{
  await click('[data-workspace=prompt]');const frame=page.frameLocator('#prompt-frame');await frame.locator('#prompt-ai-mode').selectOption('text');await frame.locator('#prompt-ai-instruction').fill('润色水渠桥支承');await frame.locator('#prompt-ai-references').evaluate(node=>node.click());await page.locator('#reference-picker').waitFor();await click('#reference-close');await frame.locator('#prompt-ai-generate').evaluate(node=>node.click());await page.waitForFunction(()=>document.querySelector('#prompt-frame').contentDocument.querySelector('#prompt-ai-candidate').value.includes('参考 R1'));assert.ok((await frame.locator('#prompt-ai-sources').textContent()).includes('桥梁规范'));assert.equal(requests.length,3);checks.prompt_workbench_shares_local_picker_and_displays_supplied_sources=true
  await click('[data-workspace=assets]');
  await click('#asset-create-agent');await page.waitForFunction(()=>!document.querySelector('#component-generate').disabled);await fs.appendFile(path.join(workspace,'.nbtcreator/internal-ai/knowledge',document.id+'.md'),'\nchanged');await click('#component-generate');await page.waitForFunction(()=>!document.querySelector('#component-generate').disabled&&document.querySelector('#component-status').textContent.includes('变化'));assert.equal(requests.length,3);assert.equal(await page.locator('#component-write').isDisabled(),true);checks.changed_reference_is_rejected_before_provider_call_or_new_asset_save=true
+ // Restore the unrelated excerpt to exercise the existing prompt workflow with an external book.
+ await fs.writeFile(path.join(workspace,'.nbtcreator/internal-ai/knowledge',document.id+'.md'),await fs.readFile(doc));await click('#component-close')
+ await app.evaluate(({dialog},directory)=>{const previous=dialog.showOpenDialog;dialog.showOpenDialog=async()=>{dialog.showOpenDialog=previous;return {canceled:false,filePaths:[directory]}}},library)
+ await page.evaluate(()=>window.nbtReferencePicker.open({workflow:'prompt',query:'玫瑰窗 放射式'}));await click('#reference-libraries summary');await page.locator('#reference-library-list p').waitFor()
+ await click('#reference-library-add');const bookCheck=page.locator('[data-reference-id^="knowledge:library:"]');await bookCheck.waitFor();assert.equal(requests.length,3)
+ await click('.reference-card:has([data-reference-id^="knowledge:library:"]) button');await page.locator('#reference-document-text').waitFor()
+ assert.match(await page.locator('#reference-document-text').textContent(),/Fixture Archive[\s\S]*原文第[\s\S]*窗饰沿石环放射/)
+ await bookCheck.check();await click('#reference-use');await page.waitForFunction(()=>!document.querySelector('#reference-picker').open)
+ const bookReceipt=await page.evaluate(()=>window.nbtReferencePicker.receipt('prompt'));await fs.writeFile(request,JSON.stringify({workflow:'prompt',...bookReceipt}))
+ const external=spawnSync(python,[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'retrieve','read','--request',request],{cwd:workspace,encoding:'utf8',windowsHide:true,env})
+ assert.equal(external.status,0,external.stdout+external.stderr);const sourceProof=JSON.parse(external.stdout).sources[0];assert.equal(sourceProof.bibliography.source_url,'https://example.org/rose')
+ await page.evaluate(retrieval=>window.nbtDesktop.apiGenerate({mode:'prompt',instruction:'为玫瑰窗写方案',retrieval}),bookReceipt)
+ assert.equal(requests.length,4);const bookInput=JSON.parse(requests[3].messages[1].content)
+ assert.equal(bookInput.internal_workflow.knowledge.length,1);assert.equal(bookInput.internal_workflow.knowledge[0].content,windowText.trimEnd())
+ assert.equal(bookInput.internal_workflow.reference_sources[0].passage_sha256,sourceProof.passage_sha256)
+ assert.ok(stringValues(bookInput).every(value=>!value.includes(workspace)));checks.desktop_connects_books_offline_and_cli_and_model_read_same_verified_citation=true
+
+ const publicText='The stone ribs of the rose window radiate from the center.'
+ await fs.writeFile(request,JSON.stringify({workflow:'prompt',evidence:[{source_url:'https://example.org/rose',title:'Public rose window archive',
+  publisher:'Example Archive',section:'Construction',text:publicText,content_kind:'excerpt',accessed_at:new Date().toISOString(),reader:'Fixture web reader'}]}))
+ const imported=spawnSync(python,[path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'),'retrieve','import-web','--request',request],{cwd:workspace,encoding:'utf8',windowsHide:true,env})
+ assert.equal(imported.status,0,imported.stdout+imported.stderr);const onlineEvidence=JSON.parse(imported.stdout).evidence
+ const onlineCalls=[]
+ await page.route('**/__detail__/retrieve/research',route=>{
+  onlineCalls.push(route.request().postDataJSON());return route.fulfill({json:{evidence:onlineEvidence,failures:[],metrics:{cache_hit:false}}})
+ })
+ await page.evaluate(()=>window.nbtReferencePicker.open({workflow:'prompt',query:'玫瑰窗 放射式'}))
+ await bookCheck.waitFor();await bookCheck.check();await click('#reference-online summary');assert.equal(await page.locator('#reference-online-query').inputValue(),'')
+ assert.equal(onlineCalls.length,0);await page.locator('#reference-online-query').fill('public rose window stone ribs');await click('#reference-online-submit')
+ const webCheck=page.locator('[data-reference-id^="web:"]');await webCheck.waitFor();assert.ok(await bookCheck.isChecked());await webCheck.check()
+ assert.deepEqual(onlineCalls,[{workflow:'prompt',query:'public rose window stone ribs',refresh:false}]);assert.equal(requests.length,4)
+ assert.match(await page.locator('.reference-card:has([data-reference-id^="web:"])').textContent(),/Example Archive.*Construction.*宿主记录/)
+ await click('[data-web-favorite]');await page.getByRole('button',{name:'取消收藏',exact:true}).waitFor();assert.ok(await bookCheck.isChecked());assert.ok(await webCheck.isChecked())
+ await click('#reference-use');await page.waitForFunction(()=>!document.querySelector('#reference-picker').open)
+ const mixedReceipt=await page.evaluate(()=>window.nbtReferencePicker.receipt('prompt'))
+ await page.evaluate(retrieval=>window.nbtDesktop.apiGenerate({mode:'prompt',instruction:'讨论石窗纹样',retrieval}),mixedReceipt)
+ const mixedInput=JSON.parse(requests[4].messages[1].content).internal_workflow
+ assert.deepEqual(mixedInput.knowledge.map(item=>item.content),[windowText.trimEnd(),publicText])
+ assert.equal(mixedInput.reference_sources[1].bibliography.source_url,'https://example.org/rose');assert.equal(onlineCalls.length,1)
+ checks.web_research_requires_explicit_public_input_and_mixes_citations_without_reopening_source=true
+ await page.evaluate(()=>window.nbtReferencePicker.open({workflow:'prompt',query:'玫瑰窗 窗饰'}))
+ await webCheck.waitFor();assert.equal(onlineCalls.length,1);assert.equal(requests.length,5)
+ await click('#reference-saved');await page.waitForFunction(()=>document.querySelector('#reference-status').textContent.includes('已载入 1 条网页收藏'))
+ await click('[data-web-favorite]');await webCheck.waitFor({state:'detached'});assert.equal(onlineCalls.length,1)
+ const historical=await page.evaluate(async receipt=>(await fetch('/__detail__/retrieve/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({workflow:'prompt',...receipt})})).json(),mixedReceipt)
+ assert.ok(historical.sources.some(item=>item.bibliography?.source_url==='https://example.org/rose'));checks.saved_web_is_available_offline_after_reopening_and_removal_preserves_citation=true
+ await click('#reference-close')
  assert.equal(await hash(source),sourceHash);assert.deepEqual(errors,[]);assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized()),true);checks.source_preserved_and_window_minimized_without_renderer_errors=true
  await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks},null,2));console.log(JSON.stringify({passed:true,checks:Object.keys(checks).length,output}))
 }catch(error){if(page)console.error(JSON.stringify({output,status:await page.locator('#component-status').textContent().catch(()=>''),references:await page.locator('#reference-status').textContent().catch(()=>''),errors}));throw error}finally{await app?.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve))}

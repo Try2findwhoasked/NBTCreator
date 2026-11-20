@@ -118,7 +118,7 @@ def dispatch(workspace,action,request):
     if action in ACTIONS:return constraints(workspace,action,request)
     from nbt_catalog import catalog
     if action in catalog().get('architecture',{}).get('actions',{}):
-        from nbt_architecture import dispatch as architectural_workflow
+        from nbt_building.workflow import dispatch as architectural_workflow
         return architectural_workflow(workspace,action,request)
     if action in ('standards-get','standards-save'):return standards(workspace,action,request)
     if action=='deliveries':
@@ -144,22 +144,37 @@ def dispatch(workspace,action,request):
 COMPACT_ACTIONS = ('part-preflight', 'plan-build', 'plan-check', 'review-prepare')
 
 
-def compact(workspace, action, request, result, report_file):
+def attach_next(workspace, action, request, result, report_file=None):
+    if not result.get('ok', True):
+        return
+    source = result.get('revision_request')
+    if source is None and action == 'plan-check':
+        source = request
+    if source and 'source' in source and 'source_sha256' in source:
+        if report_file is None:
+            from uuid import uuid4
+            output = workspace / 'nbt_models/_workspaces/architecture-review' / uuid4().hex
+        else:
+            output = report_file.with_name(report_file.stem + '-review')
+        result['next'] = dict(action='review-prepare', request=dict(
+            source=source['source'], source_sha256=source['source_sha256'],
+            output=relative(workspace, output)))
+
+
+def compact(action, result, report_file):
     from nbt_diagnostic_delta import summary
 
     keys = ('plan_sha256', 'pack', 'pack_sha256', 'source', 'cameras', 'render_command',
-            'read_only', 'asset_written', 'approval_created', 'nbt_exported', 'code')
+            'read_only', 'asset_written', 'approval_created', 'nbt_exported', 'code',
+            'next', 'revision_request', 'review_record_bindings')
     reply = {key: result[key] for key in keys if key in result}
     reply.update(ok=result.get('ok', True), report=dict(path=str(report_file), sha256=file_hash(report_file)))
     if not reply['ok']:
         reply['error'] = result['code'] if result['conflicts'] else result['error']
     if action == 'review-prepare' and reply['ok']:
         coverage = result['coverage']
-        render_manifest = Path(result['render_command'][-1])/'render_manifest.json'
         reply.update(source_sha256=coverage['source_sha256'], coverage_passed=coverage['coverage_passed'],
                      visual_status=coverage['visual_status'], approval_created=False,
-                     review_record_bindings=dict(pack=result['pack'], pack_sha256=result['pack_sha256'],
-                         revision=0, render_manifest=relative(workspace, render_manifest)),
                      review_locations=[{key: row[key] for key in ('id', 'views', 'position', 'passed')}
                          for row in coverage['review_locations'][:16]],
                      review_location_count=len(coverage['review_locations']))
@@ -169,7 +184,8 @@ def compact(workspace, action, request, result, report_file):
     if action == 'part-preflight' and reply['ok']:
         reply['parts'] = [dict(id=part['id'], interface_issue_count=len(part['interface_issues']),
             interface_issues=part['interface_issues'][:2], state_count=len(part['states'] or []),
-            state_limitations=[row for row in (part['states'] or []) if row['reason']][:4])
+            state_limitations=[row for row in (part['states'] or []) if row['reason']][:4],
+            **({'underside': part['underside']} if 'underside' in part else {}))
             for part in result['parts'][:16]]
         reply['part_count'] = len(result['parts'])
     else:
@@ -178,15 +194,8 @@ def compact(workspace, action, request, result, report_file):
         if review is not None:
             reply['pending_views'] = review['pending_views']
     saved = result.get('saved')
-    source = {}
     if saved:
-        source = {key: saved[key] for key in ('source', 'source_sha256')}
-        reply['saved'] = dict(source, revision=saved['revision'], draft_only=saved['draft_only'])
-    elif action == 'plan-check':
-        source = {key: request[key] for key in ('source', 'source_sha256') if key in request}
-    if reply['ok'] and len(source) == 2:
-        output = report_file.with_name(report_file.stem + '-review')
-        reply['next'] = dict(action='review-prepare', request=dict(source, output=relative(workspace, output)))
+        reply['saved'] = {key: saved[key] for key in ('source', 'source_sha256', 'revision', 'draft_only')}
     return reply
 
 
@@ -197,13 +206,17 @@ def main():
     parser.add_argument('--compact-report', type=Path, help='简明回执，显式写完整JSON到 nbt_models 内的全新文件，父目录须已存在（part-preflight / plan-build / plan-check / review-prepare）')
     args=parser.parse_args()
 
-    def run():
+    workspace = args.workspace.resolve()
+
+    def run(report_file=None):
         try:
-            request=read(args.request,{}) if args.request else {}
-            return request,dispatch(args.workspace,args.action,request),0
-        except (ValueError,OSError,KeyError,TypeError) as error:
-            return {},dict(ok=False,error=str(error),code=getattr(error,'code','ARCHITECT_INVALID'),
-                conflicts=getattr(error,'conflicts',[])),1
+            request = read(args.request, {}) if args.request else {}
+            result = dispatch(workspace, args.action, request)
+            attach_next(workspace, args.action, request, result, report_file)
+            return result, 0
+        except (ValueError, OSError, KeyError, TypeError) as error:
+            return dict(ok=False, error=str(error), code=getattr(error, 'code', 'ARCHITECT_INVALID'),
+                        conflicts=getattr(error, 'conflicts', [])), 1
 
     if args.compact_report:
         if args.action not in COMPACT_ACTIONS:
@@ -214,13 +227,13 @@ def main():
                     or any((parent/'model-version.json').is_file() for parent in report_file.parents)):
                 raise ValueError('完整回执不能写入定稿目录或已发布制作版')
             with report_file.open('xb') as stream:
-                request,result,status=run()
+                result, status = run(report_file)
                 stream.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
-            result=compact(args.workspace.resolve(),args.action,request,result,report_file)
+            result = compact(args.action, result, report_file)
         except (ValueError,OSError,KeyError,TypeError) as error:
             result,status=dict(ok=False,error=str(error),code='ARCHITECT_INVALID',conflicts=[]),1
     else:
-        _,result,status=run()
+        result, status = run()
     print(json.dumps(result,ensure_ascii=False))
     return status
 

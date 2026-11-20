@@ -1,7 +1,7 @@
 import {applyColorScheme,colorSchemes} from './color-scheme.js'
 import {applyCameraPreferences} from './camera-preferences.js'
 import {CAMERA_CONTROL_DEFAULTS} from './camera-controls.mjs'
-import {previewKnowledge} from './knowledge-preview.js'
+import {previewKnowledge} from './knowledge/knowledge-preview.js'
 import {mountRoomMigration} from './room-migration.js'
 export function initAppSettings(){
  if(!window.nbtDesktop?.appSettings)return

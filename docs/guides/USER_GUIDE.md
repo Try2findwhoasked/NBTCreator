@@ -54,7 +54,7 @@ NBTCreator 是面向 **Minecraft Java 1.20.1** 的 Windows NBT 建筑创作工�
 
 创作 Skill 只在实际创作项目中生成。NBTCreator 软件源码及安装目录不作为默认创作工作区，也不生成 `nbtcreator-workspace` 入口；维护软件时使用共用引擎源码。使用外部 Agent 时，请在创作项目中打开会话并引用该项目的 Skill，以免读到软件目录里的测试或旧任务。
 
-外部 Agent 从工作区根目录运行 `python .agents/skills/nbtcreator-workspace/nbt.py prompts tasks --status pending` 查看待办，或用 `prompts tasks --after <上次cursor>` 发现新增提示词；`prompts task --id <id>` 返回实际文件夹、正文和经哈希检查的方案。进度通过 `prompts task-status --id <id> --status in_progress/completed` 登记。任务文件位于对应建筑 `提示词方案/任务/`；重复保存同一修订不创建重复目录，普通编辑草稿继续自动归档。登记任务不会自动启动 Agent，也不表示模型已验收或精修已获批准。
+外部 Agent 从工作区根目录运行 `mise run nbt -- prompts tasks --status pending` 查看待办，或用 `prompts tasks --after <上次cursor>` 发现新增提示词；`prompts task --id <id>` 返回实际文件夹、正文和经哈希检查的方案。进度通过 `prompts task-status --id <id> --status in_progress/completed` 登记。任务文件位于对应建筑 `提示词方案/任务/`；重复保存同一修订不创建重复目录，普通编辑草稿继续自动归档。登记任务不会自动启动 Agent，也不表示模型已验收或精修已获批准。
 
 ## 主要功能
 
@@ -187,9 +187,9 @@ AI 返回内容须通过本地格式、工具、坐标、材质、保护和预�
 完整建筑的组合与续版可使用统一 `model` 入口：`capabilities --model` 查询请求契约，`model --request <JSON>` 编译并安装构件、应用宿主修改或更新受管组合。显式 `save_draft` 保存带实例基线的 SNBT 制作版，换版会检查手改冲突并恢复原底材。柱梁组合支持具名承托接口与自动跨接。详见[统一工作模型](../../.agents/skills/minecraft-nbt-modeler/references/working-model.md)；开发验证在本项目根目录运行 `mise run model:test`，真实预览回归运行 `mise exec -- npm run test:model-preview`。
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py capabilities
-python .agents/skills/nbtcreator-workspace/nbt.py paths
-python .agents/skills/nbtcreator-workspace/nbt.py feedback scan --workspace .
+mise run nbt -- capabilities
+mise run nbt -- paths
+mise run nbt -- feedback scan --workspace .
 ```
 
 便携版也可通过 `NBT工具.cmd` 使用内置运行环境：

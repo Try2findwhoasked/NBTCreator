@@ -17,9 +17,9 @@
 外部 Agent 可直接使用工作区入口。先准备 `folder.json`，写入 `{"folder":"nbt_models/SAODG/l_shape"}`。读取该文件夹的 `revision` 后，在 `constraint.json` 中填入下方保存参数。
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py architect constraints-registry --request registry.json
-python .agents/skills/nbtcreator-workspace/nbt.py architect constraints-list --request folder.json
-python .agents/skills/nbtcreator-workspace/nbt.py architect constraints-save --request constraint.json
+mise run nbt -- architect constraints-registry --request registry.json
+mise run nbt -- architect constraints-list --request folder.json
+mise run nbt -- architect constraints-save --request constraint.json
 ```
 
 `constraints-registry` 统一查询内置与工作区约束。请求可包含 `folders`（例如 `["", "nbt_models"]`）、`summary` 和 `id`。返回的 `groups` 按来源列出 `builtin` 和 `workspace`，每条完整规则使用相同的快照格式。常用形状来自 `constraint-presets.json`，SAODG 接入单独来自 [扩展约束](../constraint-extensions/saodg.json)，在实际需要接入的任务中显式引用。工作区规则继续用 `constraints-list`、`constraints-save` 和 `constraints-delete` 管理。
@@ -52,7 +52,7 @@ python .agents/skills/nbtcreator-workspace/nbt.py architect constraints-save --r
 
 在创作方案中打开规范，可明确引用当前修订，填写“当前建筑的例外”，或移除当前方案的引用。引用/例外改变后需重新审查该提示词。引用会进入提示词全文、方案 JSON 和 AI 的设计上下文；参考文件内容不会自动读取。项目规范是设计要求，不改变引擎的保护、改动预算、格式约束或真实看图确认条件。Agent 接手时使用任务内的快照，不用最新项目规范静默替换旧任务要求。
 
-无界面读取：`nbt.py architect standards-get`。保存使用 `architect standards-save --request <JSON>`，参数为当前 `revision` 和完整 `fields`（name、materials、dimensions、circulation、style、references、notes）；每项最多4000字，修订冲突时重新读取核对。
+无界面读取：`mise run nbt -- architect standards-get`。保存使用 `architect standards-save --request <JSON>`，参数为当前 `revision` 和完整 `fields`（name、materials、dimensions、circulation、style、references、notes）；每项最多4000字，修订冲突时重新读取核对。
 
 ## 集中审查
 

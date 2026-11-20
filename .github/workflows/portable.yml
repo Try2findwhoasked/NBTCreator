@@ -259,11 +259,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- node tests/node/task-cancel.mjs --output (Join-Path $probeRoot 'task-cancel')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python .agents/skills/minecraft-nbt-modeler/scripts/check_collision_fixtures.py --output (Join-Path $probeRoot 'collision.json')
+          mise exec -- python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_collision_fixtures.py --output (Join-Path $probeRoot 'collision.json')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python .agents/skills/minecraft-nbt-modeler/scripts/check_refine_fixtures.py --output (Join-Path $probeRoot 'refine')
+          mise exec -- python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_refine_fixtures.py --output (Join-Path $probeRoot 'refine')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python .agents/skills/minecraft-nbt-modeler/scripts/check_web_revision_fixtures.py --output (Join-Path $probeRoot 'web-revision')
+          mise exec -- python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_web_revision_fixtures.py --output (Join-Path $probeRoot 'web-revision')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()

@@ -59,7 +59,7 @@ model.install("marker", {
 
 拟合形状的扩展实现放在 `nbt_fit_shapes.py` 或可信启动代码中，通过 `FIT_SHAPES.register` 登记。每个 `FitShape(value, boxes)` 指定合法1.20.1状态与0～16整数或半像素XYZ盒体（每盒为 xmin,ymin,zmin,xmax,ymax,zmax）。共用投影层验证边界、完整候选的背板连接与下方支承，并合并相同轮廓；每个提供器最多256个候选，每个候选最多32个盒体。需下方支承的形状设置 requires_below=True；包络近似设置 approximate=True。内置 slab/stairs/trapdoor/wall/pane/bars/fence/snow/carpet/pressure_plate/end_rod/chain 已接入。盒体只用于静态拟合，不注册碰撞支撑，也不授权导出。运行 `mise run fit:test` 验证形状、方向和真实保存回读；注册变化同样纳入引擎身份和缓存失效。
 
-建筑流程注册器分别位于 `nbt_architecture.py`、`nbt_construction_systems.py` 和 `nbt_architecture_plan.py`。公开新构造/规则时同步 `architecture.plan` 及 plan-save/plan-build 的嵌入契约，添加适用字段和复检逻辑；构造回执不能代替每次的实际几何复检。三者均参与引擎版本摘要。
+建筑流程注册器分别位于 `scripts/nbt_building/workflow.py`、`scripts/nbt_building/construction_systems.py` 和 `scripts/nbt_building/plan.py`。公开新构造/规则时同步 `architecture.plan` 及 plan-save/plan-build 的嵌入契约，添加适用字段和复检逻辑；构造回执不能代替每次的实际几何复检。三者均参与引擎版本摘要。
 
 ## 缓存、进程与版本
 

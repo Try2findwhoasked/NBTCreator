@@ -27,9 +27,9 @@ class ArchitectureKnowledge(unittest.TestCase):
     def write_manifest(self):
         self.manifest.write_text(json.dumps(dict(schema_version=1, books=self.books)), encoding='utf-8')
 
-    def add_book(self, identifier, style):
+    def add_book(self, identifier, style, text=None):
         file = f'pg{identifier}.txt'
-        text = ('Metadata flying buttress\n*** START OF THE PROJECT GUTENBERG EBOOK FIXTURE ***\n'
+        text = text or ('Metadata flying buttress\n*** START OF THE PROJECT GUTENBERG EBOOK FIXTURE ***\n'
                 'CHAPTER I. BUTTRESSES\n\nA flying buttress carries lateral thrust away from the vault.\n'
                 '*** END OF THE PROJECT GUTENBERG EBOOK FIXTURE ***\nLicense flying buttress\n')
         payload = text.encode('utf-8')
@@ -67,6 +67,15 @@ class ArchitectureKnowledge(unittest.TestCase):
         db.close()
         with self.assertRaisesRegex(ValueError, 'passage differs'):
             search(self.library, 'flying buttress', 'gothic')
+
+    def test_ranks_bilingual_phrase_before_generic_window_mentions(self):
+        self.add_book(103, 'gothic', 'CHAPTER I. WINDOWS\nAn ordinary window lights the room.\n')
+        self.add_book(104, 'gothic', 'CHAPTER II. RAYONNANT GOTHIC\nIn this rose window the tracery radiates from the centre.\n')
+        self.write_manifest()
+        build(self.library)
+        hits = search(self.library, '放射式 玫瑰窗', 'gothic')['hits']
+        self.assertEqual(hits[0]['book'], 104)
+        self.assertEqual(hits[0]['line_start'], 1)
 
 
 if __name__ == '__main__':

@@ -7,8 +7,8 @@
 从软件源码根目录执行，输出使用全新的目录：
 
 ```powershell
-mise exec -- npm run package:portable -- --directory-only --out dist/full-acceptance
-mise exec -- npm run test:product -- --directory dist/full-acceptance --workspace . --jobs 2
+mise run package:portable -- --directory-only --out dist/full-acceptance
+mise run test -- product --directory dist/full-acceptance --workspace . --jobs 2
 ```
 
 ## 要求与证明范围

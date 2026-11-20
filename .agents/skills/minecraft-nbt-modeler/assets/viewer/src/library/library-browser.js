@@ -1,0 +1,35 @@
+import './library-browser.css'
+import {floatingDetails,chevron} from '../floating-panel.js'
+
+// Shared chrome keeps both libraries aligned. Existing controls retain their IDs and handlers.
+export function initLibraryBrowser({host,prefix,title,description,search,refresh,actions,filters,tree,main,count,breadcrumb,loading}){
+ host.classList.add('library-browser')
+ main.querySelector('#'+prefix+'-grid')?.classList.add('project-grid')
+ const header=document.createElement('header');header.className='library-heading library-toolbar'
+ const heading=document.createElement('div');heading.className='library-heading-title';const name=document.createElement('h1');name.textContent=title
+ const help=document.createElement('details');help.className='inline-info';const summary=document.createElement('summary');summary.textContent='i';summary.setAttribute('aria-label',title+'使用说明');summary.title=title+'使用说明';const content=document.createElement('div');content.className='info-popover';const text=document.createElement('p');text.textContent=description;content.append(text);help.append(summary,content);heading.append(name,help)
+ const orientation=document.createElement('p');orientation.className='library-orientation';orientation.textContent=prefix==='project'?'点封面看预览，或选两个版本比较。':'在同一类素材中选择两项，可并排查看。';heading.append(orientation)
+ actions.classList.add('library-actions');const toolbar=header;const searchBox=document.createElement('div');searchBox.className='library-search';searchBox.innerHTML='<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>';search.setAttribute('aria-label',search.getAttribute('aria-label')||'搜索'+title);searchBox.append(search)
+ const filter=document.createElement('details');filter.id=prefix+'-filters-menu';filter.className='library-filter-menu';const toggle=document.createElement('summary');toggle.innerHTML='<span>筛选</span>'+chevron;toggle.setAttribute('aria-label',title+'筛选条件');const panel=document.createElement('div');panel.className='library-filter-panel';panel.append(filters);filter.append(toggle,panel)
+ const meta=document.createElement('div');meta.className='library-meta';meta.append(count,breadcrumb);if(loading)meta.append(loading)
+ toolbar.append(heading,searchBox,filter,refresh);const spacer=document.createElement('div');spacer.className='library-toolbar-spacer';toolbar.append(spacer,actions)
+ const body=document.createElement('div');body.className='library-layout';tree.classList.add('library-tree');main.classList.add('library-main');main.prepend(meta);body.append(tree,main)
+ host.replaceChildren(toolbar,body);floatingDetails(filter,panel,{minimum:Math.min(600,innerWidth-24)})
+ const scope=document.createElement('div');scope.className='library-scope-bar';meta.after(scope)
+ const treeToggle=document.createElement('button');treeToggle.type='button';treeToggle.className='library-tree-toggle';treeToggle.textContent=prefix==='project'?'项目与分组':'构件分类';treeToggle.setAttribute('aria-controls',tree.id)
+ function toggleTree(expand){host.classList.toggle('tree-expanded',expand);treeToggle.setAttribute('aria-expanded',String(expand))}
+ const narrow=matchMedia('(max-width:799px)')
+ toggleTree(!narrow.matches);narrow.addEventListener('change',()=>toggleTree(!narrow.matches))
+ treeToggle.onclick=()=>toggleTree(!host.classList.contains('tree-expanded'));toolbar.insertBefore(treeToggle,searchBox)
+ host.addEventListener('click',event=>{if(!narrow.matches||!host.classList.contains('tree-expanded'))return;const row=event.target.closest('.library-tree .project-tree-row');if(row&&!row.hasAttribute('aria-expanded')||event.target.closest('.project-organization [data-content-kind],.project-organization [data-custom-menu]'))toggleTree(false)})
+ host.addEventListener('keydown',event=>{if(event.key==='Escape'&&host.classList.contains('tree-expanded')){toggleTree(false);treeToggle.focus()}})
+ const view=document.createElement('div');view.className='library-view-switch';view.setAttribute('role','group');view.setAttribute('aria-label','显示方式');host.dataset.view='list';for(const [mode,label]of [['list','列表'],['grid','卡片']]){const button=document.createElement('button');button.type='button';button.textContent=label;button.dataset.libraryView=mode;button.setAttribute('aria-pressed',String(mode==='list'));button.onclick=()=>{host.dataset.view=mode;for(const sibling of view.children)sibling.setAttribute('aria-pressed',String(sibling===button))};view.append(button)}toolbar.insertBefore(view,spacer)
+ return {header,toolbar,body,main,scope,filters:filter,help:content,view}
+}
+export function createLibraryTreeRow({label,level=0,folder=false,count='',expanded}){
+ const row=document.createElement('div');row.className='project-tree-row';row.style.setProperty('--level',level);row.setAttribute('role','treeitem');row.setAttribute('aria-level',String(level+1));row.tabIndex=-1
+ const toggle=document.createElement('button');toggle.type='button';toggle.tabIndex=-1;toggle.className='project-tree-toggle';toggle.innerHTML=expanded===undefined?'':'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 4 4 4-4 4"/></svg>';toggle.disabled=expanded===undefined;toggle.setAttribute('aria-label',(expanded?'收起':'展开')+label);if(expanded!==undefined)row.setAttribute('aria-expanded',String(expanded))
+ const icon=document.createElement('span');icon.className='project-tree-icon';icon.innerHTML=folder?'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 5.5h5l2 2h8v8h-15z"/></svg>':'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2 7 4v8l-7 4-7-4V6zm0 0v8m-7-4 7 4 7-4m-7 4v8"/></svg>'
+ const button=document.createElement('button');button.className='project-tree-label';button.type='button';button.tabIndex=-1;button.textContent=label
+ const total=document.createElement('span');total.className='project-tree-count';total.textContent=count;row.append(toggle,icon,button,total);return {row,toggle,button}
+}

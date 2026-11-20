@@ -15,7 +15,7 @@
 
 ## 无界面共用接口
 
-入口 `python .agents/skills/nbtcreator-workspace/nbt.py agent-tasks --workspace <项目根目录> <动作> --request <JSON>`。Electron 无需启动，路径优先使用工作区相对路径。
+入口 `mise run nbt -- agent-tasks --workspace <项目根目录> <动作> --request <JSON>`。Electron 无需启动，路径优先使用工作区相对路径。
 
 - `list`：`{}` 返回已登记任务；可传 `source`，匹配任务原建筑或已登记回传源。
 - `get`：`{"id":"<任务id>"}` 返回当前 revision、原模型与评论快照、Agent 回传及人工核对；读取会核对原模型、登记的原计划／校验包及已登记回传文件哈希。

@@ -13,7 +13,7 @@ def _checked_catalog():
     if set(data.get('agent_tools',{}))!=SUPPORTED_AGENT_TOOLS:raise ValueError('Structure agent tools and catalogue differ')
     from nbt_walk_view import SUPPORTED_INSPECTION_TOOLS
     if set(data.get('inspection_tools',{}))!=SUPPORTED_INSPECTION_TOOLS:raise ValueError('Inspection tools and catalogue differ')
-    from nbt_architecture import ARCHITECT_ACTIONS
+    from nbt_building.workflow import ARCHITECT_ACTIONS
     if set(data.get('architecture',{}).get('actions',{}))!=set(ARCHITECT_ACTIONS):raise ValueError('Architecture workflow and catalogue differ')
     from nbt_constraints import ACTIONS
     if set(data.get('project_constraints',{}).get('actions',[]))!=set(ACTIONS):raise ValueError('Project constraints and catalogue differ')

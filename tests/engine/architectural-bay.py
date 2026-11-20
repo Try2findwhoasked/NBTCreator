@@ -146,12 +146,12 @@ class ArchitecturalBay(unittest.TestCase):
         # A local author asset can change while geometry is being constructed.
         # The final receipt must verify the original binding again.
         bound=load(self.root,asset['id']);image=Path(bound['image'])
-        import nbt_architectural_bay
-        original=nbt_architectural_bay.Writer.put;mutated=[]
+        from nbt_building import architectural_bay
+        original=architectural_bay.Writer.put;mutated=[]
         def put(writer,*args,**kw):
             if not mutated:image.write_bytes(b'changed while compiling');mutated.append(True)
             return original(writer,*args,**kw)
-        with patch.object(nbt_architectural_bay.Writer,'put',new=put):
+        with patch.object(architectural_bay.Writer,'put',new=put):
             with self.assertRaises(ValueError):
                 self.call('vault_compile',**self.vault(coffer_pattern=dict(pattern_asset=dict(id=bound['id'],image_sha256=bound['image_sha256']))))
         self.assertEqual(mutated,[True])

@@ -29,11 +29,11 @@
 在工作区运行：
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py recipes list
-python .agents/skills/nbtcreator-workspace/nbt.py recipes save --file 柱子.recipe.json
-python .agents/skills/nbtcreator-workspace/nbt.py recipes get --id <编号>
-python .agents/skills/nbtcreator-workspace/nbt.py recipes capture --file 工具数组.json --name 双柱 --bindings 参数绑定.json
-python .agents/skills/nbtcreator-workspace/nbt.py recipes compile --id <编号> --values 本次参数.json --position 20,4,20 --size 48,24,48
+mise run nbt -- recipes list
+mise run nbt -- recipes save --file 柱子.recipe.json
+mise run nbt -- recipes get --id <编号>
+mise run nbt -- recipes capture --file 工具数组.json --name 双柱 --bindings 参数绑定.json
+mise run nbt -- recipes compile --id <编号> --values 本次参数.json --position 20,4,20 --size 48,24,48
 ```
 
 `参数绑定.json` 例如 `[{"path":[0,"hi",1],"name":"top","label":"柱顶本地Y"}]`；默认值从归零后的坐标提取，柱高4时顶面Y为3。`本次参数.json` 例如 `{"height":6,"material":"minecraft:oak_log"}`，未提供的参数使用默认值。`--workspace <目录>` 放在 recipes 后、子命令前，默认当前 Agent 工作目录。
@@ -63,9 +63,9 @@ get、save 和列表返回 `revision_sha256`，由规范化的配置内容计算
 preserve_shape 默认 true，实际使用时比较碰撞形状；完整块换成半砖会拒绝。显式关闭后仍需检查通路与净空。未知碰撞形状不会被当作可靠的“相同形状”。主题改变参数中的 state、palette、from_states、风化材质与地面映射，不改坐标和体素编号。
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py recipes compile --id <配方编号> --position 20,4,20 --size 48,24,48 --theme <主题编号>
-python .agents/skills/nbtcreator-workspace/nbt.py recipes archive --id <编号> --archived true
-python .agents/skills/nbtcreator-workspace/nbt.py recipes archive --id <编号> --archived false
+mise run nbt -- recipes compile --id <配方编号> --position 20,4,20 --size 48,24,48 --theme <主题编号>
+mise run nbt -- recipes archive --id <编号> --archived true
+mise run nbt -- recipes archive --id <编号> --archived false
 ```
 
 导入总是创建新编号；按编号保存用于更新已有内容。回收站可恢复，资料随工作区移动。
@@ -73,7 +73,7 @@ python .agents/skills/nbtcreator-workspace/nbt.py recipes archive --id <编号> 
 ## XYZ 网格阵列
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py components batch --id <构件编号> --position 12,4,12 --size 48,24,48 --counts 3,1,2 --spacing 6,0,8 --quarter-turns 1 --theme <主题编号>
+mise run nbt -- components batch --id <构件编号> --position 12,4,12 --size 48,24,48 --counts 3,1,2 --spacing 6,0,8 --quarter-turns 1 --theme <主题编号>
 ```
 
 数量包含原始放置的第一份，示例生成3×1×2共6份；spacing 是相邻锚点的 XYZ 差值，可为负数，重复轴不能为0。每轴1～64、总数最多64，合计最多65536格体素记录。副本从同一不可变构件生成，支持已有90°旋转、镜像和墙层归属；不逐份复制上一份，以免累积坐标或状态误差。

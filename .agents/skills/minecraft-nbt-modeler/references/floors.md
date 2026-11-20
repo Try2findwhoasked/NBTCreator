@@ -85,7 +85,7 @@ walls, floor_report = apply_floor_damage(master, {
 ## 命令与已有作品
 
 ```powershell
-$engine = python .agents/skills/nbtcreator-workspace/nbt.py paths | ConvertFrom-Json
+$engine = mise run nbt -- paths | ConvertFrom-Json
 python (Join-Path $engine.scripts 'nbt_floors.py') detect --source <完整主模型> --context <上下文JSON> --output <新检测目录>
 python (Join-Path $engine.scripts 'nbt_floors.py') plan --source <完整主模型> --context <上下文JSON> --operation <风格规则JSON> --output <新规划目录>
 ```
@@ -98,4 +98,4 @@ python (Join-Path $engine.scripts 'nbt_floors.py') apply --review <已真实批�
 
 精修沿用原坐标、保护和预算，重验后保存完整制作版。maintained 或无变化时无需精修。定稿时再写主体和墙层切片。
 
-合成回归：`python <skill>/scripts/check_floor_fixtures.py --output <新目录>`；已纳入nbt_task.py regress。材质/地面效果优先用render批量出图，实际查看完整入口、脚下、坑缘与多层关系，不用仅俯视或纯颜色图代替。
+合成回归：`python <skill>/scripts/fixtures/run.py check_floor_fixtures.py --output <新目录>`；已纳入nbt_task.py regress。材质/地面效果优先用render批量出图，实际查看完整入口、脚下、坑缘与多层关系，不用仅俯视或纯颜色图代替。

@@ -9,10 +9,10 @@
 应用与外部Agent共用 `feedback-tasks` 引擎，无需启动Electron：
 
 ```text
-python .agents/skills/nbtcreator-workspace/nbt.py feedback-tasks --workspace . list --request task-request.json
-python .agents/skills/nbtcreator-workspace/nbt.py feedback-tasks --workspace . create --request create-task.json
-python .agents/skills/nbtcreator-workspace/nbt.py feedback-tasks --workspace . update --request update-task.json
-python .agents/skills/nbtcreator-workspace/nbt.py feedback-tasks --workspace . evidence --request task-evidence.json
+mise run nbt -- feedback-tasks --workspace . list --request task-request.json
+mise run nbt -- feedback-tasks --workspace . create --request create-task.json
+mise run nbt -- feedback-tasks --workspace . update --request update-task.json
+mise run nbt -- feedback-tasks --workspace . evidence --request task-evidence.json
 ```
 
 所有请求包含 `source`（工作区相对路径）和当前 `source_sha256`。list返回原评论、证据指纹、重复/重叠候选、任务、历史和 `revision`。其他请求在同一基础上补充：

@@ -45,7 +45,7 @@
 
 coordinates.json 保存继续编辑所需的真实 `start`、非空 `targets` 和适用的 `protected_paths/protected_boxes/route_legs`。要求密闭时提供非空 `interior_probes`。独立开放建筑可显式设置 `require_enclosure: false`。SAODG 使用 `mode: "saodg"` 与 `cells/door_y/ports`，独立建筑使用 `mode: "standalone"` 和 `openings`（无开口填 []）。墙层保存在主模型或显式配置中，相机可放在 cameras.json。
 
-交付前运行 `nbt.py control inspect --source <主模型>` 核对 `editing_ready` 和 `context_readiness`，再做实际整体验证。editing_ready 只表示上下文字段可用，不证明通路或设计合格；缺少配置时应用允许只读看图/3D和评论，不能宣称已经可修改或导出。
+交付前运行 `mise run nbt -- control inspect --source <主模型>` 核对 `editing_ready` 和 `context_readiness`，再做实际整体验证。editing_ready 只表示上下文字段可用，不证明通路或设计合格；缺少配置时应用允许只读看图/3D和评论，不能宣称已经可修改或导出。
 
 SAODG工作区提供可选的独立工具`tools/structures/structure_world.py`（依赖`tools/requirements.txt`）：`create --layout <布局JSON> --output <新世界目录>`创建Java 1.20.1超平坦存档；`export --world <离线存档> --output <新回导目录>`按映射恢复NBT。详细布局与命令见工作区`docs/NBT_AUTHORING.md`。该仓库工具不是本skill分发依赖；迁移skill到其他工作区后先确认是否有此工具，不能虚报命令存在。
 

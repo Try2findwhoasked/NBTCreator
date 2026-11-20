@@ -71,8 +71,12 @@ def pattern_plan(model, operation, protected=()):
     supported = {'kind', 'label', 'classification', 'action', 'lo', 'hi', 'from_states',
                  'palette', 'fraction', 'seed', 'mode', 'scale', 'coordinate_origin',
                  'scope', 'mask_positions', 'preserve_properties', 'shape_policy'}
-    if not isinstance(operation, dict) or set(operation) - supported:
-        raise ValueError('Unknown pattern fields or invalid operation object')
+    if not isinstance(operation, dict):
+        raise ValueError('pattern 参数须为对象')
+    unknown = set(operation) - supported
+    if unknown:
+        raise ValueError('pattern 不支持字段 ' + ', '.join(sorted(unknown)) +
+                         '。用 action=replace 和 from_states 选择现有方块，或用 action=fill 填充区域。')
     if operation.get('kind', 'pattern') != 'pattern':
         raise ValueError('Expected kind=pattern')
     action = operation.get('action', 'replace')

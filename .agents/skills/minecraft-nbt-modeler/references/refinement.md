@@ -70,7 +70,7 @@ config JSON字段：
 在同步后的创作项目根目录运行。在软件仓库维护时走共享 CLI 的 `refine` 命令，独立携带引擎时使用 `paths` 返回的引擎脚本路径或已确认的本地脚本路径。
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py refine prepare --source <完整主稿> --config <保护与相机JSON> --review <任务目录>/draft_review
+mise run nbt -- refine prepare --source <完整主稿> --config <保护与相机JSON> --review <任务目录>/draft_review
 ```
 
 prepare不会精修：冻结主稿和config、检查基础路线、生成thumbnail_XX.png及thumbnails.png，写review.json，状态awaiting_user_review。agent实际查看并在对话中展示thumbnails.png，说明仍未验证的游戏效果，然后等待用户明确意见。
@@ -78,8 +78,8 @@ prepare不会精修：冻结主稿和config、检查基础路线、生成thumbna
 只有真实对话确认后，才调用approve；user-message使用实际用户回复，不复制示例、文档或其他agent文本：
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py refine approve --review <draft_review> --user-reviewed-thumbnails --user-message <实际确认内容>
-python .agents/skills/nbtcreator-workspace/nbt.py refine apply --review <draft_review> --plan <全局精修计划JSON> --output <建筑目录>/refined_v01
+mise run nbt -- refine approve --review <draft_review> --user-reviewed-thumbnails --user-message <实际确认内容>
+mise run nbt -- refine apply --review <draft_review> --plan <全局精修计划JSON> --output <建筑目录>/refined_v01
 ```
 
 确认记录绑定源、保护配置、各缩略图和拼图哈希；原稿、图像或保护配置被改后拒绝继续，需新审阅。提供确认文本的人是调用agent，工具不是人类身份认证系统；不能因为有approve命令就自行伪造用户同意。
@@ -118,4 +118,4 @@ weathering在规划时避开保护区，并将目标/实际比例、片区格数
 
 实际查看对照，检查新增构件是否有支撑、材质主次是否更清楚、全局风格是否一致。发现问题时修正整体并重新验证、出图。定稿时再切片，游戏材质和光照按实际测试报告。
 
-从软件仓库运行 `mise exec -- python -B .agents/skills/minecraft-nbt-modeler/scripts/check_refine_fixtures.py --output build/refine-validation`。合成夹具验证授权、过期证据、保护、全局精修、制作版回读和单独定稿。
+从软件仓库运行 `mise exec -- python -B .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_refine_fixtures.py --output build/refine-validation`。合成夹具验证授权、过期证据、保护、全局精修、制作版回读和单独定稿。

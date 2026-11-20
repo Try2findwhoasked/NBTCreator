@@ -1,6 +1,6 @@
 # 本地网页细节控制台
 
-正式标注、评论索引及原图、快照和引用证据保存于被标注版本的 `修改意见/`。外部 Agent 使用 `nbt.py feedback scan` 扫描索引，使用 collect 核对意见和原始证据。旧记录按 [Agent 读取意见与迁移](agent-feedback.md) 兼容读取和收录。
+正式标注、评论索引及原图、快照和引用证据保存于被标注版本的 `修改意见/`。外部 Agent 使用 `mise run nbt -- feedback scan` 扫描索引，使用 collect 核对意见和原始证据。旧记录按 [Agent 读取意见与迁移](agent-feedback.md) 兼容读取和收录。
 
 当前效果可点击“检查当前效果”，以与 Agent 相同的 validate 管道检查这份快照及当前参数、保护、预算和整体通路。参数变化即失效，需更新预览后重检。检查失败会展开方案与运行详情并保留可下载报告；它不保存正式建筑，不代替看图或真实精修确认。源模型坐标配置不完整，或旧版房间描述损坏导致无法确认原约束时，仍可只读查看3D并评论。信息区会显示缺失字段或读取失败原因。
 
@@ -164,7 +164,7 @@ node .agents/skills/minecraft-nbt-modeler/assets/viewer/test-selection.mjs --out
 Agent 无需 Electron，使用共用引擎：
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py control compare --request comparison.json --output build/comparisons/本次新目录
+mise run nbt -- control compare --request comparison.json --output build/comparisons/本次新目录
 ```
 
 `comparison.json` 的 `reference_source` 是基准版本，`source` 是当前版本，均可填工作区相对路径。可提供 `reference_sha256`、`source_sha256` 锁定已核对的源字节；不匹配则失败。输出目录必须尚不存在。结果含 `before.json`、`after.json` 快照与 `difference.json` 差异报告；源文件不变。
@@ -195,6 +195,6 @@ python .agents/skills/nbtcreator-workspace/nbt.py control compare --request comp
 
 预览触及保护区时，后端以结构化数据返回冲突位置（最多4096处并注明总数），应用叠加红色体积。可定位全部保护区或本次冲突，临时取消剖切并显示全部图层；不更改编辑选区或保护配置。清除冲突标记、关闭显示、允许覆盖，都不取消保护规则。无坐标资料或读取失败时明确提示，不声称“没有保护区”。同一画面只接受源哈希和尺寸一致的范围；换建筑不沿用旧高亮。
 
-无界面读取：`python .agents/skills/nbtcreator-workspace/nbt.py control protection-mask --request 参数.json`。参数包含 source、source_sha256、context；按工作区解析相对路径。结果 runs 为 `[x,y,z,沿X连续格数]`，由真实受保护格合并，附 count、bounds、context_sha256；接口只读，不写建筑或批准。
+无界面读取：`mise run nbt -- control protection-mask --request 参数.json`。参数包含 source、source_sha256、context；按工作区解析相对路径。结果 runs 为 `[x,y,z,沿X连续格数]`，由真实受保护格合并，附 count、bounds、context_sha256；接口只读，不写建筑或批准。
 
 编辑区底部“保存配置 / 读取配置”保留原调整设置功能。自动保存状态、Agent精修和草稿管理位于紧凑下栏；Agent使用说明在该菜单内查看，详细内容为浮层，不再挤压工具参数区。

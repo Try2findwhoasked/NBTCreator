@@ -161,13 +161,13 @@ def modelling_plan(model, operation, protected=()):
     if math.prod(size) > 2_000_000:
         raise ValueError('Operation exceeds 2 million voxel planning limit')
     if kind == 'auto_roof':
-        from nbt_roofs import roof_plan
+        from nbt_building.roofs import roof_plan
         return roof_plan(model, operation, protected)
     if kind == 'terrain_road':
         from nbt_terrain_roads import terrain_road_plan
         return terrain_road_plan(model, operation, protected)
     if kind == 'auto_stairs':
-        from nbt_stairs import stair_plan
+        from nbt_building.stairs import stair_plan
         return stair_plan(model, operation, protected)
     if kind == 'array_region':
         from nbt_arrays import array_plan

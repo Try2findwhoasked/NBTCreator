@@ -4,7 +4,7 @@
 
 ## 安装在已有建筑上
 
-三个接口均通过 `nbt.py components agent --tool <工具> --request <JSON>` 调用。
+三个接口均通过 `mise run nbt -- components agent --tool <工具> --request <JSON>` 调用。
 
 1. `parametric_surface` 接收 `{"surface": {...}}`。surface 提供 source、source_sha256、geometry_sha256、context、context_sha256、lo、hi 和 normal。lo/hi 是单格厚度的支承平面，normal 是装饰伸出的方向，可选 north/south/east/west/up/down。可设 min_support（已确认的连续方块厚度，1～8）和 opening_margin（缺口四周保留格数，0～8）。如使用候选，另提供 snapshot 和 snapshot_sha256。
 2. 查询返回 surface_sha256、已确认安装格、厚度、遮挡、未知形状及连通空气缺口。每格另有 protected_surface（宿主表层）、protected_outward（相邻外侧）和 protected_depths（向内0～7格的受保护深度），diagnostics 汇总几何状态及保护数量。usable_uv 只表示几何支承与开口边距可用，不代表完整饰件已经通过保护检查：表层受保护可阻止镶嵌，却不一定阻止未接触保护区的外贴。侧墙的 UV 为 X/Y 或 Z/Y，地面与吊顶为 X/Z，从 lo 开始沿世界正轴计数。空气缺口保持未分类，薄形状、未知形状及其边距纳入避让。

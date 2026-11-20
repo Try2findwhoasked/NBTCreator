@@ -84,7 +84,7 @@ class Parameters(unittest.TestCase):
   import ast,json
   root=Path(__file__).resolve().parents[2]/'.agents/skills/minecraft-nbt-modeler'
   catalog=json.loads((root/'tool-catalog.json').read_text(encoding='utf8'))
-  files={'selection_replace':'nbt_selection.py','align_region':'nbt_alignment.py','array_region':'nbt_arrays.py','auto_stairs':'nbt_stairs.py','terrain_road':'nbt_terrain_roads.py','auto_roof':'nbt_roofs.py'}
+  files={'selection_replace':'nbt_selection.py','align_region':'nbt_alignment.py','array_region':'nbt_arrays.py','auto_stairs':'nbt_building/stairs.py','terrain_road':'nbt_terrain_roads.py','auto_roof':'nbt_building/roofs.py'}
   for kind,file in files.items():
    keys=set()
    for node in ast.walk(ast.parse((root/'scripts'/file).read_text(encoding='utf8'))):

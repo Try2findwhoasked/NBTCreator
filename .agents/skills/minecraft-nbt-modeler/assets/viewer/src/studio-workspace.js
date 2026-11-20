@@ -4,7 +4,7 @@ import {applyStudioCopy} from './studio-copy.js'
 import {initAuthoringJourney} from './authoring-journey.js'
 import {initStudioContext} from './studio-context.js'
 import './studio-design.css'
-import './library-unified.css'
+import './library/library-unified.css'
 
 // One inspector and one canvas. All authoring inputs retain their original
 // nodes, event handlers, selection, validation and export contracts.

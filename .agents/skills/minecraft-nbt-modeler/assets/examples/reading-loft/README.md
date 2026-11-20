@@ -3,8 +3,7 @@
 从已同步 NBTCreator 对外 Skill 的创作项目根目录运行。归卷阁三个情形共用[建筑方案](plan.py)；[归卷院](courtyard.py)演示两栋建筑和街道的连接。脚本通过当前项目的 `nbt.py` 调用公共接口，完整请求和原始回执在每次新建的 `nbt_models/_workspaces/examples/reading-loft-*` 目录。成功例另存一栋带本次运行编号的 SNBT 样例建筑。
 
 ```powershell
-$entry = '.agents/skills/nbtcreator-workspace/nbt.py'
-$engine = (python $entry paths | ConvertFrom-Json).engine
+$engine = (mise run nbt -- paths | ConvertFrom-Json).engine
 $example = Join-Path $engine 'assets/examples/reading-loft/run.py'
 python -B $example open
 python -B $example blocked

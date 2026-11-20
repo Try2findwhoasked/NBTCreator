@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[2];SCRIPTS=ROOT/'.agents/skills/minecraft-
 from nbt_structure_agent import dispatch,build
 from nbt_components import paste_plan
 from nbt_assembly import Volume
-from nbt_parametric import KINDS
+from nbt_building.parametric import KINDS
 
 class Parametric(unittest.TestCase):
  def setUp(self):

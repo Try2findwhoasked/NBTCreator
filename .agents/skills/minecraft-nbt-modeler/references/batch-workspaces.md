@@ -31,10 +31,10 @@
 
 ## Agent 调用
 
-工作区入口统一为 `python .agents/skills/nbtcreator-workspace/nbt.py`；以下使用 `nbt.py` 简写。`--workspace` 省略时为当前项目目录，也可显式指定项目根目录。
+从创作项目根目录运行 `mise run nbt --` 后的批次命令。`--workspace` 省略时使用当前项目目录。
 
-1. `nbt.py batches create --request <创建JSON>`，请求 `{"name":"残败地牢30间"}`。返回稳定的 `id`、`revision`、`workspace_dir` 和 `absolute_workspace`。
-2. 将本批次生成器和设计资料写到返回目录。需要重试时执行 `nbt.py batches run --request <runJSON>`，请求 `{"id":"<批次id>","revision":1,"stage":"draft"}`；返回的 `runs` 含新分配目录。阶段用英文小写字母、数字、下划线或短横线。
+1. `mise run nbt -- batches create --request <创建JSON>`，请求 `{"name":"残败地牢30间"}`。返回稳定的 `id`、`revision`、`workspace_dir` 和 `absolute_workspace`。
+2. 将本批次生成器和设计资料写到返回目录。需要重试时执行 `mise run nbt -- batches run --request <runJSON>`，请求 `{"id":"<批次id>","revision":1,"stage":"draft"}`；返回的 `runs` 含新分配目录。阶段用英文小写字母、数字、下划线或短横线。
 3. 用已有建模接口生成、检查与实际审阅模型。将正式模型与产物通过 `batches record` 登记。每次写请求使用最近返回的 `revision`，并发修改会拒绝过期请求；先 `get` 刷新，核对后重试。
 
 ```json

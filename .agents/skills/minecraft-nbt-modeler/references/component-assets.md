@@ -11,8 +11,8 @@
 `capabilities` 的 `agent_tools` 是结构工具定义与 JSON 参数 Schema 的共同来源，内部 API、资产管理与外部 Agent 都通过同一个 Python 引擎执行。入口无需 Electron：
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool structure_list --request list.json
-python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool structure_preview --request preview.json
+mise run nbt -- components agent --tool structure_list --request list.json
+mise run nbt -- components agent --tool structure_preview --request preview.json
 ```
 
 `list.json` 内容为 `{}`。`preview.json` 是下面的独立结构方案，不是已经编码的构件文件：
@@ -58,10 +58,10 @@ python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool struct
 ## 保存与读取
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py components list
-python .agents/skills/nbtcreator-workspace/nbt.py components save --source nbt_models/形状/建筑/版本/master/master_geometry.json.gz --name 石柱 --lo 8,4,8 --hi 10,10,10 --tags 支承,石构
-python .agents/skills/nbtcreator-workspace/nbt.py components get --id <构件编号>
-python .agents/skills/nbtcreator-workspace/nbt.py components place --id <构件编号> --position 20,4,20 --size 48,24,48 --quarter-turns 1
+mise run nbt -- components list
+mise run nbt -- components save --source nbt_models/形状/建筑/版本/master/master_geometry.json.gz --name 石柱 --lo 8,4,8 --hi 10,10,10 --tags 支承,石构
+mise run nbt -- components get --id <构件编号>
+mise run nbt -- components place --id <构件编号> --position 20,4,20 --size 48,24,48 --quarter-turns 1
 ```
 
 `--workspace <目录>` 放在 components 后、子命令前；默认当前 Agent 工作目录。`place` 只返回 operations/lo/hi，不执行写入。将返回的操作合入 control 请求，按原 preview/validate/新版本导出流程使用。
@@ -77,10 +77,10 @@ python .agents/skills/nbtcreator-workspace/nbt.py components place --id <构件�
 JSON schema_version=1，包含 name、tags、size、anchor、palette、blocks 和 content_sha256。blocks 是 `[x,y,z,材质编号,是否墙层]`。导入会验证哈希、坐标、状态和尺寸；不接收代码或脚本。缩略图是本地简化材质示意，不代替正式纹理审阅图。
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py components import --file 柱子.component.json
-python .agents/skills/nbtcreator-workspace/nbt.py components update --id <编号> --name 新名称 --tags 石构,支承
-python .agents/skills/nbtcreator-workspace/nbt.py components update --id <编号> --archived true
-python .agents/skills/nbtcreator-workspace/nbt.py components update --id <编号> --archived false
+mise run nbt -- components import --file 柱子.component.json
+mise run nbt -- components update --id <编号> --name 新名称 --tags 石构,支承
+mise run nbt -- components update --id <编号> --archived true
+mise run nbt -- components update --id <编号> --archived false
 ```
 
 回收操作保留几何和缩略图，可以恢复。UI 与 CLI 读取同一库和索引；已缓存列表不重复解析体素。导入/放置后的作品仍需真实预览、相应检查及用户导出，保存资产不代表批准精修。
@@ -119,9 +119,9 @@ node scripts/cli.mjs --workspace D:/MyProject asset-batches read --file nbt_mode
 对外Skill和内置AI共用 `structure_save`。这条入口在用户授权生成并归档资产时，自动执行本地结构/材质/预算校验，生成真实预览与缩略图，保存为 `review_status=pending_visual_review` 的新资产，并在 `nbt_models/asset_batches/<id>/` 保存构件副本、缩略图、来源配方和 `assets.json`。不需要先手工导出JSON再导入；保存不声明已经实际看图或获得设计批准。正式建筑仍需真实看图和显式NBT导出。
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py components agent --tool structure_save --request generated.json
-python .agents/skills/nbtcreator-workspace/nbt.py asset-batches save --request generated-batch.json
-python .agents/skills/nbtcreator-workspace/nbt.py asset-batches organize
+mise run nbt -- components agent --tool structure_save --request generated.json
+mise run nbt -- asset-batches save --request generated-batch.json
+mise run nbt -- asset-batches organize
 ```
 
 `generated.json`用 `{ "spec": {"name":"石柱","size":[4,6,4],"operations":[{"kind":"box","label":"柱身","classification":"body","lo":[1,0,1],"hi":[1,4,1],"state":"stone_bricks"}]} }`。也可提交 `{component:完整构件数据}`，或 `{preview_id,preview_sha256}` 复用已生成的绑定预览；三种方式只能选一种。绑定预览重复保存返回同一资产，不重复入库。返回id、content_sha256、preview_id、preview_sha256、batch_manifest和待审阅状态。可用batch_name指定批次名称。原有structure_preview/write和手动导入继续可用。生成结果若已经是建筑主模型或NBT文件，使用 asset-batches import 的 paths 请求即可通过脚本直接归档，无需在界面手动导入。
@@ -141,12 +141,12 @@ python .agents/skills/nbtcreator-workspace/nbt.py asset-batches organize
 除构件、可调配方和材质主题外，资产管理提供“工具效果”。保存当前面板配置时捕获整体参数、混材、风化、自动地面、精确换块、结构编辑及建模operations；自动道路面板尚未执行的输入也可直接捕获。源文件、全局选区、保护资料、预算、write_group/write_bounds和覆盖权限不进入效果资产。载入效果时保留当前目标的源、选区、预算及已有工具步骤，合并新增步骤，真实预览失败回退原候选。结构填充仍须先指定目标局部选区。
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py effect-assets save --request effect.json
-python .agents/skills/nbtcreator-workspace/nbt.py effect-assets list
-python .agents/skills/nbtcreator-workspace/nbt.py effect-assets get --request id.json
-python .agents/skills/nbtcreator-workspace/nbt.py effect-assets preview --request id.json
-python .agents/skills/nbtcreator-workspace/nbt.py effect-assets compile --request id.json
-python .agents/skills/nbtcreator-workspace/nbt.py effect-assets organize
+mise run nbt -- effect-assets save --request effect.json
+mise run nbt -- effect-assets list
+mise run nbt -- effect-assets get --request id.json
+mise run nbt -- effect-assets preview --request id.json
+mise run nbt -- effect-assets compile --request id.json
+mise run nbt -- effect-assets organize
 ```
 
 `effect.json`使用 `{asset:{name:"石砖步道",settings:{operations:[{kind:"auto_road",label:"步道",classification:"body",lo:[0,0,0],hi:[47,15,47],start:[6,3,6],end:[20,3,20],width:3,depth:1,route:"straight",state:"stone_bricks"}]},tags:[]}}`（文件须为合法JSON）。`id.json`为 `{id:资产ID,content_sha256:可选内容哈希}`。调用不需要Electron，应用HTTP对应 `/__detail__/effect-assets/<action>`，能力目录的effect_asset_contract记录开放动作。save总是写新ID，archive可移入回收站或恢复。

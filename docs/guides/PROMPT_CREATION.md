@@ -45,8 +45,8 @@
 外部 Agent 在创作项目根目录查看待办与任务正文：
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py prompts tasks --status pending
-python .agents/skills/nbtcreator-workspace/nbt.py prompts task --id <id>
+mise run nbt -- prompts tasks --status pending
+mise run nbt -- prompts task --id <id>
 ```
 
 方案回填、“参数有效”或任务登记完成都不代表已有 NBT、设计合格或精修获批。文字润色仍须保留本地存放规则、阶段和交付约束，不得改写既有源路径、保护与批准。完整审查流程见[建筑师工作流](ARCHITECT_WORKFLOW.md)，任务接口与源绑定见[共享工作区](SHARED_WORKSPACE.md)。

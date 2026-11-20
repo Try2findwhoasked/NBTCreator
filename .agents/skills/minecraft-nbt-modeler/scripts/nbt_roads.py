@@ -2,6 +2,16 @@
 from nbt_model import AIR_NAMES, state
 
 
+class RoadBoundsError(ValueError):
+    code = 'ROAD_BOUNDS'
+
+    def __init__(self, operation, footprint, selection, model_bounds, overflow):
+        reason = '道路在起终点也按宽度扩张。请移动端点、减小宽度或调整选区。'
+        self.conflicts = [dict(operation='auto_road', label=operation.get('label'), footprint=footprint,
+                               selection=selection, model_bounds=model_bounds, overflow=overflow, reason=reason)]
+        super().__init__(f'{reason} 占用范围 {footprint}，越界 {overflow}')
+
+
 def road_plan(model, operation, protected=()):
     from nbt_tools import xyz
     lo, hi = xyz(operation['lo'], True), xyz(operation['hi'], True)
@@ -15,8 +25,6 @@ def road_plan(model, operation, protected=()):
         raise ValueError('道路路线或覆盖开关无效')
     if start[1] != end[1]:
         raise ValueError('平面道路起终点的Y须相同；Y表示路面方块高度')
-    if any(not lo[i] <= p[i] <= hi[i] for p in (start, end) for i in range(3)):
-        raise ValueError('道路起终点超出选区')
     value = state(operation.get('state', 'stone_bricks'))
     if value in AIR_NAMES:
         raise ValueError('道路材质须为实体方块')
@@ -24,8 +32,17 @@ def road_plan(model, operation, protected=()):
     upper = width-1-lower
     footprint_lo = (min(start[0],end[0])-lower, start[1]-depth+1, min(start[2],end[2])-lower)
     footprint_hi = (max(start[0],end[0])+upper, start[1], max(start[2],end[2])+upper)
-    if any(footprint_lo[i] < lo[i] or footprint_hi[i] > hi[i] for i in range(3)):
-        raise ValueError('完整道路超出选区或模型边界；请增大选区或减小宽度、厚度')
+    footprint = dict(lo=list(footprint_lo), hi=list(footprint_hi))
+    model_hi = [size - 1 for size in model.size]
+    overflow = {}
+    for i, axis in enumerate('xyz'):
+        if footprint_lo[i] < max(0, lo[i]):
+            overflow[axis + '-'] = max(0, lo[i]) - footprint_lo[i]
+        if footprint_hi[i] > min(model_hi[i], hi[i]):
+            overflow[axis + '+'] = footprint_hi[i] - min(model_hi[i], hi[i])
+    if overflow:
+        raise RoadBoundsError(operation, footprint, dict(lo=list(lo), hi=list(hi)),
+                              dict(lo=[0, 0, 0], hi=model_hi), overflow)
     vertices = [start, end]
     if route != 'straight':
         corner = (end[0], start[1], start[2]) if route == 'x_first' else (start[0], start[1], end[2])
@@ -40,8 +57,6 @@ def road_plan(model, operation, protected=()):
             centers.add((p[0], p[1], previous[2])); centers.add(p); previous = p
     cells = {(x+dx, y-dy, z+dz) for x,y,z in centers
              for dx in range(-lower, width-lower) for dz in range(-lower, width-lower) for dy in range(depth)}
-    if any(not model.in_bounds(p) or any(not lo[i] <= p[i] <= hi[i] for i in range(3)) for p in cells):
-        raise ValueError('完整道路超出选区或模型边界；请增大选区或减小宽度、厚度')
     edits = [(p,value) for p in sorted(cells) if model.get(p) != value]
     protected = set(map(tuple, protected))
     if any(p in protected for p,_ in edits):
@@ -51,4 +66,4 @@ def road_plan(model, operation, protected=()):
     budget = operation.get('max_writes', 4096)
     if type(budget) is not int or budget < 0 or len(edits) > budget:
         raise ValueError('道路改动超过上限')
-    return edits, dict(kind='auto_road', eligible=len(cells), changed=len(edits), route=route, width=width, depth=depth)
+    return edits, dict(kind='auto_road', eligible=len(cells), changed=len(edits), route=route, width=width, depth=depth, footprint=footprint)

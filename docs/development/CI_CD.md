@@ -25,8 +25,8 @@
 先按[开发指南](DEVELOPMENT.md)准备依赖，再从软件源码根目录构建与检查：
 
 ```powershell
-mise exec -- npm run package:portable -- --out dist/portable
-mise exec -- npm run test:portable -- --archive-dir dist/portable
+mise run package:portable -- --out dist/portable
+mise run test -- portable --archive-dir dist/portable
 ```
 
 ## 发布规则
@@ -45,8 +45,8 @@ app-update 包含应用源码、建模工具、预构建前端和 Skill 资料�
 
 CI 会验证两份分离包的文件互不重复，并按路径和字节哈希确认它们能完整重组为完整包。完整解压测试仍会运行外部 Python、CLI、Skill 生成、Chromium 和批量出图。新版本的校验文件随 Release 提供，不复用旧版本的 ZIP 哈希。
 
-本地仅制作应用更新包可运行 `mise exec -- npm run package:portable -- --app-only --out dist/update-版本`，该构建只打包应用部分；不能把该临时构建文件夹当完整免安装包。应用更新ZIP需解压覆盖已有兼容runtime，启动时仍验证runtime_id。云端发布继续构建完整与两种分离包并执行全套解压验证。
+本地仅制作应用更新包可运行 `mise run package:portable -- --app-only --out dist/update-版本`，该构建只打包应用部分；不能把该临时构建文件夹当完整免安装包。应用更新ZIP需解压覆盖已有兼容runtime，启动时仍验证runtime_id。云端发布继续构建完整与两种分离包并执行全套解压验证。
 
-本地需要完整免安装文件夹而无需ZIP时：`mise exec -- npm run package:portable -- --directory-only --out dist/full-folder`；校验：`mise exec -- npm run test:portable -- --directory dist/full-folder`。目录模式仍打入完整运行环境，不可与 `--app-only` 同用。
+本地需要完整免安装文件夹而无需ZIP时：`mise run package:portable -- --directory-only --out dist/full-folder`；校验：`mise run test -- portable --directory dist/full-folder`。目录模式仍打入完整运行环境，不可与 `--app-only` 同用。
 
 返回[文档导航](../README.md)。

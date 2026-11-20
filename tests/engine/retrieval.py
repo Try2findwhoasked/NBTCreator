@@ -20,7 +20,7 @@ class Retrieval(unittest.TestCase):
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name);self.query=dict(workflow='component',query='水渠桥 支承',size=[4,6,10]);self.asset=store(self.root,dict(schema_version=1,name='水渠桥',tags=['支承','水渠'],size=[9,4,3],anchor=[4,0,1],palette=['stone_bricks'],blocks=[[x,0,1,0,False] for x in range(9)]));self.original=(self.root/'.nbtcreator/components'/f'{self.asset["id"]}.json').read_bytes()
   content='## 桥面支承\n水渠桥必须在两侧有支承；保留桥下排水空间。\n\n## 无关的仓库\n仓库储物架。\n';self.docid=hashlib.sha256(content.encode()).hexdigest();base=self.root/'.nbtcreator/internal-ai';(base/'knowledge').mkdir(parents=True);(base/'knowledge'/f'{self.docid}.md').write_bytes(content.encode('utf8'));self.config=dict(schema_version=1,documents=[dict(id=self.docid,label='桥梁规范',path=f'knowledge/{self.docid}.md')],workflows=dict(component=dict(knowledge=[self.docid]),prompt=dict(knowledge=[])));(base/'config.json').write_text(json.dumps(self.config),encoding='utf8')
- def call(self,action,**request):return dispatch(self.root,action,dict(self.query,**request))
+ def call(self,operation,**request):return dispatch(self.root,operation,dict(self.query,**request))
  def bundle(self):
   found=self.call('search');return self.call('bundle',selected=[found['assets'][0]['id'],found['knowledge'][0]['id']])
  def test_search_suggests_actual_rotation_and_only_task_selected_references(self):
@@ -50,4 +50,63 @@ class Retrieval(unittest.TestCase):
  def test_relative_bundle_survives_relocation_and_forged_line_metadata_is_rejected(self):
   bundle=self.bundle();file=self.root/'.nbtcreator/retrieval/bundles'/f'{bundle["id"]}.json';self.assertTrue(all(str(self.root) not in text for text in strings(json.loads(file.read_bytes()))));destination=self.root/'relocated';shutil.copytree(self.root/'.nbtcreator',destination/'.nbtcreator');moved=dispatch(destination,'read',dict(workflow='component',id=bundle['id'],sha256=bundle['sha256']));self.assertEqual(moved['references'][0]['id'],self.asset['id']);forged=json.loads(file.read_bytes());forged['sources'][1]['line_start']+=1;raw=json.dumps(forged).encode();file.write_bytes(raw)
   with self.assertRaisesRegex(ValueError,'片段'):self.call('read',id=bundle['id'],sha256=hashlib.sha256(raw).hexdigest())
+
+ def library(self, folder, text='# 窗饰\n立面采用玫瑰窗，窗饰沿圆环放射。\n', **fields):
+  directory=self.root/folder;directory.mkdir(exist_ok=True);payload=text.encode('utf8');(directory/'window.md').write_bytes(payload)
+  document=dict(id='window',file='window.md',bytes=len(payload),sha256=hashlib.sha256(payload).hexdigest(),
+                title='窗饰图录',region='France',styles=['gothic'],year=1920,author='Fixture Archive',
+                source='https://example.org/catalogue',license='test fixture',**fields)
+  manifest=dict(schema_version=1,id='windows',version='2026.1',documents=[document]);(directory/'knowledge.json').write_text(json.dumps(manifest),encoding='utf8')
+  connection=self.call('library',workflow='prompt',action='add',path=folder)
+  return directory,manifest,connection
+
+ def test_library_is_opt_in_and_round_trips_exact_citation_through_provider_projection(self):
+  original=self.bundle();directory,_,connection=self.library('参考书库')
+  self.assertEqual(connection['status'],'ready');self.assertFalse((directory/'architecture.sqlite').exists())
+  query=dict(query='放射式 玫瑰窗',workflow='prompt')
+  hit,=self.call('search',**query)['knowledge'];self.assertEqual(hit['reference_type'],'architecture_library')
+  self.assertEqual(self.call('search',query=query['query'],workflow='component')['knowledge'],[])
+  self.assertEqual(self.call('search',filters={'year':[1900,1930],'style':'gothic'},**query)['knowledge'],[hit])
+  self.assertEqual(self.call('search',filters={'region':'Egypt'},**query)['knowledge'],[])
+  arguments={key:hit[key] for key in ('document_id','manifest_sha256','sha256')}
+  source=self.call('source',line=2,**query,**arguments);self.assertIn('放射',source['text']);self.assertEqual(source['line_end'],2)
+  bundle=self.call('bundle',selected=[hit['id']],**query);receipt={key:bundle[key] for key in ('id','sha256')}
+  result=self.call('read',**query,**receipt);proof,=result['sources'];self.assertEqual(proof['citation'],'R1')
+  self.assertEqual(proof['passage_sha256'],hashlib.sha256(result['knowledge'][0]['content'].encode()).hexdigest())
+  self.assertEqual(proof['bibliography']['source_url'],'https://example.org/catalogue');self.assertEqual(proof['bibliography']['version'],'2026.1')
+  self.assertTrue(all(str(self.root) not in value for value in strings(result)))
+  moved=self.root/'moved';shutil.copytree(self.root/'.nbtcreator',moved/'.nbtcreator');shutil.copytree(directory,moved/directory.name)
+  self.assertEqual(dispatch(moved,'read',dict(workflow='prompt',**receipt)),result)
+  self.call('library',workflow='prompt',action='enable',id=connection['id'],enabled=False)
+  with self.assertRaisesRegex(ValueError,'停用'):self.call('read',**query,**receipt)
+  self.assertEqual(self.call('read',id=original['id'],sha256=original['sha256'])['sources'][1]['citation'],'R2')
+
+ def test_changed_or_corrupt_library_leaves_other_sources_available_and_can_reindex(self):
+  left,manifest,first=self.library('one');_,_,second=self.library('two','# 窗洞\n常见玫瑰窗使用石条和玻璃。\n')
+  query=dict(query='玫瑰窗',workflow='prompt');initial=self.call('search',**query)['knowledge'];self.assertEqual(len(initial),2)
+  hit=next(item for item in initial if item['library_name']=='one')
+  bundle=self.call('bundle',selected=[hit['id']],**query);receipt={key:bundle[key] for key in ('id','sha256')}
+  file=left/'window.md';content=file.read_bytes();file.write_bytes(content+b' ')
+  with self.assertRaisesRegex(ValueError,'已变化'):self.call('read',**query,**receipt)
+  failed=self.call('search',**query);self.assertEqual([item['library_name'] for item in failed['knowledge']],['two'])
+  self.assertEqual(failed['library_errors'][0]['id'],first['id'])
+  with self.assertRaisesRegex(ValueError,'size changed'):self.call('library',workflow='prompt',action='build',id=first['id'])
+  file.write_bytes(content);self.assertEqual(len(self.call('search',**query)['knowledge']),2)
+  manifest['version']='2026.2';(left/'knowledge.json').write_text(json.dumps(manifest),encoding='utf8')
+  self.assertEqual(self.call('library',workflow='prompt')['libraries'][0]['status'],'stale')
+  self.call('library',workflow='prompt',action='build',id=first['id'])
+  self.assertEqual(len(self.call('search',**query)['knowledge']),2)
+  with self.assertRaisesRegex(ValueError,'已变化'):self.call('read',**query,**receipt)
+  self.call('library',workflow='prompt',action='remove',id=second['id'])
+  self.assertEqual(len(self.call('search',**query)['knowledge']),1)
+
+ def test_rejects_unregistered_external_paths_and_forged_source_fields(self):
+  for path in ('https://example.org/books','../somewhere','//server/share'):
+   with self.assertRaises(ValueError):self.call('library',workflow='prompt',action='add',path=path)
+  self.library('catalogue');query=dict(query='窗饰',workflow='prompt');hit,=self.call('search',**query)['knowledge']
+  bundle=self.call('bundle',selected=[hit['id']],**query);file=self.root/'.nbtcreator/retrieval/bundles'/f'{bundle["id"]}.json'
+  record=json.loads(file.read_bytes());record['sources'][0]['bibliography']['source_url']='https://example.org/fake'
+  raw=json.dumps(record).encode();file.write_bytes(raw)
+  with self.assertRaisesRegex(ValueError,'出处'):self.call('read',id=bundle['id'],sha256=hashlib.sha256(raw).hexdigest(),**query)
+
 if __name__=='__main__':unittest.main(verbosity=2)

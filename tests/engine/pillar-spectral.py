@@ -19,7 +19,7 @@ class PillarSpectral(unittest.TestCase):
     def geometry(self,result):
         d=build(self.root,result['spec']);return {tuple(b[:3]):d['palette'][b[3]] for b in d['blocks']}
     def test_profiles_and_bezier_remain_connected_and_plain_is_unchanged(self):
-        from nbt_pillar_ends import PROFILES
+        from nbt_building.pillar_ends import PROFILES
         plain=self.call('parametric_compile',self.column())
         self.assertEqual(plain['content_sha256'],self.call('parametric_compile',self.column(base_profile='plain',capital_profile='plain'))['content_sha256'])
         hashes=set()

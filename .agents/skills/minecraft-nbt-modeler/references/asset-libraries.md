@@ -108,7 +108,7 @@ component 资产使用 [构件规范](component-assets.md) 的 schema_version/na
 
 ## Agent 与维护入口
 
-在软件仓库根目录使用 `mise exec -- node scripts/cli.mjs --workspace <创作项目> asset-libraries <action> --request <JSON>`，创作项目也可用生成的 `nbt.py asset-libraries ...`，无需 Electron。action 为 list/browse/discover/add/refresh/enable/remove/rollback/read/import/thumbnail/preview/resolve/place/copy。返回统一 `{ok,result}` 或 `{ok:false,error,code}`。
+在软件仓库根目录使用 `mise exec -- node scripts/cli.mjs --workspace <创作项目> asset-libraries <action> --request <JSON>`，创作项目也可用生成的 `mise run nbt -- asset-libraries ...`，无需 Electron。action 为 list/browse/discover/add/refresh/enable/remove/rollback/read/import/thumbnail/preview/resolve/place/copy。返回统一 `{ok,result}` 或 `{ok:false,error,code}`。
 
 | action | request |
 | --- | --- |

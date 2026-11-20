@@ -47,7 +47,7 @@ class Materialization(unittest.TestCase):
         self.assertIn('box',capabilities()['tools'])
         with self.assertRaises(ValueError):dispatch(self.root,'field_compile',dict(size=[999]*3,root='x',nodes=[]))
     def test_face_components_match_independent_pairwise_connectivity(self):
-        from nbt_architectural_bay import component_count
+        from nbt_building.architectural_bay import component_count
         import random
         rng=random.Random(438)
         for _ in range(24):

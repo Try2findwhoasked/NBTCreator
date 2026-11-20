@@ -42,7 +42,10 @@ test('top-level CLI help succeeds and unknown commands point to the route guide'
   assert.equal(help.status,0,help.stderr)
   assert.match(help.stdout,/capabilities --routes/)
  }
- const unknown=run('part-search')
- assert.equal(unknown.status,1)
- assert.match(unknown.stderr,/part-search.*capabilities --routes/)
+ for(const name of ['part-search','constructor']){
+  const unknown=run(name)
+  assert.equal(unknown.status,1)
+  assert.ok(unknown.stderr.includes(name))
+  assert.match(unknown.stderr,/capabilities --routes/)
+ }
 })

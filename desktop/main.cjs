@@ -93,6 +93,10 @@ async function boot(){
  ipcMain.handle('nbt:internal-ai-config',event=>{allowed(event);return internalAI.show()})
  ipcMain.handle('nbt:internal-ai-save',(event,input)=>{allowed(event);return internalAI.save(input)})
  ipcMain.handle('nbt:internal-ai-import',async event=>{allowed(event);const selected=await dialog.showOpenDialog(window,{title:'添加内部AI资料（选中后会在生成时发送到API）',properties:['openFile','multiSelections'],filters:[{name:'Markdown / TXT',extensions:['md','txt']}]});return selected.canceled?null:internalAI.importDocuments(selected.filePaths)})
+ ipcMain.handle('nbt:select-reference-library',async event=>{
+  allowed(event);const selected=await dialog.showOpenDialog(window,{title:'选择本地建筑书库目录',properties:['openDirectory']})
+  return selected.canceled?null:selected.filePaths[0]
+ })
  await startBackend()
  window=new BrowserWindow({width:initialPreferences.rememberWindow?initialPreferences.windowWidth:1500,height:initialPreferences.rememberWindow?initialPreferences.windowHeight:1000,minWidth:900,minHeight:650,frame:true,show:false,title:'NBTCreator',webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:!automationMinimized}})
  if(automationMinimized){window.on('restore',()=>window.minimize());window.minimize()}

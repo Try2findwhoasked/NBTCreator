@@ -4,7 +4,7 @@
 
 新增构件编译器或工作模型操作时，使用[处理器与配方注册器](extensions.md)。工作模型与对象图通过同一编译注册器接入，公共参数仍以工具目录为准。
 
-在创作项目根目录运行 `mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py capabilities --model` 查询请求契约；执行 `mise exec -- python .agents/skills/nbtcreator-workspace/nbt.py model --request request.json`。软件源码维护时使用 `mise exec -- node scripts/cli.mjs --workspace <隔离工作区> model --request <JSON>`。引擎位置仍由工作区 `paths` 返回，不写死安装路径，不在软件源码生成创作入口。
+在创作项目根目录运行 `mise run nbt -- capabilities --model` 查询请求契约；执行 `mise run nbt -- model --request request.json`。软件源码维护时使用 `mise exec -- node scripts/cli.mjs --workspace <隔离工作区> model --request <JSON>`。引擎位置仍由工作区 `paths` 返回，不写死安装路径，不在软件源码生成创作入口。
 
 复杂建筑可由[可执行建筑方案](architecture-workflow.md)编排同一个工作模型。方案绑定随制作版保存，普通 `validate` 也复检实际空间、梯段、承托和风格规则；不改变用户看图与定稿边界。
 

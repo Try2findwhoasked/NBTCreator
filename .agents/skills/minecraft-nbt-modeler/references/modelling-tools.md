@@ -74,11 +74,11 @@ walls, report = apply_modelling(master, {
 已有模型只读预检（operation.json就是单项operation；保护体素可从任务配置生成）：
 
 ```powershell
-$engine = python .agents/skills/nbtcreator-workspace/nbt.py paths | ConvertFrom-Json
+$engine = mise run nbt -- paths | ConvertFrom-Json
 python (Join-Path $engine.scripts 'nbt_tools.py') --source <完整主稿> --operation <单项操作JSON> --protected <保护XYZ数组JSON> --output <全新计划JSON>
 ```
 
-只读 CLI 输出源指纹、候选变化与统计。精修计划在 operations 中加入相同操作及 label/classification，按 [精修流程](refinement.md) 完成授权、验证、出图与制作版保存。维护回归从软件仓库根目录执行 `mise exec -- python -B .agents/skills/minecraft-nbt-modeler/scripts/check_modelling_fixtures.py --output <全新合成回归目录>`。
+只读 CLI 输出源指纹、候选变化与统计。精修计划在 operations 中加入相同操作及 label/classification，按 [精修流程](refinement.md) 完成授权、验证、出图与制作版保存。维护回归从软件仓库根目录执行 `mise exec -- python -B .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_modelling_fixtures.py --output <全新合成回归目录>`。
 
 
 ## 可复用构件

@@ -7,9 +7,9 @@
 每项是0～100的整数：creativity=保守↔天马行空，detail=简洁↔详细，ornament=朴素↔丰富，variation=延续现有↔探索变化。缺少配置时使用引擎默认值。
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py ai-style show
-python .agents/skills/nbtcreator-workspace/nbt.py ai-style prompt --workflow small_structure
-python .agents/skills/nbtcreator-workspace/nbt.py ai-style set --workflow small_structure --creativity 80 --detail 70
+mise run nbt -- ai-style show
+mise run nbt -- ai-style prompt --workflow small_structure
+mise run nbt -- ai-style set --workflow small_structure --creativity 80 --detail 70
 ```
 
 `--workspace <目录>` 放在 ai-style 后、子命令前，默认 Agent 当前工作目录。prompt 返回通俗偏好说明与实际数值；set 更新同一份配置，应用下一次 API 生成会读取。UI 中“重新读取”可刷新外部修改后的滑块显示。

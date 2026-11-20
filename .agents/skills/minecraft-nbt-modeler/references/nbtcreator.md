@@ -9,19 +9,19 @@
 已有模型先用 control inspect 检查完整源、坐标配置和当前版本；已有标注使用 [评论扫描/收集](agent-feedback.md)，校验源和证据，解释实际要改的构件范围。
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py capabilities
-python .agents/skills/nbtcreator-workspace/nbt.py paths
-python .agents/skills/nbtcreator-workspace/nbt.py feedback scan --workspace .
-python .agents/skills/nbtcreator-workspace/nbt.py feedback collect --version nbt_models/形状/中文名/版本 --output nbt_models/_tasks/意见核查_新编号
-python .agents/skills/nbtcreator-workspace/nbt.py model --help
-python .agents/skills/nbtcreator-workspace/nbt.py render --help
+mise run nbt -- capabilities
+mise run nbt -- paths
+mise run nbt -- feedback scan --workspace .
+mise run nbt -- feedback collect --version nbt_models/形状/中文名/版本 --output nbt_models/_tasks/意见核查_新编号
+mise run nbt -- model --help
+mise run nbt -- render --help
 ```
 
 需要写任务生成器时，用 paths 查询当前 scripts 模块路径和工具版本，无需读包装器或猜旧目录；首次创建的非标准独立门洞由 nbt_openings.open_declared_openings 处理，见 toolkit。不修改冻结引擎或历史示例来批量换皮。NBTCreator 开发项目也可通过 node scripts/cli.mjs 调用同一实现。
 
 control plan/preview 输出候选计划/展示快照；refine prepare 创建审阅资料；真实确认之后才 approve/apply。用户明确导出已看过的网页效果另走 convert，两者不混用。
 
-`nbt.py validate --request <参数JSON> --snapshot <preview/after.json> --output <新目录>` 与应用的“检查当前效果”使用同一候选校验。它按实际制作阶段复算并检查快照、保护、预算和几何，另存报告。
+`mise run nbt -- validate --request <参数JSON> --snapshot <preview/after.json> --output <新目录>` 与应用的“检查当前效果”使用同一候选校验。它按实际制作阶段复算并检查快照、保护、预算和几何，另存报告。
 
 完整建筑的通路检查需要实际 `start` 和非空 `targets`。要求密闭时还需 `interior_probes`，且独立模式必须声明 `openings`，无洞口时用 `[]`。无需密闭且项目允许无声明洞口时，可省略 `openings`。策略为 `required` 时至少声明一个实际洞口。SAODG 接入使用 `ports`。详见[分项验收](validation-workflow.md#独立建筑的显式上下文)。
 

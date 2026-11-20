@@ -1,4 +1,4 @@
-import {translateComponent} from './component-move.js'
+import {translateComponent} from './components/component-move.js'
 import {rotateAIComponent} from './ai-rotation.mjs'
 import {cameraView} from './view-contract.mjs'
 const ignored=new Set(['label','enabled','overwrite','write_group','skip_protected'])

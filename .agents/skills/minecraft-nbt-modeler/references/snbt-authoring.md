@@ -7,7 +7,7 @@
 同一 Python 进程按实际 SNBT 字节的 SHA256 复用已解析内容，最多8项、估算驻留大小64MiB。保存时核验过的临时文件与改名后的相同内容共用解析结果，连续安装无需因路径变化再次解析整栋模型。每次打开仍读取真实文件、核对大小和内容；同尺寸或同时间戳不能复用不同内容。返回的方块、墙 mask、材质表和附加标签均与缓存隔离。此缓存不跨进程，不替代源/上下文哈希、保护、碰撞及看图检查。
 
 ```text
-python .agents/skills/nbtcreator-workspace/nbt.py snbt --source <旧主模型> --output <新的model.snbt>
+mise run nbt -- snbt --source <旧主模型> --output <新的model.snbt>
 ```
 
 CLI `library register --master <旧JSON.GZ/NBT> --name-zh <中文名>` 会保留原稿，并创建/登记 SNBT 制作源。若已经存在不同内容的 SNBT，拒绝覆盖，须使用新版本目录。制作源的中文描述、坐标、显式墙层、预览和正式标注留在原版本。
@@ -21,8 +21,8 @@ CLI `library register --master <旧JSON.GZ/NBT> --name-zh <中文名>` 会保留
 仅在用户明确要求定稿时调用：
 
 ```text
-python .agents/skills/nbtcreator-workspace/nbt.py finalize --workspace . --source <已保存制作源>
-python .agents/skills/nbtcreator-workspace/nbt.py history finalize --workspace . --id <已登记版本ID>
+mise run nbt -- finalize --workspace . --source <已保存制作源>
+mise run nbt -- history finalize --workspace . --id <已登记版本ID>
 ```
 
 受管建筑须保存为 `opened` 阶段才能定稿。要求密闭的建筑先对原始未开洞主模型执行 `seal`，再执行 `open_declared`。无声明洞口时，仍用 `open_declared` 进入完整验证阶段。定稿回读并复查清单绑定的原始封闭证据，有证据时在验证报告中记录 `preopening`。旧式源没有制作阶段清单时，继续按保存的坐标约束检查；重盖洞口得到的密闭报告只证明复验模型的围护。

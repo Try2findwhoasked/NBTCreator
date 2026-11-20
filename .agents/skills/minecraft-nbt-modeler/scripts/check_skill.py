@@ -18,7 +18,7 @@ def main():
             path = unquote(target.split('#', 1)[0]).strip('<>')
             if not (file.parent / path).is_file():
                 errors.append(f'{file.relative_to(root)}: missing {target}')
-    for file in (root / 'scripts').glob('*.py'):
+    for file in (root / 'scripts').rglob('*.py'):
         try:
             ast.parse(file.read_text(encoding='utf8'), filename=str(file))
         except SyntaxError as error:

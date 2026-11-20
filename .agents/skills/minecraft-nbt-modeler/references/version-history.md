@@ -7,11 +7,11 @@
 在实际创作工作区调用生成的入口：
 
 ```text
-python .agents/skills/nbtcreator-workspace/nbt.py history list --workspace . --source <当前主模型>
-python .agents/skills/nbtcreator-workspace/nbt.py history record --workspace . --source <主模型> --message <真实修改说明> --actor external_agent
-python .agents/skills/nbtcreator-workspace/nbt.py history get --workspace . --id <版本ID>
-python .agents/skills/nbtcreator-workspace/nbt.py history current --workspace . --id <版本ID>
-python .agents/skills/nbtcreator-workspace/nbt.py history derive --workspace . --id <版本ID> --message <继续制作的说明>
+mise run nbt -- history list --workspace . --source <当前主模型>
+mise run nbt -- history record --workspace . --source <主模型> --message <真实修改说明> --actor external_agent
+mise run nbt -- history get --workspace . --id <版本ID>
+mise run nbt -- history current --workspace . --id <版本ID>
+mise run nbt -- history derive --workspace . --id <版本ID> --message <继续制作的说明>
 ```
 
 `record --request <JSON>` 还可声明 `parent`（已登记的同建筑父版本 ID）、`tasks`（关联任务编号）和 `set_current`。不凭目录日期猜父子关系。版本节点绑定实际源路径、源字节哈希和几何哈希；文件、说明、批注与关联提示词快照进入历史。相同快照重复登记不创建重复提交；普通自动保存不会逐字创建 Git 提交。

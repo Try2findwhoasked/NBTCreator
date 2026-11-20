@@ -17,13 +17,13 @@
 ## Agent 无界面接口
 
 ```powershell
-python .agents/skills/nbtcreator-workspace/nbt.py project-batch create --request 批量任务.json
-python .agents/skills/nbtcreator-workspace/nbt.py project-batch run --id <编号>
-python .agents/skills/nbtcreator-workspace/nbt.py project-batch get --id <编号>
-python .agents/skills/nbtcreator-workspace/nbt.py project-batch list
-python .agents/skills/nbtcreator-workspace/nbt.py project-batch retry --id <编号>
-python .agents/skills/nbtcreator-workspace/nbt.py project-batch run --id <同一编号>
-python .agents/skills/nbtcreator-workspace/nbt.py project-batch cancel --id <编号>
+mise run nbt -- project-batch create --request 批量任务.json
+mise run nbt -- project-batch run --id <编号>
+mise run nbt -- project-batch get --id <编号>
+mise run nbt -- project-batch list
+mise run nbt -- project-batch retry --id <编号>
+mise run nbt -- project-batch run --id <同一编号>
+mise run nbt -- project-batch cancel --id <编号>
 ```
 
 `批量任务.json` 示例：
@@ -49,7 +49,7 @@ actions 可为 `['preview']`、`['check']` 或 `['preview','check']`。默认工
 
 ```powershell
 node scripts/cli.mjs --workspace D:/MyProject project-repair --source nbt_models/bugged/对象/source.master.json.gz --category auto
-python .agents/skills/nbtcreator-workspace/nbt.py project-repair --source nbt_models/bugged/对象/source.master.json.gz --category square
+mise run nbt -- project-repair --source nbt_models/bugged/对象/source.master.json.gz --category square
 ```
 
 应用和CLI共用 nbt_project_repair.repair。可恢复过期/缺失几何哈希、同坐标同材质重复记录，以及能明确读取为体素的Java1.20.1结构NBT。拒绝冲突重复、非法方块状态、越界、指向空气的墙mask、实体/方块实体、多套调色板和版本转换；不丢弃资料以换取成功。源文件和新候选回读、几何与墙层保持一致后才入库。缺少坐标/通路/开口资料时仍需人工补齐，recovered_candidate不代表通过设计、路线或游戏验收。只写新主模型，NBT须之后明确导出。

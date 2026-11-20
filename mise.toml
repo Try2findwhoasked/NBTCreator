@@ -2,6 +2,39 @@
 description = "Run the shared NBTCreator CLI; pass --workspace for a creative project"
 run = "node scripts/cli.mjs"
 
+[tasks.dev]
+description = "Build the production frontend and launch the source desktop app"
+depends = ["ci:build"]
+run = "npm start"
+
+[tasks."dev:vite"]
+description = "Launch the source desktop app with the Vite development server"
+run = "npm run start:dev"
+
+[tasks.doctor]
+description = "Check the source app's Python, Git, Node and viewer dependencies"
+run = "npm run doctor"
+
+[tasks.check]
+description = "Check tool catalogue, portable engine and migration archive integrity"
+run = ["npm run check:tools", "python -B .agents/skills/minecraft-nbt-modeler/scripts/check_skill.py", "npm run verify:archive"]
+
+[tasks.test]
+description = "Run a test suite from package.json; use --list to see suite names"
+run = "npm --silent run test:suite --"
+
+[tasks."tools:sync"]
+description = "Refresh generated tool docs and prompt-console data from the catalogue"
+run = "npm run sync:tools"
+
+[tasks."package:portable"]
+description = "Build the Windows portable package or an unpacked directory"
+run = "npm run package:portable --"
+
+[tasks."migrate:constraints"]
+description = "Plan, apply or verify an explicit constraint-room copy migration"
+run = "python -B tools/constraint-room-migration/migrate.py"
+
 [tasks."knowledge:fetch"]
 description = "Explicitly download the curated historical architecture books"
 run = "python -B scripts/fetch-architecture-books.py"
@@ -9,6 +42,14 @@ run = "python -B scripts/fetch-architecture-books.py"
 [tasks."knowledge:index"]
 description = "Build the local architecture book index without a model or network"
 run = "python -B .agents/skills/minecraft-nbt-modeler/scripts/nbt_architecture_knowledge.py --library workspace/architecture-knowledge build"
+
+[tasks."knowledge:benchmark"]
+description = "Measure offline retrieval against the selected architecture book library"
+run = "python -B tests/engine/architecture-retrieval-benchmark.py"
+
+[tasks."patterns:check"]
+description = "Check the bundled interior and micro-pattern data against the generators"
+run = ["python -B scripts/build-interior-patterns.py --check", "python -B scripts/build-micro-patterns.py --check"]
 
 [tasks."gpu:setup"]
 description = "Install optional NVIDIA compute libraries in build/gpu-env using pip cache"
@@ -88,6 +129,7 @@ run = ["npm run build:web", "node tests/desktop/studio-redesign-desktop.mjs"]
 
 [tasks."ci:build"]
 description = "Build the production frontend for Windows validation"
+alias = "build:web"
 run = "npm run build:web"
 
 [tasks."ci:quick"]
