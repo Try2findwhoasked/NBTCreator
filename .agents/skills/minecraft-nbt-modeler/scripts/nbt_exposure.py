@@ -272,6 +272,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         '## 没有交接任务时','',
         f'- 整栋初稿：纯文字从用途推导空间，有参考图先标出可见结构。读{link("simple-building")}；复杂布局再看{link("architecture-workflow")}。另有[归卷阁样例]({relative}/assets/examples/reading-loft/README.md)。',
         '- 局部修改、纹样、构件与维护：按[任务路线和已启用资料](knowledge.md)选读。不要从头读完整目录。',
+        '- 参数构件用 `capabilities --agent-tool parametric_compile` 查配方参数；用 `capabilities --model` 查看统一工作模型的装配、修改及另存入口。',
         '- 已知工具用 `capabilities --agent-tool <名称>` 或 `<命令> --help` 查字段。不知道入口时再用 `capabilities --routes`。`paths` 返回共享引擎位置。',
         '- 移动项目或出图失败时用 `paths --runtime` 检查实际 Python、同步版本及 Playwright/Chromium 路径。对外资料用 `exposure show` 查看缺项和修复入口。',
         f'- 查参考读{link("reference-retrieval")}：`retrieve search --request <JSON文件>` 后凭 `receipt` 和 `R1` 取证。查历史原文加 `source_kind: library`，不必先查库编号。只在用户要求时联网。',
