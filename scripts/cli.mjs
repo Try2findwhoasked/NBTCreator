@@ -31,11 +31,17 @@ if(command==='doctor'){
  const git=spawnSync(process.env.NBTCREATOR_GIT||'git',['--version'],{encoding:'utf8',windowsHide:true,timeout:15000})
  const dependencies=fs.existsSync(path.join(skill,'assets/viewer/web-dist/frontend-manifest.json'))||
    fs.existsSync(path.join(skill,'assets/viewer/node_modules/vite'))
+ const packageInfo=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'))
+ const electronPin=packageInfo.devDependencies?.electron
+ const electronDist=path.join(root,'node_modules/electron/dist')
+ const versionFile=path.join(electronDist,'version')
+ const electronVersion=process.versions.electron??(fs.existsSync(versionFile)?fs.readFileSync(versionFile,'utf8').trim().replace(/^v/,''):null)
  const hints=[]
  if(run.status!==0)hints.push(`请检查 PATH 或 NBTCREATOR_PYTHON，并为该解释器安装依赖：python -m pip install -r "${path.join(skill,'requirements.txt')}"`)
  if(git.status!==0)hints.push('请检查 PATH 或 NBTCREATOR_GIT')
  if(!dependencies)hints.push('缺少预构建前端或源码开发依赖')
- console.log(JSON.stringify({ok:!hints.length,node:process.version,skill,viewer_dependencies:dependencies,
+ if(electronPin&&electronVersion&&electronPin!==electronVersion)hints.push('Electron 实际版本与应用锁定版本不同。请恢复匹配的安装。')
+ console.log(JSON.stringify({ok:!hints.length,node:process.version,electron:{version:electronVersion,pinned:electronPin??null,active:Boolean(process.versions.electron)},skill,viewer_dependencies:dependencies,
    python:run.status===0?JSON.parse(run.stdout):null,git:git.status===0?git.stdout.trim():null,
    error:run.error?.message||run.stderr?.trim()||git.error?.message||git.stderr?.trim()||null,hints},null,2))
  process.exitCode=hints.length?1:0

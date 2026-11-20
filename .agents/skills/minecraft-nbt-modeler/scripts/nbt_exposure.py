@@ -49,7 +49,11 @@ def sync_runtime(workspace):
     files.sort(key=lambda entry:entry[1])
     bundle=hashlib.sha256(json.dumps([(name,digest) for _,name,digest in files],separators=(',',':')).encode()).hexdigest()
     folder=Path(workspace)/'.nbtcreator/runtimes';folder.mkdir(parents=True,exist_ok=True);target=folder/bundle[:16]
-    if target.is_dir() and all((target/name).is_file() and hashlib.sha256((target/name).read_bytes()).hexdigest()==digest for _,name,digest in files):return target
+    manifest=target/'runtime-manifest.json'
+    if target.is_dir() and manifest.is_file():
+        try:recorded=json.loads(manifest.read_text(encoding='utf8'))
+        except (OSError,ValueError):recorded={}
+        if isinstance(recorded,dict) and recorded.get('bundle_sha256')==bundle and all((target/name).is_file() and hashlib.sha256((target/name).read_bytes()).hexdigest()==digest for _,name,digest in files):return target
     if target.exists():target=folder/(bundle[:16]+'_'+uuid.uuid4().hex[:8])
     staging=folder/('.staging_'+uuid.uuid4().hex);staging.mkdir()
     for source,name,digest in files:
@@ -131,7 +135,10 @@ def inherit(workspace,previous):
     workspace=Path(workspace).resolve()
     if (workspace/'.nbtcreator/skill-exposure.json').exists():
         return apply(workspace)
-    config=read_config(previous);issues=[]
+    try:config=read_config(previous)
+    except (ValueError,OSError):
+        return dict(apply(workspace),inherit_notice='原工作区资料配置无法读取，已为新工作区生成默认入口。')
+    issues=[]
     for item in config['custom_knowledge'][:]:
         try:
             raw,_=read_custom(previous,item)
@@ -266,6 +273,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         f'- 整栋初稿：纯文字从用途推导空间，有参考图先标出可见结构。读{link("simple-building")}；复杂布局再看{link("architecture-workflow")}。另有[归卷阁样例]({relative}/assets/examples/reading-loft/README.md)。',
         '- 局部修改、纹样、构件与维护：按[任务路线和已启用资料](knowledge.md)选读。不要从头读完整目录。',
         '- 已知工具用 `capabilities --agent-tool <名称>` 或 `<命令> --help` 查字段。不知道入口时再用 `capabilities --routes`。`paths` 返回共享引擎位置。',
+        '- 移动项目或出图失败时用 `paths --runtime` 检查实际 Python、同步版本及 Playwright/Chromium 路径。对外资料用 `exposure show` 查看缺项和修复入口。',
         f'- 查参考读{link("reference-retrieval")}：`retrieve search --request <JSON文件>` 后凭 `receipt` 和 `R1` 取证。查历史原文加 `source_kind: library`，不必先查库编号。只在用户要求时联网。',
         '- 找可用资产：`asset-libraries browse --request <JSON文件>`，文件写 `{"query":"尖拱","limit":4}`。不带 `query` 会列出完整目录；命中不是放置批准。',
         '- 创作偏好按 `ai-style prompt --workflow <区域>` 读取。用户本次要求优先，不更改保护或批准。','',
@@ -360,6 +368,10 @@ raise SystemExit(subprocess.call([sys.executable,'-B',str(engine/'scripts'/scrip
         if name=='nbt.py' and os.name!='nt':target.chmod(target.stat().st_mode|0o111)
     marker.write_text(json.dumps({name:hashlib.sha256(text.encode('utf8')).hexdigest() for name,text in generated.items()},indent=2),encoding='utf8')
     from nbt_knowledge.libraries import atomic
+    from nbt_paths import python_versions
+    metadata=json.loads((runtime/'runtime-manifest.json').read_text(encoding='utf8'))
+    binding=dict(python=python_versions(),bundle_sha256=metadata['bundle_sha256'],electron=os.environ.get('NBTCREATOR_ELECTRON_VERSION'))
+    atomic(folder/'engine-runtime.json',(json.dumps(binding,ensure_ascii=False,indent=2)+'\n').encode('utf8'))
     atomic(file,(json.dumps(config,ensure_ascii=False,indent=2)+'\n').encode('utf8'))
     return show(workspace)
 

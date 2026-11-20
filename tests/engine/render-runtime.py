@@ -74,6 +74,9 @@ class RenderRuntime(unittest.TestCase):
             folder = Path(temporary)
             workspace = folder / 'workspace'
             apply(workspace)
+            moved=folder/'relocated'
+            workspace.rename(moved)
+            workspace=moved
             runtime = next((workspace / '.nbtcreator/runtimes').iterdir())
             self.assertFalse((runtime / 'assets/viewer/node_modules').exists())
             self.assertTrue((runtime / 'assets/viewer/package-lock.json').is_file())
@@ -86,6 +89,11 @@ class RenderRuntime(unittest.TestCase):
             cameras.write_text(json.dumps([dict(id='whole', eye=[15, 13, 15], target=[4, 1, 4])]))
             env = {key: value for key, value in os.environ.items() if not key.startswith('NBTCREATOR_')}
             env['PYTHONUTF8'] = '1'
+            cli=[sys.executable,str(workspace/'.agents/skills/nbtcreator-workspace/nbt.py')]
+            runtime_info=json.loads(subprocess.check_output([*cli,'paths','--runtime'],cwd=workspace,env=env,encoding='utf8',timeout=30))
+            self.assertEqual(runtime_info['active_python'],runtime_info['synced']['python'])
+            self.assertEqual(runtime_info['runtime_bundle_sha256'],runtime_info['synced']['bundle_sha256'])
+            self.assertTrue(runtime_info['render']['ready'],runtime_info['issues'])
             result = subprocess.run([sys.executable, str(workspace / '.agents/skills/nbtcreator-workspace/nbt.py'),
                                      'render', '--source', str(source), '--cameras', str(cameras),
                                      '--output', str(folder / 'rendered'), '--width', '320', '--height', '240'],

@@ -227,6 +227,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- node tests/desktop/agent-task-return-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          mise exec -- npm run test:catalog
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- node tests/desktop/prompt-archive-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- node tests/desktop/walk-desktop.mjs

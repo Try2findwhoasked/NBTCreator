@@ -86,6 +86,24 @@ class Retrieval(unittest.TestCase):
   self.assertEqual(success.returncode,0,success.stdout+success.stderr);self.assertIsNone(json.loads(success.stdout)['receipt'])
   error=subprocess.run([*invocation,request],cwd=self.root,capture_output=True,encoding='utf8')
   self.assertEqual(error.returncode,1);self.assertIn('JSON 文件路径',json.loads(error.stdout)['error'])
+ def test_long_task_can_use_explicit_keywords_for_books_and_offline_asset_candidates(self):
+  self.library('命中书库')
+  query='描述环境 '*90+' 放射式 玫瑰窗'
+  request=dict(workflow='prompt',query=query,source_kind='library')
+  first=dispatch(self.root,'search',request,audience='external_agent')
+  self.assertTrue(first['search_scope']['library_query_truncated'])
+  with patch('urllib.request.urlopen',side_effect=AssertionError('offline retrieval opened a network connection')):
+   found=dispatch(self.root,'search',dict(request,keywords='放射式 玫瑰窗',include_extension_assets=True),audience='external_agent')
+   stairs=dispatch(self.root,'search',dict(request,keywords='螺旋楼梯',include_extension_assets=True),audience='external_agent')
+  self.assertFalse(found['search_scope']['library_query_truncated'])
+  self.assertTrue(found['knowledge'])
+  self.assertTrue(stairs['extension_candidates'])
+  candidate=stairs['extension_candidates'][0]
+  self.assertEqual(candidate['review_status'],'pending_visual_review')
+  self.assertIn('sha256',candidate)
+  self.assertIsNone(stairs['receipt'])
+  with self.assertRaisesRegex(ValueError,'仅用于外部'):
+   dispatch(self.root,'search',dict(request,include_extension_assets=True))
  def test_search_suggests_actual_rotation_and_only_task_selected_references(self):
   result=self.call('search');self.assertEqual(result['assets'][0]['rotations'],[1]);self.assertEqual(result['assets'][0]['asset_id'],self.asset['id']);self.assertEqual(result['knowledge'][0]['label'],'桥梁规范');self.assertIn('桥下排水',result['knowledge'][0]['text']);self.assertEqual(self.call('search',size=[2,3,2])['assets'],[]);self.assertEqual(self.call('search',workflow='prompt')['knowledge'],[])
  def test_bundle_is_hash_bound_and_sends_citable_fragments_without_local_paths_or_voxels(self):

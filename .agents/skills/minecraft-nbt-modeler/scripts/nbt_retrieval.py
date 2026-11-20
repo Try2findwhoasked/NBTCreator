@@ -87,6 +87,12 @@ def documents(workspace,flow,audience='internal_ai',issues=None):
 def search(workspace,request,*,audience='internal_ai'):
     flow=workflow(request);query=request.get('query','')
     if not isinstance(query,str) or not query.strip() or len(query)>12000:raise ValueError('请输入1～12000字的本地检索要求')
+    keywords=request.get('keywords',query)
+    if 'keywords' in request and (not isinstance(keywords,str) or not keywords.strip() or len(keywords)>300):
+        raise ValueError('keywords 接收 1～300 字明确检索词')
+    include_extensions=request.get('include_extension_assets',False)
+    if type(include_extensions) is not bool or include_extensions and audience!='external_agent':
+        raise ValueError('include_extension_assets 仅用于外部 Agent 的离线候选浏览')
     size=request.get('size')
     if size is not None and (not isinstance(size,list) or len(size)!=3 or any(type(n) is not int or not 1<=n<=65536 for n in size)):raise ValueError('目标尺寸须为正整数XYZ')
     limit=request.get('limit',6 if audience=='external_agent' else 12)
@@ -100,22 +106,22 @@ def search(workspace,request,*,audience='internal_ai'):
         catalog=listing(workspace)
     for item in catalog['items']:
         if item.get('archived'):continue
-        value=score(query,item['name']+' '+ ' '.join(item.get('tags',[])))
+        value=score(keywords,item['name']+' '+ ' '.join(item.get('tags',[])))
         if value<=0:continue
         rotations=[turn for turn in (0,1) if size is None or all(n<=size[i] for i,n in enumerate(item['size'] if turn==0 else [item['size'][2],item['size'][1],item['size'][0]]))]
         # Rotation swaps X/Z only; no implicit resizing or clipping.
         if not rotations:continue
         assets.append(dict(id='asset:'+item['id'],kind='asset',asset_id=item['id'],label=item['name'],tags=item['tags'],size=item['size'],anchor=item['anchor'],content_sha256=item['content_sha256'],score=value,rotations=rotations,reason='名称或标签匹配；尺寸可容纳'+('（需绕Y旋转90°）' if rotations==[1] else ''),locator='.nbtcreator/components/'+item['id']+'.json',thumbnail=item.get('thumbnail')))
-    groups,library_errors=(libraries.search(workspace,flow,query,limit,request) if source_kind in (None,'library') else ([],[]))
+    groups,library_errors=(libraries.search(workspace,flow,keywords,limit,request) if source_kind in (None,'library') else ([],[]))
     knowledge=[];saved=[];saved_errors=[];knowledge_errors=[]
     if not request.get('filters') and not request.get('library_id'):
         if source_kind in (None,'web'):
             from nbt_knowledge.saved_references import search as search_saved
-            saved,saved_errors=search_saved(workspace,flow,query,limit)
+            saved,saved_errors=search_saved(workspace,flow,keywords,limit)
         if source_kind in (None,'skill'):
             for document in documents(workspace,flow,audience,knowledge_errors):
                 for chunk in chunks(document):
-                    value=score(query,chunk['heading']+' '+chunk['text'])
+                    value=score(keywords,chunk['heading']+' '+chunk['text'])
                     if value:knowledge.append(dict(chunk,score=value,reason='当前阅读范围内的任务词匹配'))
     assets.sort(key=lambda item:(-item['score'],item['id']));knowledge.sort(key=lambda item:(-item['score'],item['id']))
     if 'limit' not in request and (groups or library_errors or saved):
@@ -123,7 +129,18 @@ def search(workspace,request,*,audience='internal_ai'):
     else:
         knowledge_limit=limit
     selected=select_passages([knowledge,saved,*groups],knowledge_limit)
-    return dict(workflow=flow,query=query,size=size,assets=assets[:limit],knowledge=selected,errors=catalog['errors'],knowledge_errors=knowledge_errors,library_errors=library_errors,saved_web_errors=saved_errors,policy='Only current workspace assets and sources enabled for this workflow; local search never calls a provider.')
+    scope=dict(workflow=flow,source_kind=source_kind or 'all_enabled',per_document_passages=2,
+               library_query_truncated=source_kind in (None,'library') and len(keywords.strip())>300,
+               explicit_keywords='keywords' in request)
+    result=dict(workflow=flow,query=query,size=size,assets=assets[:limit],knowledge=selected,errors=catalog['errors'],
+                knowledge_errors=knowledge_errors,library_errors=library_errors,saved_web_errors=saved_errors,search_scope=scope,
+                policy='Only current workspace assets and sources enabled for this workflow; local search never calls a provider.')
+    if include_extensions:
+        from nbt_asset_libraries import browse
+        candidates=browse(workspace,query=keywords.strip()[:300],limit=limit)
+        result.update(extension_candidates=candidates['items'],extension_errors=candidates['errors'],
+                      extension_next='按返回的 source_id、version 和哈希用 asset-libraries preview 核对实际候选。')
+    return result
 
 
 def select_passages(groups, limit):

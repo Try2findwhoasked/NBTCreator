@@ -1083,11 +1083,25 @@ globalThis.NbtToolCatalog = {
         "result": "默认返回任务阶段、来源核对与下一步；按 expand 视图展开，再用 task-client start 明确领取。"
       }
     ],
+    "工作区与运行时": [
+      {
+        "title": "核对同步版本和渲染依赖",
+        "call": "paths --runtime",
+        "input": "从已同步的实际创作工作区运行，适用于迁移或批量出图前。",
+        "result": "报告当前 Python、同步时的运行时、Playwright 和 Chromium 路径。实际图片用 render 验证。"
+      },
+      {
+        "title": "检查或修复外部 Agent 资料",
+        "call": "exposure show",
+        "input": "看 custom_issues；恢复原文件、exposure import 或 exposure edit --id <编号> --setting remove。",
+        "result": "修复登记与重新同步工作区入口，仅改变外部 Agent 阅读范围。"
+      }
+    ],
     "知识库": [
       {
         "title": "离线检索参考",
         "call": "retrieve search --request <JSON文件>",
-        "input": "填 workflow 和 query。建筑方案用 prompt，独立构件用 component。",
+        "input": "填 workflow 和 query；可用 keywords 给短检索词，include_extension_assets 同时查外部 Agent 的离线资产候选。",
         "result": "返回已启用文档、书库与收藏的简短命中。用 receipt 和 ref 查看局部出处，或以 selected 保存引用集合。"
       },
       {

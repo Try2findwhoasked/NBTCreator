@@ -37,6 +37,8 @@ mise run nbt -- capabilities --routes
 mise run nbt -- --help
 ```
 
+创作工作区同步后，用生成入口的 `paths --runtime` 核对当前 Python 与同步时的解释器、依赖和引擎快照，查看用于出图的 Playwright 和浏览器路径。路径检查后可用 `render --help` 准备实际出图。工作区单独移动或应用更新后，可在应用的「外部建造助手」重新同步。源码的 `mise run doctor` 同时显示锁定和已安装的 Electron 版本。
+
 需要操作创作项目时显式传入 `--workspace`，不要把源码根目录当作资产目录：
 
 ```powershell
@@ -57,7 +59,7 @@ mise run
 └─ migrate:constraints -- <动作>   约束房间迁移的 plan、apply 和 verify
 ```
 
-从创作项目根目录运行生成入口时，`mise run nbt -- task --id <编号>` 可直接读取已交接的提示词任务。执行其他维护脚本时用 `mise exec -- <解释器> <脚本>` 并明确参数。脚本内部继续复用原有 npm、Node 和 Python 入口。独立的 SAODG 兼容工作台按自己的说明启动。[兼容工作台](../../tools/structures/workbench/README.md)
+从创作项目根目录运行生成入口时，`mise run nbt -- task-client list --pending` 可找提示词和建筑修改任务。已知编号时用 `mise run nbt -- task --id <编号> --view compact`。执行维护脚本时用 `mise exec -- <解释器> <脚本>` 并明确参数。独立的 SAODG 兼容工作台按自己的说明启动。[兼容工作台](../../tools/structures/workbench/README.md)
 
 ## 验证入口
 
