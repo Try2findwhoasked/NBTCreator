@@ -23,7 +23,7 @@ python -m pip install -r resources/app/.agents/skills/minecraft-nbt-modeler/requ
 
 可用 `NBTCREATOR_PYTHON` 和 `NBTCREATOR_GIT` 指向特定可执行文件。更新时关闭应用并保留原创作工作区。由旧版迁移时，可把新完整包解压到新目录，使用原有创作工作区。
 
-便携包目录下可运行 `mise.cmd --version`。从实际创作项目根目录调用包内的 `NBT工具.cmd task --id <任务编号>`，可读取已交接的任务。该入口经内置 mise 启动共享 CLI，读取任务使用当前工作目录。
+便携包目录下可运行 `mise.cmd --version`。从实际创作项目根目录调用包内的 `NBT工具.cmd task --id <任务编号> --view compact`，可读取提示词或建筑修改任务。不知道编号时用 `NBT工具.cmd task-client list --pending`。该入口经内置 mise 启动共享 CLI，读取任务使用当前工作目录。
 
 ## 持续集成与测试包
 

@@ -149,7 +149,8 @@ class TaskClient:
     def check_live(self, state):
         live = inspect(self.workspace, state['kind'], state['id'])
         if live['source_matches'] is False:
-            error('SOURCE_CHANGED', '任务原建筑已变化')
+            issue=live.get('issue') or {}
+            error('SOURCE_CHANGED',issue.get('error','任务原建筑已变化'),details=dict(issue.get('details',{}),next=live['next']))
         if live.get('attachment_issues'):
             error('TASK_EVIDENCE_CHANGED','任务绑定附件已变化',details={'attachment_issues':live['attachment_issues']})
         if state['kind'] == 'prompts':
