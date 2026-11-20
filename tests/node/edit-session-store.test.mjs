@@ -16,7 +16,10 @@ test('drafts are portable, bounded data and never modify source assets',async t=
  const moved=root+'-moved';await fs.rename(root,moved);t.after(()=>fs.rm(moved,{recursive:true,force:true}));const other=createEditSessionStore(moved),relocated=path.join(moved,path.relative(root,source));assert.equal((await other.recent()).source,relocated);assert.deepEqual((await other.load(relocated)).state,draft)
 })
 test('source changes retain old draft, and reverting source finds its exact draft',async t=>{
- const {root,source,hash}=await fixture(t),store=createEditSessionStore(root),client_id=randomUUID();await store.save({source,source_sha256:hash,expected_revision:0,client_id,sequence:1,state:state()})
+ const {root,source,hash}=await fixture(t),store=createEditSessionStore(root),client_id=randomUUID()
+ const stat=fs.stat,unchanged=await stat(source,{bigint:true})
+ t.mock.method(fs,'stat',(file,options)=>file===source&&options?.bigint?Promise.resolve(unchanged):stat(file,options))
+ await store.save({source,source_sha256:hash,expected_revision:0,client_id,sequence:1,state:state()})
  await fs.writeFile(source,'model-two');assert.equal((await store.load(source)).status,'source_changed');await assert.rejects(store.save({source,source_sha256:hash,expected_revision:1,client_id,sequence:2,state:state()}),/源建筑已变化/)
  await store.save({source,source_sha256:digest('model-two'),expected_revision:0,client_id,sequence:3,state:state()});const files=(await fs.readdir(path.join(root,'.nbtcreator/edit-sessions'))).filter(n=>n!=='index.json');assert.equal(files.length,2)
  await fs.writeFile(source,'model-one');assert.equal((await store.load(source)).status,'found')

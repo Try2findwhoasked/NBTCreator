@@ -38,7 +38,7 @@ export function validateSessionState(value,hash){
  return value
 }
 export function createEditSessionStore(workspace){
- workspace=path.resolve(workspace);const directory=path.join(workspace,'.nbtcreator/edit-sessions'),indexFile=path.join(directory,'index.json'),hashes=new Map();let writing=Promise.resolve()
+ workspace=path.resolve(workspace);const directory=path.join(workspace,'.nbtcreator/edit-sessions'),indexFile=path.join(directory,'index.json');let writing=Promise.resolve()
  const digest=value=>createHash('sha256').update(value).digest('hex')
  const canonical=fs.realpath(workspace).catch(()=>workspace)
  async function lock(action){
@@ -55,7 +55,17 @@ export function createEditSessionStore(workspace){
  async function read(file){if((await fs.stat(file)).size>32*1024*1024)throw Error('编辑草稿文件过大');return JSON.parse((await fs.readFile(file,'utf8')).replace(/^\uFEFF/,''))}
  async function index(){try{const value=await read(indexFile);if(value.schema_version!==1||!plain(value.sources))throw Error('编辑草稿索引无效');return value}catch(error){if(error.code==='ENOENT')return {schema_version:1,last:null,sources:{}};throw error}}
  async function atomic(file,data){await fs.mkdir(directory,{recursive:true});const temporary=file+'.'+randomUUID()+'.tmp';await fs.writeFile(temporary,JSON.stringify(data)+'\n');await fs.rename(temporary,file)}
- async function sourceHash(source){const stat=await fs.stat(source,{bigint:true}),stamp=[stat.size,stat.mtimeNs,stat.ctimeNs].join(':');if(!stat.isFile())throw Error('建筑源不是文件');const old=hashes.get(source);if(old?.stamp===stamp)return old.hash;const hash=createHash('sha256');for await(const bytes of createReadStream(source))hash.update(bytes);const final=await fs.stat(source,{bigint:true});if([final.size,final.mtimeNs,final.ctimeNs].join(':')!==stamp)throw Error('建筑源正在变化，请稍后重试');const value=hash.digest('hex');hashes.set(source,{stamp,hash:value});return value}
+ async function sourceHash(source){
+  const stamp=stat=>[stat.dev,stat.ino,stat.size,stat.mtimeNs,stat.ctimeNs].join(':')
+  const before=await fs.stat(source,{bigint:true})
+  if(!before.isFile())throw Error('建筑源不是文件')
+  // A same-length rewrite can keep the same Windows timestamp. A stat
+  // comparison detects concurrent replacement but cannot substitute for hashing.
+  const hash=createHash('sha256')
+  for await(const bytes of createReadStream(source))hash.update(bytes)
+  if(stamp(await fs.stat(source,{bigint:true}))!==stamp(before))throw Error('建筑源正在变化，请稍后重试')
+  return hash.digest('hex')
+ }
  function fileFor(key,hash){return path.join(directory,digest(key+':'+hash)+'.json')}
  function metadata(record){return {source:path.resolve(workspace,record.source),source_sha256:record.source_sha256,updated_at:record.updated_at,revision:record.revision}}
  async function recent(){const data=await index(),record=data.sources[data.last];if(!record)return null;const value=metadata(record);try{await fs.access(value.source);return {...value,exists:true}}catch(error){if(error.code!=='ENOENT')throw error;return {...value,exists:false}}}
