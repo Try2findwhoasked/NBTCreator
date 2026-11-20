@@ -46,7 +46,7 @@ class Contracts(unittest.TestCase):
    path='./.agents/skills/nbtcreator-workspace/nbt.py'
    self.assertEqual(result['launcher'],f'mise run {path} --')
    text=(root/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8')
-   self.assertIn(f'mise run {path} -- capabilities --routes',text)
+   self.assertIn(f'mise run {path} -- <命令>',text)
    self.assertEqual(Path(json.loads(self.run_mise(root,path,'--','paths'))['workspace']),root.resolve())
 
  def test_software_source_root_does_not_regenerate_an_authoring_facade(self):
@@ -73,7 +73,7 @@ class Contracts(unittest.TestCase):
   with tempfile.TemporaryDirectory() as temp:
    root=Path(temp);result=expose(root,dict(schema_version=1,enabled_groups=['architecture']))
    self.assertIn('core',result['enabled_groups'])
-   text=(root/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8')
+   text=(root/'.agents/skills/nbtcreator-workspace/knowledge.md').read_text(encoding='utf8')
    self.assertIn('architecture-knowledge-base.md',text);self.assertNotIn('micro-props.md',text)
    self.assertTrue((ENGINE/'references/micro-props.md').is_file())
    self.assertNotIn(str(ENGINE),text)
@@ -113,8 +113,8 @@ class Contracts(unittest.TestCase):
  def test_custom_knowledge_copied_selected_and_portable(self):
   with tempfile.TemporaryDirectory() as temp:
    root=Path(temp);workspace=root/'project';doc=root/'建筑规范.md';doc.write_text('梁端需要承托。',encoding='utf8')
-   result=import_knowledge(workspace,[doc]);item=result['custom_knowledge'][0];self.assertTrue((workspace/'.nbtcreator'/item['path']).is_file());self.assertIn('建筑规范',(workspace/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8'))
-   item['enabled']=False;expose(workspace,dict(schema_version=1,enabled_groups=['core'],custom_knowledge=[item]));self.assertNotIn('建筑规范',(workspace/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8'));self.assertTrue(doc.is_file());self.assertTrue((workspace/'.nbtcreator'/item['path']).is_file())
+   result=import_knowledge(workspace,[doc]);item=result['custom_knowledge'][0];self.assertTrue((workspace/'.nbtcreator'/item['path']).is_file());self.assertIn('建筑规范',(workspace/'.agents/skills/nbtcreator-workspace/knowledge.md').read_text(encoding='utf8'))
+   item['enabled']=False;expose(workspace,dict(schema_version=1,enabled_groups=['core'],custom_knowledge=[item]));self.assertNotIn('建筑规范',(workspace/'.agents/skills/nbtcreator-workspace/knowledge.md').read_text(encoding='utf8'));self.assertTrue(doc.is_file());self.assertTrue((workspace/'.nbtcreator'/item['path']).is_file())
  def test_task_entry_and_selected_inventory_have_separate_filtered_responsibilities(self):
   with tempfile.TemporaryDirectory() as temp:
    root=Path(temp);expose(root,dict(schema_version=1,enabled_groups=['modelling']))
@@ -122,14 +122,15 @@ class Contracts(unittest.TestCase):
    entry=(facade/'SKILL.md').read_text(encoding='utf8');index=(facade/'knowledge.md').read_text(encoding='utf8')
    for name in ('pattern-fitting.md','pattern-authoring.md','surface-mounting.md','modeling-sessions.md'):
     self.assertIn(name,index)
-   self.assertIn('pattern-fitting.md',entry);self.assertIn('knowledge.md',entry)
+   self.assertNotIn('pattern-fitting.md',entry);self.assertIn('knowledge.md',entry)
    for route in ('task-client inspect prompts <id>','task-client inspect tasks <id>'):
-    self.assertIn(route,entry)
+    self.assertLess(entry.index(route),entry.index('capabilities --routes'))
+   self.assertIn('asset-libraries browse --request <JSON文件>',entry);self.assertIn('{"query":"尖拱","limit":4}',entry)
    self.assertNotIn('micro-props.md',entry);self.assertNotIn('micro-props.md',index)
    self.assertNotIn(str(ENGINE),entry+index)
    marker=json.loads((root/'.nbtcreator/facade-manifest.json').read_text(encoding='utf8'))
    self.assertEqual(set(marker),{'SKILL.md','knowledge.md','nbt.py'})
-   self.assertLess(len(entry),8000)
+   self.assertLess(len(entry),2400)
 
  def test_resynchronizing_backs_up_a_user_edited_generated_inventory(self):
   with tempfile.TemporaryDirectory() as temp:
@@ -152,14 +153,14 @@ class Contracts(unittest.TestCase):
     file.write_bytes(file.read_text(encoding='utf8').replace('\n','\r\n').encode('utf8'))
    expose(root,dict(config,enabled_groups=['core','props']))
    self.assertFalse((root/'.nbtcreator/skill-backups').exists())
-   entry=(facade/'SKILL.md').read_text(encoding='utf8')
-   self.assertIn('render --help',entry);self.assertIn('只有在索引中已启用',entry)
+   entry=(facade/'knowledge.md').read_text(encoding='utf8')
+   self.assertIn('render --help',entry);self.assertIn('仅在启用或用户明确指定',entry)
    self.assertNotIn('rendering.md',entry)
-   self.assertEqual(entry.count('/references/validation-workflow.md'),1)
+   self.assertEqual(sum(line.startswith('| 验证、看图') for line in entry.splitlines()),1)
    self.assertIn('查看实际图片',entry)
    expose(root,dict(config,enabled_groups=['core','rendering']))
-   entry=(facade/'SKILL.md').read_text(encoding='utf8')
-   route,=[line for line in entry.splitlines() if '/references/validation-workflow.md' in line]
+   entry=(facade/'knowledge.md').read_text(encoding='utf8')
+   route,=[line for line in entry.splitlines() if line.startswith('| 验证、看图')]
    self.assertIn('/references/diagnostic-guidance.md',route)
    self.assertIn('/references/rendering.md',route)
    self.assertIn('查看实际图片',route)
@@ -167,7 +168,7 @@ class Contracts(unittest.TestCase):
  def test_authoring_entry_keeps_pattern_tools_and_loads_maintenance_only_when_enabled(self):
   with tempfile.TemporaryDirectory() as temp:
    root=Path(temp);expose(root,dict(schema_version=1,enabled_groups=['core']))
-   entry=(root/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8')
+   entry=(root/'.agents/skills/nbtcreator-workspace/knowledge.md').read_text(encoding='utf8')
    self.assertNotIn('state-and-maintenance.md',entry)
    self.assertNotIn('extensions.md',entry)
    self.assertIn('capabilities --agent-tool pattern_microfit',entry)
@@ -176,7 +177,7 @@ class Contracts(unittest.TestCase):
    self.assertEqual(run.returncode,0,run.stderr)
    self.assertIn('pattern_microfit',run.stdout)
    expose(root,dict(schema_version=1,enabled_groups=['core','maintenance']))
-   maintenance=(root/'.agents/skills/nbtcreator-workspace/SKILL.md').read_text(encoding='utf8')
+   maintenance=(root/'.agents/skills/nbtcreator-workspace/knowledge.md').read_text(encoding='utf8')
    self.assertIn('state-and-maintenance.md',maintenance)
    self.assertIn('extensions.md',maintenance)
 
@@ -215,8 +216,8 @@ class Contracts(unittest.TestCase):
    facade = root / '.agents/skills/nbtcreator-workspace'
    entry = (facade / 'SKILL.md').read_text(encoding='utf8')
    index = (facade / 'knowledge.md').read_text(encoding='utf8')
-   self.assertIn('整栋初稿：纯文字', entry)
-   self.assertIn('整栋初稿：有参考图', entry)
+   self.assertIn('整栋初稿：纯文字', index)
+   self.assertIn('整栋初稿：有参考图', index)
    for reference in ('design-grammar.md','architecture-knowledge-base.md','structure-atlas.md',
                      'organic-spaces.md','linked-spaces.md'):
     self.assertNotIn(reference,entry)

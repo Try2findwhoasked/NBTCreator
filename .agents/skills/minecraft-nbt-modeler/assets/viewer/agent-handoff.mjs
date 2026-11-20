@@ -33,7 +33,7 @@ export async function writeHandoff({workspace,info,request,result,requestFile}) 
   const shared = path.join(info.version_dir??info.workdir,'Agent交接')
   const sharedRequest = path.join(directory,'request.json')
   await fs.writeFile(sharedRequest,await fs.readFile(requestFile),{flag:'wx'})
-  const returnGuide=result.agent_task?`\n任务回传编号：${result.agent_task.id}。使用工作区入口的 task-client inspect tasks ${result.agent_task.id} 读取原评论，再用 task-client --session <会话名> start tasks ${result.agent_task.id} --owner <执行者> 领取。制作期间续租，新版本保存后在同一会话运行 complete --new-source <新制作源> --summary <实际改动>，如有评论处理记录附 --comments <JSON文件>。原评论引用 key/content_sha256；status 为 addressed/deferred/not_applicable，note 说明实际修改或未处理原因。不把登记或声明当作人工验收，不覆盖原版本或自动解决原评论。\n`:result.task_registration_warning??''
+  const returnGuide=result.agent_task?`\n任务回传编号：${result.agent_task.id}。使用工作区入口的 task-client inspect tasks ${result.agent_task.id} 核对任务和源，按返回的视图查原评论与保护，再用 task-client --session <会话名> start tasks ${result.agent_task.id} --owner <执行者> 领取。制作期间续租，新版本保存后在同一会话运行 complete --new-source <新制作源> --summary <实际改动>，如有评论处理记录附 --comments <JSON文件>。原评论引用 key/content_sha256；status 为 addressed/deferred/not_applicable，note 说明实际修改或未处理原因。不把登记或声明当作人工验收，不覆盖原版本或自动解决原评论。\n`:result.task_registration_warning??''
   const text = returnGuide+`请使用当前工作区的 .agents/skills/nbtcreator-workspace/SKILL.md 处理以下建筑修改任务。\n\n`+
     `项目内路径相对于当前工作区根目录；外部文件保留原路径。\n`+
     `- 源建筑：${relative(info.source)}\n- 源 SHA256：${request.source_sha256}\n`+

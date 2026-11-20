@@ -78,8 +78,6 @@ async function boot(){
  await fs.mkdir(path.join(workspace,'nbt_models'),{recursive:true})
  await exposure('apply')
  ipcMain.handle('nbt:exposure-config',event=>{allowed(event);return exposure('show')})
- ipcMain.handle('nbt:exposure-save',(event,input)=>{allowed(event);return exposure('apply',input)})
- ipcMain.handle('nbt:exposure-import',async event=>{allowed(event);const selected=await dialog.showOpenDialog(window,{title:'添加知识文件（复制到当前工作区）',properties:['openFile','multiSelections'],filters:[{name:'Markdown / TXT',extensions:['md','txt']}]});return selected.canceled?null:exposure('import',undefined,selected.filePaths)})
  ipcMain.handle('nbt:knowledge-preview',async(event,input)=>{
   allowed(event)
   if(input?.scope==='internal')return internalAI.preview(input.id)

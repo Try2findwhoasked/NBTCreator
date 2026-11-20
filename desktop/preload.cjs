@@ -28,7 +28,5 @@ contextBridge.exposeInMainWorld('nbtDesktop',Object.freeze({
   apiModels:()=>ipcRenderer.invoke('nbt:api-models'),
   apiGenerate:(input,options)=>ipcRenderer.invoke('nbt:api-generate',input,options),
   apiCancel:requestId=>ipcRenderer.invoke('nbt:api-cancel',requestId?{requestId}:undefined),
-  exposureConfig:()=>ipcRenderer.invoke('nbt:exposure-config'),
-  exposureSave:input=>ipcRenderer.invoke('nbt:exposure-save',input),
-  exposureImport:()=>ipcRenderer.invoke('nbt:exposure-import')
+  exposureConfig:()=>ipcRenderer.invoke('nbt:exposure-config')
 }))
