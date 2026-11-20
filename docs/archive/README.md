@@ -8,6 +8,7 @@
 
 | 版本 | 记录 |
 | --- | --- |
+| 4.2.0 | [知识检索、建模与 Agent 版本校验](releases/RELEASE_4.2.0.md) |
 | 4.1.0 | [编辑会话与发布冲突恢复](releases/RELEASE_4.1.0.md) |
 | 4.0.0 | [项目约束、建模工作台与外部 Agent](releases/RELEASE_4.0.0.md) |
 | 3.3.0 | [统一素材库与模块化构件](releases/RELEASE_3.3.0.md) |
