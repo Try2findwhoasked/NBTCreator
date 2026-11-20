@@ -25,19 +25,32 @@ function cleanContext(input){
  if(input.baseline_binding!==undefined&&!SHA.test(input.baseline_binding))throw Error('方案绑定指纹无效')
  if(input.operations!==undefined&&(!Array.isArray(input.operations)||input.operations.length>128))throw Error('当前工具序列最多128项，不能静默截断')
  if(input.project_standard!==undefined&&(typeof input.project_standard!=='string'||input.project_standard.length>40000))throw Error('项目规范文本无效或超过40000字')
+ if(input.user_requirements!==undefined&&(typeof input.user_requirements!=='string'||input.user_requirements.length>4000))throw Error('必须满足的要求须为不超过4000字的文字')
  if(input.constraints!==undefined){
   constraints.resolve(input.constraints)
   for(const item of input.constraints)if(fingerprint(Object.fromEntries(['schema_version','id','revision','name','rules','folder'].filter(key=>Object.hasOwn(item,key)).map(key=>[key,item[key]])))!==item.sha256)throw Error('项目约束快照内容与哈希不符')
-  const effective=constraints.effective({...project,...(input.existing_model?{source:'existing'}:{})},input.constraints)
-  for(const key of ['buildingShape','size','size_policy','footprint','integration'])if(effective[key]!==undefined)project[key]=effective[key]
  }
+ const effective=constraints.effective({...project,...(input.existing_model?{source:'existing'}:{})},input.constraints)
+ for(const key of ['buildingShape','size','size_policy','footprint','integration'])if(effective[key]!==undefined)project[key]=effective[key]
  let brief_scope
  if(input.brief_scope!==undefined){
   const scope=input.brief_scope
   if(input.task!=='brief'||!own(scope,['editable_fields'])||!Array.isArray(scope.editable_fields)||!scope.editable_fields.length||scope.editable_fields.length>fields.length+1||new Set(scope.editable_fields).size!==scope.editable_fields.length||scope.editable_fields.some(key=>!Object.hasOwn(catalog.prompt_design.fields,key)))throw Error('AI修改范围无效，请选择允许修改的设计项')
   brief_scope={editable_fields:[...scope.editable_fields]}
  }
- return {...(input.constraints!==undefined?{constraints:structuredClone(input.constraints)}:{}),...(input.project_standard?{project_standard:input.project_standard}:{}),project,task:['draft','brief'].includes(input.task)?input.task:'controls',existing_model:input.existing_model===true,operations:input.task==='brief'?[]:structuredClone(input.operations??[]),...(brief_scope?{brief_scope}:{}),...(input.baseline_binding?{baseline_binding:input.baseline_binding}:{})}
+ return {...(input.constraints!==undefined?{constraints:structuredClone(input.constraints)}:{}),...(input.project_standard?{project_standard:input.project_standard}:{}),...(input.user_requirements?{user_requirements:input.user_requirements}:{}),project,task:['draft','brief'].includes(input.task)?input.task:'controls',existing_model:input.existing_model===true,operations:input.task==='brief'?[]:structuredClone(input.operations??[]),...(brief_scope?{brief_scope}:{}),...(input.baseline_binding?{baseline_binding:input.baseline_binding}:{})}
+}
+function cleanProseContext(input){
+ if(!own(input,['task','project','constraints','project_standard','user_requirements','original_text','operation_intents']))throw Error('设计说明上下文无效')
+ const {project,constraints,project_standard,user_requirements}=cleanContext(input)
+ const {original_text,operation_intents=[]}=input
+ if(original_text!==undefined&&(typeof original_text!=='string'||!original_text.trim()||original_text.length>60000))throw Error('设计说明原稿须为不超过60000字的正文')
+ if(!Array.isArray(operation_intents)||operation_intents.length>128)throw Error('设计说明最多接受128组工具意图')
+ const keys=['kind','label','enabled','classification','state','mode','action','scope','shape','steps']
+ for(const intent of operation_intents){
+  if(!own(intent,keys)||typeof intent.kind!=='string'||!Number.isSafeInteger(intent.steps)||intent.steps<1||Object.entries(intent).some(([key,value])=>key==='enabled'?typeof value!=='boolean':key!=='steps'&&(typeof value!=='string'||value.length>4000)))throw Error('工具意图摘要无效')
+ }
+ return {task:'design_prose',project,constraints,project_standard,user_requirements,original_text,operation_intents}
 }
 function operationBase(context){return {baseline:fingerprint(context),steps:context.operations.map((op,i)=>({step:i+1,expected:fingerprint(op)}))}}
 function mergeOperationPatch(result,context){
@@ -89,7 +102,7 @@ function validateWorkbench(result,context){
   }
   if(result.operations!==undefined&&(!Array.isArray(result.operations)||result.operations.length))throw Error('当前为提示词编写，仅返回project_patch设计文字，不生成具体工具步骤；工具操作由下一个Agent按真实模型编写')
  }
- if(patch.size){if(!Array.isArray(patch.size)||patch.size.length!==3||!patch.size.every(v=>Number.isInteger(v)&&v>0&&v<=4096))throw Error('设计尺寸无效');if((context.existing_model||context.project.size_policy==='fixed')&&JSON.stringify(patch.size)!==JSON.stringify(context.project.size))throw Error(context.existing_model?'已有模型尺寸不可由AI改写':'固定尺寸不可由AI改写')}
+ if(Object.hasOwn(patch,'size')){if(!Array.isArray(patch.size)||patch.size.length!==3||!patch.size.every(v=>Number.isInteger(v)&&v>0&&v<=4096))throw Error('设计尺寸无效');if((context.existing_model||context.project.size_policy==='fixed')&&JSON.stringify(patch.size)!==JSON.stringify(context.project.size))throw Error(context.existing_model?'已有模型尺寸不可由AI改写':'固定尺寸不可由AI改写')}
  if(result.operations!==undefined){
   const limit=incremental?128:64
   if(!Array.isArray(result.operations)||result.operations.length>limit)throw Error('工具序列最多'+limit+'项')
@@ -112,4 +125,4 @@ function validateWorkbench(result,context){
  }
  return context.task==='brief'?{summary:result.summary,project_patch:Object.fromEntries(Object.entries(patch).filter(([key])=>!context.brief_scope||context.brief_scope.editable_fields.includes(key)))}:result
 }
-module.exports={cleanContext,validateWorkbench,operationBase}
+module.exports={cleanContext,cleanProseContext,validateWorkbench,operationBase}

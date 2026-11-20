@@ -79,6 +79,7 @@ def save(workspace, payload):
         if 'integration' in selected and not document['project'].get('source'):
             context['mode'] = selected['integration']
     if not isinstance(document.get('design_override',''),str) or len(document.get('design_override',''))>4000:raise ValueError('建筑规范例外最多4000字')
+    if not isinstance(document.get('user_requirements',''),str) or len(document.get('user_requirements',''))>4000:raise ValueError('必须满足的要求须为不超过4000字的文字')
     catalog=json.loads((Path(__file__).resolve().parents[1]/'tool-catalog.json').read_text(encoding='utf8'))
     design=catalog['prompt_design'];project=document['project']
     for key in design['fields']:

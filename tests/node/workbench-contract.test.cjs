@@ -51,6 +51,15 @@ test('deltas reject ambiguous replacement, permissions, invalid targets and inva
  assert.throws(()=>validateWorkbench(p,{...ctx,task:'draft'}),/已有方案/)
  assert.equal(JSON.stringify(ctx),before)
 })
+
+test('SAODG brief dimensions are fixed even without a selected rule snapshot',()=>{
+ const ctx=cleanContext({task:'brief',project:{size:[48,24,48],size_policy:'reference',integration:'saodg'},brief_scope:{editable_fields:['layout','size']}})
+ const suggest=size=>validateWorkbench({summary:'布局建议',project_patch:{layout:'入口通向前厅',size}},ctx)
+ assert.equal(ctx.project.size_policy,'fixed')
+ assert.throws(()=>suggest([96,24,48]),/固定尺寸/)
+ for(const size of [null,false,''])assert.throws(()=>suggest(size),/设计尺寸无效/)
+ assert.deepEqual(suggest(ctx.project.size).project_patch.size,[48,24,48])
+})
 test('full baselines are cloned rather than truncated, allowing a small patch on step 100',()=>{
  const input={project:{size:[48,24,48]},operations:Array.from({length:128},()=>structuredClone(step))},ctx=cleanContext(input)
  input.operations[0].state='dirt';input.project.size[0]=1

@@ -12,8 +12,11 @@
  const constraintPanel=element('fieldset',undefined,'field-group');constraintPanel.id='prompt-constraints';
  function placeConstraintPanel(){
    const home=$('ai').hidden?$('project-fields'):$('prompt-ai-instruction').closest('label');
+   const requirements=$('prompt-requirements-field');
+   const next=$('ai').hidden?$('prompt-handoff-review'):home;
+   if(requirements.nextElementSibling!==next)next.before(requirements);
    if($('ai').hidden){if(constraintPanel.parentElement!==home)home.prepend(constraintPanel);}
-   else if(constraintPanel.nextElementSibling!==home)home.before(constraintPanel);
+   else if(constraintPanel.nextElementSibling!==requirements)requirements.before(constraintPanel);
  }
  function prepareDraft(doc){
    const scoped=constraintStorage?.layoutProject?.(currentProjectFolder());
@@ -35,13 +38,15 @@
  }
  function download(name,value,type='application/json'){const blob=new Blob([typeof value==='string'?value:JSON.stringify(value,null,2)],{type});const a=element('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
  function notify(message,error=false){const saved=$('prompt-editor-save-state');$('status').textContent=message;$('status').classList.toggle('error',error);if(error||saved.classList.contains('error'))saved.textContent=error?message:'修改后自动保存';saved.title=message;saved.classList.toggle('error',error);}
- function binding(doc=state){return JSON.stringify({project:doc.project,operations:doc.operations,...(doc.constraints?.length?{constraints:doc.constraints}:{}),...(doc.design_standard?{project_standard:C.standardText(doc)}:{})});}
- function requestBinding(){return JSON.stringify({design:binding(),brief_fields:briefFields(state)});}
+ function binding(doc=state){return JSON.stringify({project:doc.project,operations:doc.operations,...(doc.constraints?.length?{constraints:doc.constraints}:{}),...(doc.design_standard?{project_standard:C.standardText(doc)}:{}),...(doc.user_requirements?{user_requirements:doc.user_requirements}:{})});}
+ function proseBaseline(doc=state){const text=doc.aiDraft?.text;return typeof text==='string'&&text.length<=60000&&text.trim()?text:undefined;}
+ function requestBinding(doc=state,mode=$('prompt-ai-mode').value){return JSON.stringify({design:binding(doc),mode,instruction:doc.workbench?.instruction??'',...(mode==='draft'?{brief_fields:briefFields(doc)}:{}),...(mode==='text'?{original_text:proseBaseline(doc)}:{})});}
  function aiDraft(){return state.aiDraft&&typeof state.aiDraft.text==='string'&&state.aiDraft.text.length<=60000&&state.aiDraft.binding===binding()?state.aiDraft:null;}
  function composeAI(text){return C.prompt(state,{designText:text});}
  function frozenExport(doc){const cached=archivedPrompts.get(doc.export_id);return cached?.binding===JSON.stringify(doc)?cached.original:null;}
  function outputText(){const frozen=frozenExport(state);if(frozen)return frozen.text;return aiDraft()?composeAI(aiDraft().text):C.prompt(state);}
- function update(){const errors=[...pending.values(),...C.validate(state)];const invalid=errors.length>0;if(!invalid&&state.project.stage==='draft'){state.project.output=C.outputPath(C.effectiveProject(state));const output=document.querySelector('[data-field=output]');if(output)output.value=state.project.output;}if(state.proposal_draft&&state.proposal_draft.binding!==requestBinding())delete state.proposal_draft;for(const id of ['copy','markdown','plan','config','save','left-save'])$(id).disabled=invalid;
+ function update(){const errors=[...pending.values(),...C.validate(state)];const invalid=errors.length>0;if(!invalid&&state.project.stage==='draft'){state.project.output=C.outputPath(C.effectiveProject(state));const output=document.querySelector('[data-field=output]');if(output)output.value=state.project.output;}for(const id of ['copy','markdown','plan','config','save','left-save'])$(id).disabled=invalid;
+   updateCandidateAvailability(invalid);renderHandoffSummary(invalid);
    $('result').value=invalid?'请先补齐以下内容：\n'+errors.join('\n'):outputText();notify(invalid?errors.join('\n'):state.operations.length?`${state.operations.filter(op=>op.enabled!==false).length} 个启用 / ${state.operations.length} 个高级步骤 · 供建造助手核对`:'请核对建筑要求，审查后交给建造助手制作',invalid);$('count').textContent=state.operations.length;
    $('output-mode').textContent=aiDraft()?'当前任务包含：已采用的 AI 建议、建筑要求及校验配置':state.aiDraft?'建筑要求已修改，任务已更新为当前表单内容；请重新核对 AI 建议':'当前任务使用表单中的建筑要求';
    if(!state.export_id)state.export_id=crypto.randomUUID().replaceAll('-','');
@@ -87,6 +92,7 @@
    $('prompt-ai-scope').hidden=$('prompt-ai-mode').value!=='draft';
  }
  function renderProject(){
+   $('prompt-user-requirements').value=state.user_requirements??'';
    const host=$('project-fields'),draft=state.project.stage==='draft';host.replaceChildren();
    const shown=C.effectiveProject(state),bound=NbtConstraintContract.resolve(state.constraints??[]);
    placeConstraintPanel();
@@ -348,7 +354,7 @@
  }
  for(const [kind,[label]]of Object.entries(C.catalog)){const o=element('option',label);o.value=kind;$('kind').append(o);}
  $('add').onclick=()=>{if(pending.size){notify('请先修复未完成的参数',true);return;}state.operations.push(C.operation($('kind').value));renderOperations();update();};
- $('prompt-advanced-toggle').onclick=()=>{const open=$('prompt-advanced-tabs').hidden;$('prompt-advanced-tabs').hidden=!open;$('prompt-advanced-toggle').setAttribute('aria-expanded',String(open));$('prompt-ai-mode').querySelector('[value=controls]').hidden=!open;if(!open){if($('prompt-ai-mode').value==='controls')$('prompt-ai-mode').value=state.project.stage==='draft'?'draft':'text';if(['tools','context'].some(id=>!$(id).hidden))document.querySelector('[data-tab=project]').click()}};
+ $('prompt-advanced-toggle').onclick=()=>{const open=$('prompt-advanced-tabs').hidden;$('prompt-advanced-tabs').hidden=!open;$('prompt-advanced-toggle').setAttribute('aria-expanded',String(open));$('prompt-ai-mode').querySelector('[value=controls]').hidden=!open;if(!open){if($('prompt-ai-mode').value==='controls'){$('prompt-ai-mode').value=state.project.stage==='draft'?'draft':'text';$('prompt-ai-mode').onchange();}if(['tools','context'].some(id=>!$(id).hidden))document.querySelector('[data-tab=project]').click()}};
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{const browsed=browseDraftConstraints();document.querySelectorAll('[data-tab]').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b))});document.querySelectorAll('.tab').forEach(x=>x.hidden=x.id!==b.dataset.tab);placeConstraintPanel();if(browsed!==browseDraftConstraints())refreshConstraints();});
  $('context-json').oninput=()=>{try{const v=JSON.parse($('context-json').value);if(!v||typeof v!=='object'||Array.isArray(v))throw Error('上下文须为对象');state.project.context=v;pending.delete('context');$('context-error').textContent='';}catch(e){pending.set('context','上下文JSON无效：'+e.message);$('context-error').textContent=e.message;}update();};
  $('save').onclick=()=>download('nbt_prompt_settings.json',state);
@@ -360,7 +366,7 @@
    const saved=await autosave.flush()
    if(!saved||!parent.nbtPromptStorage?.publish)throw Error('保存任务需要在工作区桌面版中使用')
    if(pending.size||C.validate(state).length)throw Error('参数已变化，请修正后重新保存任务')
-   if(state.proposal_draft)throw Error('请先采用或修改 AI 写好的设计要求，再确认提示词')
+   if(state.proposal_draft)throw Error('请先采用、重新生成或放弃 AI 候选，再确认提示词')
    await registerDraftRoom(state);renderProject();await studio.confirmCurrent();const current=await autosave.flush();const task=await parent.nbtPromptStorage.publish({index:current.index,id:current.id,revision:current.revision});studio.published(task)
    notify(task.unchanged?'该任务已保存，未重复创建文件夹':'任务目录已创建，提示词和方案已保存，可交给外部 Agent')
   }catch(error){notify(error.message,true)}finally{button.disabled=pending.size>0||C.validate(state).length>0}
@@ -370,63 +376,126 @@
  $('plan').onclick=()=>download('plan.json',C.plan(state));
  $('config').onclick=()=>download('context_draft.json',frozenExport(state)?.context??C.exportContext(state));
  $('copy').onclick=async()=>{try{await autosave?.flush();if(navigator.clipboard?.writeText)await navigator.clipboard.writeText($('result').value);else throw Error('fallback');notify('完整提示词已复制');}catch{$('result').focus();$('result').select();notify(document.execCommand('copy')?'完整提示词已复制':'已选中提示词，请按 Ctrl+C');}};
- $('import').onclick=()=>$('file').click();$('file').onchange=async()=>{const f=$('file').files[0];if(!f)return;try{const v=JSON.parse(await f.text());const candidate=C.normalize(v);const errors=C.validate(candidate);if(errors.length)throw Error(errors.join('；'));state=candidate;uncheckedDefaults.clear();pending.clear();renderProject();renderOperations();update();refreshConstraints();}catch(e){notify('导入失败：'+e.message,true);}finally{$('file').value='';}};
+ $('import').onclick=()=>$('file').click();$('file').onchange=async()=>{const f=$('file').files[0];if(!f)return;try{const v=JSON.parse(await f.text());const candidate=C.normalize(v);const errors=C.validate(candidate);if(errors.length)throw Error(errors.join('；'));state=candidate;uncheckedDefaults.clear();pending.clear();$('prompt-ai-instruction').value=state.workbench?.instruction??'';renderProject();renderOperations();restoreCandidate();update();refreshConstraints();}catch(e){notify('导入失败：'+e.message,true);}finally{$('file').value='';}};
  $('reset').onclick=()=>studio.addBlank();
  let aiBridge=null,candidateBinding=null,aiRunning=false,aiEpoch=0,candidateMode='text';
  try{if(window.parent!==window&&window.parent.location.origin===location.origin)aiBridge=window.parent.nbtPromptAI;}catch{}
  function aiMessage(text,error=false){$('prompt-ai-status').textContent=text;$('prompt-ai-status').classList.toggle('error',error);}
- function aiLock(value){aiRunning=value;renderConstraints();$('prompt-ai-mode').disabled=value;$('prompt-ai-generate').disabled=value;$('prompt-ai-cancel').disabled=!value;$('prompt-ai-cancel').hidden=!value;$('prompt-ai-settings').disabled=value;document.querySelectorAll('[data-brief-field]').forEach(input=>input.disabled=value);$('prompt-ai-fields-default').disabled=value;studio?.refresh();}
- function renderCandidate(){
-  const host=$('prompt-ai-review');host.replaceChildren();$('prompt-ai-proposal').hidden=!candidateBinding;$('prompt-ai-raw').open=candidateMode==='text';if(!candidateBinding||candidateMode==='text')return;
-  try{const proposal=JSON.parse($('prompt-ai-candidate').value);for(const [key,value]of Object.entries(proposal.project_patch??{})){const label=element('label',undefined,['name','buildingShape'].includes(key)?'':'wide');label.append(element('span',projectFields[key]??key));const input=element(key==='name'?'input':'textarea');input.dataset.proposalField=key;input.value=Array.isArray(value)?value.join(' × '):value;input.oninput=()=>{const parsed=JSON.parse($('prompt-ai-candidate').value);parsed.project_patch[key]=key==='size'?input.value.split(/[×xX,， ]+/).filter(Boolean).map(Number):input.value;$('prompt-ai-candidate').value=JSON.stringify(parsed,null,2);state.proposal_draft={binding:candidateBinding,mode:candidateMode,raw:$('prompt-ai-candidate').value};update()};label.append(input);host.append(label)}}catch{aiMessage('AI 返回内容无法展开，请在高级数据中检查格式。',true)}
+ function aiLock(value){aiRunning=value;renderConstraints();$('prompt-ai-mode').disabled=value;$('prompt-ai-generate').disabled=value;$('prompt-ai-cancel').disabled=!value;$('prompt-ai-cancel').hidden=!value;$('prompt-ai-settings').disabled=value;document.querySelectorAll('[data-brief-field]').forEach(input=>input.disabled=value);$('prompt-ai-fields-default').disabled=value;updateCandidateAvailability();studio?.refresh();}
+ function candidateIsCurrent(){return !!candidateBinding&&candidateBinding===state.proposal_draft?.binding&&candidateBinding===requestBinding();}
+ function excludedFields(){const fields=state.proposal_draft?.excluded_fields;return Array.isArray(fields)?fields:[];}
+ function selectedPatch(patch){const excluded=excludedFields();return Object.fromEntries(Object.entries(patch??{}).filter(([key])=>!excluded.includes(key)));}
+ const displayValue=value=>Array.isArray(value)?value.join(' × '):value||'（未填写）';
+ function updateCandidateAvailability(invalid=!!pending.size||!!C.validate(state).length){
+   const current=candidateIsCurrent(),draft=state.proposal_draft,editable=current&&!aiRunning;
+   let content=false;
+   if(current)try{const raw=$('prompt-ai-candidate').value;content=candidateMode==='text'?!!raw.trim():candidateMode==='draft'?!!Object.keys(selectedPatch(JSON.parse(raw).project_patch)).length:!!JSON.parse(raw);}catch{}
+   $('prompt-ai-apply').disabled=!editable||invalid||!content;
+   $('prompt-ai-candidate-state').textContent=!draft?'':!current?'基于上一版要求 · 请重新生成或放弃':candidateMode==='draft'?(content?'只采用勾选项，其他项保留原值':'请至少选择一项建议'):(content?'可编辑后采用':'请填写有效的候选内容');
+   $('prompt-ai-candidate').readOnly=!editable;
+   $('prompt-ai-discard').disabled=aiRunning;
+   for(const input of $('prompt-ai-review').querySelectorAll('input,textarea'))input.disabled=!editable;
+   $('prompt-ai-mode').querySelector('[value=text]').textContent=proseBaseline()?'润色已保存的设计说明':'根据表单起草设计说明';
  }
- function restoreCandidate(){const draft=state.proposal_draft;candidateBinding=draft?.binding===requestBinding()?draft.binding:null;candidateMode=draft?.mode??'draft';$('prompt-ai-candidate').value=candidateBinding?draft.raw:'';$('prompt-ai-apply').disabled=!candidateBinding;renderCandidate()}
- $('prompt-ai-candidate').oninput=()=>{if(candidateBinding){state.proposal_draft={binding:candidateBinding,mode:candidateMode,raw:$('prompt-ai-candidate').value};update()}};
- $('prompt-ai-raw').addEventListener('toggle',()=>{if(!$('prompt-ai-raw').open)renderCandidate()});
+ function renderHandoffSummary(invalid){
+   const host=$('prompt-handoff-summary');host.replaceChildren();$('prompt-remove-prose').hidden=!proseBaseline();
+   if(invalid)return;
+   if(state.proposal_draft)host.append(element('p','尚有未处理的 AI 候选。回到「AI 编写」采用、重新生成或放弃后再交接。','muted'));
+   const project=C.effectiveProject(state);
+   function group(title,lines){const section=element('div',undefined,'handoff-summary-group');section.append(element('strong',title));for(const line of lines)section.append(element('p',line));host.append(section);}
+   const requirements=[state.user_requirements?.trim()?state.user_requirements:'未另填文字硬要求。'];
+   if(project.size_policy==='fixed')requirements.push('固定 XYZ 尺寸：'+displayValue(project.size));
+   if(state.constraints?.length)requirements.push('已选约束：'+state.constraints.map(item=>item.name).join('、'));
+   if(project.preserve)requirements.push('保留：'+project.preserve);
+   if(project.avoid)requirements.push('避免：'+project.avoid);
+   group('必须满足',requirements);
+   const accepted=Object.entries(state.workbench?.accepted_fields??{}).filter(([key,value])=>Object.hasOwn(C.designContract.fields,key)&&JSON.stringify(project[key])===JSON.stringify(value)).map(([key,value])=>projectFields[key]+'：'+displayValue(value));
+   if(aiDraft())accepted.push('补充说明：'+aiDraft().text);
+   else if(proseBaseline())accepted.push('旧补充说明未纳入本版交接；可返回 AI 编写重新润色。');
+   group('已采用的 AI 建议',accepted.length?accepted:['本版没有已采用的 AI 建议。']);
+   group('留给建模助手决定',[project.size_policy==='reference'?'实际尺寸（按用途与有效约束推导）。':'固定尺寸内的具体构造。','未指定的构件数量、间距、方块配方与施工顺序。']);
+ }
+ function renderCandidate(){
+   const host=$('prompt-ai-review');host.replaceChildren();$('prompt-ai-proposal').hidden=!candidateBinding;
+   const textMode=candidateMode==='text';$('prompt-ai-raw').open=textMode;$('prompt-ai-raw-title').textContent=textMode?'建议正文':'查看原始数据（高级）';
+   if(!candidateBinding)return;
+   let baseline={},design={project:{}};
+   try{baseline=JSON.parse(candidateBinding);design=JSON.parse(baseline.design);}catch{}
+   if(textMode){
+     $('prompt-ai-comparison').classList.toggle('compare-prose',!!baseline?.original_text);
+     if(baseline?.original_text){const before=element('div',undefined,'proposal-original wide');before.append(element('strong','原稿'),element('p',baseline.original_text));host.append(before);}
+     return;
+   }
+   $('prompt-ai-comparison').classList.remove('compare-prose');
+   try{
+     const proposal=JSON.parse($('prompt-ai-candidate').value),original=C.effectiveProject(design);
+     if(proposal.summary)host.append(element('p',proposal.summary,'wide muted'));
+     for(const [key,value]of Object.entries(proposal.project_patch??{})){
+       const field=element('fieldset',undefined,'proposal-field wide'),fieldName=projectFields[key]??key;field.append(element('legend',fieldName));
+       const before=element('div',undefined,'proposal-original');before.append(element('strong','原值'),element('p',displayValue(original[key])));
+       const label=element('label','建议值'),input=element(key==='name'?'input':'textarea');input.dataset.proposalField=key;input.value=Array.isArray(value)?value.join(' × '):value??'';
+       input.oninput=()=>{const parsed=JSON.parse($('prompt-ai-candidate').value);parsed.project_patch[key]=key==='size'?input.value.split(/[×xX,， ]+/).filter(Boolean).map(Number):input.value;$('prompt-ai-candidate').value=JSON.stringify(parsed,null,2);state.proposal_draft={...state.proposal_draft,raw:$('prompt-ai-candidate').value};update()};
+       label.append(input);const columns=element('div',undefined,'proposal-columns');columns.append(before,label);field.append(columns);
+       if(candidateMode==='draft'){
+         const choice=element('label',undefined,'inline'),check=element('input');check.type='checkbox';check.dataset.adoptField=key;check.checked=!excludedFields().includes(key);
+         check.onchange=()=>{const excluded=new Set(excludedFields());if(check.checked)excluded.delete(key);else excluded.add(key);state.proposal_draft={...state.proposal_draft,excluded_fields:[...excluded]};update();};
+         choice.append(check,'采用'+fieldName);field.append(choice);
+       }
+       host.append(field);
+     }
+   }catch{aiMessage('AI 返回内容无法展开，请在高级数据中检查格式。',true)}
+ }
+ function restoreCandidate(){const draft=state.proposal_draft;candidateBinding=draft?.binding??null;candidateMode=draft?.mode??'draft';$('prompt-ai-candidate').value=candidateBinding?draft.raw:'';if(candidateBinding)$('prompt-ai-mode').value=candidateMode;renderBriefScope();renderCandidate();updateCandidateAvailability();}
+ $('prompt-ai-candidate').oninput=()=>{if(candidateIsCurrent()){state.proposal_draft={...state.proposal_draft,raw:$('prompt-ai-candidate').value};update()}};
+ $('prompt-ai-raw').addEventListener('toggle',()=>{if(!$('prompt-ai-raw').open&&candidateMode!=='text'){renderCandidate();updateCandidateAvailability();}});
  $('prompt-ai-fields-default').onclick=()=>{state.workbench={...state.workbench,brief_fields:C.clone(C.designContract.default_editable_fields)};renderBriefScope();update();};
  $('prompt-ai-instruction').addEventListener('input',()=>{state.workbench={...state.workbench,instruction:$('prompt-ai-instruction').value};update()});
- $('prompt-ai-mode').onchange=()=>{candidateBinding=null;$('prompt-ai-apply').disabled=true;renderBriefScope();aiMessage('已切换AI模式，请重新生成候选方案。');}
+ $('prompt-user-requirements').addEventListener('input',()=>{const value=$('prompt-user-requirements').value;if(value)state.user_requirements=value;else delete state.user_requirements;update()});
+ $('prompt-ai-mode').onchange=()=>{renderBriefScope();updateCandidateAvailability();studio?.refresh();}
  async function refreshAI(){
    if(!aiBridge){$('prompt-ai-indicator').textContent='离线编辑模式';aiMessage('当前可离线填写和导出方案。要使用 AI 辅助，请在 NBTCreator 应用中打开此页。');return;}
    try{const c=await aiBridge.config();$('prompt-ai-indicator').textContent=c.enabled?'AI 已连接':'尚未连接 AI';if(!c.enabled)aiMessage('可在“API 设置”中连接 AI；也可以直接填写建筑要求完成方案。');}catch(e){aiMessage(e.message,true);}
  }
  document.querySelector('[data-tab=ai]').addEventListener('click',refreshAI);refreshAI();
- $('prompt-ai-references').onclick=()=>{const flow=$('prompt-ai-mode').value==='draft'?'draft':$('prompt-ai-mode').value==='text'?'prompt':'workbench';const picker=window.parent?.nbtReferencePicker;if(picker)picker.open({workflow:flow,query:$('prompt-ai-instruction').value}).catch(error=>aiMessage(error.message,true));else aiMessage('本地检索在桌面版工作区提供',true)};
+ $('prompt-ai-references').onclick=()=>{const flow=$('prompt-ai-mode').value==='draft'?'draft':$('prompt-ai-mode').value==='text'?'prompt':'workbench';const picker=window.parent?.nbtReferencePicker;if(picker)picker.open({workflow:flow,query:state.workbench?.instruction?.trim()||state.user_requirements?.trim()||state.project.name}).catch(error=>aiMessage(error.message,true));else aiMessage('本地检索在桌面版工作区提供',true)};
  $('prompt-ai-settings').onclick=()=>{if(aiBridge)aiBridge.settings();else aiMessage('API 设置在 Electron 桌面版主界面右上角提供。',true);};
  function sanitizedDesign(doc=state,mode=$('prompt-ai-mode').value){
    const p=C.effectiveProject(doc),keys=[...Object.keys(C.designContract.fields),'size_policy','integration'];
    const project=Object.fromEntries(keys.map(k=>[k,p[k]]));
    project.extras=String(p.extras??'').split('\n').filter(line=>!line.startsWith('源文件 SHA256：')).join('\n');
-   return {project,...(doc.constraints?.length?{constraints:C.clone(doc.constraints)}:{}),task:mode==='draft'?'draft':'controls',...(mode==='draft'?{brief_scope:{editable_fields:briefFields(doc)}}:{}),existing_model:!!p.source,...(doc.design_standard?{project_standard:C.standardText(doc)}:{}),operations:doc.operations.map(C.aiOperation)};
+   return {project,...(doc.constraints?.length?{constraints:C.clone(doc.constraints)}:{}),task:mode==='draft'?'draft':'controls',...(mode==='draft'?{brief_scope:{editable_fields:briefFields(doc)}}:{}),existing_model:!!p.source,...(doc.design_standard?{project_standard:C.standardText(doc)}:{}),...(doc.user_requirements?{user_requirements:doc.user_requirements}:{}),operations:doc.operations.map(C.aiOperation)};
  }
  $('prompt-ai-generate').onclick=async()=>{
    if(aiRunning)return;const epoch=++aiEpoch;
    try{
      if(!aiBridge)throw Error('AI 需要在 Electron 桌面版内使用');
      if(pending.size||C.validate(state).length)throw Error('请先修正当前方案参数');
-     const before=requestBinding();candidateBinding=null;$('prompt-ai-apply').disabled=true;
      const mode=$('prompt-ai-mode').value;
-     const input=NbtPromptAIInput.request(mode,$('prompt-ai-instruction').value,sanitizedDesign());
+      const before=requestBinding();
+      const input=NbtPromptAIInput.request(mode,state.workbench?.instruction??'',sanitizedDesign(),proseBaseline());
      aiLock(true);aiMessage('正在根据当前设计要求生成建议…');
-     candidateMode=mode;
-     if(candidateMode==='draft'&&(state.project.stage!=='draft'||state.project.source))throw Error('请先点击“新建初稿”，再生成完整初稿方案');
+      if(mode==='draft'&&(state.project.stage!=='draft'||state.project.source))throw Error('请先点击“新建初稿”，再生成完整初稿方案');
      if(input.mode==='workbench'){input.context.baseline_binding=await NbtPromptAIInput.bindingToken(before);if(requestBinding()!==before)throw Error('方案已改变，请重新生成候选')}
      if(epoch!==aiEpoch)throw Object.assign(Error('本次生成已终止'),{code:'AI_CANCELLED'});
-     let result=input.mode==='workbench'?await aiBridge.generateWorkbench(input.instruction,input.context):await aiBridge.generate(input.instruction);
+      let result=input.mode==='workbench'?await aiBridge.generateWorkbench(input.instruction,input.context):await aiBridge.generate(input.instruction,input.context);
      if(epoch!==aiEpoch)throw Object.assign(Error('本次生成已终止'),{code:'AI_CANCELLED'});
      window.parent?.nbtReferencePicker?.sources($('prompt-ai-sources'),result);
      if(requestBinding()!==before)throw Error('生成期间方案已改变，请基于当前方案重新生成');
      if(result.operation_patch)result={...result,operations:NbtPromptAIInput.mergeOperations(state.operations,result.operation_patch)};
-     if(candidateMode==='text'&&(result.mode!=='prompt'||typeof result.text!=='string'||!result.text.trim()))throw Error('AI 返回内容无效');
-     $('prompt-ai-candidate').value=candidateMode!=='text'?JSON.stringify({summary:result.summary,project_patch:result.project_patch,operations:result.operations},null,2):result.text;candidateBinding=before;state.proposal_draft={binding:before,mode:candidateMode,raw:$('prompt-ai-candidate').value};$('prompt-ai-apply').disabled=false;renderCandidate();update();aiMessage(candidateMode!=='text'?'设计要求已生成。可以直接修改各项文字，再点击“采用并继续审查”。':'说明已写好，可以修改后采用。');
+      if(mode==='text'&&(result.mode!=='prompt'||typeof result.text!=='string'||!result.text.trim()||result.text.length>60000))throw Error('AI 返回的设计说明无效或超过60000字');
+      state.proposal_draft=proposalDraft(before,mode,result);restoreCandidate();update();aiMessage(mode==='draft'?'设计建议已生成。可逐项对照、修改和选择，再采用。':mode==='text'?'说明已写好，可以修改后采用。':'控件候选已生成，请审阅后采用。');
    }catch(e){if(epoch===aiEpoch)aiMessage(e.message,e.code!=='AI_CANCELLED');}finally{if(epoch===aiEpoch)aiLock(false);}
  };
  $('prompt-ai-cancel').onclick=()=>{aiEpoch++;aiBridge?.cancel();aiLock(false);aiMessage('本次生成已终止，可重新编写。')};
+ function proposalDraft(before,mode,result){return {binding:before,mode,raw:mode==='text'?result.text:JSON.stringify({summary:result.summary,project_patch:result.project_patch,operations:result.operations},null,2)};}
  function adoptProposal(base,proposal,mode){
      const patch=proposal.project_patch??{},allowed=Object.keys(C.designContract.fields);
      if(Object.keys(patch).some(key=>!allowed.includes(key)))throw Error('方案不能改写路径、阶段、预算或保护字段');
      const bound=NbtConstraintContract.resolve(base.constraints??[]),effective=C.effectiveProject(base);for(const key of ['buildingShape','size','footprint'])if(bound[key]!==undefined&&patch[key]!==undefined&&JSON.stringify(patch[key])!==JSON.stringify(effective[key]))throw Error('AI不能修改已选项目约束：'+key);
-     if(base.project.source&&patch.size&&JSON.stringify(patch.size)!==JSON.stringify(base.project.size))throw Error('已有模型的尺寸保持不变');
+     if(Object.hasOwn(patch,'size')&&JSON.stringify(patch.size)!==JSON.stringify(effective.size)){
+       if(base.project.source)throw Error('已有模型的尺寸保持不变');
+       if(effective.size_policy==='fixed')throw Error('固定尺寸不能通过 AI 候选修改；请取消采用该项');
+     }
      if(mode==='draft')NbtPromptAIInput.assertPatch(base.project,patch,briefFields(base));
      const next=C.clone(base);if(patch.buildingShape&&mode!=='draft'){if(!C.buildingShapes[patch.buildingShape]||base.project.source&&patch.buildingShape!==base.project.buildingShape)throw Error('建筑形状无效，或已有模型形状不能由 AI 改写');C.applyShape(next.project,patch.buildingShape);}for(const [key,value]of Object.entries(patch)){if(key!=='size'&&(typeof value!=='string'||value.length>4000))throw Error('设计字段需为有效文字');next.project[key]=value;}
      if(proposal.operations!==undefined)next.operations=proposal.operations;
@@ -434,28 +503,31 @@
        if(!Object.keys(patch).length)throw Error('需要至少一项设计建议');
        if(proposal.operations!==undefined&&(!Array.isArray(proposal.operations)||proposal.operations.length))throw Error('提示词编写只采用设计要求；具体工具步骤请使用高级工具模式');
      }
-     const errors=C.validate(next);if(errors.length)throw Error(errors.join('；'));delete next.aiDraft;delete next.proposal_draft;next.workbench={...next.workbench,generated:true,status:'pending'};return next;
+      const errors=C.validate(next);if(errors.length)throw Error(errors.join('；'));delete next.proposal_draft;next.workbench={...next.workbench,generated:true,status:'pending',accepted_fields:{...base.workbench?.accepted_fields,...patch}};return next;
  }
  async function generateDocument(doc,isCancelled=()=>false){
    if(!aiBridge)throw Error('AI 需要在 Electron 桌面版内使用');
    const base=C.clone(doc),mode='draft',errors=C.validate(base);if(errors.length)throw Error(errors.join('；'));
-   const before=JSON.stringify({project:base.project,operations:base.operations,...(base.constraints?.length?{constraints:base.constraints}:{}),brief_fields:briefFields(base),...(base.design_standard?{project_standard:C.standardText(base)}:{})});
+    const before=requestBinding(base,mode);
    const input=NbtPromptAIInput.request(mode,base.workbench?.instruction??'',sanitizedDesign(base,mode));
    input.context.baseline_binding=await NbtPromptAIInput.bindingToken(before);
    if(isCancelled())throw Error('已停止批量生成');
    const result=await aiBridge.generateWorkbench(input.instruction,input.context,{scope:'prompt:'+base.export_id});
-   if(result.operation_patch)result.operations=NbtPromptAIInput.mergeOperations(base.operations,result.operation_patch);
-   return adoptProposal(base,result,mode);
+    base.proposal_draft=proposalDraft(before,mode,result);
+    base.workbench={...base.workbench,status:'pending',generated:true};
+    return base;
  }
  $('prompt-ai-apply').onclick=()=>{try{
-   if(aiRunning||candidateBinding!==requestBinding()||pending.size||C.validate(state).length)throw Error('方案已改变或参数无效，请重新生成建议');
+   if(aiRunning||!candidateIsCurrent()||pending.size||C.validate(state).length)throw Error('方案已改变或参数无效，请重新生成建议');
    const text=$('prompt-ai-candidate').value.trim();if(!text||text.length>60000)throw Error('填写有效的候选建议');
    if(candidateMode!=='text'){
-     const next=adoptProposal(state,JSON.parse(text),candidateMode);state=next;pending.clear();renderProject();renderOperations();candidateBinding=null;$('prompt-ai-apply').disabled=true;renderCandidate();update();document.querySelector('[data-tab=project]').click();aiMessage('设计要求已采用，请逐项审查；修改会自动保存。');return;
+     const proposal=JSON.parse(text);if(candidateMode==='draft')proposal.project_patch=selectedPatch(proposal.project_patch);
+     state=adoptProposal(state,proposal,candidateMode);pending.clear();renderProject();renderOperations();restoreCandidate();update();document.querySelector('[data-tab=project]').click();aiMessage('所选建议已采用，其他要求保持原样。');return;
    }
-   state.aiDraft={text,binding:binding()};delete state.proposal_draft;state.workbench={...state.workbench,generated:true,status:'pending'};candidateBinding=null;$('prompt-ai-apply').disabled=true;renderCandidate();update();document.querySelector('[data-tab=project]').click();aiMessage('已采用设计说明，请审查完整提示词。');
+   state.aiDraft={text,binding:binding()};delete state.proposal_draft;state.workbench={...state.workbench,generated:true,status:'pending'};restoreCandidate();update();document.querySelector('[data-tab=project]').click();aiMessage('已采用设计说明，请审查完整提示词。');
  }catch(e){aiMessage(e.message,true);}};
- $('prompt-ai-reset').onclick=()=>{delete state.aiDraft;delete state.proposal_draft;candidateBinding=null;$('prompt-ai-apply').disabled=true;renderCandidate();update();document.querySelector('[data-tab=project]').click();aiMessage('现在使用手工填写的建筑要求。');};
+ $('prompt-ai-discard').onclick=()=>{if(aiRunning)return;delete state.proposal_draft;restoreCandidate();update();aiMessage('已放弃候选，已采用的要求保持原样。');};
+ $('prompt-remove-prose').onclick=()=>{delete state.aiDraft;update();notify('已移除补充说明，其他建筑要求保持原样。');};
  window.NbtPromptUI={newDraft(){return studio.addBlank()},async receive(payload){
    if(studio.busy||aiRunning)throw Error('请等待当前提示词处理完成');await autosave.flush();
    if(pending.size)throw Error('提示词中有未完成的参数，请先修复或保存');
@@ -491,7 +563,7 @@
      if(chosen.length)next.constraints=C.clone(chosen);
    }
    constraintRequest++;constraintFolder=folder;constraintLoading=false;setConstraintLibrary(results);
-   state=next;pending.clear();renderProject();renderOperations();update();
+    state=next;pending.clear();$('prompt-ai-instruction').value=state.workbench?.instruction??'';renderProject();renderOperations();restoreCandidate();update();
    studio.showOutput(false);document.querySelector('[data-tab=project]').click();
  }};
  if(window.parent!==window){document.body.classList.add('embedded');}
@@ -506,9 +578,9 @@
    const command=$('prompt-task-command'),suffix=' task --id '+task.id;
    command.textContent='mise run nbt --'+suffix;
    parent.nbtDesktop?.exposureConfig?.().then(config=>{if(config?.launcher&&status.dataset.id===task.id)command.textContent=config.launcher+suffix}).catch(()=>{});
- },replace(doc){state=doc;uncheckedDefaults.clear();pending.clear();$('prompt-ai-mode').value=state.project.stage==='draft'?'draft':'text';renderProject();renderOperations();restoreCandidate();update();refreshConstraints()},async generate(){await $('prompt-ai-generate').onclick();if(!candidateBinding)throw Error($('prompt-ai-status').textContent);$('prompt-ai-apply').onclick();if(candidateBinding)throw Error($('prompt-ai-status').textContent)}});
+ },replace(doc){state=doc;uncheckedDefaults.clear();pending.clear();$('prompt-ai-mode').value=state.project.stage==='draft'?'draft':'text';renderProject();renderOperations();restoreCandidate();update();refreshConstraints()},async generate(){const prior=state.proposal_draft;await $('prompt-ai-generate').onclick();if(state.proposal_draft===prior||!candidateIsCurrent())throw Error($('prompt-ai-status').textContent)}});
  window.NbtPromptUI.defaultStandards=snapshot=>{if(!studio.pristine||studio.busy||aiRunning)return;state.design_standard=C.clone(snapshot);update()};
- window.NbtPromptUI.applyStandards=async(snapshot,override='')=>{if(studio.busy||aiRunning)throw Error('请先结束当前提示词操作');await autosave.flush();if(snapshot)state.design_standard=C.clone(snapshot);else delete state.design_standard;state.design_override=override;state.workbench={...state.workbench,status:'pending'};delete state.aiDraft;delete state.proposal_draft;candidateBinding=null;restoreCandidate();update();await autosave.flush()};
+ window.NbtPromptUI.applyStandards=async(snapshot,override='')=>{if(studio.busy||aiRunning)throw Error('请先结束当前提示词操作');await autosave.flush();if(snapshot)state.design_standard=C.clone(snapshot);else delete state.design_standard;state.design_override=override;state.workbench={...state.workbench,status:'pending'};update();await autosave.flush()};
  window.NbtPromptUI.standards=()=>({snapshot:state.design_standard?C.clone(state.design_standard):null,override:state.design_override??''});
  window.NbtPromptUI.constraints=()=>C.clone(state.constraints??[]);
  window.NbtPromptUI.applyConstraints=async snapshots=>{await studio.exclusive(async()=>{
@@ -518,7 +590,7 @@
    const current=state.constraints??[],chosen=typeof snapshots==='function'?snapshots(current):snapshots;
    if(chosen===current)return;
    const next=C.clone(state);next.constraints=C.clone(chosen);const errors=C.validate(next);if(errors.length)throw Error(errors.join('；'));
-   state=next;state.workbench={...state.workbench,status:'pending'};delete state.aiDraft;delete state.proposal_draft;candidateBinding=null;renderProject();restoreCandidate();update();await autosave.flush();
+   state=next;state.workbench={...state.workbench,status:'pending'};renderProject();update();await autosave.flush();
  });renderConstraints()};
  const norms=document.createElement('button');norms.id='prompt-project-standards';norms.type='button';norms.textContent='项目设计规范';$('prompt-batch-open').after(norms);norms.onclick=()=>parent.dispatchEvent(new Event('architect-standards'));
  window.NbtPromptUI.flushExport=()=>autosave.flush();
@@ -530,7 +602,7 @@
  }
  const commands=$('prompt-more').querySelector('div')
  commands.prepend($('prompt-batch-open'),$('prompt-add'),$('prompt-next'),$('prompt-batch-retry'),$('prompt-publish-reviewed'))
- commands.append(norms,$('import'),$('save'),$('markdown'),$('plan'),$('config'),$('copy'),$('prompt-ai-references'),$('prompt-ai-settings'),$('prompt-ai-reset'))
+ commands.append(norms,$('import'),$('save'),$('markdown'),$('plan'),$('config'),$('copy'),$('prompt-ai-references'),$('prompt-ai-settings'))
  $('prompt-add').textContent='新建单条'
  document.querySelector('.queue-heading h2').textContent='我的方案'
  for(const id of ['prompt-ai-generate','prompt-ai-apply','prompt-ai-cancel','left-save','prompt-task-copy','prompt-output-close','planning-next'])$(id).classList.add('prompt-proxy-target')
@@ -548,5 +620,5 @@
   const loadBuilding=element('button','为当前建筑写修改要求');loadBuilding.id='prompt-load-building';loadBuilding.type='button';commands.insertBefore(loadBuilding,$('import'))
   loadBuilding.onclick=async()=>{try{await parent.nbtPromptStorage.loadBuilding();notify('已载入当前建筑')}catch(error){notify(error.message,true)}}
  }
- renderProject();renderOperations();update();refreshConstraints();window.NbtPromptUI.ready=studio.load();window.NbtPromptUI.ready.catch(()=>{});
+ $('prompt-ai-instruction').value=state.workbench?.instruction??'';renderProject();renderOperations();restoreCandidate();update();refreshConstraints();window.NbtPromptUI.ready=studio.load();window.NbtPromptUI.ready.catch(()=>{});
 })();

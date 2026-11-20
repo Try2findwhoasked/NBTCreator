@@ -11,7 +11,7 @@
   const scopeItems=()=>items.filter(item=>queueScope==='trash'?item.deleted_at:
    !item.deleted_at&&(queueScope==='published'?awaitingAgent(item):!item.task))
   const matching=available=>available.filter(item=>!groupScope||item.group===groupScope)
-  const signature=doc=>JSON.stringify([doc.project,doc.operations,doc.aiDraft,doc.proposal_draft,doc.workbench?.instruction,doc.design_standard,doc.design_override,doc.constraints])
+  const signature=doc=>JSON.stringify([doc.project,doc.operations,doc.aiDraft,doc.proposal_draft,doc.workbench?.instruction,doc.user_requirements,doc.design_standard,doc.design_override,doc.constraints])
   const phase=item=>item.task?'published':item.document?.workbench?.status==='reviewed'||!item.document&&item.review_state==='reviewed'?'reviewed':item.document?.proposal_draft?'pending':item.document?.workbench?.generated===false||!item.document&&item.generation_state===false?'waiting':'pending'
   const labels={published:'已交接 · 等待外部助手读取',reviewed:'已审查 · 可以交接',pending:'待审查 · 修改后自动保存',waiting:'待编写'}
   function syncNavigation(){
@@ -34,7 +34,6 @@
    $('prompt-batch-open').hidden=primaryAction==='prompt-batch-open'
    $('prompt-output-toggle').hidden=primaryAction==='prompt-output-toggle'||queueScope==='trash'
    $('copy').hidden=step!=='handoff'||primaryAction==='copy'
-   $('prompt-ai-reset').hidden=step!=='write'||$('prompt-ai-proposal').hidden
    for(const id of ['markdown','plan','config'])$(id).hidden=step!=='handoff'
    $('prompt-ai-references').hidden=step!=='write'
    $('prompt-next').hidden=!active||step==='handoff'
@@ -71,7 +70,7 @@
   }
   function render(){
    document.querySelector('.editor').inert=working||loading;document.querySelector('.output').inert=working||loading
-   for(const id of ['prompt-ai-mode','prompt-ai-instruction','prompt-ai-generate'])$(id).disabled=loading||working||hooks.isGenerating()
+   for(const id of ['prompt-ai-mode','prompt-ai-instruction','prompt-user-requirements','prompt-ai-generate'])$(id).disabled=loading||working||hooks.isGenerating()
    const available=scopeItems(),groups=[...new Set(available.map(item=>item.group).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-CN'))
    if(groupScope&&!groups.includes(groupScope))groupScope=''
    const groupFilter=$('prompt-group-filter')
@@ -183,7 +182,7 @@
   async function addBlank(){const item=await guard(async()=>{await hooks.flush();return appendDocument(C.defaults())});if(item)hooks.newDocument?.();return item}
   async function confirmCurrent(){
    if(!hooks.valid())throw Error('请先填写完整的建筑要求，再确认这条提示词')
-   const doc=hooks.document();if(doc.proposal_draft)throw Error('请先采用或修改 AI 写好的设计要求，再确认提示词')
+   const doc=hooks.document();if(doc.proposal_draft)throw Error('请先采用、重新生成或放弃 AI 候选，再确认提示词')
    // Update the cached document first so marking review does not look like an edit.
    doc.workbench={...doc.workbench,status:'reviewed'};if(active){delete active.failure;active.document=C.clone(doc);}hooks.update();await hooks.flush();render()
   }
@@ -247,11 +246,11 @@
   $('prompt-next').onclick=()=>guard(async()=>{
    await hooks.flush();const next=active&&phase(active)==='waiting'?active:live().find(i=>i!==active&&phase(i)==='waiting')
    if(!next){await appendDocument(C.defaults());hooks.message('已新增下一条提示词。描述这座建筑，再点击“生成这条提示词”。');return}
-   await select(next,{skipFlush:true,tab:'ai'});await hooks.generate();hooks.update();await hooks.flush();hooks.message('下一条提示词已生成，请逐项审查修改。')
+   await select(next,{skipFlush:true,tab:'ai'});await hooks.generate();hooks.update();await hooks.flush();hooks.message('下一条建议已生成，请逐项审查并采用。')
   })
   const retry=document.createElement('button');retry.id='prompt-batch-retry';retry.type='button';retry.textContent='重试未完成项';$('prompt-batch-open').after(retry);retry.onclick=()=>guard(async()=>{await hooks.flush();await runBatch(live().filter(item=>phase(item)==='waiting'))});
   $('prompt-batch-open').onclick=()=>{if(loading||working||hooks.isGenerating())return;$('prompt-batch-status').textContent='';$('prompt-batch-dialog').showModal()}
-  function batchItems(){const lines=$('prompt-batch-items').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);if(!lines.length||lines.length>20)throw Error('请填写 1～20 座建筑，每行一座');const common=$('prompt-batch-common').value.trim();return lines.map(line=>{const [name,...rest]=line.split(/[|｜]/);if(!name.trim()||name.trim().length>70)throw Error('每座建筑的名称请控制在 1～70 字');const instruction=[common,'建筑名称：'+name.trim(),rest.join('；')||line].filter(Boolean).join('\n');if(instruction.length>4000)throw Error('共同要求与单座建筑要求合计请控制在 4000 字以内');return {name:name.trim(),instruction}})}
+  function batchItems(){const lines=$('prompt-batch-items').value.split(/\r?\n/).filter(line=>line.trim());if(!lines.length||lines.length>20)throw Error('请填写 1～20 座建筑，每行一座');const common=$('prompt-batch-common').value;return lines.map(line=>{const separator=line.search(/[|｜]/),name=(separator<0?line:line.slice(0,separator)).trim(),specific=separator<0?'':line.slice(separator+1);if(!name||name.length>70)throw Error('每座建筑的名称请控制在 1～70 字');const requirements=[common,specific].filter(value=>value.trim()).join('\n');if(requirements.length>4000)throw Error('共同要求与单座建筑要求合计请控制在 4000 字以内');return {name,requirements}})}
   async function addBatch(generate){
    let requested;try{requested=batchItems()}catch(error){$('prompt-batch-status').textContent=error.message;return}
    return guard(async()=>{
@@ -260,7 +259,7 @@
     for(const request of requested){
      const doc=C.defaults();
      if(inherit){doc.constraints=C.clone(template.constraints??[]);if(C.buildingShapes[template.project.buildingShape])C.applyShape(doc.project,template.project.buildingShape);for(const key of [...Object.keys(C.designContract.fields),'size_policy'])if(key!=='name'&&template.project[key]!==undefined)doc.project[key]=C.clone(template.project[key]);doc.workbench.brief_fields=C.clone(template.workbench?.brief_fields??C.designContract.default_editable_fields);}
-     doc.project.name=request.name;doc.project.output=C.outputPath(doc.project);added.push(await appendDocument(doc,request.instruction,standard));
+     doc.project.name=request.name;doc.project.output=C.outputPath(doc.project);if(request.requirements)doc.user_requirements=request.requirements;added.push(await appendDocument(doc,'',standard));
     }
     if(!generate){await select(added[0],{skipFlush:true,tab:'ai'});hooks.message(`已添加 ${added.length} 座建筑。点击“生成下一条”依次编写。`);return}
     await runBatch(added)
@@ -279,8 +278,8 @@
    }}
    try{await Promise.all(Array.from({length:Math.min(limit,added.length)},worker))}
    finally{batchRunning=false;$('prompt-batch-open').textContent='批量编写';$('prompt-batch-open').onclick=()=>{$('prompt-batch-status').textContent='';$('prompt-batch-dialog').showModal()};document.body.classList.remove('prompt-processing')}
-   const first=added.find(item=>item.document.workbench?.generated)??added[0];await select(first,{skipFlush:true,tab:first.document.workbench?.generated?'project':'ai'})
-   hooks.message(`已生成 ${completed} / ${added.length} 条，草稿分别保存，请逐条审查。${cancelled?'已停止，可重试未完成项。':failed?'部分未完成，请查看列表说明并重试。':''}`,failed>0&&!cancelled)
+   const first=added.find(item=>item.document.workbench?.generated)??added[0];await select(first,{skipFlush:true,tab:'ai'})
+   hooks.message(`已生成 ${completed} / ${added.length} 条，候选分别保存，请逐条审查并采用。${cancelled?'已停止，可重试未完成项。':failed?'部分未完成，请查看列表说明并重试。':''}`,failed>0&&!cancelled)
   }
   $('prompt-batch-add').onclick=()=>addBatch(false);$('prompt-batch-generate').onclick=()=>addBatch(true)
   $('prompt-publish-reviewed').onclick=()=>guard(async()=>{

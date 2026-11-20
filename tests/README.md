@@ -22,6 +22,7 @@
 | 要验证的内容 | 命令 |
 | --- | --- |
 | API、AI 本地协议与引擎会话 | `mise run test -- api` |
+| 内部 Agent 起草、润色和提示词交接 | `mise run test -- prompt-archive` |
 | 桌面冒烟 | `mise run test -- desktop` |
 | 工作区契约与路径选择 | `mise run test -- workspace` |
 | 可移植引擎合成回归 | `mise run nbt -- regress --output <新目录>` |
