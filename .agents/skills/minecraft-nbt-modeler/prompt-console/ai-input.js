@@ -12,6 +12,7 @@
     for(const [key,value]of Object.entries(patch)) {
       if(!Object.hasOwn(schema.fields,key))throw Error('方案不能修改路径、阶段或权限');
       if(!allowed.has(key)&&JSON.stringify(value)!==JSON.stringify(project[key]))throw Error('AI不能修改未勾选的设计项：'+schema.fields[key].label);
+      if(key!=='size'&&typeof value==='string'&&!value.trim())throw Error('建议文字不能为空；可取消采用该项：'+schema.fields[key].label);
     }
     return patch;
   }

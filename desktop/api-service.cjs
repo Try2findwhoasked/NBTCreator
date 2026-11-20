@@ -140,7 +140,8 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   const promptBuilder=require('./internal-skill.cjs').buildInternalPrompt
   const promptOptions={instruction:input.instruction,strictSchema:config.strictSchema}
   const taskPrompt=promptBuilder(input.mode,context,promptOptions)
-  let system=(config.outputCharLimit?`最终结果限制为 ${config.outputCharLimit} 字（Unicode字符，含空白和JSON标点）；不计可分离的思考与说明。`:'最终结果不设应用字数限制。')+'返回完整最终结果，不输出思考。JSON任务返回一个完整对象；文字任务可用单独的<final>与</final>包围正文。保留必要设计，超长时先合并重复内容。\n'+taskPrompt
+  const revisesProse=input.mode==='prompt'&&context?.task==='design_prose'&&!!context.original_text
+  let system=(config.outputCharLimit?`最终结果限制为 ${config.outputCharLimit} 字（Unicode字符，含空白和JSON标点）；不计可分离的思考与说明。`:'最终结果不设应用字数限制。')+'返回完整最终结果，不输出思考。JSON任务返回一个完整对象；文字任务可用单独的<final>与</final>包围正文。'+(revisesProse?'':'保留必要设计，超长时先合并重复内容。')+'\n'+taskPrompt
   const internal=await token.workflowPromise;if(token.cancelled)throw Error('API 请求已取消')
   if(internal?.retrieved_assets?.length&&input.mode==='component'){const references=[...context.references];for(const item of internal.retrieved_assets){const old=references.find(ref=>ref.id===item.id);if(old&&old.content_sha256!==item.content_sha256)throw Error('引用资产已变化，请重新选择');if(!old)references.push(item)}context=componentContext({...context,references})}
   const {retrieved_assets,attachViewport,base_rules,workflow_steps,...providerWorkflow}=internal??{}
@@ -240,7 +241,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     }
     if(reason==='length'){compactRetries++;api_metrics.retried_compact=true}
     if(reason==='length'&&input.mode==='small_structure'&&outputSchema){outputSchema.properties.settings_patch.properties.operations.maxItems=24;outputSchema.properties.summary.maxLength=80;payload.response_format.json_schema.schema=providerSchema(outputSchema)}
-    const feedback=reason==='length'?(input.mode==='workbench'&&context.task==='constraint'?'上次输出达到长度上限。重新给出完整精简的{name,rules}约束候选，不返回工具步骤、路径或权限。':input.mode==='workbench'&&context.task==='brief'?'上次输出达到长度上限。重新给出完整精简的project_patch，仅包含本次允许修改的设计文字；不续写、不生成工具步骤，保留人工硬条件。':input.mode==='prompt'?'上次文字达到长度上限。重新给出完整精简的设计说明，保留用户硬条件，不续写或生成工具步骤。':'上次输出达到长度上限。重新给出完整精简答案，不续写。'+(input.mode==='small_structure'?'小构件只保留最多24个box/beam/frame操作。':'')):('本地校验未通过：'+error.message.replace(/[\r\n]/g,' ').slice(0,300)+'。仅修正格式、长度或错误参数，保持原任务和原上下文，不扩大权限。')
+    const feedback=reason==='length'?(revisesProse?'上次文字达到长度上限。重新给出修改后的完整正文，不续写。只缩短本轮改动的部分，不压缩或删除原稿其余内容。':input.mode==='workbench'&&context.task==='constraint'?'上次输出达到长度上限。重新给出完整精简的{name,rules}约束候选，不返回工具步骤、路径或权限。':input.mode==='workbench'&&context.task==='brief'?'上次输出达到长度上限。重新给出完整精简的project_patch，仅包含本次允许修改的设计文字；不续写、不生成工具步骤，保留人工硬条件。':input.mode==='prompt'?'上次文字达到长度上限。重新给出完整精简的设计说明，保留用户硬条件，不续写或生成工具步骤。':'上次输出达到长度上限。重新给出完整精简答案，不续写。'+(input.mode==='small_structure'?'小构件只保留最多24个box/beam/frame操作。':'')):('本地校验未通过：'+error.message.replace(/[\r\n]/g,' ').slice(0,300)+'。仅修正格式、长度或错误参数，保持原任务和原上下文，不扩大权限。')
     payload.messages=structuredClone(originalMessages)
     if(reason!=='length'&&typeof text==='string'&&text.length<=48000&&Array.from(text).length<=Math.min(config.outputCharLimit?config.outputCharLimit*2:24000,24000))payload.messages.push({role:'assistant',content:text})
     else payload.messages.push({role:'assistant',content:'（本地已省略上一次不完整或过长的输出，不能视为已完成的候选。）'})

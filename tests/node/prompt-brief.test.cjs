@@ -57,7 +57,21 @@ test('prose uses the original at the provider but searches references only with 
  await api.save({enabled:true})
  const context={task:'design_prose',project:{name:'观测工坊',size:[48,24,48],integration:'saodg',source:'local-private-path'},user_requirements:requirements,original_text:original,operation_intents:[{kind:'box',steps:2}]}
  await api.generate({mode:'prompt',instruction:'只改'+topic+'的最后一句',context});assert.equal(calls.length,1)
- const request=JSON.parse(calls[0].messages[1].content);assert.equal(request.context.original_text,original);assert.equal(request.context.project.integration,'saodg');assert.equal(request.context.user_requirements,requirements);assert.ok(request.internal_workflow.knowledge[0].content.includes(topic));assert.ok(!JSON.stringify(request).includes('local-private-path'));assert.match(calls[0].messages[0].content,/其余段落保留原措辞/)
+ const request=JSON.parse(calls[0].messages[1].content),system=calls[0].messages[0].content;assert.equal(request.context.original_text,original);assert.equal(request.context.project.integration,'saodg');assert.equal(request.context.project.size_policy,'fixed');assert.equal(request.context.user_requirements,requirements);assert.ok(request.internal_workflow.knowledge[0].content.includes(topic));assert.ok(!JSON.stringify(request).includes('local-private-path'));assert.match(system,/其余段落保留原措辞/);assert.match(system,/6 × 净高 5/);assert.doesNotMatch(system,/先合并重复内容|说明用途、空间连接关系/)
  await assert.rejects(api.generate({mode:'prompt',instruction:topic,context:{...context,operation_intents:[{kind:'box',steps:1,lo:[0,0,0]}]}}),/工具意图摘要无效/)
  assert.equal(calls.length,1)
+})
+
+test('length recovery for a local revision does not ask the provider to condense untouched prose',async t=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-prose-retry-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));const calls=[]
+ const preserved='低廊很窄。\n\n侧窗的光线到达前厅。',original=preserved+'\n\n原来的结尾。',revised=preserved+'\n\n结尾改作等候区。'
+ const api=createApiService({directory,safeStorage:{},fetchImpl:async(_url,options)=>{
+  calls.push(JSON.parse(options.body));const first=calls.length===1
+  return new Response(JSON.stringify({choices:[{finish_reason:first?'length':'stop',message:{content:first?preserved:revised}}]}))
+ }})
+ await api.save({enabled:true})
+ const result=await api.generate({mode:'prompt',instruction:'只改最后一句',context:{task:'design_prose',project:{size:[48,24,48]},original_text:original}})
+ assert.equal(result.text,revised);assert.equal(calls.length,2)
+ assert.equal(JSON.parse(calls[1].messages[1].content).context.original_text,original)
+ assert.match(calls[1].messages.at(-1).content,/不压缩或删除原稿其余内容/)
 })

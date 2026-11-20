@@ -29,9 +29,9 @@ function cleanContext(input){
  if(input.constraints!==undefined){
   constraints.resolve(input.constraints)
   for(const item of input.constraints)if(fingerprint(Object.fromEntries(['schema_version','id','revision','name','rules','folder'].filter(key=>Object.hasOwn(item,key)).map(key=>[key,item[key]])))!==item.sha256)throw Error('项目约束快照内容与哈希不符')
-  const effective=constraints.effective({...project,...(input.existing_model?{source:'existing'}:{})},input.constraints)
-  for(const key of ['buildingShape','size','size_policy','footprint','integration'])if(effective[key]!==undefined)project[key]=effective[key]
  }
+ const effective=constraints.effective({...project,...(input.existing_model?{source:'existing'}:{})},input.constraints)
+ for(const key of ['buildingShape','size','size_policy','footprint','integration'])if(effective[key]!==undefined)project[key]=effective[key]
  let brief_scope
  if(input.brief_scope!==undefined){
   const scope=input.brief_scope
@@ -102,7 +102,7 @@ function validateWorkbench(result,context){
   }
   if(result.operations!==undefined&&(!Array.isArray(result.operations)||result.operations.length))throw Error('当前为提示词编写，仅返回project_patch设计文字，不生成具体工具步骤；工具操作由下一个Agent按真实模型编写')
  }
- if(patch.size){if(!Array.isArray(patch.size)||patch.size.length!==3||!patch.size.every(v=>Number.isInteger(v)&&v>0&&v<=4096))throw Error('设计尺寸无效');if((context.existing_model||context.project.size_policy==='fixed')&&JSON.stringify(patch.size)!==JSON.stringify(context.project.size))throw Error(context.existing_model?'已有模型尺寸不可由AI改写':'固定尺寸不可由AI改写')}
+ if(Object.hasOwn(patch,'size')){if(!Array.isArray(patch.size)||patch.size.length!==3||!patch.size.every(v=>Number.isInteger(v)&&v>0&&v<=4096))throw Error('设计尺寸无效');if((context.existing_model||context.project.size_policy==='fixed')&&JSON.stringify(patch.size)!==JSON.stringify(context.project.size))throw Error(context.existing_model?'已有模型尺寸不可由AI改写':'固定尺寸不可由AI改写')}
  if(result.operations!==undefined){
   const limit=incremental?128:64
   if(!Array.isArray(result.operations)||result.operations.length>limit)throw Error('工具序列最多'+limit+'项')

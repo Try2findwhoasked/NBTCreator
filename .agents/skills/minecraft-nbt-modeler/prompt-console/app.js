@@ -492,7 +492,10 @@
      const patch=proposal.project_patch??{},allowed=Object.keys(C.designContract.fields);
      if(Object.keys(patch).some(key=>!allowed.includes(key)))throw Error('方案不能改写路径、阶段、预算或保护字段');
      const bound=NbtConstraintContract.resolve(base.constraints??[]),effective=C.effectiveProject(base);for(const key of ['buildingShape','size','footprint'])if(bound[key]!==undefined&&patch[key]!==undefined&&JSON.stringify(patch[key])!==JSON.stringify(effective[key]))throw Error('AI不能修改已选项目约束：'+key);
-     if(base.project.source&&patch.size&&JSON.stringify(patch.size)!==JSON.stringify(base.project.size))throw Error('已有模型的尺寸保持不变');
+     if(Object.hasOwn(patch,'size')&&JSON.stringify(patch.size)!==JSON.stringify(effective.size)){
+       if(base.project.source)throw Error('已有模型的尺寸保持不变');
+       if(effective.size_policy==='fixed')throw Error('固定尺寸不能通过 AI 候选修改；请取消采用该项');
+     }
      if(mode==='draft')NbtPromptAIInput.assertPatch(base.project,patch,briefFields(base));
      const next=C.clone(base);if(patch.buildingShape&&mode!=='draft'){if(!C.buildingShapes[patch.buildingShape]||base.project.source&&patch.buildingShape!==base.project.buildingShape)throw Error('建筑形状无效，或已有模型形状不能由 AI 改写');C.applyShape(next.project,patch.buildingShape);}for(const [key,value]of Object.entries(patch)){if(key!=='size'&&(typeof value!=='string'||value.length>4000))throw Error('设计字段需为有效文字');next.project[key]=value;}
      if(proposal.operations!==undefined)next.operations=proposal.operations;
