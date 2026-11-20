@@ -27,6 +27,8 @@
 
 超时后读取会将执行中任务显示为 pending，下一次领取原子地替换租约并增加 fence。超时执行者无法续期或提交，即使它后来恢复运行。`prompts.task-status` 登记 completed 后结束租约；`tasks.record` 登记新版本后标记 completed 并结束租约；后续修改应由人根据审查意见建立新任务。任务完成/版本登记均不等于人工验收。
 
+建筑修改任务的租约释放或到期后，同一建筑可普通另存制作版。已领取过的任务仍要求有效租约才能登记回传。修改计划、保护配置或其他绑定来源变化时停止制作和回传，原持有者可用 `task-client --session <会话名> release` 释放租约，之后核对来源并建立新任务。原持有者不可用时，等租约到期后再继续。另存仍检查父版本，可能需要从最新版本重新打开模型。
+
 `tasks.record` 还需携带 get/claim/heartbeat 回执的最新 `revision`；`prompts.task-status` 可携带 `expected_revision`（使用 `state_revision`，不是内容摘要 revision）。意见分组写操作使用其最新 revision。冲突时重新读取并由调用者核对新状态，不盲目重试旧意图。
 
 ## 幂等与恢复

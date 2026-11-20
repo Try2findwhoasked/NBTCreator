@@ -104,6 +104,8 @@ class TaskClient:
             data['pending'] = {key: state['pending'][key] for key in ('request_id','method')}
         if state.get('blocked'):
             data['blocked'] = state['blocked']
+        if state['phase']=='blocked' and state.get('lease_token') and state['lease']['expires_at']>time.time():
+            data['next'] = dict(action='release', reason='来源变化后可用同一会话释放租约')
         return data
 
     def status(self):
@@ -139,6 +141,11 @@ class TaskClient:
         if self.response_revision(state, live) != state['revision']:
             error('REVISION_CONFLICT', '任务状态已改变，请核对当前修订')
 
+    def block(self, state, code):
+        state.update(phase='blocked', blocked=code)
+        if state['kind']!='tasks' or code!='SOURCE_CHANGED':
+            state.pop('lease_token', None)
+
     def send(self, state, *, replay=False):
         pending = state['pending']
         reply = dispatch(self.workspace, pending)
@@ -147,8 +154,7 @@ class TaskClient:
             if failure['code'] not in TRANSIENT:
                 state.pop('pending')
                 if failure['code'] in STALE or state['phase'] == 'starting':
-                    state.update(phase='blocked', blocked=failure['code'])
-                    state.pop('lease_token', None)
+                    self.block(state,failure['code'])
                 self.save(state)
             result(reply)
         data = reply['data']
@@ -160,6 +166,7 @@ class TaskClient:
         else:
             state.update(phase='released' if action == 'release' else 'completed', lease=None)
             state.pop('lease_token', None)
+            state.pop('blocked', None)
             if state['phase'] == 'completed':
                 state['completion'] = dict(approval=data['approval'])
                 if state['kind'] == 'tasks':
@@ -174,8 +181,7 @@ class TaskClient:
                 self.check_live(state)
             except ProtocolError as failure:
                 if failure.code in STALE:
-                    state.update(phase='blocked', blocked=failure.code)
-                    state.pop('lease_token', None)
+                    self.block(state,failure.code)
                     self.save(state)
                 raise
         return self.public(state)
@@ -236,7 +242,8 @@ class TaskClient:
             state = self.load()
             if state.get('pending'):
                 error('REQUEST_PENDING', '有未确认响应，请先 retry 重放原请求')
-            if state['phase'] != 'active':
+            can_release = action=='release' and state['phase']=='blocked' and bool(state.get('lease_token'))
+            if state['phase'] != 'active' and not can_release:
                 error('SESSION_NOT_ACTIVE', '当前本地会话没有可用租约', details=self.public(state))
             common = self.lease_params(state)
             if action == 'heartbeat':

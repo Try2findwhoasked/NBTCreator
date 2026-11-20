@@ -235,6 +235,37 @@ class Contracts(unittest.TestCase):
   self.assertEqual(len(dispatch(self.w,'get',dict(id=task['id']))['returns']),1)
   self.assertIn('agent:'+task['id'],History(self.w).get(node)['version']['tasks'])
 
+ def test_released_expired_and_invalid_tasks_unblock_ordinary_publication(self):
+  from nbt_working_model import WorkingModel
+  context=dict(mode='standalone',require_enclosure=False,openings=[],allow_empty_wall_mask=True,start=[2.5,1,2.5],targets={'other':[5.5,1,5.5]})
+  working=WorkingModel(self.w,[8,6,8],context=context)
+  working.apply_operations([dict(kind='box',label='floor',classification='body',lo=[0,0,0],hi=[7,0,7],state='stone')]);working.open_declared()
+  base=working.save_draft('恢复普通另存')
+  for i,scenario in enumerate(('released','expired','changed')):
+   with self.subTest(scenario=scenario):
+    plan=self.w/'nbt_models'/f'plan-{scenario}.json';plan.write_text('{}',encoding='utf8')
+    task=dispatch(self.w,'create',self.request(source=base['source'],source_sha256=base['source_sha256'],origins=[{'path':str(plan)}]))
+    client=TaskClient(self.w,scenario)
+    candidate=WorkingModel.open(self.w,base['source'])
+    pos=[i+1,1,1]
+    candidate.apply_operations([dict(kind='box',label='edit',classification='body',lo=pos,hi=pos,state='gold_block')])
+    with patch('nbt_agent_protocol.time.time',return_value=100+200*i):
+     client.start('tasks',task['id'],'worker',60)
+     old=client.lease_params(client.load())
+     with self.assertRaises(ProtocolError) as locked:candidate.save_draft()
+     self.assertEqual(locked.exception.code,'LEASE_REQUIRED')
+     if scenario=='changed':
+      plan.write_text('{ }',encoding='utf8')
+      with self.assertRaises(ProtocolError) as changed:client.change('heartbeat')
+      self.assertEqual(changed.exception.code,'SOURCE_CHANGED')
+     if scenario!='expired':
+      self.assertEqual(client.change('release')['phase'],'released')
+    with patch('nbt_agent_protocol.time.time',return_value=161+200*i):
+     with self.assertRaises(ProtocolError):candidate.save_draft(task_session=scenario)
+     base=candidate.save_draft()
+     with self.assertRaises(ProtocolError):
+      dispatch(self.w,'record',self.request(**old,new_source=base['source'],new_source_sha256=base['source_sha256'],summary='过期执行者'))
+
  def test_task_client_renews_then_stops_on_release(self):
   published=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'续租','buildingShape':'single'}},'测试任务')
   client=TaskClient(self.w,'renewer')

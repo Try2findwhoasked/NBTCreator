@@ -114,8 +114,9 @@ def publication(workspace,building,source,session,actor):
             for record in index['tasks']:
                 if project_paths(inside(workspace,record['source']))['workdir']!=building:continue
                 task=task_for(workspace,index,record['id'])
-                if task.get('lease_managed') and task['status']!='completed':
-                    protocol.error('LEASE_REQUIRED','该建筑有受租约管理的任务，保存制作版须提供 task_session')
+                if protocol.lease_active(task):
+                    protocol.error('LEASE_REQUIRED','该建筑有有效租约；使用领取会话保存，或释放租约后重试',
+                                   details={'id':task['id'],'lease':protocol.public_lease(task)})
         else:
             from nbt_task_client import TaskClient
             client=TaskClient(workspace,session);state=client.load()
@@ -200,7 +201,11 @@ def dispatch(workspace,action,request):
             data=dict(status='pending',schema_version=1,id=identifier,name=name.strip(),source=relative(workspace,source),source_sha256=source_hash,geometry_sha256=model.fingerprint(),size=list(model.size),directory=relative(workspace,project_paths(source)['version']/'Agent交接'/('task-'+identifier)),revision=0,created_at=now(),comments=comments,camera=camera,origins=origins,returns=[],history=[])
             verify_binding(source,binding);data['input_binding']=binding
         else:
-            data=task_for(workspace,index,request['id']);source=verify(workspace,data)
+            data=task_for(workspace,index,request['id'])
+            # Releasing an owned lease writes no model or evidence. It must
+            # remain possible after a bound input has changed or disappeared.
+            if action!='release':
+                source=verify(workspace,data)
             if action not in ('claim','heartbeat','release') or 'revision' in request:
                 if request.get('revision')!=data['revision']:protocol.error('REVISION_CONFLICT','任务已更新，请刷新后核对再提交',retryable=True,details={'current_revision':data['revision']})
             if action in ('claim','heartbeat','release'):protocol.lease_action(data,action,request)
