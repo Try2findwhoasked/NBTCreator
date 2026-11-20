@@ -80,7 +80,7 @@ export function initApiAssistant(hooks){
     card.append(label,summary,files);return card
    }))
    $('knowledge-status').textContent=config.notice||`助手可读取 ${groups.length} 类参考资料，${issues.size} 份自定义资料待修复。`
-  }catch(error){$('knowledge-status').textContent=error.message}
+  }catch(error){$('custom-knowledge-list').replaceChildren();$('knowledge-groups').replaceChildren();$('knowledge-status').textContent=error.message}
  }
 
  let result=null,binding=null,running=false,generation=0

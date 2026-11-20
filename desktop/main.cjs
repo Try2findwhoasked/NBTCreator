@@ -90,6 +90,7 @@ async function boot(){
   exposureNotice=''
   try{
    const config=await exposure(command,...options)
+   if(config.inherit_notice)exposureNotice=config.inherit_notice
    if(config.inherit_skipped?.length)exposureNotice='未继承无法读取或与目标冲突的资料：'+config.inherit_skipped.map(item=>item.label||item.id).join('、')
    return config
   }catch(error){
