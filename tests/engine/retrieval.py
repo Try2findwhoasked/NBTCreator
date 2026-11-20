@@ -50,6 +50,35 @@ class Retrieval(unittest.TestCase):
   document['enabled']=False;apply(self.root,dict(schema_version=1,enabled_groups=['core'],custom_knowledge=[document]))
   with self.assertRaisesRegex(ValueError,'重新检索'):external('read',**receipt)
   self.assertIsNone(external('search',query='zephyrquill')['receipt'])
+ def test_missing_external_document_is_reported_without_breaking_other_receipts(self):
+  from nbt_exposure import edit_knowledge, import_knowledge, show
+  notes=[]
+  for name in ('testazimuth','testmeridian'):
+   note=self.root/(name+'.md');note.write_text(name+' 是本地合成资料',encoding='utf8');notes.append(note)
+  documents=import_knowledge(self.root,notes)['custom_knowledge']
+  def external(action,**fields):
+   return dispatch(self.root,action,dict(workflow='prompt',source_kind='skill',**fields),audience='external_agent')
+  first=external('search',query='testazimuth')
+  second=external('search',query='testmeridian')
+  missing=documents[1]
+  (self.root/'.nbtcreator'/missing['path']).unlink()
+  lookup=external('search',query='testazimuth')
+  self.assertEqual(lookup['receipt'],first['receipt'])
+  self.assertEqual(lookup['knowledge_errors'][0]['id'],missing['id'])
+  self.assertIn('testazimuth',external('source',receipt=first['receipt'],ref='R1')['text'])
+  with self.assertRaisesRegex(ValueError,'testmeridian.*缺失'):
+   external('source',receipt=second['receipt'],ref='R1')
+  edit_knowledge(self.root,missing['id'],'disable')
+  self.assertEqual(external('search',query='testazimuth')['knowledge_errors'],[])
+  self.assertFalse(show(self.root)['custom_issues'][0]['enabled'])
+  import_knowledge(self.root,[notes[1]])
+  edit_knowledge(self.root,missing['id'],'enable')
+  self.assertIn('testmeridian',external('source',receipt=second['receipt'],ref='R1')['text'])
+  edit_knowledge(self.root,missing['id'],'remove')
+  with self.assertRaisesRegex(ValueError,'取消'):
+   external('source',receipt=second['receipt'],ref='R1')
+  self.assertTrue((self.root/'.nbtcreator'/missing['path']).is_file())
+
  def test_public_cli_supports_stdin_and_explains_file_argument(self):
   invocation=[sys.executable,'-B',str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_retrieval.py'),'search','--request']
   request=json.dumps(dict(workflow='prompt',query='zephyrquill',source_kind='library'))

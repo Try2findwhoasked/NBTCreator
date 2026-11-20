@@ -38,26 +38,30 @@ def workflow(request):
     if key not in FLOWS:raise ValueError('请选择有效的AI工作流')
     return key
 
-def external_documents(workspace):
-    from nbt_exposure import GROUPS, read_config
+def external_documents(workspace,issues=None):
+    from nbt_exposure import GROUPS, read_config, read_custom
     config=read_config(workspace)
     refs=(ROOT/'references').resolve()
-    custom=(workspace/'.nbtcreator/knowledge').resolve()
     names=dict.fromkeys(name for group in config['enabled_groups'] for name in GROUPS[group][1])
-    sources=[('external:'+name,refs/(name+'.md'),refs,'skill:references/'+name+'.md',None) for name in names]
-    sources.extend((item['id'],workspace/'.nbtcreator'/item['path'],custom,'.nbtcreator/'+item['path'],item['label'])
-                   for item in config['custom_knowledge'] if item['enabled'])
-    for identifier,file,root,locator,label in sources:
-        file=file.resolve()
-        if not file.is_relative_to(root):raise ValueError('资料路径越界')
+    for name in names:
+        file=(refs/(name+'.md')).resolve()
+        if not file.is_relative_to(refs):raise ValueError('资料路径越界')
         with file.open('rb') as stream:raw=stream.read(2*1024*1024+1)
         if len(raw)>2*1024*1024 or b'\x00' in raw:raise ValueError('对外资料须为不超过2MiB的文本')
         text=raw.decode('utf-8-sig')
-        if label is None:label=next((line[2:].strip() for line in text.splitlines() if line.startswith('# ')),file.stem)[:150]
-        yield dict(id=identifier,label=label or file.stem,sha256=digest(raw),locator=locator,text=text)
+        label=next((line[2:].strip() for line in text.splitlines() if line.startswith('# ')),file.stem)[:150]
+        yield dict(id='external:'+name,label=label or file.stem,sha256=digest(raw),locator='skill:references/'+name+'.md',text=text)
+    for item in config['custom_knowledge']:
+        if not item['enabled']:continue
+        try:raw,text=read_custom(workspace,item)
+        except ValueError as failure:
+            if issues is not None:issues.append(dict(id=item['id'],label=item['label'],error=str(failure)))
+            continue
+        yield dict(id=item['id'],label=item['label'] or Path(item['path']).stem,sha256=digest(raw),
+                   locator='.nbtcreator/'+item['path'],text=text)
 
-def documents(workspace,flow,audience='internal_ai'):
-    if audience=='external_agent':return external_documents(workspace)
+def documents(workspace,flow,audience='internal_ai',issues=None):
+    if audience=='external_agent':return external_documents(workspace,issues)
     base=(workspace/'.nbtcreator/internal-ai').resolve();file=base/'config.json'
     if not file.is_file():return []
     config=read(file)
@@ -103,13 +107,13 @@ def search(workspace,request,*,audience='internal_ai'):
         if not rotations:continue
         assets.append(dict(id='asset:'+item['id'],kind='asset',asset_id=item['id'],label=item['name'],tags=item['tags'],size=item['size'],anchor=item['anchor'],content_sha256=item['content_sha256'],score=value,rotations=rotations,reason='名称或标签匹配；尺寸可容纳'+('（需绕Y旋转90°）' if rotations==[1] else ''),locator='.nbtcreator/components/'+item['id']+'.json',thumbnail=item.get('thumbnail')))
     groups,library_errors=(libraries.search(workspace,flow,query,limit,request) if source_kind in (None,'library') else ([],[]))
-    knowledge=[];saved=[];saved_errors=[]
+    knowledge=[];saved=[];saved_errors=[];knowledge_errors=[]
     if not request.get('filters') and not request.get('library_id'):
         if source_kind in (None,'web'):
             from nbt_knowledge.saved_references import search as search_saved
             saved,saved_errors=search_saved(workspace,flow,query,limit)
         if source_kind in (None,'skill'):
-            for document in documents(workspace,flow,audience):
+            for document in documents(workspace,flow,audience,knowledge_errors):
                 for chunk in chunks(document):
                     value=score(query,chunk['heading']+' '+chunk['text'])
                     if value:knowledge.append(dict(chunk,score=value,reason='当前阅读范围内的任务词匹配'))
@@ -119,7 +123,7 @@ def search(workspace,request,*,audience='internal_ai'):
     else:
         knowledge_limit=limit
     selected=select_passages([knowledge,saved,*groups],knowledge_limit)
-    return dict(workflow=flow,query=query,size=size,assets=assets[:limit],knowledge=selected,errors=catalog['errors'],library_errors=library_errors,saved_web_errors=saved_errors,policy='Only current workspace assets and sources enabled for this workflow; local search never calls a provider.')
+    return dict(workflow=flow,query=query,size=size,assets=assets[:limit],knowledge=selected,errors=catalog['errors'],knowledge_errors=knowledge_errors,library_errors=library_errors,saved_web_errors=saved_errors,policy='Only current workspace assets and sources enabled for this workflow; local search never calls a provider.')
 
 
 def select_passages(groups, limit):
@@ -139,7 +143,7 @@ def select_passages(groups, limit):
 
 def checked_sources(workspace,flow,sources,*,audience='internal_ai'):
     if not isinstance(sources,list) or not 1<=len(sources)<=16 or len({item['id'] for item in sources})!=len(sources):raise ValueError('参考来源列表无效')
-    docs=None;references=[];external=[]
+    docs=None;issues=[];references=[];external=[]
     for source in sources:
         if source['kind']=='asset':
             from nbt_components import load as load_component
@@ -158,8 +162,10 @@ def checked_sources(workspace,flow,sources,*,audience='internal_ai'):
                 external.append(source)
                 continue
             if docs is None:
-                docs={item['id']:item for item in documents(workspace,flow,audience)}
+                docs={item['id']:item for item in documents(workspace,flow,audience,issues)}
             doc=docs.get(source['document_id'])
+            issue=next((item for item in issues if item['id']==source['document_id']),None)
+            if issue:raise ValueError(f"引用资料 {issue['label']}（{issue['id']}）：{issue['error']}")
             if not doc or doc['sha256']!=source['sha256']:raise ValueError('引用资料已变化或已从工作流取消，请重新检索')
             current=next((chunk for chunk in chunks(doc) if chunk['id']==source['id']),None)
             if not current or any(current[key]!=source[key] for key in ('text','label','heading','locator','line_start','line_end','clipped')):raise ValueError('引用片段已变化，请重新检索')
@@ -288,9 +294,12 @@ def dispatch(workspace,action,request,*,audience='internal_ai'):
             result=dict(id=identifier,label=book['title'],sha256=book['sha256'],locator='library:'+item['name']+'/'+book['file'],
                         text=text,bibliography=libraries.bibliography(book))
             return source_window(result,request,bounded=audience=='external_agent',default_line=default_line)
-        for doc in documents(workspace,flow,audience):
+        issues=[]
+        for doc in documents(workspace,flow,audience,issues):
             if doc['id']==request.get('document_id') and doc['sha256']==request.get('sha256'):
                 return source_window(doc,request,bounded=audience=='external_agent',default_line=default_line)
+        issue=next((item for item in issues if item['id']==identifier),None)
+        if issue:raise ValueError(f"资料 {issue['label']}（{identifier}）：{issue['error']}")
         raise ValueError('资料未选中或已变化')
     base=libraries.inside(workspace,workspace/'.nbtcreator/retrieval/bundles')
     if action=='bundle':

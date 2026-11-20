@@ -25,11 +25,20 @@ const arg=(name)=>{const i=process.argv.indexOf(name);return i<0?null:process.ar
 if(arg('--user-data-dir'))app.setPath('userData',path.resolve(arg('--user-data-dir')))
 function allowed(event){if(!window||event.sender!==window.webContents||event.senderFrame!==window.webContents.mainFrame||!serverUrl||new URL(event.senderFrame.url).origin!==new URL(serverUrl).origin)throw Error('Unexpected IPC sender')}
 async function recordConfig(){let value=path.relative(app.getPath('userData'),workspace);if(path.isAbsolute(value))value=workspace;await fs.writeFile(path.join(app.getPath('userData'),'settings.json'),JSON.stringify({workspace:value,path_base:'settings',workspace_source:'manual'},null,2))}
-async function exposure(command,config,documents=[]){
- const args=['-B',path.join(root,'.agents/skills/minecraft-nbt-modeler/scripts/nbt_exposure.py'),command,'--workspace',workspace]
- if(config){const file=path.join(app.getPath('userData'),'exposure-pending.json');await fs.writeFile(file,JSON.stringify(config));args.push('--config',file)}
- for(const document of documents)args.push('--document',document)
- return new Promise((resolve,reject)=>{const child=spawn(python,args,{cwd:workspace,shell:false,windowsHide:true});let output='',error='';child.stdout.on('data',d=>output+=d);child.stderr.on('data',d=>error+=d);child.on('error',reject);child.on('close',code=>{try{if(code!==0)throw Error(error||'Skill暴露配置失败');resolve(JSON.parse(output))}catch(e){reject(e)}})})
+async function exposure(command,...options){
+ const args=['-B',path.join(root,'.agents/skills/minecraft-nbt-modeler/scripts/nbt_exposure.py'),command,'--workspace',workspace,...options]
+ return new Promise((resolve,reject)=>{
+  const child=spawn(python,args,{cwd:workspace,shell:false,windowsHide:true})
+  let output='';child.stdout.setEncoding('utf8');child.stdout.on('data',data=>output+=data);child.stderr.resume()
+  child.on('error',reject)
+  child.on('close',code=>{
+   try{
+    const result=JSON.parse(output)
+    if(code!==0)throw Error(result.error||'外部助手资料同步失败')
+    resolve(result)
+   }catch(error){reject(code!==0&&error instanceof SyntaxError?Error('外部助手资料同步失败，请检查工作区配置与写入权限'):error)}
+  })
+ })
 }
 async function startBackend(){
  return new Promise((resolve,reject)=>{
@@ -76,8 +85,43 @@ async function boot(){
  try{await fs.access(localPreferences)}catch(e){if(e.code!=='ENOENT')throw e;try{const legacy=JSON.parse(await fs.readFile(path.join(app.getPath('userData'),'preferences.json'),'utf8'));await preferences.save(legacy)}catch(e){if(e.code!=='ENOENT')console.error('Legacy preferences:',e.message)}}
  initialPreferences=await preferences.load()
  await fs.mkdir(path.join(workspace,'nbt_models'),{recursive:true})
- await exposure('apply')
- ipcMain.handle('nbt:exposure-config',event=>{allowed(event);return exposure('show')})
+ let exposureNotice='',changingExposure=false
+ async function syncExposure(command,...options){
+  exposureNotice=''
+  try{
+   const config=await exposure(command,...options)
+   if(config.inherit_skipped?.length)exposureNotice='未继承无法读取或与目标冲突的资料：'+config.inherit_skipped.map(item=>item.label||item.id).join('、')
+   return config
+  }catch(error){
+   exposureNotice='外部助手资料同步失败：'+error.message
+   console.error(exposureNotice)
+   return null
+  }
+ }
+ await syncExposure('apply')
+ ipcMain.handle('nbt:exposure-config',async event=>{
+  allowed(event)
+  try{return {...await workspaceApi.run(()=>exposure('show')),notice:exposureNotice}}
+  catch(error){return {error:error.message,notice:exposureNotice}}
+ })
+ ipcMain.handle('nbt:exposure-edit',async(event,input)=>{
+  allowed(event)
+  if(changingExposure)throw Error('资料正在同步，请稍后重试')
+  changingExposure=true
+  try{return await workspaceApi.run(async()=>{
+   if(input?.action==='sync')return Boolean(await syncExposure('apply'))
+   if(input?.action==='import'){
+    const selected=await dialog.showOpenDialog(window,{title:'导入外部 Agent 资料',properties:['openFile','multiSelections'],filters:[{name:'Markdown / TXT',extensions:['md','txt']}]})
+    if(selected.canceled)return false
+    await exposure('import',...selected.filePaths.flatMap(file=>['--document',file]))
+   }else{
+    if(!['enable','disable','remove'].includes(input?.action)||typeof input.id!=='string'||!/^custom_[a-f0-9]{16}$/.test(input.id))throw Error('自定义资料修改请求无效')
+    await exposure('edit','--id',input.id,'--setting',input.action)
+   }
+   exposureNotice=''
+   return true
+  })}finally{changingExposure=false}
+ })
  ipcMain.handle('nbt:knowledge-preview',async(event,input)=>{
   allowed(event)
   if(input?.scope==='internal')return internalAI.preview(input.id)
@@ -85,7 +129,10 @@ async function boot(){
   if(input.entry)return {title:'当前工作区对外Skill入口',recipient:'由外部Codex/文件式Skill Agent读取，不自动发给内部API。',text:await fs.readFile(path.join(workspace,'.agents/skills/nbtcreator-workspace/SKILL.md'),'utf8')}
   const config=await exposure('show');let file,title
   if(input.group){const group=config.groups.find(g=>g.id===input.group);if(!group||!group.files.includes(input.file))throw Error('Unknown skill reference');file=path.join(root,'.agents/skills/minecraft-nbt-modeler/references',input.file);title=input.file}
-  else {const doc=config.custom_knowledge.find(d=>d.id===input.id);if(!doc)throw Error('Unknown skill document');file=path.join(workspace,'.nbtcreator',doc.path);title=doc.label}
+  else {
+   if(typeof input.id!=='string'||!/^custom_[a-f0-9]{16}$/.test(input.id))throw Error('Unknown skill document')
+   return {...await exposure('preview','--id',input.id),recipient:'供当前工作区的外部 Agent 阅读。'}
+  }
   return {title,recipient:'供当前工作区的Codex/文件式Skill Agent阅读；不会因为暴露而自动发送给内部API。',text:await fs.readFile(file,'utf8')}
  })
  ipcMain.handle('nbt:internal-ai-config',event=>{allowed(event);return internalAI.show()})
@@ -129,12 +176,9 @@ async function boot(){
   try{
    await flushEditor()
    await workspaceApi.suspend();suspended=true
-   const currentExposure=await exposure('show')
    await stopBackend();workspace=next
    await fs.mkdir(path.join(workspace,'nbt_models'),{recursive:true})
-   let targetHasConfig=false;try{await fs.access(path.join(workspace,'.nbtcreator/skill-exposure.json'));targetHasConfig=true}catch{}
-   if(!targetHasConfig)for(const item of currentExposure.custom_knowledge??[]){const from=path.resolve(previous,'.nbtcreator',item.path),to=path.resolve(workspace,'.nbtcreator',item.path);const bytes=await fs.readFile(from);await fs.mkdir(path.dirname(to),{recursive:true});try{const existing=await fs.readFile(to);if(!bytes.equals(existing))throw Error('目标自定义知识文件已有不同内容，未覆盖')}catch(e){if(e.code!=='ENOENT')throw e;await fs.writeFile(to,bytes)}}
-   await exposure('apply',targetHasConfig?undefined:{schema_version:1,enabled_groups:currentExposure.enabled_groups,custom_knowledge:currentExposure.custom_knowledge??[]})
+   await syncExposure('inherit','--previous',previous)
    await recordConfig();await startBackend();workspaceApi.resume();await window.loadURL(serverUrl);window.webContents.setZoomFactor((await preferences.load()).zoom/100);return workspace
   }catch(error){if(suspended){await workspaceApi.suspend();await stopBackend();workspace=previous;await recordConfig();await startBackend();workspaceApi.resume();await window.loadURL(serverUrl)}throw error}
   finally{workspaceApi.resume();switchingWorkspace=false}
