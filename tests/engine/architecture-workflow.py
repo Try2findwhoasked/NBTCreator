@@ -131,7 +131,21 @@ class ArchitectureWorkflow(unittest.TestCase):
                                                       cwd=self.workspace,encoding='utf8'))
         recipe=query('--recipe','structure')['example']
         from nbt_extensions import compile_recipe
-        self.assertEqual(len(compile_recipe(self.workspace,recipe)[0]['blocks']),1)
+        compiled=compile_recipe(self.workspace,recipe)[0]
+        self.assertEqual(len(compiled['blocks']),1)
+        preview=query('--agent-tool','structure_preview')
+        self.assertEqual(preview['example'],{'spec':recipe['arguments']})
+        request=self.workspace/'component-preview.json'
+        request.write_text(json.dumps(preview['example']),encoding='utf8')
+        process=subprocess.run([sys.executable,'-B',str(entry),'components','agent',
+                                '--tool','structure_preview','--request',str(request)],
+                               cwd=self.workspace,capture_output=True,text=True,encoding='utf8')
+        self.assertEqual(process.returncode,0,process.stderr)
+        result=json.loads(process.stdout)['result']
+        self.assertEqual(result['content_sha256'],compiled['content_sha256'])
+        self.assertTrue(Path(result['thumbnail']).is_file())
+        self.assertFalse(result['model_modified'])
+        self.assertFalse(list(self.workspace.rglob('*.nbt')))
         self.assertIn('state',query('--operation','box')['parameters']['properties'])
         self.assertIn('part',query('--architect-action','part-preflight')['parameters']['properties'])
         interfaces=[query('--architect-action',action,'--field','plan.parts.interfaces')
@@ -596,6 +610,45 @@ class ArchitectureWorkflow(unittest.TestCase):
         self.assertFalse(recorded['approval_created'])
         self.assertIn('审阅位置已记录观察 1/1', ' '.join(recorded['delivery_summary']))
         self.assertIn('机位已记录观察 3/4，待看 second_detail', ' '.join(recorded['delivery_summary']))
+
+    def test_same_source_reshoot_rechecks_locations_and_binds_new_images(self):
+        spec=plan()
+        corrected=deepcopy(spec['views'][1])
+        spec['views'][1].pop('feet')
+        spec['views'][1]['eye']=[11.5,2.5,12.5]
+        spec['review_locations']=[dict(id='hall_operation',purpose='Reshoot transport fixture',
+            position=[15.65,3.858,9],views=['beam'])]
+        built=dispatch(self.workspace,'plan-build',dict(plan=spec,save_draft={}))
+        saved=built['saved']
+        binding={key:saved[key] for key in ('source','source_sha256')}
+        original=dispatch(self.workspace,'review-prepare',dict(binding,output='nbt_models/first-review'))
+        self.assertFalse(original['coverage']['review_locations'][0]['passed'])
+        original_manifest=self.synthetic_render(original)
+        reshoot=dispatch(self.workspace,'review-prepare',dict(binding,output='nbt_models/new-review',
+            view_overrides=[corrected]))
+        self.assertTrue(reshoot['coverage']['review_locations'][0]['passed'])
+        self.assertEqual(reshoot['coverage']['overridden_views'],['beam'])
+        self.assertEqual(reshoot['coverage']['source_sha256'],original['coverage']['source_sha256'])
+        self.assertEqual(reshoot['coverage']['plan_sha256'],original['coverage']['plan_sha256'])
+        self.assertNotEqual(reshoot['coverage']['cameras_sha256'],original['coverage']['cameras_sha256'])
+        request=dict(pack=reshoot['pack'],pack_sha256=reshoot['pack_sha256'],revision=0,
+            render_manifest=str(original_manifest),issues=[],observations=[
+                dict(image=row['id'],note='Transport fixture.',
+                    locations=['hall_operation'] if row['id']=='beam' else [])
+                for row in reshoot['coverage']['views']])
+        with self.assertRaisesRegex(ValueError,'源/相机绑定不一致'):
+            dispatch(self.workspace,'review-record',request)
+        recorded=dispatch(self.workspace,'review-record',dict(request,render_manifest=str(self.synthetic_render(reshoot))))
+        self.assertTrue(recorded['coverage_complete'])
+        self.assertFalse(recorded['approval_created'])
+        self.assertEqual(recorded['covered_locations'],['hall_operation'])
+        self.assertEqual(file_hash(saved['source']),saved['source_sha256'])
+        self.assertEqual(file_hash(self.workspace/original['pack']),original['pack_sha256'])
+        for invalid in ([dict(corrected,id='unknown')],[dict(corrected,layer='detail')],[corrected,corrected]):
+            with self.assertRaisesRegex(ValueError,'补拍机位'):
+                dispatch(self.workspace,'review-prepare',dict(binding,output='nbt_models/invalid-review',
+                    view_overrides=invalid))
+        self.assertFalse((self.workspace/'nbt_models/invalid-review').exists())
 
     def test_scene_policies_survive_plan_rebuild_and_cannot_be_dropped(self):
         spec=plan();part=spec['parts'][2];recipe=deepcopy(part['recipe'])

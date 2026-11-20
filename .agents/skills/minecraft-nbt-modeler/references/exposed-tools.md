@@ -84,6 +84,38 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 
 外部Agent改模后的版本登记和评论核对见 [任务回传](agent-task-return.md)，agent-tasks get/record 与应用共用源哈希；确定性检查的通俗解释与定位见 [检查结果解释](diagnostic-guidance.md)，diagnostics 只解释已保存报告，不重新验证或自动修复；按任务挑选资料片段和复用资产见 [本地参考检索](reference-retrieval.md)，retrieve search/bundle/read 共用来源哈希；选区自然语言工具步骤见 [选区编辑](selection-edit.md)，selection-edit context/compile 共用真实方块摘要、坐标平移与写入范围约束；构件的保存、整理、导入及候选放置见 [构件资产](component-assets.md)；参数化工具序列、材质主题和XYZ网格阵列见 [配方与主题](reusable-recipes.md)，recipes compile与components batch仅返回候选步骤；批量创作的过程目录、模型关联与交付图册见 [制作批次](batch-workspaces.md)，batches create/record/list/get/locate 在应用外也可使用；项目多选、只读批量预览与检查、进度及重试见 [项目批量任务](project-batch.md)；内部 API 与外部 Agent 共用的各区域创作参数见 [AI创作偏好](ai-creative-preferences.md)。
 
+## 容易混淆的入口
+
+命令均通过创作工作区入口 `nbt.py` 调用。运行 `nbt.py capabilities --routes` 可单独查询这张表。
+
+### 检查
+
+| 任务 | 调用或字段 | 输入 | 结果 |
+| --- | --- | --- | --- |
+| 校验候选快照 | `validate --request <请求JSON> --snapshot <候选快照> --output <新检查目录>` | 同一次 control preview 的原始编辑请求与回执的 result.snapshot（after.json）。 | 写 validation.json，检查源绑定、实际改动、保护和几何。以 result.passed 判定是否通过。 |
+| 复验已保存的制作源 | `model --request <请求JSON>` | JSON 填 source、source_sha256 和 validate:true。路径与哈希从保存回执 result.saved 取。 | 返回 result.validation。只检查时省略 actions 和 save_draft。 |
+| 复验建筑及绑定方案 | `architect plan-check --request <请求JSON>` | JSON 填绑定过建筑方案的 source 和 source_sha256。 | 返回 validation、绑定方案和 plan_sha256。 |
+| 查询制作源是否可编辑 | `control inspect --source <制作源>` | 现有制作源路径。 | result.editing_ready 表示是否具备编辑条件，context_readiness 给出上下文缺失或失配的原因。 |
+
+### 构件
+
+| 任务 | 调用或字段 | 输入 | 结果 |
+| --- | --- | --- | --- |
+| 预检方案中的单个构件 | `architect part-preflight --request <请求JSON>` | JSON 填 plan 或 plan_id，以及要检查的 part。用 capabilities --architect-action part-preflight 查参数。 | 编译指定构件，返回方块状态支持和接口问题。整栋装配与宿主验证由 plan-build 执行。 |
+| 填写结构配方 | `recipe.tool = "structure"` | 填写建筑方案的 parts[].recipe 或主模型 install 的 recipe。capabilities --recipe structure 返回配方示例。 | 配方由调用方编译为构件体素，用于组装。 |
+| 生成独立构件候选预览 | `components agent --tool structure_preview --request <请求JSON>` | JSON 的 spec 填构件规格。capabilities --agent-tool structure_preview 返回可运行的请求示例。 | 写临时候选快照与缩略图。安装和入库各有独立入口。 |
+| 创建纹样并取得拟合输入 | `components agent --tool pattern_create --request <请求JSON>` | 用 capabilities --agent-tool pattern_create 查小位图或图层配方参数。 | 保存纹样资产，result.fitting_input 可直接合入 pattern_microfit 请求。用 pattern_assets 的 action:get 和 result.id 回查。 |
+
+### 看图与交付
+
+| 任务 | 调用或字段 | 输入 | 结果 |
+| --- | --- | --- | --- |
+| 准备建筑审阅 | `architect review-prepare --request <请求JSON>` | JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换失败机位。 | 复验保存源并写审阅包及相机。运行回执的 render_command 出图。 |
+| 渲染实际图片 | `render --source <制作源> --cameras <相机JSON> --output <新目录>` | 提供制作源与相机。渲染候选时使用 --snapshot 与相机。 | 写 PNG 和 render_manifest.json。先打开实际图像，建筑审阅再登记观察。 |
+| 登记建筑看图观察 | `architect review-record --request <请求JSON>` | 审阅包路径及哈希、父修订、渲染清单、实际看图所得 observations 和 issues（无问题填 []）。参数用 capabilities --architect-action review-record 查询。 | 写观察记录，返回覆盖与交付摘要。精修另须用户看过对应图像并明确同意。 |
+| 保存可编辑 SNBT | `model --request <请求JSON>` | 在 model 或 architect plan-build 的 JSON 请求中填写 save_draft。 | 保存新 SNBT 制作版，返回 saved.source 与 saved.source_sha256，供复验和出图。 |
+| 导出定稿 NBT | `finalize --source <已保存制作源>` | 用户明确要求定稿时，提供要交付的 SNBT 制作源。无墙的独立建筑须在保存时声明 allow_empty_wall_mask:true。 | 验证并在 nbt_models/_exports/ 写 NBT 完整主模型、分片与交付回执。 |
+
 ## 共用结构 Agent 工具
 
 `components --workspace <project> agent --tool <name> --request <json>`
@@ -114,8 +146,8 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | pattern_preview | 编译纹样面板并生成引擎候选预览。 支持surface=cylinder的圆柱环绕，楼梯和半砖状态由脚本按局部轮廓和切线自动确定。 |
 | pattern_mount | 将图库或样本纹样贴合绑定安装面，地板生成原层镶嵌替换候选，墙柱和吊顶生成外贴候选，硬检查保护、开口、占用、净空和预算。 |
 | pattern_cylinder_mount | 对哈希绑定的既有竖直圆柱生成环绕外饰候选，自动确定楼梯与半砖状态，检查完整柱芯、碰撞接触、保护、开口和预算。目标框包含柱芯及一格外饰边。 |
-| pattern_create | 优先设计8～32像素的小型基础纹样，默认16×16。Agent以小位图、几何绘图或基础图层组合生成原生纹样资产，再用pattern_microfit拟合2～8格单元。支持区域裁取、旋转镜像、重复和镂空；返回sample与预览。 |
-| pattern_assets | 查询、读取、导入、复制裁取、重命名或回收原生纹样资产。内置图库只读，copy创建新副本，修改需绑定content_sha256，重用图像以image_sha256绑定。list不修改建筑或复制内置文件。 |
+| pattern_create | 用小位图、几何绘图或图层组合创建原生纹样。CLI 回执的 result 直接包含 id、image_sha256 和 fitting_input。把 fitting_input 合入 pattern_microfit 请求，或用 id 和 image_sha256 组装 pattern_asset。 |
+| pattern_assets | 用 action:list 查询纹样资产，用 action:get 和 id 读取指定纹样。copy 可从内置图库创建本地副本。修改资产绑定 content_sha256，重用图像绑定 image_sha256。 |
 | pattern_microfit | 先拟合可辨纹样单元，再铺排；支持质量门槛与硬拓扑约束，可选活版门、石墙、玻璃板、铁栏杆、栅栏、雪层、地毯、压力板、末地烛、链条等精细形状。 |
 | scene_compile | 按稳定对象ID、尺寸引用和贴附关系编译建筑对象图；检查依赖、实际接触、重叠、保留空间与声明通路，只返回候选。 |
 | scene_save | 显式保存对象图和编译快照的新版本；校验候选内容与父版本，保留旧版，不写建筑或定稿NBT。 |

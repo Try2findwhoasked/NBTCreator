@@ -2,6 +2,20 @@ import {spawnSync} from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import {root,skill,python} from './paths.mjs'
+
+function launchError(error,workspace){
+ if(error.code!=='ENOENT'&&error.code!=='ENOTDIR')return error.message
+ // A missing cwd and a missing executable can both be reported as ENOENT.
+ try{
+  if(!fs.statSync(workspace).isDirectory())return `工作区路径 ${workspace} 不是目录。请传入已有目录。`
+ }catch(problem){
+  if(problem.code==='ENOENT')return `工作区目录 ${workspace} 不存在。请先创建该目录，或传入已有目录。`
+  if(problem.code==='ENOTDIR')return `工作区路径 ${workspace} 中有一部分不是目录。请传入已有目录。`
+  return `无法访问工作区目录 ${workspace}（${problem.code}）。`
+ }
+ return error.code==='ENOENT'?'Python 不可用。请检查 PATH 或 NBTCREATOR_PYTHON，再运行 doctor。':error.message
+}
+
 const input=process.argv.slice(2)
 let cliWorkspace=process.cwd()
 if(input[0]==='--workspace'){input.shift();const folder=input.shift();if(!folder)throw Error('--workspace requires a directory');cliWorkspace=path.resolve(folder)}
@@ -28,10 +42,15 @@ if(command==='doctor'){
  const script=path.join(skill,'scripts',scripts[command])
  const pass=['inspect','snapshot','render','regress'].includes(command)?[command,...args]:args
  const run=spawnSync(python,['-B',script,...pass],{cwd:cliWorkspace,stdio:'inherit',windowsHide:true,shell:false})
- if(run.error)console.error(run.error.code==='ENOENT'?'Python 不可用。请检查 PATH 或 NBTCREATOR_PYTHON，再运行 doctor。':run.error.message)
+ if(run.error)console.error(launchError(run.error,cliWorkspace))
  process.exitCode=run.status??1
 }else{
- console.log('NBTCreator CLI: doctor | task | capabilities | '+Object.keys(scripts).join(' | '))
- console.log('Examples: node scripts/cli.mjs inspect --source full.master.json.gz; control --help; refine --help')
- process.exitCode=command?1:0
+ if(command&&!['-h','--help'].includes(command)){
+  console.error(`未知命令 ${command}。用 --help 查看命令，或用 capabilities --routes 速查入口。`)
+  process.exitCode=1
+ }else{
+  console.log('Usage: nbt [--workspace <directory>] <command> [options]')
+  console.log('Commands: doctor | task | '+Object.keys(scripts).join(' | '))
+  console.log('用 capabilities --routes 速查入口，用 <命令> --help 查看参数。')
+ }
 }

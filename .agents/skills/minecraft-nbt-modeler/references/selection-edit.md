@@ -37,6 +37,8 @@ context 请求：
 
 编译器添加 `write_bounds:{lo,hi,allow_overwrite}` 元数据；不要从 AI 输出接受此字段，不能通过删去它把选区编辑改成全局编辑。候选与最终 writer 都会剥离元数据后调用原工具，再核对实际写入位置；原有不含 write_bounds 的工具计划保持原规则。
 
+局部操作的写入上限由编译器设置。为本次候选指定更小的总变化预算时，在 `control preview` 的请求中填写 `settings.max_changed_blocks`。
+
 ## 配置与恢复
 
 `selection_edit` 是独立内部工作流和创作偏好区域，规则、资料与截图开关位于 AI 助手。旧版五／六区域配置会补齐新区域，保留既有自定义规则、资料选择和截图开关；创作偏好初始继承 structure，之后可独立调整。

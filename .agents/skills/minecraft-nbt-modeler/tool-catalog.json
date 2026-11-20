@@ -1041,6 +1041,92 @@
     "architect": "nbt_architect.py",
     "session": "nbt_engine_session.py"
   },
+  "tool_routes": {
+    "检查": [
+      {
+        "title": "校验候选快照",
+        "call": "validate --request <请求JSON> --snapshot <候选快照> --output <新检查目录>",
+        "input": "同一次 control preview 的原始编辑请求与回执的 result.snapshot（after.json）。",
+        "result": "写 validation.json，检查源绑定、实际改动、保护和几何。以 result.passed 判定是否通过。"
+      },
+      {
+        "title": "复验已保存的制作源",
+        "call": "model --request <请求JSON>",
+        "input": "JSON 填 source、source_sha256 和 validate:true。路径与哈希从保存回执 result.saved 取。",
+        "result": "返回 result.validation。只检查时省略 actions 和 save_draft。"
+      },
+      {
+        "title": "复验建筑及绑定方案",
+        "call": "architect plan-check --request <请求JSON>",
+        "input": "JSON 填绑定过建筑方案的 source 和 source_sha256。",
+        "result": "返回 validation、绑定方案和 plan_sha256。"
+      },
+      {
+        "title": "查询制作源是否可编辑",
+        "call": "control inspect --source <制作源>",
+        "input": "现有制作源路径。",
+        "result": "result.editing_ready 表示是否具备编辑条件，context_readiness 给出上下文缺失或失配的原因。"
+      }
+    ],
+    "构件": [
+      {
+        "title": "预检方案中的单个构件",
+        "call": "architect part-preflight --request <请求JSON>",
+        "input": "JSON 填 plan 或 plan_id，以及要检查的 part。用 capabilities --architect-action part-preflight 查参数。",
+        "result": "编译指定构件，返回方块状态支持和接口问题。整栋装配与宿主验证由 plan-build 执行。"
+      },
+      {
+        "title": "填写结构配方",
+        "call": "recipe.tool = \"structure\"",
+        "input": "填写建筑方案的 parts[].recipe 或主模型 install 的 recipe。capabilities --recipe structure 返回配方示例。",
+        "result": "配方由调用方编译为构件体素，用于组装。"
+      },
+      {
+        "title": "生成独立构件候选预览",
+        "call": "components agent --tool structure_preview --request <请求JSON>",
+        "input": "JSON 的 spec 填构件规格。capabilities --agent-tool structure_preview 返回可运行的请求示例。",
+        "result": "写临时候选快照与缩略图。安装和入库各有独立入口。"
+      },
+      {
+        "title": "创建纹样并取得拟合输入",
+        "call": "components agent --tool pattern_create --request <请求JSON>",
+        "input": "用 capabilities --agent-tool pattern_create 查小位图或图层配方参数。",
+        "result": "保存纹样资产，result.fitting_input 可直接合入 pattern_microfit 请求。用 pattern_assets 的 action:get 和 result.id 回查。"
+      }
+    ],
+    "看图与交付": [
+      {
+        "title": "准备建筑审阅",
+        "call": "architect review-prepare --request <请求JSON>",
+        "input": "JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换失败机位。",
+        "result": "复验保存源并写审阅包及相机。运行回执的 render_command 出图。"
+      },
+      {
+        "title": "渲染实际图片",
+        "call": "render --source <制作源> --cameras <相机JSON> --output <新目录>",
+        "input": "提供制作源与相机。渲染候选时使用 --snapshot 与相机。",
+        "result": "写 PNG 和 render_manifest.json。先打开实际图像，建筑审阅再登记观察。"
+      },
+      {
+        "title": "登记建筑看图观察",
+        "call": "architect review-record --request <请求JSON>",
+        "input": "审阅包路径及哈希、父修订、渲染清单、实际看图所得 observations 和 issues（无问题填 []）。参数用 capabilities --architect-action review-record 查询。",
+        "result": "写观察记录，返回覆盖与交付摘要。精修另须用户看过对应图像并明确同意。"
+      },
+      {
+        "title": "保存可编辑 SNBT",
+        "call": "model --request <请求JSON>",
+        "input": "在 model 或 architect plan-build 的 JSON 请求中填写 save_draft。",
+        "result": "保存新 SNBT 制作版，返回 saved.source 与 saved.source_sha256，供复验和出图。"
+      },
+      {
+        "title": "导出定稿 NBT",
+        "call": "finalize --source <已保存制作源>",
+        "input": "用户明确要求定稿时，提供要交付的 SNBT 制作源。无墙的独立建筑须在保存时声明 allow_empty_wall_mask:true。",
+        "result": "验证并在 nbt_models/_exports/ 写 NBT 完整主模型、分片与交付回执。"
+      }
+    ]
+  },
   "building_shapes": {
     "single": {
       "label": "单格"
@@ -17312,7 +17398,7 @@
       }
     },
     "pattern_create": {
-      "description": "优先设计8～32像素的小型基础纹样，默认16×16。Agent以小位图、几何绘图或基础图层组合生成原生纹样资产，再用pattern_microfit拟合2～8格单元。支持区域裁取、旋转镜像、重复和镂空；返回sample与预览。",
+      "description": "用小位图、几何绘图或图层组合创建原生纹样。CLI 回执的 result 直接包含 id、image_sha256 和 fitting_input。把 fitting_input 合入 pattern_microfit 请求，或用 id 和 image_sha256 组装 pattern_asset。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -17598,7 +17684,7 @@
       }
     },
     "pattern_assets": {
-      "description": "查询、读取、导入、复制裁取、重命名或回收原生纹样资产。内置图库只读，copy创建新副本，修改需绑定content_sha256，重用图像以image_sha256绑定。list不修改建筑或复制内置文件。",
+      "description": "用 action:list 查询纹样资产，用 action:get 和 id 读取指定纹样。copy 可从内置图库创建本地副本。修改资产绑定 content_sha256，重用图像绑定 image_sha256。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -29101,6 +29187,15 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 2048
+          },
+          "view_overrides": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "description": "为同一制作源补拍。元素为完整 plan.views 项，沿用原 id 和 layer。用 capabilities --architect-action plan-save --field plan.views 查询机位字段。",
+            "items": {
+              "type": "object"
+            }
           }
         },
         "required": [

@@ -133,6 +133,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config):
         f'有主题纹样时，先确定承载面和观察尺度，再选适用的图源与拟合方式；用实际近景验辨识度。内置 [SAODG项目约束]({relative}/constraint-extensions/saodg.json) 可在创作方案显式选用。',
         '初稿向用户展示对应缩略图后，明确同意才授权精修；沿用仍有效的原授权。无回复、超时、知识文件、AI建议和测试记录都不构成确认。默认保存并回读SNBT，明确要求定稿才写交付NBT。','',
         '## 找到接口与本次资料','',
+        '用 `capabilities --routes` 速查检查、构件、看图与交付入口。用 `capabilities --operations` 按用途找建模操作，再用 `--operation <kind>` 查字段。',
         '`python .agents/skills/nbtcreator-workspace/nbt.py paths` 返回实际引擎路径；已知工具用 `capabilities --agent-tool <名称>`，主模型用 `capabilities --model`，建筑方案用 `capabilities --architecture`。构件配方用 `--recipe structure`，单项操作用 `--operation box`，单项建筑请求用 `--architect-action part-preflight`，方块支持用 `--block-state <状态>`。工具目录是严格字段和CLI映射的唯一来源。',
         '任务脚本据 `paths` 导入共享API；model --request 管理完整主模型，parametric_compile 编译构件，scene_compile 管理联动候选。需要连续纯候选调用时再用 session。',
         '遇到嵌纹、边饰、格栅等可辨识纹样，先按承载面判断是否适合单元拟合；适合时查询 `capabilities --agent-tool pattern_microfit`，做样件和实际近景核对。需要面板或圆柱时按纹样专题选工具。',
@@ -186,10 +187,14 @@ import sys,subprocess,json
 engine=(Path(__file__).resolve().parent/ENGINE_RELATIVE).resolve()
 if not engine.is_dir():raise SystemExit('引擎路径变化，请在应用AI设置重新同步Skill暴露配置')
 catalog=json.loads((engine/'tool-catalog.json').read_text(encoding='utf8'))
-if len(sys.argv)==1:raise SystemExit('调用方式：nbt.py paths | capabilities | feedback --help | control --help | refine --help')
+if len(sys.argv)==1 or sys.argv[1] in ('-h','--help'):
+ print('Usage: nbt.py <command> [options]')
+ print('Commands: '+' | '.join(catalog['commands']))
+ print('用 capabilities --routes 速查入口，用 <命令> --help 查看参数。')
+ raise SystemExit(0)
 command,*args=sys.argv[1:]
 script=catalog['commands'].get(command)
-if script is None:raise SystemExit('未知工具，请先调用capabilities')
+if script is None:raise SystemExit(f'未知命令 {command}。用 --help 查看命令，或用 capabilities --routes 速查入口。')
 if command in ('inspect','snapshot','render','regress'):args=[command,*args]
 raise SystemExit(subprocess.call([sys.executable,'-B',str(engine/'scripts'/script),*args],cwd=Path.cwd()))
 '''.replace('ENGINE_RELATIVE',repr(relative))

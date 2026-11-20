@@ -30,6 +30,7 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 
 ## 工具与设计入口
 
+- 用 `capabilities --routes` 速查检查、构件、看图与交付入口。用 `capabilities --operations` 按用途找建模操作，再用 `--operation <kind>` 查字段。见[容易混淆的入口](references/exposed-tools.md#容易混淆的入口)。
 - `tool-catalog.json` 是工具字段和 CLI 映射的唯一来源。已知工具用 `capabilities --agent-tool <名称>` 查询对应 Schema，完整主模型用 `capabilities --model`，建筑方案用 `capabilities --architecture`；各命令用 `--help` 查询。创作工作区的 `paths` 返回实际引擎路径，不猜安装目录。
 - 从 `capabilities --recipe structure` 取得可直接编译的建筑配方示例。用 `--operation box` 查询操作字段，用 `--architect-action part-preflight --field plan.parts.interfaces` 查具名接口与操作面示例。细件选型时可用 `capabilities --block-state <状态>` 核对通路、支撑和精确接触能力。见[建筑方案闭环](references/architecture-workflow.md)。
 - 已有建模或审阅回执时，用 [增量诊断](references/diagnostic-guidance.md#增量诊断) 查本次失败、待看机位和原始证据位置。

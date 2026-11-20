@@ -16,7 +16,7 @@
 ```json
 {
   "size": [8, 6, 8],
-  "context": {"mode": "standalone", "require_enclosure": false, "openings": [],
+  "context": {"mode": "standalone", "require_enclosure": false, "openings": [], "allow_empty_wall_mask": true,
               "start": [2.5, 1, 2.5], "targets": {"platform": [5.5, 1, 5.5]}},
   "actions": [
     {"method": "apply_operations", "operations": [

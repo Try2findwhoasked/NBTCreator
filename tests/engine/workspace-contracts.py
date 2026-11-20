@@ -142,6 +142,34 @@ class Contracts(unittest.TestCase):
    self.assertIn('state-and-maintenance.md',maintenance)
    self.assertIn('extensions.md',maintenance)
 
+ def test_frozen_entry_exposes_compact_tool_routes_without_running_tools(self):
+  with tempfile.TemporaryDirectory() as temp:
+   root=Path(temp);expose(root,dict(schema_version=1,enabled_groups=['core']))
+   facade=root/'.agents/skills/nbtcreator-workspace'
+   self.assertIn('capabilities --routes',(facade/'SKILL.md').read_text(encoding='utf8'))
+   command=[sys.executable,str(facade/'nbt.py'),'capabilities']
+   before=set(root.rglob('*'))
+   for flag in ('-h','--help'):
+    help_run=subprocess.run([*command[:-1],flag],cwd=root,capture_output=True,text=True,encoding='utf8')
+    self.assertEqual(help_run.returncode,0,help_run.stderr)
+    self.assertIn('capabilities --routes',help_run.stdout)
+   unknown=subprocess.run([*command[:-1],'part-search'],cwd=root,capture_output=True,text=True,encoding='utf8')
+   self.assertEqual(unknown.returncode,1)
+   self.assertIn('capabilities --routes',unknown.stderr)
+   run=subprocess.run([*command,'--routes'],cwd=root,capture_output=True,text=True,encoding='utf8')
+   self.assertEqual(run.returncode,0,run.stderr)
+   self.assertEqual(set(root.rglob('*')),before)
+   routes=json.loads(run.stdout)
+   self.assertEqual(set(routes),{'tool_routes','capabilities_sha256','gui_required'})
+   self.assertEqual(routes['tool_routes'],capabilities()['tool_routes'])
+   self.assertEqual(routes['capabilities_sha256'],capabilities()['capabilities_sha256'])
+   output=subprocess.check_output([*command,'--operations'],cwd=root,text=True,encoding='utf8')
+   operations=json.loads(output)['operations']
+   self.assertEqual(set(operations),set(capabilities()['tools']))
+   self.assertEqual(set(operations['box']),{'title','hint'})
+   invalid=subprocess.run([*command,'--routes','--model'],cwd=root,capture_output=True,text=True,encoding='utf8')
+   self.assertEqual(invalid.returncode,2)
+
  def test_core_facade_exposes_both_draft_routes_and_the_blocked_landing_example(self):
   with tempfile.TemporaryDirectory() as temp:
    root = Path(temp).resolve()

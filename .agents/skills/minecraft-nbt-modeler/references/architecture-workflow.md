@@ -108,6 +108,8 @@ Agent 把自然语言设计转为以下数据，而不是直接猜一串工具�
 
 审阅包与图片放在 `nbt_models/_workspaces/` 的新目录，不能写入已发布版本的核心目录。图像缺失、元数据不一致、记录被更改或父修订过时会拒绝回写。
 
+机位失败或需要补拍时，可用同一 `source` 和 `source_sha256` 再执行 `review-prepare`，指定新的 `output`。在 `view_overrides` 中放入要替换的完整机位，沿用原机位的 `id` 和 `layer`，按需调整 `feet` 或 `eye`、`target` 与 `sample_box`。字段用 `capabilities --architect-action plan-save --field plan.views` 查询。新包沿用原方案的位置绑定，重新检查取景和位置可见性。按新包的 `render_command` 出图并实际看图，再用新包的回执登记观察。原制作版和原审阅记录仍可回查。
+
 `review-prepare` 的 `coverage.delivery_summary` 列出落盘模型上已查的目标与操作面，观察数从零开始。实际看图并调用 `review-record` 后，取其 `delivery_summary` 回报用户。每条摘要区分可达目标、专项路线、已记观察的机位与位置、取景失败和待回查问题。补充一条从图片读到的具体结论，并附当前源、图片与记录路径。未登记活动、未看位置和未实测的游戏项目按其实际范围说明。
 
 ## 目标游戏验收

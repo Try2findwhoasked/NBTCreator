@@ -114,7 +114,7 @@ bitmap 的行数、每行宽度均为1～128，所有行等宽。`#` 或 `f` 为
 {"surface":"wall","size_uv":[32,24],"sample":{"path":"references/ornament.png","sha256":"<原图SHA256>","crop":[0.25,0.1,0.6,0.7],"noise_strength":0},"shapes":{"stairs":"quartz_stairs","slab":"quartz_slab"}}
 ```
 
-`pattern_create` 返回 fitting_input（sample 路径和图像哈希），可直接合并到 pattern_compile / pattern_preview 请求中。楼梯和半砖的匹配、接触、旋转仍由脚本负责。优先以8～32像素绘制单个主纹，用 pattern_microfit 在2～8格验证后再重复铺排；过细时裁取更简单的区域或加粗主纹。
+`pattern_create` 的 CLI 回执在 `result` 中直接给出 `id`、`image_sha256` 和 `fitting_input`。把整个 `result.fitting_input` 合入 `pattern_microfit`、`pattern_compile` 或 `pattern_preview` 请求，里面包含已绑定哈希的图源。`pattern_assets` 用 `{"action":"get","id":"<result.id>"}` 回查这份纹样。先以 8～32 像素绘制单个主纹，用 `pattern_microfit` 在 2～8 格验证后再铺排。细节读不清时，裁取更简单的区域或加粗主纹。
 
 原生纹样库保存于 `nbt_models/asset_library/patterns/<id>/`。pattern.json 保存名称、标签、来源和组合配方；pattern.png 是拟合图片，thumbnail.png 是缩略图；导入或裁取副本另保留 original.image 原始字节。图像、缩略图、原图和元数据都绑定哈希。创建新纹样使用新ID，重命名和回收只修改元数据，图像内容保持可复用。
 

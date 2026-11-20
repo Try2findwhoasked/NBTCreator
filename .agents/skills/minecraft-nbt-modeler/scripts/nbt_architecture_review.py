@@ -4,7 +4,7 @@ import json
 import math
 from pathlib import Path
 
-from nbt_architecture_plan import fingerprint,resolve,actual_part,view_sample_points
+from nbt_architecture_plan import fingerprint,normalize,resolve,actual_part,view_sample_points
 from nbt_prompts import inside,relative,index_lock
 from nbt_project_batch import write
 from nbt_history import file_hash
@@ -93,7 +93,21 @@ def delivery_summary(validation, pack, observed, covered, issues):
 
 def prepare(workspace,request):
     from nbt_collision import _Space
-    model=load_model(workspace,request);validation=model.validate();binding=model.architecture;plan=resolve(binding['plan']);space=_Space(model.model)
+    model=load_model(workspace,request);validation=model.validate();binding=model.architecture
+    plan=binding['plan']
+    overrides=request.get('view_overrides',[])
+    if overrides:
+        authored={view['id']:view for view in plan['views']}
+        replacements={}
+        for view in overrides:
+            identifier=view.get('id')
+            if not isinstance(identifier,str) or identifier not in authored or identifier in replacements:
+                raise ValueError('补拍机位须引用不同的原方案机位 ID')
+            if view.get('layer')!=authored[identifier]['layer']:
+                raise ValueError('补拍机位须沿用原层级：'+identifier)
+            replacements[identifier]=view
+        plan=normalize(dict(plan,views=[replacements.get(view['id'],view) for view in plan['views']]))
+    plan=resolve(plan);space=_Space(model.model)
     output=inside(workspace,request['output'])
     if output.is_relative_to(model.source.parent.parent):raise ValueError('审阅包不能写入已发布制作版目录')
     cameras=[];checks=[]
@@ -140,6 +154,8 @@ def prepare(workspace,request):
         review_locations=locations,required_layers=['massing','structure','detail'],
         visual_status='awaiting_actual_images_and_observations',aesthetics='not_certified',approval_created=False)
     data['delivery_summary'] = delivery_summary(validation, data, set(), set(), [])
+    if overrides:
+        data['overridden_views']=list(replacements)
     write(output/'review-pack.json',data)
     return dict(pack=relative(workspace,output/'review-pack.json'),pack_sha256=file_hash(output/'review-pack.json'),
         source=str(model.source),cameras=str(output/'cameras.json'),coverage=data,
