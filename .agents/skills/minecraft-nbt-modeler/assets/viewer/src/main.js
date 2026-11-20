@@ -1,7 +1,7 @@
 // Adapted from mattzh72/minecraft-builder-skill ce57d48; Apache-2.0. See LICENSE.upstream.
 import { vec3 } from 'gl-matrix'
 import { ViewCamera } from './camera-controls.mjs'
-import { MeshNormalMaterial,Scene,Box3,Vector2,Vector3,Raycaster,Matrix3 } from 'three'
+import { MeshNormalMaterial,Scene,Box3,Vector2,Vector3,Raycaster,Matrix3,BufferGeometry,Float32BufferAttribute } from 'three'
 import { BlockState, Structure, ThreeStructureRenderer, ChunkBuilder, loadDefaultPackResources } from '@mattzh72/lodestone'
 import {installMeshScheduling} from './mesh-scheduling.mjs'
 import './style.css'
@@ -13,6 +13,7 @@ import {walkOverlay} from './walk-overlay.js'
 import {createComponentGizmo} from './component-gizmo.js'
 import { cameraView, normalizeView, includesBlock } from './view-contract.mjs'
 import {createAxisNavigation,axisCamera,orbitCamera} from './axis-navigation.js'
+import {withBookshelfModels} from './render-pack.mjs'
 
 installMeshScheduling(ThreeStructureRenderer,ChunkBuilder)
 
@@ -170,10 +171,16 @@ async function main() {
     const preset = LIGHTING_PRESETS[mode]
     return { ...preset, shadow: { ...preset.shadow, enabled: quality === 'high', mapSize: 1024 } }
   }
-  const renderer = new ThreeStructureRenderer(canvas, new Structure(size, palette, indexed), pack.resources, {
+  const renderer = new ThreeStructureRenderer(canvas, new Structure(size, palette, indexed), withBookshelfModels(pack), {
     chunkSize: 16, useInvisibleBlockBuffer: false, asyncBuild: true,
     asyncChunkBuildTimeMs: 8, sunlight: sunlight(lightingMode),
   })
+  // A single clip-space triangle covers the sky without a diagonal seam.
+  const sky = new BufferGeometry()
+  sky.setAttribute('position', new Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3))
+  sky.setAttribute('uv', new Float32BufferAttribute([0, 0, 2, 0, 0, 2], 2))
+  renderer.skyMesh.geometry.dispose()
+  renderer.skyMesh.geometry = sky
   if (quality === 'fast') {
     // The upstream colored pass encodes picking IDs, not display colors.
     renderer.coloredMaterial.dispose()

@@ -23,10 +23,14 @@ for (const stage of ['before', 'after']) {
   const bytes = await fs.readFile(image)
   assert.equal(bytes.subarray(1,4).toString(), 'PNG')
   assert.ok(bytes.readUInt32BE(16) > 100)
+  const corners = JSON.parse(execFileSync(python, ['-B', '-c',
+    'import json,sys; from PIL import Image; image=Image.open(sys.argv[1]).convert("RGB"); x,y=image.width-3,image.height-3; print(json.dumps([image.getpixel(p) for p in [(2,2),(x,2),(2,y),(x,y)]]))',
+    image], {cwd:root, windowsHide:true, encoding:'utf8'}))
+  assert.ok(corners.every(rgb => rgb.some(value => value > 8)), 'Rendered sky must cover all four corners')
   images.push(image)
 }
 assert.notEqual(fixture.before.model_sha256, fixture.after.model_sha256)
 assert.deepEqual(JSON.parse(await fs.readFile(fixture.before.cameras,'utf8')), JSON.parse(await fs.readFile(fixture.after.cameras,'utf8')))
-const result = {passed:true, output, images, sameCamera:true, sourceRoundtrip:true, nbtExported:false}
+const result = {passed:true, output, images, sameCamera:true, skyCornersCovered:true, sourceRoundtrip:true, nbtExported:false}
 await fs.writeFile(path.join(output,'results.json'), JSON.stringify(result,null,2))
 console.log(JSON.stringify(result))

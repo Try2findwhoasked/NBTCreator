@@ -10,7 +10,7 @@
     "start": "node scripts/start.mjs",
     "cli": "node scripts/cli.mjs",
     "doctor": "node scripts/cli.mjs doctor",
-    "test:desktop": "node tests/desktop/desktop-smoke.mjs",
+    "test:desktop": "node --test tests/node/render-pack.test.mjs && node tests/desktop/desktop-smoke.mjs",
     "test:updates": "npm run build:web && node --test tests/node/updater.test.cjs && node tests/desktop/updater-desktop.mjs",
     "test:api": "node --test --test-concurrency=1 tests/node/ai-speed.test.cjs tests/node/worktree-integration.test.cjs tests/node/compact-structure.test.cjs tests/node/ai-output-normalize.test.cjs tests/node/prompt-beam.test.cjs tests/node/prompt-brief.test.cjs tests/node/ai-character-limit.test.cjs tests/node/ai-result-extract.test.cjs tests/node/ai-candidate-validator.test.cjs tests/node/selection-edit.test.cjs tests/node/api-service.test.cjs tests/node/ai-concurrency.test.cjs tests/node/frontend-ai-cancel.test.mjs tests/node/workspace-api.test.cjs tests/node/workbench-contract.test.cjs tests/node/project-standards.test.cjs tests/node/ai-input.test.cjs tests/node/ai-metrics.test.mjs tests/node/internal-ai.test.cjs tests/node/internal-skill.test.cjs tests/node/ai-component.test.mjs tests/node/engine-session.test.mjs",
     "test:constraints": "npm run build:web && python -B tests/engine/project-constraints.py && python -B tests/engine/constraint-room-layout.py && node --test tests/node/project-constraints.test.cjs tests/node/prompt-creation.mjs && node tests/desktop/project-constraints-desktop.mjs && node tests/desktop/constraint-room-layout-desktop.mjs",
