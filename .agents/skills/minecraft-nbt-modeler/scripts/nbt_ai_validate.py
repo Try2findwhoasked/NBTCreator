@@ -85,8 +85,10 @@ def validate(request):
         from nbt_assembly import Volume
         from nbt_detail_control import compile_plan,default_settings
         from nbt_recipes import translate_operation
+        from uuid import uuid4
         patch=result['settings_patch'];lo,hi=patch['lo'],patch['hi'];size=[b-a+1 for a,b in zip(lo,hi)]
-        operations=[dict(translate_operation(op,[-axis for axis in lo]),write_group='candidate') for op in patch['operations']]
+        group=str(uuid4())
+        operations=[dict(translate_operation(op,[-axis for axis in lo]),write_group=group) for op in patch['operations']]
         for index,op in enumerate(operations,1):
             if math.prod(b-a+1 for a,b in zip(op['lo'],op['hi']))>2000000:
                 raise CandidateIssue('几何预检操作域超过200万格，请缩小此步骤范围',index,op)

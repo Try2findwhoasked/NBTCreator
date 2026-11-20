@@ -59,3 +59,12 @@ test('version registry reports all invalid materials together before geometry ca
  await assert.rejects(validator({mode:'small_structure',context:{},result:{settings_patch:{operations:[{...box,state:'tuff_bricks'},{...box,state:'stone[bogus=x]'}]}}}),error=>error.message.includes('tuff_bricks')&&error.message.includes('bogus')&&error.message.includes('一次修正所有步骤'))
  const result=await validator({mode:'small_structure',context:{},result:{settings_patch:{operations:[box]}}});assert.equal(result.block_states,true);assert.equal(result.nbt_exported,false)
 })
+
+test('small-structure scratch preflight shares a valid write group across layers',async t=>{
+ const directory=await setup(t),validator=createCandidateValidator({root,python:process.env.NBTCREATOR_PYTHON||'python',directory,getWorkspace:()=>directory})
+ t.after(()=>validator.close())
+ const result=await validator({mode:'small_structure',context:{size:[16,10,16]},result:{settings_patch:{lo:[2,0,2],hi:[4,4,4],
+  operations:[{...box,label:'基座',classification:'body'},{...box,label:'饰面',classification:'body',lo:[2,2,2],hi:[2,2,2],state:'mossy_stone_bricks'}]}}})
+ assert.equal(result.geometry,'checked_locally_requires_target_preview')
+ assert.equal(result.nbt_exported,false)
+})
