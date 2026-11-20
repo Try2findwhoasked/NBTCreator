@@ -272,6 +272,8 @@ def verify_for_return(workspace,review,expected):
     validation=model.validate()
     if not isinstance(validation.get('whole_model'),dict) or validation['architecture']['passed'] is not True:
         raise ValueError('审阅缺少通过的完整建筑验证记录')
+    if file_hash(notes_file)!=expected or file_hash(file)!=notes['pack_sha256']:
+        raise ValueError('审阅记录在回传核对期间变化')
     return dict(source=pack['source'],source_sha256=pack['source_sha256'],review=relative(workspace,review),
                 review_kind='architecture',review_sha256=expected,pack_sha256=notes['pack_sha256'],
                 images={identifier:row['sha256'] for identifier,row in notes['images'].items()},
