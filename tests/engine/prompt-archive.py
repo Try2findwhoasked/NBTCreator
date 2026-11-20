@@ -72,7 +72,9 @@ class Prompts(unittest.TestCase):
   self.payload['text']='新任务内容';new=save(self.workspace,self.payload)
   with self.assertRaisesRegex(ValueError,'已更新'):publish(self.workspace,r['index'],r['id'],r['revision'])
   next_task=publish(self.workspace,new['index'],new['id'],new['revision']);self.assertEqual(tasks(self.workspace,cursor)['items'][0]['id'],next_task['id']);self.assertEqual(read_task(self.workspace,task['id'])['text'],'完整提示词：不要把方案当作批准。')
-  task_status(self.workspace,task['id'],'completed');self.assertEqual(len(tasks(self.workspace,status='pending')['items']),1);self.assertEqual(json.loads((self.workspace/task['directory']/'任务.json').read_text(encoding='utf8'))['status'],'completed')
+  with self.assertRaisesRegex(ValueError,'新版替代'):task_status(self.workspace,task['id'],'completed')
+  self.assertEqual([item['id'] for item in tasks(self.workspace,status='pending')['items']],[next_task['id']])
+  self.assertEqual(read_task(self.workspace,task['id'])['task']['status'],'superseded')
  def test_task_reads_are_portable_and_tamper_or_stale_source_is_detected(self):
   import shutil
   source,p=self.existing();r=save(self.workspace,p);task=publish(self.workspace,r['index'],r['id'],r['revision']);moved=self.workspace/'moved';shutil.copytree(self.workspace/'nbt_models',moved/'nbt_models');self.assertTrue(read_task(moved,task['id'])['source_matches']);self.assertTrue(Path(read_task(moved,task['id'])['directory']).is_relative_to(moved))

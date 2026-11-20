@@ -55,6 +55,7 @@ def redact(task):
         if result.get('status')=='in_progress':result['status']='pending'
     return result
 def check_lease(task,request,*,required=False,now=None):
+    if task.get('status')=='superseded':error('TASK_SUPERSEDED','此任务已被新版替代')
     now=time.time() if now is None else now;lease=task.get('lease')
     if not lease:
         if required or task.get('lease_managed'):error('LEASE_REQUIRED','请先领取任务')
@@ -71,6 +72,7 @@ def lease_action(task,action,request,*,now=None):
         owner=request.get('owner')
         if not isinstance(owner,str) or not 1<=len(owner.strip())<=120:error('INVALID_REQUEST','领取须声明1～120字执行者名称')
         if task.get('status')=='completed':error('TASK_COMPLETED','已完成任务不能重新领取')
+        if task.get('status')=='superseded':error('TASK_SUPERSEDED','此任务已被新版替代')
         if task.get('lease',{}).get('expires_at',0)>now:error('TASK_CLAIMED','任务已被领取',retryable=True,details={'lease':public_lease(task)})
         fence=task.get('lease_epoch',0)+1;task['lease_epoch']=fence;task['lease_managed']=True
         task['lease']=dict(owner=owner.strip(),token=uuid.uuid4().hex,fence=fence,expires_at=now+ttl)

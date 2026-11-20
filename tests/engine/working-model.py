@@ -222,7 +222,7 @@ class WorkingModels(unittest.TestCase):
         self.assertEqual(read_master(release['nbt_master'])[0].blocks, m.model.blocks)
 
     def test_finalize_rejects_managed_buildings_before_the_opened_phase(self):
-        from nbt_finalize import finalize, release_path
+        from nbt_finalize import finalize, release_path, inspect_inputs
         from nbt_whole_validation import validate_whole
 
         context = dict(mode='standalone', openings=[], require_enclosure=True, interior_probes=[[3,2,3]],
@@ -235,8 +235,10 @@ class WorkingModels(unittest.TestCase):
 
         def assert_rejected(saved, phase):
             target = release_path(self.root, saved['source'])
+            inputs = inspect_inputs(self.root,saved['source'])
             run = subprocess.run([sys.executable,'-B',str(SCRIPTS/'nbt_finalize.py'),
-                '--workspace',str(self.root),'--source',saved['source']],capture_output=True,text=True,encoding='utf8')
+                '--workspace',str(self.root),'--source',saved['source'],'--source-sha256',inputs['source_sha256'],
+                '--inputs-sha256',inputs['inputs_sha256']],capture_output=True,text=True,encoding='utf8')
             self.assertEqual(run.returncode, 1, run.stdout+run.stderr)
             self.assertIn(phase, json.loads(run.stdout)['error'])
             self.assertFalse(target.exists())
@@ -293,8 +295,11 @@ class WorkingModels(unittest.TestCase):
                 self.assertEqual([camera['role'] for camera in coords['cameras']],['whole'])
                 if draft_only:
                     self.assertEqual(result['delivery_nbt'],0)
+                    from nbt_finalize import inspect_inputs
+                    inputs = inspect_inputs(self.root,source)
                     run = subprocess.run([sys.executable,'-B',str(SCRIPTS/'nbt_finalize.py'),
-                        '--workspace',str(self.root),'--source',str(source)],capture_output=True,text=True,encoding='utf8')
+                        '--workspace',str(self.root),'--source',str(source),'--source-sha256',inputs['source_sha256'],
+                        '--inputs-sha256',inputs['inputs_sha256']],capture_output=True,text=True,encoding='utf8')
                     self.assertEqual(run.returncode,0,run.stdout+run.stderr)
                     result = json.loads(run.stdout)
                 else:
@@ -374,6 +379,24 @@ class WorkingModels(unittest.TestCase):
         self.assertEqual(revised.context['reserved_boxes'],model.context['reserved_boxes'])
         self.assertEqual(revised.model.get((0,2,6)),'minecraft:stone_bricks')
         self.assertFalse(list(self.root.rglob('*.nbt')))
+        from shutil import copytree
+        from nbt_refine import _current_review
+        destination=self.root/'moved'
+        copytree(self.root/'nbt_models',destination/'nbt_models')
+        for portable in (True,False):
+            with self.subTest(portable=portable):
+                moved=destination/('review-relative' if portable else 'review-legacy')
+                copytree(review,moved)
+                if not portable:
+                    metadata=json.loads((moved/'review.json').read_text(encoding='utf8'))
+                    metadata['source']=str(source)
+                    (moved/'review.json').write_text(json.dumps(metadata),encoding='utf8')
+                    (moved/'approval.json').unlink()
+                    record_user_approval(moved,'Synthetic legacy fixture',True)
+                approval=(moved/'approval.json').read_bytes()
+                checked=_current_review(moved,json.loads(approval)['review_sha256'])
+                self.assertEqual(Path(checked['source']),destination.resolve()/source.relative_to(self.root.resolve()))
+                self.assertEqual((moved/'approval.json').read_bytes(),approval)
 
     def test_same_session_can_save_twice_and_retry_head_publication(self):
         m = self.new(kind='component')

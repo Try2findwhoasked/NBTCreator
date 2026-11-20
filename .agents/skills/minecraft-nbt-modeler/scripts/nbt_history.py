@@ -184,7 +184,10 @@ class History:
         message=request.get('message',previous.get('message') if previous else '登记已有建筑版本')
         if not isinstance(message,str) or not 1<=len(message.strip())<=4000:raise ValueError('修改说明须为1～4000字')
         tasks=request.get('tasks',previous.get('tasks',[]) if previous else [])
-        if not isinstance(tasks,list) or len(tasks)>128 or any(not isinstance(t,str) or not 1<=len(t)<=160 for t in tasks):raise ValueError('关联任务编号无效')
+        additions=request.get('append_tasks',[])
+        if any(not isinstance(group,list) or len(group)>128 or any(not isinstance(task,str) or not 1<=len(task)<=160 for task in group) for group in (tasks,additions)):raise ValueError('关联任务编号无效')
+        if additions:tasks=list(dict.fromkeys([*tasks,*additions]))
+        if len(tasks)>128:raise ValueError('关联任务编号无效')
         files={};total=0
         for directory,dirs,names in os.walk(version,followlinks=False):
             dirs[:]=sorted(d for d in dirs if d not in SKIP|{'versions','提示词方案'} and not (Path(directory)/d).is_symlink())
@@ -367,11 +370,15 @@ def dispatch(workspace,action,request):
         node=history.get(request['id'])['version']
         if not node['source_matches']:raise ValueError('制作源已变化；请先从该历史版本另存恢复后再定稿')
         from nbt_finalize import finalize
-        return finalize(history.workspace,node['absolute_source'])
+        return finalize(history.workspace,node['absolute_source'],expected_source_sha256=node['source_sha256'],
+                        expected_inputs_sha256=request.get('inputs_sha256'))
     raise ValueError('未知版本历史操作')
 
 def record_produced_version(workspace,source,parent=None,message='保存建筑新版本',actor='human',tasks=None,set_current=False):
-    try:return dispatch(workspace,'record',dict(source=str(source),**({'parent_source':str(parent)} if parent else {}),message=message,actor=actor,tasks=tasks or [],set_current=set_current))
+    request=dict(source=str(source),message=message,actor=actor,set_current=set_current)
+    if parent is not None:request['parent_source']=str(parent)
+    if tasks is not None:request['append_tasks']=tasks
+    try:return dispatch(workspace,'record',request)
     except (ValueError,OSError,subprocess.SubprocessError) as error:return dict(recorded=False,error=str(error))
 
 def source_workspace(source):
@@ -380,12 +387,14 @@ def source_workspace(source):
     raise ValueError('主模型不在工作区 nbt_models 中')
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['list','get','record','current','derive','finalize']);parser.add_argument('--request',type=Path);parser.add_argument('--source');parser.add_argument('--parent');parser.add_argument('--id');parser.add_argument('--message');parser.add_argument('--actor',choices=['human','internal_ai','external_agent','import']);parser.add_argument('--set-current',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['list','get','record','current','derive','finalize']);parser.add_argument('--request',type=Path);parser.add_argument('--source');parser.add_argument('--parent');parser.add_argument('--id');parser.add_argument('--message');parser.add_argument('--actor',choices=['human','internal_ai','external_agent','import']);parser.add_argument('--set-current',action='store_true');parser.add_argument('--inputs-sha256');args=parser.parse_args()
     try:
         request=json.loads(args.request.read_text(encoding='utf-8-sig')) if args.request else {}
-        for key in ('source','parent','id','message','actor'):
+        for key in ('source','parent','id','message','actor','inputs_sha256'):
             if getattr(args,key) is not None:request[key]=getattr(args,key)
         if args.set_current:request['set_current']=True
+        if args.action=='finalize' and not request.get('inputs_sha256'):
+            raise ValueError('历史版本定稿须提供审阅时记录的 --inputs-sha256')
         print(json.dumps(dispatch(args.workspace,args.action,request),ensure_ascii=False));return 0
     except (ValueError,OSError,KeyError,TypeError,subprocess.SubprocessError) as error:print(json.dumps(dict(error=str(error)),ensure_ascii=False));return 1
 if __name__=='__main__':raise SystemExit(main())

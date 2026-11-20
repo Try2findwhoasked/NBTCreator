@@ -1121,8 +1121,8 @@
       },
       {
         "title": "导出定稿 NBT",
-        "call": "finalize --source <已保存制作源>",
-        "input": "用户明确要求定稿时，提供要交付的 SNBT 制作源。无墙的独立建筑须在保存时声明 allow_empty_wall_mask:true。",
+        "call": "finalize --source <已保存制作源> --source-sha256 <审阅源哈希> --inputs-sha256 <审阅输入哈希>",
+        "input": "审阅时用 --inspect-inputs 记录源和输入哈希；仅在用户明确要求定稿时导出。无墙的独立建筑须在保存时声明 allow_empty_wall_mask:true。",
         "result": "验证并在 nbt_models/_exports/ 写 NBT 完整主模型、分片与交付回执。"
       }
     ]
@@ -24250,7 +24250,10 @@
           "status": "string",
           "expected_revision": "integer",
           "lease_token": "string",
-          "fence": "integer"
+          "fence": "integer",
+          "review": "string",
+          "review_sha256": "string",
+          "summary": "string"
         },
         "required": [
           "id",
