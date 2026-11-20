@@ -42,14 +42,28 @@ export function initApiAssistant(hooks){
  let componentResult=null
  let immediate=false
  generatePreview.onclick=async()=>{immediate=true;try{await $('ai-generate').onclick()}finally{immediate=false}}
- let customKnowledge=[]
- const knowledge=document.createElement('section');knowledge.className='knowledge-config';knowledge.innerHTML='<h3>外部建造助手的参考资料</h3><p class="muted">选择外部 Agent 在本项目中默认阅读的资料。保存后会更新工作区的 Skill 入口；这些资料不会因此自动发送给应用连接的 AI 服务。原始文件会保留。</p><div id="knowledge-groups"></div><h4>自定义知识库</h4><div id="custom-knowledge-list"></div><div class="ai-buttons"><button id="knowledge-import" type="button">＋ 添加 Markdown / TXT</button><button id="knowledge-save" type="button" class="primary">保存助手参考资料</button></div><p id="knowledge-status" role="status"></p><p class="muted">工具调用入口：.agents/skills/nbtcreator-workspace/SKILL.md。核心工作流与验收要求不能关闭。</p>'
+ const knowledge=document.createElement('section');knowledge.className='knowledge-config';knowledge.innerHTML='<h3>外部 Agent 的参考资料（只读）</h3><p class="muted">暂不在应用内修改 Skill 阅读范围。下方列出当前工作区已启用的资料；这些资料不会自动发送给内置 AI。</p><div id="knowledge-groups"></div><h4>已启用的自定义资料</h4><div id="custom-knowledge-list"></div><p id="knowledge-status" role="status"></p><p class="muted">入口：.agents/skills/nbtcreator-workspace/SKILL.md</p>'
  const entryPreview=document.createElement('button');entryPreview.type='button';entryPreview.textContent='查看助手使用说明';entryPreview.onclick=()=>previewKnowledge({scope:'external',entry:true});knowledge.prepend(entryPreview)
  dialog.querySelector('.ai-layout').append(knowledge)
  initInternalAISettings(dialog,knowledge)
- async function refreshKnowledge(){if(!window.nbtDesktop?.exposureConfig){$('knowledge-status').textContent='知识库配置需要Electron桌面版';return}try{const config=await window.nbtDesktop.exposureConfig();customKnowledge=config.custom_knowledge??[];$('custom-knowledge-list').replaceChildren(...customKnowledge.map(item=>{const label=document.createElement('label');label.className='inline knowledge-choice';const box=document.createElement('input');box.type='checkbox';box.dataset.customKnowledge=item.id;box.checked=item.enabled;label.append(box,document.createTextNode(item.label));const card=document.createElement('article');card.className='knowledge-description';const button=document.createElement('button');button.type='button';button.textContent='查看导入原文';button.onclick=()=>previewKnowledge({scope:'external',id:item.id});card.append(label,button);return card}));if(!customKnowledge.length)$('custom-knowledge-list').textContent='尚未添加，可导入自己的建筑规范、风格资料或操作说明。';$('knowledge-groups').replaceChildren(...config.groups.map(group=>{const label=document.createElement('label');label.className='inline knowledge-choice';const box=document.createElement('input');box.type='checkbox';box.dataset.knowledge=group.id;box.checked=config.enabled_groups.includes(group.id);box.disabled=group.required;label.append(box,document.createTextNode(group.label));const card=document.createElement('article');card.className='knowledge-description';const summary=document.createElement('p');summary.textContent=externalSummaries[group.id]||'当前知识组的参考文档';const files=document.createElement('details');const heading=document.createElement('summary');heading.textContent='包含 '+group.files.length+' 份文档 · 查看内容';files.append(heading);for(const file of group.files){const button=document.createElement('button');button.type='button';button.textContent=file;button.onclick=()=>previewKnowledge({scope:'external',group:group.id,file});files.append(button)}card.append(label,summary,files);return card}));$('knowledge-status').textContent=`助手可读取 ${config.enabled_groups.length} 类参考资料，使用 ${config.tool_count} 类工具`}catch(e){$('knowledge-status').textContent=e.message}}
- $('knowledge-import').onclick=async()=>{try{const imported=await window.nbtDesktop.exposureImport();if(imported){await refreshKnowledge();$('knowledge-status').textContent='知识文件已复制到当前工作区，并同步到Agent入口；不会自动上传API'}}catch(e){$('knowledge-status').textContent=e.message}}
- $('knowledge-save').onclick=async()=>{try{const enabled_groups=[...document.querySelectorAll('[data-knowledge]:checked')].map(e=>e.dataset.knowledge);const saved=await window.nbtDesktop.exposureSave({schema_version:1,enabled_groups,custom_knowledge:customKnowledge.map(item=>({...item,enabled:!!document.querySelector('[data-custom-knowledge="'+item.id+'"]')?.checked}))});$('knowledge-status').textContent=`已同步 ${saved.enabled_groups.length} 个知识组，工具接口保持 ${saved.tool_count} 类`}catch(e){$('knowledge-status').textContent=e.message}}
+ async function refreshKnowledge(){
+  if(!window.nbtDesktop?.exposureConfig){$('knowledge-status').textContent='查看对外资料需要 Electron 桌面版';return}
+  try{
+   const config=await window.nbtDesktop.exposureConfig(),custom=(config.custom_knowledge??[]).filter(item=>item.enabled)
+   const button=(label,input)=>{const item=document.createElement('button');item.type='button';item.textContent=label;item.onclick=()=>previewKnowledge({scope:'external',...input});return item}
+   $('custom-knowledge-list').replaceChildren(...custom.map(item=>button(item.label,{id:item.id})))
+   if(!custom.length)$('custom-knowledge-list').textContent='当前未启用自定义资料。'
+   const groups=config.groups.filter(group=>config.enabled_groups.includes(group.id))
+   $('knowledge-groups').replaceChildren(...groups.map(group=>{
+    const card=document.createElement('article'),label=document.createElement('strong'),summary=document.createElement('p'),files=document.createElement('details'),heading=document.createElement('summary')
+    card.className='knowledge-description';card.dataset.knowledgeGroup=group.id;label.textContent=group.label
+    summary.textContent=externalSummaries[group.id]||'当前知识组的参考文档'
+    heading.textContent=`${group.files.length} 份文档 · 查看内容`;files.append(heading,...group.files.map(file=>button(file,{group:group.id,file})))
+    card.append(label,summary,files);return card
+   }))
+   $('knowledge-status').textContent=`助手可读取 ${groups.length} 类参考资料，使用 ${config.tool_count} 类工具`
+  }catch(error){$('knowledge-status').textContent=error.message}
+ }
 
  let result=null,binding=null,running=false,generation=0
  function message(text,error=false){$('ai-status').textContent=text;$('ai-status').classList.toggle('error',error);if(document.body.dataset.workspace==='ai'){configStatus.textContent=text;configStatus.classList.toggle('error',error)}}

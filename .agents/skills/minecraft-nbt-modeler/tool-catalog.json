@@ -1062,25 +1062,25 @@
         "title": "查看任务记录和绑定证据",
         "call": "task-client inspect <prompts 或 tasks> <任务编号>",
         "input": "提示词任务用 prompts，已有建筑修改任务用 tasks。",
-        "result": "返回对应任务与来源绑定。需要执行时用 task-client start 明确领取。"
+        "result": "默认返回任务阶段、来源核对与下一步；按 expand 视图展开，再用 task-client start 明确领取。"
       }
     ],
     "知识库": [
       {
         "title": "离线检索参考",
-        "call": "retrieve search --request <请求JSON>",
+        "call": "retrieve search --request <JSON文件>",
         "input": "填 workflow 和 query。建筑方案用 prompt，独立构件用 component。",
-        "result": "返回已启用书库、文档与网页收藏的命中。把结果 id 填入 retrieve bundle 的 selected 生成引用集合。"
+        "result": "返回已启用文档、书库与收藏的简短命中。用 receipt 和 ref 查看局部出处，或以 selected 保存引用集合。"
       },
       {
         "title": "联网补查公开原页",
-        "call": "retrieve research --request <请求JSON>",
+        "call": "retrieve research --request <JSON文件>",
         "input": "任务明确要求联网时填 workflow，提供公开 query 或已知 HTTPS urls。",
         "result": "返回原文证据、来源和未完成项。默认取得一条即返回。"
       },
       {
         "title": "管理网页证据收藏",
-        "call": "retrieve saved-web --request <请求JSON>",
+        "call": "retrieve saved-web --request <JSON文件>",
         "input": "填 workflow。action 为 list、add 或 remove，保存或移除时填已有的 web: 证据 id。",
         "result": "保存的证据进入本工作流离线搜索，既有引用集合仍绑定原快照。"
       }

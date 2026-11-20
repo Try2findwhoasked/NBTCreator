@@ -319,6 +319,13 @@ class Libraries(unittest.TestCase):
         from nbt_components import listing as local_components
         self.assertEqual(local_components(self.workspace)['items'],[])
 
+    def test_browse_keyword_returns_small_version_bound_candidates(self):
+        query=self.call('browse',query='方柱',limit=2)
+        self.assertTrue(query['offline']);self.assertTrue(query['items']);self.assertLessEqual(len(query['items']),2)
+        match=query['items'][0];self.assertNotIn('arguments',match);self.assertNotIn('thumbnail',match)
+        read=self.call('read',**self.reference(match));self.assertEqual(read['asset']['sha256'],match['sha256'])
+        self.assertEqual(self.call('browse',query='zephyrquillnorecipe')['items'],[])
+
     def test_bound_preview_place_and_explicit_copy_share_current_parameters(self):
         self.add()
         item=next(row for row in self.call('browse')['items'] if row['library_id']=='test.external')

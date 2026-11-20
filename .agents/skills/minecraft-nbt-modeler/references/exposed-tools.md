@@ -97,15 +97,15 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 任务 | 调用或字段 | 输入 | 结果 |
 | --- | --- | --- | --- |
 | 读取已交接的提示词任务 | `task --id <任务编号>` | 从创作项目根目录运行，使用交接时生成的提示词任务编号。也可用 prompts task。 | 回读任务文本、绑定文件与已校验的方案。读取任务与领取、建模、精修批准分开。 |
-| 查看任务记录和绑定证据 | `task-client inspect <prompts 或 tasks> <任务编号>` | 提示词任务用 prompts，已有建筑修改任务用 tasks。 | 返回对应任务与来源绑定。需要执行时用 task-client start 明确领取。 |
+| 查看任务记录和绑定证据 | `task-client inspect <prompts 或 tasks> <任务编号>` | 提示词任务用 prompts，已有建筑修改任务用 tasks。 | 默认返回任务阶段、来源核对与下一步；按 expand 视图展开，再用 task-client start 明确领取。 |
 
 ### 知识库
 
 | 任务 | 调用或字段 | 输入 | 结果 |
 | --- | --- | --- | --- |
-| 离线检索参考 | `retrieve search --request <请求JSON>` | 填 workflow 和 query。建筑方案用 prompt，独立构件用 component。 | 返回已启用书库、文档与网页收藏的命中。把结果 id 填入 retrieve bundle 的 selected 生成引用集合。 |
-| 联网补查公开原页 | `retrieve research --request <请求JSON>` | 任务明确要求联网时填 workflow，提供公开 query 或已知 HTTPS urls。 | 返回原文证据、来源和未完成项。默认取得一条即返回。 |
-| 管理网页证据收藏 | `retrieve saved-web --request <请求JSON>` | 填 workflow。action 为 list、add 或 remove，保存或移除时填已有的 web: 证据 id。 | 保存的证据进入本工作流离线搜索，既有引用集合仍绑定原快照。 |
+| 离线检索参考 | `retrieve search --request <JSON文件>` | 填 workflow 和 query。建筑方案用 prompt，独立构件用 component。 | 返回已启用文档、书库与收藏的简短命中。用 receipt 和 ref 查看局部出处，或以 selected 保存引用集合。 |
+| 联网补查公开原页 | `retrieve research --request <JSON文件>` | 任务明确要求联网时填 workflow，提供公开 query 或已知 HTTPS urls。 | 返回原文证据、来源和未完成项。默认取得一条即返回。 |
+| 管理网页证据收藏 | `retrieve saved-web --request <JSON文件>` | 填 workflow。action 为 list、add 或 remove，保存或移除时填已有的 web: 证据 id。 | 保存的证据进入本工作流离线搜索，既有引用集合仍绑定原快照。 |
 
 ### 检查
 

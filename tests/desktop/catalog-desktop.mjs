@@ -12,6 +12,7 @@ const fixture=spawnSync(python,[path.join(root,'tests/support/make_fixture.py'),
 const script="import sys;from pathlib import Path;sys.path.insert(0,sys.argv[1]);from nbt_model import Model;p=Path(sys.argv[2]);p.mkdir(parents=True);m=Model((12,12,12));m.box((0,0,0),(11,11,11),'stone_bricks');m.box((2,2,2),(9,9,9),'air');m.check_sealed([(5,5,5)]);m.save(p/'only.nbt')"
 const standalone=path.join(workspace,'nbt_models/standalone');const made=spawnSync(python,['-c',script,path.join(skill,'scripts'),standalone],{encoding:'utf8'});assert.equal(made.status,0,made.stderr)
 const wronglySelected=path.join(workspace,'nbt_models/_workspaces');await fs.mkdir(wronglySelected,{recursive:true})
+const settings=path.join(workspace,'.nbtcreator'),customPath='knowledge/fixture.md';await fs.mkdir(path.join(settings,'knowledge'),{recursive:true});await fs.writeFile(path.join(settings,customPath),'定制墙面收口。');await fs.writeFile(path.join(settings,'skill-exposure.json'),JSON.stringify({schema_version:1,enabled_groups:['core','props'],custom_knowledge:[{id:'custom_0123456789abcdef',path:customPath,label:'自定义知识',enabled:true}]}))
 let app;const checks={}
 try{
  await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'model'}))
@@ -24,8 +25,6 @@ try{
  await page.locator('#studio-model-menu>summary').click();await page.locator('#models').selectOption(String(index));await page.waitForFunction(()=>window.detailControl.state.info?.size[0]===12&&!window.detailControl.state.busy)
  await page.locator('#auto-preview').uncheck();await page.waitForFunction(()=>window.detailControl.state.mode==='3d'&&!window.detailControl.state.busy,undefined,{timeout:60000})
  assert.equal(await page.evaluate(()=>window.detailControl.state.info.context),'');assert.ok((await page.locator('#result-log').textContent()).includes('只读查看'));checks.standalone_nbt_3d_without_authoring_context=true
- await page.evaluate(()=>window.nbtDesktop.exposureSave({schema_version:1,enabled_groups:['core','props']}))
- const knowledge=path.join(output,'自定义知识.md');await fs.writeFile(knowledge,'定制墙面收口。');await app.evaluate(({dialog},file)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[file]})},knowledge);await page.evaluate(()=>window.nbtDesktop.exposureImport());
  const next=path.join(output,'next-workspace');await fs.mkdir(path.join(next,'nbt_models/_workspaces'),{recursive:true})
  await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});dialog.showMessageBox=async()=>({response:0})},path.join(next,'nbt_models/_workspaces'))
  await page.locator('[data-workspace=project]').click();await page.locator('#project-library-menu>summary').click();await page.locator('#project-workspace-menu>summary').click();await page.locator('#desktop-workspace').click();await page.waitForFunction(w=>window.detailControl?.state.workspace===w&&!window.detailControl.state.busy,next,{timeout:60000})

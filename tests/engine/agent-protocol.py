@@ -9,7 +9,7 @@ from nbt_prompts import save,publish,task_action,read_task,tasks
 from nbt_refine import save_master
 from nbt_assembly import Volume
 from nbt_machine import dispatch as machine
-from nbt_task_client import TaskClient
+from nbt_task_client import TaskClient, inspect
 from nbt_diagnostic_delta import delta
 class Contracts(unittest.TestCase):
  def setUp(self):
@@ -17,6 +17,18 @@ class Contracts(unittest.TestCase):
   self.source=self.w/'nbt_models/single/契约测试/v01/master/model.snbt';self.source.parent.mkdir(parents=True);m=Volume((8,6,8));m.box((0,0,0),(7,0,7),'stone_bricks');save_master(self.source,m,set())
  def request(self,**params):return dict(request_id=uuid.uuid4().hex,**params)
  def create(self):return dispatch(self.w,'create',self.request(source=str(self.source),source_sha256=hashlib.sha256(self.source.read_bytes()).hexdigest(),name='合成任务'))
+ def test_client_first_read_guides_both_tasks_without_expanding_payloads(self):
+  task=self.create();identifier=task['id'];compact=inspect(self.w,'tasks',identifier)
+  self.assertEqual(compact['stage'],'modification');self.assertIs(compact['source_matches'],True)
+  self.assertNotIn('comments',compact);self.assertNotIn('origins',compact);self.assertIn('--view context',compact['next']['command'])
+  self.assertEqual(inspect(self.w,'tasks',identifier,'context')['source'],compact['source'])
+  self.assertEqual(inspect(self.w,'tasks',identifier,'comments')['comments'],[])
+  self.assertIn('comments',inspect(self.w,'tasks',identifier,'full'))
+  prompt=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'计划','buildingShape':'single'}},'完整任务文本')
+  read=inspect(self.w,'prompts',prompt['id']);self.assertEqual(read['task']['stage'],'draft');self.assertIn('--view text',read['next']['command'])
+  self.source.write_bytes(b'edited')
+  stale=inspect(self.w,'tasks',identifier);self.assertIs(stale['source_matches'],False);self.assertEqual(stale['next']['action'],'stop')
+  with self.assertRaises(ProtocolError):TaskClient(self.w,'stale-inspect').start('tasks',identifier,'agent',60)
  def test_create_retry_is_exact_and_different_payload_is_rejected(self):
   req=self.request(source=str(self.source),source_sha256=hashlib.sha256(self.source.read_bytes()).hexdigest(),name='合成任务');a=dispatch(self.w,'create',req);self.assertEqual(dispatch(self.w,'create',req),a)
   with self.assertRaises(ProtocolError) as caught:dispatch(self.w,'create',dict(req,name='不同请求'))

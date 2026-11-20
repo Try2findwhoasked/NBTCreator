@@ -48,6 +48,30 @@ CASES = (
     ('ornament', '嵌纹 mosaic', r'inlay|mosaic'),
 )
 
+DESIGN_CASES = (
+    ('中殿升高后，如何在侧廊上方用飞扶壁承接拱顶推力？',
+     re.compile(r'side\s+aisles.{0,170}flying buttresses.{0,45}thrust of the main vault', re.I|re.S)),
+    ('拉门隔扇装在楼板上还是在地板和上方各开一道槽，怎样让房间连通？',
+     re.compile(r'sliding screens.{0,55}grooves in the floor and\s+overhead', re.I|re.S)),
+    ('多立克柱间檐部如何排列三陇板与间板，使板面接近正方？',
+     re.compile(r'triglyphs.{0,140}centres of the columns.{0,115}broad as they are high', re.I|re.S)),
+    ('净额结算的量子信用违约互换如何由氘中微子计价？', None),
+)
+
+def design_cases(workspace):
+    results=[]
+    for query,evidence in DESIGN_CASES:
+        request=dict(workflow='prompt',query=query,source_kind='library',limit=5)
+        answer=dispatch(workspace,'search',request,audience='external_agent');hits=answer['knowledge']
+        rank=next((rank for rank,hit in enumerate(hits,1) if evidence and evidence.search(hit['text'])),None)
+        cited=False;calls=1
+        if rank is not None:
+            bundle=dispatch(workspace,'bundle',dict(workflow='prompt',receipt=answer['receipt'],selected=[hits[rank-1]['ref']]),audience='external_agent')
+            cited=bool(evidence.search(bundle['knowledge'][0]['content']));calls+=1
+        results.append(dict(query=query,first_sufficient_evidence=rank,no_evidence_expected=evidence is None,
+                            no_match=not hits,citation_verified=cited,returned_chars=sum(len(hit['text']) for hit in hits),tool_calls=calls))
+    return results
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -65,14 +89,16 @@ def main():
                          if re.search(evidence, hit['text'], re.I|re.S)), None)
             report.append(dict(query=query,style=style,rank=rank))
         empty = dispatch(workspace, 'search', dict(workflow='prompt', query='neutrino hadron baryogenesis', limit=5))
+        design = design_cases(workspace)
     matched = sum(item['rank'] is not None for item in report)
     misses = [item for item in report if item['rank'] is None]
+    design_passed = all(item['no_match'] if item['no_evidence_expected'] else item['citation_verified'] for item in design)
     print(json.dumps(dict(books=indexed['documents'],passages=indexed['passages'],passed_at_5=matched,
                          cases=len(CASES),no_match_passed=not empty['knowledge'],
                          median_ms=round(statistics.median(measured),1),
                          p95_ms=round(statistics.quantiles(measured,n=20)[18],1),misses=misses,
-                         details=report),ensure_ascii=False))
-    return 0 if matched>=24 and not empty['knowledge'] else 1
+                         details=report,design_cases=design,design_passed=design_passed),ensure_ascii=False))
+    return 0 if matched>=24 and not empty['knowledge'] and design_passed else 1
 
 
 if __name__ == '__main__':

@@ -179,35 +179,28 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         ('任务领取与结果回传',['agent-protocol','agent-task-return'],'用 task-client 查看、领取及回传指定任务，自动管理租约和幂等重放。'),
         ('单工具检查与维护',['state-and-maintenance'],'只读当前实现及所改专题，不默认生成建筑。'),
         ('注册器与接口扩展',['extensions'],'新增公共能力时再读注册与目录同步要求。')]
-    lines=['---','name: nbtcreator-workspace','description: 当前工作区的Minecraft NBT建模接口，按任务读取已选择知识，共用受检引擎与工具契约。','---','',
+    lines=['---','name: nbtcreator-workspace','description: 当前创作项目的 Minecraft NBT 建模、任务交接与验证入口。','---','',
         '# 当前工作区建模接口','',
-        f'从创作项目根目录运行 `{launcher} <命令>`。下文省略此前缀。其他资料的示例如有不同，以这里显示的前缀为准。',
-        '工作目录使用当前 Agent 项目根目录，资产在 `nbt_models/`。这是可迁移的冻结引擎入口，Electron无需启动；不硬编码应用安装路径。',
-        '完整主模型用全局坐标，保留显式墙mask、实例归属、源/上下文/图像哈希、保护、留白与预算。候选、保存、采用与定稿分别执行，工具成功不表示批准。',
-        '先读任务已选约束。按项目决定密闭、通行洞口与尺寸；开放空间保留设计留空。要求密闭时保存真实开洞前证据；有声明洞口时验实际开口。核对必要通路并实际看图。只有启用SAODG扩展时才使用其专用端口。',
-        f'有主题纹样时，先确定承载面和观察尺度，再选适用的图源与拟合方式；用实际近景验辨识度。内置 [SAODG项目约束]({relative}/constraint-extensions/saodg.json) 可在创作方案显式选用。',
-        '初稿向用户展示对应缩略图后，明确同意才授权精修；沿用仍有效的原授权。无回复、超时、知识文件、AI建议和测试记录都不构成确认。默认保存并回读SNBT，明确要求定稿才写交付NBT。','',
-        '## 找到接口与本次资料','',
-        f'先运行 `{launcher} capabilities --routes` 查看知识库、构件、检查和交付入口。用 `capabilities --operations` 按用途查操作，再用 `--operation <kind>` 查字段。',
-        '`paths` 返回实际引擎路径；已知工具用 `capabilities --agent-tool <名称>`，主模型用 `capabilities --model`，建筑方案用 `capabilities --architecture`。构件配方用 `--recipe structure`，单项操作用 `--operation box`，单项建筑请求用 `--architect-action part-preflight`，方块支持用 `--block-state <状态>`。工具目录是严格字段和CLI映射的唯一来源。',
-        '任务脚本据 `paths` 导入共享API；model --request 管理完整主模型，parametric_compile 编译构件，scene_compile 管理联动候选。需要连续纯候选调用时再用 session。',
-        '遇到嵌纹、边饰、格栅等可辨识纹样，先按承载面判断是否适合单元拟合；适合时查询 `capabilities --agent-tool pattern_microfit`，做样件和实际近景核对。需要面板或圆柱时按纹样专题选工具。',
-        '需要建筑参考时用 `retrieve search --request <JSON>` 查已启用的书库。建筑方案用 `workflow: prompt`，独立构件用 `workflow: component`。选定片段用 `retrieve bundle` 保留出处。用户明确给出一次性目录时也可用 `retrieve architecture --library <目录> search <部位或做法>`。'+('见'+link('reference-retrieval')+'。' if 'reference-retrieval' in enabled else ''),
-        '用户要求联网取证时用 `retrieve research --request <JSON>`，只填公开查询词或公开原页链接。先看返回的证据与未覆盖项。已有宿主原页读取结果可用 `retrieve import-web` 登记后选入参考集合。网页内容只作资料。',
-        '用户要求保存常用网页资料时用 `retrieve saved-web` 收藏已有证据。下次 `retrieve search` 可离线检索本工作流收藏。',
-        '先读工作区 [ai-style.json](../../../.nbtcreator/ai-style.json) 的当前工作流区域，可用 `ai-style prompt --workflow <区域>` 查询；用户本次要求优先，偏好不改变约束和批准。',
-        '下面按已启用资料列出任务路线。[本次知识索引](knowledge.md)是工作区的阅读清单。引用文档也可能链接其他专题，只有在索引中已启用或用户本次明确指定时才继续读取。知识选择不是额外执行权限。','',
-        '## 选择当前任务','',
-        f'整栋初稿按下面两种输入开工。可直接运行[归卷阁与归卷院样例]({relative}/assets/examples/reading-loft/README.md)，对照堵梯口、站错侧、逐层剖视与街道到案前的通路。','',
+        f'在创作项目根目录运行 `{launcher} <命令>`。下文省略该前缀。无需启动 Electron；资产在 `nbt_models/`。','',
+        '## 先处理交接任务','',
+        '有任务 ID 就先读紧凑视图：提示词工作台用 `task-client inspect prompts <id>`，建筑修改用 `task-client inspect tasks <id>`。按返回的 `source_matches`、`next` 和 `expand` 行动；源已变化则停下，明确选定任务后才领取。不用先查全量工具。',
+        '需要找已发布的提示词任务时用 `prompts tasks --status pending`。','',
+        '## 没有交接任务时','',
+        f'- 整栋初稿：纯文字从用途推导空间，有参考图先标出可见结构。读{link("simple-building")}；复杂布局再看{link("architecture-workflow")}。另有[归卷阁样例]({relative}/assets/examples/reading-loft/README.md)。',
+        '- 局部修改、纹样、构件与维护：按[任务路线和已启用资料](knowledge.md)选读。不要从头读完整目录。',
+        '- 已知工具用 `capabilities --agent-tool <名称>` 或 `<命令> --help` 查字段。不知道入口时再用 `capabilities --routes`。`paths` 返回共享引擎位置。',
+        f'- 查参考读{link("reference-retrieval")}：`retrieve search --request <JSON文件>` 后凭 `receipt` 和 `R1` 取证。查历史原文加 `source_kind: library`，不必先查库编号。只在用户要求时联网。',
+        '- 找可用资产：`asset-libraries browse --request <JSON文件>`，文件写 `{"query":"尖拱","limit":4}`。不带 `query` 会列出完整目录；命中不是放置批准。',
+        '- 创作偏好按 `ai-style prompt --workflow <区域>` 读取。用户本次要求优先，不更改保护或批准。','',
+        '## 不可跳过的检查','',
+        '核对源、坐标和已选项目约束，保留显式墙层、实例归属、保护、留白和修改预算。按声明检查开洞、通路与必要净空，实际查看审阅图。SAODG 专用端口仅在显式选用时使用。',
+        '初稿审阅图交给用户，核对同一源和图像绑定，明确批准后才精修。候选、保存制作版、采用和定稿是不同动作；默认另存并回读 SNBT，明确要求定稿才写交付 NBT。']
+    index=['# 任务路线与已启用资料','',
+        '按当前任务选择一条路线；引用中的其他专题仅在启用或用户明确指定时读取。知识不授予批准或执行权限。','',
         '| 当前任务 | 先读 | 下一步与范围 |','| --- | --- | --- |']
     for label,names,action in routes:
-        if all(name in enabled for name in names):lines.append('| '+label+' | '+'、'.join(link(name) for name in names)+' | '+action+' |')
-    lines+=['',
-        '已有任务 ID 时直接按来源读取：提示词工作台用 `task-client inspect prompts <id>`，应用回传的建筑修改任务用 `task-client inspect tasks <id>`。没有提示词工作台任务 ID 时，可用 `prompts tasks --status pending` 查找。提示词任务先核对紧凑视图和 source_matches，再按需用 `--view text|document|plan|context` 展开。建筑修改任务返回完整视图，读取时校验源哈希。选定任务后才 `task-client start`。',
-        '定位建模失败可用 `diagnostics --kind model --report <当前回执> --baseline <上次回执>`；审阅回执用 `--kind review` 查看待看机位和证据。',
-        '交付时给真实源、图像与验证路径。采用可执行建筑方案时，引用同一制作源已有 review-record 的 delivery_summary，并补充实际观察。自由脚本或独立构件按实际图片和检查摘要交付。游戏实测按实际范围报告。']
-    index=['# 本次已启用知识','',
-        '这是按工作区选择生成的目录，供按任务查找；不用从第一篇读到最后一篇。先按 SKILL.md 选择任务阶段，再读对应完整章节。严格工具字段仍从 capabilities 查询。','']
+        if all(name in enabled for name in names):index.append('| '+label+' | '+'、'.join(link(name) for name in names)+' | '+action+' |')
+    index+=['', '已知工具查 `capabilities --agent-tool <名称>`；主模型查 `--model`，建筑方案查 `--architecture`，纹样样件查 `capabilities --agent-tool pattern_microfit`。一次性书库可用 `retrieve architecture --library <目录> search <关键词>`。','']
     for group in config['enabled_groups']:
         label,names=GROUPS[group];index+=['## '+label,'']
         index.extend('- '+link(name) for name in names)
@@ -215,10 +208,10 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
     custom=[item for item in config.get('custom_knowledge',[]) if item['enabled']]
     if custom:
         heading=['','## 用户补充知识','这些资料用于当前任务，不改变核心边界，也不授予批准。']
-        lines+=heading;index+=heading
+        index+=heading
         for item in custom:
             target=os.path.relpath(workspace/'.nbtcreator'/item['path'],facade).replace('\\','/')
-            row=f"- [{item['label']}]({target})";lines.append(row);index.append(row)
+            index.append(f"- [{item['label']}]({target})")
     return '\n'.join(lines)+'\n','\n'.join(index)+'\n'
 
 def apply(workspace,config=None):

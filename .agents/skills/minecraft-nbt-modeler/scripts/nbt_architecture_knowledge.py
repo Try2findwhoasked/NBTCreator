@@ -47,6 +47,8 @@ ALIASES = {
     '仿古柱': ('classical columns', 'classic orders', 'orders'),
     '挡水': ('dam', 'weir'), '排水': ('drainage', 'drain'),
     '悬挑': ('cantilever', 'overhang'), '基座': ('pedestal', 'plinth'),
+    '拱顶推力': ('thrust of the vault','thrust of the main vault'),
+    '三陇板': ('triglyphs','triglyph'), '间板': ('metopes','metope'),
 }
 
 
@@ -172,6 +174,8 @@ def expression(query, *, extra_aliases=None, include_numbers=False):
     native = re.findall(r'[^\W\d_\u3400-\u9fff]+', query.casefold())
     phrases = [phrase for aliases in (ALIASES,extra_aliases or {})
                for term,values in aliases.items() if term in query for phrase in values]
+    if '槽' in query and any(term in query for term in ('隔扇','拉门','移门')):
+        phrases[:0] = ['grooves in the floor','sliding screens which run','and overhead']
     english = [' '.join(native)] if 1 < len(native) <= 5 else []
     english.extend(phrases)
     if include_numbers:

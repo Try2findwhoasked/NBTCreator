@@ -1,12 +1,14 @@
 from pathlib import Path
 import hashlib
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
 import shutil
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_retrieval import dispatch
+from nbt_retrieval import dispatch, read_bundle
+from unittest.mock import patch
 from nbt_components import store,load,update
 from nbt_structure_agent import build
 
@@ -23,6 +25,38 @@ class Retrieval(unittest.TestCase):
  def call(self,operation,**request):return dispatch(self.root,operation,dict(self.query,**request))
  def bundle(self):
   found=self.call('search');return self.call('bundle',selected=[found['assets'][0]['id'],found['knowledge'][0]['id']])
+ def test_external_scope_receipts_find_enabled_text_and_never_replay_search_for_bundle(self):
+  from nbt_exposure import apply, import_knowledge
+  note=self.root/'青弦工程.md';note.write_text(('# 青弦\n'+'其他工程行\n'*62+'\n## 节点\nzephyrquill 由两侧石墩承托。\n'+'后续门槛\n'*60),encoding='utf8')
+  config=import_knowledge(self.root,[note]);document=config['custom_knowledge'][0]
+  def external(action,**fields):return dispatch(self.root,action,dict(workflow='component',**fields),audience='external_agent')
+  self.assertEqual(self.call('search',query='zephyrquill')['knowledge'],[])
+  found=external('search',query='zephyrquill');hit,=found['knowledge']
+  self.assertEqual(hit['ref'],'R1');self.assertNotIn('id',hit);self.assertIn('两侧石墩',hit['text'])
+  with patch('nbt_retrieval.search',side_effect=AssertionError('bundle re-ran search')):
+   bundle=external('bundle',receipt=found['receipt'],selected=['R1'])
+  receipt={key:bundle[key] for key in ('id','sha256')}
+  checked=external('read',**receipt)
+  self.assertEqual({key:checked[key] for key in receipt},receipt); self.assertEqual(checked['sources'][0]['citation'],'R1')
+  with self.assertRaisesRegex(ValueError,'SHA256 不匹配'):external('read',id=bundle['id'],sha256='0'*64)
+  self.assertEqual(read_bundle(self.root,dict(workflow='component',**receipt),audience=None)['sources'],bundle['sources'])
+  with self.assertRaisesRegex(ValueError,'资料范围'):self.call('read',**receipt)
+  with self.assertRaisesRegex(ValueError,'工作流'):dispatch(self.root,'source',dict(workflow='prompt',receipt=found['receipt'],ref='R1'),audience='external_agent')
+  window=external('source',receipt=found['receipt'],ref='R1');full=external('source',receipt=found['receipt'],ref='R1',full=True)
+  self.assertIn('两侧石墩',window['text']);self.assertLess(len(window['text']),len(full['text']));self.assertGreater(window['next_line'],window['line_end'])
+  query_file=self.root/'.nbtcreator/retrieval/queries'/(found['receipt']+'.json');query_file.write_text('{}',encoding='utf8')
+  with self.assertRaisesRegex(ValueError,'回执已变化'):external('bundle',receipt=found['receipt'],selected=['R1'])
+  self.assertEqual(external('search',query='zephyrquill')['receipt'],found['receipt'])
+  document['enabled']=False;apply(self.root,dict(schema_version=1,enabled_groups=['core'],custom_knowledge=[document]))
+  with self.assertRaisesRegex(ValueError,'重新检索'):external('read',**receipt)
+  self.assertIsNone(external('search',query='zephyrquill')['receipt'])
+ def test_public_cli_supports_stdin_and_explains_file_argument(self):
+  invocation=[sys.executable,'-B',str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_retrieval.py'),'search','--request']
+  request=json.dumps(dict(workflow='prompt',query='zephyrquill',source_kind='library'))
+  success=subprocess.run([*invocation,'-'],cwd=self.root,input=request,capture_output=True,encoding='utf8')
+  self.assertEqual(success.returncode,0,success.stdout+success.stderr);self.assertIsNone(json.loads(success.stdout)['receipt'])
+  error=subprocess.run([*invocation,request],cwd=self.root,capture_output=True,encoding='utf8')
+  self.assertEqual(error.returncode,1);self.assertIn('JSON 文件路径',json.loads(error.stdout)['error'])
  def test_search_suggests_actual_rotation_and_only_task_selected_references(self):
   result=self.call('search');self.assertEqual(result['assets'][0]['rotations'],[1]);self.assertEqual(result['assets'][0]['asset_id'],self.asset['id']);self.assertEqual(result['knowledge'][0]['label'],'桥梁规范');self.assertIn('桥下排水',result['knowledge'][0]['text']);self.assertEqual(self.call('search',size=[2,3,2])['assets'],[]);self.assertEqual(self.call('search',workflow='prompt')['knowledge'],[])
  def test_bundle_is_hash_bound_and_sends_citable_fragments_without_local_paths_or_voxels(self):
@@ -35,7 +69,7 @@ class Retrieval(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'工作流'):self.call('read',workflow='prompt',id=bundle['id'],sha256=bundle['sha256'])
   with self.assertRaises(ValueError):self.call('read',id='../secret',sha256=bundle['sha256'])
   file=self.root/'.nbtcreator/retrieval/bundles'/f'{bundle["id"]}.json';original=file.read_bytes();file.write_bytes(original+b' ')
-  with self.assertRaisesRegex(ValueError,'已变化'):self.call('read',id=bundle['id'],sha256=bundle['sha256'])
+  with self.assertRaisesRegex(ValueError,'SHA256 不匹配'):self.call('read',id=bundle['id'],sha256=bundle['sha256'])
   file.write_bytes(original);update(self.root,self.asset['id'],archived=True)
   with self.assertRaisesRegex(ValueError,'回收'):self.call('read',id=bundle['id'],sha256=bundle['sha256'])
  def test_source_read_requires_current_selection_and_actual_hash(self):

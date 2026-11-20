@@ -108,7 +108,9 @@ component 资产使用 [构件规范](component-assets.md) 的 schema_version/na
 
 ## Agent 与维护入口
 
-在软件仓库根目录使用 `mise exec -- node scripts/cli.mjs --workspace <创作项目> asset-libraries <action> --request <JSON>`，创作项目也可用生成的 `mise run nbt -- asset-libraries ...`，无需 Electron。action 为 list/browse/discover/add/refresh/enable/remove/rollback/read/import/thumbnail/preview/resolve/place/copy。返回统一 `{ok,result}` 或 `{ok:false,error,code}`。
+在软件仓库根目录使用 `mise exec -- node scripts/cli.mjs --workspace <创作项目> asset-libraries <action> --request <JSON文件>`，创作项目也可用生成的 `mise run nbt -- asset-libraries ...`，无需 Electron。action 为 list/browse/discover/add/refresh/enable/remove/rollback/read/import/thumbnail/preview/resolve/place/copy。返回统一 `{ok,result}` 或 `{ok:false,error,code}`。
+
+外部 Agent 先把 `{"query":"尖拱","limit":4}` 写入 UTF-8 请求文件，再执行 `mise run nbt -- asset-libraries browse --request <JSON文件>`。按名称和标签返回少量带版本和哈希的候选；具体尺寸仍需回读或预览。无 `query` 的完整目录留给素材浏览器或明确需要全量的调用。
 
 | action | request |
 | --- | --- |

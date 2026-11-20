@@ -498,8 +498,12 @@ def checked_thumbnail(workspace, asset_sha256, engine):
     return None
 
 
-def browse(workspace):
+def browse(workspace, *, query=None, limit=6):
     """The UI catalogue retains bundled and connected editions side by side."""
+    if query is not None:
+        if not isinstance(query,str) or not query.strip() or len(query)>300:fail('INVALID_REQUEST','输入1～300字的资产名称或标签')
+        if type(limit) is not int or not 1<=limit<=32:fail('INVALID_REQUEST','资产检索数量须为1～32')
+        from nbt_text_search import score
     errors = []
     try: config = state(workspace)
     except (OSError, ValueError) as error:
@@ -507,24 +511,33 @@ def browse(workspace):
         errors.append(dict(source_id='configuration', error=str(error), code=getattr(error, 'code', 'INVALID_STATE')))
     sources = [dict(id='bundled', name='应用自带', enabled=True, bundled=True)] + deepcopy(config['sources'])
     items = []
-    engine = preview_engine()
+    engine = preview_engine() if query is None else None
     for source in sources:
         if not source['enabled']: continue
         try:
             data, key = snapshot_manifest(workspace, source['id'])
             prepared = []
             for entry in data['assets']:
+                if query is not None:
+                    rank=score(query,entry['name']+' '+' '.join(entry.get('tags',[])))
+                    if rank<=0:continue
                 content = snapshot_payload(workspace, source['id'], entry)
                 item = row(data, entry, content, source['id'])
                 item.update(manifest_sha256=key, source_name='应用自带' if source['id']=='bundled' else data['name'],
-                            review_status='pending_visual_review',
-                            thumbnail=checked_thumbnail(workspace, entry['sha256'], engine))
+                            review_status='pending_visual_review')
+                if engine is not None:item['thumbnail']=checked_thumbnail(workspace,entry['sha256'],engine)
                 if entry['type'] == 'parametric_recipe': item['size'] = deepcopy(item['arguments']['size'])
-                prepared.append(item)
+                if query is None:prepared.append(item)
+                else:
+                    fields=('id','source_id','version','manifest_sha256','sha256','name','type','tags','size','review_status')
+                    prepared.append((rank,{field:item[field] for field in fields}))
             source.update(version=data['version'], library_id=data['id'], active=key, count=len(prepared))
             items.extend(prepared)
         except (OSError, ValueError) as error:
             errors.append(dict(source_id=source['id'], error=str(error), code=getattr(error, 'code', 'INVALID_ASSET')))
+    if query is not None:
+        ranked=sorted(items,key=lambda pair:(-pair[0],pair[1]['id'],pair[1]['source_id']))
+        return dict(items=[item for _,item in ranked[:limit]],errors=errors,offline=True,query=query)
     return dict(items=items, sources=sources, errors=errors, offline=True)
 
 
@@ -667,7 +680,7 @@ def asset_action(workspace, action, request):
 def dispatch(workspace, action, request):
     if action not in ACTIONS or not isinstance(request, dict): fail('INVALID_REQUEST', '未知拓展库操作')
     reference_fields = ('id', 'sha256', 'source_id', 'version', 'manifest_sha256')
-    fields = {'list': (), 'browse': (), 'discover': ('source',), 'add': ('source', 'manifest_sha256'),
+    fields = {'list': (), 'browse': ('query','limit'), 'discover': ('source',), 'add': ('source', 'manifest_sha256'),
               'refresh': ('id', 'manifest_sha256'), 'enable': ('id', 'enabled'), 'remove': ('id',),
               'rollback': ('id',), 'read': reference_fields, 'import': reference_fields,
               'thumbnail': reference_fields, 'preview': (*reference_fields, 'arguments'),
@@ -678,7 +691,9 @@ def dispatch(workspace, action, request):
     obj(request, (), fields[action])
     if 'manifest_sha256' in request: sha(request['manifest_sha256'])
     if action == 'list': return listing(workspace)
-    if action == 'browse': return browse(workspace)
+    if action == 'browse':
+        if request and not isinstance(request.get('query'),str):fail('INVALID_REQUEST','请提供资产检索词')
+        return browse(workspace,**request)
     if action == 'discover': return discover(request.get('source'))
     if action in ('thumbnail', 'preview', 'resolve', 'place', 'copy'): return asset_action(workspace, action, request)
     if action in ('read', 'import'):

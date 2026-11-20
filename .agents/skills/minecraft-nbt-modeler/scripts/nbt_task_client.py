@@ -28,13 +28,45 @@ def result(reply):
     return reply['data']
 
 
+def next_step(kind, task, source_matches):
+    identifier=task['id']
+    if source_matches is False:return dict(action='stop',reason='任务来源已变化，请核对交接后建立新任务')
+    if task['status'] in ('completed','superseded','returned','reviewed','failed','cancelled'):
+        return dict(action='stop',reason='此任务已结束或正在等待审阅')
+    if task.get('lease') and not task.get('lease_expired') and task['lease']['expires_at']>time.time():
+        return dict(action='check_lease',reason='已有有效租约；如属当前会话，先运行 task-client --session <会话名> status')
+    first='text' if kind=='prompts' else 'comments' if task['comment_count'] else 'context'
+    return dict(action='inspect',command=f'task-client inspect {kind} {identifier} --view {first}',
+                then=f'task-client --session <会话名> start {kind} {identifier} --owner <执行者>')
+
+
 def inspect(workspace, kind, identifier, view='compact'):
-    params = dict(id=identifier)
     if kind == 'prompts':
-        params['view'] = view
-    elif view not in ('compact', 'full'):
-        error('INVALID_REQUEST', '建筑修改任务提供完整视图')
-    return result(dispatch(workspace, request(kind + '.get', params)))
+        data=result(dispatch(workspace,request('prompts.get',dict(id=identifier,view=view))))
+        if view=='compact':data['next']=next_step(kind,data['task'],data['source_matches'])
+        return data
+    if view not in ('compact','full','comments','context'):
+        error('INVALID_REQUEST','建筑修改任务视图为 compact、comments、context 或 full')
+    from nbt_agent_tasks import load_index, task_for, verify, output
+    workspace=Path(workspace).resolve()
+    _,index=load_index(workspace); task=task_for(workspace,index,identifier);matches=True
+    try:verify(workspace,task)
+    except ProtocolError as failure:
+        if view!='compact' or failure.code!='SOURCE_CHANGED':raise
+        matches=False
+    task=output(workspace,task)
+    if view=='full':return task
+    if view=='comments':
+        return dict(id=identifier,view=view,source_matches=True,comments=task['comments'])
+    if view=='context':
+        fields=('source','source_sha256','absolute_source','input_binding','origins','size','camera','approval')
+        return dict(id=identifier,view=view,source_matches=True,**{key:task[key] for key in fields if key in task})
+    fields=('id','name','status','revision','source','source_sha256','size','lease','lease_expired','approval')
+    compact={key:task[key] for key in fields if key in task}
+    compact.update(view=view,stage='modification',source_matches=matches,comment_count=len(task['comments']),
+                   return_count=len(task['returns']),expand=['comments','context','full'])
+    compact['next']=next_step(kind,compact,matches)
+    return compact
 
 
 class TaskClient:
@@ -86,9 +118,9 @@ class TaskClient:
 
     def check_live(self, state):
         live = inspect(self.workspace, state['kind'], state['id'])
+        if live['source_matches'] is False:
+            error('SOURCE_CHANGED', '任务原建筑已变化')
         if state['kind'] == 'prompts':
-            if live['source_matches'] is False:
-                error('SOURCE_CHANGED', '任务原建筑已变化')
             live = live['task']
         lease = live.get('lease')
         if not lease or lease['fence'] != state['lease']['fence']:
@@ -167,7 +199,7 @@ class TaskClient:
                 if old.get('pending') or (old['phase'] == 'active' and old['lease']['expires_at'] > time.time()):
                     error('SESSION_IN_USE', '本地会话仍有待恢复的请求或有效任务，请先查看 status')
             live = inspect(self.workspace, kind, identifier)
-            if kind == 'prompts' and live['source_matches'] is False:
+            if live['source_matches'] is False:
                 error('SOURCE_CHANGED', '任务原建筑已变化')
             state = dict(kind=kind, id=identifier, phase='starting', ttl=ttl, generation=uuid.uuid4().hex)
             revision = self.response_revision(state, live['task'] if kind == 'prompts' else live)
@@ -267,7 +299,7 @@ def main():
         command.add_argument('kind', choices=['prompts','tasks'])
         command.add_argument('id')
         if action == 'inspect':
-            command.add_argument('--view', choices=TASK_VIEWS, default='compact')
+            command.add_argument('--view', choices=(*TASK_VIEWS,'comments'), default='compact')
         else:
             command.add_argument('--owner', required=True)
             command.add_argument('--ttl', type=int, default=900)

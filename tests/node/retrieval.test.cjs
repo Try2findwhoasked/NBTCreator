@@ -15,3 +15,21 @@ test('reference provenance remains bounded data without paths, passage content o
  const {referenceSources}=await import('../../.agents/skills/minecraft-nbt-modeler/assets/viewer/reference-sources.mjs'),valid={kind:'knowledge',label:'桥梁规范',id:'knowledge:one',citation:'R1',sha256:'a'.repeat(64),heading:'支承',line_start:1,line_end:4,clipped:false}
  const cleaned=referenceSources([{...valid,content:'private full passage',file:'D:/private/file',code:'run()'}]);assert.equal(cleaned[0].content,undefined);assert.equal(cleaned[0].file,undefined);assert.equal(cleaned[0].code,undefined);assert.throws(()=>referenceSources([{...valid,citation:'R100'}]));assert.throws(()=>referenceSources([{...valid,line_end:-1}]));assert.throws(()=>referenceSources(Array(17).fill(valid)))
 })
+
+test('actual Python web evidence survives renderer and stored-candidate validation without synthetic lines',async t=>{
+ const {spawnSync}=require('node:child_process'),{python}=await import('../../scripts/paths.mjs')
+ const workspace=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-retrieval-contract-'));t.after(()=>fs.rm(workspace,{recursive:true,force:true}))
+ const program=`import json, sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from nbt_retrieval import dispatch
+workspace=Path(sys.argv[2]); flow='prompt'
+entry=dict(source_url='https://example.org/archive',title='Archive '+('窗'*165),publisher='Archive',section='Chapel window',text='Fixture-only paragraph.',accessed_at='2020-01-01T00:00:00+00:00',content_kind='summary',reader='offline test')
+item=dispatch(workspace,'import-web',dict(workflow=flow,evidence=[entry]))['evidence'][0]
+print(json.dumps(dispatch(workspace,'bundle',dict(workflow=flow,selected=[item['id']]))['sources']))`
+ const run=spawnSync(python,['-B','-c',program,path.join(skill,'scripts'),workspace],{encoding:'utf8'});assert.equal(run.status,0,run.stderr)
+ const {referenceSources}=await import('../../.agents/skills/minecraft-nbt-modeler/assets/viewer/reference-sources.mjs'),{validateAICandidate}=await import('../../.agents/skills/minecraft-nbt-modeler/assets/viewer/src/ai-candidate.mjs')
+ const [pythonSource]=JSON.parse(run.stdout),[clean]=referenceSources([pythonSource]);assert.equal(clean.line_start,undefined);assert.equal(clean.reference_type,'web');assert.equal(clean.bibliography.source_url,'https://example.org/archive');assert.equal(clean.bibliography.verification,'host_reported');assert.equal(clean.bibliography.reader,undefined)
+ const draft={schema_version:1,source_sha256:'sample',settings:{},can_apply:false,result:{mode:'prompt',text:'See R1',reference_sources:[clean]}};assert.deepEqual(validateAICandidate(draft,'sample'),draft)
+ assert.throws(()=>referenceSources([{...pythonSource,bibliography:{...pythonSource.bibliography,source_url:'file:///private'}}]),/出处无效/)
+})

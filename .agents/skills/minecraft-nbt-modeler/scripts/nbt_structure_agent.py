@@ -316,8 +316,8 @@ def _handle_structure_view(workspace,tool,arguments):
 def _handle_structure_preview(workspace,tool,arguments):
     sources=[]
     if arguments.get('reference_bundle'):
-        from nbt_retrieval import dispatch as retrieve
-        sources=retrieve(workspace,'read',dict(arguments['reference_bundle'],workflow='component'))['sources']
+        from nbt_retrieval import read_bundle
+        sources=read_bundle(workspace,dict(arguments['reference_bundle'],workflow='component'),audience=None)['sources']
     return preview(workspace,build(workspace,arguments['spec']),arguments['spec'],sources)
 
 
