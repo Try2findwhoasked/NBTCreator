@@ -11,6 +11,29 @@ test('actual shared Python engine repairs semantic geometry before accepting an 
  const api=createApiService({directory,safeStorage:{},validateCandidate:validator,fetchImpl:async(_u,options)=>{requests.push(JSON.parse(options.body));const operations=requests.length===1?[{kind:'auto_stairs',lo:[0,0,0],hi:[15,9,15],start:[2,1,2],end:[12,1,2]}]:[box];return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify({project_patch:patch,operations})}}]}))}})
  await api.save({enabled:true});const result=await api.generate({mode:'workbench',instruction:'生成候选',context});assert.equal(result.api_metrics.attempts,2);assert.match(requests[1].messages.at(-1).content,/第1步.*auto_stairs/);assert.match(requests[1].messages.at(-1).content,/above start/);assert.equal(result.operations[0].kind,'box');assert.deepEqual(result.api_metrics.calls.map(call=>call.validation_status),['failed','passed']);assert.equal(result.api_metrics.calls[0].validation_issue.code,'invalid_geometry');assert.deepEqual(await fs.readdir(path.join(directory,'ai-validation')),[]);assert.equal((await fs.readdir(directory)).includes('nbt_models'),false)
 })
+test('selection preflight repairs one operation and keeps the verified candidate context',async t=>{
+ const directory=await setup(t),requests=[]
+ const validator=createCandidateValidator({root,python:process.env.NBTCREATOR_PYTHON||'python',directory,getWorkspace:()=>directory})
+ t.after(()=>validator.close())
+ const common={lo:[0,0,0],hi:[15,9,15],state:'stone_bricks'}
+ const bad={kind:'auto_stairs',...common,start:[2,1,2],end:[12,1,2]}
+ const selection={schema_version:1,size:[16,10,16],geometry_sha256:'a'.repeat(64),air_omitted:true,palette:[],runs:[],solid_blocks:0}
+ const api=createApiService({directory,safeStorage:{},validateCandidate:validator,fetchImpl:async(_u,options)=>{
+  requests.push(JSON.parse(options.body))
+  const result=requests.length===1?{coordinate_space:'local',summary:'两项局部构造',operations:[box,bad]}:
+   {repair_step:{step:2,operation:{kind:'box',lo:[8,0,2],hi:[10,0,2],state:'stone_brick_slab[type=bottom]'}}}
+  return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify(result)}}]}))
+ }})
+ await api.save({enabled:true})
+ const result=await api.generate({mode:'selection_edit',instruction:'保留石柱，添加一级低踏步',
+  context:{size:selection.size,lo:[0,0,0],hi:[15,9,15],allow_overwrite:true,selection}})
+ assert.equal(requests.length,2)
+ assert.equal(requests[1].messages.length,3)
+ assert.match(requests[1].messages.at(-1).content,/repair_step/)
+ assert.deepEqual(result.api_metrics.calls[0].validation_issue,{code:'invalid_geometry',step:2,kind:'auto_stairs',bounds:{lo:[0,0,0],hi:[15,9,15]}})
+ assert.equal(result.settings_patch.operations[0].state,'stone_bricks')
+ assert.deepEqual(result.settings_patch.operations[1].lo,[8,0,2])
+})
 test('runtime failures are not sent to the model as geometry mistakes or retried',async t=>{
  const directory=await setup(t),validator=createCandidateValidator({root,python:path.join(directory,'missing-python.exe'),directory,getWorkspace:()=>directory});let calls=0
  const api=createApiService({directory,safeStorage:{},validateCandidate:validator,fetchImpl:async()=>{calls++;return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify({project_patch:patch,operations:[box]})}}]}))}})

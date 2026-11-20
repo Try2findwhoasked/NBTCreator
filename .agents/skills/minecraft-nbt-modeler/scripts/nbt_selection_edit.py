@@ -34,6 +34,37 @@ def load_selection(request,snapshot):
     if volume>65536:raise ValueError('自然语言编辑每次选择至多65536格，请缩小选区；不会发送不完整数据')
     return source,source_hash,model,walls,lo,hi,snapshot_hash
 
+def compile_operations(operations,lo,hi,size,overwrite):
+    allowed=set(CATALOG['common'])
+    if not isinstance(operations,list) or not 1<=len(operations)<=32:raise ValueError('选区编辑须有1～32个工具步骤')
+    result=[]
+    if type(overwrite) is not bool:raise ValueError('覆盖开关须为布尔值')
+    for index,raw in enumerate(operations):
+        if not isinstance(raw,dict) or raw.get('kind') not in CATALOG['tools']:raise ValueError('选区编辑工具种类无效')
+        kind=raw['kind'];fields=(allowed|set(CATALOG['operation_parameters'][kind]['properties'])|{'kind','include_boxes'})-{'overwrite','write_group','write_bounds','max_writes'}
+        extra=set(raw)-fields
+        if extra:
+            message='AI步骤含未开放字段 '+', '.join(sorted(extra))+'。AI不能改变覆盖、保护或预算。'
+            if 'max_writes' in extra:
+                message+='总变化预算由预览请求的 settings.max_changed_blocks 指定。'
+            raise ValueError(message)
+        from nbt_operation_parameters import validate_operation
+        validate_operation(raw)
+        operation=dict(raw);operation.setdefault('label','选区编辑 '+str(index+1));operation.setdefault('classification','inherit')
+        if kind not in ('beam','auto_floor'):
+            a,b=operation.get('lo'),operation.get('hi')
+            if any(not isinstance(p,list) or len(p)!=3 or any(type(n) is not int for n in p) for p in (a,b)) or any(a[i]<0 or a[i]>b[i] or b[i]>hi[i]-lo[i] for i in range(3)):raise ValueError('工具读取/编辑区域超出当前局部选区')
+        if kind=='auto_floor':
+            a=operation.pop('lo',[0,0,0]);b=operation.pop('hi',[hi[i]-lo[i] for i in range(3)])
+            operation.setdefault('include_boxes',[dict(lo=a,hi=b)])
+        if 'overwrite' in CATALOG['tools'][kind][1]:operation['overwrite']=overwrite
+        if 'max_writes' in CATALOG['tools'][kind][1]:operation['max_writes']=65536
+        operation=translate_operation(operation,lo);operation['write_bounds']=dict(lo=lo,hi=hi,allow_overwrite=overwrite)
+        result.append(operation)
+    from nbt_detail_control import default_settings,compile_plan
+    settings=default_settings();settings['operations']=result;compile_plan(settings,list(size))
+    return result
+
 def dispatch(action,request,snapshot=None):
     source,source_hash,model,walls,lo,hi,snapshot_hash=load_selection(request,snapshot)
     if action=='context':
@@ -51,35 +82,8 @@ def dispatch(action,request,snapshot=None):
         result=dict(schema_version=1,geometry_sha256=model.fingerprint(),size=[hi[i]-lo[i]+1 for i in range(3)],palette=palette,runs=runs,solid_blocks=count,air_omitted=True)
         if len(runs)>4096 or len(palette)>512 or len(json.dumps(result).encode('utf8'))>128*1024:raise ValueError('选区方块数据过多，请缩小选区；未截断或发送部分数据')
     elif action=='compile':
-        operations=request.get('operations');allowed=set(CATALOG['common'])
-        if not isinstance(operations,list) or not 1<=len(operations)<=32:raise ValueError('选区编辑须有1～32个工具步骤')
-        result=[];overwrite=request.get('allow_overwrite',True)
-        if type(overwrite) is not bool:raise ValueError('覆盖开关须为布尔值')
-        for index,raw in enumerate(operations):
-            if not isinstance(raw,dict) or raw.get('kind') not in CATALOG['tools']:raise ValueError('选区编辑工具种类无效')
-            kind=raw['kind'];fields=(allowed|set(CATALOG['operation_parameters'][kind]['properties'])|{'kind','include_boxes'})-{'overwrite','write_group','write_bounds','max_writes'}
-            extra=set(raw)-fields
-            if extra:
-                message='AI步骤含未开放字段 '+', '.join(sorted(extra))+'。AI不能改变覆盖、保护或预算。'
-                if 'max_writes' in extra:
-                    message+='总变化预算由预览请求的 settings.max_changed_blocks 指定。'
-                raise ValueError(message)
-            from nbt_operation_parameters import validate_operation
-            validate_operation(raw)
-            operation=dict(raw);operation.setdefault('label','选区编辑 '+str(index+1));operation.setdefault('classification','inherit')
-            if kind not in ('beam','auto_floor'):
-                a,b=operation.get('lo'),operation.get('hi')
-                if any(not isinstance(p,list) or len(p)!=3 or any(type(n) is not int for n in p) for p in (a,b)) or any(a[i]<0 or a[i]>b[i] or b[i]>hi[i]-lo[i] for i in range(3)):raise ValueError('工具读取/编辑区域超出当前局部选区')
-            if kind=='auto_floor':
-                a=operation.pop('lo',[0,0,0]);b=operation.pop('hi',[hi[i]-lo[i] for i in range(3)])
-                operation.setdefault('include_boxes',[dict(lo=a,hi=b)])
-            if 'overwrite' in CATALOG['tools'][kind][1]:operation['overwrite']=overwrite
-            if 'max_writes' in CATALOG['tools'][kind][1]:operation['max_writes']=65536
-            operation=translate_operation(operation,lo);operation['write_bounds']=dict(lo=lo,hi=hi,allow_overwrite=overwrite)
-            result.append(operation)
-        from nbt_detail_control import default_settings,compile_plan
-        settings=default_settings();settings['operations']=result;compile_plan(settings,list(model.size))
-        result=dict(operations=result,source_sha256=source_hash,geometry_sha256=model.fingerprint(),asset_written=False)
+        operations=compile_operations(request.get('operations'),lo,hi,model.size,request.get('allow_overwrite',True))
+        result=dict(operations=operations,source_sha256=source_hash,geometry_sha256=model.fingerprint(),asset_written=False)
     else:raise ValueError('未知选区编辑操作')
     if sha(source)!=source_hash or snapshot and sha(snapshot)!=snapshot_hash:raise ValueError('读取期间源或快照已变化')
     return result

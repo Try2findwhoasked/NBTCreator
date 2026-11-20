@@ -15,9 +15,10 @@ export function cleanApiMetrics(value){
   if(['stop','length','content_filter','tool_calls','function_call','unknown'].includes(call?.finish_reason))item.finish_reason=call.finish_reason
   if(['passed','failed'].includes(call?.validation_status))item.validation_status=call.validation_status
   const issue=call?.validation_issue
-  if(['invalid_geometry','invalid_classification','invalid_tool','invalid_json','output_limit','invalid_parameter','invalid_result'].includes(issue?.code)){
+  if(['invalid_geometry','invalid_classification','invalid_tool','invalid_json','output_limit','invalid_parameter','invalid_result','required_design_missing'].includes(issue?.code)){
    item.validation_issue={code:issue.code,...(number(issue.step,128)&&issue.step>0?{step:issue.step}:{})}
    if(['classification','kind'].includes(issue.field)&&typeof issue.received==='string'&&/^[a-z_]{1,40}$/i.test(issue.received))Object.assign(item.validation_issue,{field:issue.field,received:issue.received})
+   if(issue.code==='required_design_missing'&&['spiral_stair','xieshan_roof'].includes(issue.design))item.validation_issue.design=issue.design
   }
   return item
  })

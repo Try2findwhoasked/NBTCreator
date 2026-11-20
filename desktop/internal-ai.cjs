@@ -1,4 +1,4 @@
-const {excerpts}=require('./ai-knowledge.cjs')
+const {excerpts,BUDGET,PER_DOCUMENT}=require('./ai-knowledge.cjs')
 const {createAIStyle}=require('./ai-style.cjs')
 const fs=require('node:fs/promises'),path=require('node:path'),crypto=require('node:crypto')
 const flows={
@@ -78,9 +78,14 @@ function createInternalAI({workspace,skill,retrieve}){
    for(const value of reads){if(value.status==='rejected')throw value.reason;total+=value.value.content.length;if(total>48000)throw Error('本工作流资料总量超过48000字，请减少选中的文档');documents.push(value.value)}
   }
   if(!request.retrieval)knowledge.push(...excerpts(documents,request.instruction))
-  return {style:preference.values,style_prompt:preference.prompt,attachViewport:flow.attachViewport===true,workflow:key,workflow_steps:flows[key].steps,base_rules:flows[key].rules,...(flow.rules===flows[key].rules?{}:{rules:flow.rules}),instruction:flow.instruction,knowledge,...(bundle?{reference_sources:bundle.sources,retrieved_assets:bundle.references}:{})}
+  const knowledge_delivery=bundle
+   ?{mode:'explicit_collection',selected:bundle.sources.length,default_documents_replaced:new Set(flow.knowledge).size}
+   :{mode:'default_excerpts',total_budget:BUDGET,per_document:PER_DOCUMENT,body_characters:knowledge.reduce((n,doc)=>n+doc.content.length,0),
+      documents:knowledge.map(doc=>({label:doc.label,status:doc.excerpted?(doc.content?'excerpt':'omitted'):'complete'})),
+      duplicate_documents:documents.length-knowledge.length}
+  return {style:preference.values,style_prompt:preference.prompt,attachViewport:flow.attachViewport===true,workflow:key,workflow_steps:flows[key].steps,base_rules:flows[key].rules,...(flow.rules===flows[key].rules?{}:{rules:flow.rules}),instruction:flow.instruction,knowledge,knowledge_delivery,...(bundle?{reference_sources:bundle.sources,retrieved_assets:bundle.references}:{})}
  }
- async function preview(id){const c=validate(await load()),b=builtins[id],d=c.documents.find(d=>d.id===id);if(!b&&!d)throw Error('未知内部资料');return {title:b?.label??d.label,recipient:'仅在勾选并保存后，默认随对应工作流发送短文全文或相关片段（总预算12000字）；使用本地检索集合后保留所选片段给已配置的 API。',text:await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8')}}
+ async function preview(id){const c=validate(await load()),b=builtins[id],d=c.documents.find(d=>d.id===id);if(!b&&!d)throw Error('未知内部资料');return {title:b?.label??d.label,recipient:'对应工作流默认在 12000 字总预算内选摘，单篇最多 4000 字。显式选择的检索集合会替代本次默认资料。',text:await fs.readFile(b?path.join(skill,'references',b.file):path.join(base(),d.path),'utf8')}}
  return {show,save,importDocuments,capture,context,preview}
 }
 module.exports={createInternalAI,flows}

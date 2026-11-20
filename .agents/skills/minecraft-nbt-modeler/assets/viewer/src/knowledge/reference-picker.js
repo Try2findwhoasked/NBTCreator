@@ -119,6 +119,18 @@ export function initReferencePicker({api}){
  $('reference-close').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{epoch++;busy=false})
  async function open(input){if(dialog.open||busy)return;context={workflow:input.workflow,size:input.size??null,query:input.query?.trim()||''};found=null;webEvidence=[];savedView=false;savedOffset=null;libraries.open=false;online.open=false;libraryList.replaceChildren();$('reference-online-query').value='';$('reference-online-refresh').checked=false;$('reference-query').value=context.query;$('reference-results').replaceChildren();$('reference-document').hidden=true;$('reference-document-text').textContent='';report('按名称、构造或用途检索本工作流启用的资料。');dialog.showModal();epoch++;lock(false);if(context.query)await safe(search)()}
  function receipt(workflow){const value=chosen.get(workflow);return value?{id:value.id,sha256:value.sha256}:undefined}
- function sources(host,result){host.replaceChildren();for(const item of result?.reference_sources??[]){const line=node('p',`${item.citation} · ${item.label}${item.line_start?' · 第'+item.line_start+'～'+item.line_end+'行':''}`);line.title='SHA256 '+item.sha256;host.append(line)}if(host.childNodes.length)host.prepend(node('small',result?.reference_history?'此资产保存时记录的参考；不代表来源当前仍启用或内容未变化。':'本次提供的参考；资料是否被模型采纳需结合结果审阅。'))}
+ function sources(host,result){
+  host.replaceChildren()
+  for(const item of result?.reference_sources??[]){const line=node('p',`${item.citation} · ${item.label}${item.line_start?' · 第'+item.line_start+'～'+item.line_end+'行':''}`);line.title='SHA256 '+item.sha256;host.append(line)}
+  if(host.childNodes.length)host.prepend(node('small',result?.reference_history?'此资产保存时记录的参考；不代表来源当前仍启用或内容未变化。':'本次提供的参考；资料是否被模型采纳需结合结果审阅。'))
+  const delivery=result?.knowledge_delivery
+  if(delivery?.mode==='explicit_collection'){
+   host.append(node('small',`已发送显式集合的 ${delivery.selected} 项参考，替代 ${delivery.default_documents_replaced} 份默认资料。`))
+  }else if(delivery?.documents?.length){
+   const statuses={complete:'全文',excerpt:'片段',omitted:'预算内无可用片段'}
+   for(const item of delivery.documents)host.append(node('p',`${item.label} · ${statuses[item.status]}`))
+   if(delivery.duplicate_documents)host.append(node('small',`已合并 ${delivery.duplicate_documents} 份重复正文。`))
+  }
+ }
  const picker={open,receipt,sources,summary:workflow=>chosen.get(workflow)?.sources??[]};window.nbtReferencePicker=Object.freeze(picker);return picker
 }

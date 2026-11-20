@@ -3,6 +3,35 @@ import argparse,json,math
 from pathlib import Path
 
 
+class CandidateIssue(ValueError):
+    def __init__(self,error,index,operation):
+        kind=operation['kind'];label=str(operation.get('label','')).replace('\n',' ')[:60]
+        super().__init__(f'第{index}步（{kind}，{label}）：{error}')
+        self.issue=dict(code='invalid_geometry',step=index,kind=kind,
+                        bounds={key:operation[key] for key in ('lo','hi') if key in operation})
+
+
+def simulate(model,walls,plan,raw_operations,maximum):
+    from nbt_detail_control import simulate_plan
+
+    class Steps(list):
+        current=None
+        def __iter__(self):
+            indexes=(index for index,op in enumerate(raw_operations,1) if op.get('enabled',True))
+            for index,operation in zip(indexes,super().__iter__(),strict=True):
+                self.current=(index,operation)
+                yield operation
+            self.current=None
+
+    steps=Steps(plan['operations'])
+    try:
+        return simulate_plan(model,walls,dict(plan,operations=steps),
+                             dict(mode='standalone',openings=[],max_changed_blocks=maximum))
+    except (ValueError,KeyError,TypeError,AssertionError) as failure:
+        if steps.current:raise CandidateIssue(failure,*steps.current) from None
+        raise
+
+
 def check_materials(result):
     from nbt_registry import normalize
     errors={}
@@ -33,30 +62,47 @@ def validate(request):
         from nbt_structure_agent import build
         data=build(request['workspace'],result['spec'])
         return dict(blocks=len(data['blocks']),size=data['size'],nbt_exported=False)
+    if mode=='selection_edit':
+        from nbt_selection_edit import compile_operations
+        from nbt_assembly import Volume
+        from nbt_detail_control import compile_plan,default_settings
+        summary=context['selection'];size=summary['size'];hi=[axis-1 for axis in size]
+        operations=result['settings_patch']['operations']
+        if not operations:return dict(block_states=True,geometry='no_operations',nbt_exported=False)
+        local=compile_operations(operations,[0,0,0],hi,size,context['allow_overwrite'])
+        if any(op['kind'] not in {'box','hollow_box','beam','frame','geometry','auto_stairs','auto_roof','replace'}
+               for op in local if op.get('enabled',True)):
+            return dict(block_states=True,geometry='requires_target_preview',nbt_exported=False)
+        baseline=Volume(size);walls=set()
+        for x,y,z,length,index,wall in summary['runs']:
+            for p in ((u,y,z) for u in range(x,x+length)):
+                baseline.put(p,summary['palette'][index])
+                if wall:walls.add(p)
+        plan=compile_plan(dict(default_settings(),operations=local),size)
+        simulate(baseline,walls,plan,operations,65536)
+        return dict(block_states=True,geometry='checked_locally_requires_target_preview',nbt_exported=False)
+    if mode=='small_structure' and context.get('size'):
+        from nbt_assembly import Volume
+        from nbt_detail_control import compile_plan,default_settings
+        from nbt_recipes import translate_operation
+        patch=result['settings_patch'];lo,hi=patch['lo'],patch['hi'];size=[b-a+1 for a,b in zip(lo,hi)]
+        operations=[dict(translate_operation(op,[-axis for axis in lo]),write_group='candidate') for op in patch['operations']]
+        for index,op in enumerate(operations,1):
+            if math.prod(b-a+1 for a,b in zip(op['lo'],op['hi']))>2000000:
+                raise CandidateIssue('几何预检操作域超过200万格，请缩小此步骤范围',index,op)
+        plan=compile_plan(dict(default_settings(),operations=operations),size)
+        simulate(Volume(size),set(),plan,operations,math.prod(size))
+        return dict(block_states=True,geometry='checked_locally_requires_target_preview',nbt_exported=False)
     if mode!='workbench' or context.get('task')!='draft':return dict(block_states=True,geometry='requires_target_preview',nbt_exported=False)
     from nbt_assembly import Volume
-    from nbt_detail_control import default_settings,compile_plan,simulate_plan
+    from nbt_detail_control import default_settings,compile_plan
     size=result.get('project_patch',{}).get('size',context['project']['size'])
     settings=default_settings();settings.update(operations=result['operations'],max_changed_blocks=2000000)
     plan=compile_plan(settings,size)
     for index,operation in enumerate(plan['operations']):
         if all(isinstance(operation.get(key),list) and len(operation[key])==3 for key in ['lo','hi']) and math.prod(max(0,b-a+1) for a,b in zip(operation['lo'],operation['hi']))>2000000:
             raise ValueError('第'+str(index+1)+'步操作域超过200万格，请拆分或缩小单步范围')
-    class Steps(list):
-        # Track the engine's actual iteration without rebuilding prefixes or
-        # changing write ownership, ordering, conflict or protection semantics.
-        current=None
-        def __iter__(self):
-            for index,operation in enumerate(super().__iter__()):
-                self.current=(index,operation)
-                yield operation
-    steps=Steps(plan['operations']);plan['operations']=steps
-    try:model,walls,diff=simulate_plan(Volume(size),set(),plan,dict(mode='standalone',openings=[],max_changed_blocks=2000000))
-    except (ValueError,KeyError,TypeError,AssertionError) as error:
-        if steps.current:
-            index,operation=steps.current
-            raise ValueError('第'+str(index+1)+'步（'+operation['kind']+'，'+str(operation.get('label','')).replace('\n',' ')[:60]+'）：'+str(error)) from None
-        raise
+    model,walls,_=simulate(Volume(size),set(),plan,result['operations'],2000000)
     if not model.blocks:raise ValueError('初稿工具序列没有生成实体，请保留有效主体构造')
     from nbt_registry import effective
     for state in set(model.blocks.values()):effective(state)

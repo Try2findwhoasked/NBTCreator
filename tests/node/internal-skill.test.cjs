@@ -37,6 +37,31 @@ test('the small-structure prompt uses inline states for boxes',()=>{
  assert.doesNotMatch(prompt,/可选palette/)
 })
 
+test('natural roof and stair requests discover only their relevant tools and preserve strong intent',async t=>{
+ const {requiredRoutes,checkDesignRoutes}=require('../../desktop/internal-skill.cjs')
+ assert.ok(selectTools('做个歇山顶').includes('auto_roof'))
+ assert.ok(!selectTools('做个歇山顶').includes('geometry'))
+ assert.ok(selectTools('螺旋梯').includes('auto_stairs'))
+ assert.ok(selectTools('盘旋楼梯').includes('auto_stairs'))
+ assert.match(buildInternalPrompt('component',{}, {instruction:'做个歇山顶'}),/组合/)
+ assert.deepEqual(requiredRoutes('拆除螺旋楼梯。不要做歇山顶。'),[])
+ assert.throws(()=>checkDesignRoutes(requiredRoutes('螺旋梯'),'small_structure',{}),{code:'AI_DESIGN_ROUTE_REQUIRED'})
+ assert.throws(()=>checkDesignRoutes(requiredRoutes('做个歇山顶'),'component',{},[{kind:'auto_roof',roof:'hip'}]),/尚未表达/)
+ checkDesignRoutes(requiredRoutes('做个歇山顶'),'component',{},[{kind:'auto_roof',roof:'hip'},{kind:'auto_roof',roof:'gable'}])
+ const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path')
+ const {createApiService}=require('../../desktop/api-service.cjs')
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-route-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}))
+ let calls=0
+ const spiral={kind:'auto_stairs',mode:'spiral',lo:[0,0,0],hi:[15,15,15],centre:[8,1,8],start:[5,1,5],end:[5,6,5],radius:3,turns:1}
+ const box={kind:'box',lo:[0,0,0],hi:[0,1,0],state:'stone'}
+ const api=createApiService({directory,safeStorage:{},fetchImpl:async()=>new Response(JSON.stringify({choices:[{finish_reason:'stop',
+  message:{content:JSON.stringify({operations:[++calls===1?box:spiral]})}}]}))})
+ await api.save({enabled:true})
+ const result=await api.generate({mode:'component',instruction:'螺旋梯',context:{name:'螺旋梯',size:[16,16,16]}})
+ assert.equal(result.spec.operations[0].mode,'spiral')
+ assert.equal(result.api_metrics.calls[0].validation_issue.code,'required_design_missing')
+})
+
 test('structure prompt example uses model coordinates and decodes in strict mode',()=>{
  const {buildOutputSchema,decodeOutput}=require('../../desktop/ai-output-schema.cjs')
  const {validatePatch}=require('../../desktop/api-service.cjs')

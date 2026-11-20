@@ -3,6 +3,36 @@ const catalog=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json
 const directory=path.join(__dirname,'skills/nbtcreator-internal'),cache=new Map()
 function read(name){if(!cache.has(name)){const text=fs.readFileSync(path.join(directory,name),'utf8');cache.set(name,text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/,'').trim())}return cache.get(name)}
 const common=['label','classification','lo','hi','enabled']
+const designRoutes=[
+ {id:'spiral_stair',names:/螺旋梯|螺旋楼梯|旋转楼梯|盘旋楼梯|盘旋梯|spiral\s+stairs?/i,tools:['auto_stairs'],
+  guide:'螺旋梯可用 auto_stairs mode=spiral。填写 centre、radius、turns，起止脚位在方环同一西北角。按实际选区留出踏步净空和上下平台，预览并检查通路。'},
+ {id:'xieshan_roof',names:/歇山(?:顶|屋顶)?|xi[eē][ -]?shan|hip[- ]and[- ]gable/i,tools:['auto_roof'],
+  guide:'auto_roof 没有歇山顶预设。歇山候选需分别制作下层四坡和上层山花双坡，使用 hip/curved_hip 与 gable/gambrel 组合，核对檐口、山花和接缝。单一四坡或双坡不能代表歇山顶。'}
+]
+function detectedRoutes(instruction){return designRoutes.filter(route=>route.names.test(instruction))}
+function requiredRoutes(instruction){
+ // Discovery is broad. Automatic checks cover affirmative creation requests,
+ // leaving removals, references, paraphrases and ambiguous prose for review.
+ const clauses=instruction.split(/[。！？；\n.!?;]/)
+ return designRoutes.filter(route=>clauses.some(clause=>{
+  const match=route.names.exec(clause)
+  if(!match)return false
+  const before=clause.slice(0,match.index),after=clause.slice(match.index+match[0].length)
+  return !/别|不要|无需|不用|取消|移除|删|拆|without|avoid|remove|omit/i.test(before)&&
+   (/做|制作|建|搭|添加|加个|生成|设计|放置|改成|改为|make|build|add|design|create|place/i.test(before)||(!before.trim()&&!after.trim()))
+ }))
+}
+function checkDesignRoutes(routes,mode,context,operations){
+ if(!routes.length||mode==='prompt'||mode==='workbench'&&context.task!=='draft')return
+ if(mode==='small_structure'||mode==='structure')throw Object.assign(Error('此模式只支持基本局部操作。螺旋梯或歇山顶请用独立结构、选区工具编辑或外部 Agent 的建筑方案。'),{code:'AI_DESIGN_ROUTE_REQUIRED',retryable:false})
+ if(!operations)return
+ const active=operations.filter(op=>op.enabled!==false)
+ for(const route of routes){
+  const matched=route.id==='spiral_stair'?active.some(op=>op.kind==='auto_stairs'&&op.mode==='spiral'):
+   active.some(op=>op.kind==='auto_roof'&&['hip','curved_hip'].includes(op.roof))&&active.some(op=>op.kind==='auto_roof'&&['gable','gambrel'].includes(op.roof))
+  if(!matched)throw Object.assign(Error('候选尚未表达指定构造。'+route.guide),{issue:{code:'required_design_missing',design:route.id}})
+ }
+}
 const strictGuide='严格 JSON 中每个对象都须包含所选 Schema 分支的全部键，不加额外键。没有值的可空字段填 null；必填数组仅在允许零项时用 []，有最小项数的数组须满足下限。使用嵌套对象时按其定义填全键，不能用 {} 占位。必填文本、坐标和工具实际需要的参数须给有效值。映射字段按 Schema 使用 [{"key":"原状态","value":"目标状态"}] 数组。summary 为1～160字。'
 function concise(schema){if(Array.isArray(schema))return schema.map(concise);if(!schema||typeof schema!=='object')return schema;return Object.fromEntries(Object.entries(schema).filter(([key])=>!['description','title','default','examples'].includes(key)).map(([key,value])=>[key,concise(value)]))}
 function toolContract(kinds=Object.keys(catalog.tools)){
@@ -15,6 +45,7 @@ function selectTools(instruction='',context={}){
  scan(context)
  const text=instruction.toLowerCase()
  for(const kind of Object.keys(catalog.tools))if(new RegExp('(^|[^a-z_])'+kind+'($|[^a-z_])').test(text))selected.add(kind)
+ for(const route of detectedRoutes(text))for(const kind of route.tools)selected.add(kind)
  const routes=[[/曲面|圆|弧|球|穹|布尔|挤出|拉伸|csg|loft|sweep|curv|sphere|dome|circular|extrud|lathe/i,['geometry']],[/楼梯|台阶|stairs/i,['auto_stairs']],
   [/屋顶|屋面|roof/i,['auto_roof']], [/道路|公路|road/i,['auto_road','terrain_road']],
   [/复制|阵列|重复|旋转|镜像|copy|array|repeat|rotate|mirror/i,['copy_region','repeat_region','transform_region','array_region']],
@@ -46,6 +77,7 @@ function buildInternalPrompt(mode,context={},options={}){
   guide=guide.split('## 普通 JSON')[0].trim()+'\n使用 settings_patch.operations，须有1～48步。填写 coordinate_space: "local"、structure_name、选区局部 lo/hi 及每步的 lo/hi。camera 未指定时填 null。'
  }
  const parts=mode==='prompt'?[guide]:[read('SKILL.md').split('## 维护路由')[0].trim(),guide]
+ if(['component','selection_edit','workbench'].includes(mode))parts.push(...detectedRoutes(options.instruction??'').map(route=>route.guide))
  if(mode!=='prompt'&&options.strictSchema)parts.push(strictGuide)
  if(mode==='workbench'&&context.task==='controls'&&options.strictSchema)parts.push('修改 transform_region 步骤时，set.mirror 填 null 表示保留原值，填 "x" 或 "z" 设置镜像，填 {"value":null} 显式清除镜像。')
  if(!options.strictSchema&&['component','selection_edit','workbench'].includes(mode)){
@@ -66,4 +98,4 @@ function buildInternalPrompt(mode,context={},options={}){
  if(!options.strictSchema&&['component','selection_edit','workbench'].includes(mode))parts.push('紧凑格式：boxes:[[x0,y0,z0,x1,y1,z1,材质,可选归属]]；可选palette:[状态]后写材质索引，与operations互斥。脚本补步骤名和归属、合并连续完整长方体；summary可省略，独立资产不返回summary。复杂工具仍用对象，不能省略几何参数。')
  return parts.join('\n')
 }
-module.exports={buildInternalPrompt,toolContract,selectTools}
+module.exports={buildInternalPrompt,toolContract,selectTools,requiredRoutes,checkDesignRoutes}

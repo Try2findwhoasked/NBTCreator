@@ -19,4 +19,4 @@ function excerpts(documents,query=''){
   return {...document,content:selected.map(c=>`[L${c.start}-${c.end}]\n${c.content}`).join('\n'),excerpted:true,original_chars:document.content.length,omitted:true}
  })
 }
-module.exports={excerpts,BUDGET}
+module.exports={excerpts,BUDGET,PER_DOCUMENT}
