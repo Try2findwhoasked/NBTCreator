@@ -797,7 +797,11 @@ class WorkingModel:
         from nbt_refine import save_master, read_master
         from nbt_object_scene import atomic
         from nbt_agent_tasks import publication
+        from nbt_whole_validation import interior_probe_error
         self._unchanged()
+        probe_error = interior_probe_error(self.model, self.context)
+        if probe_error:
+            raise ValueError(probe_error)
         if actor not in ('human', 'external_agent', 'internal_ai', 'import'):
             raise ValueError('制作版来源无效')
         report = self.validate()

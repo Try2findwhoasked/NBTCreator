@@ -250,6 +250,14 @@ class WorkingModels(unittest.TestCase):
         opened = model.save_draft()
         self.assertTrue(finalize(self.root, opened['source'],register_history=False)['binary_roundtrip'])
 
+    def test_draft_rejects_invalid_interior_probe_even_without_enclosure(self):
+        model = self.new(context=dict(mode='standalone', require_enclosure=False,
+                                      interior_probes=[[2.5, 1, 2.5]]))
+        self.put(model, [1, 0, 1], 'stone')
+        with self.assertRaisesRegex(ValueError, 'interior_probes.*整数XYZ'):
+            model.save_draft('开放样坯')
+        self.assertFalse((self.root / 'nbt_models').exists())
+
     def test_open_air_courtyard_can_save_reopen_and_finalize_without_seal(self):
         from nbt_finalize import finalize
 

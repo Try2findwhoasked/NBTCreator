@@ -13,6 +13,17 @@ def validation_mode(config):
     return mode
 
 
+def interior_probe_error(model, config):
+    if 'interior_probes' not in config:
+        return
+    probes = config['interior_probes']
+    if not isinstance(probes, list):
+        return 'interior_probes 需要室内空气坐标列表'
+    if any(not isinstance(p, (list, tuple)) or len(p) != 3
+           or any(type(value) is not int for value in p) or not model.in_bounds(p) for p in probes):
+        return 'interior_probes 每项需要模型内的整数XYZ'
+
+
 def requires_enclosure(config):
     mode = validation_mode(config)
     required = config.get('require_enclosure', mode == 'saodg' or bool(config.get('interior_probes')))

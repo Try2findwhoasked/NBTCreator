@@ -392,7 +392,7 @@ def inspect_source(source, image_limit=8):
 def context_readiness(model, context, source=None):
     """Schema readiness only; never a seal, route or visual acceptance result."""
     from nbt_library import canonical_context,inherit_edit_constraints
-    from nbt_whole_validation import check_opening_policy, requires_enclosure, validation_mode
+    from nbt_whole_validation import check_opening_policy, interior_probe_error, requires_enclosure, validation_mode
     missing=[];errors=[]
     if not context:
         if source:
@@ -425,14 +425,13 @@ def context_readiness(model, context, source=None):
     if 'start' not in missing and (not isinstance(data['start'],list) or len(data['start'])!=3 or any(type(v) not in (int,float) or not math.isfinite(v) for v in data['start'])):
         errors.append('start 需要实际玩家脚位XYZ')
     if 'targets' not in missing and not isinstance(data['targets'],(list,dict)):errors.append('targets 需要非空目标列表或命名字典')
-    if 'interior_probes' in data and not isinstance(data['interior_probes'],list):errors.append('interior_probes 需要室内空气坐标列表')
-    def xyz(value,voxel=False):
-        return isinstance(value,(list,tuple)) and len(value)==3 and all(type(v) in ((int,) if voxel else (int,float)) and math.isfinite(v) for v in value)
+    probe_error=interior_probe_error(model,data)
+    if probe_error:errors.append(probe_error)
+    def xyz(value):
+        return isinstance(value,(list,tuple)) and len(value)==3 and all(type(v) in (int,float) and math.isfinite(v) for v in value)
     if isinstance(data.get('targets'),(list,dict)):
         values=data['targets'].values() if isinstance(data['targets'],dict) else data['targets']
         if any(not xyz(p) for p in values):errors.append('targets 每项需要实际玩家脚位XYZ')
-    if isinstance(data.get('interior_probes'),list) and any(not xyz(p,True) or not model.in_bounds(p) for p in data['interior_probes']):
-        errors.append('interior_probes 每项需要模型内的整数XYZ')
     if mode=='standalone':
         if sealed and 'openings' not in data:missing.append('openings')
         if data.get('ports'):errors.append('独立建筑使用 openings，不混用SAODG ports')
