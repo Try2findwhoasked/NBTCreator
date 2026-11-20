@@ -1,6 +1,7 @@
 from pathlib import Path
 import hashlib
 import json
+import os
 import sys
 import tempfile
 import time
@@ -18,16 +19,22 @@ class Batches(unittest.TestCase):
  def call(self,action,**payload):return dispatch(self.workspace,action,payload)
  def model(self,name='新房间',version='v01'):
   folder=self.workspace/'nbt_models/single'/name/version;folder.mkdir(parents=True);model=Volume((8,6,8));model.box((0,0,0),(7,0,7),'stone_bricks');source=folder/'master/master_geometry.json.gz';source.parent.mkdir();save_master(source,model,set());return source
+ def stamp_model(self,source,task,offset_seconds):
+  # Windows file times can have coarser resolution than the task clock.
+  stamp=int(task['created_ns'])+offset_seconds*10**9
+  os.utime(source,ns=(stamp,stamp))
  def test_new_batches_have_stable_process_workspace_under_batches_and_no_nested_project(self):
   task=self.call('create',name='30个房间');directory=Path(task['absolute_workspace']);self.assertTrue(directory.is_relative_to(self.workspace/'nbt_models/_workspaces/batches'));self.assertTrue((directory/'scripts').is_dir());self.assertTrue((directory/'intermediate').is_dir());self.assertFalse((directory/'.agents').exists());self.assertEqual(workspace_root(directory),self.workspace);self.assertEqual(self.call('list')['tasks'][0]['id'],task['id'])
  def test_real_models_and_gallery_are_linked_with_hashes_and_actual_addresses(self):
-  task=self.call('create',name='交付');source=self.model();gallery=Path(task['absolute_workspace'])/'deliverables/gallery.html';gallery.write_text('<h1>图册</h1>',encoding='utf8');result=self.call('record',id=task['id'],revision=task['revision'],models=[dict(source=str(source),name='新房间')],artifacts=[dict(path=str(gallery),role='gallery')],status='review');self.assertEqual(len(result['models']),1);self.assertTrue(result['models'][0]['is_new']);self.assertEqual(result['artifacts'][0]['absolute_path'],str(gallery));located=self.call('locate',id=task['id'],kind='artifact',item_id=result['artifacts'][0]['id']);self.assertEqual(located['path'],str(gallery));self.assertEqual(result['approval'],'not_granted_by_registration')
+  task=self.call('create',name='交付');source=self.model();self.stamp_model(source,task,2);gallery=Path(task['absolute_workspace'])/'deliverables/gallery.html';gallery.write_text('<h1>图册</h1>',encoding='utf8');result=self.call('record',id=task['id'],revision=task['revision'],models=[dict(source=str(source),name='新房间')],artifacts=[dict(path=str(gallery),role='gallery')],status='review');self.assertEqual(len(result['models']),1);self.assertTrue(result['models'][0]['is_new']);self.assertEqual(result['artifacts'][0]['absolute_path'],str(gallery));located=self.call('locate',id=task['id'],kind='artifact',item_id=result['artifacts'][0]['id']);self.assertEqual(located['path'],str(gallery));self.assertEqual(result['approval'],'not_granted_by_registration')
  def test_intermediate_sources_never_register_as_formal_or_promote_delivery_copy(self):
   task=self.call('create',name='过程');source=self.model();intermediate=Path(task['absolute_workspace'])/'intermediate/draft.json.gz';intermediate.write_bytes(source.read_bytes())
   with self.assertRaisesRegex(ValueError,'完整主模型'):self.call('record',id=task['id'],revision=task['revision'],models=[dict(source=str(intermediate),kind='formal')])
   data=self.call('record',id=task['id'],revision=task['revision'],models=[dict(source=str(intermediate),kind='intermediate')]);self.assertFalse(data['models'][0]['is_new']);self.assertEqual(data['models'][0]['kind'],'intermediate')
  def test_highlights_only_cover_fresh_registered_versions_and_ack_is_persistent(self):
-  old=self.model('旧房');task=self.call('create',name='新到达');new=self.model('新房');result=self.call('record',id=task['id'],revision=task['revision'],models=[dict(source=str(old)),dict(source=str(new))]);self.assertFalse(result['models'][0]['is_new']);self.assertTrue(result['models'][1]['is_new']);self.call('ack',id=task['id'],all=True);self.assertFalse(self.call('get',id=task['id'])['is_new']);self.assertFalse(any(item['is_new'] for item in self.call('get',id=task['id'])['models']))
+  old=self.model('旧房');task=self.call('create',name='新到达');new=self.model('新房')
+  self.stamp_model(old,task,-2);self.stamp_model(new,task,2)
+  result=self.call('record',id=task['id'],revision=task['revision'],models=[dict(source=str(old)),dict(source=str(new))]);self.assertFalse(result['models'][0]['is_new']);self.assertTrue(result['models'][1]['is_new']);self.call('ack',id=task['id'],all=True);self.assertFalse(self.call('get',id=task['id'])['is_new']);self.assertFalse(any(item['is_new'] for item in self.call('get',id=task['id'])['models']))
  def test_file_overwrite_hash_change_and_stale_revision_are_reported(self):
   task=self.call('create',name='哈希');source=self.model();result=self.call('record',id=task['id'],revision=task['revision'],models=[dict(source=str(source))]);source.write_bytes(b'changed')
   with self.assertRaisesRegex(ValueError,'缺失或变化'):self.call('locate',id=task['id'],kind='model',item_id=result['models'][0]['id'])
