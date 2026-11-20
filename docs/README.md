@@ -25,6 +25,7 @@ NBTCreator 的文档按使用指南、开发维护和历史记录归类。首次
 | [构建与发布](development/CI_CD.md) | CI 门禁、完整包与分离包、版本标签和发布边界 |
 | [API 与 Skill 集成](development/API_INTEGRATION.md) | 连接配置、任务类型、发送范围、取消重试和机器接口 |
 | [内部 AI 与对外 Skill](development/INTERNAL_AI.md) | 工作流资料、创作偏好、请求参数、增量返回和诊断 |
+| [外置知识库与网络搜索设计](superpowers/specs/2026-11-20-knowledge-retrieval-design.md) | 下一轮设计，涵盖离线检索、联网取证、共同引用和验收 |
 | [产品验收](development/PRODUCT_ACCEPTANCE.md) | 验收要求、源哈希、证据收据与判定边界 |
 | [产品完善清单](development/PRODUCT_IMPROVEMENTS.md) | 持续工作范围、完成项和原始进展记录 |
 
