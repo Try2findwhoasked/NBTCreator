@@ -1,7 +1,7 @@
 """Hash-bound external Agent task returns and independent human comment reconciliation."""
 import argparse
 import copy
-from contextlib import contextmanager
+from contextlib import contextmanager,nullcontext
 from datetime import datetime,timezone
 import hashlib
 import json
@@ -143,13 +143,17 @@ def record_return_history(workspace,data,entry):
                                    tasks=['agent:'+data['id']],set_current=False)
 
 def repair_return_history(workspace,identifier,return_id):
-    file,_=load_index(workspace)
-    with index_lock(workspace,file.parent):
+    file,initial=load_index(workspace)
+    with task_building_lock(workspace,initial,identifier),index_lock(workspace,file.parent):
         _,index=load_index(workspace)
         data=task_for(workspace,index,identifier)
         entry=next((entry for entry in data['returns'] if entry['id']==return_id),None)
         if entry is None:protocol.error('RETURN_NOT_FOUND','任务回传版本不存在')
         return record_return_history(workspace,data,entry)
+
+def task_building_lock(workspace,index,identifier):
+    from nbt_working_model import publication_lock
+    return publication_lock(workspace,registered_building(workspace,index_entry(index,identifier)))
 
 @contextmanager
 def publication(workspace,building,source,session,actor):
@@ -161,7 +165,9 @@ def publication(workspace,building,source,session,actor):
         return
     file,_=load_index(workspace)
     file.parent.mkdir(parents=True,exist_ok=True)
-    with index_lock(workspace,file.parent),publication_lock(workspace,building):
+    # Desktop conversion may already own the reentrant building lock. Writers
+    # take it before the registry so a waiting CLI never blocks its publisher.
+    with publication_lock(workspace,building),index_lock(workspace,file.parent):
         _,index=load_index(workspace)
         check=lambda: None
         if session is None:
@@ -365,7 +371,13 @@ def dispatch(workspace,action,request):
         verify(workspace,data)
         return output(workspace,data)
     file.parent.mkdir(parents=True,exist_ok=True)
-    with index_lock(workspace,file.parent):
+    # Recording a return also writes building history under the building lock.
+    building_lock=nullcontext()
+    if action in ('record','reuse'):
+        replay=protocol.replay(workspace,index,'agent-tasks.'+action,request)
+        if replay is not None:return replay
+        building_lock=task_building_lock(workspace,index,request['id'])
+    with building_lock,index_lock(workspace,file.parent):
         file,index=load_index(workspace)
         replay=protocol.replay(workspace,index,'agent-tasks.'+action,request)
         if replay is not None:return replay

@@ -433,6 +433,49 @@ class Contracts(unittest.TestCase):
   with self.assertRaises(ProtocolError) as blocked:client.change('complete',new_source=str(target),summary='旧版不能冒充新稿')
   self.assertEqual(blocked.exception.code,'CANDIDATE_REVALIDATION_REQUIRED')
 
+ def test_waiting_for_building_does_not_hold_task_registry(self):
+  import time
+  from nbt_agent_tasks import load_index
+  from nbt_prompts import index_lock
+  from nbt_web_paths import project_paths
+  from nbt_working_model import publication_lock
+  task=self.create();index,_=load_index(self.w);building=project_paths(self.source)['workdir']
+  # Signal just before the contender attempts the real cross-process building
+  # lock. The parent has already acquired it, like a desktop conversion.
+  script="""
+import sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+import nbt_working_model as model
+import nbt_agent_tasks as tasks
+workspace,source,building=map(Path,sys.argv[2:5])
+original=model.publication_lock
+def signal(*args):
+    (workspace/sys.argv[5]).touch()
+    return original(*args)
+model.publication_lock=signal
+if sys.argv[5]=='publish':
+    with tasks.publication(workspace,building,source,None,'external_agent'):pass
+else:
+    try:tasks.dispatch(workspace,'record',dict(id=sys.argv[6],revision=0))
+    except tasks.protocol.ProtocolError as e:
+        assert e.code=='REVISION_CONFLICT',e
+"""
+  for action in ('publish','record'):
+   with self.subTest(action=action):
+    process=None
+    try:
+     with publication_lock(self.w,building):
+      process=subprocess.Popen([sys.executable,'-B','-c',script,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'),
+                                str(self.w),str(self.source),str(building),action,task['id']])
+      deadline=time.monotonic()+15
+      while not (self.w/action).exists() and process.poll() is None and time.monotonic()<deadline:time.sleep(.01)
+      self.assertTrue((self.w/action).exists(),'Contender never reached the building lock')
+      with index_lock(self.w,index.parent,timeout=.5):pass
+     self.assertEqual(process.wait(timeout=15),0)
+    finally:
+     if process and process.poll() is None:process.kill();process.wait()
+
  def test_task_client_renews_then_stops_on_release(self):
   published=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'续租','buildingShape':'single'}},'测试任务')
   client=TaskClient(self.w,'renewer')
