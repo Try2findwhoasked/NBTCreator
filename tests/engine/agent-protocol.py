@@ -306,6 +306,55 @@ class Contracts(unittest.TestCase):
      with self.assertRaises(ProtocolError):
       dispatch(self.w,'record',self.request(**old,new_source=base['source'],new_source_sha256=base['source_sha256'],summary='过期执行者'))
 
+ def test_damaged_registration_recovery_preserves_fencing_and_original(self):
+  from nbt_agent_tasks import load_index,checkpoint
+  from nbt_working_model import WorkingModel
+  context=dict(mode='standalone',require_enclosure=False,openings=[],allow_empty_wall_mask=True,start=[2.5,1,2.5],targets={'end':[5.5,1,5.5]})
+  model=WorkingModel(self.w,[8,6,8],context=context)
+  model.apply_operations([dict(kind='box',label='floor',classification='body',lo=[0,0,0],hi=[7,0,7],state='stone')])
+  model.open_declared();base=model.save_draft('登记恢复')
+  for i,case in enumerate(('released','expired','active')):
+   with self.subTest(case=case),patch('nbt_agent_protocol.time.time',return_value=100+200*i):
+    task=dispatch(self.w,'create',self.request(source=base['source'],source_sha256=base['source_sha256']))
+    client=TaskClient(self.w,case);client.start('tasks',task['id'],case,60)
+    old=client.lease_params(client.load())
+    if case=='released':client.change('release')
+    file,index=load_index(self.w);entry=next(e for e in index['tasks'] if e['id']==task['id'])
+    broken=self.w/entry['manifest'];original=broken.read_bytes()
+    backup=checkpoint(self.w,file,entry['sha256'])
+    if case=='released':backup.unlink() # Existing workspaces predate checkpoints.
+    broken.write_bytes(original+b' ' if case=='released' else b'{}')
+    changed=broken.read_bytes()
+    problem=dispatch(self.w,'list',{})['errors'][0]
+    self.assertEqual(problem['details']['expected_sha256'],entry['sha256'])
+    request=self.request(id=task['id'],expected_sha256=entry['sha256'])
+    candidate=WorkingModel.open(self.w,base['source'])
+    candidate.apply_operations([dict(kind='box',label='edit',classification='body',lo=[1+i,1,1],hi=[1+i,1,1],state='gold_block')])
+    with self.assertRaisesRegex(ProtocolError,'任务登记已变化'):candidate.save_draft()
+    with self.assertRaisesRegex(ProtocolError,'任务登记已变化'):candidate.save_draft(actor='human')
+    if case=='active':
+     backup.unlink()
+     with self.assertRaises(ProtocolError) as unproven:dispatch(self.w,'recover',request)
+     self.assertEqual(unproven.exception.code,'TASK_RECOVERY_UNPROVEN')
+     backup.write_bytes(original)
+    if case=='expired':
+     archived=broken.parent.with_name('archived-'+broken.parent.name)
+     broken.parent.rename(archived)
+     broken=archived/broken.name
+    with patch('nbt_agent_protocol.time.time',return_value=200*i+(101 if case=='active' else 200)):
+     recovered=dispatch(self.w,'recover',request)
+     self.assertEqual(recovered,dispatch(self.w,'recover',request))
+     self.assertEqual(recovered['active_lease'],case=='active')
+     self.assertEqual(broken.read_bytes(),changed)
+     self.assertEqual((self.w/recovered['manifest']).read_bytes(),original)
+     if case=='active':
+      with self.assertRaisesRegex(ProtocolError,'有效租约'):candidate.save_draft()
+      client.change('release')
+     with self.assertRaises(ProtocolError):candidate.save_draft(task_session=case)
+     base=candidate.save_draft()
+     with self.assertRaises(ProtocolError):
+      dispatch(self.w,'record',self.request(**old,new_source=base['source'],new_source_sha256=base['source_sha256'],summary='过期执行者'))
+
  def test_task_client_renews_then_stops_on_release(self):
   published=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'续租','buildingShape':'single'}},'测试任务')
   client=TaskClient(self.w,'renewer')

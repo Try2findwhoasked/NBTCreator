@@ -26,11 +26,26 @@ def load_index(workspace):
     index=read(file) if file.is_file() else dict(schema_version=1,tasks=[])
     if not isinstance(index,dict) or index.get('schema_version')!=1 or not isinstance(index.get('tasks'),list):raise ValueError('Agent任务索引无效')
     return file,index
-def task_for(workspace,index,identifier):
+def index_entry(index,identifier):
     entry=next((entry for entry in index['tasks'] if entry['id']==identifier),None)
     if not entry:protocol.error('TASK_NOT_FOUND','建筑修改任务不存在，请先 task-client list')
-    file=inside(workspace,entry['manifest']);raw=file.read_bytes()
-    if digest(raw)!=entry['sha256']:raise ValueError('任务登记已变化，请核对来源')
+    return entry
+
+def manifest_bytes(file):
+    with file.open('rb') as stream:
+        raw=stream.read(8*1024*1024+1)
+    if len(raw)>8*1024*1024:raise ValueError('任务登记超过8MiB')
+    return raw
+
+def task_for(workspace,index,identifier):
+    entry=index_entry(index,identifier)
+    file=inside(workspace,entry['manifest'])
+    try:raw=manifest_bytes(file)
+    except (ValueError,OSError):raw=None
+    if raw is None or digest(raw)!=entry['sha256']:
+        protocol.error('TASK_INVALID','任务登记已变化或无法读取，请按索引哈希恢复',
+                       details=dict(manifest=entry['manifest'],expected_sha256=entry['sha256'],
+                                    recovery=f"task-client recover-registration {identifier} --expected {entry['sha256']}"))
     data=json.loads(raw)
     if data.get('schema_version')!=1 or data.get('id')!=identifier:raise ValueError('Agent任务格式无效')
     return data
@@ -106,8 +121,9 @@ def repair_return_history(workspace,identifier,return_id):
 @contextmanager
 def publication(workspace,building,source,session,actor):
     from nbt_working_model import publication_lock
+    workspace,building=Path(workspace).resolve(),Path(building).resolve()
 
-    if session is None and (source is None or actor!='external_agent'):
+    if session is None and source is None:
         with publication_lock(workspace,building):yield lambda: None
         return
     file,_=load_index(workspace)
@@ -135,19 +151,66 @@ def publication(workspace,building,source,session,actor):
         check()
         yield check
 
+def checkpoint(workspace,file,expected):
+    return inside(workspace,file.parent/'checkpoints'/(expected+'.json'))
+
+def persist_index(file,index):
+    raw_index=encode(index)
+    if len(raw_index)>8*1024*1024:protocol.error('TASK_INDEX_LIMIT','建筑修改任务索引已达容量上限，未写入本次状态变更')
+    temp=file.with_suffix('.'+uuid.uuid4().hex+'.tmp')
+    try:
+        temp.write_bytes(raw_index)
+        temp.replace(file)
+    finally:temp.unlink(missing_ok=True)
+
+def recover_registration(workspace,file,index,request):
+    entry=index_entry(index,request['id'])
+    expected=entry['sha256']
+    if expected!=request.get('expected_sha256'):
+        protocol.error('REVISION_CONFLICT','索引已指向不同的任务修订，请重新定位')
+    original=inside(workspace,entry['manifest'])
+    sources=[original,checkpoint(workspace,file,expected)]
+    if request.get('backup'):sources.append(inside(workspace,request['backup']))
+    for source in sources:
+        try:
+            raw=manifest_bytes(source)
+            if digest(raw)!=expected:raw=encode(json.loads(raw))
+            if digest(raw)==expected:break
+        except (OSError,ValueError,RecursionError):pass
+    else:
+        protocol.error('TASK_RECOVERY_UNPROVEN','未找到匹配当前索引的登记原文。请提供该修订的备份；写入仍受阻。',
+                       details=dict(manifest=entry['manifest'],expected_sha256=expected))
+    # Publish a new pointer while preserving the damaged artifact. Never derive
+    # a lease, epoch or status from unverified data or from an older revision.
+    new_file=inside(workspace,original.with_name('task-restored-'+uuid.uuid4().hex+'.json'))
+    new_file.parent.mkdir(parents=True,exist_ok=True)
+    with new_file.open('xb') as stream:stream.write(raw)
+    previous=entry['manifest']
+    entry['manifest']=relative(workspace,new_file)
+    restored=task_for(workspace,index,entry['id'])
+    result=dict(id=entry['id'],revision=restored['revision'],sha256=expected,
+                manifest=entry['manifest'],previous_manifest=previous,active_lease=protocol.lease_active(restored))
+    protocol.receipt(workspace,index,'agent-tasks.recover',request,result)
+    persist_index(file,index)
+    return result
+
 def commit(workspace,file,index,data,action,request,extras=None):
     data['revision']+=1;data['updated_at']=now();data['history'].append(dict(action=action,time=data['updated_at'],revision=data['revision']))
     directory=inside(workspace,data['directory']);directory.mkdir(parents=True,exist_ok=True);raw=encode(data)
     if len(raw)>8*1024*1024:raise ValueError('任务记录过大，请拆分任务')
     manifest=directory/('task-r'+str(data['revision']).zfill(4)+'-'+uuid.uuid4().hex[:8]+'.json')
     with manifest.open('xb') as stream:stream.write(raw)
+    backup=checkpoint(workspace,file,digest(raw))
+    backup.parent.mkdir(parents=True,exist_ok=True)
+    try:
+        with backup.open('xb') as stream:stream.write(raw)
+    except FileExistsError:
+        if manifest_bytes(backup)!=raw:raise ValueError('任务恢复副本已损坏')
     index['tasks']=[entry for entry in index['tasks'] if entry['id']!=data['id']]+[dict(id=data['id'],name=data['name'],source=data['source'],source_sha256=data['source_sha256'],manifest=relative(workspace,manifest),sha256=digest(raw))]
     result=output(workspace,data);result.update(extras or {})
     if action in ('claim','heartbeat'):result['lease_token']=data['lease']['token']
     protocol.receipt(workspace,index,'agent-tasks.'+action,request,result)
-    raw_index=encode(index)
-    if len(raw_index)>8*1024*1024:protocol.error('TASK_INDEX_LIMIT','建筑修改任务索引已达容量上限，未写入本次状态变更')
-    temp=file.with_suffix('.'+uuid.uuid4().hex+'.tmp');temp.write_bytes(raw_index);temp.replace(file)
+    persist_index(file,index)
     return result
 def comment_snapshot(workspace,source):
     from nbt_feedback_tasks import inventory
@@ -166,7 +229,7 @@ def discover(workspace,data):
     return dict(candidates=sorted(items,key=lambda item:int(item['modified_ns']),reverse=True),truncated=False)
 
 def dispatch(workspace,action,request):
-    if not isinstance(request,dict) or action not in ('list','create','get','discover','record','review','claim','heartbeat','release'):raise ValueError('Agent任务请求无效')
+    if not isinstance(request,dict) or action not in ('list','create','get','discover','recover','record','review','claim','heartbeat','release'):raise ValueError('Agent任务请求无效')
     workspace=Path(workspace).resolve();file,index=load_index(workspace)
     if action=='list':
         source=relative(workspace,inside(workspace,request['source'])) if request.get('source') else None;tasks=[];errors=[]
@@ -194,6 +257,7 @@ def dispatch(workspace,action,request):
         file,index=load_index(workspace)
         replay=protocol.replay(workspace,index,'agent-tasks.'+action,request)
         if replay is not None:return replay
+        if action=='recover':return recover_registration(workspace,file,index,request)
         if action=='create':
             source=inside(workspace,request['source']);source_hash=sha(source)
             if request.get('source_sha256')!=source_hash:raise ValueError('原建筑已变化，请重新打开后交接')
@@ -266,7 +330,7 @@ def dispatch(workspace,action,request):
         return commit(workspace,file,index,data,action,request,extras)
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['create','list','get','discover','record','review','claim','heartbeat','release']);parser.add_argument('--request',type=Path,required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['create','list','get','discover','recover','record','review','claim','heartbeat','release']);parser.add_argument('--request',type=Path,required=True);args=parser.parse_args()
     try:print(json.dumps(dispatch(args.workspace,args.action,read(args.request)),ensure_ascii=False));return 0
     except (ValueError,OSError,KeyError,TypeError) as error:print(json.dumps(dict(error=str(error)),ensure_ascii=False));return 1
 if __name__=='__main__':raise SystemExit(main())

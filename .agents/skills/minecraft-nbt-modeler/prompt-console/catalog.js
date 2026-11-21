@@ -24257,6 +24257,18 @@ globalThis.NbtToolCatalog = {
         ],
         "mutation": false
       },
+      "tasks.recover": {
+        "mutation": true,
+        "fields": {
+          "id": "string",
+          "expected_sha256": "string",
+          "backup": "string"
+        },
+        "required": [
+          "id",
+          "expected_sha256"
+        ]
+      },
       "tasks.discover": {
         "fields": {
           "id": "string"

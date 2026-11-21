@@ -340,6 +340,11 @@ def main():
     listing=sub.add_parser('list',help='查找提示词和建筑修改任务')
     listing.add_argument('--kind',choices=['all','prompts','tasks'],default='all')
     listing.add_argument('--pending',action='store_true',help='只列待领取任务')
+    recovery=sub.add_parser('recover-registration',help='按当前索引哈希恢复完全相同的任务登记')
+    recovery.add_argument('id')
+    recovery.add_argument('--expected',required=True,help='list 错误详情中的 expected_sha256')
+    recovery.add_argument('--backup',help='可选的 nbt_models 内原登记备份')
+    recovery.add_argument('--request-id',help='重试须沿用原编号')
     for action in ('inspect','start'):
         command = sub.add_parser(action)
         command.add_argument('kind', choices=['prompts','tasks'])
@@ -360,6 +365,12 @@ def main():
     try:
         if args.action == 'list':
             data = discover_tasks(args.workspace.resolve(),args.kind,args.pending)
+        elif args.action=='recover-registration':
+            params=dict(id=args.id,expected_sha256=args.expected)
+            if args.backup:params['backup']=args.backup
+            key=args.request_id or uuid.uuid4().hex
+            data=result(dispatch(args.workspace.resolve(),dict(request('tasks.recover',params),request_id=key)))
+            data=dict(data,request_id=key)
         elif args.action == 'inspect':
             data = inspect(args.workspace.resolve(), args.kind, args.id, args.view)
         else:
