@@ -359,7 +359,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         '- 局部修改、纹样、构件与维护：按[任务路线和已启用资料](knowledge.md)选读。不要从头读完整目录。',
         '- 参数构件用 `capabilities --agent-tool parametric_compile` 查配方参数；用 `capabilities --model` 查看统一工作模型的装配、修改及另存入口。',
         '- 已知工具用 `capabilities --agent-tool <名称>` 或 `<命令> --help` 查字段。不知道入口时再用 `capabilities --routes`。`paths` 返回共享引擎位置。',
-        '- 移动项目或出图失败时用 `paths --runtime` 检查实际 Python、同步版本及 Playwright/Chromium 路径。对外资料用 `exposure show` 查看缺项和修复入口。',
+        '- 移动项目或出图失败时用 `paths --runtime` 检查解释器和渲染依赖。用 `--trusted-install <可信安装目录>` 或 `--browser-cache <本机缓存目录>` 探测，核对后加 `--rebind` 恢复关联。对外资料用 `exposure show` 查看缺项和修复入口。',
         f'- 查参考读{link("reference-retrieval")}：`retrieve search --request <JSON文件>` 后凭 `receipt` 和 `R1` 取证。查历史原文加 `source_kind: library`，不必先查库编号。只在用户要求时联网。',
         '- 找可用资产：`asset-libraries browse --request <JSON文件>`，文件写 `{"query":"尖拱","limit":4}`。不带 `query` 会列出完整目录；命中不是放置批准。',
         '- 创作偏好按 `ai-style prompt --workflow <区域>` 读取。用户本次要求优先，不更改保护或批准。','',
@@ -458,7 +458,9 @@ raise SystemExit(subprocess.call([sys.executable,'-B',str(engine/'scripts'/scrip
     from nbt_knowledge.libraries import atomic
     from nbt_paths import python_versions
     metadata=json.loads((runtime/'runtime-manifest.json').read_text(encoding='utf8'))
-    binding=dict(python=python_versions(),bundle_sha256=metadata['bundle_sha256'],electron=os.environ.get('NBTCREATOR_ELECTRON_VERSION'))
+    from nbt_render_runtime import synced_browser_version
+    binding=dict(python=python_versions(),bundle_sha256=metadata['bundle_sha256'],electron=os.environ.get('NBTCREATOR_ELECTRON_VERSION'),
+                 chromium=synced_browser_version(ENGINE))
     atomic(folder/'engine-runtime.json',(json.dumps(binding,ensure_ascii=False,indent=2)+'\n').encode('utf8'))
     try:existing=json.loads(config_bytes(workspace) or b'null')
     except (ValueError,RecursionError):existing=None

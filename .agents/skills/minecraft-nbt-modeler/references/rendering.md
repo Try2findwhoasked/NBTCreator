@@ -4,7 +4,17 @@ NBTCreator 1.1的桌面包和已构建skill使用web-dist静态页面/资源，�
 
 通过应用同步工作区 Skill 时，会同时保存 `.nbtcreator/render-runtime.json`：以该配置文件为基准的相对路径关联应用已安装的 Playwright、Node 和可选便携浏览器。外部 Agent 直接使用 `mise run nbt -- render ...`；无需打开 Electron、手工找安装路径或给每个工作区复制 node_modules。渲染脚本和前端仍使用工作区冻结版本，只共享依赖，并核对 Playwright 版本。跨磁盘无法相对表示时才保留绝对路径。
 
-将应用和工作区一起保持相对位置移动，关联仍可解析；单独搬走工作区或卸载应用后若依赖不存在，在新应用中重新同步暴露配置，或按下方锁文件安装独立依赖。不要把工作区绑定文件或环境变量当作跨机器自带运行时的保证。需要显式指定共享 Playwright 时可设置 `NBTCREATOR_PLAYWRIGHT_MODULE` 为其模块目录，版本仍须匹配本 skill 的 package.json。
+将应用和工作区一起保持相对位置移动，关联仍可解析。单独移动工作区或应用后，从工作区根目录运行 `mise run nbt -- paths --runtime`，查看当前解释器、同步时的 Python 与包版本、曾使用的安装位置以及渲染诊断。冻结入口使用调用它的 Python。版本不符时，用已知匹配的解释器运行 `<python> .agents/skills/nbtcreator-workspace/nbt.py paths --runtime`。
+
+如已移动安装，可先执行以下只读探测。Portable 选择含 `NBTCreator.exe` 的目录，源码安装选择含 `desktop/main.cjs` 的项目根目录。核对成功后，在同一命令末尾加 `--rebind`，更新本工作区的渲染关联。仅浏览器缓存移动时可省略 `--trusted-install`，保留有效的原安装关联。
+
+```powershell
+mise run nbt -- paths --runtime --trusted-install <可信安装目录> --browser-cache <Playwright缓存根目录>
+```
+
+普通诊断只读取路径、锁文件和版本元数据。Windows 可直接读取执行文件的产品版本。给出 `--trusted-install` 后，工具核对 Playwright 与 Playwright Core 在两份锁文件中的完整性值，再用该安装启动临时无头进程，核对 Chromium 和承担出图的 Electron 实际版本。旧同步记录缺少 Chromium 版本时，从匹配版本的 Playwright Core 浏览器清单取得所需版本。所选安装有便携浏览器或已使用标准 Playwright 缓存时可省略 `--browser-cache`。恢复只用本地依赖；未找到匹配版本时保留原关联。
+
+旧冻结入口尚无恢复命令时，可从新版源码安装根目录运行 `mise run nbt -- --workspace <已有创作项目> paths --runtime --trusted-install <可信安装目录> --rebind`。命令按该项目已有的冻结包哈希定位依赖锁文件，保留其原工具与知识选择。
 
 纹理渲染使用Lodestone 0.6.0默认资源包，只辅助视觉判断，不认证游戏碰撞、完整光照、通行或设计质量。原有 `nbt_preview.py` 纯色几何诊断与 `nbt_sections.py` 保留。
 
@@ -30,7 +40,7 @@ npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
 
 独立复制 skill 时保留 viewer/package.json 和 package-lock.json；生成入口的相对 viewer 路径以实际 runtime 为准。安装失败应检查锁文件、Node 和网络，不改用未锁定的最新依赖。源代码副本没有 web-dist 时上述安装支持开发前端；应用同步副本已带预构建前端。
 
-批量入口自动选用已安装的Playwright Chromium；Windows无该运行时时，选用已安装的Edge或Chrome，以新临时配置无头启动。若都没有，在viewer目录执行 `npx playwright install chromium`，或指定 `--browser-executable <浏览器可执行文件>`。不全局安装，不自动下载其他版本，不复制node_modules进分发包。状态/NBT核心工具无需浏览器。
+冻结工作区只使用匹配的 Playwright Chromium，实际渲染时再次核对浏览器版本。独立源码入口在 Windows 也支持本机 Edge 或 Chrome。显式安装所需浏览器时，在 viewer 目录运行 `npx playwright install chromium`。出图可用 `--browser-executable <浏览器可执行文件>` 指定已有浏览器；冻结入口仍核对版本。状态和 NBT 核心工具无需浏览器。
 
 ## 相机列表
 
