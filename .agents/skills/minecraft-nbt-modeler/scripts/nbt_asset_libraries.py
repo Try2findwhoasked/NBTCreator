@@ -519,7 +519,10 @@ def browse(workspace, *, query=None, limit=6):
             prepared = []
             for entry in data['assets']:
                 if query is not None:
-                    rank=score(query,entry['name']+' '+' '.join(entry.get('tags',[])))
+                    vocabulary=' '.join((entry['name'],entry.get('category',''),entry['id'].replace('-',' '),*entry.get('tags',[])))
+                    rank=score(query,vocabulary)
+                    if any(name in query for name in ('螺旋梯','螺旋楼梯','盘旋楼梯')):
+                        rank=max(rank,score('旋梯',entry['name']))
                     if rank<=0:continue
                 content = snapshot_payload(workspace, source['id'], entry)
                 item = row(data, entry, content, source['id'])

@@ -12,7 +12,7 @@ const fixture=spawnSync(python,[path.join(root,'tests/support/make_fixture.py'),
 const script="import sys;from pathlib import Path;sys.path.insert(0,sys.argv[1]);from nbt_model import Model;p=Path(sys.argv[2]);p.mkdir(parents=True);m=Model((12,12,12));m.box((0,0,0),(11,11,11),'stone_bricks');m.box((2,2,2),(9,9,9),'air');m.check_sealed([(5,5,5)]);m.save(p/'only.nbt')"
 const standalone=path.join(workspace,'nbt_models/standalone');const made=spawnSync(python,['-c',script,path.join(skill,'scripts'),standalone],{encoding:'utf8'});assert.equal(made.status,0,made.stderr)
 const wronglySelected=path.join(workspace,'nbt_models/_workspaces');await fs.mkdir(wronglySelected,{recursive:true})
-const settings=path.join(workspace,'.nbtcreator'),customPath='knowledge/fixture.md';await fs.mkdir(path.join(settings,'knowledge'),{recursive:true});await fs.writeFile(path.join(settings,customPath),'定制墙面收口。');await fs.writeFile(path.join(settings,'skill-exposure.json'),JSON.stringify({schema_version:1,enabled_groups:['core','props'],custom_knowledge:[{id:'custom_0123456789abcdef',path:customPath,label:'自定义知识',enabled:true}]}))
+const settings=path.join(workspace,'.nbtcreator'),customPath='knowledge/fixture.md',missingId='custom_fedcba9876543210';await fs.mkdir(path.join(settings,'knowledge'),{recursive:true});await fs.writeFile(path.join(settings,customPath),'定制墙面收口。');await fs.writeFile(path.join(settings,'skill-exposure.json'),JSON.stringify({schema_version:1,enabled_groups:['core','props'],custom_knowledge:[{id:'custom_0123456789abcdef',path:customPath,label:'自定义知识',enabled:true},{id:missingId,path:'knowledge/missing.md',label:'缺失资料',enabled:false}]}))
 let app;const checks={}
 try{
  await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true});await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'model',autoPreview:false}))
@@ -21,6 +21,14 @@ try{
  const page=await app.firstWindow(),errors=[];page.setDefaultTimeout(30000);await minimizedScreenshots(app,page);page.on('pageerror',e=>errors.push(e.message))
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy,undefined,{timeout:60000})
  assert.equal((await page.evaluate(()=>window.nbtDesktop.info())).workspace,workspace);assert.equal(await page.evaluate(()=>window.detailControl.state.models.length),2);checks.cached_subfolder_normalized_and_nbt_listed=true
+ const exposure=await page.evaluate(()=>window.nbtDesktop.exposureConfig())
+ assert.equal(exposure.custom_issues[0].id,missingId);assert.match(exposure.custom_issues[0].error,/缺失/)
+ const edit=action=>page.evaluate(({action,id})=>window.nbtDesktop.exposureEdit({action,id}),{action,id:missingId})
+ await assert.rejects(edit('enable'),/缺失/)
+ assert.equal(await edit('remove'),true)
+ assert.equal((await page.evaluate(()=>window.nbtDesktop.exposureConfig())).custom_issues.length,0)
+ await fs.writeFile(path.join(settings,'skill-exposure.json'),JSON.stringify({schema_version:1,enabled_groups:exposure.enabled_groups,custom_knowledge:exposure.custom_knowledge}))
+ checks.unavailable_custom_document_can_be_removed=true
  const index=await page.evaluate(source=>window.detailControl.state.models.findIndex(m=>m.source===source),path.join(standalone,'only.nbt'));assert.ok(index>=0)
  await page.locator('#studio-model-menu>summary').click();await page.locator('#models').selectOption(String(index));await page.waitForFunction(()=>window.detailControl.state.info?.size[0]===12&&!window.detailControl.state.busy)
  assert.equal(await page.locator('#auto-preview').isChecked(),false);await page.waitForFunction(()=>window.detailControl.state.mode==='3d'&&!window.detailControl.state.busy,undefined,{timeout:60000})
@@ -29,6 +37,7 @@ try{
  await app.evaluate(({dialog},folder)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[folder]});dialog.showMessageBox=async()=>({response:0})},path.join(next,'nbt_models/_workspaces'))
  await page.locator('[data-workspace=project]').click();await page.locator('#project-library-menu>summary').click();await page.locator('#project-workspace-menu>summary').click();await page.locator('#desktop-workspace').click();await page.waitForFunction(w=>window.detailControl?.state.workspace===w&&!window.detailControl.state.busy,next,{timeout:60000})
  const config=JSON.parse(await fs.readFile(path.join(next,'.nbtcreator/skill-exposure.json'),'utf8'));assert.deepEqual(config.enabled_groups,['core','props']);assert.equal(config.custom_knowledge.length,1);assert.ok((await fs.stat(path.join(next,'.nbtcreator',config.custom_knowledge[0].path))).isFile())
+ assert.match((await page.evaluate(()=>window.nbtDesktop.exposureConfig())).notice,/缺失资料/)
  const entry=path.join(next,'.agents/skills/nbtcreator-workspace/nbt.py');const run=spawnSync(python,[entry,'capabilities'],{cwd:next,encoding:'utf8',maxBuffer:4*1024*1024});assert.ifError(run.error);assert.equal(run.status,0,run.stderr);assert.equal(Object.keys(JSON.parse(run.stdout).tools).length,Object.keys(JSON.parse(await fs.readFile(path.join(skill,'tool-catalog.json'),'utf8')).tools).length)
  assert.ok((await fs.readdir(path.join(next,'.nbtcreator/runtimes'))).length);assert.ok((await fs.readFile(path.join(next,'.agents/skills/nbtcreator-workspace/SKILL.md'),'utf8')).includes('.nbtcreator/runtimes'));checks.switch_transfers_skill_runtime_and_selection=true
  assert.ok((await fs.stat(path.join(workspace,'.agents/skills/nbtcreator-workspace/nbt.py'))).isFile());checks.original_workspace_preserved=true

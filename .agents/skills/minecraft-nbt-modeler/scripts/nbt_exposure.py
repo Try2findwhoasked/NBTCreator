@@ -11,6 +11,7 @@ from pathlib import Path
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 MISE_ENTRY='.agents/skills/nbtcreator-workspace/nbt.py'
+KNOWLEDGE_BYTES=2*1024*1024
 MISE_TASK='.mise/conf.d/nbtcreator.toml'
 MISE_COMMAND='mise run nbt --'
 MISE_DIRECT=f'mise run ./{MISE_ENTRY} --'
@@ -48,7 +49,11 @@ def sync_runtime(workspace):
     files.sort(key=lambda entry:entry[1])
     bundle=hashlib.sha256(json.dumps([(name,digest) for _,name,digest in files],separators=(',',':')).encode()).hexdigest()
     folder=Path(workspace)/'.nbtcreator/runtimes';folder.mkdir(parents=True,exist_ok=True);target=folder/bundle[:16]
-    if target.is_dir() and all((target/name).is_file() and hashlib.sha256((target/name).read_bytes()).hexdigest()==digest for _,name,digest in files):return target
+    manifest=target/'runtime-manifest.json'
+    if target.is_dir() and manifest.is_file():
+        try:recorded=json.loads(manifest.read_text(encoding='utf8'))
+        except (OSError,ValueError):recorded={}
+        if isinstance(recorded,dict) and recorded.get('bundle_sha256')==bundle and all((target/name).is_file() and hashlib.sha256((target/name).read_bytes()).hexdigest()==digest for _,name,digest in files):return target
     if target.exists():target=folder/(bundle[:16]+'_'+uuid.uuid4().hex[:8])
     staging=folder/('.staging_'+uuid.uuid4().hex);staging.mkdir()
     for source,name,digest in files:
@@ -62,35 +67,114 @@ def read_config(workspace):
     file=Path(workspace)/'.nbtcreator/skill-exposure.json'
     try:config=json.loads(file.read_text(encoding='utf8'))
     except FileNotFoundError:config=dict(schema_version=1,enabled_groups=[group for group in GROUPS if group!='maintenance'])
-    if config.get('schema_version')!=1 or not isinstance(config.get('enabled_groups'),list) or any(g not in GROUPS for g in config['enabled_groups']):raise ValueError('知识库暴露配置无效')
+    if not isinstance(config,dict) or config.get('schema_version')!=1 or not isinstance(config.get('enabled_groups'),list) or any(not isinstance(g,str) or g not in GROUPS for g in config['enabled_groups']):raise ValueError('知识库暴露配置无效')
     config['enabled_groups']=list(dict.fromkeys(['core',*config['enabled_groups']]))
-    config['custom_knowledge']=validate_custom(workspace,config.get('custom_knowledge',[]))
+    config['custom_knowledge']=validate_custom(config.get('custom_knowledge',[]))
     return config
 
-def validate_custom(workspace,items):
+def validate_custom(items):
     if not isinstance(items,list) or len(items)>100:raise ValueError('自定义知识库最多100项')
-    root=(Path(workspace)/'.nbtcreator/knowledge').resolve();ids=set()
+    ids=set()
     for item in items:
-        if not isinstance(item,dict) or set(item)-{'id','label','path','enabled'} or not re.fullmatch(r'custom_[a-f0-9]{16}',item.get('id','')) or item['id'] in ids:raise ValueError('自定义知识条目无效')
-        ids.add(item['id']);target=(Path(workspace)/'.nbtcreator'/item.get('path','')).resolve()
-        if not target.is_relative_to(root) or not target.is_file() or target.suffix.lower() not in {'.md','.txt'}:raise ValueError('自定义知识文件不存在或超出知识目录')
-        if not isinstance(item.get('label'),str) or len(item['label'])>150 or re.search(r'[\r\n\[\]]',item['label']) or type(item.get('enabled')) is not bool or Path(item['path']).is_absolute():raise ValueError('知识名称、相对路径或开关无效')
+        if not isinstance(item,dict) or set(item)!={'id','label','path','enabled'} or not isinstance(item['id'],str) or not re.fullmatch(r'custom_[a-f0-9]{16}',item['id']) or item['id'] in ids:raise ValueError('自定义知识条目无效')
+        ids.add(item['id'])
+        if not isinstance(item['label'],str) or len(item['label'])>150 or re.search(r'[\r\n\[\]]',item['label']) or type(item['enabled']) is not bool or not isinstance(item['path'],str) or len(item['path'])>512:raise ValueError('知识名称、相对路径或开关无效')
     return items
 
+def knowledge_path(workspace,item):
+    workspace=Path(workspace).resolve()
+    root=workspace/'.nbtcreator/knowledge'
+    relative=Path(item['path'])
+    if relative.anchor or '..' in relative.parts or not relative.parts or relative.parts[0]!='knowledge' or relative.suffix.lower() not in {'.md','.txt'}:
+        raise ValueError('资料须位于 .nbtcreator/knowledge 并使用 .md 或 .txt')
+    path=(workspace/'.nbtcreator'/relative).resolve()
+    if root.resolve()!=root or not path.is_relative_to(root):
+        raise ValueError('资料路径越出工作区知识目录')
+    return path
+
+def read_custom(workspace,item):
+    try:
+        with knowledge_path(workspace,item).open('rb') as stream:
+            raw=stream.read(KNOWLEDGE_BYTES+1)
+    except FileNotFoundError:
+        raise ValueError('资料文件缺失，请恢复原路径或重新导入') from None
+    except (OSError,RuntimeError):
+        raise ValueError('资料文件无法读取，请检查路径与权限') from None
+    if len(raw)>KNOWLEDGE_BYTES or b'\x00' in raw:
+        raise ValueError('资料须为不超过 2 MiB 的文本')
+    try:
+        return raw,raw.decode('utf-8-sig')
+    except UnicodeError:
+        raise ValueError('资料须使用 UTF-8 编码') from None
+
+def custom_issues(workspace,items):
+    issues=[]
+    for item in items:
+        try:read_custom(workspace,item)
+        except ValueError as failure:issues.append(dict(**item,error=str(failure)))
+    return issues
+
+def edit_knowledge(workspace,identifier,setting):
+    config=read_config(workspace)
+    item=next((item for item in config['custom_knowledge'] if item['id']==identifier),None)
+    if item is None:raise ValueError('找不到自定义资料，请刷新列表')
+    if setting=='enable':
+        read_custom(workspace,item)
+        item['enabled']=True
+    elif setting=='disable':item['enabled']=False
+    elif setting=='remove':config['custom_knowledge'].remove(item)
+    else:raise ValueError('请选择 enable、disable 或 remove')
+    return apply(workspace,config)
+
+def preview_knowledge(workspace,identifier):
+    item=next((item for item in read_config(workspace)['custom_knowledge'] if item['id']==identifier),None)
+    if item is None:raise ValueError('找不到自定义资料，请刷新列表')
+    return dict(title=item['label'],text=read_custom(workspace,item)[1])
+
+def inherit(workspace,previous):
+    workspace=Path(workspace).resolve()
+    if (workspace/'.nbtcreator/skill-exposure.json').exists():
+        return apply(workspace)
+    try:config=read_config(previous)
+    except (ValueError,OSError):
+        return dict(apply(workspace),inherit_notice='原工作区资料配置无法读取，已为新工作区生成默认入口。')
+    issues=[]
+    for item in config['custom_knowledge'][:]:
+        try:
+            raw,_=read_custom(previous,item)
+            target=knowledge_path(workspace,item)
+            target.parent.mkdir(parents=True,exist_ok=True)
+            try:
+                with target.open('xb') as stream:stream.write(raw)
+            except FileExistsError:
+                if read_custom(workspace,item)[0]!=raw:raise ValueError('目标已有不同资料，已保留该文件')
+        except (ValueError,OSError):
+            # A missing or conflicting source cannot grant exposure in the new workspace.
+            config['custom_knowledge'].remove(item)
+            issues.append(dict(id=item['id'],label=item['label']))
+    return dict(apply(workspace,config),inherit_skipped=issues)
+
 def import_knowledge(workspace,documents):
-    workspace=Path(workspace).resolve();config=read_config(workspace);folder=workspace/'.nbtcreator/knowledge'
+    workspace=Path(workspace).resolve();config=read_config(workspace)
     planned=[]
     if not documents or len(documents)>32:raise ValueError('每次选择1至32份Markdown或TXT知识文件')
     for source in documents:
         source=Path(source)
-        if source.suffix.lower() not in {'.md','.txt'} or source.stat().st_size>2*1024*1024:raise ValueError('仅支持不超过2MiB的Markdown/TXT文件')
-        data=source.read_bytes();data.decode('utf-8-sig');digest=hashlib.sha256(data).hexdigest()[:16]
-        planned.append((folder/(digest+source.suffix.lower()),data,dict(id='custom_'+digest,label=re.sub(r'[\[\]()\r\n]','',source.stem)[:150],path='knowledge/'+digest+source.suffix.lower(),enabled=True)))
-    if len(config['custom_knowledge'])+len(planned)>100:raise ValueError('自定义知识库最多100项')
-    folder.mkdir(parents=True,exist_ok=True)
+        if source.suffix.lower() not in {'.md','.txt'} or source.stat().st_size>KNOWLEDGE_BYTES:raise ValueError('仅支持不超过2MiB的Markdown/TXT文件')
+        with source.open('rb') as stream:data=stream.read(KNOWLEDGE_BYTES+1)
+        if len(data)>KNOWLEDGE_BYTES or b'\x00' in data:raise ValueError('仅支持不超过2MiB的Markdown/TXT文件')
+        data.decode('utf-8-sig');digest=hashlib.sha256(data).hexdigest()[:16]
+        item=dict(id='custom_'+digest,label=re.sub(r'[\[\]()\r\n]','',source.stem)[:150],path='knowledge/'+digest+source.suffix.lower(),enabled=True)
+        existing=next((entry for entry in config['custom_knowledge'] if entry['id']==item['id']),None)
+        item=existing or item
+        planned.append((knowledge_path(workspace,item),data,item))
+    if len({item['id'] for item in config['custom_knowledge']}|{item['id'] for _,_,item in planned})>100:raise ValueError('自定义知识库最多100项')
     for target,data,item in planned:
-        if target.exists() and target.read_bytes()!=data:raise ValueError('同名知识文件有本地修改，未覆盖')
-        target.write_bytes(data)
+        target.parent.mkdir(parents=True,exist_ok=True)
+        try:
+            with target.open('xb') as stream:stream.write(data)
+        except FileExistsError:
+            if read_custom(workspace,item)[0]!=data:raise ValueError('同名知识文件有本地修改，未覆盖')
         if not any(existing['id']==item['id'] for existing in config['custom_knowledge']):config['custom_knowledge'].append(item)
     return apply(workspace,config)
 
@@ -144,7 +228,7 @@ def mise_launcher(workspace, install=False):
 def show(workspace):
     config=read_config(workspace)
     caps=capabilities()
-    return dict(config,groups=[dict(id=key,label=label,required=key=='core',files=[p+'.md' for p in files]) for key,(label,files) in GROUPS.items()],
+    return dict(config,custom_issues=custom_issues(workspace,config['custom_knowledge']),groups=[dict(id=key,label=label,required=key=='core',files=[p+'.md' for p in files]) for key,(label,files) in GROUPS.items()],
                 facade='.agents/skills/nbtcreator-workspace/SKILL.md',launcher=mise_launcher(workspace),
                 tool_count=len(caps['tools']),capabilities_sha256=caps['capabilities_sha256'])
 
@@ -184,11 +268,13 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         f'在创作项目根目录运行 `{launcher} <命令>`。下文省略该前缀。无需启动 Electron；资产在 `nbt_models/`。','',
         '## 先处理交接任务','',
         '有任务 ID 就先读紧凑视图：提示词工作台用 `task-client inspect prompts <id>`，建筑修改用 `task-client inspect tasks <id>`。按返回的 `source_matches`、`next` 和 `expand` 行动；源已变化则停下，明确选定任务后才领取。不用先查全量工具。',
-        '需要找已发布的提示词任务时用 `prompts tasks --status pending`。','',
+        '只知道任务 ID 时用 `task --id <id> --view compact` 自动识别类型。用 `task-client list --pending` 查找两类待领取任务。已有候选的建筑任务可先读 `--view candidates`。','',
         '## 没有交接任务时','',
         f'- 整栋初稿：纯文字从用途推导空间，有参考图先标出可见结构。读{link("simple-building")}；复杂布局再看{link("architecture-workflow")}。另有[归卷阁样例]({relative}/assets/examples/reading-loft/README.md)。',
         '- 局部修改、纹样、构件与维护：按[任务路线和已启用资料](knowledge.md)选读。不要从头读完整目录。',
+        '- 参数构件用 `capabilities --agent-tool parametric_compile` 查配方参数；用 `capabilities --model` 查看统一工作模型的装配、修改及另存入口。',
         '- 已知工具用 `capabilities --agent-tool <名称>` 或 `<命令> --help` 查字段。不知道入口时再用 `capabilities --routes`。`paths` 返回共享引擎位置。',
+        '- 移动项目或出图失败时用 `paths --runtime` 检查实际 Python、同步版本及 Playwright/Chromium 路径。对外资料用 `exposure show` 查看缺项和修复入口。',
         f'- 查参考读{link("reference-retrieval")}：`retrieve search --request <JSON文件>` 后凭 `receipt` 和 `R1` 取证。查历史原文加 `source_kind: library`，不必先查库编号。只在用户要求时联网。',
         '- 找可用资产：`asset-libraries browse --request <JSON文件>`，文件写 `{"query":"尖拱","limit":4}`。不带 `query` 会列出完整目录；命中不是放置批准。',
         '- 创作偏好按 `ai-style prompt --workflow <区域>` 读取。用户本次要求优先，不更改保护或批准。','',
@@ -205,13 +291,18 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         label,names=GROUPS[group];index+=['## '+label,'']
         index.extend('- '+link(name) for name in names)
         index.append('')
-    custom=[item for item in config.get('custom_knowledge',[]) if item['enabled']]
+    issues=custom_issues(workspace,config['custom_knowledge'])
+    unavailable={item['id'] for item in issues}
+    custom=[item for item in config['custom_knowledge'] if item['enabled'] and item['id'] not in unavailable]
     if custom:
         heading=['','## 用户补充知识','这些资料用于当前任务，不改变核心边界，也不授予批准。']
         index+=heading
         for item in custom:
             target=os.path.relpath(workspace/'.nbtcreator'/item['path'],facade).replace('\\','/')
             index.append(f"- [{item['label']}]({target})")
+    if issues:
+        index+=['','## 暂不可读的自定义资料','从外部建造助手设置恢复文件、重新导入或移除登记。','']
+        index.extend(f"- {item['label']}（{item['id']}）：{item['error']}" for item in issues)
     return '\n'.join(lines)+'\n','\n'.join(index)+'\n'
 
 def apply(workspace,config=None):
@@ -225,7 +316,8 @@ def apply(workspace,config=None):
         if set(config)-{'schema_version','enabled_groups','custom_knowledge'}:raise ValueError('未知暴露配置字段')
         if config.get('schema_version')!=1 or not isinstance(config.get('enabled_groups'),list) or any(g not in GROUPS for g in config['enabled_groups']):raise ValueError('暴露配置无效')
         config=dict(config,enabled_groups=list(dict.fromkeys(['core',*config['enabled_groups']])))
-        config['custom_knowledge']=validate_custom(workspace,config.get('custom_knowledge',read_config(workspace).get('custom_knowledge',[])))
+        custom=config['custom_knowledge'] if 'custom_knowledge' in config else read_config(workspace)['custom_knowledge']
+        config['custom_knowledge']=validate_custom(custom)
     else:config=read_config(workspace)
     runtime=sync_runtime(workspace)
     facade=workspace/'.agents/skills/nbtcreator-workspace';facade.mkdir(parents=True,exist_ok=True)
@@ -276,10 +368,25 @@ raise SystemExit(subprocess.call([sys.executable,'-B',str(engine/'scripts'/scrip
         temp=target.with_name(target.name+'.tmp');temp.write_bytes(payload);temp.replace(target)
         if name=='nbt.py' and os.name!='nt':target.chmod(target.stat().st_mode|0o111)
     marker.write_text(json.dumps({name:hashlib.sha256(text.encode('utf8')).hexdigest() for name,text in generated.items()},indent=2),encoding='utf8')
-    file.write_text(json.dumps(config,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
+    from nbt_knowledge.libraries import atomic
+    from nbt_paths import python_versions
+    metadata=json.loads((runtime/'runtime-manifest.json').read_text(encoding='utf8'))
+    binding=dict(python=python_versions(),bundle_sha256=metadata['bundle_sha256'],electron=os.environ.get('NBTCREATOR_ELECTRON_VERSION'))
+    atomic(folder/'engine-runtime.json',(json.dumps(binding,ensure_ascii=False,indent=2)+'\n').encode('utf8'))
+    atomic(file,(json.dumps(config,ensure_ascii=False,indent=2)+'\n').encode('utf8'))
     return show(workspace)
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('command',choices=['show','apply','import']);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('--config',type=Path);parser.add_argument('--document',type=Path,action='append')
-    args=parser.parse_args();result=import_knowledge(args.workspace,args.document) if args.command=='import' else show(args.workspace) if args.command=='show' else apply(args.workspace,json.loads(args.config.read_text(encoding='utf8')) if args.config else None)
-    print(json.dumps(result,ensure_ascii=False))
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('command',choices=['show','apply','import','edit','preview','inherit']);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('--config',type=Path);parser.add_argument('--document',type=Path,action='append');parser.add_argument('--id');parser.add_argument('--setting',choices=['enable','disable','remove']);parser.add_argument('--previous',type=Path)
+    args=parser.parse_args()
+    try:
+        if args.command=='import':result=import_knowledge(args.workspace,args.document)
+        elif args.command=='edit':result=edit_knowledge(args.workspace,args.id,args.setting)
+        elif args.command=='preview':result=preview_knowledge(args.workspace,args.id)
+        elif args.command=='inherit':result=inherit(args.workspace,args.previous)
+        elif args.command=='show':result=show(args.workspace)
+        else:result=apply(args.workspace,json.loads(args.config.read_text(encoding='utf8')) if args.config else None)
+        print(json.dumps(result,ensure_ascii=False))
+    except (ValueError,OSError) as failure:
+        print(json.dumps(dict(error=str(failure)),ensure_ascii=False))
+        raise SystemExit(1)

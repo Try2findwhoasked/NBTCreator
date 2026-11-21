@@ -96,14 +96,22 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 
 | 任务 | 调用或字段 | 输入 | 结果 |
 | --- | --- | --- | --- |
-| 读取已交接的提示词任务 | `task --id <任务编号>` | 从创作项目根目录运行，使用交接时生成的提示词任务编号。也可用 prompts task。 | 回读任务文本、绑定文件与已校验的方案。读取任务与领取、建模、精修批准分开。 |
+| 按编号读取已交接的任务 | `task --id <任务编号>` | 从创作项目根目录运行。支持提示词和建筑修改编号。用 --view compact 查看下一步。 | 回读已校验的内容和失效附件提示。读取任务与领取、建模、精修批准分开。 |
+| 查找两类交接任务 | `task-client list --pending` | 省略 --pending 可看其他任务；--kind 可限定 prompts 或 tasks。 | 提供各任务的查看命令，建筑任务来源失效时返回诊断。 |
 | 查看任务记录和绑定证据 | `task-client inspect <prompts 或 tasks> <任务编号>` | 提示词任务用 prompts，已有建筑修改任务用 tasks。 | 默认返回任务阶段、来源核对与下一步；按 expand 视图展开，再用 task-client start 明确领取。 |
+
+### 工作区与运行时
+
+| 任务 | 调用或字段 | 输入 | 结果 |
+| --- | --- | --- | --- |
+| 核对同步版本和渲染依赖 | `paths --runtime` | 从已同步的实际创作工作区运行，适用于迁移或批量出图前。 | 报告当前 Python、同步时的运行时、Playwright 和 Chromium 路径。实际图片用 render 验证。 |
+| 检查或修复外部 Agent 资料 | `exposure show` | 看 custom_issues；恢复原文件、exposure import 或 exposure edit --id <编号> --setting remove。 | 修复登记与重新同步工作区入口，仅改变外部 Agent 阅读范围。 |
 
 ### 知识库
 
 | 任务 | 调用或字段 | 输入 | 结果 |
 | --- | --- | --- | --- |
-| 离线检索参考 | `retrieve search --request <JSON文件>` | 填 workflow 和 query。建筑方案用 prompt，独立构件用 component。 | 返回已启用文档、书库与收藏的简短命中。用 receipt 和 ref 查看局部出处，或以 selected 保存引用集合。 |
+| 离线检索参考 | `retrieve search --request <JSON文件>` | 填 workflow 和 query；可用 keywords 给短检索词，include_extension_assets 同时查外部 Agent 的离线资产候选。 | 返回已启用文档、书库与收藏的简短命中。用 receipt 和 ref 查看局部出处，或以 selected 保存引用集合。 |
 | 联网补查公开原页 | `retrieve research --request <JSON文件>` | 任务明确要求联网时填 workflow，提供公开 query 或已知 HTTPS urls。 | 返回原文证据、来源和未完成项。默认取得一条即返回。 |
 | 管理网页证据收藏 | `retrieve saved-web --request <JSON文件>` | 填 workflow。action 为 list、add 或 remove，保存或移除时填已有的 web: 证据 id。 | 保存的证据进入本工作流离线搜索，既有引用集合仍绑定原快照。 |
 

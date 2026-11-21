@@ -15,7 +15,10 @@ function createCandidateValidator({root,python,directory,getWorkspace}){
   if(!session){workspace=target;session=createEngineSession({workspace,python})}
   await fs.mkdir(path.join(directory,'ai-validation'),{recursive:true})
   const value=await session.request('validate',{mode,result,context},{signal})
-  if(value.ok!==true){if(value.code!=='VALIDATION_ERROR')throw fatal(value.error||'AI几何预检失败');throw Error('共享引擎预检未通过：'+String(value.error??'候选无效').slice(0,1000))}
+  if(value.ok!==true){
+   if(value.code!=='VALIDATION_ERROR')throw fatal(value.error||'AI几何预检失败')
+   throw Object.assign(Error('共享引擎预检未通过：'+String(value.error??'候选无效').slice(0,1000)),{issue:value.issue})
+  }
   return value.result
  }
  validate.close=async()=>{const old=session;session=null;workspace=null;await old?.close()}

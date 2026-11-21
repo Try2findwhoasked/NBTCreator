@@ -27,6 +27,8 @@
 
 超时后读取会将执行中任务显示为 pending，下一次领取原子地替换租约并增加 fence。超时执行者无法续期或提交，即使它后来恢复运行。`prompts.task-status` 登记 completed 后结束租约；`tasks.record` 登记新版本后标记 completed 并结束租约；后续修改应由人根据审查意见建立新任务。任务完成/版本登记均不等于人工验收。
 
+建筑修改任务的租约释放或到期后，同一建筑可普通另存制作版。已领取过的任务仍要求有效租约才能登记回传。修改计划、保护配置或其他绑定来源变化时停止制作和回传，原持有者可用 `task-client --session <会话名> release` 释放租约，之后核对来源并建立新任务。原持有者不可用时，等租约到期后再继续。另存仍检查父版本，可能需要从最新版本重新打开模型。
+
 `tasks.record` 还需携带 get/claim/heartbeat 回执的最新 `revision`；`prompts.task-status` 可携带 `expected_revision`（使用 `state_revision`，不是内容摘要 revision）。意见分组写操作使用其最新 revision。冲突时重新读取并由调用者核对新状态，不盲目重试旧意图。
 
 ## 幂等与恢复
@@ -50,8 +52,11 @@ mise run nbt -- task-client --session room-a start prompts <任务ID> --owner <�
 mise run nbt -- task-client --session room-a status
 ```
 
+- 用 `task-client list --pending` 查找两类待领取任务，或用 `task --id <任务ID> --view compact` 自动识别类型。只读视图标记损坏的绑定附件，仍可显示其他已核验内容。看到 `next.action: stop` 时停止执行，已领取的原会话可释放。建筑的模型源仍匹配时，可用 `task-client inspect tasks <任务ID> --view candidates` 查找未登记的制作版。核对候选的源亲缘、版本和证据后再按新交接回传。
+
 - 长任务可在另一终端运行 `task-client --session room-a keepalive`。它约每三分之一租期续租，正常完成或释放后退出。短任务可按需调用 `renew`。重启终端后还可用同一会话名继续续租，未到期的租约继续有效。
 - 初稿或精修提示词任务用 `task-client --session room-a complete --review <新制作版审阅目录>`，绑定完整制作源、验证记录和审阅图，仍待人工核对。只读计划用 `complete --summary <检查结果与未验证事项>`，不写制作版。发布同一方案的新修订会使未完成的旧任务及其租约失效。
+- 建筑方案已通过 `architect review-record` 登记三尺度实图和观察时，把含 `review-pack.json` 和 `review-notes.json` 的目录传给同一个 `complete --review` 命令。机器接口用 `review_kind: "architecture"`，并把 `review_sha256` 设为观察记录回执的哈希。回传会重核制作源、观察修订和图片；原有精修批准和游戏实测入口仍按各自流程执行。
 - 建筑修改任务用 `start tasks <任务ID> --owner <执行者>`；保存受管制作版时在 `save_draft` 中传入 `task_session`（Python 同名参数；精修命令用 `--task-session`）。在同一会话以 `complete --new-source <新版本SNBT> --summary <真实改动说明>` 回传。有逐条评论处理时加 `--comments <JSON文件>`。放弃时执行 `release`；如果回传后显示 `history_pending`，执行 `retry` 只补写历史，不重新回传模型。
 - 中断或响应不明时先 `status`。看到 `pending` 时用 `retry` 重放原编号及原参数。租约失效、源变化、修订冲突时重新读取当前任务，由执行者核对后决定下一步。客户端状态保存在本工作区 `nbt_models/_workspaces/agent_protocol/clients/`，活跃会话的状态文件含租约令牌，仅在本机保留。
 

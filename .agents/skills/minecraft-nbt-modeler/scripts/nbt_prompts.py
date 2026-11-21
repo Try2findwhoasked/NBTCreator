@@ -432,35 +432,52 @@ def published_constraint_links(workspace, errors):
             errors.append(dict(file=record.get('directory','任务索引.json'),reason=str(error)))
 
 
-def _read_task_record(workspace,record):
-    folder=inside(workspace,record['directory']);contents={}
-    for name in ('提示词.md','方案.json','操作计划.json','上下文草案.json'):
-        raw=task_file(workspace,folder,record,name)
-        contents[name]=raw.decode('utf8') if name.endswith('.md') else json.loads(raw)
+TASK_ATTACHMENTS={'text':'提示词.md','document':'方案.json','plan':'操作计划.json','context':'上下文草案.json'}
+
+
+def _read_task_record(workspace,record,*,diagnostic=False):
+    folder=inside(workspace,record['directory']);contents={};issues=[]
+    for name in TASK_ATTACHMENTS.values():
+        try:
+            raw=task_file(workspace,folder,record,name)
+            contents[name]=raw.decode('utf8') if name.endswith('.md') else json.loads(raw)
+        except (OSError,ValueError,KeyError) as failure:
+            if not diagnostic:raise
+            issues.append(dict(file=name,code='ATTACHMENT_MISSING' if isinstance(failure,FileNotFoundError) else 'ATTACHMENT_INVALID',
+                               error=str(failure) if not isinstance(failure,OSError) else '任务附件无法读取'))
     source=inside(workspace,record['source']) if record.get('source') else None
-    matches=(digest(source.read_bytes())==record['source_sha256'] if source.is_file() else False) if source else None
-    if matches and record.get('input_binding'):
-        from nbt_refine import source_binding
-        try:matches=source_binding(source)==record['input_binding']
+    matches=None
+    if source:
+        try:
+            with source.open('rb') as stream:matches=hashlib.file_digest(stream,'sha256').hexdigest()==record['source_sha256']
+            if matches and record.get('input_binding'):
+                from nbt_refine import source_binding
+                matches=source_binding(source)==record['input_binding']
         except (ValueError,OSError):matches=False
     from nbt_agent_protocol import redact
-    return dict(task=redact(record),directory=str(folder),prompt=str(inside(workspace,record['prompt'])),text=contents['提示词.md'],document=contents['方案.json'],plan=contents['操作计划.json'],context=contents['上下文草案.json'],source_matches=matches,approval='not_granted_by_prompt')
+    return dict(task=redact(record),directory=str(folder),prompt=str(inside(workspace,record['prompt'])),
+        **{view:contents.get(name) for view,name in TASK_ATTACHMENTS.items()},source_matches=matches,
+        attachment_issues=issues,ready_for_execution=not issues and matches is not False,approval='not_granted_by_prompt')
 
 
 TASK_VIEWS=('full','compact','text','document','plan','context')
 
 
-def read_task(workspace,identifier,*,view='full'):
+def read_task(workspace,identifier,*,view='full',diagnostic=False):
     from nbt_agent_protocol import error
     records=load_tasks(workspace)['records']
     record=next((item for item in records if item['id']==identifier),None)
     if not record:error('TASK_NOT_FOUND','提示词任务不存在，请先 prompts tasks')
     if view not in TASK_VIEWS:
         error('INVALID_REQUEST','view 须为 full、compact、text、document、plan 或 context')
-    data=_read_task_record(workspace,record)
+    data=_read_task_record(workspace,record,diagnostic=diagnostic or view!='full')
     if view=='full':return data
     if view!='compact':
-        return dict(id=identifier,revision=record['revision'],source_matches=data['source_matches'],view=view,**{view:data[view]})
+        if data[view] is None:
+            error('TASK_EVIDENCE_CHANGED','无法读取本视图的绑定附件',
+                  details={'attachment_issues':data['attachment_issues'],'next':'检查已发布任务的附件或重新发布'})
+        return dict(id=identifier,revision=record['revision'],source_matches=data['source_matches'],view=view,
+                    attachment_issues=data['attachment_issues'],ready_for_execution=data['ready_for_execution'],**{view:data[view]})
     from nbt_prompt_view import compact
     previous=max((item for item in records if item['sequence']<record['sequence']
         and item.get('archive_id')==record['archive_id'] and item.get('archive_index')==record['archive_index']),
@@ -483,9 +500,11 @@ def task_action(workspace,action,request):
         if not item:protocol.error('TASK_NOT_FOUND','提示词任务不存在')
         if item['status']=='superseded':protocol.error('TASK_SUPERSEDED','此任务已被新版替代')
         if 'expected_revision' in request and request['expected_revision']!=item.get('state_revision',0):protocol.error('REVISION_CONFLICT','任务状态已改变',retryable=True,details={'current_revision':item.get('state_revision',0)})
-        if action in ('claim','heartbeat','release') or (action=='task-status' and request.get('request_id')):
-            original=_read_task_record(workspace,item)
+        if action in ('claim','heartbeat') or (action=='task-status' and request.get('request_id')):
+            original=_read_task_record(workspace,item,diagnostic=True)
             if original['source_matches'] is False:protocol.error('SOURCE_CHANGED','任务原建筑已变化，请核对来源')
+            if original['attachment_issues']:
+                protocol.error('TASK_EVIDENCE_CHANGED','任务绑定附件已变化，请核对交接',details={'attachment_issues':original['attachment_issues']})
         if action in ('claim','heartbeat','release'):
             result=protocol.lease_action(item,action,request)
         elif action=='task-status':
@@ -521,6 +540,12 @@ def completion_evidence(workspace,item,request):
         error('EVIDENCE_REQUIRED','完成提示词任务须提供当前制作版的审阅目录和审阅文件哈希')
     review=inside(workspace,request['review']);expected=request['review_sha256']
     try:
+        if request.get('review_kind','refinement')=='architecture':
+            from nbt_building.review import verify_for_return
+            evidence=verify_for_return(workspace,review,expected)
+            if item.get('source'):return_parent(workspace,inside(workspace,item['source']),inside(workspace,evidence['source']))
+            return evidence
+        if request.get('review_kind','refinement')!='refinement':raise ValueError('未知审阅证据格式')
         record=_current_review(review,expected)
         source=inside(workspace,record['source'])
         if not record.get('validation_sha256'):
@@ -550,7 +575,7 @@ def main():
     cmd=sub.add_parser('read');cmd.add_argument('--index');cmd.add_argument('--id');cmd.add_argument('--file');cmd.add_argument('--sha256')
     cmd=sub.add_parser('publish');cmd.add_argument('--index',required=True);cmd.add_argument('--id',required=True);cmd.add_argument('--revision',required=True)
     cmd=sub.add_parser('tasks');cmd.add_argument('--after',type=int,default=0);cmd.add_argument('--status',choices=['pending','in_progress','completed','superseded'])
-    cmd=sub.add_parser('task');cmd.add_argument('--id',required=True)
+    cmd=sub.add_parser('task');cmd.add_argument('--id',required=True);cmd.add_argument('--view',choices=(*TASK_VIEWS,'comments','candidates'))
     for action in ('claim','heartbeat','release'):
         cmd=sub.add_parser(action);cmd.add_argument('--request',type=Path,required=True)
     cmd=sub.add_parser('task-status');cmd.add_argument('--id',required=True);cmd.add_argument('--status',choices=['pending','in_progress','completed'],required=True)
@@ -560,10 +585,19 @@ def main():
         if args.command in ('claim','heartbeat','release'):result=task_action(args.workspace,args.command,json.loads(args.request.read_text(encoding='utf-8-sig')))
         elif args.command=='publish':result=publish(args.workspace,args.index,args.id,args.revision)
         elif args.command=='tasks':result=tasks(args.workspace,args.after,args.status)
-        elif args.command=='task':result=read_task(args.workspace,args.id)
+        elif args.command=='task':
+            from nbt_agent_protocol import ProtocolError
+            from nbt_task_client import inspect
+            try:result=inspect(args.workspace,'prompts',args.id,args.view or 'full')
+            except ProtocolError as failure:
+                if failure.code!='TASK_NOT_FOUND':raise
+                result=inspect(args.workspace,'tasks',args.id,args.view or 'compact')
         elif args.command=='task-status':result=task_status(args.workspace,args.id,args.status)
         else:result=save(args.workspace,json.loads(args.request.read_text(encoding='utf-8-sig'))) if args.command=='save' else scan(args.workspace,args.source) if args.command=='scan' else read_handoff(args.workspace,args.file,args.sha256) if args.file else read_prompt(args.workspace,args.index,args.id)
         print(json.dumps(result,ensure_ascii=False));return 0
-    except (ValueError,OSError,KeyError,TypeError) as error:print(json.dumps(dict(error=str(error)),ensure_ascii=False));return 1
+    except (ValueError,OSError,KeyError,TypeError) as error:
+        response=dict(error=str(error))
+        if getattr(error,'code',None):response.update(code=error.code,details=error.details)
+        print(json.dumps(response,ensure_ascii=False));return 1
 
 if __name__=='__main__':raise SystemExit(main())

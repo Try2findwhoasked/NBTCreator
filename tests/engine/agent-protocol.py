@@ -29,10 +29,50 @@ class Contracts(unittest.TestCase):
   self.source.write_bytes(b'edited')
   stale=inspect(self.w,'tasks',identifier);self.assertIs(stale['source_matches'],False);self.assertEqual(stale['next']['action'],'stop')
   with self.assertRaises(ProtocolError):TaskClient(self.w,'stale-inspect').start('tasks',identifier,'agent',60)
+ def test_prompt_attachment_damage_keeps_other_views_and_releases_owned_lease(self):
+  from nbt_task_client import discover_tasks
+  prompt=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'方案','buildingShape':'single'}},'仍可回读正文')
+  task=self.create()
+  self.assertEqual({(row['id'],row['kind']) for row in discover_tasks(self.w,'all',True)['tasks']},
+    {(prompt['id'],'prompts'),(task['id'],'tasks')})
+  route=subprocess.run([sys.executable,'-B',str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_prompts.py'),'task','--id',task['id']],cwd=self.w,encoding='utf8',capture_output=True)
+  self.assertEqual(json.loads(route.stdout)['stage'],'modification')
+  active=TaskClient(self.w,'active');active.start('prompts',prompt['id'],'agent',60)
+  attachment=self.w/prompt['files']['操作计划.json']['path']
+  attachment.write_bytes(attachment.read_bytes()+b' ')
+  compact=inspect(self.w,'prompts',prompt['id'])
+  self.assertFalse(compact['ready_for_execution'])
+  self.assertEqual(compact['attachment_issues'][0]['file'],'操作计划.json')
+  self.assertIsNone(compact['operation_count'])
+  self.assertEqual(compact['next']['action'],'stop')
+  self.assertEqual(inspect(self.w,'prompts',prompt['id'],'text')['text'],'仍可回读正文')
+  self.assertIsNone(inspect(self.w,'prompts',prompt['id'],'full')['plan'])
+  for action in (lambda: inspect(self.w,'prompts',prompt['id'],'plan'), lambda: active.change('heartbeat'),
+                 lambda: TaskClient(self.w,'other').start('prompts',prompt['id'],'agent',60)):
+   with self.assertRaises(ProtocolError) as failure:action()
+   self.assertEqual(failure.exception.code,'TASK_EVIDENCE_CHANGED')
+  self.assertEqual(active.change('release')['phase'],'released')
+
  def test_create_retry_is_exact_and_different_payload_is_rejected(self):
   req=self.request(source=str(self.source),source_sha256=hashlib.sha256(self.source.read_bytes()).hexdigest(),name='合成任务');a=dispatch(self.w,'create',req);self.assertEqual(dispatch(self.w,'create',req),a)
   with self.assertRaises(ProtocolError) as caught:dispatch(self.w,'create',dict(req,name='不同请求'))
   self.assertEqual(caught.exception.code,'IDEMPOTENCY_CONFLICT')
+ def test_expired_origin_can_list_existing_candidates_but_cannot_restart_work(self):
+  plan=self.w/'nbt_models/plan.json';plan.write_text('{}',encoding='utf8')
+  task=dispatch(self.w,'create',self.request(source=str(self.source),source_sha256=hashlib.sha256(self.source.read_bytes()).hexdigest(),
+    origins=[{'path':str(plan),'role':'plan'}]))
+  target=self.source.parents[2]/'v02/master/model.snbt'
+  target.parent.mkdir(parents=True);target.write_bytes(self.source.read_bytes())
+  plan.write_text('{ }',encoding='utf8')
+  stale=inspect(self.w,'tasks',task['id'])
+  self.assertEqual(stale['issue']['details']['role'],'plan')
+  self.assertIn('--view candidates',stale['next']['recovery'])
+  candidates=inspect(self.w,'tasks',task['id'],'candidates')
+  self.assertFalse(candidates['ready_for_execution'])
+  self.assertEqual(candidates['candidates'][0]['absolute_source'],str(target.resolve()))
+  self.assertFalse(candidates['candidates'][0]['verified'])
+  with self.assertRaisesRegex(ProtocolError,'来源已变化|原建筑已变化'):
+   TaskClient(self.w,'stopped').start('tasks',task['id'],'worker',60)
  def test_claim_is_exclusive_and_expiry_fences_old_worker(self):
   task=self.create();req=self.request(id=task['id'],owner='one',ttl_seconds=60)
   with patch('nbt_agent_protocol.time.time',return_value=100):first=dispatch(self.w,'claim',req)
@@ -234,6 +274,37 @@ class Contracts(unittest.TestCase):
   node=candidate['history']['version']['id']
   self.assertEqual(len(dispatch(self.w,'get',dict(id=task['id']))['returns']),1)
   self.assertIn('agent:'+task['id'],History(self.w).get(node)['version']['tasks'])
+
+ def test_released_expired_and_invalid_tasks_unblock_ordinary_publication(self):
+  from nbt_working_model import WorkingModel
+  context=dict(mode='standalone',require_enclosure=False,openings=[],allow_empty_wall_mask=True,start=[2.5,1,2.5],targets={'other':[5.5,1,5.5]})
+  working=WorkingModel(self.w,[8,6,8],context=context)
+  working.apply_operations([dict(kind='box',label='floor',classification='body',lo=[0,0,0],hi=[7,0,7],state='stone')]);working.open_declared()
+  base=working.save_draft('恢复普通另存')
+  for i,scenario in enumerate(('released','expired','changed')):
+   with self.subTest(scenario=scenario):
+    plan=self.w/'nbt_models'/f'plan-{scenario}.json';plan.write_text('{}',encoding='utf8')
+    task=dispatch(self.w,'create',self.request(source=base['source'],source_sha256=base['source_sha256'],origins=[{'path':str(plan)}]))
+    client=TaskClient(self.w,scenario)
+    candidate=WorkingModel.open(self.w,base['source'])
+    pos=[i+1,1,1]
+    candidate.apply_operations([dict(kind='box',label='edit',classification='body',lo=pos,hi=pos,state='gold_block')])
+    with patch('nbt_agent_protocol.time.time',return_value=100+200*i):
+     client.start('tasks',task['id'],'worker',60)
+     old=client.lease_params(client.load())
+     with self.assertRaises(ProtocolError) as locked:candidate.save_draft()
+     self.assertEqual(locked.exception.code,'LEASE_REQUIRED')
+     if scenario=='changed':
+      plan.write_text('{ }',encoding='utf8')
+      with self.assertRaises(ProtocolError) as changed:client.change('heartbeat')
+      self.assertEqual(changed.exception.code,'SOURCE_CHANGED')
+     if scenario!='expired':
+      self.assertEqual(client.change('release')['phase'],'released')
+    with patch('nbt_agent_protocol.time.time',return_value=161+200*i):
+     with self.assertRaises(ProtocolError):candidate.save_draft(task_session=scenario)
+     base=candidate.save_draft()
+     with self.assertRaises(ProtocolError):
+      dispatch(self.w,'record',self.request(**old,new_source=base['source'],new_source_sha256=base['source_sha256'],summary='过期执行者'))
 
  def test_task_client_renews_then_stops_on_release(self):
   published=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'续租','buildingShape':'single'}},'测试任务')

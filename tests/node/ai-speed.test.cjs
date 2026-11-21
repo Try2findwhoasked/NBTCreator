@@ -27,10 +27,14 @@ test('actual workflow preparation forwards the task query and preserves complete
  const config=await internal.importDocuments([source]);config.workflows.prompt.knowledge=[config.documents[0].id];config.workflows.prompt.rules='完整规则'.repeat(1500);await internal.save({workflows:config.workflows})
  let sent
  const api=createApiService({directory:path.join(directory,'user'),safeStorage:{},workflowContext:(key,request)=>internal.context(key,request),fetchImpl:async(_url,options)=>{sent=JSON.parse(JSON.parse(options.body).messages[1].content);return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:'设计正文'}}]}))}})
- await api.save({enabled:true});await api.generate({mode:'prompt',instruction:'拱门支承细节',context:null})
+ await api.save({enabled:true});const generated=await api.generate({mode:'prompt',instruction:'拱门支承细节',context:null})
  assert.equal(sent.internal_workflow.rules,config.workflows.prompt.rules)
  const doc=sent.internal_workflow.knowledge[0];assert.ok(doc.content.length<=4000);assert.ok(doc.content.includes('必须保留的拱门支承细节'));assert.equal(doc.omitted,true)
  assert.equal(sent.internal_workflow.workflow_steps,undefined);assert.equal(sent.internal_workflow.attachViewport,undefined)
+ assert.deepEqual(generated.knowledge_delivery,sent.internal_workflow.knowledge_delivery)
+ assert.equal(generated.knowledge_delivery.documents[0].status,'excerpt')
+ assert.equal(generated.knowledge_delivery.per_document,4000)
+ assert.ok(generated.api_metrics.calls[0].request_bytes>generated.api_metrics.calls[0].input_text_chars)
 })
 
 test('strict small structure schema rejects extra fields, fractional coordinates, excess steps and long summaries',()=>{

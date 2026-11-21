@@ -28,7 +28,7 @@ def load_index(workspace):
     return file,index
 def task_for(workspace,index,identifier):
     entry=next((entry for entry in index['tasks'] if entry['id']==identifier),None)
-    if not entry:raise ValueError('Agent任务不存在')
+    if not entry:protocol.error('TASK_NOT_FOUND','建筑修改任务不存在，请先 task-client list')
     file=inside(workspace,entry['manifest']);raw=file.read_bytes()
     if digest(raw)!=entry['sha256']:raise ValueError('任务登记已变化，请核对来源')
     data=json.loads(raw)
@@ -62,19 +62,24 @@ def return_parent(workspace,source,target):
         seen.add(ancestor);manifest=previous
     protocol.error('RETURN_LINEAGE_MISMATCH','回传制作版必须从任务原版本派生，不能回传其祖先或其他分支')
 
-def verify(workspace,data):
+def verify_source(workspace,data):
     source=inside(workspace,data['source'])
     if not source.is_file() or sha(source)!=data['source_sha256']:
-        protocol.error('SOURCE_CHANGED','任务原建筑已变化，请保留原版本后重新建立任务')
+        protocol.error('SOURCE_CHANGED','任务原建筑已变化，请保留原版本后重新建立任务',details={'path':data['source']})
     verify_binding(source,data.get('input_binding'))
+    return source
+
+def verify(workspace,data):
+    source=verify_source(workspace,data)
     for origin in data.get('origins',[]):
         path=inside(workspace,origin['path'])
         if not path.is_file() or sha(path)!=origin['sha256']:
-            protocol.error('SOURCE_CHANGED','原修改计划或校验包已变化，请核对任务来源')
+            protocol.error('SOURCE_CHANGED','原修改计划或校验包已变化，请核对任务来源',
+                           details={'path':origin['path'],'role':origin['role']})
     for entry in data['returns']:
         path=inside(workspace,entry['source'])
         if not path.is_file() or sha(path)!=entry['source_sha256']:
-            protocol.error('SOURCE_CHANGED','已回传版本被覆盖，请使用新版本重新登记')
+            protocol.error('SOURCE_CHANGED','已回传版本被覆盖，请使用新版本重新登记',details={'path':entry['source'],'return_id':entry['id']})
         verify_binding(path,entry.get('input_binding'))
     return source
 def output(workspace,data):
@@ -114,8 +119,9 @@ def publication(workspace,building,source,session,actor):
             for record in index['tasks']:
                 if project_paths(inside(workspace,record['source']))['workdir']!=building:continue
                 task=task_for(workspace,index,record['id'])
-                if task.get('lease_managed') and task['status']!='completed':
-                    protocol.error('LEASE_REQUIRED','该建筑有受租约管理的任务，保存制作版须提供 task_session')
+                if protocol.lease_active(task):
+                    protocol.error('LEASE_REQUIRED','该建筑有有效租约；使用领取会话保存，或释放租约后重试',
+                                   details={'id':task['id'],'lease':protocol.public_lease(task)})
         else:
             from nbt_task_client import TaskClient
             client=TaskClient(workspace,session);state=client.load()
@@ -148,7 +154,7 @@ def comment_snapshot(workspace,source):
     _,comments=inventory(workspace,source)
     return [dict(key=entry['key'],content_sha256=entry['content_sha256'],text=entry['text'],anchors=entry['anchors'],verified=entry['verified'],geometry_matches_source=entry['geometry_matches_source']) for entry in comments]
 def discover(workspace,data):
-    source=verify(workspace,data);root=project_paths(source)['workdir'];base_version=project_paths(source)['version'];known={entry['source'] for entry in data['returns']};items=[]
+    source=verify_source(workspace,data);root=project_paths(source)['workdir'];base_version=project_paths(source)['version'];known={entry['source'] for entry in data['returns']};items=[]
     for folder,dirs,files in os.walk(root):
         dirs[:]=[name for name in dirs if name not in {'Agent交接','修改意见','delivery','runtime','parts','previews','validation','.git'} and not (Path(folder)/name).is_symlink()]
         for name in files:
@@ -169,11 +175,20 @@ def dispatch(workspace,action,request):
                 data=task_for(workspace,index,entry['id'])
                 if source and data['source']!=source and all(item['source']!=source for item in data['returns']):continue
                 verify(workspace,data);tasks.append(output(workspace,data))
-            except (ValueError,OSError,KeyError) as error:errors.append(dict(id=entry['id'],error=str(error)))
+            except (ValueError,OSError,KeyError) as error:
+                errors.append(dict(id=entry['id'],name=entry['name'],source=entry['source'],error=str(error),
+                                   code=getattr(error,'code','TASK_INVALID'),details=getattr(error,'details',{})))
         return dict(tasks=tasks,errors=errors)
     if action in ('get','discover'):
-        data=task_for(workspace,index,request['id']);verify(workspace,data)
-        return discover(workspace,data) if action=='discover' else output(workspace,data)
+        data=task_for(workspace,index,request['id'])
+        if action=='discover':
+            candidates=discover(workspace,data)
+            try:verify(workspace,data)
+            except protocol.ProtocolError as failure:
+                return dict(candidates,ready_for_execution=False,issue=dict(code=failure.code,error=str(failure),details=failure.details))
+            return dict(candidates,ready_for_execution=True)
+        verify(workspace,data)
+        return output(workspace,data)
     file.parent.mkdir(parents=True,exist_ok=True)
     with index_lock(workspace,file.parent):
         file,index=load_index(workspace)
@@ -200,7 +215,11 @@ def dispatch(workspace,action,request):
             data=dict(status='pending',schema_version=1,id=identifier,name=name.strip(),source=relative(workspace,source),source_sha256=source_hash,geometry_sha256=model.fingerprint(),size=list(model.size),directory=relative(workspace,project_paths(source)['version']/'Agent交接'/('task-'+identifier)),revision=0,created_at=now(),comments=comments,camera=camera,origins=origins,returns=[],history=[])
             verify_binding(source,binding);data['input_binding']=binding
         else:
-            data=task_for(workspace,index,request['id']);source=verify(workspace,data)
+            data=task_for(workspace,index,request['id'])
+            # Releasing an owned lease writes no model or evidence. It must
+            # remain possible after a bound input has changed or disappeared.
+            if action!='release':
+                source=verify(workspace,data)
             if action not in ('claim','heartbeat','release') or 'revision' in request:
                 if request.get('revision')!=data['revision']:protocol.error('REVISION_CONFLICT','任务已更新，请刷新后核对再提交',retryable=True,details={'current_revision':data['revision']})
             if action in ('claim','heartbeat','release'):protocol.lease_action(data,action,request)

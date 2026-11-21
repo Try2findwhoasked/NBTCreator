@@ -47,6 +47,7 @@ def serve(workspace,source,sink):
                 response=dict(id=identity,ok=True,result=result)
         except (ValueError,KeyError,TypeError,OSError,AssertionError) as error:
             response=dict(id=identity,ok=False,error=str(error)[:1000],code='VALIDATION_ERROR')
+            if getattr(error,'issue',None):response['issue']=error.issue
         response['metrics']=dict(engine_ms=round((perf_counter()-started)*1000,3),cache=dict(session.stats))
         payload=json.dumps(response,ensure_ascii=False,allow_nan=False).encode('utf8')
         if len(payload)>MAX_RESPONSE:payload=json.dumps(dict(id=identity,ok=False,error='会话结果超过32MiB',code='RESPONSE_TOO_LARGE')).encode()

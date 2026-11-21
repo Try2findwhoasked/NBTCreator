@@ -14,7 +14,8 @@ from nbt_prompts import TASK_VIEWS, inside, index_lock, relative
 
 TRANSIENT = ('IO_ERROR', 'LOCK_BUSY')
 STALE = ('SOURCE_CHANGED', 'STALE_SOURCE', 'STALE_PARENT', 'REVISION_CONFLICT', 'LEASE_EXPIRED',
-         'LEASE_FENCE_CONFLICT', 'LEASE_REQUIRED', 'LEASE_NOT_OWNER', 'RECEIPT_CHANGED', 'IDEMPOTENCY_CONFLICT', 'TASK_SUPERSEDED')
+         'LEASE_FENCE_CONFLICT', 'LEASE_REQUIRED', 'LEASE_NOT_OWNER', 'RECEIPT_CHANGED', 'IDEMPOTENCY_CONFLICT', 'TASK_SUPERSEDED',
+         'TASK_EVIDENCE_CHANGED')
 
 
 def request(method, params):
@@ -28,13 +29,17 @@ def result(reply):
     return reply['data']
 
 
-def next_step(kind, task, source_matches):
+def next_step(kind, task, source_matches, attachment_issues=()):
     identifier=task['id']
-    if source_matches is False:return dict(action='stop',reason='任务来源已变化，请核对交接后建立新任务')
+    if source_matches is False or attachment_issues:
+        return dict(action='stop',reason='任务源或绑定附件已变化。原会话可释放租约，核对交接后建立新任务。',
+                    **({'recovery':f'task-client inspect tasks {identifier} --view candidates'} if kind=='tasks' else {}))
     if task['status'] in ('completed','superseded','returned','reviewed','failed','cancelled'):
         return dict(action='stop',reason='此任务已结束或正在等待审阅')
     if task.get('lease') and not task.get('lease_expired') and task['lease']['expires_at']>time.time():
-        return dict(action='check_lease',reason='已有有效租约；如属当前会话，先运行 task-client --session <会话名> status')
+        return dict(action='check_lease',command='task-client --session <会话名> status',
+                    then='task-client --session <会话名> renew（长任务可用 keepalive）',
+                    reason='已有有效租约；仅持有者能续租或回传')
     first='text' if kind=='prompts' else 'comments' if task['comment_count'] else 'context'
     return dict(action='inspect',command=f'task-client inspect {kind} {identifier} --view {first}',
                 then=f'task-client --session <会话名> start {kind} {identifier} --owner <执行者>')
@@ -42,31 +47,54 @@ def next_step(kind, task, source_matches):
 
 def inspect(workspace, kind, identifier, view='compact'):
     if kind == 'prompts':
-        data=result(dispatch(workspace,request('prompts.get',dict(id=identifier,view=view))))
-        if view=='compact':data['next']=next_step(kind,data['task'],data['source_matches'])
+        from nbt_prompts import read_task
+        data=read_task(workspace,identifier,view=view,diagnostic=True)
+        if view in ('compact','full') or not data['ready_for_execution']:
+            data['next']=next_step(kind,data.get('task',{'id':identifier}),data['source_matches'],data['attachment_issues'])
         return data
-    if view not in ('compact','full','comments','context'):
-        error('INVALID_REQUEST','建筑修改任务视图为 compact、comments、context 或 full')
-    from nbt_agent_tasks import load_index, task_for, verify, output
+    if view not in ('compact','full','comments','context','candidates'):
+        error('INVALID_REQUEST','建筑修改任务视图为 compact、comments、context、candidates 或 full')
+    from nbt_agent_tasks import dispatch as tasks_action, load_index, task_for, verify, output
     workspace=Path(workspace).resolve()
-    _,index=load_index(workspace); task=task_for(workspace,index,identifier);matches=True
+    if view=='candidates':
+        found=tasks_action(workspace,'discover',dict(id=identifier))
+        return dict(found,view=view,id=identifier,policy='这些文件待核对亲缘、模型和审阅证据，重新交接后才可回传')
+    _,index=load_index(workspace); task=task_for(workspace,index,identifier);matches=True;issue=None
     try:verify(workspace,task)
     except ProtocolError as failure:
-        if view!='compact' or failure.code!='SOURCE_CHANGED':raise
-        matches=False
+        if failure.code!='SOURCE_CHANGED':raise
+        matches=False;issue=dict(code=failure.code,error=str(failure),details=failure.details)
     task=output(workspace,task)
-    if view=='full':return task
+    state=dict(source_matches=matches,ready_for_execution=matches,issue=issue)
+    if view=='full':return dict(task,**state)
     if view=='comments':
-        return dict(id=identifier,view=view,source_matches=True,comments=task['comments'])
+        return dict(id=identifier,view=view,**state,comments=task['comments'])
     if view=='context':
         fields=('source','source_sha256','absolute_source','input_binding','origins','size','camera','approval')
-        return dict(id=identifier,view=view,source_matches=True,**{key:task[key] for key in fields if key in task})
+        return dict(id=identifier,view=view,**state,**{key:task[key] for key in fields if key in task})
     fields=('id','name','status','revision','source','source_sha256','size','lease','lease_expired','approval')
     compact={key:task[key] for key in fields if key in task}
-    compact.update(view=view,stage='modification',source_matches=matches,comment_count=len(task['comments']),
-                   return_count=len(task['returns']),expand=['comments','context','full'])
+    compact.update(view=view,stage='modification',**state,comment_count=len(task['comments']),
+                   return_count=len(task['returns']),expand=['comments','context','candidates','full'])
     compact['next']=next_step(kind,compact,matches)
     return compact
+
+
+def discover_tasks(workspace,kind,pending):
+    from nbt_agent_tasks import dispatch as tasks_action
+    from nbt_prompts import tasks
+    entries=[];issues=[]
+    if kind in ('all','prompts'):
+        entries.extend(dict(id=item['id'],kind='prompts',name=item['name'],stage=item['stage'],status=item['status'])
+                       for item in tasks(workspace,status='pending' if pending else None)['items'])
+    if kind in ('all','tasks'):
+        found=tasks_action(workspace,'list',{})
+        entries.extend(dict(id=item['id'],kind='tasks',name=item['name'],stage='modification',status=item['status'])
+                       for item in found['tasks'] if not pending or item['status']=='pending')
+        issues.extend(found['errors'])
+    for item in entries:
+        item['read']=f"task-client inspect {item['kind']} {item['id']}"
+    return dict(tasks=entries,issues=issues)
 
 
 class TaskClient:
@@ -104,6 +132,8 @@ class TaskClient:
             data['pending'] = {key: state['pending'][key] for key in ('request_id','method')}
         if state.get('blocked'):
             data['blocked'] = state['blocked']
+        if state['phase']=='blocked' and state.get('lease_token') and state['lease']['expires_at']>time.time():
+            data['next'] = dict(action='release', reason='来源变化后可用同一会话释放租约')
         return data
 
     def status(self):
@@ -119,7 +149,10 @@ class TaskClient:
     def check_live(self, state):
         live = inspect(self.workspace, state['kind'], state['id'])
         if live['source_matches'] is False:
-            error('SOURCE_CHANGED', '任务原建筑已变化')
+            issue=live.get('issue') or {}
+            error('SOURCE_CHANGED',issue.get('error','任务原建筑已变化'),details=dict(issue.get('details',{}),next=live['next']))
+        if live.get('attachment_issues'):
+            error('TASK_EVIDENCE_CHANGED','任务绑定附件已变化',details={'attachment_issues':live['attachment_issues']})
         if state['kind'] == 'prompts':
             live = live['task']
         lease = live.get('lease')
@@ -139,6 +172,11 @@ class TaskClient:
         if self.response_revision(state, live) != state['revision']:
             error('REVISION_CONFLICT', '任务状态已改变，请核对当前修订')
 
+    def block(self, state, code):
+        state.update(phase='blocked', blocked=code)
+        if code not in ('SOURCE_CHANGED','TASK_EVIDENCE_CHANGED'):
+            state.pop('lease_token', None)
+
     def send(self, state, *, replay=False):
         pending = state['pending']
         reply = dispatch(self.workspace, pending)
@@ -147,8 +185,7 @@ class TaskClient:
             if failure['code'] not in TRANSIENT:
                 state.pop('pending')
                 if failure['code'] in STALE or state['phase'] == 'starting':
-                    state.update(phase='blocked', blocked=failure['code'])
-                    state.pop('lease_token', None)
+                    self.block(state,failure['code'])
                 self.save(state)
             result(reply)
         data = reply['data']
@@ -160,6 +197,7 @@ class TaskClient:
         else:
             state.update(phase='released' if action == 'release' else 'completed', lease=None)
             state.pop('lease_token', None)
+            state.pop('blocked', None)
             if state['phase'] == 'completed':
                 state['completion'] = dict(approval=data['approval'])
                 if state['kind'] == 'tasks':
@@ -174,8 +212,7 @@ class TaskClient:
                 self.check_live(state)
             except ProtocolError as failure:
                 if failure.code in STALE:
-                    state.update(phase='blocked', blocked=failure.code)
-                    state.pop('lease_token', None)
+                    self.block(state,failure.code)
                     self.save(state)
                 raise
         return self.public(state)
@@ -201,6 +238,8 @@ class TaskClient:
             live = inspect(self.workspace, kind, identifier)
             if live['source_matches'] is False:
                 error('SOURCE_CHANGED', '任务原建筑已变化')
+            if live.get('attachment_issues'):
+                error('TASK_EVIDENCE_CHANGED','任务绑定附件已变化',details={'attachment_issues':live['attachment_issues']})
             state = dict(kind=kind, id=identifier, phase='starting', ttl=ttl, generation=uuid.uuid4().hex)
             revision = self.response_revision(state, live['task'] if kind == 'prompts' else live)
             return self.queue(state, 'claim', dict(id=identifier, owner=owner, ttl_seconds=ttl,
@@ -236,7 +275,8 @@ class TaskClient:
             state = self.load()
             if state.get('pending'):
                 error('REQUEST_PENDING', '有未确认响应，请先 retry 重放原请求')
-            if state['phase'] != 'active':
+            can_release = action=='release' and state['phase']=='blocked' and bool(state.get('lease_token'))
+            if state['phase'] != 'active' and not can_release:
                 error('SESSION_NOT_ACTIVE', '当前本地会话没有可用租约', details=self.public(state))
             common = self.lease_params(state)
             if action == 'heartbeat':
@@ -246,7 +286,10 @@ class TaskClient:
                     if set(params)=={'review'}:
                         from nbt_refine import digest
                         review=inside(self.workspace,params['review'])
-                        params=dict(review=relative(self.workspace,review),review_sha256=digest(review/'review.json'))
+                        if (review/'review.json').is_file():
+                            params=dict(review=relative(self.workspace,review),review_sha256=digest(review/'review.json'))
+                        else:
+                            params=dict(review=relative(self.workspace,review),review_kind='architecture',review_sha256=digest(review/'review-notes.json'))
                     elif set(params)!={'summary'}:
                         error('EVIDENCE_REQUIRED','制作任务须提供 --review <审阅目录>，只读计划须提供 --summary <检查结果>')
                     action,params='task-status',dict(params,status='completed')
@@ -294,12 +337,15 @@ def main():
     parser.add_argument('--workspace', type=Path, default=Path.cwd())
     parser.add_argument('--session', default='default')
     sub = parser.add_subparsers(dest='action', required=True)
+    listing=sub.add_parser('list',help='查找提示词和建筑修改任务')
+    listing.add_argument('--kind',choices=['all','prompts','tasks'],default='all')
+    listing.add_argument('--pending',action='store_true',help='只列待领取任务')
     for action in ('inspect','start'):
         command = sub.add_parser(action)
         command.add_argument('kind', choices=['prompts','tasks'])
         command.add_argument('id')
         if action == 'inspect':
-            command.add_argument('--view', choices=(*TASK_VIEWS,'comments'), default='compact')
+            command.add_argument('--view', choices=(*TASK_VIEWS,'comments','candidates'), default='compact')
         else:
             command.add_argument('--owner', required=True)
             command.add_argument('--ttl', type=int, default=900)
@@ -312,7 +358,9 @@ def main():
     complete.add_argument('--comments', type=Path, help='JSON array of handled comments')
     args = parser.parse_args()
     try:
-        if args.action == 'inspect':
+        if args.action == 'list':
+            data = discover_tasks(args.workspace.resolve(),args.kind,args.pending)
+        elif args.action == 'inspect':
             data = inspect(args.workspace.resolve(), args.kind, args.id, args.view)
         else:
             client = TaskClient(args.workspace, args.session)

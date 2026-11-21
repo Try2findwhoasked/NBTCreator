@@ -50,6 +50,35 @@ class Retrieval(unittest.TestCase):
   document['enabled']=False;apply(self.root,dict(schema_version=1,enabled_groups=['core'],custom_knowledge=[document]))
   with self.assertRaisesRegex(ValueError,'重新检索'):external('read',**receipt)
   self.assertIsNone(external('search',query='zephyrquill')['receipt'])
+ def test_missing_external_document_is_reported_without_breaking_other_receipts(self):
+  from nbt_exposure import edit_knowledge, import_knowledge, show
+  notes=[]
+  for name in ('testazimuth','testmeridian'):
+   note=self.root/(name+'.md');note.write_text(name+' 是本地合成资料',encoding='utf8');notes.append(note)
+  documents=import_knowledge(self.root,notes)['custom_knowledge']
+  def external(action,**fields):
+   return dispatch(self.root,action,dict(workflow='prompt',source_kind='skill',**fields),audience='external_agent')
+  first=external('search',query='testazimuth')
+  second=external('search',query='testmeridian')
+  missing=documents[1]
+  (self.root/'.nbtcreator'/missing['path']).unlink()
+  lookup=external('search',query='testazimuth')
+  self.assertEqual(lookup['receipt'],first['receipt'])
+  self.assertEqual(lookup['knowledge_errors'][0]['id'],missing['id'])
+  self.assertIn('testazimuth',external('source',receipt=first['receipt'],ref='R1')['text'])
+  with self.assertRaisesRegex(ValueError,'testmeridian.*缺失'):
+   external('source',receipt=second['receipt'],ref='R1')
+  edit_knowledge(self.root,missing['id'],'disable')
+  self.assertEqual(external('search',query='testazimuth')['knowledge_errors'],[])
+  self.assertFalse(show(self.root)['custom_issues'][0]['enabled'])
+  import_knowledge(self.root,[notes[1]])
+  edit_knowledge(self.root,missing['id'],'enable')
+  self.assertIn('testmeridian',external('source',receipt=second['receipt'],ref='R1')['text'])
+  edit_knowledge(self.root,missing['id'],'remove')
+  with self.assertRaisesRegex(ValueError,'取消'):
+   external('source',receipt=second['receipt'],ref='R1')
+  self.assertTrue((self.root/'.nbtcreator'/missing['path']).is_file())
+
  def test_public_cli_supports_stdin_and_explains_file_argument(self):
   invocation=[sys.executable,'-B',str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_retrieval.py'),'search','--request']
   request=json.dumps(dict(workflow='prompt',query='zephyrquill',source_kind='library'))
@@ -57,6 +86,24 @@ class Retrieval(unittest.TestCase):
   self.assertEqual(success.returncode,0,success.stdout+success.stderr);self.assertIsNone(json.loads(success.stdout)['receipt'])
   error=subprocess.run([*invocation,request],cwd=self.root,capture_output=True,encoding='utf8')
   self.assertEqual(error.returncode,1);self.assertIn('JSON 文件路径',json.loads(error.stdout)['error'])
+ def test_long_task_can_use_explicit_keywords_for_books_and_offline_asset_candidates(self):
+  self.library('命中书库')
+  query='描述环境 '*90+' 放射式 玫瑰窗'
+  request=dict(workflow='prompt',query=query,source_kind='library')
+  first=dispatch(self.root,'search',request,audience='external_agent')
+  self.assertTrue(first['search_scope']['library_query_truncated'])
+  with patch('urllib.request.urlopen',side_effect=AssertionError('offline retrieval opened a network connection')):
+   found=dispatch(self.root,'search',dict(request,keywords='放射式 玫瑰窗',include_extension_assets=True),audience='external_agent')
+   stairs=dispatch(self.root,'search',dict(request,keywords='螺旋楼梯',include_extension_assets=True),audience='external_agent')
+  self.assertFalse(found['search_scope']['library_query_truncated'])
+  self.assertTrue(found['knowledge'])
+  self.assertTrue(stairs['extension_candidates'])
+  candidate=stairs['extension_candidates'][0]
+  self.assertEqual(candidate['review_status'],'pending_visual_review')
+  self.assertIn('sha256',candidate)
+  self.assertIsNone(stairs['receipt'])
+  with self.assertRaisesRegex(ValueError,'仅用于外部'):
+   dispatch(self.root,'search',dict(request,include_extension_assets=True))
  def test_search_suggests_actual_rotation_and_only_task_selected_references(self):
   result=self.call('search');self.assertEqual(result['assets'][0]['rotations'],[1]);self.assertEqual(result['assets'][0]['asset_id'],self.asset['id']);self.assertEqual(result['knowledge'][0]['label'],'桥梁规范');self.assertIn('桥下排水',result['knowledge'][0]['text']);self.assertEqual(self.call('search',size=[2,3,2])['assets'],[]);self.assertEqual(self.call('search',workflow='prompt')['knowledge'],[])
  def test_bundle_is_hash_bound_and_sends_citable_fragments_without_local_paths_or_voxels(self):

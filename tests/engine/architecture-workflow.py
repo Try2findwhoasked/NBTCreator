@@ -466,6 +466,21 @@ class ArchitectureWorkflow(unittest.TestCase):
             issues=[dict(id='pillar-review',layer='structure',part='left',positions=[[11,2,12]],text='Transport fixture; verify relocation only.',images=['beam'])])
         notes=dispatch(self.workspace,'review-record',request)
         self.assertFalse(notes['approval_created']);self.assertTrue(notes['coverage_complete'])
+        from nbt_prompts import save,publish
+        from nbt_task_client import TaskClient
+        prompt=save(self.workspace,dict(session_id='a'*32,document=dict(project=dict(stage='draft',name='三尺度证据',buildingShape='single')),
+            text='合成回传检查',plan=dict(operations=[]),context={}))
+        task=publish(self.workspace,prompt['index'],prompt['id'],prompt['revision'])
+        client=TaskClient(self.workspace,'architecture-review');client.start('prompts',task['id'],'fixture',60)
+        directory=(self.workspace/notes['path']).parent
+        meta=manifest.parent/'beam.json';original_metadata=meta.read_bytes();meta.write_bytes(original_metadata+b' ')
+        with self.assertRaisesRegex(ValueError,'图像证据'):client.change('complete',review=directory)
+        meta.write_bytes(original_metadata)
+        completed=client.change('complete',review=directory)['completion']
+        self.assertEqual(completed['acceptance'],'pending_user_review')
+        self.assertEqual(completed['evidence']['review_kind'],'architecture')
+        self.assertEqual(completed['evidence']['source_sha256'],file_hash(source))
+        self.assertEqual(completed['evidence']['game'],'not_checked')
         changed=plan();changed['parts'][2]['recipe']['arguments']['size'][1]=4;changed['parts'][2]['recipe']['arguments']['operations'][0]['hi'][1]=3
         new=dispatch(self.workspace,'plan-build',dict(plan=changed,source=source,source_sha256=file_hash(source),expected_plan_sha256=original['plan_sha256'],save_draft={}))
         self.assertEqual(notes['review_compare']['notes_sha256'],notes['sha256'])

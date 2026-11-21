@@ -42,17 +42,35 @@ export function initApiAssistant(hooks){
  let componentResult=null
  let immediate=false
  generatePreview.onclick=async()=>{immediate=true;try{await $('ai-generate').onclick()}finally{immediate=false}}
- const knowledge=document.createElement('section');knowledge.className='knowledge-config';knowledge.innerHTML='<h3>外部 Agent 的参考资料（只读）</h3><p class="muted">暂不在应用内修改 Skill 阅读范围。下方列出当前工作区已启用的资料；这些资料不会自动发送给内置 AI。</p><div id="knowledge-groups"></div><h4>已启用的自定义资料</h4><div id="custom-knowledge-list"></div><p id="knowledge-status" role="status"></p><p class="muted">入口：.agents/skills/nbtcreator-workspace/SKILL.md</p>'
+ const knowledge=document.createElement('section');knowledge.className='knowledge-config';knowledge.innerHTML='<h3>外部 Agent 的参考资料</h3><p class="muted">自定义资料供当前工作区的外部 Agent 读取。内置 API 的资料授权在「软件内的 AI」设置。</p><div class="ai-buttons"><button type="button" id="knowledge-import">导入资料</button><button type="button" id="knowledge-sync">重新同步助手入口</button><button type="button" id="knowledge-folder">打开配置目录</button></div><p id="knowledge-status" role="status"></p><h4>自定义资料</h4><div id="custom-knowledge-list"></div><div id="knowledge-groups"></div>'
  const entryPreview=document.createElement('button');entryPreview.type='button';entryPreview.textContent='查看助手使用说明';entryPreview.onclick=()=>previewKnowledge({scope:'external',entry:true});knowledge.prepend(entryPreview)
  dialog.querySelector('.ai-layout').append(knowledge)
  initInternalAISettings(dialog,knowledge)
+ async function editExternal(action,id){
+  try{await window.nbtDesktop.exposureEdit({action,id});await refreshKnowledge()}
+  catch(error){$('knowledge-status').textContent=error.message}
+ }
+ $('knowledge-import').onclick=()=>editExternal('import')
+ $('knowledge-sync').onclick=()=>editExternal('sync')
+ $('knowledge-folder').onclick=async()=>{try{const error=await window.nbtDesktop.settingsOpenFolder('config');if(error)$('knowledge-status').textContent=error}catch(error){$('knowledge-status').textContent=error.message}}
  async function refreshKnowledge(){
   if(!window.nbtDesktop?.exposureConfig){$('knowledge-status').textContent='查看对外资料需要 Electron 桌面版';return}
   try{
-   const config=await window.nbtDesktop.exposureConfig(),custom=(config.custom_knowledge??[]).filter(item=>item.enabled)
+   const config=await window.nbtDesktop.exposureConfig(),custom=config.custom_knowledge??[]
+   if(config.error)throw Error('检查配置目录下的 skill-exposure.json 后重新同步。'+config.error)
    const button=(label,input)=>{const item=document.createElement('button');item.type='button';item.textContent=label;item.onclick=()=>previewKnowledge({scope:'external',...input});return item}
-   $('custom-knowledge-list').replaceChildren(...custom.map(item=>button(item.label,{id:item.id})))
-   if(!custom.length)$('custom-knowledge-list').textContent='当前未启用自定义资料。'
+   const issues=new Map((config.custom_issues??[]).map(item=>[item.id,item.error]))
+   $('custom-knowledge-list').replaceChildren(...custom.map(item=>{
+    const row=document.createElement('article'),info=document.createElement('p'),actions=document.createElement('div')
+    const issue=issues.get(item.id)
+    row.className='knowledge-description';row.dataset.knowledgeId=item.id;actions.className='ai-buttons'
+    info.textContent=[item.label||item.id,item.enabled?'已启用':'已停用',issue&&item.path,issue].filter(Boolean).join(' · ')
+    const edit=(label,action)=>{const control=document.createElement('button');control.type='button';control.textContent=label;control.onclick=()=>editExternal(action,item.id);return control}
+    if(!issue)actions.append(button('查看正文',{id:item.id}))
+    if(item.enabled||!issue)actions.append(edit(item.enabled?'停用':'启用',item.enabled?'disable':'enable'))
+    actions.append(edit('移除登记','remove'));row.append(info,actions);return row
+   }))
+   if(!custom.length)$('custom-knowledge-list').textContent='当前没有自定义资料。'
    const groups=config.groups.filter(group=>config.enabled_groups.includes(group.id))
    $('knowledge-groups').replaceChildren(...groups.map(group=>{
     const card=document.createElement('article'),label=document.createElement('strong'),summary=document.createElement('p'),files=document.createElement('details'),heading=document.createElement('summary')
@@ -61,8 +79,8 @@ export function initApiAssistant(hooks){
     heading.textContent=`${group.files.length} 份文档 · 查看内容`;files.append(heading,...group.files.map(file=>button(file,{group:group.id,file})))
     card.append(label,summary,files);return card
    }))
-   $('knowledge-status').textContent=`助手可读取 ${groups.length} 类参考资料，使用 ${config.tool_count} 类工具`
-  }catch(error){$('knowledge-status').textContent=error.message}
+   $('knowledge-status').textContent=config.notice||`助手可读取 ${groups.length} 类参考资料，${issues.size} 份自定义资料待修复。`
+  }catch(error){$('custom-knowledge-list').replaceChildren();$('knowledge-groups').replaceChildren();$('knowledge-status').textContent=error.message}
  }
 
  let result=null,binding=null,running=false,generation=0
