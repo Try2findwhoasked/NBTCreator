@@ -29,6 +29,17 @@ test('deltas use the catalog schema for nullable mirrors and scalar-or-vector sc
   assert.deepEqual(validateWorkbench({summary:'调整',operation_patch:{baseline:base.baseline,changes:[{step:1,expected:base.steps[0].expected,set}]}},ctx).operations[0],{...op,...set})
  }
 })
+
+test('inserts cannot use catalogue authority fields or hide invalid geometry in disabled steps',()=>{
+ const ctx=cleanContext({project:{size:[12,12,12]},operations:[{...step,hi:[5,4,2]}]}),base=operationBase(ctx)
+ const stairs={kind:'auto_stairs',label:'楼梯',classification:'body',lo:[0,0,0],hi:[8,8,8],start:[1,1,1],end:[5,5,1],state:'stone_bricks'}
+ const insert=operation=>validateWorkbench({summary:'插入',operation_patch:{baseline:base.baseline,
+  changes:[{action:'insert',step:1,expected:base.steps[0].expected,position:'after',operation}]}},ctx)
+ assert.equal(insert(stairs).operations.length,2)
+ for(const extra of [{overwrite:true},{max_writes:32},{skip_protected:true}])assert.throws(()=>insert({...stairs,...extra}),/未开放字段/)
+ for(const op of [{...stairs,enabled:false,hi:[20,8,8]},{kind:'auto_stairs',label:'缺少坐标',classification:'body',enabled:false},
+  {kind:'beam',label:'越界',classification:'wall',start:[-1,0,0],end:[5,1,1],width:1,state:'stone',enabled:false}])assert.throws(()=>insert(op))
+})
 const controls=binding=>cleanContext({project:{name:'大厅',size:[48,24,48]},operations:Array.from({length:60},()=>structuredClone(step)),baseline_binding:binding,existing_model:true})
 function proposal(ctx,index=12,set={state:'andesite'}){const base=operationBase(ctx);return {summary:'只改墙面材质',operation_patch:{baseline:base.baseline,changes:[{step:index,expected:base.steps[index-1].expected,set}]}}}
 test('one-step deltas preserve the other 59 steps and input objects, and compare original fingerprints',()=>{

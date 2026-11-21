@@ -1,5 +1,6 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path')
-const scope=vm.createContext({NbtToolCatalog:require('../../.agents/skills/minecraft-nbt-modeler/tool-catalog.json'),crypto:require('node:crypto').webcrypto,TextEncoder});vm.runInContext(fs.readFileSync(path.join(__dirname,'../../.agents/skills/minecraft-nbt-modeler/prompt-console/ai-input.js'),'utf8'),scope)
+const scope=vm.createContext({NbtToolCatalog:require('../../.agents/skills/minecraft-nbt-modeler/tool-catalog.json'),crypto:require('node:crypto').webcrypto,TextEncoder,structuredClone})
+for(const file of ['operation-delta.cjs','ai-input.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../../.agents/skills/minecraft-nbt-modeler/prompt-console',file),'utf8'),scope)
 const {request}=scope.NbtPromptAIInput
 const box={kind:'box',label:'墙面',classification:'wall',state:'stone_bricks',lo:[2,1,2],hi:[20,8,2]}
 const design={project:{name:'大厅',size:[48,24,48],wall:'墙面分层',source:'private-path',budget:4096},operations:Array.from({length:60},()=>({...box}))}
