@@ -863,15 +863,18 @@ class WorkingModel:
             manifest = dict(schema_version=1, kind=self.kind, phase=self.phase, actor=actor, model_sha256=model_hash(self.model, self.walls),
                 parent_revision=self.parent_revision, parent_source=self.source.relative_to(self.workspace).as_posix() if self.source and self.source.is_relative_to(self.workspace / 'nbt_models') else None,
                 parent_source_sha256=self.source_sha256, engine_sha256=engine_hash(), files=files)
-            manifest['revision'] = digest(manifest)
-            target = building / ('v_model_' + manifest['revision'][:24])
-            write_json(stage / 'model-version.json', manifest)
-            write_json(stage / 'room_description.json', dict(schema_version=1, name_zh=name_zh, shape=shape, shape_zh=LABELS[shape],
-                display_name=name_zh + '-' + LABELS[shape], description_zh=name_zh + '-' + LABELS[shape],
-                master='master/model.snbt', master_file_sha256=files['master/model.snbt'], geometry_sha256=self.model.fingerprint(),
-                size=list(self.model.size), cells=self.context.get('cells', []), cell_size=self.context.get('cell_size',48), mode=self.context.get('mode'), context_file='coordinates.json',
-                status='authoring', model_revision=manifest['revision']))
             with publication(self.workspace,building,self.source,task_session,actor) as check_lease:
+                producer = check_lease()
+                if producer:
+                    manifest['agent_publication'] = producer
+                manifest['revision'] = digest(manifest)
+                target = building / ('v_model_' + manifest['revision'][:24])
+                write_json(stage / 'model-version.json', manifest)
+                write_json(stage / 'room_description.json', dict(schema_version=1, name_zh=name_zh, shape=shape, shape_zh=LABELS[shape],
+                    display_name=name_zh + '-' + LABELS[shape], description_zh=name_zh + '-' + LABELS[shape],
+                    master='master/model.snbt', master_file_sha256=files['master/model.snbt'], geometry_sha256=self.model.fingerprint(),
+                    size=list(self.model.size), cells=self.context.get('cells', []), cell_size=self.context.get('cell_size',48), mode=self.context.get('mode'), context_file='coordinates.json',
+                    status='authoring', model_revision=manifest['revision']))
                 self._unchanged()
                 head = self._read_head(building)
                 history_source = self._history_source(building)

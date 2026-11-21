@@ -541,9 +541,12 @@ def refine(review_dir,plan,output_dir,*,task_session=None,actor='external_agent'
         if task_session and workspace is None:raise ValueError('任务制作源必须位于工作区 nbt_models 内')
         guard=publication(workspace,project_paths(source)['workdir'],source,task_session,actor) if workspace else nullcontext(lambda: None)
         with guard as check_lease:
-            check_lease()
+            producer=check_lease()
             save_snbt(master,model,walls,palette=getattr(baseline,'_snbt_palette',None),extras=getattr(baseline,'_snbt_extras',None))
             write_json(out/'coordinates.json',config)
+            if producer:
+                from nbt_prompts import relative
+                write_json(out/'agent-publication.json',dict(publication=producer,source=relative(workspace,master),binding=source_binding(master)))
     final=dict(source_geometry_sha256=record['source_geometry_sha256'],refined_geometry_sha256=model.fingerprint(),
                approval_receipt_sha256=approval_hash,operations=summary,**difference,
                protected_cells=len(protected),validation_passed=True,master=str(master),

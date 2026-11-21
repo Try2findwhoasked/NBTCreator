@@ -275,7 +275,7 @@ def verify_for_return(workspace,review,expected):
     if file_hash(notes_file)!=expected or file_hash(file)!=notes['pack_sha256']:
         raise ValueError('审阅记录在回传核对期间变化')
     return dict(source=pack['source'],source_sha256=pack['source_sha256'],review=relative(workspace,review),
-                review_kind='architecture',review_sha256=expected,pack_sha256=notes['pack_sha256'],
+                review_kind='architecture',review_sha256=expected,pack_sha256=notes['pack_sha256'],plan_sha256=pack['plan_sha256'],
                 images={identifier:row['sha256'] for identifier,row in notes['images'].items()},
                 coverage_complete=notes['coverage_complete'],game='not_checked')
 

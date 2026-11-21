@@ -54,13 +54,22 @@ mise run nbt -- task-client --session room-a start prompts <任务ID> --owner <�
 mise run nbt -- task-client --session room-a status
 ```
 
-- 用 `task-client list --pending` 查找两类待领取任务，或用 `task --id <任务ID> --view compact` 自动识别类型。只读视图标记损坏的绑定附件，仍可显示其他已核验内容。看到 `next.action: stop` 时停止执行，已领取的原会话可释放。建筑的模型源仍匹配时，可用 `task-client inspect tasks <任务ID> --view candidates` 查找未登记的制作版。核对候选的源亲缘、版本和证据后再按新交接回传。
+- 用 `task-client list --pending` 查找两类待领取任务，或用 `task --id <任务ID> --view compact` 自动识别类型。只读视图标记损坏的绑定附件，仍可显示其他已核验内容。看到 `next.action: stop` 时停止执行，已领取的原会话可释放。即使原模型已丢失，`task-client inspect tasks <旧任务ID> --view candidates` 仍会列出该建筑下的未登记文件。找到文件后须能核对原模型、候选父链和当前目标任务的来源。亲缘缺失时，找回原修订，或从目标任务源重新派生。
 
 - 长任务可在另一终端运行 `task-client --session room-a keepalive`。它约每三分之一租期续租，正常完成或释放后退出。短任务可按需调用 `renew`。重启终端后还可用同一会话名继续续租，未到期的租约继续有效。
 - 初稿或精修提示词任务用 `task-client --session room-a complete --review <新制作版审阅目录>`，绑定完整制作源、验证记录和审阅图，仍待人工核对。只读计划用 `complete --summary <检查结果与未验证事项>`，不写制作版。发布同一方案的新修订会使未完成的旧任务及其租约失效。
 - 建筑方案已通过 `architect review-record` 登记三尺度实图和观察时，把含 `review-pack.json` 和 `review-notes.json` 的目录传给同一个 `complete --review` 命令。机器接口用 `review_kind: "architecture"`，并把 `review_sha256` 设为观察记录回执的哈希。回传会重核制作源、观察修订和图片；原有精修批准和游戏实测入口仍按各自流程执行。
 - 建筑修改任务用 `start tasks <任务ID> --owner <执行者>`；保存受管制作版时在 `save_draft` 中传入 `task_session`（Python 同名参数；精修命令用 `--task-session`）。在同一会话以 `complete --new-source <新版本SNBT> --summary <真实改动说明>` 回传。有逐条评论处理时加 `--comments <JSON文件>`。放弃时执行 `release`；如果回传后显示 `history_pending`，执行 `retry` 只补写历史，不重新回传模型。
 - 中断或响应不明时先 `status`。看到 `pending` 时用 `retry` 重放原编号及原参数。租约失效、源变化、修订冲突时重新读取当前任务，由执行者核对后决定下一步。客户端状态保存在本工作区 `nbt_models/_workspaces/agent_protocol/clients/`，活跃会话的状态文件含租约令牌，仅在本机保留。
+
+### 将未登记候选回传到新的修改任务
+
+目标任务应有当前的计划附件（`origins` 中的 `role=plan`）。有建筑方案的制作版用自己的三尺度审阅目录，目标任务的计划须与该制作版执行的方案一致。其他受管制作版可使用全景和入口缩略图，其计划哈希须与旧任务匹配，并通过 `--observations <工作区文件>` 提供 JSON 数组，每张缩略图对应一条含 `image_sha256` 和 `note` 的实际观察。
+
+1. 运行 `task-client check-candidate <目标任务ID> --from-task <旧ID> --new-source <制作源> --review <审阅目录>`，检查返回的两项任务、父版本、计划、制作源、图片和观察指纹。此步骤只读。
+2. 领取目标任务后，运行 `task-client --session <会话名> reuse-candidate --from-task <旧ID> --new-source <制作源> --review <审阅目录> --expected <上步 binding_sha256> --summary <实际改动>`。普通缩略图两次均带同一份观察。登记会重新核验全部证据，检查目标租约、fence 和修订，再返回待人工核对状态。机器接口使用 `tasks.revalidate` 和 `tasks.reuse`。
+
+通过任务会话保存的新版本会在本地留下任务编号、fence 和原稿哈希。普通回传只接收当前领取制作的受管版本。历史受管版本可凭父链、同一计划及候选自身的新鲜审阅核验后登记。早期工具产生的裸文件在有多个交接任务或多轮领取时缺少归属凭据，请从合法任务的原稿重新派生。
 
 ## 内置 AI 的并发
 
