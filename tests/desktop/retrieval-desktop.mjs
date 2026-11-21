@@ -81,6 +81,13 @@ try{
  const historical=await page.evaluate(async receipt=>(await fetch('/__detail__/retrieve/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({workflow:'prompt',...receipt})})).json(),mixedReceipt)
  assert.ok(historical.sources.some(item=>item.bibliography?.source_url==='https://example.org/rose'));checks.saved_web_is_available_offline_after_reopening_and_removal_preserves_citation=true
  await click('#reference-close')
+ await page.evaluate(()=>window.nbtReferencePicker.open({workflow:'selection_edit',query:'xzqwithoutmatch '.repeat(50)}))
+ await page.waitForFunction(()=>document.querySelector('#reference-status').textContent.includes('本范围没有已启用的书库'))
+ await page.getByRole('button',{name:'用描述第 1 字起的 300 字补查',exact:true}).evaluate(button=>button.click())
+ await page.getByRole('button',{name:'用描述第 301 字起的 300 字补查',exact:true}).waitFor()
+ assert.equal(onlineCalls.length,1);assert.equal(requests.length,5)
+ checks.empty_scope_shows_local_followup_without_model_or_network=true
+ await click('#reference-close')
  assert.equal(await hash(source),sourceHash);assert.deepEqual(errors,[]);assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized()),true);checks.source_preserved_and_window_minimized_without_renderer_errors=true
  await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks},null,2));console.log(JSON.stringify({passed:true,checks:Object.keys(checks).length,output}))
 }catch(error){if(page)console.error(JSON.stringify({output,status:await page.locator('#component-status').textContent().catch(()=>''),references:await page.locator('#reference-status').textContent().catch(()=>''),errors}));throw error}finally{await app?.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve))}
