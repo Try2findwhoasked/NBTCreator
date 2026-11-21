@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE = ROOT / '.agents/skills/minecraft-nbt-modeler'
@@ -153,7 +154,8 @@ class RenderRuntime(unittest.TestCase):
             registry.write_text(json.dumps(data),encoding='utf8')
             self.assertIn('registry version',str(recover('--rebind')['issues']))
             synchronized.write_text(json.dumps(dict(json.loads(original_sync),chromium='0.0.1')),encoding='utf8')
-            self.assertIn('requires Chromium 0.0.1',str(recover('--rebind')['issues']))
+            with patch.dict(env,DEBUG='pw:browser'):
+                self.assertIn('requires Chromium 0.0.1',str(recover('--rebind')['issues']))
             synchronized.write_bytes(original_sync)
             self.assertEqual(binding.read_bytes(),b'{truncated')
             registry.write_bytes(original_registry)

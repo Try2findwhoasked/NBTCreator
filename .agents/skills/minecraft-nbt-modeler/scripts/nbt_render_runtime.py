@@ -206,10 +206,15 @@ def probe(engine,env):
     node=env.get('NBTCREATOR_NODE') or shutil.which('node')
     if not node:raise RuntimeError('找不到 Node 或绑定的 Electron')
     module=(engine/'assets/viewer/browser-launch.mjs').as_uri()
-    script='import {probeRenderRuntime} from '+json.dumps(module)+'; try { console.log(JSON.stringify(await probeRenderRuntime())) } catch(e) {console.error(e.message);process.exitCode=1}'
+    script='import {probeRenderRuntime} from '+json.dumps(module)+'; try { console.log(JSON.stringify(await probeRenderRuntime())) } catch(e) {console.log(JSON.stringify({error:e.message}));process.exitCode=1}'
     run=subprocess.run([node,'--input-type=module','-e',script],env=env,encoding='utf8',errors='replace',
                        capture_output=True,timeout=22,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
-    if run.returncode:raise RuntimeError((run.stderr or '无法启动渲染执行文件').strip()[:1200])
+    if run.returncode:
+        # Playwright can emit verbose launch and shutdown traces on stderr.
+        # Keep the probe's version mismatch diagnostic in its JSON response.
+        try:message=json.loads(run.stdout)['error']
+        except (ValueError,KeyError,TypeError):message=run.stderr.strip()[-1200:]
+        raise RuntimeError((message or '无法启动渲染执行文件')[:1200])
     return dict(ready=True,node=node,playwright=env['NBTCREATOR_PLAYWRIGHT_MODULE'],**json.loads(run.stdout),
                 checked='headless launch and version; render verifies images')
 
