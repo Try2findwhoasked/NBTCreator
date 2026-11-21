@@ -7,7 +7,13 @@ function createWorkspaceApi({cancel,timeoutMs=5000}){
  function run(operation){
   if(paused)return Promise.reject(Error('正在切换工作区，请稍后再调用 API'))
   const token=epoch
-  const task=(async()=>{const result=await operation();check(token);return result})()
+  const task=(async()=>{
+   try{const result=await operation();check(token);return result}
+   catch(error){
+    if(paused||token!==epoch)throw Object.assign(stale(),{code:'AI_CANCELLED',retryable:false,api_metrics:error.api_metrics})
+    throw error
+   }
+  })()
   pending.add(task)
   return task.finally(()=>pending.delete(task))
  }

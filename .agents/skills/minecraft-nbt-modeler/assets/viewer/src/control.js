@@ -700,12 +700,14 @@ function schedulePreview(){
   $('preview-state').textContent='设置已改变，等待更新预览…'
   if($('auto-preview').checked&&state.info&&window.creatorWorkspace?.current()==='model')previewTimer=setTimeout(()=>{if(window.creatorWorkspace.current()==='model')updatePreview().catch(error=>{$('preview-state').textContent='预览失败：'+error.message})},(state.previewDelay??1400))
 }
-async function updatePreview(required=false){
+async function updatePreview(required=false,guard={}){
   await versionComparison?.close()
   if(!state.info)return
   if(state.commitBusy&&required!==true)return
   if(state.previewBusy||state.busy){if(required===true)throw Error('已有建模任务正在运行，本次未更新预览');if($('auto-preview').checked)previewTimer=setTimeout(()=>updatePreview().catch(error=>$('preview-state').textContent='预览失败：'+error.message),700);return}
   const revision=state.previewRevision,source=state.info.source,payload=request(),cancelEpoch=state.cancelEpoch??0
+  if(guard.policy)payload.expected_preview_policy=guard.policy
+  guard.check?.()
   state.previewBusy=true;window.dispatchEvent(new Event('creator-editor-state'));$('update-preview').disabled=true;$('preview-state').textContent='正在计算效果，仍可继续调参…'
   syncVersionReadonly()
   $('cancel').disabled=false
@@ -715,7 +717,8 @@ async function updatePreview(required=false){
     if(cancelEpoch!==(state.cancelEpoch??0)){await api('cancel',{});throw new DOMException('预览已取消','AbortError')}
     let job;do{await new Promise(resolve=>setTimeout(resolve,300));job=await api('jobs/'+submitted.id)}while(job.status==='running')
     if(job.status==='cancelled'||cancelEpoch!==(state.cancelEpoch??0))throw new DOMException('预览已取消，原稿保留','AbortError')
-    if(job.status!=='complete'){await protectionView?.conflict(job.error_details,job.error);throw new Error(job.error ?? '计算失败')}
+    guard.check?.()
+    if(job.status!=='complete'){await protectionView?.conflict(job.error_details,job.error);throw Object.assign(new Error(job.error ?? '计算失败'),{previewDetails:job.error_details})}
     if(revision!==state.previewRevision||source!==state.info?.source){if(required===true)throw Error('建筑或参数在计算期间改变，本次预览未采用');return}
     state.preview=job.result;state.previewSettings=JSON.stringify(payload.settings)
     await showComparison('after')
@@ -976,13 +979,13 @@ initModelPicker()
 function notifyAIComponent(restored=false){window.dispatchEvent(new CustomEvent('nbt-ai-component-state',{detail:{restored}}))}
 function currentAIGroup(){try{const group=state.lastAIGroup;return group&&group.source===state.info?.source&&group.source_sha256===state.info?.source_sha256&&aiGroupMatches(group,gather())?group:null}catch{return null}}
 function componentView(group){const frame=$('viewer');return aiComponentCamera(group.applied,group.camera,Math.max(1,frame.clientWidth)/Math.max(1,frame.clientHeight))}
-async function commitPreviewSettings(next,label){
+async function commitPreviewSettings(next,label,guard={}){
  const before=gather(),source=state.info?.source,sha=state.info?.source_sha256
  const oldViewer=$('viewer').contentWindow?.nbtModeler,old={preview:state.preview,settings:state.previewSettings,side:state.comparisonSide,id:state.viewerFeedbackId,source:state.viewerSource,snapshot:state.mode==='3d'&&oldViewer?.status==='ready'?oldViewer.snapshot:null,meta:state.mode==='3d'&&oldViewer?.status==='ready'?oldViewer.metadata():null}
  await api('prompt-export',{...request(),settings:next})
  if(source!==state.info?.source||sha!==state.info?.source_sha256||JSON.stringify(gather())!==JSON.stringify(before))throw Error('建筑或参数已改变，本次未应用')
  let staged=false
- try{restore(next);next=gather();staged=true;state.configChanged=true;state.bundle='';state.previewRevision++;clearTimeout(previewTimer);updateCount();await updatePreview(true);if(JSON.stringify(gather())!==JSON.stringify(next))throw Error('参数已改变，需重新更新预览');recordSettings(label)}
+ try{guard.check?.();restore(next);next=gather();staged=true;state.configChanged=true;state.bundle='';state.previewRevision++;clearTimeout(previewTimer);updateCount();await updatePreview(true,guard);guard.check?.();if(JSON.stringify(gather())!==JSON.stringify(next))throw Error('参数已改变，需重新更新预览');recordSettings(label)}
  catch(error){
   let unchanged=!staged;try{if(staged)unchanged=JSON.stringify(gather())===JSON.stringify(next)}catch{}
   if(source===state.info?.source&&sha===state.info?.source_sha256&&unchanged){
@@ -1023,7 +1026,7 @@ apiAssistant=initApiAssistant({
  archivePrompt:async(text,token)=>{const bound=JSON.parse(token);if(!bound.source)return null;if(bound.source!==state.info?.source||bound.source_sha256!==state.info?.source_sha256)throw Error('原建筑已切换，未把建议写入其他建筑');return api('prompt-save',{session_id:aiPromptArchiveId,text,document:{origin:'model_ai',source_sha256:bound.source_sha256,project:{name:modelName(),stage:'plan',source:bound.source,contextPath:$('context').value.trim(),size:state.info.size},operations:bound.settings.operations??[]},plan:{operations:bound.settings.operations??[]},context:{contextPath:$('context').value.trim()}})},
  captureViewport,isBusy:()=>state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring||state.transforming||state.versionComparing,
  context:()=>{const s=gather(),info=state.info;if(!info)return null;return {size:info.size,lo:s.whole_region?[0,0,0]:s.lo,hi:s.whole_region?info.size.map(v=>v-1):s.hi,materials:info.materials,allow_overwrite:$('ai-allow-overwrite')?.checked??false}},
- binding:()=>JSON.stringify({source:state.info?.source,source_sha256:state.info?.source_sha256,settings:gather()}),
+ binding:()=>JSON.stringify({source:state.info?.source,source_sha256:state.info?.source_sha256,context:$('context').value.trim(),cameras:$('cameras').value.trim(),settings:gather()}),
  componentState:()=>{const group=currentAIGroup();return group?{offset:group.offset??[0,0,0],quarter_turns:group.quarter_turns??0,size:state.info.size,base_bounds:aiBounds(group.base),bounds:aiBounds(group.applied),overwrite:group.overwrite,structure_name:group.structure_name??group.base[0].label,camera_details:componentView(group)}:null},
  focusComponent:async()=>{const group=currentAIGroup(),viewer=$('viewer').contentWindow?.nbtModeler;if(!group||state.busy||state.previewBusy||state.commitBusy||state.sessionRestoring||state.mode!=='3d'||viewer?.status!=='ready')throw Error('请先完成构件预览并打开3D');await viewer.setCamera(componentView(group));$('view-hint').textContent=(group.structure_name??group.base[0].label)+' · 构件观察视角';editSession?.schedule()},
  operationChoices:()=>{try{return gather().operations.map((op,index)=>({index,label:op.label,kind:op.kind}))}catch{return[]}},
@@ -1037,16 +1040,28 @@ apiAssistant=initApiAssistant({
  },
  apply:async(patch,options={})=>withPreviewCommit(async()=>{
   const before=gather(),next=structuredClone(before)
+  const commit=async label=>{
+   try{return await commitPreviewSettings(next,label,options.guard)}catch(error){
+    const detail=error.previewDetails
+    if(detail?.preview){
+     const active=patch.operations?.map((op,i)=>op.enabled!==false?i+1:null).filter(Boolean)??[]
+     const step=active[detail.preview.settings_step-before.operations.length-1]
+     if(step||options.mode==='structure'&&patch[detail.preview.panel])
+      error.targetFailure={...detail.preview,kind:detail.kind,positions:detail.positions?.slice(0,8)??[],step}
+    }
+    throw error
+   }
+  }
   if(options.mode==='selection_edit'){
    if(state.previewSettings!==JSON.stringify(before)||state.preview?.geometry_sha256!==patch.baseline_geometry_sha256)throw Error('本次编辑参考的候选已变化，请重新生成')
    const compiled=await api('selection-edit/compile',{snapshot_key:state.preview.model_key,request:{source:state.info.source,source_sha256:state.info.source_sha256,geometry_sha256:patch.baseline_geometry_sha256,lo:patch.lo,hi:patch.hi,operations:patch.operations.filter(op=>op.enabled!==false),allow_overwrite:!!options.overwrite}})
-   next.operations.push(...compiled.operations);await commitPreviewSettings(next,'AI选区编辑：'+(options.summary??'自然语言工具步骤'));state.lastAIGroup=null;notifyAIComponent();return
+   next.operations.push(...compiled.operations);await commit('AI选区编辑：'+(options.summary??'自然语言工具步骤'));state.lastAIGroup=null;notifyAIComponent();return
   }
   if(patch.operations){const write_group=crypto.randomUUID(),operations=patch.operations.map(op=>({...structuredClone(op),overwrite:!!options.overwrite,skip_protected:options.mode==='small_structure'&&!!options.skipProtected,write_group}));next.operations.push(...operations);updateComponentRange(next,patch)
    const presentation=options.presentation??{}
-   await commitPreviewSettings(next,'AI：'+(presentation.structure_name||operations[0]?.label||'局部结构调整'))
+   await commit('AI：'+(presentation.structure_name||operations[0]?.label||'局部结构调整'))
    state.lastAIGroup={source:state.info.source,source_sha256:state.info.source_sha256,start:next.operations.length-operations.length,base:structuredClone(operations),applied:structuredClone(operations),offset:[0,0,0],overwrite:!!options.overwrite,...(presentation.structure_name?{structure_name:presentation.structure_name}:{}),...(presentation.camera?{camera:structuredClone(presentation.camera)}:{})};notifyAIComponent();editSession?.schedule()
-  }else{next.whole_region=false;next.lo=patch.lo;next.hi=patch.hi;next.structure={...next.structure,enabled:false,...patch.structure};next.replace={...next.replace,enabled:false,...patch.replace};await commitPreviewSettings(next,'AI：局部结构调整')}
+  }else{next.whole_region=false;next.lo=patch.lo;next.hi=patch.hi;next.structure={...next.structure,enabled:false,...patch.structure};next.replace={...next.replace,enabled:false,...patch.replace};await commit('AI：局部结构调整')}
  }),
  moveComponent:moveRecentAI
 })

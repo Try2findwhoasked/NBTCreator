@@ -747,29 +747,40 @@ def simulate_plan(model, walls, plan, config):
     from nbt_patterns import pattern_plan
     from nbt_weathering import weathering_plan
     from nbt_floors import auto_floor_plan
+    from nbt_model import AIR_NAMES
     walls=set(walls);source_walls=set(walls)
     virtual=Volume(model.size);virtual.blocks=dict(model.blocks);protected=protections(virtual,config)
     write_owners={};written_positions=0
-    for operation in plan['operations']:
+    for number, operation in enumerate(plan['operations'], 1):
         from nbt_operation_scope import scoped_operation,enforce_scope
         operation,bounds=scoped_operation(operation,model.size)
-        if operation['kind']=='pattern': edits,_=pattern_plan(virtual,operation,protected)
-        elif operation['kind']=='weathering': edits,_=weathering_plan(virtual,operation,protected)
-        elif operation['kind']=='auto_floor': edits,_=auto_floor_plan(virtual,operation,config,protected)
-        else: edits=operation_candidates(virtual,operation,protected)
-        written_positions+=len(edits)
-        if 'max_written_positions' in config and written_positions>config['max_written_positions']:
-            raise ValueError('操作写入量超过上限')
         from nbt_change_policy import enforce_overwrite, clip_protected
-        operation=enforce_scope(bounds,operation,edits)
-        edits=clip_protected(operation,edits,protected)
-        enforce_overwrite(virtual,walls,operation,edits,write_owners)
+        try:
+            if operation['kind']=='pattern': edits,_=pattern_plan(virtual,operation,protected)
+            elif operation['kind']=='weathering': edits,_=weathering_plan(virtual,operation,protected)
+            elif operation['kind']=='auto_floor': edits,_=auto_floor_plan(virtual,operation,config,protected)
+            else: edits=operation_candidates(virtual,operation,protected)
+            written_positions+=len(edits)
+            if 'max_written_positions' in config and written_positions>config['max_written_positions']:
+                raise ValueError('操作写入量超过上限')
+            operation=enforce_scope(bounds,operation,edits)
+            edits=clip_protected(operation,edits,protected)
+            enforce_overwrite(virtual,walls,operation,edits,write_owners)
+        except ValueError as failure:
+            if not hasattr(failure,'details'):failure.details=dict(kind='target_geometry',positions=[])
+            failure.details['plan_step']=number
+            raise
         outside=[p for p,value in edits if not virtual.in_bounds(p)]
         if outside:raise ValueError(f'步骤“{operation.get("label",operation["kind"])}”超出建筑边界：{outside[:8]}，建筑尺寸为{virtual.size}。请调整构件位置。')
-        conflicts=[p for p,value in edits if p in protected and virtual.get(p)!=value]
+        classification=operation.get('classification','inherit')
+        conflicts=[p for p,value in edits if p in protected and
+                   (virtual.get(p)!=value or (value not in AIR_NAMES and
+                    (classification=='wall' and p not in walls or classification=='body' and p in walls)))]
         if conflicts:
             from nbt_protection_view import ProtectionConflict
-            raise ProtectionConflict(operation.get('label',operation['kind']),conflicts)
+            failure=ProtectionConflict(operation.get('label',operation['kind']),conflicts)
+            failure.details['plan_step']=number
+            raise failure
         moved_walls={tuple(p[i]+operation['offset'][i] for i in range(3)) for p in walls if all(operation['lo'][i]<=p[i]<=operation['hi'][i] for i in range(3))} if operation['kind']=='move_region' else set()
         virtual.put_many(edits)
         for position,value in edits:
@@ -822,7 +833,25 @@ def preview_effect(request, output):
     model,walls=read_master(source);settings=request['settings'];plan=compile_plan(settings,model.size)
     config=authoring_context(request,model,settings,preview_only=True)
     walls=resolve_wall_mask(model,walls,config);source_walls=set(walls)
-    virtual,walls,difference=simulate_plan(model,walls,plan,config)
+    policy=canonical(dict(source=baseline,mask=mask_hash,context=context_hash,saved_context=source_context_hash,
+                          config=config))
+    if request.get('expected_preview_policy') not in (None,policy):
+        raise ValueError('原建筑、保护配置或实际预算已变化，请重新生成候选')
+    try:
+        virtual,walls,difference=simulate_plan(model,walls,plan,config)
+    except ValueError as failure:
+        detail=getattr(failure,'details',{})
+        if 'plan_step' in detail:
+            active=[i for i,op in enumerate(settings.get('operations',[]),1) if op.get('enabled',True)]
+            slot=detail['plan_step']-(len(plan['operations'])-len(active))-1
+            detail['preview']=dict(source_sha256=baseline,settings_sha256=canonical(settings),
+                                   policy_sha256=policy,max_changed_blocks=config['max_changed_blocks'],
+                                   settings_step=active[slot] if 0<=slot<len(active) else None)
+            if slot<0:
+                label=plan['operations'][detail['plan_step']-1]['label']
+                if label.startswith('网页局部结构编辑：'):detail['preview']['panel']='structure'
+                elif label=='面板：精确换块':detail['preview']['panel']='replace'
+        raise
     changed=difference['changed_blocks']
     output=reserve_output(output)
     def snapshot(current,mask):

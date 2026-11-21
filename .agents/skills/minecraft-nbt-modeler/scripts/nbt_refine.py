@@ -356,7 +356,9 @@ def operation_candidates(model,operation,protected=()):
         if type(operation['overwrite']) is not bool:raise ValueError('覆盖现有方块须为布尔开关')
         if not operation['overwrite']:
             occupied=[p for p,value in writable if model.get(p) not in AIR_NAMES and model.get(p)!=value]
-            if occupied:raise ValueError('目标位置已有方块；移动构件，或勾选“允许AI构件覆盖现有方块”：'+str(occupied[:8]))
+            if occupied:
+                from nbt_change_policy import WriteConflict
+                raise WriteConflict('目标位置已有方块；移动构件，或勾选“允许AI构件覆盖现有方块”：'+str(occupied[:8]), 'occupied', occupied)
     return candidates
 
 
@@ -380,7 +382,9 @@ def _operation_candidates(model,operation,protected=()):
         for p in sorted(source):
             target=tuple(p[i]+delta[i] for i in range(3))
             if not model.in_bounds(target):raise ValueError('移动目标超出建筑边界')
-            if target not in source and model.get(target) not in AIR_NAMES and model.get(p) not in AIR_NAMES:raise ValueError('移动目标已有方块，请先腾空目标区域')
+            if target not in source and model.get(target) not in AIR_NAMES and model.get(p) not in AIR_NAMES:
+                from nbt_change_policy import WriteConflict
+                raise WriteConflict('移动目标已有方块，请先腾空目标区域','occupied',[target])
             if model.get(p) not in AIR_NAMES:edits[target]=model.get(p)
         return sorted(edits.items())
     if kind=='hollow_box':

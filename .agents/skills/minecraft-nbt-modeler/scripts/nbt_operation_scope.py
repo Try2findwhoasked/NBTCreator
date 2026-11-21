@@ -11,5 +11,8 @@ def scoped_operation(operation,size):
 def enforce_scope(bounds,operation,edits):
     if bounds is None:return operation
     outside=[p for p,value in edits if any(p[i]<bounds['lo'][i] or p[i]>bounds['hi'][i] for i in range(3))]
-    if outside:raise ValueError('步骤“'+operation.get('label',operation['kind'])+'”实际写入超出限定选区：'+str(outside[:8]))
+    if outside:
+        from nbt_change_policy import WriteConflict
+        raise WriteConflict('步骤“'+operation.get('label',operation['kind'])+'”实际写入超出限定选区：'+str(outside[:8]),
+                            'outside_selection', outside)
     return dict(operation,overwrite=bounds['allow_overwrite'])

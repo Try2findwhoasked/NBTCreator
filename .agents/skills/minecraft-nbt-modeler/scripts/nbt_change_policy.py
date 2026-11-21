@@ -4,6 +4,12 @@ from nbt_model import AIR_NAMES
 import re
 
 
+class WriteConflict(ValueError):
+    def __init__(self, message, kind, positions):
+        super().__init__(message)
+        self.details = dict(kind=kind, positions=[list(p) for p in positions[:8]], total=len(positions))
+
+
 def enforce_overwrite(model, walls, operation, edits, owners):
     """A new component may layer its own writes, but cannot claim old solids."""
     group=operation.get('write_group')
@@ -24,8 +30,9 @@ def enforce_overwrite(model, walls, operation, edits, owners):
         own=group is not None and owners.get(p)==group
         if limited and not overwrite and solid and changes and not own:
             label = operation.get('label') or operation['kind']
-            raise ValueError(f'步骤“{label}”({operation["kind"]}) 在 {p} 遇到已有方块或墙层。'
-                             '请移动构件，或在确需覆盖时为该步骤设置 overwrite: true。')
+            raise WriteConflict(f'步骤“{label}”({operation["kind"]}) 在 {p} 遇到已有方块或墙层。'
+                                '请移动构件，或在确需覆盖时为该步骤设置 overwrite: true。',
+                                'occupied', [p])
         owner = group if group and (not solid or overwrite or own) else None
         if recolour and not limited:
             owner = owners.get(p)

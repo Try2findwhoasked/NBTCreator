@@ -9,6 +9,95 @@ test('internal skill replaces repeated built-in workflow prose while retaining u
  try{await api.save({enabled:true});await api.generate({mode:'structure',instruction:'添加柱子',context});const sent=JSON.stringify(payload);assert.ok(!sent.includes('REDUNDANT_'));for(const text of ['USER_CUSTOM_RULE','USER_INSTRUCTION','USER_SELECTED_KNOWLEDGE'])assert.ok(sent.includes(text));assert.ok(payload.messages[0].content.includes('settings_patch'));assert.equal(payload.response_format.type,'json_object')}finally{await fs.rm(directory,{recursive:true,force:true})}
 })
 async function service(fetchImpl){const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-api-'));return {directory,api:createApiService({directory,safeStorage:storage,fetchImpl}),close:()=>fs.rm(directory,{recursive:true,force:true})}}
+
+function repairInput(){
+ const op=(label,x)=>({kind:'box',label,classification:'body',lo:[x,0,0],hi:[x,0,0],state:'stone'})
+ const candidate={summary:'局部构件',coordinate_space:'local',settings_patch:{lo:[0,0,0],hi:[5,5,5],operations:[op('保留的本地步骤',0),op('待修步骤',1)]}}
+ const issue={kind:'occupied',step:2,lo:context.lo,hi:context.hi,positions:[[1,0,0]],source_sha256:'a'.repeat(64),policy_sha256:'b'.repeat(64),settings_sha256:'c'.repeat(64),max_changed_blocks:32,allow_overwrite:false,skip_protected:false}
+ return {mode:'small_structure',instruction:'处理局部构件',context,preview_repair:{candidate,issue}}
+}
+test('target repair preserves other steps, rejects stale bindings, permission edits and truncated replies in both formats',async t=>{
+ const input=repairInput(),operation={...input.preview_repair.candidate.settings_patch.operations[1],lo:[3,0,0],hi:[3,0,0]}
+ let reply={step:2,operation},reason='stop',calls=0
+ const s=await service(async(_,options)=>{
+  calls++;const payload=JSON.parse(options.body),sent=JSON.parse(payload.messages[1].content)
+  assert.equal(sent.preview_failure.step,2);assert.deepEqual(sent.preview_failure.positions,[[1,0,0]])
+  assert.ok(!options.body.includes('保留的本地步骤'));assert.ok(!options.body.includes('policy_sha256'))
+  return new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(reply)},finish_reason:reason}]}))
+ });t.after(s.close)
+ for(const strictSchema of [false,true]){
+  await s.api.save({enabled:true,provider:'compatible',strictSchema})
+  const out=await s.api.generate(input);assert.deepEqual(out.settings_patch.operations.map(op=>op.lo),[[8,4,8],[11,4,8]])
+  const before=calls
+  const stale=structuredClone(input);stale.preview_repair.issue.allow_overwrite=true;await assert.rejects(s.api.generate(stale),/绑定无效/);assert.equal(calls,before)
+  for(const edit of [{...operation,overwrite:true},{...operation,lo:[8,0,0],hi:[8,0,0]}]){
+   reply={step:2,operation:edit};await assert.rejects(s.api.generate(input))
+  }
+  reply={step:2,operation};reason='length'
+  await assert.rejects(s.api.generate(input),/长度上限/)
+  reason='stop'
+ }
+})
+
+test('per-attempt timeout, total deadline and workspace cancellation stop late repair replies',async t=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-repair-clock-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}))
+ let hanging=false,late,validated=0;const input=repairInput(),reply={step:2,operation:input.preview_repair.candidate.settings_patch.operations[1]}
+ const api=createApiService({directory,safeStorage:{},validateCandidate:async()=>{validated++;if(hanging)await new Promise(resolve=>{late=resolve})},
+  fetchImpl:async(_,opts)=>hanging?new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(reply)},finish_reason:'stop'}]})):
+   new Promise((_,reject)=>opts.signal.addEventListener('abort',()=>reject(new DOMException('cancel','AbortError'))))})
+ await api.save({enabled:true,timeoutMs:5000});t.mock.timers.enable({apis:['setTimeout']})
+ const tick=()=>new Promise(resolve=>setImmediate(resolve))
+ const one=assert.rejects(api.generate(input),{code:'AI_TIMEOUT'});await tick();t.mock.timers.tick(5000);await one
+ hanging=true
+ const two=assert.rejects(api.generate(input),{code:'AI_TIMEOUT'});await tick();t.mock.timers.tick(10001);await two;late();await tick()
+ const three=assert.rejects(api.generate(input),{code:'AI_CANCELLED'});await tick();api.cancel();await three;late();await tick()
+ assert.equal(validated,2);assert.equal(api.state().running,0)
+})
+
+test('per-request and cumulative wire limits stop oversized repair retries before transport',async t=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-repair-body-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}))
+ let length=4200000,calls=0
+ const api=createApiService({directory,safeStorage:{},workflowContext:async()=>({rules:'a'.repeat(length)}),
+  fetchImpl:async()=>{calls++;return new Response(JSON.stringify({choices:[{message:{content:'{}'},finish_reason:'stop'}]}))}})
+ await api.save({enabled:true})
+ await assert.rejects(api.generate(repairInput()),/体积超过/);assert.equal(calls,0)
+ length=3000000;await assert.rejects(api.generate(repairInput()),/体积超过/);assert.equal(calls,2)
+})
+test('late repair response cannot enter the next workspace or reach its validator',async t=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-target-switch-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}))
+ const {createWorkspaceApi}=require('../../desktop/workspace-api.cjs')
+ let finish,entered,count=0;const waiting=new Promise(resolve=>{entered=resolve})
+ const api=createApiService({directory,safeStorage:{},validateCandidate:async()=>{count++},
+  fetchImpl:()=>new Promise(resolve=>{finish=resolve;entered()})})
+ await api.save({enabled:true})
+ const lifecycle=createWorkspaceApi({cancel:()=>api.cancel()}),input=repairInput()
+ const old=assert.rejects(lifecycle.run(()=>api.generate(input)),/工作区已切换/)
+ await waiting;await lifecycle.suspend();lifecycle.resume();await old
+ finish(new Response(JSON.stringify({choices:[{message:{content:JSON.stringify({step:2,operation:input.preview_repair.candidate.settings_patch.operations[1]})},finish_reason:'stop'}]})))
+ await new Promise(resolve=>setImmediate(resolve))
+ assert.equal(count,0);assert.equal(await lifecycle.run(async()=>'fresh'),'fresh')
+})
+test('selection and structure repairs preserve unmodified steps and freeze the original edit area',async t=>{
+ let reply
+ const s=await service(async()=>new Response(JSON.stringify({choices:[{message:{content:JSON.stringify(reply)},finish_reason:'stop'}]})));t.after(s.close)
+ await s.api.save({enabled:true})
+ const input=repairInput(),issue=input.preview_repair.issue
+ const selection={schema_version:1,geometry_sha256:'d'.repeat(64),size:[8,7,8],air_omitted:true,palette:[],solid_blocks:0,runs:[]}
+ const candidate={summary:'两块',coordinate_space:'local',operations:input.preview_repair.candidate.settings_patch.operations}
+ const edit={...input,mode:'selection_edit',context:{...context,selection,allow_overwrite:false},
+  preview_repair:{candidate,issue:{...issue,kind:'outside_selection',crossed_faces:['+x'],geometry_sha256:selection.geometry_sha256}}}
+ reply={step:2,operation:{...candidate.operations[1],state:'andesite'}}
+ const updated=await s.api.generate(edit);assert.deepEqual(updated.settings_patch.operations[0],candidate.operations[0]);assert.equal(updated.settings_patch.operations[1].state,'andesite')
+ edit.preview_repair.issue.geometry_sha256='1'.repeat(64)
+ await assert.rejects(s.api.generate(edit),/绑定无效/)
+ const {lo,hi,structure}=result.settings_patch,replace={enabled:true,from_states:['stone'],state:'gold_block',scope:'volume'}
+ const panel={...input,mode:'structure',preview_repair:{candidate:{...result,settings_patch:{lo,hi,structure,replace}},
+  issue:{...issue,step:undefined,panel:'structure',kind:'protection_conflict'}}}
+ reply={lo,hi,structure:{...structure,state:'andesite'}}
+ assert.deepEqual((await s.api.generate(panel)).settings_patch.replace,replace)
+ reply={...reply,hi:[11,7,10]};await assert.rejects(s.api.generate(panel),/扩大原候选选区/)
+ reply={...reply,hi:[10,6,10]};await assert.rejects(s.api.generate(panel),/其他面板/)
+})
 test('disabled configuration never performs network calls',async()=>{let calls=0;const s=await service(async()=>{calls++});try{await s.api.load();await assert.rejects(s.api.models(),/关闭/);assert.equal(calls,0)}finally{await s.close()}})
 test('encrypted key retained but never returned; explicit deletion',async()=>{const s=await service();try{await s.api.save({key:'mock-secret',enabled:true});assert.equal((await s.api.load()).hasKey,true);assert.ok(!(await fs.readFile(path.join(s.directory,'api-settings.json'),'utf8')).includes('mock-secret'));await s.api.save({enabled:false});assert.equal(s.api.publicConfig().hasKey,true);await s.api.save({clearKey:true});assert.equal(s.api.publicConfig().hasKey,false)}finally{await s.close()}})
 test('prompt request only transmits reduced context and model headers',async()=>{let body;const s=await service(async(_url,opts)=>{body=JSON.parse(opts.body);assert.equal(opts.headers.Authorization,'Bearer mock-secret');return new Response(JSON.stringify({choices:[{message:{content:'建模提示词正文'},finish_reason:'stop'}]}))});try{await s.api.save({enabled:true,key:'mock-secret'});const r=await s.api.generate({mode:'prompt',instruction:'设计石柱',context:{...context,source:'private-path',blocks:['do not send']}});assert.equal(r.text,'建模提示词正文');assert.ok(!JSON.stringify(body).includes('private-path'));assert.ok(!JSON.stringify(body).includes('do not send'))}finally{await s.close()}})
