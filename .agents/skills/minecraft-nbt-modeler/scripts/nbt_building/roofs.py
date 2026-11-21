@@ -4,6 +4,39 @@ from nbt_model import AIR_NAMES,state
 from nbt_placement import finish_plan
 
 
+def roof_bounds(op):
+    lo, hi = op['lo'], op['hi']
+    (x0, z0), (x1, z1) = op.get('footprint', [[lo[0], lo[2]], [hi[0], hi[2]]])
+    eaves = op.get('eaves', 0)
+    return x0-eaves, z0-eaves, x1+eaves, z1+eaves
+
+
+def roof_surface(op):
+    """Top height at a plan cell, shared by the generator and design checks."""
+    x0,z0,x1,z1=roof_bounds(op)
+    cx,cz=(x0+x1+1)/2,(z0+z1+1)/2;rx,rz=(x1-x0+1)/2,(z1-z0+1)/2
+    kind=op.get('roof','gable');axis=op.get('ridge_axis','z');rise=op.get('rise',4)
+    floor=op['lo'][1]+1;scale=2 if op.get('finish','slabs')=='slabs' else 1
+    power=op.get('curve_power',2);lift=op.get('eave_lift',0);corner=op.get('corner_lift',0)
+    bf,bh=op.get('break_fraction',.5),op.get('break_height',.75)
+    def top(x,z):
+        nx,nz=abs((x+.5-cx)/rx),abs((z+.5-cz)/rz)
+        if kind=='curved_hip':
+            nx,nz=abs((x+.5-cx)/(rx-.5)),abs((z+.5-cz)/(rz-.5))
+            edge=max(nx,nz)
+            height=floor+rise*(1-edge)**power+lift*edge**4+corner*(nx*nz)**4
+        elif kind=='dome':
+            distance=nx*nx+nz*nz
+            if distance>1:return None
+            height=floor+rise*math.sqrt(max(0,1-distance))
+        else:
+            t=1-(max(nx,nz) if kind=='hip' else nx if axis=='z' else nz)
+            if kind=='gambrel':t=t/bf*bh if t<=bf else bh+(t-bf)/(1-bf)*(1-bh)
+            height=floor+rise*t
+        return math.ceil(height*scale)/scale
+    return top
+
+
 def roof_plan(model,op,protected=()):
     from nbt_tools import xyz
     from nbt_registry import effective
@@ -37,29 +70,10 @@ def roof_plan(model,op,protected=()):
     if not stair_name.endswith('_stairs'):raise ValueError('Roof stair material must be stairs')
     bf=op.get('break_fraction',.5);bh=op.get('break_height',.75)
     if any(type(v) not in (int,float) or not math.isfinite(v) or not 0<v<1 for v in (bf,bh)):raise ValueError('Gambrel break parameters must be (0,1)')
-    cx,cz=(x0+x1+1)/2,(z0+z1+1)/2;rx,rz=(x1-x0+1)/2,(z1-z0+1)/2
-    tops={}
-    for x in range(x0,x1+1):
-        for z in range(z0,z1+1):
-            nx,nz=abs((x+.5-cx)/rx),abs((z+.5-cz)/rz)
-            if kind == 'curved_hip':
-                # Normalize to the actual outer column centres. Edge lift and
-                # corner lift taper into the same continuous surface.
-                nx, nz = abs((x+.5-cx)/(rx-.5)), abs((z+.5-cz)/(rz-.5))
-                edge = max(nx, nz)
-                height = lo[1] + 1 + rise * (1-edge)**curve_power
-                height += eave_lift * edge**4 + corner_lift * (nx*nz)**4
-                tops[x,z] = math.ceil(height) if finish in ('blocks','stairs') else math.ceil(height*2)/2
-                continue
-            if kind=='dome':
-                d=nx*nx+nz*nz
-                if d>1:continue
-                t=math.sqrt(max(0,1-d))
-            else:
-                t=1-(max(nx,nz) if kind=='hip' else nx if axis=='z' else nz)
-                if kind=='gambrel':t=t/bf*bh if t<=bf else bh+(t-bf)/(1-bf)*(1-bh)
-            height=lo[1]+1+rise*t
-            tops[x,z]=math.ceil(height) if finish in ('blocks','stairs') else math.ceil(height*2)/2
+    cx,cz=(x0+x1+1)/2,(z0+z1+1)/2
+    top_at=roof_surface(op)
+    tops={(x,z):height for x in range(x0,x1+1) for z in range(z0,z1+1)
+          if (height:=top_at(x,z)) is not None}
     edits={};directions=[('north',0,-1),('east',1,0),('south',0,1),('west',-1,0)]
     for (x,z),top in tops.items():
         y=math.ceil(top)-1;value=cube if top==int(top) else slab

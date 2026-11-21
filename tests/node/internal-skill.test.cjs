@@ -43,22 +43,32 @@ test('natural roof and stair requests discover only their relevant tools and pre
  assert.ok(!selectTools('做个歇山顶').includes('geometry'))
  assert.ok(selectTools('螺旋梯').includes('auto_stairs'))
  assert.ok(selectTools('盘旋楼梯').includes('auto_stairs'))
+ assert.ok(selectTools('做一座九脊殿').includes('auto_roof'))
+ assert.ok(selectTools('回旋式阶梯').includes('auto_stairs'))
+ assert.ok(selectTools('把这段平移构件').includes('move_region'))
+ assert.ok(!selectTools('旋转楼梯').includes('transform_region'))
+ assert.ok(!selectTools('旋转楼梯').includes('array_region'))
  assert.match(buildInternalPrompt('component',{}, {instruction:'做个歇山顶'}),/组合/)
  assert.deepEqual(requiredRoutes('拆除螺旋楼梯。不要做歇山顶。'),[])
+ assert.deepEqual(requiredRoutes('做个像螺旋梯的雕塑'),[])
+ const specified=requiredRoutes('制作旋梯，半径4格、宽2格，绕2圈')
+ assert.deepEqual(specified[0].parameters,{radius:4,width:2,turns:2})
+ assert.throws(()=>checkDesignRoutes(specified,'component',{},[{kind:'auto_stairs',mode:'spiral',radius:4,width:2}]),/尚未表达/)
  assert.throws(()=>checkDesignRoutes(requiredRoutes('螺旋梯'),'small_structure',{}),{code:'AI_DESIGN_ROUTE_REQUIRED'})
  assert.throws(()=>checkDesignRoutes(requiredRoutes('做个歇山顶'),'component',{},[{kind:'auto_roof',roof:'hip'}]),/尚未表达/)
  checkDesignRoutes(requiredRoutes('做个歇山顶'),'component',{},[{kind:'auto_roof',roof:'hip'},{kind:'auto_roof',roof:'gable'}])
  const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path')
  const {createApiService}=require('../../desktop/api-service.cjs')
  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-route-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}))
- let calls=0
+ let calls=0,checked=[]
  const spiral={kind:'auto_stairs',mode:'spiral',lo:[0,0,0],hi:[15,15,15],centre:[8,1,8],start:[5,1,5],end:[5,6,5],radius:3,turns:1}
  const box={kind:'box',lo:[0,0,0],hi:[0,1,0],state:'stone'}
- const api=createApiService({directory,safeStorage:{},fetchImpl:async()=>new Response(JSON.stringify({choices:[{finish_reason:'stop',
+ const api=createApiService({directory,safeStorage:{},validateCandidate:async input=>{checked=input.context.required_designs},fetchImpl:async()=>new Response(JSON.stringify({choices:[{finish_reason:'stop',
   message:{content:JSON.stringify({operations:[++calls===1?box:spiral]})}}]}))})
  await api.save({enabled:true})
  const result=await api.generate({mode:'component',instruction:'螺旋梯',context:{name:'螺旋梯',size:[16,16,16]}})
  assert.equal(result.spec.operations[0].mode,'spiral')
+ assert.deepEqual(checked,['spiral_stair'])
  assert.equal(result.api_metrics.calls[0].validation_issue.code,'required_design_missing')
 })
 

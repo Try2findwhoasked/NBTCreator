@@ -93,7 +93,7 @@ function localSmallStructure(result,context){
  for(const op of p.operations)for(const key of ['lo','hi','start','end'])if(op[key])op[key]=op[key].map((v,i)=>v+context.lo[i])
  return {...validateSmallStructure(translated,context),structure_name:result.structure_name,camera:result.camera}
 }
-function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext=async()=>null,captureWorkflowContext,validateCandidate=async()=>{}}){
+function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext=async()=>null,captureWorkflowContext,validateCandidate:validateLocal=async()=>{}}){
  const file=path.join(directory,'api-settings.json');let config={...defaults},encrypted=null,modelBusy=false,saving=false;const transports=new Set(),scheduler=createAiScheduler({limit:()=>config.maxConcurrent})
  async function load(){if(scheduler.size||modelBusy||saving)return publicConfig();try{const saved=JSON.parse(await fs.readFile(file,'utf8'));config=configOf(saved.config);encrypted=saved.encryptedKey||null}catch{config={...defaults};encrypted=null}return publicConfig()}
  function publicConfig(){return {...structuredClone(config),hasKey:!!encrypted}}
@@ -140,6 +140,9 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   const {buildInternalPrompt:promptBuilder,requiredRoutes,checkDesignRoutes}=require('./internal-skill.cjs')
   const discoveryText=[input.instruction,context?.user_requirements].filter(Boolean).join('\n')
   const designRoutes=requiredRoutes(discoveryText)
+  const validateCandidate=candidate=>validateLocal(designRoutes.length?{...candidate,
+   context:{...candidate.context,required_designs:designRoutes.map(route=>route.id),
+    spiral_parameters:designRoutes.find(route=>route.id==='spiral_stair')?.parameters??{}}}:candidate)
   checkDesignRoutes(designRoutes,input.mode,context)
   const promptOptions={instruction:discoveryText,strictSchema:config.strictSchema}
   const taskPrompt=promptBuilder(input.mode,context,promptOptions)

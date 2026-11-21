@@ -57,10 +57,17 @@ def check_materials(result):
 
 def validate(request):
     mode=request['mode'];result=request['result'];context=request['context']
+    required=context.get('required_designs',[])
+    from nbt_ai_designs import check_designs
     check_materials(result)
     if mode=='component':
         from nbt_structure_agent import build
         data=build(request['workspace'],result['spec'])
+        if required:
+            from nbt_assembly import Volume
+            model=Volume(data['size'])
+            for x,y,z,index,_ in data['blocks']:model.put((x,y,z),data['palette'][index])
+            check_designs(model,result['spec'].get('operations',[]),required,context)
         return dict(blocks=len(data['blocks']),size=data['size'],nbt_exported=False)
     if mode=='selection_edit':
         from nbt_selection_edit import compile_operations
@@ -68,9 +75,11 @@ def validate(request):
         from nbt_detail_control import compile_plan,default_settings
         summary=context['selection'];size=summary['size'];hi=[axis-1 for axis in size]
         operations=result['settings_patch']['operations']
-        if not operations:return dict(block_states=True,geometry='no_operations',nbt_exported=False)
+        if not operations:
+            if required:raise ValueError('明确构造要求缺少可核验的操作')
+            return dict(block_states=True,geometry='no_operations',nbt_exported=False)
         local=compile_operations(operations,[0,0,0],hi,size,context['allow_overwrite'])
-        if any(op['kind'] not in {'box','hollow_box','beam','frame','geometry','auto_stairs','auto_roof','replace'}
+        if not required and any(op['kind'] not in {'box','hollow_box','beam','frame','geometry','auto_stairs','auto_roof','replace'}
                for op in local if op.get('enabled',True)):
             return dict(block_states=True,geometry='requires_target_preview',nbt_exported=False)
         baseline=Volume(size);walls=set()
@@ -79,7 +88,8 @@ def validate(request):
                 baseline.put(p,summary['palette'][index])
                 if wall:walls.add(p)
         plan=compile_plan(dict(default_settings(),operations=local),size)
-        simulate(baseline,walls,plan,operations,65536)
+        model,_,_=simulate(baseline,walls,plan,operations,65536)
+        if required:check_designs(model,local,required,context)
         return dict(block_states=True,geometry='checked_locally_requires_target_preview',nbt_exported=False)
     if mode=='small_structure' and context.get('size'):
         from nbt_assembly import Volume
@@ -105,6 +115,7 @@ def validate(request):
         if all(isinstance(operation.get(key),list) and len(operation[key])==3 for key in ['lo','hi']) and math.prod(max(0,b-a+1) for a,b in zip(operation['lo'],operation['hi']))>2000000:
             raise ValueError('第'+str(index+1)+'步操作域超过200万格，请拆分或缩小单步范围')
     model,walls,_=simulate(Volume(size),set(),plan,result['operations'],2000000)
+    if required:check_designs(model,plan['operations'],required,context)
     if not model.blocks:raise ValueError('初稿工具序列没有生成实体，请保留有效主体构造')
     from nbt_registry import effective
     for state in set(model.blocks.values()):effective(state)

@@ -12,6 +12,31 @@ from nbt_tools import modelling_plan
 
 
 class RoofCurves(unittest.TestCase):
+    def test_required_xieshan_checks_final_seams_faces_and_vertical_order(self):
+        from nbt_ai_validate import validate
+        from nbt_building.roofs import roof_surface
+        size=[17,12,17]
+        lower=dict(kind='auto_roof',label='下坡',classification='body',lo=[0,0,0],hi=[16,11,16],
+                   roof='hip',rise=4,finish='blocks')
+        upper=dict(lower,label='收山',roof='gable',lo=[4,2,4],hi=[12,11,12],rise=3)
+        def check(ops):
+            return validate(dict(mode='workbench',context=dict(task='draft',project=dict(size=size),
+                                 required_designs=['xieshan_roof']),result=dict(operations=ops)))
+        infill=[]
+        for z in (4,12):
+            for x in range(4,13):
+                bottom=int(roof_surface(lower)(x,z))
+                top=int(roof_surface(upper)(x,z))-2
+                if top>=bottom:
+                    infill.append(dict(kind='box',label='山花',classification='body',
+                                       lo=[x,bottom,z],hi=[x,top,z],state='stone_bricks'))
+        self.assertTrue(infill)
+        self.assertGreater(check([lower,upper,*infill])['blocks'],0)
+        for ops in ([lower,upper], [upper], [lower,dict(upper,lo=[4,5,4])],
+                    [lower,dict(upper,lo=[0,2,0])], [lower,upper,*infill[:-1]]):
+            with self.subTest(ops=ops), self.assertRaises(ValueError):
+                check(ops)
+
     def setUp(self):
         self.model = Volume([35, 20, 31])
         self.operation = dict(kind='auto_roof', label='曲面屋顶', classification='body',
