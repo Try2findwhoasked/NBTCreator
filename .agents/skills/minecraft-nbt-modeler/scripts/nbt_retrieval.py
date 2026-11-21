@@ -40,7 +40,7 @@ def workflow(request):
 
 def external_documents(workspace,issues=None):
     from nbt_exposure import GROUPS, read_config, read_custom
-    config=read_config(workspace)
+    config=read_config(workspace,issues)
     refs=(ROOT/'references').resolve()
     names=dict.fromkeys(name for group in config['enabled_groups'] for name in GROUPS[group][1])
     for name in names:

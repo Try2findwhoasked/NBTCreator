@@ -86,6 +86,42 @@ class Retrieval(unittest.TestCase):
   self.assertEqual(success.returncode,0,success.stdout+success.stderr);self.assertIsNone(json.loads(success.stdout)['receipt'])
   error=subprocess.run([*invocation,request],cwd=self.root,capture_output=True,encoding='utf8')
   self.assertEqual(error.returncode,1);self.assertIn('JSON 文件路径',json.loads(error.stdout)['error'])
+ def test_invalid_registration_is_isolated_recoverable_and_cannot_grant_read_access(self):
+  from nbt_exposure import apply,edit_knowledge,import_knowledge,recover,show
+  note=self.root/'azimuth.md';note.write_text('azimuthfixture',encoding='utf8')
+  registered=import_knowledge(self.root,[note])['custom_knowledge'][0]
+  file=self.root/'.nbtcreator/skill-exposure.json'
+  def external(action,**fields):return dispatch(self.root,action,dict(workflow='prompt',source_kind='skill',**fields),audience='external_agent')
+  receipt=external('search',query='精修')['receipt']
+  raw=json.dumps(dict(schema_version=1,enabled_groups=['core'],custom_knowledge=[dict(registered,id='broken',enabled=False)])).encode()
+  file.write_bytes(raw);state=apply(self.root)
+  self.assertEqual(file.read_bytes(),raw);self.assertEqual(state['registration_issues'][0]['row'],0)
+  self.assertTrue(external('source',receipt=receipt,ref='R1')['text'])
+  self.assertIsNone(external('search',query='azimuthfixture')['receipt'])
+  with self.assertRaisesRegex(ValueError,'登记已变化'):recover(self.root,'0'*64,'remove',0)
+  restored=recover(self.root,state['config_sha256'],'restore',0)
+  self.assertEqual((self.root/restored['backup']).read_bytes(),raw)
+  self.assertFalse(restored['custom_knowledge'][0]['enabled'])
+  edit_knowledge(self.root,registered['id'],'enable')
+  self.assertTrue(external('search',query='azimuthfixture')['receipt'])
+  self.assertEqual(self.call('search',workflow='prompt',query='azimuthfixture')['knowledge'],[])
+  config=json.loads(file.read_bytes());config['custom_knowledge']*=2;file.write_text(json.dumps(config),encoding='utf8')
+  duplicate=show(self.root);self.assertEqual(len(duplicate['registration_issues']),2)
+  self.assertEqual(duplicate['custom_knowledge'],[])
+  result=recover(self.root,duplicate['config_sha256'],'remove',0)
+  self.assertFalse(result['custom_knowledge'][0]['enabled'])
+ def test_broken_config_preserved_and_recovery_explicitly_selects_core(self):
+  from nbt_exposure import CONFIG_BYTES,apply,inherit,recover,show
+  folder=self.root/'.nbtcreator';file=folder/'skill-exposure.json';raw=b'{broken\xff'
+  file.write_bytes(raw)
+  state=show(self.root);self.assertTrue(state['config_error']);self.assertEqual(state['enabled_groups'],[])
+  with self.assertRaises(ValueError):apply(self.root)
+  self.assertEqual(file.read_bytes(),raw)
+  self.assertEqual(inherit(self.root/'next',self.root)['enabled_groups'],['core'])
+  result=recover(self.root,state['config_sha256'],'reset-core')
+  self.assertEqual((self.root/result['backup']).read_bytes(),raw);self.assertEqual(result['enabled_groups'],['core'])
+  file.write_bytes(b' '*(CONFIG_BYTES+1))
+  with self.assertRaisesRegex(ValueError,'256 KiB'):show(self.root)
  def test_long_task_can_use_explicit_keywords_for_books_and_offline_asset_candidates(self):
   self.library('命中书库')
   query='描述环境 '*90+' 放射式 玫瑰窗'

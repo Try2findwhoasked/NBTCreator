@@ -46,8 +46,8 @@ export function initApiAssistant(hooks){
  const entryPreview=document.createElement('button');entryPreview.type='button';entryPreview.textContent='查看助手使用说明';entryPreview.onclick=()=>previewKnowledge({scope:'external',entry:true});knowledge.prepend(entryPreview)
  dialog.querySelector('.ai-layout').append(knowledge)
  initInternalAISettings(dialog,knowledge)
- async function editExternal(action,id){
-  try{await window.nbtDesktop.exposureEdit({action,id});await refreshKnowledge()}
+ async function editExternal(action,id,options={}){
+  try{await window.nbtDesktop.exposureEdit({action,id,...options});await refreshKnowledge()}
   catch(error){$('knowledge-status').textContent=error.message}
  }
  $('knowledge-import').onclick=()=>editExternal('import')
@@ -58,6 +58,17 @@ export function initApiAssistant(hooks){
   try{
    const config=await window.nbtDesktop.exposureConfig(),custom=config.custom_knowledge??[]
    if(config.error)throw Error('检查配置目录下的 skill-exposure.json 后重新同步。'+config.error)
+   const recoveryButton=(label,setting,row)=>{
+    const control=document.createElement('button');control.type='button';control.textContent=label
+    control.onclick=()=>editExternal('recover',undefined,{setting,row,sha256:config.config_sha256})
+    return control
+   }
+   if(config.config_error){
+    $('knowledge-status').textContent=config.config_error+'。可在配置目录修正原文件，或备份原件后重新选择阅读范围。'
+    $('custom-knowledge-list').replaceChildren(recoveryButton('备份原配置并仅启用核心资料','reset-core'))
+    $('knowledge-groups').replaceChildren()
+    return
+   }
    const button=(label,input)=>{const item=document.createElement('button');item.type='button';item.textContent=label;item.onclick=()=>previewKnowledge({scope:'external',...input});return item}
    const issues=new Map((config.custom_issues??[]).map(item=>[item.id,item.error]))
    $('custom-knowledge-list').replaceChildren(...custom.map(item=>{
@@ -70,7 +81,13 @@ export function initApiAssistant(hooks){
     if(item.enabled||!issue)actions.append(edit(item.enabled?'停用':'启用',item.enabled?'disable':'enable'))
     actions.append(edit('移除登记','remove'));row.append(info,actions);return row
    }))
-   if(!custom.length)$('custom-knowledge-list').textContent='当前没有自定义资料。'
+   for(const issue of config.registration_issues??[]){
+    const row=document.createElement('article'),info=document.createElement('p')
+    row.className='knowledge-description';info.textContent=issue.label+' · '+issue.error
+    row.append(info,recoveryButton('从原文件恢复为停用资料','restore',issue.row),recoveryButton('备份并移除坏登记','remove',issue.row))
+    $('custom-knowledge-list').append(row)
+   }
+   if(!custom.length&&!config.registration_issues?.length)$('custom-knowledge-list').textContent='当前没有自定义资料。'
    const groups=config.groups.filter(group=>config.enabled_groups.includes(group.id))
    $('knowledge-groups').replaceChildren(...groups.map(group=>{
     const card=document.createElement('article'),label=document.createElement('strong'),summary=document.createElement('p'),files=document.createElement('details'),heading=document.createElement('summary')
@@ -79,7 +96,7 @@ export function initApiAssistant(hooks){
     heading.textContent=`${group.files.length} 份文档 · 查看内容`;files.append(heading,...group.files.map(file=>button(file,{group:group.id,file})))
     card.append(label,summary,files);return card
    }))
-   $('knowledge-status').textContent=config.notice||`助手可读取 ${groups.length} 类参考资料，${issues.size} 份自定义资料待修复。`
+   $('knowledge-status').textContent=config.notice||`助手可读取 ${groups.length} 类参考资料，${issues.size+(config.registration_issues?.length??0)} 份自定义资料待修复。`
   }catch(error){$('custom-knowledge-list').replaceChildren();$('knowledge-groups').replaceChildren();$('knowledge-status').textContent=error.message}
  }
 
