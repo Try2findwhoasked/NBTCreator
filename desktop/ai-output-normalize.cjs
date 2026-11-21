@@ -62,7 +62,12 @@ function normalizeReply(value,mode,context){
  if(mode==='workbench'&&object(result.operation_patch)){
   const base=operationBase(context),patch=result.operation_patch
   if(patch.baseline===undefined)patch.baseline=base.baseline
-  if(Array.isArray(patch.changes))for(const change of patch.changes)if(object(change)){if(object(change.set))change.set=materials(change.set);if(change.expected===undefined&&Number.isSafeInteger(change.step))change.expected=base.steps[change.step-1]?.expected}
+  if(Array.isArray(patch.changes))for(const change of patch.changes)if(object(change)){
+   if(object(change.set))change.set=materials(change.set)
+   if(change.action==='insert'&&object(change.operation))change.operation=materials(operation(change.operation))
+   if(change.expected===undefined&&Number.isSafeInteger(change.step))change.expected=base.steps[change.step-1]?.expected
+   if(change.action==='move'&&change.anchor_expected===undefined&&Number.isSafeInteger(change.anchor))change.anchor_expected=base.steps[change.anchor-1]?.expected
+  }
  }
  if(mode==='workbench'&&object(result.project_patch))for(const key of ['layout','circulation','name','theme','purpose','footprint','style','ceiling','floor','wall','props','preserve','extras'])if(Array.isArray(result.project_patch[key])||object(result.project_patch[key]))result.project_patch[key]=JSON.stringify(result.project_patch[key])
  return result

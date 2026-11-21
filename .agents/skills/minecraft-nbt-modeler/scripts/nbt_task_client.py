@@ -58,7 +58,8 @@ def inspect(workspace, kind, identifier, view='compact'):
     workspace=Path(workspace).resolve()
     if view=='candidates':
         found=tasks_action(workspace,'discover',dict(id=identifier))
-        return dict(found,view=view,id=identifier,policy='这些文件待核对亲缘、模型和审阅证据，重新交接后才可回传')
+        return dict(found,view=view,id=identifier,policy='这些文件待核对亲缘、模型和审阅证据，重新交接后才可回传',
+                    next=f'task-client check-candidate <目标任务ID> --from-task {identifier} --new-source <候选路径> --review <候选审阅目录>')
     _,index=load_index(workspace); task=task_for(workspace,index,identifier);matches=True;issue=None
     try:verify(workspace,task)
     except ProtocolError as failure:
@@ -279,6 +280,8 @@ class TaskClient:
             if state['phase'] != 'active' and not can_release:
                 error('SESSION_NOT_ACTIVE', '当前本地会话没有可用租约', details=self.public(state))
             common = self.lease_params(state)
+            if action=='reuse' and state['kind']!='tasks':
+                error('INVALID_REQUEST','旧候选只可登记到当前会话领取的建筑修改任务')
             if action == 'heartbeat':
                 params = dict(ttl_seconds=state['ttl'])
             elif action == 'complete':
@@ -340,6 +343,21 @@ def main():
     listing=sub.add_parser('list',help='查找提示词和建筑修改任务')
     listing.add_argument('--kind',choices=['all','prompts','tasks'],default='all')
     listing.add_argument('--pending',action='store_true',help='只列待领取任务')
+    recovery=sub.add_parser('recover-registration',help='按当前索引哈希恢复完全相同的任务登记')
+    recovery.add_argument('id')
+    recovery.add_argument('--expected',required=True,help='list 错误详情中的 expected_sha256')
+    recovery.add_argument('--backup',help='可选的 nbt_models 内原登记备份')
+    recovery.add_argument('--request-id',help='重试须沿用原编号')
+    for name in ('check-candidate','reuse-candidate'):
+        candidate=sub.add_parser(name,help='核验旧候选与当前任务的亲缘、计划和图像证据')
+        if name=='check-candidate':candidate.add_argument('id',help='目标建筑修改任务')
+        else:
+            candidate.add_argument('--expected',required=True,help='check-candidate 返回的 binding_sha256')
+            candidate.add_argument('--summary',required=True)
+        candidate.add_argument('--from-task',required=True)
+        candidate.add_argument('--new-source',required=True)
+        candidate.add_argument('--review',required=True)
+        candidate.add_argument('--observations',help='普通缩略图逐图观察 JSON，位于 nbt_models 内')
     for action in ('inspect','start'):
         command = sub.add_parser(action)
         command.add_argument('kind', choices=['prompts','tasks'])
@@ -360,6 +378,27 @@ def main():
     try:
         if args.action == 'list':
             data = discover_tasks(args.workspace.resolve(),args.kind,args.pending)
+        elif args.action=='recover-registration':
+            params=dict(id=args.id,expected_sha256=args.expected)
+            if args.backup:params['backup']=args.backup
+            key=args.request_id or uuid.uuid4().hex
+            data=result(dispatch(args.workspace.resolve(),dict(request('tasks.recover',params),request_id=key)))
+            data=dict(data,request_id=key)
+        elif args.action in ('check-candidate','reuse-candidate'):
+            from nbt_agent_tasks import sha,read
+            workspace=args.workspace.resolve()
+            target=inside(workspace,args.new_source)
+            review=inside(workspace,args.review)
+            architecture=(review/'review-notes.json').is_file()
+            evidence=inside(workspace,review/('review-notes.json' if architecture else 'review.json'))
+            params=dict(from_task=args.from_task,new_source=relative(workspace,target),new_source_sha256=sha(target),
+                        review=relative(workspace,review),review_kind='architecture' if architecture else 'refinement',
+                        review_sha256=sha(evidence))
+            if args.observations:params['observations']=read(inside(workspace,args.observations))
+            if args.action=='check-candidate':
+                data=result(dispatch(workspace,request('tasks.revalidate',dict(params,id=args.id))))
+            else:
+                data=TaskClient(workspace,args.session).change('reuse',**params,binding_sha256=args.expected,summary=args.summary)
         elif args.action == 'inspect':
             data = inspect(args.workspace.resolve(), args.kind, args.id, args.view)
         else:

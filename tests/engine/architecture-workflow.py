@@ -489,6 +489,28 @@ class ArchitectureWorkflow(unittest.TestCase):
         self.assertEqual(issue['state'],'needs_new_visual_observation');self.assertFalse(issue['old_positions_are_current'])
         self.assertNotEqual(issue['current_bounds'],issue['previous_bounds'])
         self.assertEqual(file_hash(self.workspace/notes['path']),notes['sha256'])
+        from nbt_agent_tasks import dispatch as tasks
+        from nbt_agent_protocol import ProtocolError
+        target=new['saved']['source']
+        plan_path=self.workspace/'nbt_models/changed-plan.json'
+        plan_path.write_text(json.dumps(changed),encoding='utf8')
+        def create_task():
+            return tasks(self.workspace,'create',dict(source=source,source_sha256=file_hash(source),origins=[dict(role='plan',path=str(plan_path))]))
+        old=create_task();current=create_task()
+        candidate=dict(id=current['id'],from_task=old['id'],new_source=target,new_source_sha256=file_hash(target),
+                       review_kind='architecture',review=str(directory),review_sha256=notes['sha256'])
+        with self.assertRaisesRegex(ProtocolError,'候选自身'):tasks(self.workspace,'revalidate',candidate)
+        new_pack=dispatch(self.workspace,'review-prepare',dict(source=target,source_sha256=file_hash(target),output='nbt_models/_workspaces/reviews/rebuilt'))
+        new_record=dispatch(self.workspace,'review-record',dict(pack=new_pack['pack'],pack_sha256=new_pack['pack_sha256'],
+            render_manifest=str(self.synthetic_render(new_pack)),revision=0,issues=[],
+            observations=[dict(image=row['id'],note='Synthetic transport fixture') for row in new_pack['coverage']['views']]))
+        candidate.update(review=str((self.workspace/new_record['path']).parent),review_sha256=new_record['sha256'])
+        checked=tasks(self.workspace,'revalidate',candidate)
+        self.assertEqual(checked['binding']['evidence']['plan_sha256'],new['plan_sha256'])
+        self.assertEqual(checked['binding']['parent_sha256'],file_hash(source))
+        plan_path.write_text(json.dumps(plan()),encoding='utf8')
+        different=create_task()
+        with self.assertRaisesRegex(ProtocolError,'核验的建筑方案'):tasks(self.workspace,'revalidate',dict(candidate,id=different['id']))
         meta=manifest.parent/'beam.json';metadata=json.loads(meta.read_text(encoding='utf8'));metadata['snapshot_sha256']='0'*64;meta.write_text(json.dumps(metadata),encoding='utf8')
         with self.assertRaisesRegex(ValueError,'元数据'):dispatch(self.workspace,'review-record',dict(request,revision=1))
         with self.assertRaisesRegex(ValueError,'图像证据'):dispatch(self.workspace,'review-compare',dict(pack=pack['pack'],pack_sha256=pack['pack_sha256'],notes_sha256=notes['sha256'],source=new['saved']['source'],source_sha256=file_hash(new['saved']['source'])))

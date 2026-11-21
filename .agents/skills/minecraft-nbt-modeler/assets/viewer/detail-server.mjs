@@ -356,7 +356,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         json(res,{project_catalog:projectCatalog,catalog:{...projectCatalog,models:projectCatalog.models.filter(item=>!item.bugged&&!item.unreadable&&!item.trashed)}})
       } else if (req.method === 'GET' && url.pathname.startsWith('/__detail__/prompt/')) {
         const name=url.pathname.slice('/__detail__/prompt/'.length)
-        if(!['index.html','core.js','constraint-contract.cjs','ai-input.js','autosave.js','workspace.js','app.js','style.css','design-tokens.css','theme.css','catalog.js'].includes(name))throw new Error('Unknown prompt asset')
+        if(!['index.html','core.js','constraint-contract.cjs','operation-delta.cjs','ai-input.js','autosave.js','workspace.js','app.js','style.css','design-tokens.css','theme.css','catalog.js'].includes(name))throw new Error('Unknown prompt asset')
         res.setHeader('Content-Type',name.endsWith('.html')?'text/html; charset=utf-8':/\.c?js$/.test(name)?'text/javascript; charset=utf-8':'text/css; charset=utf-8')
         res.setHeader('Cache-Control','no-store')
         res.end(await fs.readFile(path.join(skillRoot,'prompt-console',name)))

@@ -4,23 +4,37 @@ const directory=path.join(__dirname,'skills/nbtcreator-internal'),cache=new Map(
 function read(name){if(!cache.has(name)){const text=fs.readFileSync(path.join(directory,name),'utf8');cache.set(name,text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/,'').trim())}return cache.get(name)}
 const common=['label','classification','lo','hi','enabled']
 const designRoutes=[
- {id:'spiral_stair',names:/螺旋梯|螺旋楼梯|旋转楼梯|盘旋楼梯|盘旋梯|spiral\s+stairs?/i,tools:['auto_stairs'],
+ {id:'spiral_stair',names:/螺旋(?:式)?(?:楼梯|阶梯|梯)|(?:盘旋|旋转|回旋)(?:式)?(?:楼梯|阶梯|梯)|旋梯|spiral\s+stair(?:case|way|s)?/i,tools:['auto_stairs'],
   guide:'螺旋梯可用 auto_stairs mode=spiral。填写 centre、radius、turns，起止脚位在方环同一西北角。按实际选区留出踏步净空和上下平台，预览并检查通路。'},
- {id:'xieshan_roof',names:/歇山(?:顶|屋顶)?|xi[eē][ -]?shan|hip[- ]and[- ]gable/i,tools:['auto_roof'],
-  guide:'auto_roof 没有歇山顶预设。歇山候选需分别制作下层四坡和上层山花双坡，使用 hip/curved_hip 与 gable/gambrel 组合，核对檐口、山花和接缝。单一四坡或双坡不能代表歇山顶。'}
+ {id:'xieshan_roof',names:/歇山(?:式)?(?:顶|屋顶)?|九脊(?:殿|顶)|入母屋(?:造|顶)?|xi[eē][ -]?shan|hip[- ]and[- ]gable|gablet\s+roof/i,tools:['auto_roof'],
+  guide:'以 hip/curved_hip 下层和向四面内收的 gable/gambrel 上层组合歇山顶。双坡两侧檐边与下坡相接，两端用方块填出三角山花直到屋脊；把山花填在屋面以下。预览核对比例、出檐和收边。'}
 ]
 function detectedRoutes(instruction){return designRoutes.filter(route=>route.names.test(instruction))}
 function requiredRoutes(instruction){
  // Discovery is broad. Automatic checks cover affirmative creation requests,
  // leaving removals, references, paraphrases and ambiguous prose for review.
  const clauses=instruction.split(/[。！？；\n.!?;]/)
- return designRoutes.filter(route=>clauses.some(clause=>{
+ return designRoutes.flatMap(route=>{
+  const requests=clauses.filter(clause=>{
   const match=route.names.exec(clause)
   if(!match)return false
   const before=clause.slice(0,match.index),after=clause.slice(match.index+match[0].length)
-  return !/别|不要|无需|不用|取消|移除|删|拆|without|avoid|remove|omit/i.test(before)&&
+  return !/别|不要|无需|不用|取消|移除|删|拆|参考|借鉴|类似|仿佛|像|without|avoid|remove|omit|resembl/i.test(before)&&
    (/做|制作|建|搭|添加|加个|生成|设计|放置|改成|改为|make|build|add|design|create|place/i.test(before)||(!before.trim()&&!after.trim()))
- }))
+  })
+  if(!requests.length)return []
+  if(route.id!=='spiral_stair')return [route]
+  // Bind only unambiguous integer specifications on the matched request.
+  const clausesText=requests.join(' ')
+  const parameters={}
+  for(const [key,pattern] of Object.entries({radius:/(?:半径|radius)\s*[=:：为]?\s*(\d+)\s*(?:格|块|blocks?)?(?=$|[，、,\s。])/i,
+     width:/(?:梯宽|宽度|宽|width)\s*[=:：为]?\s*(\d+)\s*(?:格|块|blocks?)?(?=$|[，、,\s。])/i,
+     turns:/(?:绕|盘绕|旋转)\s*(\d+)\s*圈|\b(\d+)\s*turns?\b|\bturns\s*[=:]\s*(\d+)\b/i})){
+   const match=pattern.exec(clausesText)
+   if(match)parameters[key]=Number(match.slice(1).find(value=>value!==undefined))
+  }
+  return [{...route,parameters}]
+ })
 }
 function checkDesignRoutes(routes,mode,context,operations){
  if(!routes.length||mode==='prompt'||mode==='workbench'&&context.task!=='draft')return
@@ -28,8 +42,9 @@ function checkDesignRoutes(routes,mode,context,operations){
  if(!operations)return
  const active=operations.filter(op=>op.enabled!==false)
  for(const route of routes){
-  const matched=route.id==='spiral_stair'?active.some(op=>op.kind==='auto_stairs'&&op.mode==='spiral'):
-   active.some(op=>op.kind==='auto_roof'&&['hip','curved_hip'].includes(op.roof))&&active.some(op=>op.kind==='auto_roof'&&['gable','gambrel'].includes(op.roof))
+  const matched=route.id==='spiral_stair'?active.some(op=>op.kind==='auto_stairs'&&op.mode==='spiral'&&
+   Object.entries(route.parameters??{}).every(([key,value])=>(op[key]??{radius:4,width:1,turns:1}[key])===value)):
+   active.some(op=>op.kind==='auto_roof'&&['hip','curved_hip'].includes(op.roof))&&active.some(op=>op.kind==='auto_roof'&&['gable','gambrel'].includes(op.roof??'gable'))
   if(!matched)throw Object.assign(Error('候选尚未表达指定构造。'+route.guide),{issue:{code:'required_design_missing',design:route.id}})
  }
 }
@@ -44,15 +59,21 @@ function selectTools(instruction='',context={}){
  function scan(value,depth=0){if(depth>8||!value||typeof value!=='object')return;if(Array.isArray(value)){value.slice(0,128).forEach(v=>scan(v,depth+1));return}if(Object.hasOwn(catalog.tools,value.kind))selected.add(value.kind);Object.values(value).forEach(v=>scan(v,depth+1))}
  scan(context)
  const text=instruction.toLowerCase()
- for(const kind of Object.keys(catalog.tools))if(new RegExp('(^|[^a-z_])'+kind+'($|[^a-z_])').test(text))selected.add(kind)
+ const genericText=designRoutes.reduce((value,route)=>value.replace(new RegExp(route.names,'gi'),''),text)
+ // Catalogue titles also expose operations which have no bespoke language rule.
+ for(const [kind,[title]] of Object.entries(catalog.tools)){
+  if(new RegExp('(^|[^a-z_])'+kind+'($|[^a-z_])').test(text)||
+     title.split(' / ').some(term=>term.length>=2&&genericText.includes(term)))selected.add(kind)
+ }
  for(const route of detectedRoutes(text))for(const kind of route.tools)selected.add(kind)
  const routes=[[/曲面|圆|弧|球|穹|布尔|挤出|拉伸|csg|loft|sweep|curv|sphere|dome|circular|extrud|lathe/i,['geometry']],[/楼梯|台阶|stairs/i,['auto_stairs']],
   [/屋顶|屋面|roof/i,['auto_roof']], [/道路|公路|road/i,['auto_road','terrain_road']],
-  [/复制|阵列|重复|旋转|镜像|copy|array|repeat|rotate|mirror/i,['copy_region','repeat_region','transform_region','array_region']],
+  [/复制|copy/i,['copy_region']], [/重复|线性阵列|repeat/i,['repeat_region']],
+  [/阵列|array/i,['array_region']], [/旋转(?!式?(?:楼梯|阶梯|梯))|镜像|rotate|mirror/i,['transform_region']],
   [/混材|纹理|配色|噪声|pattern/i,['pattern','surface_palette']], [/风化|破损|weather/i,['weathering']],
   [/散布|散落|scatter/i,['scatter']], [/膨胀|侵蚀|morph/i,['morphology']], [/扩散|diffus/i,['diffusion']],
   [/爆炸|爆破|explos/i,['explosion']], [/地板|地面|floor/i,['auto_floor']], [/对齐|吸附|align/i,['align_region']]]
- for(const [match,kinds]of routes)if(match.test(text))kinds.forEach(kind=>selected.add(kind))
+ for(const [match,kinds]of routes)if(match.test(genericText))kinds.forEach(kind=>selected.add(kind))
  return Object.keys(catalog.tools).filter(kind=>selected.has(kind))
 }
 const registry=require('../.agents/skills/minecraft-nbt-modeler/references/block-registry-1.20.1.json')

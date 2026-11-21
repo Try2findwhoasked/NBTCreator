@@ -1,10 +1,12 @@
 const {validateOperation,validateParameter}=require('./operation-parameters.cjs')
+const {mergeOperationRows}=require('../.agents/skills/minecraft-nbt-modeler/prompt-console/operation-delta.cjs')
 const {isDeepStrictEqual}=require('node:util')
 const catalog=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json')
 const constraints=require('../.agents/skills/minecraft-nbt-modeler/prompt-console/constraint-contract.cjs').create(catalog)
 const {createHash}=require('node:crypto')
 const fields=Object.keys(catalog.prompt_design.fields).filter(key=>key!=='size')
 const SHA=/^[a-f0-9]{64}$/
+const authority=new Set(['overwrite','write_bounds','write_group','max_writes','skip_protected'])
 const own=(value,allowed)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).every(key=>allowed.includes(key))
 function fingerprint(value){
  const stable=v=>Array.isArray(v)?v.map(stable):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(key=>[key,stable(v[key])])):v
@@ -58,13 +60,14 @@ function mergeOperationPatch(result,context){
  const patch=result.operation_patch,base=operationBase(context)
  if(!own(patch,['baseline','changes'])||patch.baseline!==base.baseline)throw Error('工具增量不属于当前方案基线，请重新生成')
  if(!Array.isArray(patch.changes)||!patch.changes.length||patch.changes.length>16)throw Error('工具增量须包含1到16项修改')
- const operations=structuredClone(context.operations),seen=new Set()
  for(const change of patch.changes){
-  if(!own(change,['step','expected','set'])||!Number.isInteger(change.step)||change.step<1||change.step>operations.length||seen.has(change.step))throw Error('增量目标步骤无效或重复')
-  seen.add(change.step)
+  const keys={insert:['action','step','expected','position','operation'],remove:['action','step','expected'],move:['action','step','expected','position','anchor','anchor_expected']}
+  if(!change||change.action!==undefined&&!Object.hasOwn(keys,change.action)||!own(change,keys[change.action]??['step','expected','set'])||!Number.isInteger(change.step)||!base.steps[change.step-1])throw Error('增量目标步骤或动作无效')
   if(change.expected!==base.steps[change.step-1].expected)throw Error('增量原步骤指纹不匹配，请重新生成')
-  const op=operations[change.step-1]
-  const allowed=Object.keys(catalog.operation_parameters[op.kind]?.properties??{}).filter(key=>!['overwrite','write_bounds','write_group','max_writes'].includes(key))
+  if(change.action==='move'&&(!Number.isInteger(change.anchor)||!base.steps[change.anchor-1]||change.anchor_expected!==base.steps[change.anchor-1].expected))throw Error('移动锚点或原步骤指纹不匹配')
+  if(change.action!==undefined)continue
+  const op=context.operations[change.step-1]
+  const allowed=Object.keys(catalog.operation_parameters[op.kind]?.properties??{}).filter(key=>!authority.has(key))
   if(!own(change.set,allowed)||!Object.keys(change.set).length)throw Error('增量只能修改工具参数，不能改变工具类型、覆盖权限、预算或执行字段')
   for(const [key,value]of Object.entries(change.set)){
    const schema=catalog.operation_parameters[op.kind]?.properties[key]
@@ -73,9 +76,8 @@ function mergeOperationPatch(result,context){
    if(key==='state'&&!/^(?:minecraft:)?[a-z0-9_]+(?:\[[a-z0-9_=,]+\])?$/.test(value))throw Error('增量需要有效的方块状态')
    if(key==='label'&&(!value.trim()||value.length>250))throw Error('增量步骤名称须为1到250字')
   }
-  Object.assign(op,structuredClone(change.set))
  }
- return {summary:result.summary,...(result.project_patch!==undefined?{project_patch:result.project_patch}:{}),operations}
+ return mergeOperationRows(context.operations,patch.changes)
 }
 function validateWorkbench(result,context){
  if(context.task==='constraint'){
@@ -83,7 +85,8 @@ function validateWorkbench(result,context){
   return {name:result.name.trim(),rules:constraints.rules(result.rules)}
  }
  const incremental=result?.operation_patch!==undefined
- if(incremental)result=mergeOperationPatch(result,context)
+ const rows=incremental?mergeOperationPatch(result,context):null
+ if(rows)result={summary:result.summary,...(result.project_patch!==undefined?{project_patch:result.project_patch}:{}),operations:rows.map(row=>row.op)}
  if(!result||typeof result!=='object'||Array.isArray(result)||Object.keys(result).some(k=>!['summary','project_patch','operations'].includes(k))||typeof result.summary!=='string'||result.summary.length>4000)throw Error('AI控件方案格式无效')
  const patch=result.project_patch??{}
  const bound=constraints.resolve(context.constraints??[])
@@ -113,13 +116,14 @@ function validateWorkbench(result,context){
    if(!Object.hasOwn(catalog.tools,op.kind))throw Error(step+' kind='+token(op.kind)+' 不支持；只能使用工具清单的规范键，例如box、hollow_box、geometry、pattern；不得自造工具名')
    if(!['body','wall','inherit'].includes(op.classification))throw Error(step+' classification='+token(op.classification)+' 无效；只支持body（主体）、wall（墙层）、inherit（保留归属），可省略由脚本补齐；不要填写structure/decor/opening等用途')
    if(typeof op.label!=='string'||!op.label.trim())throw Error(step+'缺少有效步骤名称label')
-   const fields=new Set(['kind',...Object.keys(catalog.operation_parameters[op.kind].properties)]),baseline=context.operations?.[index]
+   const fields=new Set(['kind',...Object.keys(catalog.operation_parameters[op.kind].properties).filter(key=>!authority.has(key))]),baseline=rows?context.operations[rows[index].step-1]:context.operations?.[index]
    const unknown=Object.keys(op).filter(key=>!fields.has(key)&&!(baseline?.kind===op.kind&&Object.hasOwn(baseline,key)&&isDeepStrictEqual(baseline[key],op[key])))
    if(unknown.length)throw Error(step+'含未开放字段：'+unknown.join('、')+'；不能注入权限、源绑定或执行字段')
    if(op.enabled!==undefined&&typeof op.enabled!=='boolean')throw Error('工具 enabled 开关须为布尔值')
-   if(op.enabled===false)continue
+   if(op.enabled===false&&rows?.[index].step!==null)continue
    try{validateOperation(op)}catch(error){throw Error(step+'（'+op.kind+'）参数无效：'+error.message)}
    if(op.kind==='geometry'&&(!op.geometry||!catalog.shapes[op.geometry.shape]))throw Error('几何工具需要支持的形状定义')
+   if(op.kind==='beam'&&['start','end'].some(key=>op[key].some((v,i)=>v<0||v>=size[i])))throw Error('AI工具超出方案尺寸')
    if(op.kind!=='auto_floor'&&op.kind!=='beam'){for(const key of ['lo','hi'])if(!Array.isArray(op[key])||op[key].length!==3||!op[key].every(Number.isInteger))throw Error('工具需要整数XYZ选区');if(op.lo.some((v,i)=>v<0||v>op.hi[i]||op.hi[i]>=size[i]))throw Error('AI工具超出方案尺寸')}
   }
  }

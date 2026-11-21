@@ -12,6 +12,25 @@ class Stairs(unittest.TestCase):
   e,r=modelling_plan(self.m,dict(self.op,mode='switchback',end=[4,6,7],flight_length=12));self.assertEqual(r['feet'][-1],(4.5,6,7.5))
  def test_spiral(self):
   e,r=modelling_plan(self.m,dict(self.op,mode='spiral',centre=[10,2,10],radius=6,start=[4,2,4],end=[4,8,4]));self.assertEqual(r['feet'][-1][1],8)
+ def test_strong_spiral_on_offset_selection_checks_final_headroom_and_parameters(self):
+  from nbt_ai_validate import validate
+  from nbt_selection_edit import compile_operations
+  size=[13,12,13];lo=[14,2,20];hi=[26,13,32]
+  stair=dict(kind='auto_stairs',label='旋梯',classification='body',mode='spiral',
+             lo=[0,0,0],hi=[12,11,12],start=[2,1,2],end=[2,5,2],centre=[6,1,6],width=1,radius=4,turns=1)
+  translated=compile_operations([stair],lo,hi,list(self.m.size),False)[0]
+  self.assertEqual(translated['centre'],[20,3,26])
+  context=dict(required_designs=['spiral_stair'],lo=lo,hi=hi,allow_overwrite=False,
+               selection=dict(size=size,runs=[],palette=['stone']))
+  def check(steps):
+   return validate(dict(mode='selection_edit',context=context,result=dict(settings_patch=dict(operations=steps))))
+  self.assertIn('checked_locally',check([stair])['geometry'])
+  for invalid in (dict(radius=3),dict(turns=0),dict(width=5),dict(end=[4,5,2]),dict(hi=[8,11,12])):
+   with self.subTest(invalid=invalid), self.assertRaises(ValueError):check([dict(stair,**invalid)])
+  cap=dict(kind='box',label='封住起点',classification='body',lo=[2,2,2],hi=[2,2,2],state='stone')
+  with self.assertRaisesRegex(ValueError,'静态通路'):check([stair,cap])
+  context['selection']['runs']=[[2,2,2,1,0,0]]
+  with self.assertRaisesRegex(ValueError,'clearance'):check([stair])
  def test_head_obstruction_budget_and_bounds(self):
   for change in [dict(end=[6,10,4]),dict(max_writes=1),dict(hi=[8,23,8])]:
    with self.assertRaises(ValueError):modelling_plan(self.m,dict(self.op,**change))

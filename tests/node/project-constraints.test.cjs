@@ -1,5 +1,5 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),{createHash}=require('node:crypto')
-const {cleanContext,validateWorkbench}=require('../../desktop/workbench-contract.cjs')
+const {cleanContext,cleanProseContext,validateWorkbench}=require('../../desktop/workbench-contract.cjs')
 const {createApiService}=require('../../desktop/api-service.cjs')
 const {createCandidateValidator}=require('../../desktop/ai-candidate-validator.cjs')
 const base=path.join(__dirname,'../../.agents/skills/minecraft-nbt-modeler/prompt-console'),scope=vm.createContext({crypto:globalThis.crypto,TextEncoder})
@@ -20,7 +20,9 @@ test('selected custom-grid constraints reach prompt, AI and exports without muta
  const effective=C.effectiveProject(doc),text=C.prompt(doc);assert.match(text,/# 已选项目约束/);assert.match(text,/缺角留作庭院/);assert.match(text,/64 × 24 × 64/);assert.match(text,/固定尺寸/);assert.equal(JSON.stringify(doc.project),before)
  assert.equal(effective.context.cell_size,32);assert.equal(C.outputPath(effective),'nbt_models/l_shape/遗迹大厅');assert.deepEqual(plain(C.validate(doc)),[])
  const input=scope.NbtPromptAIInput.request('draft','编写设计',{project:effective,operations:[],constraints:doc.constraints}),clean=cleanContext(plain(input.context));assert.equal(clean.project.size_policy,'fixed');assert.equal(clean.constraints[0].name,'L形约束')
- const prose=scope.NbtPromptAIInput.request('text','润色',{project:effective,operations:[],constraints:doc.constraints});assert.match(prose.instruction,/缺角留作庭院/)
+ const prose=scope.NbtPromptAIInput.request('text','润色',{project:effective,operations:[],constraints:doc.constraints})
+ assert.equal(prose.instruction,'润色')
+ assert.equal(cleanProseContext(plain(prose.context)).constraints[0].rules.requirements,'缺角留作庭院')
  delete doc.constraints;assert.equal(JSON.stringify(C.effectiveProject(doc)),before)
 })
 test('conflicting, malformed and forged references fail and AI cannot override selected constraints',()=>{

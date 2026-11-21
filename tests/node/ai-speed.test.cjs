@@ -48,8 +48,8 @@ test('strict small structure schema rejects extra fields, fractional coordinates
 // Fill only explicitly nullable wire fields. Concrete operations/patches below remain authored fixtures.
 function nullable(value,schema,root=schema){
  if(value===null||typeof value!=='object')return value
- if(schema.$ref)return nullable(value,root.$defs[schema.$ref.split('/').at(-1)],root)
- if(schema.anyOf){if(value===null)return null;const branch=schema.anyOf.find(s=>s.type==='object'&&['kind','step'].every(key=>!s.properties[key]?.enum||s.properties[key].enum.includes(value[key])))??schema.anyOf[0];return nullable(value,branch,root)}
+ if(schema.$ref)return nullable(value,schema.$ref.slice(2).split('/').reduce((node,key)=>node[key],root),root)
+ if(schema.anyOf){if(value===null)return null;const branch=schema.anyOf.find(s=>s.type==='object'&&(!value.action||s.properties.action)&&['kind','step','action'].every(key=>!s.properties[key]?.enum||s.properties[key].enum.includes(value[key])))??schema.anyOf[0];return nullable(value,branch,root)}
  if(schema.type==='object')return Object.fromEntries(Object.entries(schema.properties).map(([key,s])=>[key,value[key]===undefined?null:nullable(value[key],s,root)]))
  if(schema.type==='array')return value.map(item=>nullable(item,schema.items,root))
  return value
@@ -208,6 +208,41 @@ test('strict workbench replies still require real engine geometry preflight',asy
  await assert.rejects(api.generate({mode:'workbench',instruction:'生成楼梯',context}),/above start/)
 })
 
+test('ordinary and strict structural batches address frozen baseline identities through 128 steps',()=>{
+ const {normalizeReply}=require('../../desktop/ai-output-normalize.cjs')
+ const {validateWorkbench}=require('../../desktop/workbench-contract.cjs')
+ const {mergeOperationRows}=require('../../.agents/skills/minecraft-nbt-modeler/prompt-console/operation-delta.cjs')
+ for(const length of [64,65,127,128]){
+  const operations=Array.from({length},(_,i)=>({...box,label:'原步骤'+i}))
+  const context={task:'controls',project:{size:[8,8,8]},operations},schema=buildOutputSchema('workbench',context)
+  const changes=[{action:'move',step:2,anchor:length,position:'after'},
+   {action:'insert',step:3,position:'before',operation:{...box,label:'插入'}}]
+  if(length===128)changes.push({action:'remove',step:4})
+  const reply={summary:'移动并插入',project_patch:{},operation_patch:{changes}}
+  const plain=normalizeReply(reply,'workbench',context)
+  const strict=normalizeReply(decodeOutput(nullable(reply,schema),schema),'workbench',context)
+  assert.deepEqual(strict,plain)
+  const result=validateWorkbench(strict,context)
+  assert.equal(result.operations.length,Math.min(length+1,128))
+  assert.deepEqual(result.operations.slice(0,3),[operations[0],changes[1].operation,operations[2]])
+  assert.deepEqual(result.operations.slice(3,-1),operations.slice(length===128?4:3))
+  assert.deepEqual(result.operations.at(-1),operations[1])
+  const local=structuredClone(operations);local[1].local_note='保留';local[1].write_group='local'
+  assert.deepEqual(mergeOperationRows(local,strict.operation_patch.changes).at(-1).op,local[1])
+  assert.throws(()=>validateWorkbench(strict,{...context,operations:[...operations].reverse()}),/基线/)
+  const corrupt=structuredClone(strict);corrupt.operation_patch.changes[0].anchor_expected='f'.repeat(64)
+  assert.throws(()=>validateWorkbench(corrupt,context),/指纹/)
+  for(const extra of [{action:'remove',step:2},{action:'move',step:8,anchor:3,position:'before'}]){
+   assert.throws(()=>validateWorkbench(normalizeReply({...reply,operation_patch:{changes:[...changes,extra]}},'workbench',context),context),/冲突/)
+  }
+  for(const invalid of [{...box,overwrite:true},{...box,write_bounds:{}},{...box,hi:[9,9,9]}]){
+   const single={summary:'越权',operation_patch:{changes:[{action:'insert',step:1,position:'after',operation:invalid}]}}
+   assert.throws(()=>validateWorkbench(normalizeReply(single,'workbench',context),context))
+  }
+  if(length===128)assert.throws(()=>validateWorkbench(normalizeReply({...reply,operation_patch:{changes:changes.slice(0,2)}},'workbench',context),context),/128/)
+ }
+})
+
 test('bound material increment rejects resized sources and wrong step fields at schema decoding',async t=>{
  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-strict-material-'))
  t.after(()=>fs.rm(directory,{recursive:true,force:true}))
@@ -239,6 +274,7 @@ test('workbench UI context keeps catalogue-required anchors and merges into the 
  const folder='../../.agents/skills/minecraft-nbt-modeler/prompt-console/'
  require(folder+'catalog.js')
  require(folder+'core.js')
+ globalThis.mergeOperationRows=require(folder+'operation-delta.cjs').mergeOperationRows
  require(folder+'ai-input.js')
  const {cleanContext,validateWorkbench}=require('../../desktop/workbench-contract.cjs')
  const {normalizeReply}=require('../../desktop/ai-output-normalize.cjs')

@@ -76,14 +76,19 @@ export function initReferencePicker({api}){
     card.append(node('small',item.kind==='asset'?item.size.join(' × ')+' · '+item.reason:position),node('p',item.kind==='asset'?'标签：'+item.tags.join('、'):item.text));const path=node('small',item.locator+' · SHA256 '+(item.sha256??item.content_sha256));path.className='reference-path';card.append(path)
     if(item.kind==='knowledge'){
      const fromLibrary=item.reference_type==='architecture_library',view=node('button',fromWeb?'查看证据出处':fromLibrary?'查看原文位置':'查看完整原文');view.type='button'
-     view.onclick=safe(async token=>{
+     const readAt=async(token,line)=>{
       const request={workflow:context.workflow,document_id:item.document_id,sha256:item.sha256}
       if(fromLibrary)Object.assign(request,{manifest_sha256:item.manifest_sha256,line:item.line_start})
+      if(line!==undefined)request.line=line
       const document=await api('retrieve/source',request);if(token!==epoch)return
       const details=[document.locator,document.bibliography?.author,document.bibliography?.edition,fromLibrary&&document.bibliography?.source_url,fromWeb&&document.heading,fromWeb&&document.bibliography?.publisher,
        document.line_start&&`原文第 ${document.line_start}～${document.line_end} 行${document.clipped?'（已截取）':''}`,'SHA256 '+document.sha256]
       $('reference-document').hidden=false;$('reference-document').open=true;$('reference-document-text').textContent=details.filter(Boolean).join('\n')+'\n\n'+document.text
-     });card.append(view)
+     };view.onclick=safe(token=>readAt(token));card.append(view)
+     const next=found?.search_scope?.continued_passages?.find(entry=>entry.document_id===item.document_id)
+     if(next&&found.knowledge.find(hit=>hit.document_id===item.document_id)===item){
+      const more=node('button','查看该文档另一处匹配（第 '+next.line+' 行）');more.type='button';more.onclick=safe(token=>readAt(token,next.line));card.append(more)
+     }
     }
     if(fromWeb){
      const updated=item.saved&&item.saved_id&&item.saved_id!==item.id
@@ -94,14 +99,23 @@ export function initReferencePicker({api}){
    }results.append(section)
   }
   if(savedView&&savedOffset!==null){const more=node('button','更多收藏');more.type='button';more.onclick=safe(token=>loadSaved(token,savedOffset));results.append(more)}
+  const offset=found?.search_scope?.query_selection?.next_offset
+  if(offset!=null){
+   const more=node('button','用描述第 '+(offset+1)+' 字起的 300 字补查');more.type='button'
+   more.onclick=safe(token=>search(token,offset));results.append(more)
+  }
   sync()
  }
- async function search(token){
+ async function search(token,offset){
   const request={...context,query:$('reference-query').value.trim()};report('正在本地检索资产和资料…')
+  if(offset===undefined)delete request.query_offset
+  else request.query_offset=offset
   const result=await api('retrieve/search',request);if(token!==epoch)return
   context=request;found=result;draw()
   const unavailable=[...(result.library_errors??[]).map(item=>`${item.name}：${item.message}`),...(result.saved_web_errors??[]).map(item=>item.message)].join('。')
-  report(`${result.assets.length} 个资产、${result.knowledge.length} 段资料。${unavailable}`)
+  const scope=result.search_scope,terms=scope?.query_selection
+  const matched=terms&&(terms.mode!=='query'||terms.equivalents?.length)?'本次索引词：'+scope.indexed_query+'。':''
+  report(`${result.assets.length} 个资产、${result.knowledge.length} 段资料。${matched}${scope?.no_knowledge_match??''}${unavailable}`)
  }
  $('reference-query').oninput=()=>{found=null;if(savedView){savedView=false;savedOffset=null;webEvidence=[]}draw();report('本地检索词已修改。')}
  $('reference-search-form').onsubmit=safe(search)
@@ -116,7 +130,7 @@ export function initReferencePicker({api}){
  })
  $('reference-use').onclick=safe(async token=>{const selected=[...dialog.querySelectorAll('[data-reference-id]:checked')].map(e=>e.dataset.referenceId),request=selected.every(id=>id.startsWith('web:'))?{workflow:context.workflow,selected}:{...context,selected},result=await api('retrieve/bundle',request);if(token!==epoch)return;chosen.set(context.workflow,{id:result.id,sha256:result.sha256,sources:result.sources});window.dispatchEvent(new CustomEvent('nbt-reference-change',{detail:context.workflow}));dialog.close()})
  $('reference-clear').onclick=()=>{if(!context)return;chosen.delete(context.workflow);window.dispatchEvent(new CustomEvent('nbt-reference-change',{detail:context.workflow}));dialog.close()}
- $('reference-close').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{epoch++;busy=false})
+ $('reference-close').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{if(!dialog.open){epoch++;busy=false}})
  async function open(input){if(dialog.open||busy)return;context={workflow:input.workflow,size:input.size??null,query:input.query?.trim()||''};found=null;webEvidence=[];savedView=false;savedOffset=null;libraries.open=false;online.open=false;libraryList.replaceChildren();$('reference-online-query').value='';$('reference-online-refresh').checked=false;$('reference-query').value=context.query;$('reference-results').replaceChildren();$('reference-document').hidden=true;$('reference-document-text').textContent='';report('按名称、构造或用途检索本工作流启用的资料。');dialog.showModal();epoch++;lock(false);if(context.query)await safe(search)()}
  function receipt(workflow){const value=chosen.get(workflow);return value?{id:value.id,sha256:value.sha256}:undefined}
  function sources(host,result){

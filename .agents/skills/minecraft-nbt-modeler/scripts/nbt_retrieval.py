@@ -8,7 +8,8 @@ import sys
 import uuid
 from itertools import zip_longest
 from nbt_knowledge import libraries
-from nbt_text_search import chunks, score
+from nbt_architecture_knowledge import ALIASES
+from nbt_text_search import chunks, retrieval_query, score
 
 ROOT=Path(__file__).resolve().parents[1]
 CATALOG=json.loads((ROOT/'tool-catalog.json').read_text(encoding='utf8'))
@@ -40,7 +41,7 @@ def workflow(request):
 
 def external_documents(workspace,issues=None):
     from nbt_exposure import GROUPS, read_config, read_custom
-    config=read_config(workspace)
+    config=read_config(workspace,issues)
     refs=(ROOT/'references').resolve()
     names=dict.fromkeys(name for group in config['enabled_groups'] for name in GROUPS[group][1])
     for name in names:
@@ -90,6 +91,8 @@ def search(workspace,request,*,audience='internal_ai'):
     keywords=request.get('keywords',query)
     if 'keywords' in request and (not isinstance(keywords,str) or not keywords.strip() or len(keywords)>300):
         raise ValueError('keywords 接收 1～300 字明确检索词')
+    if 'keywords' in request and 'query_offset' in request:raise ValueError('keywords 与 query_offset 请择一使用')
+    search_text,query_detail=retrieval_query(keywords,ALIASES,request.get('query_offset'))
     include_extensions=request.get('include_extension_assets',False)
     if type(include_extensions) is not bool or include_extensions and audience!='external_agent':
         raise ValueError('include_extension_assets 仅用于外部 Agent 的离线候选浏览')
@@ -101,61 +104,82 @@ def search(workspace,request,*,audience='internal_ai'):
     if source_kind not in (None,'skill','library','web'):raise ValueError('source_kind 须为 skill、library 或 web')
     if source_kind in ('skill','web') and ('filters' in request or 'library_id' in request):raise ValueError('书库筛选只能用于 library 资料')
     assets=[];catalog=dict(items=[],errors=[])
-    if flow=='component' and source_kind is None:
+    if flow=='component' and source_kind is None and not (request.get('filters') or request.get('library_id')):
         from nbt_components import listing
         catalog=listing(workspace)
     for item in catalog['items']:
         if item.get('archived'):continue
-        value=score(keywords,item['name']+' '+ ' '.join(item.get('tags',[])))
+        value=score(search_text,item['name']+' '+ ' '.join(item.get('tags',[])))
         if value<=0:continue
         rotations=[turn for turn in (0,1) if size is None or all(n<=size[i] for i,n in enumerate(item['size'] if turn==0 else [item['size'][2],item['size'][1],item['size'][0]]))]
         # Rotation swaps X/Z only; no implicit resizing or clipping.
         if not rotations:continue
         assets.append(dict(id='asset:'+item['id'],kind='asset',asset_id=item['id'],label=item['name'],tags=item['tags'],size=item['size'],anchor=item['anchor'],content_sha256=item['content_sha256'],score=value,rotations=rotations,reason='名称或标签匹配；尺寸可容纳'+('（需绕Y旋转90°）' if rotations==[1] else ''),locator='.nbtcreator/components/'+item['id']+'.json',thumbnail=item.get('thumbnail')))
-    groups,library_errors=(libraries.search(workspace,flow,keywords,limit,request) if source_kind in (None,'library') else ([],[]))
-    knowledge=[];saved=[];saved_errors=[];knowledge_errors=[]
+    library_scope=source_kind in (None,'library')
+    groups,library_errors=(libraries.search(workspace,flow,search_text,limit,request) if library_scope else ([],[]))
+    knowledge=[];saved=[];saved_errors=[];knowledge_errors=[];documents_searched=0
     if not request.get('filters') and not request.get('library_id'):
         if source_kind in (None,'web'):
             from nbt_knowledge.saved_references import search as search_saved
-            saved,saved_errors=search_saved(workspace,flow,keywords,limit)
+            saved,saved_errors=search_saved(workspace,flow,search_text,limit)
         if source_kind in (None,'skill'):
             for document in documents(workspace,flow,audience,knowledge_errors):
+                documents_searched+=1
                 for chunk in chunks(document):
-                    value=score(keywords,chunk['heading']+' '+chunk['text'])
+                    value=score(search_text,chunk['heading']+' '+chunk['text'])
                     if value:knowledge.append(dict(chunk,score=value,reason='当前阅读范围内的任务词匹配'))
     assets.sort(key=lambda item:(-item['score'],item['id']));knowledge.sort(key=lambda item:(-item['score'],item['id']))
     if 'limit' not in request and (groups or library_errors or saved):
         knowledge_limit=6
     else:
         knowledge_limit=limit
-    selected=select_passages([knowledge,saved,*groups],knowledge_limit)
+    continuations=[]
+    selected=select_passages([knowledge,saved,*groups],knowledge_limit,continuations)
     scope=dict(workflow=flow,source_kind=source_kind or 'all_enabled',per_document_passages=2,
-               library_query_truncated=source_kind in (None,'library') and len(keywords.strip())>300,
-               explicit_keywords='keywords' in request)
+               library_query_truncated=library_scope and len(keywords.strip())>300,
+               explicit_keywords='keywords' in request,indexed_query=search_text,query_selection=query_detail,
+               continued_passages=continuations,skill_documents_searched=documents_searched)
+    if library_scope:scope['libraries_in_scope']=len(groups)+len(library_errors)
+    if not selected:
+        notes=['当前工作流和筛选条件下没有匹配摘录；可用本地短关键词或构造别称重新检索。']
+        if source_kind in (None,'skill') and not documents_searched and not (request.get('library_id') or request.get('filters')):
+            notes.append('本范围没有可检索的文档，请核对本工作流的资料选择。')
+        if library_scope and not scope['libraries_in_scope']:notes.append('本范围没有已启用的书库，可以查看当前工作流的书库设置。')
+        if library_errors or saved_errors or knowledge_errors:notes.append('有来源无法核验，请先查看对应的错误条目。')
+        if request.get('filters'):notes.append('本次使用了书库筛选，可以核对风格、地区和年代。')
+        if query_detail['next_offset'] is not None:notes.append('长描述可用 query_offset 逐段补查。')
+        scope['no_knowledge_match']=''.join(notes)
     result=dict(workflow=flow,query=query,size=size,assets=assets[:limit],knowledge=selected,errors=catalog['errors'],
                 knowledge_errors=knowledge_errors,library_errors=library_errors,saved_web_errors=saved_errors,search_scope=scope,
                 policy='Only current workspace assets and sources enabled for this workflow; local search never calls a provider.')
     if include_extensions:
         from nbt_asset_libraries import browse
-        candidates=browse(workspace,query=keywords.strip()[:300],limit=limit)
+        candidates=browse(workspace,query=search_text,limit=limit)
         result.update(extension_candidates=candidates['items'],extension_errors=candidates['errors'],
                       extension_next='按返回的 source_id、version 和哈希用 asset-libraries preview 核对实际候选。')
     return result
 
 
-def select_passages(groups, limit):
+def select_passages(groups, limit, continuations):
     per_doc,seen,selected={},set(),[]
+    first_hit={};continued=set()
     # Alternate between independently ranked sources, whose scores are not comparable.
     for row in zip_longest(*groups):
         for chunk in row:
             if chunk is None:
                 continue
             key=chunk['document_id'];content=' '.join(chunk['text'].split())
-            if per_doc.get(key,0)>=2 or content in seen:
+            if content in seen:continue
+            if per_doc.get(key,0)>=2:
+                if key not in continued and 'line_start' in chunk:
+                    hit=first_hit[key]
+                    continuations.append(dict(document_id=key,sha256=hit['sha256'],line=chunk['line_start'],
+                                              **({'manifest_sha256':hit['manifest_sha256']} if 'manifest_sha256' in hit else {})))
+                    continued.add(key)
                 continue
+            if len(selected)>=limit:continue
             selected.append(chunk);per_doc[key]=per_doc.get(key,0)+1;seen.add(content)
-            if len(selected)>=limit:
-                return selected
+            first_hit.setdefault(key,chunk)
     return selected
 
 def checked_sources(workspace,flow,sources,*,audience='internal_ai'):
@@ -228,7 +252,11 @@ def external_receipt(workspace,found):
         if bibliography:
             projection['bibliography']={key:bibliography[key] for key in ('author','edition','publisher','source_url','verification') if key in bibliography}
         return projection
-    return dict(found,receipt=identifier,knowledge=[compact(item) for item in found['knowledge']],assets=[compact(item) for item in found['assets']])
+    scope=dict(found['search_scope'])
+    ref_by_doc={item['document_id']:ref for ref,item in sources.items() if item['kind']=='knowledge'}
+    scope['continued_passages']=[dict(receipt=identifier,ref=ref_by_doc[item['document_id']],line=item['line'])
+                                 for item in scope['continued_passages']]
+    return dict(found,receipt=identifier,search_scope=scope,knowledge=[compact(item) for item in found['knowledge']],assets=[compact(item) for item in found['assets']])
 
 def read_receipt(workspace,flow,request,audience):
     if audience!='external_agent':raise ValueError('外部检索回执不可用于内置 AI')

@@ -104,6 +104,13 @@ function buildOutputSchema(mode,context){
    const steps=context.operations&&Array.from(stepsByKind,([kind,indexes])=>
     change(enumeration(indexes),operation(kind,true)))
    const changes=steps?{anyOf:steps}:change({...integer,minimum:1,maximum:128},{anyOf:Object.keys(catalog.tools).map(kind=>operation(kind,true))})
+   if(steps?.length){
+    const slot={...integer,minimum:1,maximum:context.operations.length},expected=optional(string(64))
+    const position=enumeration(['before','after'])
+    changes.anyOf.push(object({action:enumeration(['remove']),step:slot,expected}),
+      object({action:enumeration(['move']),step:slot,expected,position,anchor:slot,anchor_expected:expected}),
+      object({action:enumeration(['insert']),step:slot,expected,position,operation:{$ref:'#/properties/operations/anyOf/0/items'}}))
+   }
    schema.properties.operation_patch=optional(steps?.length===0?{type:'null'}:
     object({baseline:optional(string(64)),changes:array(changes,16,1)}))
    schema.required.push('operation_patch')
@@ -116,7 +123,7 @@ function providerSchema(schema){if(Array.isArray(schema))return schema.map(provi
 function decodeOutput(value,schema,root=schema,depth=0){
  if(depth>32)throw Error('AI结构化输出嵌套过深')
  const fail=()=>{throw Error('AI返回内容不符合严格输出约束')}
- if(schema.$ref)return decodeOutput(value,root.$defs[schema.$ref.split('/').at(-1)],root,depth+1)
+ if(schema.$ref)return decodeOutput(value,schema.$ref.slice(2).split('/').reduce((part,key)=>part[key],root),root,depth+1)
  if(schema.anyOf){if(value===null&&schema._optional)return undefined;for(const branch of schema.anyOf){try{return decodeOutput(value,branch,root,depth+1)}catch{}}return fail()}
  const types=Array.isArray(schema.type)?schema.type:[schema.type],type=value===null?'null':Array.isArray(value)?'array':typeof value
  if(!types.includes(type)&&!(type==='number'&&types.includes('integer')&&Number.isSafeInteger(value)))return fail()

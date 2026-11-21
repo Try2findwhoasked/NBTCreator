@@ -24257,6 +24257,18 @@ globalThis.NbtToolCatalog = {
         ],
         "mutation": false
       },
+      "tasks.recover": {
+        "mutation": true,
+        "fields": {
+          "id": "string",
+          "expected_sha256": "string",
+          "backup": "string"
+        },
+        "required": [
+          "id",
+          "expected_sha256"
+        ]
+      },
       "tasks.discover": {
         "fields": {
           "id": "string"
@@ -24265,6 +24277,61 @@ globalThis.NbtToolCatalog = {
           "id"
         ],
         "mutation": false
+      },
+      "tasks.revalidate": {
+        "fields": {
+          "id": "string",
+          "from_task": "string",
+          "new_source": "string",
+          "new_source_sha256": "string",
+          "review": "string",
+          "review_kind": "string",
+          "review_sha256": "string",
+          "observations": "array"
+        },
+        "required": [
+          "id",
+          "from_task",
+          "new_source",
+          "new_source_sha256",
+          "review",
+          "review_kind",
+          "review_sha256"
+        ],
+        "mutation": false
+      },
+      "tasks.reuse": {
+        "fields": {
+          "id": "string",
+          "from_task": "string",
+          "new_source": "string",
+          "new_source_sha256": "string",
+          "review": "string",
+          "review_kind": "string",
+          "review_sha256": "string",
+          "observations": "array",
+          "binding_sha256": "string",
+          "summary": "string",
+          "comments": "array",
+          "revision": "integer",
+          "lease_token": "string",
+          "fence": "integer"
+        },
+        "required": [
+          "id",
+          "from_task",
+          "new_source",
+          "new_source_sha256",
+          "review",
+          "review_kind",
+          "review_sha256",
+          "binding_sha256",
+          "summary",
+          "revision",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
       },
       "tasks.create": {
         "fields": {

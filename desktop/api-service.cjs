@@ -1,6 +1,7 @@
 const {buildOutputSchema,providerSchema,decodeOutput}=require('./ai-output-schema.cjs')
 const fs=require('node:fs/promises')
 const path=require('node:path')
+const {randomUUID}=require('node:crypto')
 const {performance}=require('node:perf_hooks')
 const {normalizeSmallStructure}=require('./small-structure-normalize.cjs')
 const {normalizeReply}=require('./ai-output-normalize.cjs')
@@ -93,7 +94,7 @@ function localSmallStructure(result,context){
  for(const op of p.operations)for(const key of ['lo','hi','start','end'])if(op[key])op[key]=op[key].map((v,i)=>v+context.lo[i])
  return {...validateSmallStructure(translated,context),structure_name:result.structure_name,camera:result.camera}
 }
-function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext=async()=>null,captureWorkflowContext,validateCandidate=async()=>{}}){
+function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext=async()=>null,captureWorkflowContext,validateCandidate:validateLocal=async()=>{}}){
  const file=path.join(directory,'api-settings.json');let config={...defaults},encrypted=null,modelBusy=false,saving=false;const transports=new Set(),scheduler=createAiScheduler({limit:()=>config.maxConcurrent})
  async function load(){if(scheduler.size||modelBusy||saving)return publicConfig();try{const saved=JSON.parse(await fs.readFile(file,'utf8'));config=configOf(saved.config);encrypted=saved.encryptedKey||null}catch{config={...defaults};encrypted=null}return publicConfig()}
  function publicConfig(){return {...structuredClone(config),hasKey:!!encrypted}}
@@ -111,6 +112,8 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   try{
    const serialized=body?JSON.stringify(body):undefined
    if(measurement)measurement.request_bytes=Buffer.byteLength(serialized||'','utf8')
+   if(measurement&&(measurement.request_bytes>4*1024*1024||token.metrics.calls.reduce((sum,call)=>sum+(call.request_bytes??0),0)>8*1024*1024))
+    throw Error('API 请求体积超过单次4 MiB或本轮累计8 MiB，请缩小上下文')
    let key=''
    if(encrypted){let decoded=await safeStorage.decryptStringAsync(Buffer.from(encrypted,'base64'));if(decoded.shouldReEncrypt)decoded=await safeStorage.decryptStringAsync(Buffer.from(encrypted,'base64'));key=decoded.result;if(typeof key!=='string')throw Error('API Key 解密失败，请重新保存')}
    const headers={'Content-Type':'application/json'};if(key)headers.Authorization='Bearer '+key
@@ -133,13 +136,16 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
  async function models(){if(modelBusy||scheduler.size||saving)throw Error('已有 API 请求进行中');modelBusy=true;try{const result=await request('models');if(!Array.isArray(result.data))throw Error('模型列表响应无效');return result.data.slice(0,200).map(m=>String(m.id)).filter(Boolean)}finally{modelBusy=false}}
  async function generateCore(input,token){
   const api_metrics=token.metrics
-  if(!own(input,['mode','instruction','context','viewport','retrieval'])||!['prompt','structure','small_structure','workbench','component','selection_edit'].includes(input.mode)||typeof input.instruction!=='string'||!input.instruction.trim()||input.instruction.length>12000)throw Error('填写有效任务要求（最多12000字）')
+  if(!own(input,['mode','instruction','context','viewport','retrieval','preview_repair'])||!['prompt','structure','small_structure','workbench','component','selection_edit'].includes(input.mode)||typeof input.instruction!=='string'||!input.instruction.trim()||input.instruction.length>12000)throw Error('填写有效任务要求（最多12000字）')
   if(input.retrieval&&(!own(input.retrieval,['id','sha256'])||!/^[a-f0-9]{32}$/.test(input.retrieval.id)||!/^[a-f0-9]{64}$/.test(input.retrieval.sha256)))throw Error('参考集合编号或哈希无效')
    let context=input.mode==='workbench'?cleanContext(input.context):input.mode==='component'?componentContext(input.context):input.mode==='selection_edit'?cleanSelectionContext(input.context):input.mode==='prompt'&&input.context?.task==='design_prose'?cleanProseContext(input.context):contextOf(input.context)
   if(['structure','small_structure'].includes(input.mode)&&!context)throw Error('结构规划需要先打开模型并选择局部范围')
   const {buildInternalPrompt:promptBuilder,requiredRoutes,checkDesignRoutes}=require('./internal-skill.cjs')
   const discoveryText=[input.instruction,context?.user_requirements].filter(Boolean).join('\n')
   const designRoutes=requiredRoutes(discoveryText)
+  const validateCandidate=candidate=>validateLocal(designRoutes.length?{...candidate,
+   context:{...candidate.context,required_designs:designRoutes.map(route=>route.id),
+    spiral_parameters:designRoutes.find(route=>route.id==='spiral_stair')?.parameters??{}}}:candidate)
   checkDesignRoutes(designRoutes,input.mode,context)
   const promptOptions={instruction:discoveryText,strictSchema:config.strictSchema}
   const taskPrompt=promptBuilder(input.mode,context,promptOptions)
@@ -160,7 +166,14 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     if(!own(v,['dataUrl','width','height'])||typeof v.dataUrl!=='string'||!/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(v.dataUrl)||v.dataUrl.length>3*1024*1024||![v.width,v.height].every(n=>Number.isInteger(n)&&n>0&&n<=1280))throw Error('视口截图格式或尺寸无效')
     image=v.dataUrl
   }else if(internal?.attachViewport)throw Error('该工作流需要视口截图，请先打开建筑画面或关闭截图开关')
-  const outputSchema=config.strictSchema?buildOutputSchema(input.mode,context):null
+  const target=input.preview_repair?require('./target-preview-repair.cjs').targetRepair(input.mode,context,input.preview_repair,
+   candidate=>input.mode==='selection_edit'?validateSelectionResult(candidate,context):input.mode==='small_structure'?localSmallStructure(candidate,context):validatePatch(candidate,context)):null
+  if(target){
+   system+='\n真实目标预览失败。仅替换 preview_failure 指定的失败项。坐标样本相对本次选区起点，选区之外的失败不披露外部方块。'
+   system+=input.mode==='structure'?'只返回 {lo,hi,失败面板}，沿用该模式的模型坐标。':'只返回 {"step":失败步号,"operation":一个完整替代步骤}，操作坐标相对选区起点。'
+   system+='保持其余步骤、保护、预算和覆盖开关。本地将合并并重新预览所有步骤。'
+  }
+  const outputSchema=config.strictSchema?(target?.schema??buildOutputSchema(input.mode,context)):null
   if(outputSchema){
    const geometryTask=['workbench','component','selection_edit'].includes(input.mode)&&!['brief','constraint'].includes(context?.task)
    if(geometryTask){
@@ -169,7 +182,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    }
    system+=' 严格按response_format的JSON Schema返回完整紧凑JSON。Schema不取代本地保护、预算、源哈希、真实预览或用户显式导出。'
   }
-  const payload={model:config.model,messages:[{role:'system',content:system},{role:'user',content:JSON.stringify({instruction:input.instruction,context:apiContext,...(internal?{internal_workflow:providerWorkflow}:{})})}],max_tokens:input.mode==='prompt'?6144:12288,stream:false}
+  const payload={model:config.model,messages:[{role:'system',content:system},{role:'user',content:JSON.stringify({instruction:input.instruction,context:apiContext,...(target?{preview_failure:target.evidence}:{}),...(internal?{internal_workflow:providerWorkflow}:{})})}],max_tokens:input.mode==='prompt'?6144:12288,stream:false}
   if(new URL(config.baseUrl).hostname==='api.deepseek.com'&&['deepseek-flash','deepseek-v4-pro'].includes(config.model)&&config.requestOptions.thinking===undefined&&config.requestOptions.reasoning_effort===undefined)payload.thinking={type:'disabled'}
   Object.assign(payload,config.requestOptions)
   if(config.tokenParameter==='max_completion_tokens'){payload.max_completion_tokens=payload.max_tokens;delete payload.max_tokens}
@@ -206,7 +219,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    if(typeof raw==='string')api_metrics.output_chars=Array.from(raw).length
    const lengthError=()=>Error('API 输出达到长度上限'+(compactRetries?'；已自动精简重试1次，仍未返回完整方案':'')+'。本次没有应用任何不完整内容。'+(api_metrics.completion_tokens?' 累计返回令牌数：'+api_metrics.completion_tokens:''))
    let extracted;try{extracted=extractResult(raw,input.mode)}catch(error){if(choice?.finish_reason==='length')throw lengthError();throw error}
-   if(choice?.finish_reason==='length'&&input.mode==='prompt'&&!extracted.framed)throw lengthError()
+   if(choice?.finish_reason==='length'&&(target||input.mode==='prompt'&&!extracted.framed))throw lengthError()
    const text=extracted.text
    api_metrics.output_chars=Array.from(text).length
    if(text.length>120000)throw Error('最终结果超过本地处理体积上限')
@@ -222,9 +235,10 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
     parsed=structuredClone(repair.candidate)
     parsed.operations[edit.step-1]=edit.operation
    }
-   if(outputSchema)parsed=decodeOutput(parsed,outputSchema)
+   if(target)parsed=target.merge(parsed,!!outputSchema)
+   else if(outputSchema)parsed=decodeOutput(parsed,outputSchema)
    if(['structure','small_structure','component','selection_edit','workbench'].includes(input.mode))parsed=normalizeReply(parsed,input.mode,context)
-   if(!outputSchema&&Array.isArray(parsed.operations)&&['selection_edit','component','workbench'].includes(input.mode)&&!parsed.operation_patch)lastCandidate=parsed
+   if(!target&&!outputSchema&&Array.isArray(parsed.operations)&&['selection_edit','component','workbench'].includes(input.mode)&&!parsed.operation_patch)lastCandidate=parsed
    if(input.mode==='selection_edit'){const result={mode:'selection_edit',...validateSelectionResult(parsed,context),api_metrics,...referenceFields};checkDesignRoutes(designRoutes,input.mode,context,result.settings_patch.operations);await validateCandidate({mode:input.mode,result,context,signal:token.controller.signal});return result}
    if(input.mode==='component'){
     const schema=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').agent_tools.structure_preview.parameters.properties.spec
@@ -256,10 +270,12 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
      api_metrics.expanded_tool_contract=true
     }
     if(reason==='length'){compactRetries++;api_metrics.retried_compact=true}
-    if(reason==='length'&&input.mode==='small_structure'&&outputSchema){outputSchema.properties.settings_patch.properties.operations.maxItems=24;outputSchema.properties.summary.maxLength=80;payload.response_format.json_schema.schema=providerSchema(outputSchema)}
+    if(!target&&reason==='length'&&input.mode==='small_structure'&&outputSchema){outputSchema.properties.settings_patch.properties.operations.maxItems=24;outputSchema.properties.summary.maxLength=80;payload.response_format.json_schema.schema=providerSchema(outputSchema)}
     const feedback=reason==='length'?(revisesProse?'上次文字达到长度上限。重新给出修改后的完整正文，不续写。只缩短本轮改动的部分，不压缩或删除原稿其余内容。':input.mode==='workbench'&&context.task==='constraint'?'上次输出达到长度上限。重新给出完整精简的{name,rules}约束候选，不返回工具步骤、路径或权限。':input.mode==='workbench'&&context.task==='brief'?'上次输出达到长度上限。重新给出完整精简的project_patch，仅包含本次允许修改的设计文字；不续写、不生成工具步骤，保留人工硬条件。':input.mode==='prompt'?'上次文字达到长度上限。重新给出完整精简的设计说明，保留用户硬条件，不续写或生成工具步骤。':'上次输出达到长度上限。重新给出完整精简答案，不续写。'+(input.mode==='small_structure'?'小构件只保留最多24个box/beam/frame操作。':'')):('本地校验未通过：'+error.message.replace(/[\r\n]/g,' ').slice(0,300)+'。仅修正格式、长度或错误参数，保持原任务和原上下文，不扩大权限。')
     payload.messages=structuredClone(originalMessages)
-    if(repair){
+    if(target){
+     payload.messages.push({role:'user',content:(reason==='length'?'上次修复输出被截断。':feedback)+'请仅返回单个完整的失败项修复，不续写，不重新生成其余候选。'})
+    }else if(repair){
      const adjacent=repair.candidate.operations.slice(Math.max(0,repair.step-2),repair.step+1)
      const local=JSON.stringify(adjacent)
      payload.messages.push({role:'user',content:feedback+' 步骤定位：'+JSON.stringify(issue)+'。相邻步骤（含失败项）：'+(local.length<=6000?local:'参数过长，见步骤定位。')+
@@ -278,11 +294,25 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   const workflowKey=frozen.mode==='workbench'&&['draft','brief'].includes(frozen.context?.task)?'draft':frozen.mode
   const topic=frozen.context?.project
   const reference={retrieval:frozen.retrieval,instruction:[frozen.instruction,topic?.name,topic?.theme,topic?.purpose,frozen.context?.user_requirements].filter(value=>typeof value==='string').map(value=>value.slice(0,12000)).join('\n')}
-  return scheduler.run(options.requestId,async token=>{
+  const requestId=options.requestId??randomUUID(),totalLimit=Math.min(300000,config.timeoutMs*2)
+  let timer,metrics
+  const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>{
+   reject(Object.assign(Error('API 排队、生成及重试累计超时，请重新提交'),{code:'AI_TIMEOUT',retryable:true,api_metrics:metrics}))
+   scheduler.cancel(requestId)
+  },totalLimit)})
+  const generation=scheduler.run(requestId,async token=>{
    token.workflowPromise=token.prepared
-   try{return await generateCore(frozen,token)}catch(error){error.api_metrics=token.metrics;throw error}
-   finally{token.metrics.service_total_ms=Math.round(performance.now()-token.started)}
+   metrics=token.metrics
+   let onCancel
+   const cancelled=new Promise((_,reject)=>{
+    onCancel=()=>reject(Object.assign(Error('API 请求已取消'),{code:'AI_CANCELLED',retryable:false}))
+    token.controller.signal.addEventListener('abort',onCancel,{once:true})
+    if(token.controller.signal.aborted)onCancel()
+   })
+   try{return await Promise.race([generateCore(frozen,token),cancelled])}catch(error){error.api_metrics=token.metrics;throw error}
+   finally{token.controller.signal.removeEventListener('abort',onCancel);token.metrics.service_total_ms=Math.round(performance.now()-token.started)}
   },snapshot=>captureWorkflowContext?workflowContext(workflowKey,{...reference,snapshot}):snapshot,()=> (captureWorkflowContext??workflowContext)(workflowKey,reference))
+  try{return await Promise.race([generation,deadline])}finally{clearTimeout(timer)}
  }
  return {load,save,models,generate,cancel:id=>{const found=scheduler.cancel(id);if(id===undefined)for(const controller of transports)controller.abort();return found||id===undefined},publicConfig,state:scheduler.state}
 

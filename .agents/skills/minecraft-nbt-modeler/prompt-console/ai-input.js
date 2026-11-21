@@ -46,14 +46,11 @@
   // checks the complete local binding. Keep opaque local fields off the wire.
   function mergeOperations(operations,patch) {
     if (!patch || !Array.isArray(patch.changes) || !patch.changes.length || patch.changes.length > 16) throw Error('工具增量格式无效');
-    const merged=JSON.parse(JSON.stringify(operations)),seen=new Set();
     for (const change of patch.changes) {
-      if (!Number.isInteger(change.step) || change.step < 1 || change.step > merged.length || seen.has(change.step)) throw Error('增量目标步骤无效');
-      seen.add(change.step);
+      if (change.action !== undefined) continue;
       if (!change.set || typeof change.set !== 'object' || Array.isArray(change.set) || Object.keys(change.set).some(key=>['__proto__','constructor','prototype','kind','overwrite','write_bounds','write_group','max_writes'].includes(key))) throw Error('增量不能修改工具权限或执行字段');
-      Object.assign(merged[change.step-1],JSON.parse(JSON.stringify(change.set)));
     }
-    return merged;
+    return globalThis.mergeOperationRows(operations,patch.changes).map(row=>row.op);
   }
   globalThis.NbtPromptAIInput = {textContext,request,bindingToken,mergeOperations,editableFields,assertPatch};
 })();

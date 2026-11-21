@@ -3,6 +3,30 @@ const {createWorkspaceApi}=require('../../desktop/workspace-api.cjs')
 const {createApiService}=require('../../desktop/api-service.cjs')
 const deferred=()=>{let resolve;return {promise:new Promise(r=>resolve=r),resolve:v=>resolve(v)}}
 
+test('exposure timeout, oversized output and workspace switch kill the pinned child and ignore late completion',async()=>{
+ const {EventEmitter}=require('node:events'),{PassThrough}=require('node:stream')
+ const {createExposureProcess}=require('../../desktop/exposure-process.cjs')
+ const children=[]
+ const process=createExposureProcess({python:'fixture',script:'fixture.py',start:(_python,args,options)=>{
+  const child=new EventEmitter()
+  Object.assign(child,{stdout:new PassThrough(),stderr:new PassThrough(),kill(signal){this.signal=signal},args,cwd:options.cwd})
+  children.push(child);return child
+ }})
+ await assert.rejects(process.run('old','apply',[],10),/超时/)
+ const late=children[0];assert.equal(late.signal,'SIGKILL')
+ const lifecycle=createWorkspaceApi({cancel:()=>process.cancel()})
+ const active=lifecycle.run(()=>process.run('old','inherit',['--previous','previous']))
+ const stopped=assert.rejects(active,/切换/);await lifecycle.suspend();await stopped
+ assert.equal(children[1].signal,'SIGKILL');assert.deepEqual(children[1].args.slice(-4),['--workspace','old','--previous','previous'])
+ lifecycle.resume();const fresh=process.run('new','show')
+ for(const child of children.slice(0,2)){child.stdout.write('{"stale":true}');child.emit('close',0)}
+ const current=children.at(-1);assert.equal(current.cwd,'new');current.stdout.write('{"fresh":true}');current.emit('close',0)
+ assert.deepEqual(await fresh,{fresh:true})
+ const tooLarge=assert.rejects(process.run('new','show'),/6 MiB/)
+ children.at(-1).stdout.write(Buffer.alloc(6*1024*1024+1));await tooLarge
+ assert.equal(children.at(-1).signal,'SIGKILL')
+})
+
 test('workspace switch aborts active API, frees concurrency and prevents old result application',async()=>{
  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-workspace-api-'));let api,workspace='old',first=true,signal
  const lifecycle=createWorkspaceApi({cancel:()=>api.cancel()}),applied=[]

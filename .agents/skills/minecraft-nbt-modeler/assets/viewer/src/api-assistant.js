@@ -5,6 +5,7 @@ import {requestAI,previewAI,cancelAI} from './ai-request.js'
 import {previewKnowledge,externalSummaries} from './knowledge/knowledge-preview.js'
 import {initInternalAISettings} from './knowledge/internal-ai-settings.js'
 import {validateAICandidate} from './ai-candidate.mjs'
+import {previewRepair} from './target-preview-repair.js'
 import {initAPIAdvanced} from './api-advanced.js'
 export function initApiAssistant(hooks){
  const $=id=>document.getElementById(id),dialog=document.createElement('dialog');dialog.id='api-dialog';dialog.className='api-dialog'
@@ -46,8 +47,8 @@ export function initApiAssistant(hooks){
  const entryPreview=document.createElement('button');entryPreview.type='button';entryPreview.textContent='查看助手使用说明';entryPreview.onclick=()=>previewKnowledge({scope:'external',entry:true});knowledge.prepend(entryPreview)
  dialog.querySelector('.ai-layout').append(knowledge)
  initInternalAISettings(dialog,knowledge)
- async function editExternal(action,id){
-  try{await window.nbtDesktop.exposureEdit({action,id});await refreshKnowledge()}
+ async function editExternal(action,id,options={}){
+  try{await window.nbtDesktop.exposureEdit({action,id,...options});await refreshKnowledge()}
   catch(error){$('knowledge-status').textContent=error.message}
  }
  $('knowledge-import').onclick=()=>editExternal('import')
@@ -58,6 +59,17 @@ export function initApiAssistant(hooks){
   try{
    const config=await window.nbtDesktop.exposureConfig(),custom=config.custom_knowledge??[]
    if(config.error)throw Error('检查配置目录下的 skill-exposure.json 后重新同步。'+config.error)
+   const recoveryButton=(label,setting,row)=>{
+    const control=document.createElement('button');control.type='button';control.textContent=label
+    control.onclick=()=>editExternal('recover',undefined,{setting,row,sha256:config.config_sha256})
+    return control
+   }
+   if(config.config_error){
+    $('knowledge-status').textContent=config.config_error+'。可在配置目录修正原文件，或备份原件后重新选择阅读范围。'
+    $('custom-knowledge-list').replaceChildren(recoveryButton('备份原配置并仅启用核心资料','reset-core'))
+    $('knowledge-groups').replaceChildren()
+    return
+   }
    const button=(label,input)=>{const item=document.createElement('button');item.type='button';item.textContent=label;item.onclick=()=>previewKnowledge({scope:'external',...input});return item}
    const issues=new Map((config.custom_issues??[]).map(item=>[item.id,item.error]))
    $('custom-knowledge-list').replaceChildren(...custom.map(item=>{
@@ -70,7 +82,13 @@ export function initApiAssistant(hooks){
     if(item.enabled||!issue)actions.append(edit(item.enabled?'停用':'启用',item.enabled?'disable':'enable'))
     actions.append(edit('移除登记','remove'));row.append(info,actions);return row
    }))
-   if(!custom.length)$('custom-knowledge-list').textContent='当前没有自定义资料。'
+   for(const issue of config.registration_issues??[]){
+    const row=document.createElement('article'),info=document.createElement('p')
+    row.className='knowledge-description';info.textContent=issue.label+' · '+issue.error
+    row.append(info,recoveryButton('从原文件恢复为停用资料','restore',issue.row),recoveryButton('备份并移除坏登记','remove',issue.row))
+    $('custom-knowledge-list').append(row)
+   }
+   if(!custom.length&&!config.registration_issues?.length)$('custom-knowledge-list').textContent='当前没有自定义资料。'
    const groups=config.groups.filter(group=>config.enabled_groups.includes(group.id))
    $('knowledge-groups').replaceChildren(...groups.map(group=>{
     const card=document.createElement('article'),label=document.createElement('strong'),summary=document.createElement('p'),files=document.createElement('details'),heading=document.createElement('summary')
@@ -79,15 +97,54 @@ export function initApiAssistant(hooks){
     heading.textContent=`${group.files.length} 份文档 · 查看内容`;files.append(heading,...group.files.map(file=>button(file,{group:group.id,file})))
     card.append(label,summary,files);return card
    }))
-   $('knowledge-status').textContent=config.notice||`助手可读取 ${groups.length} 类参考资料，${issues.size} 份自定义资料待修复。`
+   $('knowledge-status').textContent=config.notice||`助手可读取 ${groups.length} 类参考资料，${issues.size+(config.registration_issues?.length??0)} 份自定义资料待修复。`
   }catch(error){$('custom-knowledge-list').replaceChildren();$('knowledge-groups').replaceChildren();$('knowledge-status').textContent=error.message}
  }
 
  let result=null,binding=null,running=false,generation=0
+ let targetFailure=null,originalRequest=null,resultPolicy=null,repairAttempts=0
+ const repairButton=document.createElement('button');repairButton.type='button';repairButton.id='ai-target-repair';repairButton.hidden=true
+ repairButton.textContent='修复失败步骤并重新预览';$('ai-apply').after(repairButton)
+ const placementOptions=()=>({overwrite:result.mode==='selection_edit'?$('ai-edit-overwrite').checked:$('ai-allow-overwrite').checked,
+  skipProtected:result.mode==='small_structure'&&$('ai-skip-protected').checked})
+ function matchesFailure(){
+  return repairAttempts<2&&targetFailure&&bindingCurrent()&&JSON.stringify(result.settings_patch)===targetFailure.patch&&
+   JSON.stringify(placementOptions())===targetFailure.options
+ }
+ async function applyResult(){
+  const epoch=generation,check=()=>{if(epoch!==generation)throw new DOMException('预览已取消','AbortError')}
+  const options=placementOptions()
+  if(resultPolicy&&resultPolicy.options!==JSON.stringify(options))throw Error('覆盖或保护裁剪设置已变化，请重新生成候选')
+  try{
+   await previewAI(result,()=>hooks.apply(result.settings_patch,{mode:result.mode,summary:result.summary,...options,
+    presentation:{structure_name:result.structure_name,camera:result.camera},guard:{policy:resultPolicy?.sha256,check}}))
+   targetFailure=null
+  }catch(error){
+   targetFailure=originalRequest&&error.targetFailure&&bindingCurrent()?{issue:error.targetFailure,
+    patch:JSON.stringify(result.settings_patch),options:JSON.stringify(options)}:null
+   throw error
+  }finally{repairButton.hidden=!matchesFailure()}
+ }
+ repairButton.onclick=async()=>{
+  if(running||!matchesFailure())return
+  const failure=targetFailure,epoch=++generation,check=()=>{if(epoch!==generation||!bindingCurrent()||failure!==targetFailure||
+   failure.patch!==JSON.stringify(result.settings_patch)||failure.options!==JSON.stringify(placementOptions()))throw Error('修复已取消或候选发生变化')}
+  try{
+   locked(true);repairButton.disabled=true;message('正在读取当前选区并请求失败步骤修复…')
+   const options=placementOptions(),context=result.mode==='selection_edit'?await hooks.selectionContext(options.overwrite):hooks.context()
+   check()
+   const preview_repair=previewRepair(result,failure.issue,context,JSON.parse(binding).source_sha256,options)
+   repairAttempts++
+   const repaired=await requestAI({mode:result.mode,instruction:originalRequest,context,preview_repair},hooks.captureViewport,{scope:'model-editor'})
+   check();result=repaired;resultPolicy={sha256:failure.issue.policy_sha256,options:failure.options};targetFailure=null
+   $('ai-result').value=JSON.stringify({summary:result.summary,settings_patch:result.settings_patch},null,2);reviewEdit();changed()
+   await applyResult();message('已修复失败步骤并在当前建筑上重新预览完整候选。')
+  }catch(error){message(error.message+(repairAttempts>=2?'；本候选两次修复已用完，请调整后重新生成。':''),true)}finally{locked(false);repairButton.disabled=false;repairButton.hidden=!matchesFailure()}
+ }
  function message(text,error=false){$('ai-status').textContent=text;$('ai-status').classList.toggle('error',error);if(document.body.dataset.workspace==='ai'){configStatus.textContent=text;configStatus.classList.toggle('error',error)}}
  function bindingCurrent(){try{return binding===hooks.binding()}catch{return false}}
  function refreshComponent(updateFields=false){const component=hooks.componentState?.();$('ai-view-component').disabled=running||!!hooks.isBusy?.()||!component;$('ai-component-name').textContent=component?'最近构件：'+component.structure_name:'';$('ai-component-view-details').textContent=component?JSON.stringify({structure_name:component.structure_name,...component.camera_details},null,2):'';$('ai-pick-placement').textContent=component?'3D 放置最近构件':'3D 选择生成范围';$('ai-move-preview').disabled=running||!!hooks.isBusy?.()||!component;if(updateFields&&component){for(const [i,k]of ['x','y','z'].entries())$('ai-move-'+k).value=component.offset[i];$('ai-allow-overwrite').checked=!!component.overwrite;$('ai-rotate-turns').value=component.quarter_turns??0;$('ai-rotate-slider').value=component.quarter_turns??0}movementSync.forEach(sync=>sync())}
- function syncControls(){const value=running||!!hooks.isBusy?.();advancedAPI.lock(value);for(const id of ['api-save','api-models','api-clear','api-provider','api-base','api-model','api-key','api-enabled','api-json','api-concurrency','ai-generate','ai-generate-preview','ai-mode','ai-small-kind','ai-instruction','ai-allow-overwrite','ai-skip-protected','ai-pick-placement','ai-pick-new-range','ai-move-x','ai-move-y','ai-move-z','ai-move-x-slider','ai-move-y-slider','ai-move-z-slider','ai-rotate-turns','ai-rotate-slider','ai-edit-pick','ai-edit-overwrite','ai-references'])$(id).disabled=value;$('ai-cancel').disabled=!running;$('ai-apply').disabled=value||!result?.settings_patch||!bindingCurrent();$('ai-copy').disabled=!$('ai-result').value;$('ai-download').disabled=!$('ai-result').value;generatePreview.hidden=$('ai-mode').value!=='small_structure';for(const check of editPanel.querySelectorAll('[data-edit-step]'))check.disabled=value;if(result?.mode==='selection_edit'&&!result.settings_patch.operations.some(op=>op.enabled!==false))$('ai-apply').disabled=true;refreshComponent()}
+ function syncControls(){repairButton.hidden=!matchesFailure();const value=running||!!hooks.isBusy?.();advancedAPI.lock(value);for(const id of ['api-save','api-models','api-clear','api-provider','api-base','api-model','api-key','api-enabled','api-json','api-concurrency','ai-generate','ai-generate-preview','ai-mode','ai-small-kind','ai-instruction','ai-allow-overwrite','ai-skip-protected','ai-pick-placement','ai-pick-new-range','ai-move-x','ai-move-y','ai-move-z','ai-move-x-slider','ai-move-y-slider','ai-move-z-slider','ai-rotate-turns','ai-rotate-slider','ai-edit-pick','ai-edit-overwrite','ai-references'])$(id).disabled=value;$('ai-cancel').disabled=!running;$('ai-apply').disabled=value||!result?.settings_patch||!bindingCurrent();$('ai-copy').disabled=!$('ai-result').value;$('ai-download').disabled=!$('ai-result').value;generatePreview.hidden=$('ai-mode').value!=='small_structure';for(const check of editPanel.querySelectorAll('[data-edit-step]'))check.disabled=value;if(result?.mode==='selection_edit'&&!result.settings_patch.operations.some(op=>op.enabled!==false))$('ai-apply').disabled=true;refreshComponent()}
  function locked(value){running=value;syncControls();advancedAPI.lock(value)}
  window.addEventListener('creator-editor-state',syncControls)
  window.addEventListener('nbt-ai-component-state',event=>refreshComponent(!event.detail?.restored));window.addEventListener('nbt-ai-placement-start',()=>{locked(true);message('正在放置最近构件并更新3D预览…')});window.addEventListener('nbt-ai-placement-result',event=>{locked(false);message(event.detail.text,event.detail.error)});refreshComponent()
@@ -96,7 +153,7 @@ export function initApiAssistant(hooks){
  function reflect(c){advancedAPI.fill(c);$('api-concurrency').value=c.maxConcurrent??2;$('api-enabled').checked=c.enabled;$('api-provider').value=c.provider;$('api-base').value=c.baseUrl;$('api-model').value=c.model;$('api-json').checked=c.jsonMode;$('api-key').value='';$('api-key-state').textContent=c.hasKey?'访问密钥已保存；填写新值可替换':'尚未保存访问密钥；本机服务可按需留空';$('api-badge').textContent=c.enabled?'AI 已启用':'本地模式'}
  async function save(clear=false){reflect(await window.nbtDesktop.apiSave(configInput(clear)))}
  const changed=()=>window.dispatchEvent(new Event('creator-ai-candidate-change'))
- function clearResult(){result=null;binding=null;$('ai-edit-steps').replaceChildren();$('ai-edit-summary').textContent='';referenceSources.replaceChildren();delete $('ai-status').dataset.promptPath;$('ai-status').title='';$('ai-result').value='';for(const id of ['ai-copy','ai-download','ai-apply'])$(id).disabled=true;changed()}
+ function clearResult(){result=null;binding=null;targetFailure=null;originalRequest=null;resultPolicy=null;repairAttempts=0;repairButton.hidden=true;$('ai-edit-steps').replaceChildren();$('ai-edit-summary').textContent='';referenceSources.replaceChildren();delete $('ai-status').dataset.promptPath;$('ai-status').title='';$('ai-result').value='';for(const id of ['ai-copy','ai-download','ai-apply'])$(id).disabled=true;changed()}
  $('open-api').onclick=async()=>{if(!dialog.open){$('internal-ai-tab').click();dialog.show();}window.creatorWorkspace?.opened('ai');if(!window.nbtDesktop?.apiConfig){message('API 助手仅在 Electron 桌面版提供；浏览器与CLI仍可离线使用',true);for(const e of dialog.querySelectorAll('button,input,select,textarea'))if(e.id!=='close-api')e.disabled=true;return}try{reflect(await window.nbtDesktop.apiConfig());await refreshKnowledge()}catch(e){message(e.message,true)}}
  $('close-api').onclick=()=>dialog.close()
  $('api-provider').onchange=()=>{if($('api-provider').value==='deepseek'){$('api-base').value='https://api.deepseek.com';$('api-model').value='deepseek-flash'}}
@@ -108,21 +165,21 @@ export function initApiAssistant(hooks){
   if(!window.nbtDesktop?.apiGenerate)throw Error('AI生成需要Electron桌面版');const mode=$('ai-mode').value;if(['structure','selection_edit'].includes(mode)&&!hooks.localSelection())throw Error('请先在“修改范围”中取消整座建筑并指定局部 XYZ 选区')
   let instruction=$('ai-instruction').value.trim();if(!instruction&&mode==='small_structure')instruction='按当前可用范围设计，采用现有材质，简洁实用并保留通路。';if(!instruction)throw Error('先填写任务要求');if(mode==='small_structure')instruction='构件参考：'+$('ai-small-kind').value+'。请在当前选区内生成可预览的小型结构。'+instruction;let context;if(mode==='selection_edit'){locked(true);message('正在更新现有参数预览并读取完整选区…');context=await hooks.selectionContext($('ai-edit-overwrite').checked);check()}else context=hooks.context();binding=hooks.binding()
   locked(true);message('正在生成建议…')
-  const generated=await requestAI({mode,instruction,context},hooks.captureViewport,{scope:'model-editor'});check();result=generated;window.nbtReferencePicker?.sources(referenceSources,result)
+  originalRequest=instruction;const generated=await requestAI({mode,instruction,context},hooks.captureViewport,{scope:'model-editor'});check();result=generated;window.nbtReferencePicker?.sources(referenceSources,result)
   $('ai-result').value=mode==='prompt'?result.text:JSON.stringify({structure_name:result.structure_name,camera:result.camera,summary:result.summary,settings_patch:result.settings_patch},null,2);$('ai-copy').disabled=false;$('ai-download').disabled=false
   changed();reviewEdit()
-  if(immediate){if(mode!=='small_structure')throw Error('立即预览仅用于小型结构');if(!bindingCurrent())throw Error('模型或选区已改变，请重新生成');await previewAI(result,()=>hooks.apply(result.settings_patch,{mode:result.mode,summary:result.summary,overwrite:result.mode==='selection_edit'?$('ai-edit-overwrite').checked:$('ai-allow-overwrite').checked,skipProtected:$('ai-skip-protected').checked,presentation:{structure_name:result.structure_name,camera:result.camera}}));if(result.mode==='small_structure'&&result.settings_patch.operations)componentResult=result;for(const k of ['x','y','z'])$('ai-move-'+k).value='0';message('AI构件已插入修改预览中的建筑并刷新3D；原稿保留，满意后导出下一版');return}
+  if(immediate){if(mode!=='small_structure')throw Error('立即预览仅用于小型结构');if(!bindingCurrent())throw Error('模型或选区已改变，请重新生成');await applyResult();if(result.mode==='small_structure'&&result.settings_patch.operations)componentResult=result;for(const k of ['x','y','z'])$('ai-move-'+k).value='0';message('AI构件已插入修改预览中的建筑并刷新3D；原稿保留，满意后导出下一版');return}
   $('ai-result').value=mode==='prompt'?result.text:JSON.stringify({structure_name:result.structure_name,camera:result.camera,summary:result.summary,settings_patch:result.settings_patch},null,2)
   $('ai-copy').disabled=false;$('ai-download').disabled=false;$('ai-apply').disabled=mode==='prompt';let archiveMessage='';if(mode==='prompt'&&hooks.archivePrompt)try{const saved=await hooks.archivePrompt(result.text,binding);if(saved){archiveMessage='；提示词已自动导出';$('ai-status').dataset.promptPath=saved.prompt;$('ai-status').title=saved.prompt}}catch(error){archiveMessage='；自动导出未完成：'+error.message}message('建议已生成；尚未修改模型'+archiveMessage)
  }catch(e){message(e.message,true)}finally{locked(false)}}
  $('ai-cancel').onclick=async()=>{generation++;try{await cancelAI('model-editor');message('本次生成已终止；已保存的内容保留')}catch(error){message(error.message,true)}}
  $('ai-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('ai-result').value);message('结果已复制')}catch{$('ai-result').select();message(document.execCommand('copy')?'结果已复制':'已选中，请按 Ctrl+C')}}
  $('ai-download').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([$('ai-result').value],{type:result?.mode==='prompt'?'text/markdown':'application/json'}));a.download=result?.mode==='prompt'?'AI建模提示词.md':'ai_candidate.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
- $('ai-apply').onclick=async()=>{try{if(running)return;if(!result?.settings_patch)throw Error('请先生成结构计划');if(!bindingCurrent())throw Error('模型或参数已改变，请重新生成计划');locked(true);message('正在本地校验并计算预览…');await previewAI(result,()=>hooks.apply(result.settings_patch,{mode:result.mode,summary:result.summary,overwrite:result.mode==='selection_edit'?$('ai-edit-overwrite').checked:$('ai-allow-overwrite').checked,skipProtected:$('ai-skip-protected').checked,presentation:{structure_name:result.structure_name,camera:result.camera}}));if(result.mode==='small_structure'&&result.settings_patch.operations)componentResult=result;for(const k of ['x','y','z'])$('ai-move-'+k).value='0';message('参数已载入，预览已更新；尚未导出正式建筑');dialog.close()}catch(e){message('未完成预览：'+e.message,true)}finally{locked(false)}}
+ $('ai-apply').onclick=async()=>{try{if(running)return;if(!result?.settings_patch)throw Error('请先生成结构计划');if(!bindingCurrent())throw Error('模型或参数已改变，请重新生成计划');locked(true);message('正在本地校验并计算预览…');await applyResult();if(result.mode==='small_structure'&&result.settings_patch.operations)componentResult=result;for(const k of ['x','y','z'])$('ai-move-'+k).value='0';message('参数已载入，预览已更新；尚未导出正式建筑');dialog.close()}catch(e){message('未完成预览：'+e.message,true)}finally{locked(false)}}
  window.nbtDesktop?.apiConfig().then(reflect).catch(()=>{})
  return {
-  capture(){try{if(!result||!binding)return null;const bound=JSON.parse(binding),current=JSON.parse(hooks.binding());if(bound.source!==current.source||bound.source_sha256!==current.source_sha256)return null;const candidate={schema_version:1,source_sha256:bound.source_sha256,settings:bound.settings,can_apply:bindingCurrent(),result:Object.fromEntries(['mode','summary','text','settings_patch','structure_name','camera','reference_sources'].filter(key=>result[key]!==undefined).map(key=>[key,structuredClone(result[key])]))};return validateAICandidate(candidate,bound.source_sha256)}catch{return null}},
-  restore(saved,legacyText=''){result=null;binding=null;const mode=$('ai-mode').value,hidden=mode!=='small_structure';$('ai-small-field').hidden=hidden;placement.hidden=hidden;movement.hidden=hidden
+  capture(){try{if(!result||!binding)return null;const bound=JSON.parse(binding),current=JSON.parse(hooks.binding());if(bound.source!==current.source||bound.source_sha256!==current.source_sha256)return null;const candidate={schema_version:1,source_sha256:bound.source_sha256,settings:bound.settings,can_apply:!resultPolicy&&bindingCurrent(),result:Object.fromEntries(['mode','summary','text','settings_patch','structure_name','camera','reference_sources'].filter(key=>result[key]!==undefined).map(key=>[key,structuredClone(result[key])]))};return validateAICandidate(candidate,bound.source_sha256)}catch{return null}},
+  restore(saved,legacyText=''){result=null;binding=null;targetFailure=null;originalRequest=null;resultPolicy=null;repairAttempts=0;repairButton.hidden=true;const mode=$('ai-mode').value,hidden=mode!=='small_structure';$('ai-small-field').hidden=hidden;placement.hidden=hidden;movement.hidden=hidden
    try{if(saved){const current=JSON.parse(hooks.binding());validateAICandidate(saved,current.source_sha256);result=structuredClone(saved.result);$('ai-result').value=result.mode==='prompt'?result.text:JSON.stringify({structure_name:result.structure_name,camera:result.camera,summary:result.summary,settings_patch:result.settings_patch},null,2);if(saved.can_apply&&result.mode===mode&&JSON.stringify(saved.settings)===JSON.stringify(current.settings))binding=hooks.binding();message(binding?'已恢复尚未采用的 AI 候选，可继续载入预览。':'已恢复历史 AI 建议供参考；模型或参数已变化，请重新生成候选。')}else{$('ai-result').value=legacyText; if(legacyText)message('这是旧草稿中的建议文本，未保存候选绑定。可复制或下载参考，请重新生成后再预览。')}}catch(error){$('ai-result').value='';message(error.message,true)}window.nbtReferencePicker?.sources(referenceSources,result);reviewEdit();syncControls()
   },sync:syncControls
  }

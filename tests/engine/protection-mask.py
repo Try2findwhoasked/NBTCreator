@@ -40,6 +40,31 @@ class Protection(unittest.TestCase):
   op['skip_protected']='yes'
   with self.assertRaises(ValueError):simulate_plan(model,set(),dict(operations=[op]),config)
 
+ def test_real_target_evidence_locates_failures_and_rechecks_policy_on_repair(self):
+  from nbt_detail_control import canonical
+  base=dict(kind='box',label='前置步骤',classification='body',lo=[12,6,14],hi=[12,6,14],state='gold_block')
+  settings=default_settings()
+  for kind,pos,policy in [
+      ('protection_conflict',[17,5,27],dict(overwrite=True)),
+      ('occupied',[12,3,12],dict(overwrite=False)),
+      ('outside_selection',[18,5,16],dict(write_bounds=dict(lo=[12,4,12],hi=[17,7,17],allow_overwrite=False)))]:
+   settings['operations']=[dict(base,enabled=False),base,dict(base,label='失败步骤',lo=pos,hi=pos,**policy)]
+   with self.subTest(kind=kind),self.assertRaises(ValueError) as caught:
+    preview_effect(dict(self.request,settings=settings),self.folder/'failed')
+   self.assertTrue(hasattr(caught.exception,'details'),f'{kind}: {caught.exception}')
+   detail=caught.exception.details;self.assertEqual(detail['kind'],kind)
+   self.assertIn(pos,detail['positions']);self.assertEqual(detail['preview']['settings_step'],3)
+   self.assertEqual(detail['preview']['settings_sha256'],canonical(settings))
+   self.assertEqual(detail['preview']['source_sha256'],self.hash)
+   expected=detail['preview']['policy_sha256']
+   settings['operations'][2].update(lo=[13,5,14],hi=[13,5,14])
+   repaired=preview_effect(dict(self.request,settings=settings,expected_preview_policy=expected),self.folder/kind)
+   self.assertEqual(repaired['changed_blocks'],2)
+  settings['max_changed_blocks']=1
+  with self.assertRaisesRegex(ValueError,'预算已变化'):
+   preview_effect(dict(self.request,settings=settings,expected_preview_policy=expected),self.folder/'stale')
+  self.assertEqual(self.original,self.source.read_bytes())
+
  def test_backend_json_preserves_error_details_without_traceback_parsing(self):
   settings=default_settings();settings['operations']=[dict(kind='box',label='底座',classification='body',lo=[17,5,27],hi=[17,5,27],state='stone',overwrite=True)];file=self.folder/'request.json';file.write_text(json.dumps(dict(self.request,settings=settings)));run=subprocess.run([sys.executable,str(SCRIPTS/'nbt_detail_control.py'),'preview','--request',str(file),'--output',str(self.folder/'out')],capture_output=True,text=True,encoding='utf8');self.assertEqual(run.returncode,1);error=json.loads(run.stdout);self.assertEqual(error['details']['kind'],'protection_conflict');self.assertEqual(error['details']['positions'],[[17,5,27]])
 

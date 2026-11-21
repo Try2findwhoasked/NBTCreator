@@ -306,6 +306,176 @@ class Contracts(unittest.TestCase):
      with self.assertRaises(ProtocolError):
       dispatch(self.w,'record',self.request(**old,new_source=base['source'],new_source_sha256=base['source_sha256'],summary='过期执行者'))
 
+ def test_damaged_registration_recovery_preserves_fencing_and_original(self):
+  from nbt_agent_tasks import load_index,checkpoint
+  from nbt_working_model import WorkingModel
+  context=dict(mode='standalone',require_enclosure=False,openings=[],allow_empty_wall_mask=True,start=[2.5,1,2.5],targets={'end':[5.5,1,5.5]})
+  model=WorkingModel(self.w,[8,6,8],context=context)
+  model.apply_operations([dict(kind='box',label='floor',classification='body',lo=[0,0,0],hi=[7,0,7],state='stone')])
+  model.open_declared();base=model.save_draft('登记恢复')
+  for i,case in enumerate(('released','expired','active')):
+   with self.subTest(case=case),patch('nbt_agent_protocol.time.time',return_value=100+200*i):
+    task=dispatch(self.w,'create',self.request(source=base['source'],source_sha256=base['source_sha256']))
+    client=TaskClient(self.w,case);client.start('tasks',task['id'],case,60)
+    old=client.lease_params(client.load())
+    if case=='released':client.change('release')
+    file,index=load_index(self.w);entry=next(e for e in index['tasks'] if e['id']==task['id'])
+    broken=self.w/entry['manifest'];original=broken.read_bytes()
+    backup=checkpoint(self.w,file,entry['sha256'])
+    if case=='released':backup.unlink() # Existing workspaces predate checkpoints.
+    broken.write_bytes(original+b' ' if case=='released' else b'{}')
+    changed=broken.read_bytes()
+    problem=dispatch(self.w,'list',{})['errors'][0]
+    self.assertEqual(problem['details']['expected_sha256'],entry['sha256'])
+    request=self.request(id=task['id'],expected_sha256=entry['sha256'])
+    candidate=WorkingModel.open(self.w,base['source'])
+    candidate.apply_operations([dict(kind='box',label='edit',classification='body',lo=[1+i,1,1],hi=[1+i,1,1],state='gold_block')])
+    with self.assertRaisesRegex(ProtocolError,'任务登记已变化'):candidate.save_draft()
+    with self.assertRaisesRegex(ProtocolError,'任务登记已变化'):candidate.save_draft(actor='human')
+    if case=='active':
+     backup.unlink()
+     with self.assertRaises(ProtocolError) as unproven:dispatch(self.w,'recover',request)
+     self.assertEqual(unproven.exception.code,'TASK_RECOVERY_UNPROVEN')
+     backup.write_bytes(original)
+    if case=='expired':
+     archived=broken.parent.with_name('archived-'+broken.parent.name)
+     broken.parent.rename(archived)
+     broken=archived/broken.name
+    with patch('nbt_agent_protocol.time.time',return_value=200*i+(101 if case=='active' else 200)):
+     recovered=dispatch(self.w,'recover',request)
+     self.assertEqual(recovered,dispatch(self.w,'recover',request))
+     self.assertEqual(recovered['active_lease'],case=='active')
+     self.assertEqual(broken.read_bytes(),changed)
+     self.assertEqual((self.w/recovered['manifest']).read_bytes(),original)
+     if case=='active':
+      with self.assertRaisesRegex(ProtocolError,'有效租约'):candidate.save_draft()
+      client.change('release')
+     with self.assertRaises(ProtocolError):candidate.save_draft(task_session=case)
+     base=candidate.save_draft()
+     with self.assertRaises(ProtocolError):
+      dispatch(self.w,'record',self.request(**old,new_source=base['source'],new_source_sha256=base['source_sha256'],summary='过期执行者'))
+
+ def test_candidate_reuse_crosses_cli_and_frozen_entry_with_fresh_evidence(self):
+  from nbt_working_model import WorkingModel
+  from nbt_refine import prepare
+  from nbt_exposure import apply
+  from nbt_agent_tasks import sha
+  context=dict(mode='standalone',require_enclosure=False,openings=[],allow_empty_wall_mask=True,start=[2.5,1,2.5],targets={'end':[5.5,1,5.5]})
+  model=WorkingModel(self.w,[8,6,8],context=context)
+  model.apply_operations([dict(kind='box',label='floor',classification='body',lo=[0,0,0],hi=[7,0,7],state='stone')])
+  model.open_declared();base=model.save_draft('候选核验')
+  plan=self.w/'nbt_models/plan.json';plan.write_text('{"change":"pillar"}')
+  def task():return dispatch(self.w,'create',self.request(source=base['source'],source_sha256=base['source_sha256'],origins=[dict(role='plan',path=str(plan))]))
+  old=task();client=TaskClient(self.w,'origin');client.start('tasks',old['id'],'agent',60)
+  model.apply_operations([dict(kind='box',label='pillar',classification='body',lo=[1,1,1],hi=[1,2,1],state='gold_block')])
+  target=Path(model.save_draft(task_session='origin')['source']);client.change('release')
+  source=Path(base['source']);source_bytes=source.read_bytes();source.unlink()
+  listing=inspect(self.w,'tasks',old['id'],'candidates')
+  self.assertFalse(listing['ready_for_execution']);self.assertIn(str(target),[c['absolute_source'] for c in listing['candidates']])
+  source.write_bytes(source_bytes)
+  current=task();review=self.w/'nbt_models/review'
+  cameras=[dict(role='whole',eye=[12,8,13],target=[3.5,.5,3.5]),dict(role='entry',eye=[2.5,2.62,2.5],target=[5.5,.5,5.5])]
+  record=prepare(target,dict(context,cameras=cameras),review)
+  observations=self.w/'nbt_models/observations.json'
+  observations.write_text(json.dumps([dict(image_sha256=row['sha256'],note='Synthetic observation for the '+row['role']+' view') for row in record['thumbnails']]))
+  apply(self.w)
+  cli=[sys.executable,'-B',str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_task_client.py')]
+  frozen=[sys.executable,'-B',str(self.w/'.agents/skills/nbtcreator-workspace/nbt.py'),'task-client']
+  args=['--from-task',old['id'],'--new-source',str(target),'--review',str(review),'--observations',str(observations)]
+  def run(entry,*arguments):
+   process=subprocess.run([*entry,*arguments],cwd=self.w,capture_output=True,encoding='utf8',timeout=45)
+   return json.loads(process.stdout)
+  checked=run(cli,'check-candidate',current['id'],*args)
+  self.assertTrue(checked['ok'],checked)
+  self.assertEqual(run(frozen,'check-candidate',current['id'],*args)['data'],checked['data'])
+  receipt=checked['data']
+  self.assertEqual(receipt['binding']['parent_sha256'],base['source_sha256'])
+  self.assertEqual(receipt['binding']['evidence']['source_sha256'],sha(target))
+  self.assertEqual(receipt['binding']['publication']['task_id'],old['id'])
+  new=TaskClient(self.w,'destination');new.start('tasks',current['id'],'agent',900)
+  with self.assertRaises(ProtocolError) as ordinary:new.change('complete',new_source=str(target),summary='不能通过普通回传跳过重新核验')
+  self.assertEqual(ordinary.exception.code,'CANDIDATE_REVALIDATION_REQUIRED')
+  reuse=['--session','destination','reuse-candidate',*args,'--expected',receipt['binding_sha256'],'--summary','验证现有立柱候选']
+  observed=observations.read_bytes();observations.write_bytes(observed.replace(b'Synthetic',b'Revised'))
+  self.assertEqual(run(frozen,*reuse)['error']['code'],'CANDIDATE_CHANGED')
+  observations.write_bytes(observed)
+  self.assertTrue(run(frozen,*reuse)['ok'])
+  returned=dispatch(self.w,'get',dict(id=current['id']))['returns']
+  self.assertEqual(len(returned),1);self.assertEqual(returned[0]['reuse'],receipt)
+  self.assertEqual(returned[0]['acceptance'],'pending_user_review')
+
+ def test_named_legacy_building_is_stable_after_original_description_loss(self):
+  from nbt_agent_tasks import publication,load_index
+  root=self.w/'nbt_models/standalone/历史建筑'
+  sources=[]
+  for name in ('版本_初稿','版本_修改'):
+   target=root/name/'master/model.snbt';target.parent.mkdir(parents=True)
+   target.write_bytes(self.source.read_bytes())
+   (root/name/'room_description.json').write_text('{}');sources.append(target)
+  source,candidate=sources
+  old=dispatch(self.w,'create',self.request(source=str(source),source_sha256=hashlib.sha256(source.read_bytes()).hexdigest()))
+  client=TaskClient(self.w,'historic');client.start('tasks',old['id'],'holder',900)
+  file,index=load_index(self.w)
+  index['tasks'][0].pop('building')
+  file.write_text(json.dumps(index),encoding='utf8')
+  (source.parents[1]/'room_description.json').unlink();source.unlink()
+  found=inspect(self.w,'tasks',old['id'],'candidates')
+  self.assertFalse(found['ready_for_execution'])
+  self.assertIn(str(candidate.resolve()),[row['absolute_source'] for row in found['candidates']])
+  with self.assertRaisesRegex(ProtocolError,'有效租约'):
+   with publication(self.w,root,candidate,None,'external_agent'):pass
+
+ def test_raw_candidate_predating_claim_cannot_use_simple_return(self):
+  task=self.create()
+  target=self.source.parents[2]/'v02/master/model.snbt'
+  target.parent.mkdir(parents=True);target.write_bytes(self.source.read_bytes())
+  client=TaskClient(self.w,'raw');client.start('tasks',task['id'],'agent',60)
+  with self.assertRaises(ProtocolError) as blocked:client.change('complete',new_source=str(target),summary='旧版不能冒充新稿')
+  self.assertEqual(blocked.exception.code,'CANDIDATE_REVALIDATION_REQUIRED')
+
+ def test_waiting_for_building_does_not_hold_task_registry(self):
+  import time
+  from nbt_agent_tasks import load_index
+  from nbt_prompts import index_lock
+  from nbt_web_paths import project_paths
+  from nbt_working_model import publication_lock
+  task=self.create();index,_=load_index(self.w);building=project_paths(self.source)['workdir']
+  # Signal just before the contender attempts the real cross-process building
+  # lock. The parent has already acquired it, like a desktop conversion.
+  script="""
+import sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+import nbt_working_model as model
+import nbt_agent_tasks as tasks
+workspace,source,building=map(Path,sys.argv[2:5])
+original=model.publication_lock
+def signal(*args):
+    (workspace/sys.argv[5]).touch()
+    return original(*args)
+model.publication_lock=signal
+if sys.argv[5]=='publish':
+    with tasks.publication(workspace,building,source,None,'external_agent'):pass
+else:
+    try:tasks.dispatch(workspace,'record',dict(id=sys.argv[6],revision=0))
+    except tasks.protocol.ProtocolError as e:
+        assert e.code=='REVISION_CONFLICT',e
+"""
+  for action in ('publish','record'):
+   with self.subTest(action=action):
+    process=None
+    try:
+     with publication_lock(self.w,building):
+      process=subprocess.Popen([sys.executable,'-B','-c',script,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'),
+                                str(self.w),str(self.source),str(building),action,task['id']])
+      deadline=time.monotonic()+15
+      while not (self.w/action).exists() and process.poll() is None and time.monotonic()<deadline:time.sleep(.01)
+      self.assertTrue((self.w/action).exists(),'Contender never reached the building lock')
+      with index_lock(self.w,index.parent,timeout=.5):pass
+     self.assertEqual(process.wait(timeout=15),0)
+    finally:
+     if process and process.poll() is None:process.kill();process.wait()
+
  def test_task_client_renews_then_stops_on_release(self):
   published=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'续租','buildingShape':'single'}},'测试任务')
   client=TaskClient(self.w,'renewer')

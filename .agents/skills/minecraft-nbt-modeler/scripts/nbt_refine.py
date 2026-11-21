@@ -356,7 +356,9 @@ def operation_candidates(model,operation,protected=()):
         if type(operation['overwrite']) is not bool:raise ValueError('覆盖现有方块须为布尔开关')
         if not operation['overwrite']:
             occupied=[p for p,value in writable if model.get(p) not in AIR_NAMES and model.get(p)!=value]
-            if occupied:raise ValueError('目标位置已有方块；移动构件，或勾选“允许AI构件覆盖现有方块”：'+str(occupied[:8]))
+            if occupied:
+                from nbt_change_policy import WriteConflict
+                raise WriteConflict('目标位置已有方块；移动构件，或勾选“允许AI构件覆盖现有方块”：'+str(occupied[:8]), 'occupied', occupied)
     return candidates
 
 
@@ -380,7 +382,9 @@ def _operation_candidates(model,operation,protected=()):
         for p in sorted(source):
             target=tuple(p[i]+delta[i] for i in range(3))
             if not model.in_bounds(target):raise ValueError('移动目标超出建筑边界')
-            if target not in source and model.get(target) not in AIR_NAMES and model.get(p) not in AIR_NAMES:raise ValueError('移动目标已有方块，请先腾空目标区域')
+            if target not in source and model.get(target) not in AIR_NAMES and model.get(p) not in AIR_NAMES:
+                from nbt_change_policy import WriteConflict
+                raise WriteConflict('移动目标已有方块，请先腾空目标区域','occupied',[target])
             if model.get(p) not in AIR_NAMES:edits[target]=model.get(p)
         return sorted(edits.items())
     if kind=='hollow_box':
@@ -541,9 +545,12 @@ def refine(review_dir,plan,output_dir,*,task_session=None,actor='external_agent'
         if task_session and workspace is None:raise ValueError('任务制作源必须位于工作区 nbt_models 内')
         guard=publication(workspace,project_paths(source)['workdir'],source,task_session,actor) if workspace else nullcontext(lambda: None)
         with guard as check_lease:
-            check_lease()
+            producer=check_lease()
             save_snbt(master,model,walls,palette=getattr(baseline,'_snbt_palette',None),extras=getattr(baseline,'_snbt_extras',None))
             write_json(out/'coordinates.json',config)
+            if producer:
+                from nbt_prompts import relative
+                write_json(out/'agent-publication.json',dict(publication=producer,source=relative(workspace,master),binding=source_binding(master)))
     final=dict(source_geometry_sha256=record['source_geometry_sha256'],refined_geometry_sha256=model.fingerprint(),
                approval_receipt_sha256=approval_hash,operations=summary,**difference,
                protected_cells=len(protected),validation_passed=True,master=str(master),

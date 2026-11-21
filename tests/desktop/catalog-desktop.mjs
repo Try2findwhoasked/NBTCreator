@@ -27,6 +27,15 @@ try{
  await assert.rejects(edit('enable'),/缺失/)
  assert.equal(await edit('remove'),true)
  assert.equal((await page.evaluate(()=>window.nbtDesktop.exposureConfig())).custom_issues.length,0)
+ const corrupted=JSON.stringify({schema_version:1,enabled_groups:['core'],custom_knowledge:[{...exposure.custom_knowledge[0],id:'invalid'}]})
+ await fs.writeFile(path.join(settings,'skill-exposure.json'),corrupted)
+ await page.locator('#open-api').evaluate(button=>button.click())
+ await page.getByText('备份并移除坏登记',{exact:true}).waitFor({state:'attached'})
+ await page.getByText('备份并移除坏登记',{exact:true}).evaluate(button=>button.click())
+ await page.waitForFunction(()=>document.querySelector('#custom-knowledge-list')?.textContent==='当前没有自定义资料。')
+ assert.ok((await Promise.all((await fs.readdir(path.join(settings,'skill-backups'))).filter(name=>name.endsWith('.json.bak')).map(name=>fs.readFile(path.join(settings,'skill-backups',name),'utf8')))).includes(corrupted))
+ await page.locator('#close-api').evaluate(button=>button.click())
+ checks.isolated_registration_recoverable_in_desktop=true
  await fs.writeFile(path.join(settings,'skill-exposure.json'),JSON.stringify({schema_version:1,enabled_groups:exposure.enabled_groups,custom_knowledge:exposure.custom_knowledge}))
  checks.unavailable_custom_document_can_be_removed=true
  const index=await page.evaluate(source=>window.detailControl.state.models.findIndex(m=>m.source===source),path.join(standalone,'only.nbt'));assert.ok(index>=0)

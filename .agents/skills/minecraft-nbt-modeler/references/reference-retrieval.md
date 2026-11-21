@@ -7,6 +7,8 @@
 - 资产复用用于 `component`（资产管理的独立结构创作）：按名称、标签和目标 XYZ 尺寸匹配，排除回收站，必要时建议绕 Y 旋转 90°；不隐式缩放或裁切。匹配只是建议，实际方块朝向、碰撞与位置由结构预览引擎再次检查。
 - 外部 CLI 默认检索对外 Skill 已启用的知识组和自定义文档；内置 AI 检索只读该工作流勾选的内部资料。两者都可查本工作流启用的书库与网页收藏。阅读范围不会自动变成 API 发送授权。
 - `knowledge_errors` 标出已启用但无法读取的自定义资料。其他命中和回执仍可使用。若回执引用了缺失文档，先在「AI 与知识库 → 外部建造助手」恢复原文件或重新导入，再检索或核对原回执。停用或移除登记会撤回引用资格，移除登记保留文件。
+- 编号无效、字段损坏及同编号的多条登记会被逐项隔离。`exposure show` 返回 `registration_issues[].row` 和 `config_sha256`。在桌面设置中可从原文件恢复为停用资料，或移除坏登记。CLI 使用 `exposure recover --sha256 <本次配置哈希> --row <行号> --setting restore` 或 `remove`。恢复后要显式启用才能检索正文。
+- 整份配置无法解析时先查看 `config_error`。可修正原文件，也可用 `exposure recover --sha256 <本次配置哈希> --setting reset-core` 仅启用核心资料。恢复操作在 `.nbtcreator/skill-backups/` 备份原字节，超过 256 KiB 的文件需手动备份检查。桌面打开或切换工作区时最多等待同步 5 秒，超时可从设置重新同步。新工作区继承失败时仅开放核心资料。
 - 资料按标题和任务词匹配，每份最多推荐两段，显示原文行号、内容 SHA256、匹配理由及完整原文入口。长行会明确标为截取；片段不代表已经阅读整份文档。
 - 用户勾选 1～16 项后，保存为本次工作流的参考集合。下一次该工作流生成会发送已选片段，代替其默认资料；其他流程不沿用它。本次选择保留在当前应用会话；集合文件与保存资产的来源配方随工作区保留。未使用检索集合时，读取该工作流勾选的资料：正文能完整放进本次文档份额才发送全文，否则按本次要求在本地选摘并标记省略，正文总预算12000字、单篇最多4000字；去除内容完全相同的重复资料。规则和用户补充要求保持完整。已明确选择并校验哈希的检索集合不再二次摘取。
 
@@ -28,9 +30,13 @@ mise run nbt -- retrieve search --request $request
 {"workflow":"component","query":"水渠桥 支承","size":[4,6,10],"limit":12}
 ```
 
-返回 `assets` 与 `knowledge`（各默认最多 6 条，`limit` 为 1～32，每文档至多两段），以及本次 `receipt`。各条有简短出处和 `ref`（如 `R1`）；没有命中时 `receipt` 为 `null`。查历史资料传 `source_kind:"library"`，无需抄书库编号；只查 Skill 文档或已收藏网页分别传 `"skill"` 或 `"web"`。有多个库时可再用 `library_id` 指定。书库使用 `query` 前 300 字，`filters` 支持 `style`、`region`、`year:[起始年,结束年]`。检查 `library_errors` 区分无匹配与来源不可用。
+返回 `assets` 与 `knowledge`（各默认最多 6 条，`limit` 为 1～32，每文档至多两段），以及本次 `receipt`。各条有简短出处和 `ref`（如 `R1`）；没有命中时 `receipt` 为 `null`。查历史资料传 `source_kind:"library"`，只查 Skill 文档或已收藏网页分别传 `"skill"` 或 `"web"`。有多个库时可再用 `library_id` 指定。`filters` 支持 `style`、`region`、`year:[起始年,结束年]`。书库及收藏的索引查询最多 300 字。
 
-长任务说明保留在 `query`，用可选的 `keywords` 提供实际匹配词（最多 300 字）；`search_scope` 显示工作流、每文档摘录限制和书库查询截取情况。外部 Agent 可传 `include_extension_assets:true` 同时浏览捆绑或已连接资产，结果在 `extension_candidates` 中保留版本和哈希。用 `asset-libraries preview` 确认几何与适用范围，检索回执仍只引用已列入 `assets` 与 `knowledge` 的条目。
+长描述会从全篇找出已知构造词，结合首尾文本，并用本地词表补充「九脊顶／歇山顶」「旋梯／螺旋楼梯」等别称。`search_scope.indexed_query` 显示本次实际使用的文本。提供 `keywords` 可指定至多 300 字的短词；或保留原请求及筛选，传 `query_offset` 从指定字符开始逐段查，下一段起点见 `search_scope.query_selection.next_offset`（从 0 开始）。
+
+没有资料命中时，读 `search_scope.no_knowledge_match`、`skill_documents_searched`、`libraries_in_scope` 及来源错误。零命中只针对本次措辞和已选范围。可查看本工作流书库设置、换一个短词或继续分段查询。若同篇还有匹配，`continued_passages` 返回带行号的原文定位，将其中一项和原 `workflow` 交给 `retrieve source` 补读。各操作继续核验来源、工作流和哈希。
+
+外部 Agent 可传 `include_extension_assets:true` 同时浏览捆绑或已连接资产，结果在 `extension_candidates` 中保留版本和哈希。用 `asset-libraries preview` 确认几何与适用范围，检索回执仍只引用已列入 `assets` 与 `knowledge` 的条目。
 
 `source` 请求 `{"workflow":"component","receipt":"<检索回执>","ref":"R1"}`，默认从命中行附近读取不超过 12000 字。继续阅读传 `line` 为返回的 `next_line`；确需整篇才加 `full:true`。网页引用直接返回已保存的原页、章节和短摘录，不造行号。每次仍校验当前范围与原文。
 
