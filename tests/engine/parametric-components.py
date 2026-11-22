@@ -7,12 +7,15 @@ from nbt_components import paste_plan
 from nbt_assembly import Volume
 from nbt_building.parametric import KINDS
 
+# Planar UV stencils use the dedicated contract tested in curve-stencils.py.
+STYLED_KINDS = tuple(kind for kind in KINDS if kind != "curve_stencil")
+
 class Parametric(unittest.TestCase):
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)
  def request(self,kind='pillar',**kw):return dict(kind=kind,size=[7,8,9],**kw)
- def test_all_kinds_styles_real_bounds_states_and_no_writes(self):
-  for kind in KINDS:
+ def test_styled_kinds_real_bounds_states_and_no_writes(self):
+  for kind in STYLED_KINDS:
    hashes=[]
    for style in ('classic','stepped','open'):
     with self.subTest(kind=kind,style=style):
@@ -24,7 +27,7 @@ class Parametric(unittest.TestCase):
    self.assertGreater(len(set(hashes)),1,kind)
   self.assertEqual(list(self.root.iterdir()),[])
  def test_parameters_change_geometry_and_small_boundaries(self):
-  for kind in KINDS:
+  for kind in STYLED_KINDS:
    for size in ([3,3,3],[8,9,12]):
     result=dispatch(self.root,'parametric_compile',dict(kind=kind,size=size));self.assertEqual(result['spec']['size'],size)
   a=dispatch(self.root,'parametric_compile',self.request('wall',spacing=2,thickness=1))
@@ -57,7 +60,7 @@ class Parametric(unittest.TestCase):
   for profile,info in PROFILES.items():
    if profile=='none':continue
    for motif in info['motifs']:
-    for kind in KINDS:
+    for kind in STYLED_KINDS:
      with self.subTest(profile=profile,motif=motif,kind=kind):
       args=dict(kind=kind,size=[13,13,15],ornament=dict(profile=profile,motif=motif,density=100,border_layers=0))
       result=dispatch(self.root,'parametric_compile',args);data=build(self.root,result['spec'])
