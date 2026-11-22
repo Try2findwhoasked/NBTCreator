@@ -577,7 +577,7 @@ async function loadModelCore(preserve = false) {
     if (!$('cameras').value.trim()) $('cameras').value=info.cameras
     if(!preserve){['hi-x','hi-y','hi-z'].forEach((id,i)=>setValue(id,info.size[i]-1));setValue('budget',info.suggested_budget);setValue('floor-excludes',JSON.stringify(info.suggested_floor.exclude_boxes ?? [],null,2))}
     $('model-summary').textContent=`${info.size.join(' × ')} · ${info.solid_blocks.toLocaleString()} 个实体方块 · ${info.wall_blocks.toLocaleString()} 个单独记录的墙体方块`+(info.unknown_shapes.length?`。${info.unknown_shapes.length} 类方块暂时无法自动检查能否通行。可以先生成方案，生成新建筑前仍需通过检查。`:'')+(info.conservative_obstacles?.length?`。${info.conservative_obstacles.length} 类细件仅按保守障碍检查通路，不作为可站立地面，不代表精确碰撞或游戏验收。`:'')
-    if(info.editing_ready===false)$('model-summary').textContent+='。当前可查看和标注；修改前需补齐坐标配置：'+[...(info.context_readiness?.missing??[]),...(info.context_readiness?.errors??[])].join('、')
+    if(info.editing_ready===false)$('model-summary').textContent+=(info.context_readiness?.scope==='read_only_assembly'?'。当前仅可查看；':'。当前可查看和标注；修改前需补齐坐标配置：')+[...(info.context_readiness?.missing??[]),...(info.context_readiness?.errors??[])].join('、')
     renderMaterials();if(!preserve||previousHash!==info.source_sha256)resetSettingsHistory();gallery(info.images);if(!preserve||previousHash!==info.source_sha256)state.bundle=''
   } finally { busy(false) }
   status(state.images.length?'图片已打开。点击上方缩略图切换视角，点击大图标位置、写修改意见。':'这座建筑还没有对应的图片。可点击“为原建筑生成预览图”，或打开 3D 查看。')

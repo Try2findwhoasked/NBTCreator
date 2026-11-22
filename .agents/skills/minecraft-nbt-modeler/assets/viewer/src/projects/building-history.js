@@ -4,7 +4,7 @@ export function initBuildingHistory({api,openModel,refresh,isBusy,context,compar
  const dialog=document.createElement('dialog');dialog.id='building-history-dialog';dialog.setAttribute('aria-label','建筑版本历史')
  dialog.innerHTML=`<header><div><h2>建筑版本</h2><p>找到要继续设计的版本，查看修改说明，或从旧版另存一份。</p></div><button id="version-history-close" type="button">关闭</button></header>
  <div class="building-history-body"><aside><button id="version-history-refresh" type="button">刷新版本</button><div id="version-history-versions"></div></aside><section>
- <h3 id="version-history-title"></h3><p id="version-history-metadata"></p><p id="version-history-warning"></p><label>修改说明<textarea id="version-history-message" maxlength="4000" rows="3"></textarea></label><label>从哪个版本修改而来<select id="version-history-parent"><option value="">来源未登记</option></select></label>
+ <h3 id="version-history-title"></h3><p id="version-history-metadata"></p><p id="version-history-warning"></p><p id="version-history-capacity" role="status"></p><label>修改说明<textarea id="version-history-message" maxlength="4000" rows="3"></textarea></label><label>从哪个版本修改而来<select id="version-history-parent"><option value="">来源未登记</option></select></label>
  <div class="history-actions"><button id="version-history-record" type="button">加入版本历史</button><button id="version-history-current" type="button">设为当前工作版</button><button id="version-history-open" type="button">打开这一版</button><button id="version-history-compare" type="button">对比来源版本</button><button id="version-history-derive" type="button">从这一版另存</button><button id="version-history-continue" type="button">从定稿版继续修改</button><button id="version-history-cross" type="button">批注跨版本核对</button><button id="version-history-finalize" type="button" class="primary">定稿并导出 NBT</button></div>
  <details><summary>文件与历史位置</summary><p id="version-history-location" class="path"></p><p id="version-history-repository" class="path"></p></details><p id="version-history-status" role="status"></p></section></div>`
  document.body.append(dialog)
@@ -20,6 +20,7 @@ export function initBuildingHistory({api,openModel,refresh,isBusy,context,compar
   $('version-history-title').textContent=node?title(node):'这一版还没有加入历史'
   $('version-history-metadata').textContent=node?`${actor[node.actor]??node.actor} · ${(node.size??[]).join(' × ')} · ${node.format.toUpperCase()} · ${node.tasks?.length??0} 个关联任务 · ${node.comments?.length??0} 条标注`:'加入历史后，可以追溯修改来源并从旧版继续设计。'
   $('version-history-warning').textContent=node?.acceptance==='pending_user_review'?'Agent 已回传，仍待你查看结构并核对。':node&&!node.source_matches?'原文件缺失或已变化；可以从已归档内容另存恢复。':''
+  const capacity=data.index_capacity;$('version-history-capacity').textContent=[capacity?.warning?'历史索引接近容量上限；登记时会尝试整理旧索引，请保留制作版并确认可用空间。':'',capacity?.disk_warning?'工作区所在磁盘剩余空间不足 256 MiB，历史登记可能失败。':''].filter(Boolean).join(' ')
   $('version-history-message').value=node?.message??'登记已有建筑版本'
   $('version-history-parent').replaceChildren(new Option('来源未登记',''));for(const item of data.versions)if(item.id!==node?.id)$('version-history-parent').add(new Option(title(item)+' · '+item.message,item.id));$('version-history-parent').value=node?.parent??''
   $('version-history-record').textContent=node?'保存说明与标注记录':'将这一版加入历史'

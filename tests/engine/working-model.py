@@ -81,6 +81,97 @@ class WorkingModels(unittest.TestCase):
             m.update('panel', transform=dict(position=[60, 1, 4]))
         self.assertEqual(model_hash(m.model, m.walls), before)
 
+    def test_update_preflight_reports_height_and_binds_the_exact_selection(self):
+        m = self.new()
+        m.install('palace', block_recipe(), [6, 3, 4])
+        before = m.inspect()
+        transform = dict(position=[6, 7, 4])
+        result = m.preflight_update('palace', block_recipe(4), transform)
+        self.assertTrue(result['applicable'])
+        self.assertEqual(m.inspect(), before)
+        self.assertEqual(result['instance_bounds']['before'], dict(lo=[6, 3, 4], hi=[7, 4, 4]))
+        self.assertEqual(result['instance_bounds']['after'], dict(lo=[6, 7, 4], hi=[9, 8, 4]))
+        self.assertEqual(result['host_bounds']['after']['hi'][1], 8)
+        self.assertEqual(result['routes']['status'], 'not_declared')
+        self.assertFalse(result['approval_created'])
+        token = result['preflight_sha256']
+        with self.assertRaisesRegex(ModelConflict, 'STALE_UPDATE_PREFLIGHT'):
+            m.update('palace', block_recipe(4), dict(position=[6, 8, 4]), preflight_sha256=token)
+        with self.assertRaisesRegex(ModelConflict, 'STALE_UPDATE_PREFLIGHT'):
+            m.update('palace', block_recipe(3), transform, preflight_sha256=token)
+        self.assertEqual(m.inspect(), before)
+        self.put(m, [2, 1, 2], 'sandstone', True)
+        with self.assertRaisesRegex(ModelConflict, 'STALE_UPDATE_PREFLIGHT'):
+            m.update('palace', block_recipe(4), transform, preflight_sha256=token)
+        current = m.preflight_update('palace', block_recipe(4), transform)
+        selected = m.update('palace', block_recipe(4), transform, preflight_sha256=current['preflight_sha256'])
+        self.assertEqual(selected['preflight_sha256'], current['preflight_sha256'])
+        self.assertEqual(selected['model_sha256'], current['candidate_model_sha256'])
+
+    def test_update_preflight_reports_invalid_canvas_and_both_blocked_routes(self):
+        context = dict(mode='standalone', openings=[], require_routes=True, start=[1.5, 1, 2.5],
+                       targets={'upper': [8.5, 1, 2.5]}, route_legs=[
+                           dict(name='return', start=[8.5, 1, 2.5], targets={'entry': [1.5, 1, 2.5]})
+                       ])
+        m = self.new(context=context)
+        m.apply_operations([dict(kind='box', label='路径地板', classification='body',
+                                 lo=[1, 0, 2], hi=[8, 0, 2], state='stone')])
+        m.install('palace', block_recipe(), [2, 3, 4])
+        original = m.inspect()
+        invalid = m.preflight_update('palace', transform=dict(position=[2, 11, 4]))
+        self.assertFalse(invalid['applicable'])
+        self.assertEqual(invalid['placement_bounds']['after']['hi'][1], 12)
+        self.assertEqual(invalid['routes']['status'], 'not_checked')
+        blocked = m.preflight_update('palace', transform=dict(position=[5, 1, 2]))
+        self.assertFalse(blocked['applicable'])
+        self.assertNotIn('preflight_sha256', blocked)
+        self.assertCountEqual([row['name'] for row in blocked['routes']['affected']], ['host', 'return'])
+        self.assertTrue(all(row['before']['passed'] and not row['after']['passed']
+                            for row in blocked['routes']['affected']))
+        self.assertEqual(m.inspect(), original)
+
+    def test_update_preflight_moves_named_interface_and_binds_shared_and_frozen_candidate(self):
+        from nbt_exposure import apply
+        m = self.new()
+        panel = dict(id='support', lo=[0, 0, 0], recipe=block_recipe(),
+                     interfaces=[dict(id='seat', face='up', lo=[0, 1, 0], hi=[1, 1, 0])])
+        graph = dict(schema_version=1, name='具名承托', size=[8, 6, 8], objects=[panel])
+        m.install('palace', dict(tool='scene_compile', arguments=dict(graph=graph)), [4, 1, 4])
+        baseline = m.save_draft('装配尺寸预检')
+        source = dict(source=baseline['source'], source_sha256=baseline['source_sha256'])
+        file = self.root / 'preflight.json'
+        action = dict(method='preflight_update', identifier='palace', transform=dict(position=[4, 4, 4]))
+        file.write_text(json.dumps(dict(source, actions=[action])), encoding='utf8')
+        run = subprocess.run(['node', str(ROOT / 'scripts/cli.mjs'), '--workspace', str(self.root),
+                              'model', '--request', str(file)], capture_output=True, text=True, encoding='utf8', timeout=60)
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+        report = json.loads(run.stdout)['result']['actions'][0]
+        self.assertTrue(report['applicable'])
+        self.assertEqual(report['interfaces']['checked_after'], 1)
+        moved = report['interfaces']['affected'][0]
+        self.assertEqual(moved['interface'], 'seat')
+        self.assertEqual(moved['after']['surface']['bounds_half']['hi'][1] -
+                         moved['before']['surface']['bounds_half']['hi'][1], 6)
+        selected = dict(action, method='update', preflight_sha256=report['preflight_sha256'])
+        file.write_text(json.dumps(dict(source, actions=[selected], save_draft={})), encoding='utf8')
+        apply(self.root, dict(schema_version=1, enabled_groups=['core', 'modelling'], custom_knowledge=[]))
+        facade = self.root / '.agents/skills/nbtcreator-workspace/nbt.py'
+        preview = self.root / 'nbt_models/_workspaces/update-preview'
+        run = subprocess.run([sys.executable, str(facade), 'model', '--request', str(file), '--output', str(preview)],
+                             cwd=self.root, capture_output=True, text=True, encoding='utf8', timeout=60)
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+        result = json.loads(run.stdout)['result']
+        receipt = result['preview']['assembly_preflight']
+        self.assertEqual(file_hash(receipt['file']), receipt['sha256'])
+        proof = json.loads(Path(receipt['file']).read_text(encoding='utf8'))
+        self.assertEqual(proof['source_sha256'], file_hash(result['preview']['source']))
+        self.assertEqual(proof['snapshot_sha256'], file_hash(result['preview']['snapshot']))
+        self.assertEqual(proof['decisions']['palace']['sha256'], report['preflight_sha256'])
+        self.assertFalse(proof['approval_created'])
+        self.assertEqual(file_hash(source['source']), source['source_sha256'])
+        saved = WorkingModel.open(self.root, result['saved']['source'])
+        self.assertEqual(saved.inspect('palace')['instances']['palace']['preflight'], proof['decisions']['palace'])
+
     def test_same_value_install_does_not_acquire_existing_host_blocks(self):
         m = self.new()
         self.put(m,[46,1,4],'stone')

@@ -7,7 +7,7 @@ const vectors={x:[1,0,0],y:[0,1,0],z:[0,0,1]}
 export function axisCamera(view,axis,sign=1){
  if(!Object.hasOwn(vectors,axis)||![1,-1].includes(sign))throw Error('无效的 XYZ 观察方向')
  const distance=Math.hypot(...sub(view.eye,view.target));if(!Number.isFinite(distance)||distance<1e-8)throw Error('观察点与相机位置重合')
- return {eye:view.target.map((n,i)=>n+vectors[axis][i]*distance*sign),target:[...view.target],up:axis==='y'?[0,0,-sign]:[0,1,0],fov:view.fov}
+ return {...view,eye:view.target.map((n,i)=>n+vectors[axis][i]*distance*sign),target:[...view.target],up:axis==='y'?[0,0,-sign]:[0,1,0],fov:view.fov}
 }
 export function projectedAxes(view){
  const forward=unit(sub(view.target,view.eye)),right=unit(cross(forward,view.up??[0,1,0])),up=unit(cross(right,forward))

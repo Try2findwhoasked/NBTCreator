@@ -181,15 +181,25 @@ def state_support(value):
                 support_geometry=not reason and bool(cells), reason=reason)
 
 
+SPARSE_ROW_THRESHOLD = 1_000_000
+
+
+class _SparseRows(dict):
+    """Return an empty bitset without allocating a row on read."""
+    def __missing__(self, key):
+        return 0
+
+
 class _Space:
     def __init__(self, model, conservative_obstacles=True):
         self.size = tuple(model.size)
         self.sx, self.sy, self.sz = (2*n for n in model.size)
         # Each y,z row is an X bitset; a player query usually touches only 8 rows.
-        self.rows = [0] * (self.sy*self.sz)
+        count = self.sy*self.sz
+        self.rows = _SparseRows() if count > SPARSE_ROW_THRESHOLD else [0] * count
         # An upper collision envelope cannot prove any supporting surface.
         # Keep exact support cells independent from obstacle rasterization.
-        self.support_rows = [0] * (self.sy*self.sz)
+        self.support_rows = _SparseRows() if count > SPARSE_ROW_THRESHOLD else [0] * count
         self.unknown = Counter()
         self.unknown_positions = {}
         self.conservative = Counter()

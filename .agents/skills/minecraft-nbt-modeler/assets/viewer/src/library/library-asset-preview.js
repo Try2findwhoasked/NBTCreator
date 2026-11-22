@@ -16,7 +16,7 @@ export function createAssetPreview({figure,overview,parameterHost,api,active,onS
  parameters.innerHTML=`<legend>配方参数</legend>
  <label>生成名称<input id="asset-recipe-name" maxlength="80"></label>
  <div class="asset-recipe-size">${['x','y','z'].map((axis,index)=>`<label>${['宽 X','高 Y','深 Z'][index]}<input id="asset-recipe-${axis}" type="number" min="1" max="64" step="1"></label>`).join('')}</div>
- <label>主材<input id="asset-recipe-material"></label>
+ <label><span id="asset-recipe-material-label">主材</span><input id="asset-recipe-material"></label>
  <label>收边材质<input id="asset-recipe-accent"></label>
  <div class="asset-recipe-pair"><label>样式<select id="asset-recipe-style"><option value="classic">经典</option><option value="stepped">层叠</option><option value="open">通透</option></select></label>
  <label>节奏间距<input id="asset-recipe-spacing" type="number" min="1" max="64" step="1"></label></div>
@@ -40,14 +40,18 @@ export function createAssetPreview({figure,overview,parameterHost,api,active,onS
   $('asset-recipe-name').value=args.name??item.name
   for(const [index,axis]of ['x','y','z'].entries())$('asset-recipe-'+axis).value=args.size[index]
   $('asset-recipe-material').value=args.material??'stone_bricks'
+  $('asset-recipe-material-label').textContent=args.kind==='curve_stencil'?'模板标记材质':'主材'
   $('asset-recipe-accent').value=args.accent??'polished_andesite'
   $('asset-recipe-material').closest('label').hidden=args.kind==='railing'
-  $('asset-recipe-accent').closest('label').hidden=args.kind==='railing'
+  $('asset-recipe-accent').closest('label').hidden=args.kind==='railing'||args.kind==='curve_stencil'
   $('asset-recipe-style').value=args.style??'classic'
   $('asset-recipe-style').disabled=!recipeHasStyle(args,item.controls)
+  $('asset-recipe-style').closest('label').hidden=args.kind==='curve_stencil'
   const target=recipeSpacingTarget(args,item.controls)
   $('asset-recipe-spacing').disabled=!target
+  $('asset-recipe-spacing').closest('label').hidden=args.kind==='curve_stencil'
   $('asset-recipe-spacing').value=target?target.reduce((value,key)=>value?.[key],args)??3:3
+  $('asset-recipe-z').readOnly=args.kind==='curve_stencil'
   $('asset-recipe-form').value=JSON.stringify(args.form??{},null,2)
   $('asset-recipe-ornament').value=JSON.stringify(args.ornament??{},null,2)
  }
@@ -61,7 +65,7 @@ export function createAssetPreview({figure,overview,parameterHost,api,active,onS
   Object.assign(args,{name,size})
   if(args.kind!=='railing'){
    args.material=$('asset-recipe-material').value.trim()
-   args.accent=$('asset-recipe-accent').value.trim()
+   if(args.kind!=='curve_stencil')args.accent=$('asset-recipe-accent').value.trim()
   }
   if(!$('asset-recipe-style').disabled)args.style=$('asset-recipe-style').value
   for(const [field,key]of [['asset-recipe-form','form'],['asset-recipe-ornament','ornament']]){
@@ -108,7 +112,7 @@ export function createAssetPreview({figure,overview,parameterHost,api,active,onS
    if(token!==epoch||fields!==fingerprint())return
    frame.hidden=false;image.hidden=true
    receipt={...result,arguments:args};binding=fields
-   figure.querySelector('#asset-meta').textContent=`${current.type==='parametric_recipe'?'可调配方':'构件'} · ${result.size.join(' × ')} · ${result.block_count} 格`
+   figure.querySelector('#asset-meta').textContent=`${current.arguments?.kind==='curve_stencil'?'曲面平面模板':current.type==='parametric_recipe'?'可调配方':'构件'} · ${result.size.join(' × ')} · ${result.block_count} 格`
    if(innerWidth<700)frame.scrollIntoView({block:'nearest'})
    report(`${result.size.join(' × ')} 格 · ${result.block_count} 个方块 · 待看图审阅`)
   }catch(error){if(token===epoch){report(error.message,true);frame.hidden=true;image.hidden=!image.getAttribute('src');empty.hidden=!!image.getAttribute('src');empty.textContent='预览未生成'}}

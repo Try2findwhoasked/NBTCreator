@@ -336,6 +336,7 @@ export function initProjectManager({api,openModel,isBusy,setBusy,refresh,history
   if(cardCover?.src){$('project-preview-image').src=cardCover.src;$('project-preview-image').hidden=false;$('project-preview-status').textContent='正在准备可旋转的 3D 预览…'}
   if(item.unreadable){$('project-preview-status').textContent=item.error||'文件无法读取，可在右侧尝试修复。';return false}
   if(item.bugged&&window.nbtPreviewPreferences?.mode!=='images'){$('project-preview-status').textContent='此文件需要检查。可尝试 3D 预览，或在右侧修复并归类。';return true}
+  if(item.source_kind==='assembly'){const shown=await render3D();if(shown&&token===previewGeneration)await workspaces?.seen(item.source).catch(error=>message(error.message));return shown}
   // Detail selection stays immediate; the larger WebGL snapshot starts only
   // when the user requests 3D from the inspector.
   try{const result=await cover(item,true);if(token!==previewGeneration||!dialog.open)return false

@@ -18,6 +18,7 @@ from nbt_exposure import apply
 from nbt_assembly import Volume
 from nbt_refine import save_master
 from nbt_task import inspect_source, checked_preview_snapshot
+from nbt_large_assembly import AssemblyVolume, save_assembly
 
 
 class RenderRuntime(unittest.TestCase):
@@ -212,6 +213,23 @@ class RenderRuntime(unittest.TestCase):
             self.assertEqual(hashlib.sha256(image.read_bytes()).hexdigest(),manifest['images'][0]['sha256'])
             self.assertTrue(all(manifest['cleanup'].values()))
             self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), before)
+            assembled=AssemblyVolume((300,384,300));assembled.put((299,295,299),'gold_block')
+            source=save_assembly(folder/'large-source',assembled,{(299,295,299)},
+                                 [dict(offset=[294,294,294],size=[6,90,6])])
+            large_cameras=folder/'large-cameras.json'
+            large_cameras.write_text(json.dumps([dict(id='large',eye=[308,303,285],target=[298,295,298])]))
+            rendered=folder/'large-rendered'
+            result=subprocess.run([sys.executable,str(workspace/'.agents/skills/nbtcreator-workspace/nbt.py'),
+                                   'render','--source',source['source'],'--cameras',str(large_cameras),
+                                   '--output',str(rendered),'--width','320','--height','240'],
+                                  cwd=workspace,env=env,capture_output=True,text=True,encoding='utf8',timeout=90000)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            large_manifest=json.loads((rendered/'render_manifest.json').read_text(encoding='utf8'))
+            self.assertEqual(large_manifest['status'],'complete');self.assertEqual(large_manifest['source_kind'],'assembly')
+            self.assertEqual(large_manifest['source_sha256'],source['source_sha256'])
+            self.assertEqual(len(large_manifest['assembly_partitions']),1)
+            image=rendered/large_manifest['images'][0]['image']
+            self.assertEqual(hashlib.sha256(image.read_bytes()).hexdigest(),large_manifest['images'][0]['sha256'])
 
 
 if __name__ == '__main__':

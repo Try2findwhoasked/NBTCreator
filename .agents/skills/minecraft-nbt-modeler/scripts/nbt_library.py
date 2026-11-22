@@ -43,6 +43,9 @@ def version_root(master):
 @lru_cache(maxsize=1024)
 def _state(value):return normalize(value)
 def read_geometry(file):
+ from nbt_large_assembly import is_assembly_source,read_assembly
+ if is_assembly_source(file):
+  model,walls=read_assembly(file);return model,walls,sorted({(x//48,z//48) for x,y,z in model.blocks})
  if Path(file).suffix.lower()=='.snbt':
   from nbt_snbt import read_snbt
   model,walls=read_snbt(file);return model,walls,sorted({(x//48,z//48) for x,y,z in model.blocks})
@@ -242,7 +245,8 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
  for p in candidates:
   try:
    digest=sha(p)
-   if digest in geometry_cache:
+   from nbt_large_assembly import is_assembly_source
+   if digest in geometry_cache and not is_assembly_source(p):
     record=geometry_cache[digest]
     if not record['valid']:raise ValueError(record['error'])
    else:

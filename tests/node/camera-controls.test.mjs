@@ -1,12 +1,36 @@
 import assert from 'node:assert/strict'
 import {test} from 'node:test'
 import {ViewCamera} from '../../.agents/skills/minecraft-nbt-modeler/assets/viewer/src/camera-controls.mjs'
+import {cameraView,normalizeView} from '../../.agents/skills/minecraft-nbt-modeler/assets/viewer/src/view-contract.mjs'
 const distance=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]))
 function fixture(){
  const handlers={},canvas={dataset:{},clientHeight:600,addEventListener:(key,fn)=>handlers[key]=fn,setPointerCapture(){},hasPointerCapture(){return false}}
  let changes=0;const camera=new ViewCamera(canvas,[10,5,10],25,()=>changes++)
  return {camera,handlers,canvas,changes:()=>changes}
 }
+test('orthographic cameras retain their world-height contract and reject ambiguous inputs',()=>{
+ const view={id:'front',eye:[0,4,-20],target:[0,4,0],up:[0,1,0],projection:'orthographic',ortho_height:24}
+ const normalized=normalizeView(view,[30,30,30]);assert.equal(normalized.projection,'orthographic');assert.equal(normalized.ortho_height,24)
+ assert.equal(cameraView(view).ortho_height,24)
+ assert.throws(()=>cameraView({...view,ortho_height:0}))
+ assert.throws(()=>cameraView({...view,projection:'perspective'}))
+})
+test('reference lighting records bounded direction, temperature, background and exposure',()=>{
+ const lighting_options={direction:[.3,.8,.2],temperature_kelvin:4200,background:[.2,.3,.4],exposure:1.1}
+ const view=normalizeView({eye:[0,4,-20],target:[0,4,0],projection:'orthographic',ortho_height:24,lighting_options},[30,30,30])
+ assert.deepEqual(view.lighting_options,lighting_options)
+ assert.throws(()=>normalizeView({...view,lighting_options:{...lighting_options,direction:[0,0,0]}},[30,30,30]))
+ assert.throws(()=>normalizeView({...view,lighting_options:{...lighting_options,temperature_kelvin:500}},[30,30,30]))
+ assert.throws(()=>normalizeView({...view,lighting_options:{...lighting_options,background:[1.1,0,0]}},[30,30,30]))
+})
+test('orthographic wheel changes scale without translating the eye or target',()=>{
+ const {camera,handlers}=fixture();camera.projection='orthographic';camera.orthoHeight=20
+ const before=structuredClone(camera.fixed)
+ handlers.wheel({deltaY:-120,deltaMode:0,preventDefault(){}})
+ assert.deepEqual(camera.fixed,before);assert.ok(camera.orthoHeight<20)
+ handlers.wheel({deltaY:120,deltaMode:0,preventDefault(){}})
+ assert.ok(Math.abs(camera.orthoHeight-20)<1e-8)
+})
 test('wheel advances beyond original target and backwards beyond old distance limit',()=>{
  const {camera,handlers}=fixture(),start=structuredClone(camera.getCamera())
  const wheel=(deltaY,deltaMode=0)=>handlers.wheel({deltaY,deltaMode,preventDefault(){}})

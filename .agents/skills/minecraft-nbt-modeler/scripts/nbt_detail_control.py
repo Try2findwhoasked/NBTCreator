@@ -114,6 +114,7 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
     from nbt_constraints import FOLDER_FILE, SHAPES, folder_parts, directory_records, dispatch as constraints_dispatch
     from nbt_constraint_registry import builtin_constraints
     from nbt_rooms import GROUPS, has_layout, room_dirs, room_info
+    from nbt_large_assembly import is_assembly_source, read_assembly
     for directory, dirs, names in os.walk(root):
         quarantined=include_bugged and 'bugged' in Path(directory).relative_to(root).parts
         refinement=Path(directory)/'refinement.json'
@@ -128,10 +129,12 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
             try:ready=read_json(conversion).get('status')=='complete'
             except (OSError,ValueError):ready=False
             if not ready and not quarantined:dirs[:]=[];continue
+        candidate=Path(directory)
+        assembly_file=candidate/'assembly.json'
+        assembly_here=candidate.name=='master' and 'assembly.json' in names and is_assembly_source(assembly_file)
         dirs[:] = [name for name in dirs if not (name.startswith(('.', 'synthetic', 'test_')) or
                     any(word in name.lower() for word in ('validation', 'fixture', 'cache', 'control_web', 'regression')) or
-                    (name=='bugged' and not include_bugged) or name in {'_exports','_migration','_workspaces','_tests','world', 'worlds', 'saves', 'node_modules', 'previews', 'jobs', 'review','delivery','layers'})]
-        candidate=Path(directory)
+                    (name=='bugged' and not include_bugged) or (assembly_here and name=='parts') or name in {'_exports','_migration','_workspaces','_tests','world', 'worlds', 'saves', 'node_modules', 'previews', 'jobs', 'review','delivery','layers'})]
         if GROUPS in dirs and has_layout(candidate):
             layout_roots.append(candidate)
             constraint_folders.append(candidate.relative_to(workspace).as_posix())
@@ -146,6 +149,7 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
             except ValueError:
                 pass
         files.extend(Path(directory)/name for name in names if (name.lower().endswith('.json.gz') and 'master' in name.lower()) or name.lower().endswith(('.nbt','.snbt')))
+        if assembly_here:files.append(assembly_file)
     files.sort(key=lambda p: (p.suffix.lower()!='.snbt',p.suffix.lower()=='.nbt',-p.stat().st_mtime_ns,str(p)))
     cache_path = Path(cache_path) if cache_path else root/('_workspaces/catalog_metadata_index.json' if index_only else '_workspaces/catalog_metadata_projects.json' if include_bugged else '_workspaces/catalog_metadata.json')
     try: cache = read_json(cache_path)
@@ -216,8 +220,17 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
                     if declared_path.is_file() and declared_path!=p.resolve():continue
             stat=p.stat(); stamp=[stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns]
             entry=cache.get(str(p))
-            if entry and entry.get('stamp')==stamp:
+            assembly_source=p.name=='assembly.json' and is_assembly_source(p)
+            if entry and entry.get('stamp')==stamp and not assembly_source:
                 data=entry['metadata'];cache_hits+=1
+            elif assembly_source:
+                if p.is_symlink():raise ValueError('组装清单不能是符号链接')
+                if index_only:
+                    header=read_json(p)
+                    data=dict(geometry_sha256=declaration.get('geometry_sha256') if descriptor else None,size=header.get('size'),unverified=True)
+                else:
+                    loaded,_=read_assembly(p)
+                    data=dict(geometry_sha256=loaded.fingerprint(),size=list(loaded.size))
             elif bugged or index_only:
                 # Quarantine can contain thousands of old NBT exports. Index it
                 # without constructing every volume; inspect on explicit open.
@@ -285,7 +298,8 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
                                context=viewing_context(p)[0],
                                cameras=nearby(p, ('cameras.json',)), size=room_description.get('size') or data.get('size'),
                                cells=room_description.get('cells'), description_zh=room_description.get('description_zh',''),
-                               modified_ns=str(stat.st_mtime_ns), file_size=stat.st_size, relative_path=str(relative),bugged=bugged,unreadable=False,unverified=bool(data.get('unverified'))))
+                               modified_ns=str(stat.st_mtime_ns), file_size=stat.st_size, relative_path=str(relative),bugged=bugged,unreadable=False,unverified=bool(data.get('unverified')),
+                               **({'source_kind':'assembly'} if assembly_source else {})))
         except (OSError, ValueError, TypeError, KeyError,AssertionError,EOFError) as error:
             skipped+=1
             if len(errors)<10:errors.append(dict(file=str(p.relative_to(root)),reason=str(error) or '不满足当前完整结构格式要求（版本、显式空气、实体或尺寸）'))
@@ -360,7 +374,9 @@ def preview_images(source, geometry_hash, image_limit=8):
 
 
 def inspect_source(source, image_limit=8):
-    source = Path(source).resolve(); model, walls = read_master(source)
+    from nbt_large_assembly import is_assembly_source,read_assembly,verify_assembly_binding
+    source = Path(source).resolve(); assembly=is_assembly_source(source)
+    model, walls = read_assembly(source) if assembly else read_master(source)
     geometry_hash = model.fingerprint()
     counts = Counter(model.blocks.values())
     from nbt_collision import bounded_obstacle, ENVELOPE_VERSION
@@ -379,6 +395,9 @@ def inspect_source(source, image_limit=8):
     except (OSError,ValueError):data={}
     readiness=(dict(ready=False,missing=['context'],errors=[context_error],scope='schema_only')
                if context_error else context_readiness(model,context,source))
+    if assembly:
+        verify_assembly_binding(model)
+        readiness=dict(ready=False,missing=[],errors=['组装源的桌面编辑尚未接入；可使用 model 命令修改'],scope='read_only_assembly')
     return dict(source=str(source), source_sha256=digest(source), workdir=str(project_paths(source)['workdir']), version_dir=str(project_paths(source)['version']), geometry_sha256=model.fingerprint(),
                 projections=projections,size=list(model.size), solid_blocks=len(model.blocks), wall_blocks=len(walls),
                 context=context, cameras=cameras, images=images, unknown_shapes=unknown,
@@ -749,7 +768,11 @@ def simulate_plan(model, walls, plan, config):
     from nbt_floors import auto_floor_plan
     from nbt_model import AIR_NAMES
     walls=set(walls);source_walls=set(walls)
-    virtual=Volume(model.size);virtual.blocks=dict(model.blocks);protected=protections(virtual,config)
+    if any(n>294 for n in model.size):
+        from nbt_large_assembly import AssemblyVolume
+        virtual=AssemblyVolume(model.size)
+    else:virtual=Volume(model.size)
+    virtual.blocks=dict(model.blocks);protected=protections(virtual,config)
     write_owners={};written_positions=0
     for number, operation in enumerate(plan['operations'], 1):
         from nbt_operation_scope import scoped_operation,enforce_scope
@@ -951,8 +974,12 @@ def render_source(request, output):
 
 def source_snapshot(request, output):
     from nbt_task import write_snapshot
-    source = Path(request['source']).resolve(); model, _ = read_master(source)
+    from nbt_large_assembly import is_assembly_source,read_assembly
+    source = Path(request['source']).resolve(); assembly=is_assembly_source(source)
+    model, _ = read_assembly(source) if assembly else read_master(source)
     readiness=context_readiness(model,request.get('context'),source)
+    if assembly:
+        readiness=dict(ready=False,missing=[],errors=['组装源的桌面编辑尚未接入；可使用 model 命令修改'],scope='read_only_assembly')
     context_warning=''
     if readiness['ready']:
         try:
@@ -965,7 +992,8 @@ def source_snapshot(request, output):
         try:raw=read_json(request['cameras']) if request.get('cameras') else None
         except (OSError,ValueError):raw=None
         raw=raw or [dict(id='whole',role='whole',eye=[sx*1.5,sy*1.5,-sz],target=[sx/2,sy/2,sz/2],cuts=[])]
-        context_warning='当前只读查看：坐标配置还需补齐 '+', '.join(readiness['missing']+readiness['errors'])
+        context_warning=('组装源当前仅支持桌面只读查看；修改请使用 model 命令'
+                         if assembly else '当前只读查看：坐标配置还需补齐 '+', '.join(readiness['missing']+readiness['errors']))
     views = []
     for i, camera in enumerate(raw):
         view = {k: camera[k] for k in ('eye', 'target', 'up', 'fov', 'role', 'layer', 'lighting', 'cut_y') if k in camera}

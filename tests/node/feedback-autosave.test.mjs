@@ -8,6 +8,12 @@ import {createFeedbackStore} from '../../.agents/skills/minecraft-nbt-modeler/as
 import {createFeedbackAutosave} from '../../.agents/skills/minecraft-nbt-modeler/assets/viewer/src/feedback-autosave.js'
 const sha=v=>createHash('sha256').update(v).digest('hex')
 async function fixture(t){const root=await fs.mkdtemp(path.join(os.tmpdir(),'nbt-feedback-auto-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));const version=path.join(root,'nbt_models/single/测试/v01'),source=path.join(version,'master/source.json'),image=path.join(version,'preview.png');await fs.mkdir(path.dirname(source),{recursive:true});await fs.writeFile(source,'source');await fs.writeFile(image,'image');return {root,version,source,image,binding:{workdir:path.dirname(version),version_dir:version,source,image,source_sha256:sha('source'),image_sha256:sha('image'),geometry_sha256:sha('geometry')}}}
+test('assembly feedback is refused until partition-bound evidence is supported',async t=>{
+ const f=await fixture(t),raw=JSON.stringify({format:'nbtcreator-assembly',schema_version:1,partitions:[]});await fs.writeFile(f.source,raw)
+ const store=createFeedbackStore(b=>path.join(b.version_dir,'修改意见')),binding={...f.binding,source_sha256:sha(raw)}
+ await assert.rejects(()=>store.add(binding,'保留此处'),/组装.*标注/)
+ await assert.rejects(()=>fs.stat(path.join(f.version,'修改意见')),error=>error.code==='ENOENT')
+})
 test('autosave revises one formal note, retries idempotently and rejects stale writes',async t=>{
  const f=await fixture(t),store=createFeedbackStore(b=>path.join(b.version_dir,'修改意见')),id=randomUUID(),input={note_id:id,expected_revision:0,text:'第一稿',anchors:[],references:[]}
  let record=await store.upsert(f.binding,input);assert.equal(record.notes.length,1);assert.ok(record.file.startsWith(f.version+path.sep));assert.equal(record.notes[0].revision,1)

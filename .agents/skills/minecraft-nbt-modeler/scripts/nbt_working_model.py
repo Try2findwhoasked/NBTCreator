@@ -70,7 +70,7 @@ def managed_manifest(source):
     if not (version / 'model-version.json').is_file():
         raise ValueError('受管制作版本缺少清单')
     manifest = verify_version(version)
-    if source != version / 'master/model.snbt':
+    if source != version / manifest.get('master', 'master/model.snbt'):
         raise ModelConflict('MODEL_SOURCE_MISMATCH', [dict(source=str(source))])
     return manifest
 
@@ -115,6 +115,13 @@ def point(value):
     return tuple(value)
 
 
+def empty_volume(size):
+    if any(n > 294 for n in size):
+        from nbt_large_assembly import AssemblyVolume
+        return AssemblyVolume(size)
+    return Volume(size)
+
+
 class ModelConflict(ValueError):
     def __init__(self, code, conflicts):
         self.code, self.conflicts = code, conflicts
@@ -130,8 +137,8 @@ class WorkingModel:
         if kind == 'component' and any(n > 64 for n in size):
             raise ValueError('独立构件每轴最多64格；完整建筑使用 building')
         self.workspace = Path(workspace).resolve()
-        self.model, self.walls = Volume(size), set()
-        self._baseline, self._baseline_walls = Volume(size), set()
+        self.model, self.walls = empty_volume(size), set()
+        self._baseline, self._baseline_walls = empty_volume(size), set()
         context_binding = None
         if isinstance(context, (str, Path)):
             context_file = (self.workspace / context).resolve()
@@ -166,6 +173,10 @@ class WorkingModel:
         self._bound_context = None
         self._source_coordinates_hash = None
         self._source_sidecars = {}
+        self._assembly_binding = None
+        self._assembly_layout = None
+        self._assembly_owners = None
+        self._assembly_metadata = None
         self._palette, self._extras, self._closed = None, None, None
         self.parent_revision = None
         self._opened_head = None
@@ -186,7 +197,9 @@ class WorkingModel:
         if source.suffix.lower() == '.nbt':
             sidecar = source.parent / 'wall_mask.json'
             sidecars[sidecar] = file_hash(sidecar) if sidecar.is_file() else None
-        model, walls = read_master(source)
+        from nbt_large_assembly import is_assembly_source, read_assembly
+        assembly = is_assembly_source(source)
+        model, walls = read_assembly(source) if assembly else read_master(source)
         if any((file_hash(file) if file.is_file() else None) != expected for file,expected in sidecars.items()):
             raise ModelConflict('STALE_SOURCE', [dict(source=str(source))])
         if file_hash(source) != source_hash:
@@ -229,7 +242,11 @@ class WorkingModel:
         working._bound_context = deepcopy(constraint_context(working.context))
         working._source_coordinates_hash = source_coordinates_hash
         working._source_sidecars = sidecars
-        working.phase = manifest['phase'] if manifest else 'opened'
+        working._assembly_binding = getattr(model, '_assembly_binding', None)
+        working._assembly_layout = deepcopy(getattr(model, '_assembly_layout', None))
+        working._assembly_owners = dict(model._assembly_owners) if assembly else None
+        working._assembly_metadata = deepcopy(getattr(model, '_assembly_metadata', None))
+        working.phase = manifest['phase'] if manifest else 'design' if assembly else 'opened'
         working._baseline_phase = working.phase
         if manifest:
             if model_hash(model, walls) != manifest['model_sha256']:
@@ -269,6 +286,10 @@ class WorkingModel:
     def _unchanged(self):
         from nbt_library import coordinates_hash,saved_coordinates_hash
 
+        if self._assembly_binding:
+            from nbt_large_assembly import verify_assembly_files
+            try:verify_assembly_files(self._assembly_binding)
+            except (ValueError,OSError) as error:raise ModelConflict('STALE_SOURCE', [dict(source=str(self.source),reason=str(error))]) from error
         if self._bound_context is not None and constraint_context(self.context) != self._bound_context:
             raise ModelConflict('CONTEXT_CONSTRAINT_MISMATCH', [])
         for file, expected in self._source_sidecars.items():
@@ -301,14 +322,14 @@ class WorkingModel:
             context.update(openings=[], ports=[], openings_policy='optional')
         return context
 
-    def _commit_edits(self, edits, instances=None):
-        """Check every expected old state, then swap one complete candidate."""
+    def _stage_edits(self, edits):
+        """Build a candidate and check the host's diff, protection and budget."""
         from nbt_refine import protections
         self._unchanged()
         edits = list(edits)
         if len(edits) > self.limits['max_written_positions']:
             raise ValueError('操作写入量超过上限')
-        candidate = Volume(self.model.size)
+        candidate = empty_volume(self.model.size)
         candidate.blocks = dict(self.model.blocks)
         walls, seen, conflicts = set(self.walls), set(), []
         for row in edits:
@@ -347,10 +368,20 @@ class WorkingModel:
         conflict = reserved_position((changed | layer_changed) & candidate.blocks.keys(), self.context.get('reserved_boxes'))
         if conflict is not None:
             raise ModelConflict('RESERVED_SPACE', [dict(pos=list(conflict))])
+        return candidate, walls, difference, total
+
+    def _commit_edits(self, edits, instances=None):
+        """Check every expected old state, then swap one complete candidate."""
+        staged = self._stage_edits(edits)
+        candidate, walls, _, _ = staged
         # Declared routes are checked against the entire host, including free voxels.
         if self.context.get('require_routes'):
             self._routes(candidate)
         self._instance_policy(candidate, walls, instances if instances is not None else self.instances)
+        return self._adopt_edits(staged, instances)
+
+    def _adopt_edits(self, staged, instances):
+        candidate, walls, difference, total = staged
         self._unchanged()
         if not difference['changed_blocks']:
             candidate.stage = self.model.stage
@@ -410,6 +441,7 @@ class WorkingModel:
         compiled = dict(content_sha256=component['content_sha256'], engine_sha256=engine_hash(),
             compile_order=result.get('compile_order'), objects=world_objects(result.get('objects'), component, transform),
             verification=result.get('verification', {}),
+            placement_bounds=dict(lo=placed['lo'], hi=placed['hi']),
             policy=world_policy(recipe['arguments'].get('graph'), component, transform) if recipe['tool']=='scene_compile' else {})
         from nbt_refine import box_points
         protected = {p for box in compiled['policy'].get('protected_boxes',[]) for p in box_points(box['lo'],box['hi'])}
@@ -438,7 +470,7 @@ class WorkingModel:
         instances[identifier] = dict(recipe=deepcopy(recipe), transform=transform, baseline=rows, compiled=compiled)
         return self._commit_edits(edits, instances)
 
-    def update(self, identifier, recipe=None, transform=None):
+    def _stage_update(self, identifier, recipe, transform):
         if identifier not in self.instances:
             raise ValueError('受管实例不存在')
         if recipe is None and transform is None:
@@ -476,13 +508,38 @@ class WorkingModel:
             if p in values:
                 underlay = row['underlay'] if row and row['owned'] else current
                 rows.append(dict(pos=list(p), after=after, underlay=underlay, owned=underlay != after))
-        if conflicts:
-            raise ModelConflict('INSTANCE_EDIT_CONFLICT', conflicts)
-        instances = deepcopy(self.instances)
-        instances[identifier] = dict(recipe=recipe, transform=transform, baseline=rows, compiled=compiled)
-        result = self._commit_edits(edits, instances)
+        proposed = dict(recipe=recipe, transform=transform, baseline=rows, compiled=compiled)
+        return previous, proposed, values, edits, conflicts
+
+    def preflight_update(self, identifier, recipe=None, transform=None):
+        from nbt_model_preflight import evaluate_update
+        report, _, _ = evaluate_update(self, identifier, recipe, transform)
+        return report
+
+    def update(self, identifier, recipe=None, transform=None, preflight_sha256=None):
+        if preflight_sha256 is not None:
+            from nbt_model_preflight import evaluate_update
+            if not isinstance(preflight_sha256, str) or not re.fullmatch('[a-f0-9]{64}', preflight_sha256):
+                raise ValueError('装配预检哈希无效')
+            report, staged, instances = evaluate_update(self, identifier, recipe, transform)
+            if not report['applicable'] or report['preflight_sha256'] != preflight_sha256:
+                raise ModelConflict('STALE_UPDATE_PREFLIGHT', [dict(instance=identifier, problems=report['problems'])])
+            previous = self.instances[identifier]
+            instances[identifier]['preflight'] = dict(
+                sha256=preflight_sha256, source_working_sha256=report['source']['working_sha256'],
+                candidate_model_sha256=report['candidate_model_sha256'], candidate_state_sha256=report['candidate_state_sha256'],
+            )
+            result = self._adopt_edits(staged, instances)
+            result['preflight_sha256'] = preflight_sha256
+        else:
+            previous, proposed, _, edits, conflicts = self._stage_update(identifier, recipe, transform)
+            if conflicts:
+                raise ModelConflict('INSTANCE_EDIT_CONFLICT', conflicts)
+            instances = self.instances | {identifier: proposed}
+            result = self._commit_edits(edits, instances)
         old_objects = {item['id']:item for item in previous['compiled'].get('objects') or []}
-        result['affected_objects'] = [item['id'] for item in compiled.get('objects') or [] if item != old_objects.get(item['id'])]
+        result['affected_objects'] = [item['id'] for item in instances[identifier]['compiled'].get('objects') or []
+                                      if item != old_objects.get(item['id'])]
         result['instance'] = identifier
         return result
 
@@ -511,21 +568,26 @@ class WorkingModel:
         instances.pop(identifier)
         return self._commit_edits([], instances)
 
-    def _routes(self, model):
+    def _declared_host_routes(self, model):
         from nbt_collision import check_routes
         if not self.context.get('start') or not self.context.get('targets'):
             raise ValueError('通路检查需要实际 start 和 targets')
-        report = check_routes(model, self.context['start'], self.context['targets'])
-        if not report['passed']:
-            raise ModelConflict('ROUTE_FAILED', [report])
+        yield 'host', check_routes(model, self.context['start'], self.context['targets'])
         for leg in self.context.get('route_legs', []):
-            copy = Volume(model.size)
+            copy = empty_volume(model.size)
             copy.blocks = dict(model.blocks)
             for box in leg.get('validation_only_barriers', []):
                 copy.box(box['lo'], box['hi'], 'stone')
-            result = check_routes(copy, leg['start'], leg['targets'])
+            yield leg['name'], check_routes(copy, leg['start'], leg['targets'])
+
+    def _routes(self, model):
+        reports = self._declared_host_routes(model)
+        _, report = next(reports)
+        if not report['passed']:
+            raise ModelConflict('ROUTE_FAILED', [report])
+        for name, result in reports:
             if not result['passed']:
-                raise ModelConflict('ROUTE_LEG_FAILED', [dict(name=leg['name'], report=result)])
+                raise ModelConflict('ROUTE_LEG_FAILED', [dict(name=name, report=result)])
         return report
 
     def _instance_policy(self, model, walls, instances):
@@ -551,14 +613,15 @@ class WorkingModel:
             if changed > policy.get('max_changed_blocks',65536):
                 raise ValueError('宿主修改超过原对象图预算')
 
-    def _assembly_checks(self, model=None):
+    def _assembly_checks(self, model=None, instances=None):
         """Recheck declared interfaces after host carving and manual edits."""
         from nbt_collision import collision_cells
         from nbt_object_scene import attached, touches
         from nbt_scene_interfaces import check_interface_geometry, interface_contact
-        model = model or self.model
+        model = self.model if model is None else model
+        instances = self.instances if instances is None else instances
         checks = []
-        for identifier, instance in self.instances.items():
+        for identifier, instance in instances.items():
             nodes = {item['id']:item for item in instance['compiled'].get('objects') or []}
             actual = {}
             required = {name for name,node in nodes.items() if node.get('contact_targets') or node.get('span_interfaces')}
@@ -647,6 +710,8 @@ class WorkingModel:
         return report
 
     def seal(self):
+        if self._assembly_binding or any(n > 294 for n in self.model.size):
+            raise ValueError('大型组装主稿暂不支持密闭封装')
         self._unchanged()
         copy = Volume(self.model.size)
         copy.blocks = dict(self.model.blocks)
@@ -658,6 +723,8 @@ class WorkingModel:
         return deepcopy(proof)
 
     def open_declared(self):
+        if self._assembly_binding or any(n > 294 for n in self.model.size):
+            raise ValueError('大型组装主稿暂不支持开洞发布')
         from nbt_openings import open_declared_openings
         from nbt_whole_validation import check_opening_policy, requires_enclosure, standalone_openings, validation_mode
         required = requires_enclosure(self.context)
@@ -705,23 +772,45 @@ class WorkingModel:
             block_count=len(self.model.blocks), wall_blocks=len(self.walls),
             instances={name: dict(recipe=deepcopy(row['recipe']), transform=deepcopy(row['transform']),
                 footprint_positions=len(row['baseline']), owned_positions=sum(p['owned'] for p in row['baseline']),
-                objects=[{key:deepcopy(value) for key,value in item.items() if key!='voxel_positions'} for item in row['compiled']['objects']] if row['compiled'].get('objects') is not None else None) for name, row in items.items()},
+                objects=[{key:deepcopy(value) for key,value in item.items() if key!='voxel_positions'} for item in row['compiled']['objects']] if row['compiled'].get('objects') is not None else None,
+                **({'preflight': deepcopy(row['preflight'])} if 'preflight' in row else {})) for name, row in items.items()},
             assembly_checks=self._assembly_checks(),
             samples=samples,
             asset_written=False, approval_created=False)
 
     def preview(self, output, cameras):
+        if not self._assembly_binding and any(n > 294 for n in self.model.size):
+            raise ValueError('大型模型预览须先绑定组装制作源')
         from nbt_refine import save_master
         from nbt_task import write_snapshot
         output = Path(output)
         output.mkdir(parents=True, exist_ok=False)
-        source = output / 'candidate.snbt'
-        save_master(source, self.model, self.walls)
+        if self._assembly_binding:
+            from nbt_large_assembly import save_assembly
+            source = Path(save_assembly(output / 'candidate', self.model, self.walls, self._assembly_layout,
+                                        ownership=self._assembly_owners, metadata=self._assembly_metadata,
+                                        before_publish=self._unchanged)['source'])
+        else:
+            source = output / 'candidate.snbt'
+            save_master(source, self.model, self.walls)
         snapshot = output / 'snapshot.json'
         write_snapshot(source, snapshot, cameras=cameras)
         write_json(output / 'cameras.json', cameras)
-        return dict(source=str(source.resolve()), snapshot=str(snapshot.resolve()), cameras=str((output / 'cameras.json').resolve()),
-            model_sha256=model_hash(self.model, self.walls), visual_review='pending', asset_written=False)
+        candidate_sha = model_hash(self.model, self.walls)
+        result = dict(source=str(source.resolve()), snapshot=str(snapshot.resolve()), cameras=str((output / 'cameras.json').resolve()),
+                      model_sha256=candidate_sha, visual_review='pending', asset_written=False)
+        decisions = {name: row['preflight'] for name, row in self.instances.items() if 'preflight' in row}
+        if decisions:
+            from nbt_model_preflight import candidate_state_sha256
+            state_sha = candidate_state_sha256(self, candidate_sha, self.instances)
+            decisions = {name: decision for name, decision in decisions.items()
+                         if decision.get('candidate_state_sha256') == state_sha}
+        if decisions:
+            receipt = output / 'assembly-preflight.json'
+            write_json(receipt, dict(source_sha256=file_hash(source), snapshot_sha256=file_hash(snapshot),
+                                     model_sha256=candidate_sha, decisions=decisions, approval_created=False))
+            result['assembly_preflight'] = dict(file=str(receipt.resolve()), sha256=file_hash(receipt))
+        return result
 
     def _head_file(self, building):
         return head_file(self.workspace, building)
@@ -775,8 +864,9 @@ class WorkingModel:
         return digest([model_hash(self.model, self.walls), self.instances, self.context, self.phase, self.preopening, self.kind, self._architecture])
 
     def _history_receipt(self, target, manifest, building):
-        source = target / 'master/model.snbt'
-        receipt = dict(source=str(source.resolve()), source_sha256=manifest['files']['master/model.snbt'],
+        master = manifest.get('master','master/model.snbt')
+        source = target / master
+        receipt = dict(source=str(source.resolve()), source_sha256=manifest['files'][master],
             revision=manifest['revision'], output=str(target.resolve()),
             draft_only=True, nbt_exported=False, approval_created=False)
         head = self._read_head(building)
@@ -792,7 +882,9 @@ class WorkingModel:
             receipt.update(history_pending=True, history_error=str(error))
         return receipt
 
-    def save_draft(self, name_zh=None, shape='standalone', attachments=None, actor='external_agent', task_session=None):
+    def save_draft(self, name_zh=None, shape='standalone', attachments=None, actor='external_agent', task_session=None, before_publish=None):
+        if not self._assembly_binding and any(n > 294 for n in self.model.size):
+            raise ValueError('大型模型保存须先绑定组装制作源')
         from nbt_library import LABELS, shape_of
         from nbt_refine import save_master, read_master
         from nbt_object_scene import atomic
@@ -809,6 +901,7 @@ class WorkingModel:
             target = Path(self._saved['receipt']['output'])
             manifest = verify_version(target)
             with publication(self.workspace,self._building,self.source,task_session,actor):
+                if before_publish is not None:before_publish()
                 receipt = self._history_receipt(target, manifest, self._building)
             self._saved['receipt'] = receipt
             head = self._read_head(self._building)
@@ -841,11 +934,19 @@ class WorkingModel:
         staging.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=staging) as temporary:
             stage = Path(temporary)
-            from nbt_snbt import save_snbt
-            save_snbt(stage / 'master/model.snbt', self.model, self.walls, palette=self._palette, extras=self._extras)
+            master = 'master/assembly.json' if self._assembly_binding else 'master/model.snbt'
+            if self._assembly_binding:
+                from nbt_large_assembly import read_assembly, save_assembly
+                save_assembly(stage / 'master', self.model, self.walls, self._assembly_layout,
+                              ownership=self._assembly_owners, metadata=self._assembly_metadata,
+                              before_publish=self._unchanged)
+                disk, mask = read_assembly(stage / master)
+            else:
+                from nbt_snbt import save_snbt
+                save_snbt(stage / master, self.model, self.walls, palette=self._palette, extras=self._extras)
+                disk, mask = read_master(stage / master)
             if self._closed:
                 save_master(stage / 'master/preopening.snbt', *self._closed)
-            disk, mask = read_master(stage / 'master/model.snbt')
             if model_hash(disk, mask) != model_hash(self.model, self.walls):
                 raise ValueError('制作版回读不一致')
             write_json(stage / 'model-instances.json', dict(instances=self.instances, preopening=self.preopening, limits=self.limits, architecture=self._architecture))
@@ -863,6 +964,8 @@ class WorkingModel:
             manifest = dict(schema_version=1, kind=self.kind, phase=self.phase, actor=actor, model_sha256=model_hash(self.model, self.walls),
                 parent_revision=self.parent_revision, parent_source=self.source.relative_to(self.workspace).as_posix() if self.source and self.source.is_relative_to(self.workspace / 'nbt_models') else None,
                 parent_source_sha256=self.source_sha256, engine_sha256=engine_hash(), files=files)
+            if self._assembly_binding:
+                manifest.update(master=master,source_kind='assembly')
             with publication(self.workspace,building,self.source,task_session,actor) as check_lease:
                 producer = check_lease()
                 if producer:
@@ -872,10 +975,11 @@ class WorkingModel:
                 write_json(stage / 'model-version.json', manifest)
                 write_json(stage / 'room_description.json', dict(schema_version=1, name_zh=name_zh, shape=shape, shape_zh=LABELS[shape],
                     display_name=name_zh + '-' + LABELS[shape], description_zh=name_zh + '-' + LABELS[shape],
-                    master='master/model.snbt', master_file_sha256=files['master/model.snbt'], geometry_sha256=self.model.fingerprint(),
+                    master=master, master_file_sha256=files[master], geometry_sha256=self.model.fingerprint(),
                     size=list(self.model.size), cells=self.context.get('cells', []), cell_size=self.context.get('cell_size',48), mode=self.context.get('mode'), context_file='coordinates.json',
                     status='authoring', model_revision=manifest['revision']))
                 self._unchanged()
+                if before_publish is not None:before_publish()
                 head = self._read_head(building)
                 history_source = self._history_source(building)
                 # Retrying the same immutable result may repair history, but never
@@ -894,12 +998,12 @@ class WorkingModel:
                 if (head == self._opened_head and history_source == self._opened_history_source
                         and (current == manifest.get('parent_source') or current is None)):
                     if existing_target:check_lease()
-                    new_head = dict(revision=manifest['revision'], source=(target / 'master/model.snbt').relative_to(self.workspace).as_posix())
+                    new_head = dict(revision=manifest['revision'], source=(target / master).relative_to(self.workspace).as_posix())
                     head_file = self._head_file(building)
                     head_file.parent.mkdir(parents=True, exist_ok=True)
                     atomic(head_file, canonical(new_head).encode('utf8'))
                 receipt = self._history_receipt(target, manifest, building)
-                self.source, self.source_sha256 = target / 'master/model.snbt', files['master/model.snbt']
+                self.source, self.source_sha256 = target / master, files[master]
                 self._building, self._opened_head = building, self._read_head(building)
                 self._opened_history_source = self._history_source(building)
                 self.parent_revision = manifest['revision']
@@ -908,12 +1012,18 @@ class WorkingModel:
                 self._version_binding = (target, file_hash(target / 'model-version.json'))
                 self._bound_context = deepcopy(constraint_context(self.context))
                 self._source_sidecars = {}
-                self._baseline = Volume(self.model.size)
+                self._baseline = empty_volume(self.model.size)
                 self._baseline.blocks = dict(self.model.blocks)
                 self._baseline_walls = set(self.walls)
                 self._baseline_phase = self.phase
                 self._palette = getattr(disk, '_snbt_palette', None)
                 self._extras = getattr(disk, '_snbt_extras', None)
+                if self._assembly_binding:
+                    disk, _ = read_assembly(self.source)
+                    self._assembly_binding = disk._assembly_binding
+                    self._assembly_layout = deepcopy(disk._assembly_layout)
+                    self._assembly_owners = dict(disk._assembly_owners)
+                    self._assembly_metadata = deepcopy(disk._assembly_metadata)
                 self._saved = dict(token=self._content_token(), receipt=receipt)
                 return receipt
 
@@ -1003,7 +1113,10 @@ def verify_version(version):
     body = {key: value for key, value in data.items() if key != 'revision'}
     if data.get('schema_version') != 1 or digest(body) != data.get('revision'):
         raise ValueError('制作版本清单指纹不一致')
-    required = {'master/model.snbt', 'model-instances.json', 'coordinates.json', 'validation/working-model.json'}
+    master = data.get('master','master/model.snbt')
+    if master not in ('master/model.snbt','master/assembly.json') or (master=='master/assembly.json') != (data.get('source_kind')=='assembly'):
+        raise ValueError('制作版本主稿类型无效')
+    required = {master, 'model-instances.json', 'coordinates.json', 'validation/working-model.json'}
     if data.get('phase') not in ('design','sealed','opened') or data.get('kind') not in ('building','component'):
         raise ValueError('制作版本阶段或类型无效')
     if data['phase'] == 'sealed':
@@ -1014,6 +1127,17 @@ def verify_version(version):
         file = version / name
         if not file.resolve().is_relative_to(version) or file.is_symlink() or not file.is_file() or file_hash(file) != expected:
             raise ValueError('制作版本文件已变化：' + name)
+    if master == 'master/assembly.json':
+        from nbt_large_assembly import assembly_manifest
+        path,raw,_,parts = assembly_manifest(version / master)
+        if hashlib.sha256(raw).hexdigest()!=data['files'][master]:
+            raise ValueError('制作版本组装清单已变化')
+        for file,sha,_,_ in parts:
+            name = file.relative_to(version).as_posix()
+            if data['files'].get(name) != sha or file_hash(file)!=sha:
+                raise ValueError('制作版本清单缺少组装分区或哈希不一致：'+name)
+        if file_hash(path)!=data['files'][master]:
+            raise ValueError('校验期间制作版本组装清单已变化')
     return data
 
 

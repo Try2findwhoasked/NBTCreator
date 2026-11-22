@@ -52,7 +52,8 @@ export function initAssetWorkspace({api,context,interactive,chooseTarget,decorat
  }
  const sourceLabel=item=>item.source_label??'本地工作区'
  host.addEventListener('click',event=>{if(event.target.id==='asset-kind-components')pumpThumbnails()})
- const typeLabel=item=>item.type==='parametric_recipe'?'可调配方':'构件'
+ const isCurveTemplate=item=>item?.arguments?.kind==='curve_stencil'||item?.tags?.includes('curve-stencil')
+ const typeLabel=item=>isCurveTemplate(item)?'曲面平面模板':item.type==='parametric_recipe'?'可调配方':'构件'
  const sourceFields=document.createElement('label')
  sourceFields.innerHTML='来源<select id="asset-source-filter"><option value="all">全部来源</option><option value="local">本地工作区</option><option value="bundled">应用自带</option></select>'
  sourceFields.dataset.toolKind='components'
@@ -79,7 +80,7 @@ export function initAssetWorkspace({api,context,interactive,chooseTarget,decorat
  const caption=document.createElement('figcaption');assetFigure.append(caption);caption.append($('asset-meta'))
  const captionNote=inspector.querySelector(':scope > p.muted')
  if(captionNote)captionNote.remove()
- function target(){try{const c=context();$('asset-target').textContent=c?.name?`当前建筑 · ${c.name}`:'';$('asset-place').textContent=c?'放到当前建筑':'选择目标建筑';return c}catch{$('asset-target').textContent='请先补齐当前建筑的编辑参数。';return null}}
+ function target(){if(isCurveTemplate(selected)){$('asset-target').textContent='复制素材引用交给建造助手，结合实际曲面生成并审阅候选。';$('asset-place').textContent='请先用建造助手组合';return null}try{const c=context();$('asset-target').textContent=c?.name?`当前建筑 · ${c.name}`:'';$('asset-place').textContent=c?'放到当前建筑':'选择目标建筑';return c}catch{$('asset-target').textContent='请先补齐当前建筑的编辑参数。';return null}}
  function controls(){
   let current=null,invalid=false
   try{current=context()}catch{invalid=true}
@@ -92,9 +93,10 @@ export function initAssetWorkspace({api,context,interactive,chooseTarget,decorat
   }
   assetPreview?.lock(locked)
   const needsPreview=!!selected?.library_ref&&!assetPreview?.canUse()
-  $('asset-place').disabled=locked||invalid||!selected||!!selected.archived||needsPreview
+  $('asset-place').disabled=locked||invalid||!selected||!!selected.archived||needsPreview||isCurveTemplate(selected)
   $('asset-place').hidden=!!selected?.archived
   if($('asset-copy-local'))$('asset-copy-local').disabled=locked||!selected?.library_ref||needsPreview
+  if($('asset-copy-curve-ref'))$('asset-copy-curve-ref').disabled=locked||!selected||!!selected.archived||needsPreview
   $('asset-inspector-close').disabled=false
  }
  function details(reveal=false){
@@ -103,9 +105,11 @@ export function initAssetWorkspace({api,context,interactive,chooseTarget,decorat
   $('asset-name').textContent=selected.name;$('asset-meta').textContent=`${typeLabel(selected)} · ${selected.size.join(' × ')}${selected.block_count===undefined?'':` · ${selected.block_count} 格`}`
   $('asset-edit-name').value=selected.name;$('asset-edit-tags').value=selected.tags.join(', ');$('asset-export').href=selected.download;$('asset-export').download=selected.name+'.component.json';$('asset-archive').textContent=selected.archived?'恢复构件':'移入回收站'
   inspector.querySelector('.asset-management').hidden=!!selected.library_ref
-  $('asset-origin').hidden=!selected.library_ref
+  $('asset-origin').hidden=!selected.library_ref&&!isCurveTemplate(selected)
+  $('asset-copy-local').hidden=!selected.library_ref;$('asset-reload-source').hidden=!selected.library_ref
+  $('asset-copy-curve-ref').hidden=!isCurveTemplate(selected)
   $('asset-copy-local').textContent=selected.type==='parametric_recipe'?'保存参数结果为本地构件':'复制到本地编辑'
-  $('asset-source-note').textContent=`${sourceLabel(selected)}${selected.version?' · '+selected.version:''} · ${selected.library_ref?(selected.type==='parametric_recipe'?'可调参预览和放置':'可直接预览和放置'):'可编辑的工作区构件'}`
+  $('asset-source-note').textContent=`${sourceLabel(selected)}${selected.version?' · '+selected.version:''} · ${isCurveTemplate(selected)?'平面模板；曲面安装须另行生成候选':selected.library_ref?(selected.type==='parametric_recipe'?'可调参预览和放置':'可直接预览和放置'):'可编辑的工作区构件'}`
   if(reveal)inspector.querySelector('.asset-management').open=!!selected.archived
   controls()
   target()
@@ -183,13 +187,15 @@ export function initAssetWorkspace({api,context,interactive,chooseTarget,decorat
  const origin=document.createElement('section');origin.id='asset-origin';origin.className='asset-origin';origin.hidden=true
  const copyLocal=document.createElement('button');copyLocal.id='asset-copy-local';copyLocal.type='button';copyLocal.textContent='复制到本地编辑'
  const reloadSource=document.createElement('button');reloadSource.id='asset-reload-source';reloadSource.type='button';reloadSource.textContent='载入当前版本'
- origin.append(copyLocal,reloadSource);overview.append(origin)
+ const copyCurveRef=document.createElement('button');copyCurveRef.id='asset-copy-curve-ref';copyCurveRef.type='button';copyCurveRef.textContent='复制曲面素材引用';copyCurveRef.hidden=true
+ origin.append(copyLocal,reloadSource,copyCurveRef);overview.append(origin)
  const placementAction=$('asset-place'),placementTarget=$('asset-target')
  const placementPrimary=document.createElement('div');placementPrimary.className='asset-placement-primary'
  placementPrimary.append(placementTarget,placementAction)
  overview.insertBefore(placementPrimary,management)
  const parameters=document.createElement('div');overview.insertBefore(parameters,management)
  assetPreview=createAssetPreview({figure:assetFigure,overview,parameterHost:parameters,api,active:()=>inspectorDialog.open,onState:controls})
+ copyCurveRef.onclick=async()=>{try{if(!selected||!isCurveTemplate(selected))throw Error('请选择曲面平面模板');const source=selected.library_ref?{kind:'library',ref:assetPreview.request()}:{kind:'local',id:selected.id,content_sha256:selected.content_sha256};const text=JSON.stringify(source,null,2);if(window.nbtDesktop?.copyAgentPlan)await window.nbtDesktop.copyAgentPlan(text);else await navigator.clipboard.writeText(text);message('已复制素材引用；可交给建造助手并明确切片和动作。')}catch(error){message(error.message,true)}}
  async function placementOptions(){
   const item=selected
   if(!item||item.archived)throw Error('请选择可用构件')

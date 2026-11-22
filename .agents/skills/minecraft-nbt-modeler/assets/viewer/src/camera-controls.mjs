@@ -20,7 +20,7 @@ export function normalizeCameraControls(value={}){
 // changes only the target, including after loading a saved camera preset.
 export class ViewCamera {
   constructor(canvas,center,distance,onChange=()=>{}){
-    this.canvas=canvas;this.distance=distance;this.onChange=onChange;this.fov=60;this.controls=normalizeCameraControls();this.interactionEnabled=true
+    this.canvas=canvas;this.distance=distance;this.onChange=onChange;this.fov=60;this.projection='perspective';this.orthoHeight=null;this.controls=normalizeCameraControls();this.interactionEnabled=true
     this.fixed={position:add(Array.from(center),[-distance*Math.sin(.82)*Math.cos(.62),distance*Math.sin(.62),distance*Math.cos(.82)*Math.cos(.62)]),target:Array.from(center),up:[0,1,0]}
     canvas.addEventListener('pointerdown',event=>{
       if(!this.interactionEnabled)return
@@ -45,7 +45,9 @@ export class ViewCamera {
       if(!this.interactionEnabled)return
       const pixels=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?Math.max(1,canvas.clientHeight):1)
       if(!Number.isFinite(pixels)||!pixels)return
-      this.move(-pixels*WHEEL_SPEED*this.controls.cameraWheelSpeed/100);this.onChange()
+      if(this.projection==='orthographic')this.orthoHeight=Math.max(.01,Math.min(8192,this.orthoHeight*Math.exp(pixels*.001*this.controls.cameraWheelSpeed/100)))
+      else this.move(-pixels*WHEEL_SPEED*this.controls.cameraWheelSpeed/100)
+      this.onChange()
     },{passive:false})
   }
   getCamera(){return this.fixed}
@@ -66,7 +68,8 @@ export class ViewCamera {
   }
   pan(dx,dy){
     const state=this.fixed,forward=unit(sub(state.target,state.position)),right=unit(cross(forward,state.up??[0,1,0])),up=cross(right,forward)
-    const amount=PAN_SPEED*this.controls.cameraPanSpeed/100*2*Math.min(80,Math.max(4,Math.hypot(...sub(state.target,state.position))))*Math.tan(this.fov*Math.PI/360)/Math.max(1,this.canvas.clientHeight)
+    const vertical=this.projection==='orthographic'?this.orthoHeight:2*Math.min(80,Math.max(4,Math.hypot(...sub(state.target,state.position))))*Math.tan(this.fov*Math.PI/360)
+    const amount=PAN_SPEED*this.controls.cameraPanSpeed/100*vertical/Math.max(1,this.canvas.clientHeight)
     const shift=add(scale(right,-dx*amount),scale(up,dy*amount))
     state.position=add(state.position,shift);state.target=add(state.target,shift)
   }

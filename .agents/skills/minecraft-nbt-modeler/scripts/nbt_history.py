@@ -10,6 +10,8 @@ SHA=re.compile(r'^[a-f0-9]{64}$')
 IDENTIFIER=re.compile(r'^v_[a-f0-9]{24}$')
 MAX_FILE=256*1024*1024
 MAX_STATE=64*1024*1024
+MAX_LEGACY_STATE=256*1024*1024
+MAX_PREVIEW_TOTAL=16*1024*1024
 SKIP={'.git','.nbtcreator','node_modules','__pycache__','_workspaces'}
 PRIVATE={'api-settings.json','credentials.json','secrets.json'}
 EXTENSIONS={'.json','.gz','.nbt','.snbt','.png','.jpg','.jpeg','.webp','.md','.txt','.py'}
@@ -22,6 +24,10 @@ def file_hash(file):
     with Path(file).open('rb') as stream:
         for data in iter(lambda:stream.read(1048576),b''):h.update(data)
     return h.hexdigest()
+def history_source(source):
+    from nbt_large_assembly import is_assembly_source,read_assembly
+    from nbt_refine import read_master
+    return read_assembly(source) if is_assembly_source(source) else read_master(source)
 def relative(workspace,file):return Path(file).resolve().relative_to(workspace).as_posix()
 def model_file(workspace,value):
     if not isinstance(value,(str,Path)):raise ValueError('请选择建筑主模型')
@@ -75,10 +81,10 @@ class History:
         self.git=resolve_git(self.workspace)
         self.env={k:v for k,v in os.environ.items() if not k.startswith('GIT_')}
         self.env.update(GIT_CONFIG_NOSYSTEM='1',GIT_CONFIG_GLOBAL=os.devnull,GIT_CONFIG_SYSTEM=os.devnull,GIT_TERMINAL_PROMPT='0',GIT_AUTHOR_NAME='NBTCreator',GIT_AUTHOR_EMAIL='history@nbtcreator.local',GIT_COMMITTER_NAME='NBTCreator',GIT_COMMITTER_EMAIL='history@nbtcreator.local')
-    def run(self,args,data=None,check=True):
+    def run(self,args,data=None,check=True,output_limit=MAX_STATE):
         args=[self.git,'-c','commit.gpgsign=false','-c','core.hooksPath='+str(self.folder/'empty-hooks'),'--git-dir='+str(self.repository),*args]
         result=subprocess.run(args,input=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=self.env,timeout=60,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
-        if len(result.stdout)>MAX_STATE:raise ValueError('版本历史超出读取上限')
+        if len(result.stdout)>output_limit:raise ValueError('版本历史超出读取上限')
         if check and result.returncode:raise ValueError('本地版本历史未完成：'+result.stderr.decode('utf8',errors='replace')[-1500:])
         return result
     @contextmanager
@@ -113,12 +119,25 @@ class History:
         if not (self.repository/'HEAD').is_file():return dict(schema_version=1,versions={},current={}),None
         result=self.run(['rev-parse','--verify','refs/heads/history'],check=False)
         if result.returncode:return dict(schema_version=1,versions={},current={}),None
-        head=result.stdout.decode().strip();raw=self.run(['show',head+':index.json']).stdout;value=json.loads(raw)
+        head=result.stdout.decode().strip();raw=self.run(['show',head+':index.json'],output_limit=MAX_LEGACY_STATE).stdout;value=json.loads(raw)
         if value.get('schema_version')!=1 or not isinstance(value.get('versions'),dict) or not isinstance(value.get('current'),dict) or any(not IDENTIFIER.fullmatch(key) for key in value['versions']):raise ValueError('版本历史索引格式无效')
         return value,head
     def commit(self,state,head,message):
+        # Remove legacy inline previews only after their immutable objects have
+        # been checked. The original Git commit remains available on failure.
+        state=copy.deepcopy(state);checked={}
+        for node in state['versions'].values():
+            for item in [*node.get('files',{}).values(),*node.get('context',{}).values()]:
+                if 'text' not in item:continue
+                sha=item['sha256'];file=self.object_file(sha)
+                if sha not in checked:
+                    if not file.is_file() or file.stat().st_size!=item['bytes'] or file_hash(file)!=sha:raise ValueError('历史文本对象缺失或损坏，未迁移索引：'+sha)
+                    try:checked[sha]=file.read_bytes().decode('utf-8-sig')
+                    except UnicodeError:raise ValueError('历史文本对象损坏，未迁移索引：'+sha) from None
+                if checked[sha]!=item['text']:raise ValueError('历史文本与归档不一致，未迁移索引：'+sha)
+                del item['text']
         raw=encode(state)
-        if len(raw)>MAX_STATE:raise ValueError('版本历史索引过大')
+        if len(raw)>MAX_STATE:raise ValueError('版本历史索引过大；请保留草稿并检查历史空间后重试')
         blob=self.run(['hash-object','-w','--stdin'],raw).stdout.decode().strip()
         tree=self.run(['mktree'],('100644 blob '+blob+'\tindex.json\n').encode()).stdout.decode().strip()
         commit=self.run(['commit-tree',tree,*(['-p',head] if head else []),'-m',message]).stdout.decode().strip()
@@ -138,11 +157,7 @@ class History:
             with target.open('xb') as stream:stream.write(raw)
         except FileExistsError:
             if file_hash(target)!=sha:raise ValueError('历史归档已损坏，未覆盖：'+sha)
-        item=dict(sha256=sha,bytes=len(raw))
-        if file.suffix.lower() in {'.json','.snbt','.md','.txt','.py'} and len(raw)<=2*1024*1024:
-            try:item['text']=raw.decode('utf-8-sig')
-            except UnicodeError:pass
-        return item
+        return dict(sha256=sha,bytes=len(raw))
     def lookup(self,state,identifier):
         if not isinstance(identifier,str) or not IDENTIFIER.fullmatch(identifier) or identifier not in state['versions']:raise ValueError('建筑版本不存在，请刷新版本历史')
         return state['versions'][identifier]
@@ -150,8 +165,9 @@ class History:
         source=model_file(self.workspace,request.get('source'));paths=project_paths(source);version=paths['version'];workdir=paths['workdir']
         if version==self.workspace/'nbt_models':raise ValueError('请把建筑主模型放入独立的建筑版本目录')
         if not source.is_file():raise ValueError('主模型文件不存在')
-        from nbt_refine import read_master
-        model,_=read_master(source);source_sha=file_hash(source);source_path=relative(self.workspace,source)
+        model,_=history_source(source);source_sha=file_hash(source);source_path=relative(self.workspace,source)
+        binding=getattr(model,'_assembly_binding',None)
+        if binding and binding[1]!=source_sha:raise ValueError('组装清单在读取期间发生变化')
         identifier='v_'+digest((source_path+'\n'+source_sha).encode())[:24];previous=state['versions'].get(identifier)
         if previous is None:
             previous=next((node for node in state['versions'].values()
@@ -200,6 +216,14 @@ class History:
                 files[safe_name(file.relative_to(version).as_posix())]=self.archive(file)
         source_relative=source.relative_to(version).as_posix()
         if source_relative not in files or file_hash(source)!=source_sha:raise ValueError('归档期间主模型已变化，未登记')
+        if binding:
+            from nbt_large_assembly import verify_assembly_binding
+            verify_assembly_binding(model)
+            for name,sha in binding[2]:
+                part=(source.parent/name).resolve()
+                if not part.is_relative_to(version):raise ValueError('组装分区越出建筑版本，未登记')
+                archived=files.get(part.relative_to(version).as_posix())
+                if not archived or archived['sha256']!=sha:raise ValueError('组装分区未完整归档或已变化')
         comments=[]
         index=version/'修改意见/评论索引.json'
         if index.is_file():
@@ -217,6 +241,7 @@ class History:
                     contexts[relative(self.workspace,file)]=self.archive(file)
         origin_actor=previous['actor'] if previous else actor
         node=dict(id=identifier,building=building,source=source_path,version=relative(self.workspace,version),workdir=relative(self.workspace,workdir),source_file=source_relative,source_sha256=source_sha,geometry_sha256=model.fingerprint(),size=list(model.size),parent=parent,actor=origin_actor,message=message.strip(),tasks=tasks,comments=comments,files=files,context=contexts,created_at=previous['created_at'] if previous else now(),acceptance=previous.get('acceptance') if previous else 'pending_user_review' if origin_actor=='external_agent' else 'not_granted_by_history')
+        if binding:node.update(source_kind='assembly',assembly_partitions=[dict(file=name,sha256=sha) for name,sha in binding[2]])
         release=self.workspace/'nbt_models/_exports'/version.relative_to(self.workspace/'nbt_models')/'release.json'
         if release.is_file():
             metadata=json.loads(release.read_text(encoding='utf8'))
@@ -225,7 +250,15 @@ class History:
         node['updated_at']=now();state['versions'][identifier]=node;return node,True
     def summary(self,node,verify=True):
         source=model_file(self.workspace,node['source']);exists=source.is_file()
-        return {k:node.get(k) for k in ['id','building','source','version','source_sha256','geometry_sha256','size','parent','actor','message','tasks','comments','created_at','updated_at','acceptance','release']}|dict(absolute_source=str(source),format=source.suffix.lower().lstrip('.'),file_count=len(node['files']),bytes=sum(item['bytes'] for item in node['files'].values()),source_exists=exists,source_matches=(exists and file_hash(source)==node['source_sha256']) if verify else None)
+        matches=None
+        if verify:
+            try:
+                if node.get('source_kind')=='assembly':
+                    from nbt_large_assembly import assembly_source_matches
+                    matches=exists and assembly_source_matches(source,node['source_sha256'],node.get('assembly_partitions'))
+                else:matches=exists and file_hash(source)==node['source_sha256']
+            except OSError:matches=False
+        return {k:node.get(k) for k in ['id','building','source','version','source_sha256','geometry_sha256','size','parent','actor','message','tasks','comments','created_at','updated_at','acceptance','release']}|dict(absolute_source=str(source),format='assembly' if node.get('source_kind')=='assembly' else source.suffix.lower().lstrip('.'),file_count=len(node['files']),bytes=sum(item['bytes'] for item in node['files'].values()),source_exists=exists,source_matches=matches)
     def snapshot_chain(self, state, source, expected=None):
         """Fill managed ancestors in parent order, including interrupted records."""
         from nbt_working_model import managed_manifest
@@ -276,6 +309,7 @@ class History:
                     raise ValueError('父版本与制作清单不一致')
                 request = dict(request,parent=parent['id'])
             node,changed=self.snapshot(state,request)
+            if node.get('source_kind')=='assembly' and not self.summary(node)['source_matches']:raise ValueError('组装来源在登记期间发生变化')
             if request.get('set_current',False):state['current'][node['building']]=node['id']
             commit=self.commit(state,head,'版本记录：'+node['message']) if encode(state)!=before else head
             if request.get('set_current',False):
@@ -288,13 +322,30 @@ class History:
         versions=[self.summary(node,verify=bool(source)) for node in state['versions'].values()
             if building is None or workspace_path(self.workspace,node['workdir'])==building
             or project_paths(model_file(self.workspace,node['source']))['workdir']==building]
-        return dict(versions=sorted(versions,key=lambda item:item['created_at'],reverse=True),current=state['current'],commit=head,git_available=True,repository=relative(self.workspace,self.repository),approval='not_granted_by_history')
+        used=len(encode(state));free=shutil.disk_usage(self.workspace).free
+        return dict(versions=sorted(versions,key=lambda item:item['created_at'],reverse=True),current=state['current'],commit=head,git_available=True,repository=relative(self.workspace,self.repository),approval='not_granted_by_history',index_capacity=dict(bytes=used,limit=MAX_STATE,warning=used>=MAX_STATE*4//5,disk_free_bytes=free,disk_warning=free<256*1024*1024))
     def get(self,identifier):
         state,head=self.state();node=self.lookup(state,identifier)
+        node=copy.deepcopy(node);preview_bytes=0
         for name,item in [*node['files'].items(),*node.get('context',{}).items()]:
             safe_name(name);file=self.object_file(item['sha256'])
             if not file.is_file() or file.stat().st_size!=item['bytes'] or file_hash(file)!=item['sha256']:raise ValueError('历史文件缺失或已损坏：'+name)
+            if Path(name).suffix.lower() in {'.json','.snbt','.md','.txt','.py'} and item['bytes']<=2*1024*1024:
+                if preview_bytes+item['bytes']>MAX_PREVIEW_TOTAL:
+                    item.pop('text',None);item['text_omitted']='preview_limit';continue
+                try:item['text']=file.read_bytes().decode('utf-8-sig');preview_bytes+=item['bytes']
+                except UnicodeError:item.pop('text',None)
         return dict(version=self.summary(node),manifest=node,commit=head)
+    def get_text(self,identifier,name,context=False):
+        if type(context) is not bool:raise ValueError('历史文件类型无效')
+        name=safe_name(name);state,_=self.state();node=self.lookup(state,identifier)
+        item=node.get('context' if context else 'files',{}).get(name)
+        if not item or Path(name).suffix.lower() not in {'.json','.snbt','.md','.txt','.py'} or item['bytes']>2*1024*1024:raise ValueError('历史文本不存在或超过预览上限')
+        file=self.object_file(item['sha256'])
+        if not file.is_file() or file.stat().st_size!=item['bytes'] or file_hash(file)!=item['sha256']:raise ValueError('历史文件缺失或已损坏：'+name)
+        try:content=file.read_bytes().decode('utf-8-sig')
+        except UnicodeError:raise ValueError('历史文件不是 UTF-8 文本：'+name) from None
+        return dict(id=identifier,name=name,sha256=item['sha256'],text=content)
     def current(self,identifier):
         from nbt_working_model import publication_lock, publish_head, managed_manifest
         initial,_=self.state();selected=self.lookup(initial,identifier)
@@ -322,11 +373,11 @@ class History:
                 output=owned(target,target/safe_name(name));output.parent.mkdir(parents=True,exist_ok=True)
                 with output.open('xb') as stream:stream.write(self.object_file(item['sha256']).read_bytes())
             derived=target/safe_name(node['source_file'])
-            from nbt_refine import read_master
-            if read_master(derived)[0].fingerprint()!=node['geometry_sha256']:raise ValueError('恢复的主模型回读不一致')
-            if derived.suffix.lower()!='.snbt':
+            model,walls=history_source(derived)
+            if model.fingerprint()!=node['geometry_sha256']:raise ValueError('恢复的主模型回读不一致')
+            if derived.suffix.lower()!='.snbt' and node.get('source_kind')!='assembly':
                 from nbt_snbt import save_snbt
-                model,walls=read_master(derived);derived=target/'master/model.snbt';save_snbt(derived,model,walls)
+                derived=target/'master/model.snbt';save_snbt(derived,model,walls)
             manifest_file=target/'model-version.json'
             if manifest_file.is_file():
                 manifest=json.loads(manifest_file.read_text(encoding='utf8'))
@@ -362,7 +413,8 @@ class History:
 def dispatch(workspace,action,request):
     history=History(workspace)
     if action=='list':return history.list(request.get('source'))
-    if action=='get':return history.get(request['id'])
+    if action=='get':return history.get_text(request['id'],request['name'],request.get('context',False)) if 'name' in request else history.get(request['id'])
+    if action=='get-text':return history.get_text(request['id'],request['name'],request.get('context',False))
     if action=='record':return history.record(request)
     if action=='current':return history.current(request['id'])
     if action=='derive':return history.derive(request['id'],request.get('message','从历史版本继续编辑'))
@@ -387,7 +439,7 @@ def source_workspace(source):
     raise ValueError('主模型不在工作区 nbt_models 中')
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['list','get','record','current','derive','finalize']);parser.add_argument('--request',type=Path);parser.add_argument('--source');parser.add_argument('--parent');parser.add_argument('--id');parser.add_argument('--message');parser.add_argument('--actor',choices=['human','internal_ai','external_agent','import']);parser.add_argument('--set-current',action='store_true');parser.add_argument('--inputs-sha256');args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['list','get','get-text','record','current','derive','finalize']);parser.add_argument('--request',type=Path);parser.add_argument('--source');parser.add_argument('--parent');parser.add_argument('--id');parser.add_argument('--message');parser.add_argument('--actor',choices=['human','internal_ai','external_agent','import']);parser.add_argument('--set-current',action='store_true');parser.add_argument('--inputs-sha256');args=parser.parse_args()
     try:
         request=json.loads(args.request.read_text(encoding='utf-8-sig')) if args.request else {}
         for key in ('source','parent','id','message','actor','inputs_sha256'):

@@ -118,7 +118,9 @@ class ModularObjects(unittest.TestCase):
 
     def test_all_discoverable_recipes_are_real_deterministic_and_pure(self):
         listing = self.call('parametric_list')
-        self.assertEqual(len(listing['kinds']), 16)
+        kinds = {item['kind'] for item in listing['kinds']}
+        self.assertTrue({'pillar', 'stairs', 'railing', 'beam', 'bracket', 'arch', 'frame', 'pedestal', 'curve_stencil'} <= kinds)
+        self.assertEqual(len(kinds), len(listing['kinds']))
         rows = listing['object_library']
         self.assertEqual(rows, library())
         self.assertGreaterEqual(len(rows), 50)

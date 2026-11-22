@@ -83,6 +83,8 @@ mise run
 
 `mise run test -- --list` 从 [package.json](../../package.json) 的测试脚本读取套件名。专项任务以 [mise.toml](../../mise.toml) 为准。测试分层、单文件运行和前置条件见[测试导航](../../tests/README.md)。修改 `tool-catalog.json` 后先运行 `mise run tools:sync`，再运行 `mise run check`。
 
+大型模型的现有实现基准可用 `mise exec -- python -B scripts/benchmark-large-model.py` 运行。脚本在全新的 `build/large-model-benchmark-*` 中生成约 34.6 万方块的合成数据，分别测量载入、补丁、实际材质渲染和历史追加，并将每 250 毫秒采样的子进程树驻留内存与耗时写入 `results.json`。它可能使用数 GiB 内存；采样值不是瞬时峰值的严格上界，也不代表已支持超出单轴上限的组装模型。
+
 桌面自动测试使用隔离的合成工作区，窗口默认最小化，不触发已记录的全屏问题。真实 API 检查会使用指定连接并产生实际请求，入口和边界见[使用指南](../guides/USER_GUIDE.md#ai-与-agent-协作)；常规自动测试使用本机模拟服务。
 
 ## 构建与验收
@@ -119,5 +121,7 @@ GPU 任务将可选 NVIDIA 计算环境安装到 `build/gpu-env`；CPU 路径不
 | `build/`、`dist/` | 测试证据、缓存和构建产物，不提交临时内容 |
 
 维护时保留 Host/Origin 检查、sandbox/contextIsolation、源哈希绑定、真实缩略图确认和独立的手动导出流程。不修改原 SAODG 工作区，不把用户资产、凭据或创作目录打包进应用。
+
+资产库的 `app_min`／`app_max` 按应用版本检查；更新版本时同步 `package.json`、锁文件和引擎的 `nbt_asset_libraries.APP_VERSION`，并运行 `mise run assets:test`。冻结工作区使用同步时的引擎版本，不能仅靠更新桌面包宣称其运行时也已升级。
 
 返回[文档导航](../README.md)。
