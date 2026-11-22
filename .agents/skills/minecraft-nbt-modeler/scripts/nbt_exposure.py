@@ -327,8 +327,8 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         title=next((line.lstrip('# ').strip() for line in file.read_text(encoding='utf8').splitlines() if line.startswith('# ')),name)
         return f'[{title}]({relative}/references/{name}.md)'
     routes=[
-        ('整栋初稿：纯文字',['simple-building'],'从使用者的一次活动推导空间和细部。例：收卷、登梯、归架决定柜台的操作侧、梯顶转身位和书格高度。'),
-        ('整栋初稿：有参考图',['simple-building'],'从图中标出轮廓及可辨节点，再读进深、材料交接与支承。例：对照窗洞内退、窗台出挑和柱梁落点；背面与室内的补全单记理由。'),
+        ('整栋初稿：纯文字',['simple-building','spatial-detail-design'],'先按代表活动布置主件、配套、操作侧和下一站。在主模型上从玩家来路看清这组关系；细节参考读沿实际使用路线审细部。'),
+        ('整栋初稿：有参考图',['simple-building','spatial-detail-design'],'从轮廓和开间选一处能辨认的交接，先做进深、材料与支承，再按实际构造重复；背面与室内的补全单记理由。'),
         ('简单独立整栋初稿',['simple-building'],'直接用共享工作模型或可执行建筑方案。多层、结构接口和专门操作面转入复杂审阅。'),
         ('室内用途与建筑群验收',['architecture-workflow'],'室内用 use_face 查操作侧、工作高度与净距；街区沿主街、支路、门槛走到室内，按用途查公共与服务路线。多层布局可另出逐层平面与纵剖。'),
         ('建筑方案、构造与审阅闭环',['architecture-workflow'],'设计参数驱动真实构件；三层出图、问题定位、源绑定回查和游戏验收分别执行。'),
@@ -355,7 +355,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         '有任务 ID 就先读紧凑视图：提示词工作台用 `task-client inspect prompts <id>`，建筑修改用 `task-client inspect tasks <id>`。按返回的 `source_matches`、`next` 和 `expand` 行动；源已变化则停下，明确选定任务后才领取。不用先查全量工具。',
         '只知道任务 ID 时用 `task --id <id> --view compact` 自动识别类型。用 `task-client list --pending` 查找两类待领取任务。有旧候选时读 `--view candidates`，用 `task-client check-candidate` 核对新任务、亲缘和审阅证据，领取后再用 `reuse-candidate` 登记。','',
         '## 没有交接任务时','',
-        f'- 整栋初稿：纯文字从用途推导空间，有参考图先标出可见结构。读{link("simple-building")}；复杂布局再看{link("architecture-workflow")}。另有[归卷阁样例]({relative}/assets/examples/reading-loft/README.md)。',
+        f'- 整栋初稿：纯文字先按一次活动布置主件、配套、操作侧和下一站；有参考图先做一处看得清的构造交接。小型建筑走{link("simple-building")}，做代表节点时查{link("spatial-detail-design")}中的沿实际使用路线审细部，复杂布局看{link("architecture-workflow")}。另有[归卷阁样例]({relative}/assets/examples/reading-loft/README.md)。',
         '- 局部修改、纹样、构件与维护：按[任务路线和已启用资料](knowledge.md)选读。不要从头读完整目录。',
         '- 参数构件用 `capabilities --agent-tool parametric_compile` 查配方参数；用 `capabilities --model` 查看统一工作模型的装配、修改及另存入口。',
         '- 已知工具用 `capabilities --agent-tool <名称>` 或 `<命令> --help` 查字段。不知道入口时再用 `capabilities --routes`。`paths` 返回共享引擎位置。',
