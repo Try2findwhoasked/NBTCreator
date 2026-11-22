@@ -184,6 +184,12 @@ def capture(workspace, source, name, lo, hi, tags=(), anchor=None, include_air=F
     return store(workspace,result['component'])
 
 
+class PlacementBoundsError(ValueError):
+    def __init__(self, lo, hi):
+        super().__init__('放置后的构件超出模型边界，请调整锚点位置')
+        self.lo, self.hi = lo, hi
+
+
 def placement(data, position, size, quarter_turns=0, mirror=None, overwrite=False):
     data=validate(data);position=vector(position,'放置位置');size=vector(size,'模型尺寸')
     if data['archived']:raise ValueError('构件位于回收站，请先恢复')
@@ -197,7 +203,8 @@ def placement(data, position, size, quarter_turns=0, mirror=None, overwrite=Fals
         return [x,y,z]
     anchor=transformed(data['anchor']);lo=[position[i]-anchor[i] for i in range(3)]
     shape=[sz,sy,sx] if turns%2 else [sx,sy,sz];hi=[lo[i]+shape[i]-1 for i in range(3)]
-    if any(lo[i]<0 or hi[i]>=size[i] for i in range(3)):raise ValueError('放置后的构件超出模型边界，请调整锚点位置')
+    if any(lo[i]<0 or hi[i]>=size[i] for i in range(3)):
+        raise PlacementBoundsError(lo,hi)
     palette=data['palette']
     if turns or mirror:
         from nbt_tools import transformed_state

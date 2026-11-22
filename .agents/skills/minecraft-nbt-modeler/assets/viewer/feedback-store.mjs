@@ -40,7 +40,12 @@ export function createFeedbackStore(root,legacyRoot=null) {
     return { schema_version: 1, binding, notes: [], boundary: 'Design feedback only; never approval for refinement, deployment or other actions.' }
   }
   async function verify(binding) {
-    if (hash(await fs.readFile(binding.source)) !== binding.source_sha256 || (binding.kind!=='3d' && hash(await fs.readFile(binding.image)) !== binding.image_sha256)
+    const sourceBytes=await fs.readFile(binding.source)
+    if(path.extname(binding.source).toLowerCase()==='.json'&&sourceBytes.length<=4*1024*1024){
+      let data;try{data=JSON.parse(sourceBytes.toString('utf8'))}catch{}
+      if(data?.format==='nbtcreator-assembly')throw new Error('组装制作源的标注证据尚未接入分区校验，请暂用外部记录')
+    }
+    if (hash(sourceBytes) !== binding.source_sha256 || (binding.kind!=='3d' && hash(await fs.readFile(binding.image)) !== binding.image_sha256)
       || (binding.kind==='3d' && hash(await fs.readFile(binding.snapshot)) !== binding.snapshot_sha256)) {
       throw new Error('模型或图片已变化，请重新载入对应版本再留意见')
     }

@@ -1,7 +1,7 @@
 // Adapted from mattzh72/minecraft-builder-skill ce57d48; Apache-2.0. See LICENSE.upstream.
 import { vec3 } from 'gl-matrix'
 import { ViewCamera } from './camera-controls.mjs'
-import { MeshNormalMaterial,Scene,Box3,Vector2,Vector3,Raycaster,Matrix3,BufferGeometry,Float32BufferAttribute } from 'three'
+import { MeshNormalMaterial,Scene,Box3,Vector2,Vector3,Raycaster,Matrix3,BufferGeometry,Float32BufferAttribute,OrthographicCamera } from 'three'
 import { BlockState, Structure, ThreeStructureRenderer, ChunkBuilder, loadDefaultPackResources } from '@mattzh72/lodestone'
 import {installMeshScheduling} from './mesh-scheduling.mjs'
 import './style.css'
@@ -145,6 +145,7 @@ async function main() {
   const pixelRatio = Math.min(1.5, Math.max(0.5, Number(getParam('pixelRatio', '1'))))
   if (!Number.isFinite(pixelRatio)) throw new Error('Invalid pixelRatio')
   let lightingMode = getLightingMode()
+  let activeLightingOptions = null
   let fov = 60
   const cut = document.getElementById('cut-level')
   const layer = document.getElementById('layer')
@@ -167,14 +168,24 @@ async function main() {
   let meshBuilds = 1
   let renderedFrames = 0
   const started = performance.now()
-  function sunlight(mode) {
+  function sunlight(mode,options=null) {
     const preset = LIGHTING_PRESETS[mode]
-    return { ...preset, shadow: { ...preset.shadow, enabled: quality === 'high', mapSize: 1024 } }
+    const base={ ...preset, shadow: { ...preset.shadow, enabled: quality === 'high', mapSize: 1024 } }
+    if(!options)return base
+    // Three representative wavelengths, normalized to 6500 K; a reproducible
+    // visual approximation rather than a calibrated spectral color transform.
+    const ratios=[610,550,460].map(wavelength=>Math.expm1(1.438776877e7/(wavelength*6500))/Math.expm1(1.438776877e7/(wavelength*options.temperature_kelvin)))
+    const peak=Math.max(...ratios),background=options.background
+    return {...base,direction:vec3.fromValues(...options.direction),color:ratios.map(value=>value/peak),exposure:options.exposure,
+      sky:{...preset.sky,zenithColor:background,horizonColor:background,groundColor:background,sunGlowIntensity:0,stars:{enabled:false}},
+      disc:{...preset.disc,coreIntensity:0,glowIntensity:0},fog:{...preset.fog,color:background,density:0}}
   }
   const renderer = new ThreeStructureRenderer(canvas, new Structure(size, palette, indexed), withBookshelfModels(pack), {
     chunkSize: 16, useInvisibleBlockBuffer: false, asyncBuild: true,
     asyncChunkBuildTimeMs: 8, sunlight: sunlight(lightingMode),
   })
+  const perspectiveCamera=renderer.camera
+  const orthographicCamera=new OrthographicCamera(-1,1,1,-1,.01,2000)
   // A single clip-space triangle covers the sky without a diagonal seam.
   const sky = new BufferGeometry()
   sky.setAttribute('position', new Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3))
@@ -228,6 +239,7 @@ async function main() {
     renderTimer = 0
     frameRequest = 0
     const state = camera.getCamera()
+    syncProjection(state)
     renderer.setCamera({ position: state.position, target: state.target, up: state.up ?? [0, 1, 0], fov })
     if (quality === 'fast') renderer.drawColoredStructure()
     else renderer.drawStructure()
@@ -255,18 +267,33 @@ async function main() {
   }
   function currentCamera() {
     const state = renderer.getCamera()
-    return { eye: Array.from(state.position), target: Array.from(state.target), up: Array.from(state.up), fov: state.fov }
+    return { eye: Array.from(state.position), target: Array.from(state.target), up: Array.from(state.up), fov: state.fov,
+      ...(camera.projection==='orthographic'?{projection:'orthographic',ortho_height:camera.orthoHeight}:{}) }
+  }
+  function syncProjection(state){
+    const target=camera.projection==='orthographic'?orthographicCamera:perspectiveCamera
+    if(renderer.camera!==target){renderer.camera=target;componentGizmo?.setCamera(target)}
+    const aspect=Math.max(1,canvas.clientWidth)/Math.max(1,canvas.clientHeight)
+    if(camera.projection==='orthographic'){
+      const half=camera.orthoHeight/2
+      orthographicCamera.left=-half*aspect;orthographicCamera.right=half*aspect
+      orthographicCamera.top=half;orthographicCamera.bottom=-half
+      orthographicCamera.far=Math.max(2000,Math.hypot(...state.position.map((v,i)=>v-state.target[i]))+Math.max(...size)*4+100)
+    }else perspectiveCamera.aspect=aspect
+    target.updateProjectionMatrix()
   }
   function setCamera(view) {
     const state = cameraView(view)
     camera.fixed = { position: state.eye, target: state.target, up: state.up }
+    camera.projection=state.projection??'perspective';camera.orthoHeight=state.ortho_height??null
     fov = state.fov;camera.fov=fov
   }
   const axisNavigation=createAxisNavigation({orbit:(dx,dy)=>{setCamera(orbitCamera(currentCamera(),dx,dy));draw();if(window.parent!==window)window.parent.postMessage({type:'nbt-view-changed'},location.origin)},select:(axis,sign)=>enqueue(()=>{setCamera(axisCamera(currentCamera(),axis,sign));draw();if(window.parent!==window)window.parent.postMessage({type:'nbt-view-changed'},location.origin)}).catch(reportError)})
-  function setLighting(mode) {
-    if (mode !== lightingMode) {
+  function setLighting(mode,options=null) {
+    if (mode !== lightingMode || JSON.stringify(options)!==JSON.stringify(activeLightingOptions)) {
       lightingMode = mode
-      renderer.setSunlight(sunlight(mode))
+      activeLightingOptions=options?structuredClone(options):null
+      renderer.setSunlight(sunlight(mode,activeLightingOptions))
     }
     updateLightingButton(lightingToggle, lightingMode)
     setLightingUrl(lightingMode)
@@ -294,6 +321,7 @@ async function main() {
       source_sha256: snapshot.source_sha256, geometry_sha256: snapshot.geometry_sha256,
       registry_sha256: snapshot.registry_sha256, camera: currentCamera(),
       cuts: activeCuts, layer: activeLayer, lighting: lightingMode, quality, pixel_ratio: pixelRatio,
+      ...(activeLightingOptions?{lighting_options:structuredClone(activeLightingOptions)}:{}),
       width: canvas.width, height: canvas.height, visible_blocks: activeBlocks.length, interaction_max_fps: maxFps,
       mesh_builds: meshBuilds, rendered_frames: renderedFrames,
       verification: snapshot.verification,
@@ -302,7 +330,7 @@ async function main() {
   }
   async function applyView(view) {
     await applyFilter(view.layer, view.cuts)
-    setLighting(view.lighting)
+    setLighting(view.lighting,view.lighting_options??null)
     setCamera(view)
     layer.value = view.layer
     draw()

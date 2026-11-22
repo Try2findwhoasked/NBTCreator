@@ -56,5 +56,5 @@ export function createComponentGizmo({canvas,camera,viewCamera,requestRender,not
    const p=new Box3().setFromObject(object).getCenter(new Vector3()).project(camera);result.push({axis:object.name,x:(p.x+1)*rect.width/2,y:(1-p.y)*rect.height/2})
   }return result
  }
- return {scene,handlesScene,configure,state,screenHandles,dispose(){clear();canvas.removeEventListener('pointerdown',guard,true);canvas.removeEventListener('pointercancel',cancelled);canvas.removeEventListener('pointerup',cancelled);controls.dispose();box.geometry.dispose();box.material.dispose()}}
+ return {scene,handlesScene,configure,state,screenHandles,setCamera(value){camera=value;controls.camera=value},dispose(){clear();canvas.removeEventListener('pointerdown',guard,true);canvas.removeEventListener('pointercancel',cancelled);canvas.removeEventListener('pointerup',cancelled);controls.dispose();box.geometry.dispose();box.material.dispose()}}
 }

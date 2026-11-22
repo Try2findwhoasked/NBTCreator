@@ -11,6 +11,7 @@ def inspect_walk(request, snapshot=None):
     from nbt_refine import read_master
     from nbt_library import canonical_context, saved_coordinates
     from nbt_assembly import Volume
+    from nbt_large_assembly import AssemblyVolume, is_assembly_source, read_assembly, verify_assembly_files
     from nbt_collision import _Space, check_routes, RADIUS, PLAYER_HEIGHT
 
     def sha(file):
@@ -20,7 +21,9 @@ def inspect_walk(request, snapshot=None):
     source_hash = sha(source)
     if request.get('source_sha256') != source_hash:
         raise ValueError('源建筑已改变，请重新打开后检查通路')
-    model, _ = read_master(source)
+    assembly = is_assembly_source(source)
+    model, _ = read_assembly(source) if assembly else read_master(source)
+    assembly_binding = getattr(model, '_assembly_binding', None)
     snapshot_hash = sha(snapshot) if snapshot else None
     if snapshot:
         data = json.loads(Path(snapshot).read_text(encoding='utf-8-sig'))
@@ -30,7 +33,7 @@ def inspect_walk(request, snapshot=None):
         if data.get('preview_only'):
             if not isinstance(data.get('master_blocks'),list):
                 raise ValueError('候选快照缺少完整主模型')
-            candidate = Volume(model.size)
+            candidate = AssemblyVolume(model.size) if assembly else Volume(model.size)
             for p, value in data['master_blocks']:
                 candidate.put(p, value)
         if candidate.fingerprint() != data.get('geometry_sha256'):
@@ -91,11 +94,17 @@ def inspect_walk(request, snapshot=None):
                   poses=[pose('起点', start)]+[pose(name, p) for name,p in targets.items()],
                   available=True, asset_written=False, runtime_verified=False,
                   inspected_snapshot=bool(snapshot))
+    if assembly_binding:
+        result['source_kind']='assembly'
+        result['assembly_partitions']=[dict(file=name,sha256=sha) for name,sha in assembly_binding[2]]
     if (sha(source) != source_hash
             or (discover_context and saved_coordinates(source) != context)
             or (context and sha(context) != context_hash)
             or (snapshot and sha(snapshot) != snapshot_hash)):
         raise ValueError('检查期间建筑或坐标资料已改变，请重新检查')
+    if assembly_binding:
+        try:verify_assembly_files(assembly_binding)
+        except (ValueError,OSError) as error:raise ValueError('检查期间组装分区发生变化，请重新检查') from error
     from nbt_diagnostics import explain
     result['diagnostics']=explain('walk',result)
     return result

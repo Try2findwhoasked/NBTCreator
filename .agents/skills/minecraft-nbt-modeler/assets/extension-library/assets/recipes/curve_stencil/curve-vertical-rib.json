@@ -1,0 +1,19 @@
+{
+  "arguments": {
+    "form": {
+      "curve_cap_end": "high_step",
+      "curve_cap_length": 2,
+      "curve_cap_start": "low_step",
+      "curve_offset": 0,
+      "curve_width": 2,
+      "profile": "curve_rib"
+    },
+    "kind": "curve_stencil",
+    "material": "stone_bricks",
+    "name": "曲面竖肋平面模板",
+    "size": [3, 16, 1]
+  },
+  "controls": {"spacing": false, "style": false},
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

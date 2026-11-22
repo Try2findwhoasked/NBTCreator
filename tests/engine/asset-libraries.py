@@ -71,6 +71,13 @@ class Libraries(unittest.TestCase):
         with self.assertRaises(LibraryError) as caught: self.call(action, **request)
         self.assertEqual(caught.exception.code, code)
 
+    def test_engine_compatibility_version_matches_application(self):
+        package = json.loads((ROOT / 'package.json').read_text(encoding='utf8'))
+        lock = json.loads((ROOT / 'package-lock.json').read_text(encoding='utf8'))
+        self.assertEqual(libraries.APP_VERSION, tuple(int(part) for part in package['version'].split('.')))
+        self.assertEqual(lock['version'], package['version'])
+        self.assertEqual(lock['packages']['']['version'], package['version'])
+
     def test_local_pack_discovery_namespaces_and_compile_shared_engine(self):
         self.assertFalse((self.workspace / '.nbtcreator').exists())
         initial = self.call('list'); self.assertFalse((self.workspace / '.nbtcreator').exists())

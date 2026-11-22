@@ -1,0 +1,20 @@
+{
+  "arguments": {
+    "form": {
+      "curve_count": 3,
+      "curve_gap": 2,
+      "curve_offset": 1,
+      "curve_start": 2,
+      "curve_width": 5,
+      "curve_window_height": 5,
+      "profile": "curve_window_column"
+    },
+    "kind": "curve_stencil",
+    "material": "stone_bricks",
+    "name": "曲面窗列平面模板",
+    "size": [7, 24, 1]
+  },
+  "controls": {"spacing": false, "style": false},
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

@@ -13,11 +13,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def inspect_source(source, provenance=None, cameras=None):
     from nbt_refine import binary_wall_mask_hash, digest, read_master
+    from nbt_large_assembly import is_assembly_source, read_assembly
     from nbt_registry import effective, normalize, registry
-    source = Path(source).resolve()
+    source = Path(source)
+    assembly = is_assembly_source(source)
+    if assembly and source.is_symlink():
+        raise ValueError('组装清单不能是符号链接')
+    source = source.resolve()
     source_hash = digest(source)
     mask_hash = binary_wall_mask_hash(source)
-    model, walls = read_master(source)
+    model, walls = read_assembly(source) if assembly else read_master(source)
     effective_blocks = []
     for p, value in sorted(model.blocks.items()):
         name, props = effective(value)
@@ -29,6 +34,9 @@ def inspect_source(source, provenance=None, cameras=None):
                   state_semantics='Version defaults applied for display only; source is unchanged',
                   verification=dict(block_states=True, seal='not_checked', routes='not_checked',
                                     saodg49='not_checked', game='not_checked', design='pending_visual_review'))
+    if assembly:
+        result['source_kind'] = 'assembly'
+        result['assembly_partitions'] = [dict(file=name, sha256=sha) for name, sha in model._assembly_binding[2]]
     if provenance:
         trace = json.loads(Path(provenance).read_text(encoding='utf8'))
         if trace['geometry_sha256'] != model.fingerprint():
@@ -52,9 +60,13 @@ def write_snapshot(source, output, provenance=None, cameras=None):
 
 def preview_source_matches(source, data):
     from nbt_refine import binary_wall_mask_hash, digest
+    from nbt_large_assembly import assembly_source_matches, is_assembly_source
 
-    return (digest(source) == data['source_sha256']
-            and binary_wall_mask_hash(source) == data.get('binary_wall_mask_sha256'))
+    if digest(source) != data['source_sha256'] or binary_wall_mask_hash(source) != data.get('binary_wall_mask_sha256'):
+        return False
+    if is_assembly_source(source):
+        return data.get('source_kind') == 'assembly' and assembly_source_matches(source, data['source_sha256'], data.get('assembly_partitions'))
+    return data.get('source_kind') != 'assembly'
 
 
 def checked_preview_snapshot(file):
@@ -95,8 +107,10 @@ def checked_preview_snapshot(file):
     return source, raw
 
 
-def publish_render_manifest(output, source, snapshot_data, preview=None, preview_bytes=None):
+def publish_render_manifest(output, source, snapshot_data, preview=None, preview_bytes=None, *,
+                            camera_file=None, camera_bundle=None, camera_bundle_sha256=None, workspace=None):
     from nbt_object_scene import atomic
+    from nbt_refine import digest
 
     manifest = output / 'render_manifest.json'
     report = json.loads(manifest.read_text(encoding='utf8'))
@@ -106,11 +120,33 @@ def publish_render_manifest(output, source, snapshot_data, preview=None, preview
         preview_matches = preview is None or preview.read_bytes() == preview_bytes
         if not preview_matches or not preview_source_matches(source, snapshot_data):
             raise ValueError('Preview/source changed while rendering; output cannot be accepted')
-    except (OSError, ValueError) as error:
+        if camera_file is not None and digest(camera_file)!=report.get('cameras_sha256'):
+            raise ValueError('相机文件在渲染期间发生变化，不能接受输出')
+        for item in report.get('images',[]):
+            for field,hash_field in (('image','sha256'),('metadata','metadata_sha256')):
+                name=item.get(field)
+                if not isinstance(name,str) or Path(name).name!=name or '/' in name or '\\' in name or digest(output/name)!=item.get(hash_field):
+                    raise ValueError('渲染图片或元数据在发布前发生变化')
+        binding=None
+        if camera_bundle is not None or camera_bundle_sha256 is not None:
+            if camera_bundle is None or camera_bundle_sha256 is None or camera_file is None or workspace is None:
+                raise ValueError('参考相机清单、哈希和相机文件须同时提供')
+            from nbt_reference_camera import checked_registered_camera
+            binding=checked_registered_camera(workspace,camera_bundle,camera_bundle_sha256,camera_file,report.get('width'),report.get('height'))
+        if not preview_source_matches(source,snapshot_data) or (preview is not None and preview.read_bytes()!=preview_bytes):
+            raise ValueError('Preview/source changed while finalizing render evidence')
+        if camera_file is not None and digest(camera_file)!=report.get('cameras_sha256'):
+            raise ValueError('相机文件在发布期间发生变化，不能接受输出')
+    except (OSError, ValueError, KeyError, TypeError) as error:
         report.update(status='failed', error=str(error))
         raise
     else:
         report['status'] = 'complete'
+        if camera_file is not None:report['camera_file']=str(Path(camera_file).resolve())
+        if snapshot_data.get('source_kind') == 'assembly':
+            report['source_kind'] = 'assembly'
+            report['assembly_partitions'] = snapshot_data['assembly_partitions']
+        if binding is not None:report['reference_camera_binding']=binding
     finally:
         atomic(manifest, (json.dumps(report, ensure_ascii=False, indent=2) + '\n').encode('utf8'))
     print(json.dumps(dict(status=report['status'], images=len(report['images']),
@@ -167,6 +203,8 @@ def main():
     render.add_argument('--timeout-ms', type=int, default=60000)
     render.add_argument('--file-prefix', default='')
     render.add_argument('--browser-executable', type=Path)
+    render.add_argument('--camera-bundle', type=Path, help='Registered reference camera bundle')
+    render.add_argument('--camera-bundle-sha256', help='SHA256 of the registered camera bundle')
     regression = sub.add_parser('regress')
     regression.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()
@@ -185,6 +223,11 @@ def main():
             raise ValueError('Preview already binds its geometry; do not attach source provenance')
         if not cameras:
             raise ValueError('render requires --cameras with a non-empty view array')
+        if bool(args.camera_bundle)!=bool(args.camera_bundle_sha256):
+            raise ValueError('参考相机清单和哈希须同时提供')
+        if args.camera_bundle:
+            from nbt_reference_camera import checked_registered_camera
+            checked_registered_camera(Path.cwd(),args.camera_bundle,args.camera_bundle_sha256,args.cameras,args.width,args.height)
         if args.output.exists():
             raise FileExistsError('Batch output must be a new directory; preserve reviewed images')
         with tempfile.TemporaryDirectory(prefix='nbt-render-') as temporary:
@@ -206,7 +249,8 @@ def main():
             code = subprocess.call(cmd,env=render_env)
             if code == 0:
                 publish_render_manifest(args.output.resolve(), preview_source or Path(snapshot_data['source']),
-                                        snapshot_data, args.snapshot, preview_bytes)
+                                        snapshot_data, args.snapshot, preview_bytes,camera_file=args.cameras.resolve(),
+                                        camera_bundle=args.camera_bundle,camera_bundle_sha256=args.camera_bundle_sha256,workspace=Path.cwd())
             return code
     if args.command == 'inspect':
         result = inspect_source(args.source, args.provenance, cameras)

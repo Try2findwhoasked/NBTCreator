@@ -1,0 +1,18 @@
+{
+  "arguments": {
+    "form": {
+      "curve_left_bottom": 0,
+      "curve_left_top": 3,
+      "curve_right_bottom": 2,
+      "curve_right_top": 0,
+      "profile": "curve_skirt_segment"
+    },
+    "kind": "curve_stencil",
+    "material": "stone_bricks",
+    "name": "曲面裙边分片平面模板",
+    "size": [18, 10, 1]
+  },
+  "controls": {"spacing": false, "style": false},
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

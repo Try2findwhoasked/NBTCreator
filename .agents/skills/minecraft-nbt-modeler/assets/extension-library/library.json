@@ -235,6 +235,84 @@
       "type": "parametric_recipe"
     },
     {
+      "bytes": 345,
+      "category": "曲面平面模板",
+      "id": "curve-dark-seam",
+      "name": "曲面暗缝平面模板",
+      "path": "assets/recipes/curve_stencil/curve-dark-seam.json",
+      "sha256": "b92726d6d34ab6ec58822a7799e6c3ef1c56f0a65cc2d77ce7aea0da79eabe70",
+      "status": "stable",
+      "tags": [
+        "curve-stencil"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 501,
+      "category": "曲面平面模板",
+      "id": "curve-diagonal-band",
+      "name": "曲面斜搭带平面模板",
+      "path": "assets/recipes/curve_stencil/curve-diagonal-band.json",
+      "sha256": "830c694481558c21cdd6b86726ab5b8e3538a9e7577001c12b4c33b2ab9f16e0",
+      "status": "stable",
+      "tags": [
+        "curve-stencil"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 474,
+      "category": "曲面平面模板",
+      "id": "curve-ring-segment",
+      "name": "曲面环段平面模板",
+      "path": "assets/recipes/curve_stencil/curve-ring-segment.json",
+      "sha256": "1c4306964469c011a90b77479b1e773bc25030467d15ecba1f47b486e5481371",
+      "status": "stable",
+      "tags": [
+        "curve-stencil"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 447,
+      "category": "曲面平面模板",
+      "id": "curve-skirt-segment",
+      "name": "曲面裙边分片平面模板",
+      "path": "assets/recipes/curve_stencil/curve-skirt-segment.json",
+      "sha256": "49943e39461aa5935a81e5cce979c0dffb7f641af5cb5ad2061198d422ab9dda",
+      "status": "stable",
+      "tags": [
+        "curve-stencil"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 465,
+      "category": "曲面平面模板",
+      "id": "curve-vertical-rib",
+      "name": "曲面竖肋平面模板",
+      "path": "assets/recipes/curve_stencil/curve-vertical-rib.json",
+      "sha256": "8270397500c4eb5d56e3af7f458cd5f0d0cff497ac300a4433fe6f9126c59ea1",
+      "status": "stable",
+      "tags": [
+        "curve-stencil"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 475,
+      "category": "曲面平面模板",
+      "id": "curve-window-column",
+      "name": "曲面窗列平面模板",
+      "path": "assets/recipes/curve_stencil/curve-window-column.json",
+      "sha256": "0c2bf915a1a23a053e4aae0a8e65b545783bb4236aeac28e3ec6975e15b47fe9",
+      "status": "stable",
+      "tags": [
+        "curve-stencil"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
       "bytes": 238,
       "category": "洞口与边框",
       "id": "frame-crosslight",
@@ -1689,7 +1767,7 @@
     }
   ],
   "compatibility": {
-    "app_min": "3.1.0",
+    "app_min": "4.3.1",
     "minecraft": "1.20.1"
   },
   "description": "模块化建筑配方与数据构件；含宫廷金饰主题窗框、柱式、陈设及原创浮雕/镶地。须实际预览，安装后另验通路、承托和游戏效果。",
@@ -1698,5 +1776,5 @@
   "license": "LicenseRef-NBTCreator-Project",
   "name": "NBTCreator 模块化建筑资产库",
   "schema_version": 1,
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

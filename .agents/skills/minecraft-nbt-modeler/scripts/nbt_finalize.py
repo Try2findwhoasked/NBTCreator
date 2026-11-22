@@ -90,6 +90,9 @@ def finalize(workspace,source,*,register_history=True,expected_source_sha256=Non
     workspace=Path(workspace).resolve();source=Path(source)
     if not source.is_absolute():source=workspace/source
     source=source.resolve();target=release_path(workspace,source)
+    from nbt_large_assembly import is_assembly_source
+    if is_assembly_source(source):
+        raise ValueError('组装制作源尚不支持 NBT 定稿，请保留分区制作版')
     from nbt_working_model import WorkingModel,managed_manifest
     manifest=managed_manifest(source)
     managed_building=manifest and manifest['kind']=='building'

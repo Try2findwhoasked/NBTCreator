@@ -29,6 +29,12 @@
 | 建模工具与操作参数 | `mise run test -- modelling` |
 | 参数化构件与几何回归 | `mise run test -- parametric` |
 | 主模型、对象关系与接口 | `mise run model:test` |
+| 大型组装、四片楼梯冲突、恢复及同机位渲染 | `mise run test -- large-assembly` |
+| 三视配准、回投影与匿名审阅绑定 | `mise run test -- reference-views` |
+| 曲面实际宿主、分层叠放、纹样、背衬与候选回放 | `mise run test -- curved-surface` |
+| 曲面构件切片、来源绑定与离线回放 | `mise run test -- curve-components` |
+| 曲面 UV 模板、端部、方向与配方编译 | `mise run test -- curve-stencils` |
+| 偏心曲面代表样段、四个材质机位、保护拒绝及审阅绑定 | `mise exec -- python -B tests/engine/curved-surface-review.py` |
 | 建筑方案闭环 | `mise run architecture:test` |
 | 模块化对象、结构杆件与窗框 | `mise run modular:test` |
 | 外部资产库的离线、完整性与回滚 | `mise run assets:test` |
@@ -61,6 +67,8 @@ mise exec -- node tests/node/task-cancel.mjs --output build/task-cancel-check
 - `desktop/ai-live-desktop.mjs` 会调用指定配置的真实 API；普通回归使用本机模拟服务。真实 API 的调用方法见[使用指南](../docs/guides/USER_GUIDE.md#ai-与-agent-协作)。
 - `mise run gpu:test` 要求可选 GPU 环境；`mise run ornate:test` 要求相邻的 `NBTCreator-AssetLibrary` 仓库。
 - 基准、复杂场景及现有工作区审计需按脚本参数显式运行，例如 `engine/fitting-shapes-benchmark.py`、`engine/fitting-shapes-complex.py`、`engine/workspace-library-audit.py`。
+- 大型组装验收生成约 38 万方块并执行真实材质渲染，耗时和内存明显高于普通回归；结果保存在 `build/large-assembly-scale-*`，静态走测和截图不代表游戏内验证。
+- 曲面引擎回归覆盖偏心退台宿主、凸饰转角、凹槽背衬、跨层支承及素材绑定。另有可选的代表样段检查，生成约 25 万块宿主，在同一候选中核对斜搭板、双暗窗、切槽和开口卷纹。它使用生产渲染器输出正面、斜面、剖面和远景，运行前需构建前端。结果保存在 `build/curve-review-*`，从 `acceptance.json` 可找到候选、保护拒绝、成对渲染和审阅清单。视觉结论由人工查看这些图像后记录。
 
 ## 新增或移动测试
 

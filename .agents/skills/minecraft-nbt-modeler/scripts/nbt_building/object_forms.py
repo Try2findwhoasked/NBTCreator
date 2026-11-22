@@ -23,6 +23,9 @@ FORM_FIELDS['pillar'] += ('band_spacing','shaft_inset')
 PROFILES={'ceiling':('grid','parallel'),'plant':('upright','trailing','climbing'),
           'planter':('upright','trailing','climbing'),'stairs':('straight','quarter_turn','switchback','spiral')}
 PROFILES.update(MODULAR_PROFILES)
+from nbt_building.curve_stencils import PROFILES as CURVE_PROFILES, FIELDS as CURVE_FIELDS, COMMON as CURVE_COMMON
+FORM_FIELDS['curve_stencil']=tuple(sorted(CURVE_COMMON|set().union(*CURVE_FIELDS.values())))
+PROFILES['curve_stencil']=CURVE_PROFILES
 
 
 def generate(kind, spec, size, box, primary, accent, foliage, style='classic'):

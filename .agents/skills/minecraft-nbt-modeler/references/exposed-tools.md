@@ -46,6 +46,9 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 - control → scripts/nbt_detail_control.py
 - refine → scripts/nbt_refine.py
 - model → scripts/nbt_working_model.py
+- assembly → scripts/nbt_large_assembly.py
+- reference → scripts/nbt_reference_views.py
+- curve → scripts/nbt_curved_surface.py
 - convert → scripts/nbt_web_revision.py
 - registry → scripts/nbt_registry.py
 - library → scripts/nbt_library.py
@@ -91,6 +94,25 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 ## 容易混淆的入口
 
 从创作项目根目录运行 `mise run nbt -- capabilities --routes` 单独查询这张表。其他命令沿用工作区入口的 mise 前缀。
+
+### 曲面纹样
+
+| 任务 | 调用或字段 | 输入 | 结果 |
+| --- | --- | --- | --- |
+| 规划和核对曲面样段 | `curve compose --request <JSON> / curve verify-mask --mask <JSON> --sha256 <哈希> / curve plan --request <JSON> [--compact] / curve verify --plan <JSON> --sha256 <哈希> / curve review-record --request <JSON> / curve review-verify --record <JSON> --sha256 <哈希>` | 可从来源与内容哈希绑定的构件切片显式映射动作，再绑定宿主、已验证截面、掩模、UV 映射及真实审阅机位。 | 输出可重算的分层掩模与凸饰、切槽、嵌纹候选，报告实际面、背衬和连续性；不保存制作版或批准。 |
+
+### 三视参考
+
+| 任务 | 调用或字段 | 输入 | 结果 |
+| --- | --- | --- | --- |
+| 登记、拟合与回投影 | `reference register|fit|verify-fit|cameras|verify-cameras|compare|verify|review-prepare|review-record|review-verify` | 提供同尺度三视图、像素原点、轴方向、带依据的锚点及显式轮廓掩模。 | 输出绑定哈希的 loft 截面、轮廓指标和叠图；不替代看图、真实确认或游戏验证。 |
+
+### 大型组装
+
+| 任务 | 调用或字段 | 输入 | 结果 |
+| --- | --- | --- | --- |
+| 导入并核验大型组装制作源 | `assembly import --request <JSON>` | 指定画布、工作区内 SNBT 分区、各自 SHA256 与全局偏移；输出为新建筑版本的 master 目录。 | 逐份回读并登记历史；可用 assembly inspect、model 和 render 操作，定稿导出仍须独立支持。 |
+| 签发和回装协作切片 | `assembly slice --request <JSON> / assembly merge --request <JSON>` | 签发时绑定主稿、范围和必要路线；回装时提供原签发清单哈希及各候选哈希。 | 复核可写域、重叠、保护和全局路线后保存一个新制作版；不批准或导出。 |
 
 ### 任务与交接
 
@@ -158,7 +180,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | structure_write | 显式将绑定预览保存为新的构件资产；不能覆盖已有资产或导出NBT，保存不表示设计批准。 |
 | structure_place | 按锚点、旋转、镜像生成放置操作；不实际写建筑，仍须control preview/validate和显式新版本导出。 |
 | structure_save | 直接保存模型生成的资产：spec、component或绑定预览三选一；本地校验和真实预览后入库为待审阅资产，生成资产批次清单。保留手动导入，不产生NBT或设计批准。 |
-| parametric_list | 查询16类模块、可直接编译的对象配方库、柱式与扶手样式、参数及安装边界；只读。 |
+| parametric_list | 查询参数化模块、可直接编译的对象配方库、柱式与扶手样式、参数及安装边界；只读。 |
 | parametric_compile | 编译参数化模块候选：柱式、外置楼梯扶手、独立栏杆、梁、托架、拱框、门窗框、基座及家具。配方见parametric_list.object_library；不改当前建筑。 |
 | parametric_preview | 按参数编译并生成真实独立构件候选与缩略图；不入库、不批准、不写建筑。 |
 | parametric_contract | 由可信调用方给定硬约束，返回供模型输出使用的JSON Schema及语义门禁说明；模型回复不能修改该契约。 |

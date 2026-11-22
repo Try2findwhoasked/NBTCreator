@@ -8,6 +8,7 @@ NBTCreator 的文档按使用指南、开发维护和历史记录归类。首次
 | --- | --- |
 | [使用指南](guides/USER_GUIDE.md) | 下载、主要功能、快捷键、数据保存位置、命令行与常见问题 |
 | [建筑师工作流](guides/ARCHITECT_WORKFLOW.md) | 方案编写、人工审查、任务交接、标注和版本管理 |
+| [三视图与贝塞尔建模](guides/ORTHOGRAPHIC_BEZIER_MODELLING.md) | 参考图配准、分段拟合、建模及回投影检查 |
 | [首次创建模型与 AI 方案](guides/PROMPT_CREATION.md) | 新建建筑要求、保存位置与外部 Agent 制作流程 |
 | [3D 选点与 AI 放置](guides/AI_PLACEMENT.md) | 局部范围、选点放置、候选预览与导出 |
 | [AI 工作流](guides/AI_WORKFLOW.md) | 构件参考、视口截图、任务记录与整体移动 |
@@ -28,6 +29,7 @@ NBTCreator 的文档按使用指南、开发维护和历史记录归类。首次
 | [外置知识库与网络搜索设计](superpowers/specs/2026-11-20-knowledge-retrieval-design.md) | 离线书库接入、共同引用与联网阶段设计 |
 | [产品验收](development/PRODUCT_ACCEPTANCE.md) | 验收要求、源哈希、证据收据与判定边界 |
 | [产品完善清单](development/PRODUCT_IMPROVEMENTS.md) | 持续工作范围、完成项和原始进展记录 |
+| [大型建筑建模复盘与下一步开发](development/LARGE_MODEL_ROADMAP.md) | 艾恩葛朗特案例、现场问题、P0–P2 开发顺序与验收条件 |
 
 ## 引擎与创作 Skill
 

@@ -10,6 +10,8 @@ import gzip
 import hashlib
 import json
 import math
+import re
+import zlib
 from pathlib import Path
 
 from nbt_model import AIR, AIR_NAMES, state
@@ -67,7 +69,29 @@ def read_master(path):
     if path.suffix.lower()=='.nbt':
         from nbt_snbt import read_binary
         return read_binary(path)
-    data=json.loads(gzip.decompress(path.read_bytes()))
+    raw=path.read_bytes()
+    if not raw.startswith(b'\x1f\x8b'):
+        detail='无法识别的文件'
+        if raw.lstrip().startswith((b'{',b'[')):
+            detail='JSON 文件'
+            if len(raw)<=4*1024*1024:
+                try:sample=json.loads(raw)
+                except (ValueError,UnicodeDecodeError):sample=None
+                if isinstance(sample,dict):
+                    if sample.get('preview_only') is True and isinstance(sample.get('master_blocks'),list):detail='控制候选快照；请改用 --snapshot，仍须通过候选校验'
+                    elif 'blocks' in sample and 'size' in sample:detail='普通渲染快照；请从原始制作源重新生成'
+                    elif 'parts' in sample or 'partitions' in sample:detail='组装清单；此入口不支持，请使用 assembly inspect、model 或 render'
+            else:
+                # A large snapshot can take much more memory to parse than its
+                # source bytes. These are hints only, never a validation path.
+                if re.search(rb'"preview_only"\s*:\s*true\b',raw) and re.search(rb'"master_blocks"\s*:',raw):detail='疑似控制候选快照；请改用 --snapshot，仍须通过候选校验'
+                elif re.search(rb'"blocks"\s*:',raw) and re.search(rb'"size"\s*:',raw):detail='疑似普通渲染快照；请从原始制作源重新生成'
+                elif re.search(rb'"(?:parts|partitions)"\s*:',raw):detail='疑似组装清单；此入口不支持，请使用 assembly inspect、model 或 render'
+        raise ValueError('不支持的制作源格式（'+detail+'）：请使用 SNBT、NBT 或压缩制作主稿；JSON 不能直接作为 --source。')
+    try:
+        data=json.loads(gzip.decompress(raw))
+    except (gzip.BadGzipFile,EOFError,zlib.error,UnicodeDecodeError,json.JSONDecodeError) as error:
+        raise ValueError('压缩制作主稿损坏或无效，请检查文件或从历史版本恢复') from error
     model=Volume(data['size'])
     for p,v in data['blocks']:
         p=point(p)

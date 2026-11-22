@@ -42,6 +42,14 @@ mise run test -- product --directory dist/full-acceptance --workspace . --jobs 2
 
 最终判定还应查看本轮生成的项目卡片、资产、工作台及小窗口图片，记录真实观察。测试点击和模拟回执不表示用户已经批准任何建筑。
 
+## 大型组装模型的验收计划
+
+新增合成夹具按 300 × 384 × 300 的制作范围和跨多个 Y 分区的建筑组织。夹具保留错开的外壳、独立顶宫、上下行梯口和四个协作可写域，并预置一个只有回装后才会阻路的接口冲突。软件侧需要核对组装源哈希、各分区和显式墙层回读、失效候选定位、跨片来回路线、匹配相机的整塔与剖切渲染，以及历史临近旧容量上限时的保存与恢复。
+
+从仓库根目录先运行 `mise run build:web`，再运行 `mise run test -- large-assembly`。合成夹具的回执、整塔和剖切渲染保存在 `build/large-assembly-scale-*/`。历史旧索引迁移单独由 `mise run test -- history` 验证。
+
+偏心曲面样段另有四视图审阅入口，见[测试导航](../../tests/README.md)。真实创作项目的静态碰撞、同机位盲评和现场软件问题见[大型建筑复盘](LARGE_MODEL_ROADMAP.md)。游戏内放置与实际光传播另行验收。
+
 ## 历史执行记录（1.20 阶段）
 
 首次执行因三个旧测试未使用目录版而中止，记录在 `build/product-acceptance-1793819080465/interruption.json`。补齐执行文件核对后，下一轮 70 组中 66 组通过，原始失败结果保存在 `build/product-acceptance-1793819636184/results.json`，不覆盖为成功。

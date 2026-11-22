@@ -993,6 +993,24 @@ globalThis.NbtToolCatalog = {
       "summary": "稳定ID、尺寸引用、命名接口、接触与版本化联动。",
       "use": "跨对象参数方案；仍按已开放接口执行"
     },
+    "builtin:large-assembly": {
+      "label": "大型组装制作源",
+      "file": "large-assembly.md",
+      "summary": "导入哈希绑定的 SNBT 分区，回读全局坐标与墙层，登记历史并批量渲染。",
+      "use": "需要超过单份 SNBT 尺寸上限的制作源；编辑、协作回装与定稿另按实际支持范围执行"
+    },
+    "builtin:orthographic-reference": {
+      "label": "三视参考与回投影",
+      "file": "orthographic-reference.md",
+      "summary": "登记同尺度参考图与锚点，拟合放样截面并用显式轮廓掩模比较实际方块投影。",
+      "use": "参考还原粗模；遮挡、推定与实际看图仍分别记录"
+    },
+    "builtin:curved-surface": {
+      "label": "曲面纹样与背衬",
+      "file": "curved-surface.md",
+      "summary": "绑定构件切片与已登记截面，在实际宿主面规划分层凸饰、浅槽与嵌纹，检查厚度、保护和笔画连续性。",
+      "use": "偏心及退台曲面样段、素材切片复用；实际看图和用户确认仍分开"
+    },
     "builtin:architecture-workflow": {
       "label": "建筑方案与审阅闭环",
       "file": "architecture-workflow.md",
@@ -1008,6 +1026,9 @@ globalThis.NbtToolCatalog = {
     "control": "nbt_detail_control.py",
     "refine": "nbt_refine.py",
     "model": "nbt_working_model.py",
+    "assembly": "nbt_large_assembly.py",
+    "reference": "nbt_reference_views.py",
+    "curve": "nbt_curved_surface.py",
     "convert": "nbt_web_revision.py",
     "registry": "nbt_registry.py",
     "library": "nbt_library.py",
@@ -1063,6 +1084,36 @@ globalThis.NbtToolCatalog = {
     ]
   },
   "tool_routes": {
+    "曲面纹样": [
+      {
+        "title": "规划和核对曲面样段",
+        "call": "curve compose --request <JSON> / curve verify-mask --mask <JSON> --sha256 <哈希> / curve plan --request <JSON> [--compact] / curve verify --plan <JSON> --sha256 <哈希> / curve review-record --request <JSON> / curve review-verify --record <JSON> --sha256 <哈希>",
+        "input": "可从来源与内容哈希绑定的构件切片显式映射动作，再绑定宿主、已验证截面、掩模、UV 映射及真实审阅机位。",
+        "result": "输出可重算的分层掩模与凸饰、切槽、嵌纹候选，报告实际面、背衬和连续性；不保存制作版或批准。"
+      }
+    ],
+    "三视参考": [
+      {
+        "title": "登记、拟合与回投影",
+        "call": "reference register|fit|verify-fit|cameras|verify-cameras|compare|verify|review-prepare|review-record|review-verify",
+        "input": "提供同尺度三视图、像素原点、轴方向、带依据的锚点及显式轮廓掩模。",
+        "result": "输出绑定哈希的 loft 截面、轮廓指标和叠图；不替代看图、真实确认或游戏验证。"
+      }
+    ],
+    "大型组装": [
+      {
+        "title": "导入并核验大型组装制作源",
+        "call": "assembly import --request <JSON>",
+        "input": "指定画布、工作区内 SNBT 分区、各自 SHA256 与全局偏移；输出为新建筑版本的 master 目录。",
+        "result": "逐份回读并登记历史；可用 assembly inspect、model 和 render 操作，定稿导出仍须独立支持。"
+      },
+      {
+        "title": "签发和回装协作切片",
+        "call": "assembly slice --request <JSON> / assembly merge --request <JSON>",
+        "input": "签发时绑定主稿、范围和必要路线；回装时提供原签发清单哈希及各候选哈希。",
+        "result": "复核可写域、重叠、保护和全局路线后保存一个新制作版；不批准或导出。"
+      }
+    ],
     "任务与交接": [
       {
         "title": "按编号读取已交接的任务",
@@ -1725,7 +1776,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "parametric_list": {
-      "description": "查询16类模块、可直接编译的对象配方库、柱式与扶手样式、参数及安装边界；只读。",
+      "description": "查询参数化模块、可直接编译的对象配方库、柱式与扶手样式、参数及安装边界；只读。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -1748,7 +1799,8 @@ globalThis.NbtToolCatalog = {
               "bracket",
               "arch",
               "frame",
-              "pedestal"
+              "pedestal",
+              "curve_stencil"
             ]
           },
           "ornament_profile": {
@@ -1794,7 +1846,8 @@ globalThis.NbtToolCatalog = {
               "bracket",
               "arch",
               "frame",
-              "pedestal"
+              "pedestal",
+              "curve_stencil"
             ]
           },
           "size": {
@@ -1806,7 +1859,7 @@ globalThis.NbtToolCatalog = {
             },
             "minItems": 3,
             "maxItems": 3,
-            "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+            "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
           },
           "style": {
             "type": "string",
@@ -2032,7 +2085,89 @@ globalThis.NbtToolCatalog = {
                   "sash_window",
                   "classical_window",
                   "round_arch_window",
-                  "pointed_arch_window"
+                  "pointed_arch_window",
+                  "curve_ring_segment",
+                  "curve_dark_seam",
+                  "curve_rib",
+                  "curve_window_column",
+                  "curve_diagonal_band",
+                  "curve_skirt_segment"
+                ]
+              },
+              "curve_width": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "curve_offset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_window_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "curve_gap": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "curve_start": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_rise": {
+                "type": "integer",
+                "minimum": -63,
+                "maximum": 63
+              },
+              "curve_left_bottom": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_right_bottom": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_left_top": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_right_top": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_cap_length": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 32
+              },
+              "curve_cap_start": {
+                "type": "string",
+                "enum": [
+                  "square",
+                  "low_step",
+                  "high_step"
+                ]
+              },
+              "curve_cap_end": {
+                "type": "string",
+                "enum": [
+                  "square",
+                  "low_step",
+                  "high_step"
                 ]
               },
               "base_profile": {
@@ -3331,7 +3466,8 @@ globalThis.NbtToolCatalog = {
               "bracket",
               "arch",
               "frame",
-              "pedestal"
+              "pedestal",
+              "curve_stencil"
             ]
           },
           "size": {
@@ -3343,7 +3479,7 @@ globalThis.NbtToolCatalog = {
             },
             "minItems": 3,
             "maxItems": 3,
-            "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+            "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
           },
           "style": {
             "type": "string",
@@ -3569,7 +3705,89 @@ globalThis.NbtToolCatalog = {
                   "sash_window",
                   "classical_window",
                   "round_arch_window",
-                  "pointed_arch_window"
+                  "pointed_arch_window",
+                  "curve_ring_segment",
+                  "curve_dark_seam",
+                  "curve_rib",
+                  "curve_window_column",
+                  "curve_diagonal_band",
+                  "curve_skirt_segment"
+                ]
+              },
+              "curve_width": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "curve_offset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_window_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "curve_gap": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16
+              },
+              "curve_start": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_rise": {
+                "type": "integer",
+                "minimum": -63,
+                "maximum": 63
+              },
+              "curve_left_bottom": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_right_bottom": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_left_top": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_right_top": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 63
+              },
+              "curve_cap_length": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 32
+              },
+              "curve_cap_start": {
+                "type": "string",
+                "enum": [
+                  "square",
+                  "low_step",
+                  "high_step"
+                ]
+              },
+              "curve_cap_end": {
+                "type": "string",
+                "enum": [
+                  "square",
+                  "low_step",
+                  "high_step"
                 ]
               },
               "base_profile": {
@@ -4871,7 +5089,8 @@ globalThis.NbtToolCatalog = {
                   "bracket",
                   "arch",
                   "frame",
-                  "pedestal"
+                  "pedestal",
+                  "curve_stencil"
                 ]
               },
               "size": {
@@ -5000,7 +5219,8 @@ globalThis.NbtToolCatalog = {
                   "bracket",
                   "arch",
                   "frame",
-                  "pedestal"
+                  "pedestal",
+                  "curve_stencil"
                 ]
               },
               "size": {
@@ -5012,7 +5232,7 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
               },
               "style": {
                 "type": "string",
@@ -5238,7 +5458,89 @@ globalThis.NbtToolCatalog = {
                       "sash_window",
                       "classical_window",
                       "round_arch_window",
-                      "pointed_arch_window"
+                      "pointed_arch_window",
+                      "curve_ring_segment",
+                      "curve_dark_seam",
+                      "curve_rib",
+                      "curve_window_column",
+                      "curve_diagonal_band",
+                      "curve_skirt_segment"
+                    ]
+                  },
+                  "curve_width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "curve_offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_window_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "curve_gap": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "curve_start": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_rise": {
+                    "type": "integer",
+                    "minimum": -63,
+                    "maximum": 63
+                  },
+                  "curve_left_bottom": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_right_bottom": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_left_top": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_right_top": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_cap_length": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 32
+                  },
+                  "curve_cap_start": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "low_step",
+                      "high_step"
+                    ]
+                  },
+                  "curve_cap_end": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "low_step",
+                      "high_step"
                     ]
                   },
                   "base_profile": {
@@ -6530,7 +6832,8 @@ globalThis.NbtToolCatalog = {
                   "bracket",
                   "arch",
                   "frame",
-                  "pedestal"
+                  "pedestal",
+                  "curve_stencil"
                 ]
               },
               "size": {
@@ -6894,7 +7197,8 @@ globalThis.NbtToolCatalog = {
                   "bracket",
                   "arch",
                   "frame",
-                  "pedestal"
+                  "pedestal",
+                  "curve_stencil"
                 ]
               },
               "size": {
@@ -6906,7 +7210,7 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
               },
               "style": {
                 "type": "string",
@@ -7132,7 +7436,89 @@ globalThis.NbtToolCatalog = {
                       "sash_window",
                       "classical_window",
                       "round_arch_window",
-                      "pointed_arch_window"
+                      "pointed_arch_window",
+                      "curve_ring_segment",
+                      "curve_dark_seam",
+                      "curve_rib",
+                      "curve_window_column",
+                      "curve_diagonal_band",
+                      "curve_skirt_segment"
+                    ]
+                  },
+                  "curve_width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "curve_offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_window_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "curve_gap": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "curve_start": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_rise": {
+                    "type": "integer",
+                    "minimum": -63,
+                    "maximum": 63
+                  },
+                  "curve_left_bottom": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_right_bottom": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_left_top": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_right_top": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_cap_length": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 32
+                  },
+                  "curve_cap_start": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "low_step",
+                      "high_step"
+                    ]
+                  },
+                  "curve_cap_end": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "low_step",
+                      "high_step"
                     ]
                   },
                   "base_profile": {
@@ -8632,7 +9018,8 @@ globalThis.NbtToolCatalog = {
                   "bracket",
                   "arch",
                   "frame",
-                  "pedestal"
+                  "pedestal",
+                  "curve_stencil"
                 ]
               },
               "size": {
@@ -8644,7 +9031,7 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
               },
               "style": {
                 "type": "string",
@@ -8870,7 +9257,89 @@ globalThis.NbtToolCatalog = {
                       "sash_window",
                       "classical_window",
                       "round_arch_window",
-                      "pointed_arch_window"
+                      "pointed_arch_window",
+                      "curve_ring_segment",
+                      "curve_dark_seam",
+                      "curve_rib",
+                      "curve_window_column",
+                      "curve_diagonal_band",
+                      "curve_skirt_segment"
+                    ]
+                  },
+                  "curve_width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "curve_offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_window_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "curve_gap": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "curve_start": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_rise": {
+                    "type": "integer",
+                    "minimum": -63,
+                    "maximum": 63
+                  },
+                  "curve_left_bottom": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_right_bottom": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_left_top": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_right_top": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_cap_length": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 32
+                  },
+                  "curve_cap_start": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "low_step",
+                      "high_step"
+                    ]
+                  },
+                  "curve_cap_end": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "low_step",
+                      "high_step"
                     ]
                   },
                   "base_profile": {
@@ -10304,7 +10773,8 @@ globalThis.NbtToolCatalog = {
                         "bracket",
                         "arch",
                         "frame",
-                        "pedestal"
+                        "pedestal",
+                        "curve_stencil"
                       ]
                     },
                     "size": {
@@ -10316,7 +10786,7 @@ globalThis.NbtToolCatalog = {
                       },
                       "minItems": 3,
                       "maxItems": 3,
-                      "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                      "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
                     },
                     "style": {
                       "type": "string",
@@ -10542,7 +11012,89 @@ globalThis.NbtToolCatalog = {
                             "sash_window",
                             "classical_window",
                             "round_arch_window",
-                            "pointed_arch_window"
+                            "pointed_arch_window",
+                            "curve_ring_segment",
+                            "curve_dark_seam",
+                            "curve_rib",
+                            "curve_window_column",
+                            "curve_diagonal_band",
+                            "curve_skirt_segment"
+                          ]
+                        },
+                        "curve_width": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 64
+                        },
+                        "curve_offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 63
+                        },
+                        "curve_window_height": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 64
+                        },
+                        "curve_gap": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 63
+                        },
+                        "curve_count": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 16
+                        },
+                        "curve_start": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 63
+                        },
+                        "curve_rise": {
+                          "type": "integer",
+                          "minimum": -63,
+                          "maximum": 63
+                        },
+                        "curve_left_bottom": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 63
+                        },
+                        "curve_right_bottom": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 63
+                        },
+                        "curve_left_top": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 63
+                        },
+                        "curve_right_top": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 63
+                        },
+                        "curve_cap_length": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 32
+                        },
+                        "curve_cap_start": {
+                          "type": "string",
+                          "enum": [
+                            "square",
+                            "low_step",
+                            "high_step"
+                          ]
+                        },
+                        "curve_cap_end": {
+                          "type": "string",
+                          "enum": [
+                            "square",
+                            "low_step",
+                            "high_step"
                           ]
                         },
                         "base_profile": {
@@ -11916,7 +12468,8 @@ globalThis.NbtToolCatalog = {
                   "bracket",
                   "arch",
                   "frame",
-                  "pedestal"
+                  "pedestal",
+                  "curve_stencil"
                 ]
               },
               "size": {
@@ -11928,7 +12481,7 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
               },
               "style": {
                 "type": "string",
@@ -12154,7 +12707,89 @@ globalThis.NbtToolCatalog = {
                       "sash_window",
                       "classical_window",
                       "round_arch_window",
-                      "pointed_arch_window"
+                      "pointed_arch_window",
+                      "curve_ring_segment",
+                      "curve_dark_seam",
+                      "curve_rib",
+                      "curve_window_column",
+                      "curve_diagonal_band",
+                      "curve_skirt_segment"
+                    ]
+                  },
+                  "curve_width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "curve_offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_window_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "curve_gap": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "curve_start": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_rise": {
+                    "type": "integer",
+                    "minimum": -63,
+                    "maximum": 63
+                  },
+                  "curve_left_bottom": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_right_bottom": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_left_top": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_right_top": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_cap_length": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 32
+                  },
+                  "curve_cap_start": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "low_step",
+                      "high_step"
+                    ]
+                  },
+                  "curve_cap_end": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "low_step",
+                      "high_step"
                     ]
                   },
                   "base_profile": {
@@ -13450,7 +14085,8 @@ globalThis.NbtToolCatalog = {
                   "bracket",
                   "arch",
                   "frame",
-                  "pedestal"
+                  "pedestal",
+                  "curve_stencil"
                 ]
               },
               "size": {
@@ -13462,7 +14098,7 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
               },
               "style": {
                 "type": "string",
@@ -13688,7 +14324,89 @@ globalThis.NbtToolCatalog = {
                       "sash_window",
                       "classical_window",
                       "round_arch_window",
-                      "pointed_arch_window"
+                      "pointed_arch_window",
+                      "curve_ring_segment",
+                      "curve_dark_seam",
+                      "curve_rib",
+                      "curve_window_column",
+                      "curve_diagonal_band",
+                      "curve_skirt_segment"
+                    ]
+                  },
+                  "curve_width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "curve_offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_window_height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "curve_gap": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "curve_start": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_rise": {
+                    "type": "integer",
+                    "minimum": -63,
+                    "maximum": 63
+                  },
+                  "curve_left_bottom": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_right_bottom": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_left_top": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_right_top": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63
+                  },
+                  "curve_cap_length": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 32
+                  },
+                  "curve_cap_start": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "low_step",
+                      "high_step"
+                    ]
+                  },
+                  "curve_cap_end": {
+                    "type": "string",
+                    "enum": [
+                      "square",
+                      "low_step",
+                      "high_step"
                     ]
                   },
                   "base_profile": {
@@ -24671,7 +25389,7 @@ globalThis.NbtToolCatalog = {
   },
   "working_model": {
     "cli": "model --workspace <创作项目> --request <JSON> [--output <新的预览目录>]",
-    "description": "统一完整主模型组合、绑定宿主修改、实例安全更新与显式SNBT制作版保存；不生成定稿NBT或批准。",
+    "description": "统一完整主模型组合、绑定宿主修改、实例安全更新与显式SNBT或组装制作版保存；不生成定稿NBT或批准。组装暂不支持密闭封装及开洞发布。",
     "parameters": {
       "type": "object",
       "additionalProperties": false,
@@ -24734,6 +25452,7 @@ globalThis.NbtToolCatalog = {
                 "type": "string",
                 "enum": [
                   "install",
+                  "preflight_update",
                   "update",
                   "remove",
                   "detach",
@@ -24787,7 +25506,7 @@ globalThis.NbtToolCatalog = {
             "items": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 293
+              "maximum": 4095
             },
             "minItems": 3,
             "maxItems": 3
@@ -24800,7 +25519,7 @@ globalThis.NbtToolCatalog = {
       "air_write": "explicit_delete",
       "budget": "whole_host_state_or_wall_difference_union",
       "managed_update": "baseline_current_proposed_three_way",
-      "save": "immutable_snbt_draft_only"
+      "save": "immutable_snbt_or_assembly_draft_only"
     },
     "actions": {
       "install": {
@@ -24853,7 +25572,7 @@ globalThis.NbtToolCatalog = {
             "items": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 293
+              "maximum": 4095
             },
             "minItems": 3,
             "maxItems": 3
@@ -24883,6 +25602,92 @@ globalThis.NbtToolCatalog = {
           "identifier",
           "recipe",
           "position"
+        ]
+      },
+      "preflight_update": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "preflight_update"
+            ]
+          },
+          "identifier": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "[a-zA-Z0-9_-]{1,80}"
+          },
+          "recipe": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "tool": {
+                "type": "string",
+                "enum": [
+                  "structure",
+                  "parametric_compile",
+                  "pattern_compile",
+                  "pattern_microfit",
+                  "surface_decorate",
+                  "bay_compile",
+                  "vault_compile",
+                  "tracery_compile",
+                  "field_compile",
+                  "scene_compile",
+                  "facade_compile"
+                ]
+              },
+              "arguments": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "tool",
+              "arguments"
+            ]
+          },
+          "transform": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "position": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4095
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "quarter_turns": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3
+              },
+              "mirror": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "x",
+                  "z",
+                  null
+                ]
+              }
+            },
+            "required": [
+              "position"
+            ]
+          }
+        },
+        "required": [
+          "method",
+          "identifier"
         ]
       },
       "update": {
@@ -24939,7 +25744,7 @@ globalThis.NbtToolCatalog = {
                 "items": {
                   "type": "integer",
                   "minimum": 0,
-                  "maximum": 293
+                  "maximum": 4095
                 },
                 "minItems": 3,
                 "maxItems": 3
@@ -24964,6 +25769,10 @@ globalThis.NbtToolCatalog = {
             "required": [
               "position"
             ]
+          },
+          "preflight_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
           }
         },
         "required": [
@@ -25036,7 +25845,7 @@ globalThis.NbtToolCatalog = {
                   "items": {
                     "type": "integer",
                     "minimum": 0,
-                    "maximum": 293
+                    "maximum": 4095
                   },
                   "minItems": 3,
                   "maxItems": 3

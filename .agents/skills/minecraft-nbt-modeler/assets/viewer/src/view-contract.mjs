@@ -15,12 +15,30 @@ export function cameraView(view) {
   if (Math.hypot(...cross) < 1e-8) throw new Error('Camera needs distinct eye/target and a non-parallel up vector')
   const fov = view.fov ?? 60
   if (!Number.isFinite(fov) || fov < 10 || fov > 120) throw new Error('fov must be 10..120 degrees')
+  const projection=view.projection??'perspective'
+  if(!['perspective','orthographic'].includes(projection))throw new Error('projection must be perspective/orthographic')
+  if(projection==='orthographic'){
+    if(!Number.isFinite(view.ortho_height)||view.ortho_height<.01||view.ortho_height>8192)throw new Error('ortho_height must be .01..8192 blocks')
+    if(Math.hypot(...d)>1e7)throw new Error('orthographic camera distance exceeds the supported range')
+    return {eye,target,up,fov,projection,ortho_height:view.ortho_height}
+  }
+  if(view.ortho_height!==undefined)throw new Error('ortho_height requires orthographic projection')
   return { eye, target, up, fov }
+}
+
+export function lightingOptions(value){
+  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).sort().join(',')!=='background,direction,exposure,temperature_kelvin')throw new Error('lighting_options requires direction, temperature_kelvin, background and exposure')
+  const direction=vector(value.direction,'lighting direction'),background=vector(value.background,'background')
+  if(direction.some(v=>Math.abs(v)>1e6)||Math.hypot(...direction)<1e-5)throw new Error('lighting direction must be nonzero and bounded')
+  if(background.some(v=>v<0||v>1))throw new Error('background RGB must be 0..1')
+  if(!Number.isFinite(value.temperature_kelvin)||value.temperature_kelvin<1000||value.temperature_kelvin>40000)throw new Error('temperature_kelvin must be 1000..40000')
+  if(!Number.isFinite(value.exposure)||value.exposure<.1||value.exposure>4)throw new Error('exposure must be .1..4')
+  return {direction,temperature_kelvin:value.temperature_kelvin,background,exposure:value.exposure}
 }
 
 export function normalizeView(view, size, index = 0) {
   if (!view || typeof view !== 'object' || Array.isArray(view)) throw new Error('Expected a camera object')
-  const allowed = new Set(['id', 'role', 'eye', 'target', 'up', 'fov', 'lighting', 'layer', 'cut_y', 'cuts'])
+  const allowed = new Set(['id', 'role', 'eye', 'target', 'up', 'fov', 'projection', 'ortho_height', 'lighting', 'lighting_options', 'layer', 'cut_y', 'cuts'])
   for (const key of Object.keys(view)) if (!allowed.has(key)) throw new Error(`Unknown view field: ${key}`)
   const id = view.id ?? `view_${String(index + 1).padStart(3, '0')}`
   if (typeof id !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(id)) throw new Error('View id must be a portable lowercase basename')
@@ -46,7 +64,7 @@ export function normalizeView(view, size, index = 0) {
     if (!Number.isInteger(view.cut_y) || view.cut_y < 0 || view.cut_y >= size[1]) throw new Error('cut_y must be a saved Y layer')
     cuts.push({ axis: 'y', position: view.cut_y + 1, removed_side: 'above' })
   }
-  return { id, role: view.role ?? id, ...cameraView(view), lighting, layer, cuts }
+  return { id, role: view.role ?? id, ...cameraView(view), lighting, ...(view.lighting_options===undefined?{}:{lighting_options:lightingOptions(view.lighting_options)}), layer, cuts }
 }
 
 export function normalizeViews(views, size) {

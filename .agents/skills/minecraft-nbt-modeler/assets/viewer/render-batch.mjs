@@ -96,10 +96,12 @@ export async function renderBatch(options) {
       }
       await fs.writeFile(path.join(output, file), bytes, { flag: 'wx' })
       await writeJson(path.join(output, metadataFile), metadata)
-      images.push({ image: file, metadata: metadataFile, sha256: metadata.image_sha256,
+      const metadataSha256=hash(await fs.readFile(path.join(output,metadataFile)))
+      images.push({ image: file, metadata: metadataFile, sha256: metadata.image_sha256, metadata_sha256:metadataSha256,
         mesh_builds: metadata.mesh_builds, rendered_frames: metadata.rendered_frames, duration_ms: metadata.duration_ms })
     }
     if (hash(await fs.readFile(model)) !== report.snapshot_sha256) throw new Error('Snapshot changed during rendering')
+    if (cameraBytes && hash(await fs.readFile(options.cameras)) !== report.cameras_sha256) throw new Error('Camera file changed during rendering')
     if (snapshot.source && hash(await fs.readFile(snapshot.source)) !== snapshot.source_sha256) throw new Error('Source model changed during rendering')
     report.status = options.deferCompletion ? 'awaiting_input_check' : 'complete'
   } catch (error) {

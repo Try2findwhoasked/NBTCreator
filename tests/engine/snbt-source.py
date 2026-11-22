@@ -78,6 +78,18 @@ class SnbtSource(unittest.TestCase):
   file=self.version/'model.snbt';save_snbt(file,self.model,self.walls);text=file.read_text();file.write_text(text.replace('stone_bricks','polished_andesite'),encoding='utf8');model,_=read_snbt(file);self.assertNotEqual(model.fingerprint(),self.model.fingerprint());self.assertTrue(model._snbt_metadata_stale)
  def test_old_gzip_source_stays_untouched_and_can_be_converted(self):
   before=self.source.read_bytes();file=self.version/'master/model.snbt';convert(self.source,file);self.assertEqual(self.source.read_bytes(),before);self.assertEqual(read_master(file)[0].fingerprint(),self.model.fingerprint());self.assertRaises(ValueError,convert,self.source,file)
+ def test_render_json_is_rejected_with_source_format_guidance(self):
+  for name,payload,description in [('snapshot.json',{'size':[2,2,2],'blocks':[]},'普通渲染快照'),('assembly.json',{'schema_version':1,'parts':[]},'组装清单'),('candidate.json',{'preview_only':True,'master_blocks':[]},'控制候选快照.*--snapshot')]:
+   with self.subTest(name=name):
+    file=self.workspace/name;file.write_text(json.dumps(payload),encoding='utf8')
+    with self.assertRaisesRegex(ValueError,description+'.*SNBT.*NBT.*JSON'):read_master(file)
+ def test_invalid_gzip_master_has_actionable_error(self):
+  file=self.workspace/'broken.master.json.gz';file.write_bytes(b'\x1f\x8bnot-a-valid-stream')
+  with self.assertRaisesRegex(ValueError,'压缩.*(损坏|无效)'):read_master(file)
+ def test_large_json_snapshots_receive_non_validating_format_hints(self):
+  for name,payload,description in [('snapshot.json',{'size':[2,2,2],'blocks':[]},'疑似普通渲染快照'),('candidate.json',{'preview_only':True,'master_blocks':[]},'疑似控制候选快照.*--snapshot')]:
+   payload['padding']='x'*(4*1024*1024);file=self.workspace/name;file.write_text(json.dumps(payload),encoding='utf8')
+   with self.assertRaisesRegex(ValueError,description):read_master(file)
  def test_fast_catalog_does_not_treat_snbt_as_gzip(self):
   file=self.version/'master/model.snbt';save_snbt(file,self.model,self.walls)
   description=self.version/'room_description.json';data=json.loads(description.read_text());data['master']='master/model.snbt';description.write_text(json.dumps(data),encoding='utf8')
