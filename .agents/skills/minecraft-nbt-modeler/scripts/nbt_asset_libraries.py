@@ -21,7 +21,7 @@ MAX_ASSET = 8 * 1024 * 1024
 MAX_TOTAL = 32 * 1024 * 1024
 LIMIT = 512
 DOWNLOAD_WORKERS = 4
-APP_VERSION = (4, 3, 1)
+APP_VERSION = (4, 3, 2)
 ACTIONS = ('list', 'browse', 'discover', 'add', 'refresh', 'enable', 'remove', 'rollback',
            'read', 'import', 'thumbnail', 'preview', 'resolve', 'place', 'copy')
 
