@@ -358,6 +358,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         f'- 整栋初稿：纯文字先按一次活动布置主件、配套、操作侧和下一站；有参考图先做一处看得清的构造交接。小型建筑走{link("simple-building")}，做代表节点时查{link("spatial-detail-design")}中的沿实际使用路线审细部，复杂布局看{link("architecture-workflow")}。另有[归卷阁样例]({relative}/assets/examples/reading-loft/README.md)。',
         '- 局部修改、纹样、构件与维护：按[任务路线和已启用资料](knowledge.md)选读。不要从头读完整目录。',
         '- 参数构件用 `capabilities --agent-tool parametric_compile` 查配方参数；用 `capabilities --model` 查看统一工作模型的装配、修改及另存入口。',
+        f'- 需要按色调、纹理或不同面的观感选方块时，查{link("spatial-detail-design")}中的「方块配色复核」。用外观标签挑候选，再核对实际方块状态和纹理预览。',
         '- 已知工具用 `capabilities --agent-tool <名称>` 或 `<命令> --help` 查字段。不知道入口时再用 `capabilities --routes`。`paths` 返回共享引擎位置。',
         '- 移动项目或出图失败时用 `paths --runtime` 检查解释器和渲染依赖。用 `--trusted-install <可信安装目录>` 或 `--browser-cache <本机缓存目录>` 探测，核对后加 `--rebind` 恢复关联。对外资料用 `exposure show` 查看缺项和修复入口。',
         f'- 查参考读{link("reference-retrieval")}：`retrieve search --request <JSON文件>` 后凭 `receipt` 和 `R1` 取证。查历史原文加 `source_kind: library`，不必先查库编号。只在用户要求时联网。',

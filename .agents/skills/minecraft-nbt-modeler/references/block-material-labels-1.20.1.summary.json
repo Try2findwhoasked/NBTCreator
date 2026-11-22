@@ -1,0 +1,83 @@
+{
+  "minecraft_version": "1.20.1",
+  "data_version": 3465,
+  "block_count": 1003,
+  "status_counts": {
+    "observed": 992,
+    "no_visible_surface": 3,
+    "needs_evidence": 8
+  },
+  "observation_evidence_counts": {
+    "atlas_face_textures": 862,
+    "daylight_preview_1_20_1_overlay": 24,
+    "daylight_preview": 99,
+    "inactive_conduit_uv": 1,
+    "shared_skull_type": 6
+  },
+  "observed_texture_group_count": 639,
+  "pending": [
+    {
+      "id": "minecraft:barrier",
+      "notes_zh": [
+        "当前预览没有可见材质。若要标注编辑时的提示图标，需要带显示模式的截图。"
+      ]
+    },
+    {
+      "id": "minecraft:end_gateway",
+      "notes_zh": [
+        "当前渲染没有可见效果；需要游戏中的末地折跃门画面。"
+      ]
+    },
+    {
+      "id": "minecraft:end_portal",
+      "notes_zh": [
+        "当前渲染没有可见效果；需要游戏中的末地传送门画面。"
+      ]
+    },
+    {
+      "id": "minecraft:light",
+      "notes_zh": [
+        "当前预览没有可见材质。若要标注控制或提示标记，需要带显示模式的截图。"
+      ]
+    },
+    {
+      "id": "minecraft:moving_piston",
+      "notes_zh": [
+        "当前测试没有可见表面；需要活塞移动时实际关联方块与动画阶段。"
+      ]
+    },
+    {
+      "id": "minecraft:player_head",
+      "notes_zh": [
+        "头颅的表面由绑定的玩家皮肤决定；当前预览没有清晰可用的皮肤。",
+        "预览是无清晰纹理的粉色方块，疑似缺少材质，无法可靠标注。"
+      ]
+    },
+    {
+      "id": "minecraft:player_wall_head",
+      "notes_zh": [
+        "头颅的表面由绑定的玩家皮肤决定；当前没有该状态的可用皮肤截图。"
+      ]
+    },
+    {
+      "id": "minecraft:structure_void",
+      "notes_zh": [
+        "当前预览没有可见材质。若要标注结构编辑标记，需要带显示模式的截图。"
+      ]
+    }
+  ],
+  "no_visible_surface": [
+    "minecraft:air",
+    "minecraft:cave_air",
+    "minecraft:void_air"
+  ],
+  "source": {
+    "registry_sha256": "643c64b63a6c730ef6f17aa59e18e3206a6b8404e8ca771d6def6b40ad6f1aa1",
+    "registry_blocks_sha256": "e0d9df7c519f31011e1292cd82f6f88410afaa2e2fcf80996ebff46932f3888f",
+    "lodestone_version": "0.6.0",
+    "lodestone_atlas_sha256": "a08e2d327ffbc4842145418ecab4640bbb47268814c352a6caa38edfc48112fd",
+    "lodestone_assets_sha256": "7497e4a1053aff34d8d8e2e5c1f38f518e4a9af157cf1c349a210ede47703236",
+    "supplemental_1_20_1_client_sources": "renders/overlay-index.json and renders/extra-index.json"
+  },
+  "labels_authored_by": "Terra (GPT-6.1-terra), visual observation"
+}

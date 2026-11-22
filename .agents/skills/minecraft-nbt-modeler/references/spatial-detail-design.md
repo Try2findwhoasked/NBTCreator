@@ -102,9 +102,19 @@
 
 ### 方块配色复核
 
+- 主材或收边方块难下判断时，按本次想要的颜色、纹理和所在部位，从[方块外观标签](block-material-labels-1.20.1.jsonl)选少量候选。按完整 ID 查 `description_zh`、`colors_zh`、`texture_zh` 和 `surface_zh`。同一候选有多种可见面时，按 `local_faces` 和证据里的贴图样本说明分清侧面和端面，结合实际放置方向使用。
+- 标签由 Terra 查看 NBTCreator 默认资源包面贴图及 1.20.1 补充预览填写。[统计与来源](block-material-labels-1.20.1.summary.json)记录了 992 项 `observed`、3 项 `no_visible_surface` 和 8 项 `needs_evidence`。[数据格式](block-material-labels-1.20.1.schema.json)保留原始证据的路径与哈希，路径相对于生成标签的证据包。选材优先用有观察的条目，并读 `limitations_zh`。实际放置状态、染色、资源包与光照按本模型核对。
 - 按部位指定大面底材、主题色和点缀材，同时考虑它们从玩家视角看过去占多大面积、重复多少次。把最强的亮度或饱和度对比放在希望玩家先看的节点。路线和边界也可用木纹方向、拼缝节奏或较弱的明暗差来提示。
 - 连看实际纹理渲染的入口或主视角与相邻构件近景。远看判断哪一片颜色或哪一排灯最先吸引视线，近看再分辨是色相、明度、饱和度、纹理疏密，还是发光面与玻璃叠色造成冲突。以实际铺装面积、方块朝向和相邻材质为依据。
 - 次要构件抢眼时，先按部位试调最显眼的一处，用同机位、剖切和照明条件比较。比如暖木殿厅的亮金描边与灯列同时抢御座，可以先缩短金边、把连续边带换成较沉的近色，再看路线是否仍清楚、御座是否更突出。保留设计需要的冷暖对比和主题识别色。换材后核对方块形态、属性、墙层归属及受影响的净空。
+
+从已同步的创作工作区查询一条标签。只有观感要求时，可以先把确切 ID 改成简短的颜色或纹理词，保留 `-m` 限制返回行数。
+
+```powershell
+$references = (mise run nbt -- paths | ConvertFrom-Json).references
+$labels = Join-Path $references 'block-material-labels-1.20.1.jsonl'
+rg -m 8 -F '"id":"minecraft:white_terracotta"' $labels
+```
 
 ## 批量创作与复核
 

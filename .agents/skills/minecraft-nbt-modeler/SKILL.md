@@ -36,6 +36,7 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 - 已有建模或审阅回执时，用 [增量诊断](references/diagnostic-guidance.md#增量诊断) 查本次失败、待看机位和原始证据位置。
 - 先按[创作偏好](references/ai-creative-preferences.md)读取工作区 `.nbtcreator/ai-style.json` 的当前区域；无配置用默认值。用户本次要求优先，偏好不改变保护、预算、阶段与批准。
 - 用自然中文表达空间、构件和连接关系，再推导实现参数。48格是存储尺度，不是日常房间的默认跨度。初稿落实主要支承、顶构、围护层次、收边和可辨主题节点；留白和克制都可成立。
+- 主材或收边需要明确色调、纹理或不同面的观感时，按[方块配色复核](references/spatial-detail-design.md#方块配色复核)查询 1.20.1 方块外观标签，再核对实际方块状态和纹理预览。
 - 需求已有可辨识纹样时，先确定承载面、观察距离、可用格数和与周边构造的关系。适合平面拟合时按纹样路线选图源并预览一个单元，再放入完整模型核对近景和通行。把尚未落实的主题细节写入初稿审阅。
 - 有小型平面嵌纹或边饰时，用 `capabilities --agent-tool pattern_microfit` 查接口并先拟合样件。较大面板与圆柱按纹样专题选工具。历史图录可以提供图案依据，实际安装与质量判断继续走主模型和近景审阅。
 - 需要历史或构造参考时，用 [本地参考检索](references/reference-retrieval.md) 的 `retrieve search` 查询本工作流启用的书库，并用 `retrieve bundle` 保留出处。只有一次性书库目录时也可直接用 `retrieve architecture --library <目录> search <部位或做法>`。建筑年代和方块落地分别核对。

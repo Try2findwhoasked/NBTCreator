@@ -1,0 +1,147 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "minecraft_version": {
+      "const": "1.20.1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^minecraft:[a-z0-9_]+$"
+    },
+    "name_zh": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "default_state": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "enum": [
+        "observed",
+        "no_visible_surface",
+        "needs_evidence"
+      ]
+    },
+    "description_zh": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "colors_zh": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "texture_zh": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "surface_zh": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "limitations_zh": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "local_faces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "face",
+          "texture",
+          "tinted",
+          "sample_index"
+        ],
+        "properties": {
+          "face": {
+            "enum": [
+              "up",
+              "down",
+              "north",
+              "east",
+              "south",
+              "west"
+            ]
+          },
+          "texture": {
+            "type": "string"
+          },
+          "tinted": {
+            "type": "boolean"
+          },
+          "sample_index": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "kind",
+        "image",
+        "image_sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "atlas_face_textures",
+            "daylight_preview",
+            "daylight_preview_1_20_1_overlay",
+            "shared_skull_type",
+            "inactive_conduit_uv"
+          ]
+        },
+        "image": {
+          "type": "string"
+        },
+        "image_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NBTCreator Java 1.20.1 visual material labels",
+  "required": [
+    "schema_version",
+    "minecraft_version",
+    "id",
+    "name_zh",
+    "default_state",
+    "status",
+    "description_zh",
+    "colors_zh",
+    "texture_zh",
+    "surface_zh",
+    "limitations_zh",
+    "local_faces",
+    "evidence"
+  ]
+}
