@@ -29,9 +29,9 @@ python -m pip install -r resources/app/.agents/skills/minecraft-nbt-modeler/requ
 
 Windows Portable 按 PR 改动选择验证范围。纯文档改动只运行范围判断和汇总检查。前端源码和引擎 Python 脚本改动运行源码契约与冒烟测试。其余改动、主分支推送、手动运行和版本 tag 执行完整验证及打包。
 
-在 GitHub 的 **Actions → Windows Portable → Run workflow** 选择分支。运行成功后，从 Artifacts 下载带提交 SHA 的 `windows-x64-portable-<SHA>` 测试包。测试包使用与正式版相同的外部 Python 和 Git。正式 Release 由版本 tag 推送触发。
+在 GitHub 的 **Actions → Windows Portable → Run workflow** 选择分支。运行成功后，从 Artifacts 下载带提交 SHA 的 `windows-x64-portable-<SHA>` 测试包。测试包使用与正式版相同的外部 Python 和 Git。正式版由独立的 Windows Release 工作流在版本 tag 推送后构建和发布。
 
-在仓库根目录安装依赖后，运行 `mise run ci:build` 构建生产前端，再运行 `mise run ci:quick` 验证模型流程和桌面应用启动。
+在仓库根目录安装依赖后，可先运行 `mise run ci:build` 和 `mise run ci:quick` 做源码冒烟。发布前运行 `mise run ci:verify` 和 `mise run ci:package -- dist/portable-local` 完成源码与便携包验收。
 
 ## 开始创作
 

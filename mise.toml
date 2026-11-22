@@ -136,5 +136,127 @@ run = "npm run build:web"
 description = "Run model and source desktop smoke tests after ci:build"
 run = ["npm run test:model-workflow", "npm run test:desktop"]
 
+[tasks."ci:renderer"]
+description = "Install the pinned Chromium for source regressions"
+run = "node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell"
+
+[tasks."ci:electron"]
+description = "Verify native Electron launch"
+env = { ELECTRON_ENABLE_LOGGING = "1" }
+run = "node tests/desktop/electron-launch.mjs"
+
+[tasks."ci:source"]
+description = "Verify source contracts and asset integrity"
+run = [
+  "npm run check:tools",
+  "npm run verify:archive",
+  "npm run test:api",
+  "python tests/engine/portable-contracts.py",
+  "npm run test:workspace",
+  "node --test tests/node/prompt-creation.mjs tests/node/agent-handoff.test.mjs tests/node/internal-ai.test.cjs tests/node/component-move.mjs tests/node/updater.test.cjs tests/node/app-settings.test.cjs",
+  "node scripts/cli.mjs check",
+  "mise run assets:check",
+  "python tests/engine/asset-libraries.py",
+  "python tests/engine/modular-objects.py",
+  "python tests/engine/structural-members.py",
+  "python tests/engine/window-frames.py",
+]
+
+[tasks."ci:asset-desktop"]
+description = "Verify the unified library in source Electron"
+env = { DEBUG = "pw:browser" }
+run = "node tests/desktop/unified-assets-desktop.mjs"
+
+[tasks."ci:model-components"]
+description = "Verify component geometry, curve tools and their desktop entry points"
+env = { DEBUG = "pw:browser" }
+run = [
+  "python tests/engine/surface-mount.py",
+  "python tests/engine/parametric-components.py",
+  "python tests/engine/structure-agent.py",
+  "python tests/engine/protection-mask.py",
+  "python tests/engine/walk-inspection.py",
+  "python tests/engine/architect-tools.py",
+  "python tests/engine/auto-roads.py",
+  "node --test tests/node/ai-component.test.mjs tests/node/edit-session-store.test.mjs",
+  "node tests/desktop/auto-roads-desktop.mjs",
+  "node tests/desktop/transform-sliders-desktop.mjs",
+  "node tests/desktop/walk-desktop.mjs",
+  "python tests/engine/reusable-recipes.py",
+  "node tests/desktop/structure-agent-desktop.mjs",
+  "npm run test:reference-views",
+  "npm run test:curve-stencils",
+  "npm run test:curve-components",
+  "npm run test:curved-surface",
+]
+
+[tasks."ci:model-collaboration"]
+description = "Verify project evidence, Agent handoffs and workspace collaboration"
+env = { DEBUG = "pw:browser" }
+run = [
+  "python tests/engine/prompt-archive.py",
+  "python tests/engine/feedback-tasks.py",
+  "python tests/engine/batches.py",
+  "python tests/engine/selection-edit.py",
+  "python tests/engine/retrieval.py",
+  "python tests/engine/architecture-knowledge.py",
+  "python tests/engine/diagnostic-guidance.py",
+  "python tests/engine/agent-protocol.py",
+  "python tests/engine/agent-task-return.py",
+  "node --test tests/node/retrieval.test.cjs",
+  "node --test tests/node/selection-edit.test.cjs",
+  "node --test tests/node/batch-links.test.cjs",
+  "node tests/desktop/feedback-tasks-desktop.mjs",
+  "node tests/desktop/batch-workspaces-desktop.mjs",
+  "node tests/desktop/selection-edit-desktop.mjs",
+  "node tests/desktop/retrieval-desktop.mjs",
+  "node tests/desktop/agent-task-return-desktop.mjs",
+  "npm run test:catalog",
+  "node tests/desktop/prompt-archive-desktop.mjs",
+  "node --test tests/node/edit-session-store.test.mjs tests/node/app-settings.test.cjs tests/node/command-preferences.test.mjs",
+]
+
+[tasks."ci:model-delivery"]
+description = "Verify project, render, collision and delivery pipelines"
+env = { DEBUG = "pw:browser" }
+run = "pwsh -NoProfile -File scripts/ci-model-delivery.ps1"
+
+[tasks."ci:authoring"]
+description = "Verify building authoring, model and SNBT workflows"
+env = { DEBUG = "pw:browser", NBTCREATOR_TEST_SNBT = "1" }
+run = [
+  "python -B tests/engine/roof-curves.py",
+  "python -B tests/engine/architectural-bay.py",
+  "npm run test:architecture-workflow",
+  "npm run test:architecture-preview",
+  "npm run test:model-workflow",
+  "npm run test:extensions",
+  "python tests/engine/snbt-source.py",
+  "python tests/engine/building-history.py",
+  "node tests/desktop/architect-tools-desktop.mjs",
+  "node tests/desktop/ai-batch-desktop.mjs",
+  "node tests/desktop/architect-workspace-desktop.mjs",
+  "node tests/desktop/feedback-autosave-desktop.mjs",
+  "node tests/desktop/desktop-smoke.mjs",
+]
+
+[tasks."ci:package"]
+description = "Build and verify a Windows portable package; pass an optional output directory"
+run = "pwsh -NoProfile -File scripts/ci-portable.ps1"
+
+[tasks."ci:verify"]
+description = "Run the full CI source and desktop checks locally"
+run = [
+  "mise run ci:build",
+  "mise run ci:renderer",
+  "mise run ci:electron",
+  "mise run ci:source",
+  "mise run ci:asset-desktop",
+  "mise run ci:model-components",
+  "mise run ci:model-collaboration",
+  "mise run ci:model-delivery",
+  "mise run ci:authoring",
+]
+
 [tools]
 python = "3.14.7"

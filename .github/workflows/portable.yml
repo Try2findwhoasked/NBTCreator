@@ -2,9 +2,9 @@ name: Windows Portable
 on:
   push:
     branches: [main, 'codex/**']
-    tags: ['v*']
   pull_request:
   workflow_dispatch:
+  workflow_call:
 env:
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -64,42 +64,14 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-windows
       - name: Prepare pinned renderer for source regression
-        run: |
-          mise exec -- node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        run: mise run ci:renderer
       - name: Validate source and contracts
-        run: |
-          mise exec -- npm run check:tools
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run verify:archive
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:api
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/portable-contracts.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:workspace
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node --test tests/node/prompt-creation.mjs tests/node/agent-handoff.test.mjs tests/node/internal-ai.test.cjs tests/node/component-move.mjs tests/node/updater.test.cjs tests/node/app-settings.test.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node scripts/cli.mjs check
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise run assets:check
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/asset-libraries.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/modular-objects.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/structural-members.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/window-frames.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        run: mise run ci:source
       - name: Verify source desktop and model smoke
         if: needs.changes.outputs.scope == 'quick'
         run: mise run ci:quick
       - name: Verify native Electron launch
-        env:
-          ELECTRON_ENABLE_LOGGING: '1'
-        run: mise exec -- node tests/desktop/electron-launch.mjs
+        run: mise run ci:electron
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
         with:
@@ -123,17 +95,11 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-windows
       - name: Prepare pinned renderer for source regression
-        run: |
-          mise exec -- node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        run: mise run ci:renderer
       - name: Verify native Electron launch
-        env:
-          ELECTRON_ENABLE_LOGGING: '1'
-        run: mise exec -- node tests/desktop/electron-launch.mjs
+        run: mise run ci:electron
       - name: Verify unified asset library desktop flow
-        env:
-          DEBUG: 'pw:browser'
-        run: mise exec -- node tests/desktop/unified-assets-desktop.mjs
+        run: mise run ci:asset-desktop
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
         with:
@@ -146,6 +112,10 @@ jobs:
   model-pipelines:
     needs: changes
     if: needs.changes.outputs.scope == 'full'
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [components, collaboration, delivery]
     runs-on: windows-2025
     timeout-minutes: 60
     defaults:
@@ -157,120 +127,15 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-windows
       - name: Prepare pinned renderer for source regression
-        run: |
-          mise exec -- node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        run: mise run ci:renderer
       - name: Verify native Electron launch
-        env:
-          ELECTRON_ENABLE_LOGGING: '1'
-        run: mise exec -- node tests/desktop/electron-launch.mjs
-      - name: Verify Agent evidence and whole-model pipelines
-        env:
-          DEBUG: 'pw:browser'
-        run: |
-          $probeRoot = Join-Path $PWD 'build/ci-model-pipelines'
-          if (Test-Path -LiteralPath $probeRoot) { throw 'Keep prior regression evidence; expected a fresh CI directory' }
-          New-Item -ItemType Directory -Path $probeRoot | Out-Null
-          mise exec -- npm run test:projects
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/surface-mount.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/parametric-components.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/structure-agent.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/protection-mask.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/walk-inspection.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/prompt-archive.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/feedback-tasks.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/batches.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/selection-edit.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/retrieval.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/architecture-knowledge.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/diagnostic-guidance.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/architect-tools.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/agent-protocol.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/agent-task-return.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node --test tests/node/retrieval.test.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node --test tests/node/selection-edit.test.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/auto-roads.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node --test tests/node/ai-component.test.mjs tests/node/edit-session-store.test.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/auto-roads-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/transform-sliders-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node --test tests/node/batch-links.test.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/feedback-tasks-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/batch-workspaces-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/selection-edit-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/retrieval-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/agent-task-return-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:catalog
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/prompt-archive-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/walk-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/reusable-recipes.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node --test tests/node/edit-session-store.test.mjs tests/node/app-settings.test.cjs tests/node/command-preferences.test.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node --test tests/node/backend-result.test.mjs tests/node/mesh-scheduling.test.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/mesh-scheduling-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/structure-agent-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/render-runtime.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/feedback-index.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/node/feedback-evidence.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/standalone-openings.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/standalone-pipeline.py --output (Join-Path $probeRoot 'standalone')
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/candidate-validation.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node .agents/skills/minecraft-nbt-modeler/assets/viewer/test-candidate-validation.mjs --output (Join-Path $probeRoot 'candidate-browser')
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node --test tests/node/workspace-api.test.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/node/task-cancel.mjs --output (Join-Path $probeRoot 'task-cancel')
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_collision_fixtures.py --output (Join-Path $probeRoot 'collision.json')
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_refine_fixtures.py --output (Join-Path $probeRoot 'refine')
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python .agents/skills/minecraft-nbt-modeler/scripts/fixtures/run.py check_web_revision_fixtures.py --output (Join-Path $probeRoot 'web-revision')
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        run: mise run ci:electron
+      - name: Verify model pipeline
+        run: mise run ci:model-${{ matrix.group }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
         with:
-          name: test-diagnostics-model-pipelines
+          name: test-diagnostics-model-pipelines-${{ matrix.group }}
           path: |
             build/**/results.json
             build/**/electron.log
@@ -290,45 +155,11 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-windows
       - name: Prepare pinned renderer for source regression
-        run: |
-          mise exec -- node .agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/cli.js install chromium --no-shell
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        run: mise run ci:renderer
       - name: Verify native Electron launch
-        env:
-          ELECTRON_ENABLE_LOGGING: '1'
-        run: mise exec -- node tests/desktop/electron-launch.mjs
+        run: mise run ci:electron
       - name: Verify authoring contracts
-        env:
-          DEBUG: 'pw:browser'
-        run: |
-          mise exec -- python -B tests/engine/roof-curves.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python -B tests/engine/architectural-bay.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:architecture-workflow
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:architecture-preview
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:model-workflow
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:extensions
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/snbt-source.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/building-history.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/architect-tools-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/ai-batch-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/architect-workspace-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/feedback-autosave-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $env:NBTCREATOR_TEST_SNBT = '1'
-          mise exec -- node tests/desktop/desktop-smoke.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Remove-Item Env:NBTCREATOR_TEST_SNBT
+        run: mise run ci:authoring
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
         with:
@@ -359,45 +190,13 @@ jobs:
             if ($env:BUILD_REF -ne "refs/tags/v$version") { throw 'Tag must match package.json version' }
           }
       - uses: ./.github/actions/setup-windows
-      - name: Build portable ZIP
+      - name: Build and verify portable ZIP
+        run: mise run ci:package
+      - name: Stage release notes
         run: |
-          mise exec -- npm run package:portable -- --out dist/portable
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $notes = Join-Path $PWD "docs/archive/releases/RELEASE_$version.md"
           if (Test-Path -LiteralPath $notes) { Copy-Item -LiteralPath $notes -Destination dist/portable/release-notes.md }
-      - name: Verify extracted package with external Python and Git
-        run: mise exec -- npm run test:portable -- --archive-dir dist/portable
-      - name: Packaged Electron regression
-        run: |
-          $env:NBTCREATOR_TEST_EXE = Join-Path $PWD 'dist/portable/NBTCreator-win32-x64/NBTCreator.exe'
-          Remove-Item Env:NBTCREATOR_PYTHON -ErrorAction SilentlyContinue
-          mise exec -- npm run test:desktop
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/updater-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:api-desktop
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/protection-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/walk-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/prompt-archive-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/mesh-scheduling-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/workspace-api-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/feedback-tasks-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/batch-workspaces-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/selection-edit-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/retrieval-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/agent-task-return-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: windows-x64-portable-${{ github.sha }}
@@ -445,32 +244,3 @@ jobs:
           if failed:
               raise SystemExit(f'Required jobs did not succeed: {failed}')
           PY
-  release:
-    needs: build
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          name: windows-x64-portable-${{ github.sha }}
-          path: assets
-      - name: Publish versioned Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd assets
-          sha256sum --check ./*.sha256
-          args=(--verify-tag --title "NBTCreator $RELEASE_TAG")
-          if [[ -f release-notes.md ]]; then args+=(--notes-file release-notes.md); else args+=(--generate-notes); fi
-          if [[ "$RELEASE_TAG" == *-* ]]; then args+=(--prerelease); fi
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo 'Release already exists; refusing to replace published assets.' >&2
-            exit 1
-          fi
-          gh release create "$RELEASE_TAG" ./*.zip ./*.sha256 ./*.manifest.json ./*-constraint-room-migration.py "${args[@]}"

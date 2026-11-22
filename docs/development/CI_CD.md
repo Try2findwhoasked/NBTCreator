@@ -2,19 +2,19 @@
 
 ## 工作流与运行环境
 
-[Windows Portable](../../.github/workflows/portable.yml) 在 main 和 codex 分支推送、手动运行与版本 tag 推送时执行完整验证。PR 根据相对目标分支的变更运行文档、快速或完整检查。推送与 package.json 版本一致的 `v<版本>` 标签时，构建及解压验收通过后自动创建 GitHub Release。预发行版本标签含连字符时标为 prerelease。已存在的 Release 会阻止重复发布。
+[Windows Portable](../../.github/workflows/portable.yml) 在 main 和 codex 分支推送以及手动运行时执行完整验证。PR 仍按改动选择文档、快速或完整检查。[Windows Release](../../.github/workflows/release.yml) 由 v* 标签触发，调用同一套 Windows 验证和打包，再校验 ZIP 的 SHA-256 并创建 GitHub Release。发布作业拥有写权限，验证作业使用只读权限。预发行版本标签含连字符时仍标记为 prerelease。
 
 包内 mise 固定版本并通过 SHA256 校验，见 [portable-runtime.json](../../config/portable-runtime.json)。Electron 提供 Node，Playwright 固定版本的 Chromium 用于批量出图。运行时从环境解析 Python 和 Git，也可用 NBTCREATOR_PYTHON、NBTCREATOR_GIT 指定；CI 先在测试解释器中安装引擎依赖。
 
 ## 验证门禁
 
-完整验证并行运行源码契约、素材库桌面流程、整模流水线、创作契约和便携包打包五个 Windows job。各 job 通过共用 Action 配置 Node、按 mise.toml 选择 Python、安装锁定依赖和构建前端，失败时按 job 分别上传诊断。快速验证运行源码契约、模型流程和桌面冒烟。仅修改文档时运行变更分类与汇总检查。修改发布说明、测试、打包配置、运行时或其他未归类路径时执行完整验证。
+完整验证并行运行源码契约、素材库桌面流程、模型流水线、创作契约和便携包验收。模型流水线分为构件与曲面、协作与回传、渲染与交付三组，一组失败时其他组继续并各自记录诊断。各 Windows 作业使用同一 Action 安装锁定依赖并构建生产前端。快速验证运行源码契约、模型流程和桌面冒烟。纯文档 PR 运行范围判断与汇总检查。发布说明、测试、打包配置及其他未归类改动执行完整验证。
 
 打包 job 验证 ZIP 解压内容、外部 Python 和 Git、包内 mise、CLI、Skill 生成和包内浏览器，随后运行打包版桌面和模拟 API 回归。汇总门禁继续使用 `build`，由它检查当前范围所需 job 是否全部成功。Release 在完整验证通过后复用已验收的 ZIP，并在上传之前校验 SHA256。
 
 3.3.0 起，源码门禁还校验自带素材库的 121 项内容与哈希，运行外部库离线、刷新、回退及模块化构件回归，并在桌面端验证统一素材浏览、预览、复制和放置。桌面测试使用软件 WebGL 渲染以稳定运行最小化窗口中的真实 3D 预览。
 
-源码门禁还先构建 web-dist，并用 viewer 锁定的 Playwright 显式安装完整 Chromium；`PLAYWRIGHT_BROWSERS_PATH` 固定到本次 `build/portable-browser`，在各自 job 内供源码回归或 portable 打包使用，不依赖 runner 偶然预装的 Edge或额外 headless-shell。随后运行共享渲染/快照校验、评论索引迁移与证据、独立开口、独立尺寸/非48网格交付、候选校验、工作区API取消、碰撞反例、整体精修及网页回导回归。核心夹具只写全新的 `build/ci-model-pipelines`，既有目录或任何检查失败直接使CI失败，不静默跳过，也不把模拟确认用于真实作者模型。打包后另用挂起的本机模拟API检查实际工作区切换会中止旧连接、允许新请求，并且不把旧结果/活动写到新工作区。
+源码门禁还先构建 web-dist，并用 viewer 锁定的 Playwright 显式安装完整 Chromium；`PLAYWRIGHT_BROWSERS_PATH` 固定到本次 `build/portable-browser`，在各自 job 内供源码回归或 portable 打包使用，不依赖 runner 偶然预装的 Edge或额外 headless-shell。随后运行共享渲染/快照校验、评论索引迁移与证据、独立开口、独立尺寸/非48网格交付、候选校验、工作区API取消、碰撞反例、整体精修及网页回导回归。核心夹具每次写入新的 `build/ci-model-delivery-*` 目录，失败直接返回非零退出码。模拟确认只用于合成夹具。打包后另用挂起的本机模拟API检查实际工作区切换会中止旧连接、允许新请求，并且不把旧结果/活动写到新工作区。
 
 `tests/node/task-cancel.mjs`另用超过50万格的真实合成主稿启动Python，确认PID仍存活后分别取消前置inspect和实际preview任务，检查cancelled状态、诊断保留和后续任务可继续；服务关闭也须结束自己创建的非job inspect子进程。该测试不使用sleep伪造工作，不扫描杀死用户其他进程。
 
@@ -25,17 +25,17 @@
 先按[开发指南](DEVELOPMENT.md)准备依赖，再从软件源码根目录构建与检查：
 
 ```powershell
-mise run package:portable -- --out dist/portable
-mise run test -- portable --archive-dir dist/portable
+mise run ci:verify
+mise run ci:package -- dist/portable-local
 ```
 
 ## 发布规则
 
-发布时更新 package.json 和 package-lock.json 的版本，提交并推送，再为该提交创建与版本一致的全新注解标签并推送。已发布版本需要使用新版本号。分支测试包通过 Actions 中的 Windows Portable 手动构建，成功后下载带提交 SHA 的 Artifact。
+发布时同步更新 package.json 与 package-lock.json，先在本地通过上述两项检查。将通过验证的提交推送到 main，再创建并推送与版本一致的新注解标签。每个发布标签对应一个固定提交，修复后使用新的未占用版本号。分支测试包通过 Actions 中的 Windows Portable 手动构建，成功后下载带提交 SHA 的 Artifact。
 
 Portable 表示免安装目录包，工作区仍由用户选择。API 密钥仍保存在 Windows 用户级加密配置中，不随 ZIP 发布。请保留完整目录，不要仅复制 exe。未签名程序沿用原说明。全屏问题 NBTC-001 已根据用户于 2026-11-04 的确认关闭，CI 不触发全屏。
 
-运行环境打包参考 [mise 发布资产](https://github.com/jdx/mise/releases)，触发与权限参考 [GitHub Actions 说明](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)。仓库实际流程以 [portable.yml](../../.github/workflows/portable.yml)为准。
+运行环境打包参考 [mise 发布资产](https://github.com/jdx/mise/releases)，触发与权限参考 [GitHub Actions 说明](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)。仓库流程见 [Windows Portable](../../.github/workflows/portable.yml) 和 [Windows Release](../../.github/workflows/release.yml)。
 
 ## 完整包与分离包
 
