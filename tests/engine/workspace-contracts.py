@@ -3,7 +3,7 @@ import hashlib,json,sys,tempfile,unittest,shutil,subprocess,os
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];ENGINE=ROOT/'.agents/skills/minecraft-nbt-modeler';sys.path.insert(0,str(ENGINE/'scripts'))
 from nbt_capabilities import capabilities
-from nbt_exposure import MISE_TASK,apply as expose,import_knowledge
+from nbt_exposure import AGENT_ENTRY,MISE_TASK,apply as expose,import_knowledge
 from nbt_workspace import migrate
 from nbt_project.request_paths import read_request,metadata_path
 from nbt_detail_control import default_settings,compile_plan,preview_effect
@@ -51,6 +51,49 @@ class Contracts(unittest.TestCase):
 
  def test_software_source_root_does_not_regenerate_an_authoring_facade(self):
   with self.assertRaisesRegex(ValueError,'软件源码或安装目录'):expose(ROOT)
+ def test_external_agent_entry_reuses_the_frozen_cli_for_direct_handoff(self):
+  with tempfile.TemporaryDirectory() as temp:
+   root=Path(temp)/'创作项目'
+   info=expose(root,dict(schema_version=1,enabled_groups=['core']))
+   self.assertEqual(info['agent_facade'],AGENT_ENTRY)
+   root.rename(moved:=Path(temp)/'迁移后')
+   skill=moved/AGENT_ENTRY
+   text=skill.read_text(encoding='utf8')
+   self.assertIn('name: nbtcreator-agent\n',text)
+   self.assertNotIn(str(ROOT),text)
+   self.assertNotIn(']([', (moved/info['facade']).read_text(encoding='utf8'))
+   import re
+   for link in re.findall(r'\]\(([^)]+)\)',text):
+    self.assertTrue((skill.parent/link.split('#')[0]).is_file(),link)
+   marker=json.loads((moved/'.nbtcreator/agent-facade-manifest.json').read_text(encoding='utf8'))
+   self.assertEqual(marker['SKILL.md'],hashlib.sha256(skill.read_bytes()).hexdigest())
+
+   entry=moved/'.agents/skills/nbtcreator-workspace/nbt.py'
+   def run(*args):
+    process=subprocess.run([sys.executable,'-B',str(entry),*args],cwd=moved,capture_output=True,
+                           encoding='utf8',env=dict(os.environ,PYTHONIOENCODING='utf-8'),timeout=30)
+    self.assertEqual(process.returncode,0,process.stdout+process.stderr)
+    return json.loads(process.stdout)
+   self.assertEqual(run('task-client','list','--kind','prompts','--pending')['data']['tasks'],[])
+   requirement='南入口保留三格宽，屋面连续。'
+   (moved/'brief.json').write_text(json.dumps(dict(session_id='b'*32,text=requirement,
+       document=dict(schema_version=1,user_requirements=requirement,project=dict(name='测试入口亭',
+         stage='draft',buildingShape='standalone',size=[15,11,18],size_policy='fixed')),
+       plan={'operations':[]},context={'mode':'standalone'}),ensure_ascii=False),encoding='utf8')
+   (moved/'mode.json').write_text('{"mode":"maximum","quality_model":"selected-strong"}',encoding='utf8')
+   saved=run('prompts','save','--request','brief.json')
+   task=run('prompts','publish','--index',saved['index'],'--id',saved['id'],'--revision',saved['revision'],'--creation','mode.json')
+   run('task-client','--session','trigger','start','prompts',task['id'],'--owner','trigger-test')
+   (moved/'axes.json').write_text('{"axes":["顶构"]}',encoding='utf8')
+   brief=run('creation','--session','trigger','start','--request','axes.json')['data']
+   self.assertEqual(brief['user_requirements'],requirement)
+   self.assertEqual([row['model'] for row in brief['requests']],['selected-strong','selected-strong'])
+
+   edited=skill.read_bytes()+b'\nLocal instructions\n'
+   skill.write_bytes(edited)
+   expose(moved)
+   backups=list((moved/'.nbtcreator/skill-backups').glob('*/nbtcreator-agent/SKILL.md'))
+   self.assertEqual([file.read_bytes() for file in backups],[edited])
  def test_exposed_paths_are_callable_after_relocation_and_locate_importable_api(self):
   with tempfile.TemporaryDirectory() as temp:
    old=Path(temp)/'old';new=Path(temp)/'new';expose(old)
@@ -232,6 +275,8 @@ class Contracts(unittest.TestCase):
    index = (facade / 'knowledge.md').read_text(encoding='utf8')
    self.assertIn('整栋初稿：纯文字', index)
    self.assertIn('整栋初稿：有参考图', index)
+   self.assertIn('architect layout-check', entry)
+   self.assertIn('references/whole-building-planning.md', index)
    for reference in ('design-grammar.md','architecture-knowledge-base.md','structure-atlas.md',
                      'organic-spaces.md','linked-spaces.md'):
     self.assertNotIn(reference,entry)
@@ -239,6 +284,10 @@ class Contracts(unittest.TestCase):
    paths = subprocess.check_output([sys.executable, str(facade / 'nbt.py'), 'paths'], cwd=root)
    example = Path(json.loads(paths)['engine']) / 'assets/examples/reading-loft'
    self.assertIn(os.path.relpath(example / 'README.md', facade).replace(os.sep, '/'), entry)
+   planning = example.parent / 'whole-building-planning.json'
+   checked = subprocess.check_output([sys.executable, str(facade / 'nbt.py'), 'architect',
+                                      'layout-check', '--request', str(planning)], cwd=root)
+   self.assertTrue(json.loads(checked)['passed'])
    result = subprocess.run([sys.executable, '-B', str(example / 'run.py'), 'blocked'], cwd=root, capture_output=True)
    self.assertEqual(result.returncode, 1)
    receipt, = root.glob('nbt_models/_workspaces/examples/*/plan-build-result.json')

@@ -45,6 +45,7 @@ export function initApiAssistant(hooks){
  generatePreview.onclick=async()=>{immediate=true;try{await $('ai-generate').onclick()}finally{immediate=false}}
  const knowledge=document.createElement('section');knowledge.className='knowledge-config';knowledge.innerHTML='<h3>外部 Agent 的参考资料</h3><p class="muted">自定义资料供当前工作区的外部 Agent 读取。内置 API 的资料授权在「软件内的 AI」设置。</p><div class="ai-buttons"><button type="button" id="knowledge-import">导入资料</button><button type="button" id="knowledge-sync">重新同步助手入口</button><button type="button" id="knowledge-folder">打开配置目录</button></div><p id="knowledge-status" role="status"></p><h4>自定义资料</h4><div id="custom-knowledge-list"></div><div id="knowledge-groups"></div>'
  const entryPreview=document.createElement('button');entryPreview.type='button';entryPreview.textContent='查看助手使用说明';entryPreview.onclick=()=>previewKnowledge({scope:'external',entry:true});knowledge.prepend(entryPreview)
+ const agentPreview=document.createElement('button');agentPreview.id='external-agent-entry-preview';agentPreview.type='button';agentPreview.textContent='查看 Agent 触发 Skill';agentPreview.onclick=()=>previewKnowledge({scope:'external',entry:'agent'});entryPreview.after(agentPreview)
  dialog.querySelector('.ai-layout').append(knowledge)
  initInternalAISettings(dialog,knowledge)
  async function editExternal(action,id,options={}){

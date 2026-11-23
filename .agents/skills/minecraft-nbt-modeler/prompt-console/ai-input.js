@@ -42,6 +42,32 @@
     const bytes = await globalThis.crypto.subtle.digest('SHA-256',new TextEncoder().encode(binding));
     return Array.from(new Uint8Array(bytes),value=>value.toString(16).padStart(2,'0')).join('');
   }
+  async function externalRequest(binding,design,instruction,lockedFields) {
+    const editable=editableFields(design).filter(key=>!lockedFields.includes(key));
+    if(!editable.length)throw Error('请勾选至少一项未被硬条件锁定的设计参数');
+    const {operations,task,brief_scope,constraints,...context}=design;
+    const draft_binding=await bindingToken(binding);
+    return {
+      schema_version:1,draft_binding,instruction,
+      ...context,...(constraints?.length?{constraints:constraints.map(({name,revision,rules})=>({name,revision,rules}))}:{}),editable_fields:editable,
+      response:{schema_version:1,draft_binding,summary:'简要说明',project_patch:{}},
+      rules:'只起草设计要求。按 response 格式返回纯 JSON，并原样带回 draft_binding。project_patch 只包含 editable_fields 中拟修改的字段。尊重用户原文、固定尺寸和已选约束。具体方块和工具步骤留给建模助手。'
+    };
+  }
+  function readExternalSuggestion(raw,request) {
+    if(typeof raw!=='string'||raw.length>60000)throw Error('外部建议最多 60000 字');
+    let reply;
+    try{reply=JSON.parse(raw);}catch{throw Error('请粘贴完整的 JSON 建议');}
+    const fields=['schema_version','draft_binding','summary','project_patch'];
+    if(!reply||Array.isArray(reply)||typeof reply!=='object'||Object.keys(reply).length!==fields.length||fields.some(key=>!Object.hasOwn(reply,key))||reply.schema_version!==1)
+      throw Error('外部建议须符合复制请求中的返回格式');
+    if(reply.draft_binding!==request.draft_binding)throw Error('这条建议属于另一份方案或旧稿，请重新复制起草请求');
+    if(typeof reply.summary!=='string'||!reply.summary.trim()||reply.summary.length>1000)throw Error('外部建议需要 1–1000 字的说明');
+    const patch=assertPatch(request.project,reply.project_patch,request.editable_fields);
+    const keys=Object.keys(patch);
+    if(!keys.length||keys.some(key=>!request.editable_fields.includes(key)))throw Error('外部建议只能包含已勾选且未锁定的设计参数');
+    return {summary:reply.summary,project_patch:patch};
+  }
   // Called only after the main process validates the delta and the caller
   // checks the complete local binding. Keep opaque local fields off the wire.
   function mergeOperations(operations,patch) {
@@ -52,5 +78,5 @@
     }
     return globalThis.mergeOperationRows(operations,patch.changes).map(row=>row.op);
   }
-  globalThis.NbtPromptAIInput = {textContext,request,bindingToken,mergeOperations,editableFields,assertPatch};
+  globalThis.NbtPromptAIInput = {textContext,request,bindingToken,mergeOperations,editableFields,assertPatch,externalRequest,readExternalSuggestion};
 })();

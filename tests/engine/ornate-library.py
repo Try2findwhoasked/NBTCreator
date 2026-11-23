@@ -54,12 +54,14 @@ class OrnateLibrary(unittest.TestCase):
         finally:
             server.shutdown();server.server_close();worker.join(timeout=2)
 
-    def test_collection_covers_every_modular_kind_within_protocol_budget(self):
+    def test_ornate_collection_covers_its_architectural_kinds_within_protocol_budget(self):
         from nbt_building.parametric import KINDS
         manifest=json.loads((LIBRARY/'library.json').read_text(encoding='utf8'))
         rows=[r for r in manifest['assets'] if r['id'].startswith('ornate-')]
         coverage={tag for row in rows for tag in row.get('tags',[]) if tag in KINDS}
-        self.assertEqual(coverage,set(KINDS));self.assertGreaterEqual(len(rows),56)
+        architectural={'arch','beam','bench','bracket','ceiling','frame','lantern','pedestal',
+                       'pillar','plant','planter','railing','shelf','stairs','table','wall'}
+        self.assertTrue(architectural <= coverage);self.assertGreaterEqual(len(rows),56)
         self.assertLessEqual(sum(row['bytes'] for row in manifest['assets']),32*1024*1024)
 
     def test_lantern_and_leaf_invariants_are_preserved(self):

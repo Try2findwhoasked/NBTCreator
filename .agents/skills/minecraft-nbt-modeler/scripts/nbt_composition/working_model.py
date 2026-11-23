@@ -524,6 +524,14 @@ class WorkingModel:
         from nbt_building.wavelet_eave import WaveletEave
         return WaveletEave(self, goal).adopt(strength, candidate_sha256)
 
+    def site_selection(self, goal, preview=None):
+        from nbt_building.site_selection import SiteSelection
+        return SiteSelection(self, goal).search(preview)
+
+    def adopt_site_selection(self, goal, candidate_id, candidate_sha256):
+        from nbt_building.site_selection import SiteSelection
+        return SiteSelection(self, goal).adopt(candidate_id, candidate_sha256)
+
     def _stage_update(self, identifier, recipe, transform):
         if identifier not in self.instances:
             raise ValueError('受管实例不存在')
@@ -936,7 +944,7 @@ class WorkingModel:
             receipt.update(history_pending=True, history_error=str(error))
         return receipt
 
-    def save_draft(self, name_zh=None, shape='standalone', attachments=None, actor='external_agent', task_session=None, before_publish=None):
+    def save_draft(self, name_zh=None, shape='standalone', attachments=None, actor='external_agent', task_session=None, before_publish=None, *, _draft_directory=None, _staged=False):
         if not self._assembly_binding and any(n > 294 for n in self.model.size):
             raise ValueError('大型模型保存须先绑定组装制作源')
         from nbt_library import LABELS, shape_of
@@ -976,7 +984,9 @@ class WorkingModel:
         else:
             if shape not in LABELS:
                 raise ValueError('未知建筑形状')
-            building = self.workspace / 'nbt_models' / shape / str(name_zh)
+            building = Path(_draft_directory).resolve() if _draft_directory is not None else self.workspace / 'nbt_models' / shape / str(name_zh)
+        if _staged and not building.is_relative_to(self.workspace / 'nbt_models/_workspaces/creation'):
+            raise ValueError('候选制作版须位于创作执行目录')
         if not isinstance(name_zh, str) or not re.search('[\u4e00-\u9fff]', name_zh) or any(c in name_zh for c in '<>:"/\\|?*'):
             raise ValueError('建筑名须含中文且不能包含路径符号')
         if shape != 'standalone' and shape_of(self.model.size,self.context.get('cells',[]), self.context.get('cell_size',48)) != shape:
@@ -1056,7 +1066,10 @@ class WorkingModel:
                     head_file = self._head_file(building)
                     head_file.parent.mkdir(parents=True, exist_ok=True)
                     atomic(head_file, canonical(new_head).encode('utf8'))
-                receipt = self._history_receipt(target, manifest, building)
+                receipt = (dict(output=str(target), source=str(target/master), source_sha256=files[master],
+                                revision=manifest['revision'], model_sha256=manifest['model_sha256'],
+                                geometry_sha256=self.model.fingerprint(), staged=True)
+                           if _staged else self._history_receipt(target, manifest, building))
                 self.source, self.source_sha256 = target / master, files[master]
                 self._building, self._opened_head = building, self._read_head(building)
                 self._opened_history_source = self._history_source(building)

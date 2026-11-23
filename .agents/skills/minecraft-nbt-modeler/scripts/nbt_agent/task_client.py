@@ -51,6 +51,8 @@ def inspect(workspace, kind, identifier, view='compact'):
         data=read_task(workspace,identifier,view=view,diagnostic=True)
         if view in ('compact','full') or not data['ready_for_execution']:
             data['next']=next_step(kind,data.get('task',{'id':identifier}),data['source_matches'],data['attachment_issues'])
+            if data['ready_for_execution'] and data.get('task',{}).get('stage')=='draft' and data['next']['action']!='stop':
+                data['next']['after_claim']='creation --session <会话名> start'
         return data
     if view not in ('compact','full','comments','context','candidates'):
         error('INVALID_REQUEST','建筑修改任务视图为 compact、comments、context、candidates 或 full')

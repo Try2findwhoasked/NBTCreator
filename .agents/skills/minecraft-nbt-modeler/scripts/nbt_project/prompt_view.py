@@ -10,6 +10,7 @@ COORDINATE_FIELDS = ('cells', 'openings', 'ports', 'interior_probes', 'protected
 
 
 def compact(data, previous, older):
+    from nbt_agent.creation_policy import describe
     record, document, context = data['task'], data['document'] or {}, data['context'] or {}
     project = document.get('project',{})
     clipped = []
@@ -48,8 +49,9 @@ def compact(data, previous, older):
             change['project_fields'] = sorted(key for key in project.keys() | old_project.keys()
                                               if project.get(key) != old_project.get(key))
             old_document = older['document']
-            change['design_fields'] = [key for key in ('constraints', 'design_standard', 'design_override', 'aiDraft')
+            change['design_fields'] = [key for key in ('constraints', 'design_standard', 'design_override', 'aiDraft','user_requirements')
                                        if document.get(key) != old_document.get(key)]
+            change['creation_changed'] = describe(record.get('creation')) != describe(previous.get('creation'))
             change['context_fields'] = sorted(key for key in context.keys() | older['context'].keys()
                                               if context.get(key) != older['context'].get(key))
     operations = data['plan'].get('operations', []) if isinstance(data['plan'], dict) else None
@@ -58,6 +60,8 @@ def compact(data, previous, older):
         view='compact', task={key: record[key] for key in ('id', 'name', 'stage', 'status', 'revision',
             'source', 'source_sha256', 'state_revision', 'lease', 'lease_expired') if key in record},
         source_matches=data['source_matches'], approval=data['approval'],
+        creation=describe(record.get('creation')),
+        user_requirements=excerpt(document.get('user_requirements'), 'document.user_requirements'),
         attachment_issues=data['attachment_issues'],ready_for_execution=data['ready_for_execution'],
         brief={key: excerpt(project[key], f'document.project.{key}') for key in BRIEF_FIELDS if project.get(key)},
         effective=effective, constraints=constraints, design_standard=dict(revision=standard.get('revision'), fields=fields),

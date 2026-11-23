@@ -45,7 +45,7 @@ flowchart LR
 
 ### 外部 Agent 脚本化路线
 
-外部 Skill 默认载入创作相关资料，软件维护与接口扩展按工作区启用。纹样入口仍直接提示 `pattern_microfit` 的适用场景，度量实现已从位图适配层抽出，供拟合复用。建筑书库独立索引并按任务检索。紧凑任务视图、增量诊断和本地任务客户端已接入共享 CLI。统一的整栋初稿入口为后续设计。
+外部 Skill 默认载入创作相关资料，软件维护与接口扩展按工作区启用。建筑书库独立索引并按任务检索。紧凑任务视图、增量诊断和本地任务客户端已接入共享 CLI。整栋初稿通过 `creation` 读取已冻结的工作区模式，并组织编译、回读、验证、审阅、发布与回传。 [创作协议](../../.agents/skills/minecraft-nbt-modeler/references/creation-workflows.md)
 
 | 顺序 | 脚本负责 | Agent 负责 |
 | --- | --- | --- |
@@ -56,11 +56,17 @@ flowchart LR
 
 整栋初稿可用 `plan-build` 从结构化方案构建，也可用 `WorkingModel` 脚本直接表达需要细粒度控制的构造。两条路径的制作版都进入同一套回读、验证和审阅流程。独立构件走构件入口，执行适用的验证。密闭、是否开洞及洞口净尺寸按当前项目配置，SAODG 专用约束随选用的扩展生效。参见[建筑方案](../../.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md)与[工作模型](../../.agents/skills/minecraft-nbt-modeler/references/working-model.md)。
 
+复杂整栋可以先用 `layout-search` 比较粗模。它组合楼梯、工位与空间的候选位移，按面积、邻接、实测通路及操作面筛选，返回可继续编辑的方案。选定后再生成梁架与饰件。单纯补拍使用 `review-prepare` 的 `view_overrides`。[粗布局入口](../../.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md#先比较粗布局)
+
+续版在一次请求内共享引擎版本指纹，制作版发布前复核。只依赖字面参数的结构构件可复用上一版的编译结果。构件输入、实例证据或引擎变动时重编，开洞中改变过的构件也重编。内置跨梁和托座在实际承托面及目标占用满足原条件时复用。候选按建模顺序重新装配，切洞、保护区和整栋通路继续按实际几何验证。回执的 `rebuild` 记录复用及重新生成的构件和连接。[续版编译](../../.agents/skills/minecraft-nbt-modeler/scripts/nbt_building/plan.py)
+
 归卷阁提供编排回归用例。外部 Skill 按任务选读对应案例段落，例如楼梯出口、室内站位或操作面的验证。布局、尺度、风格及机位由 Agent 按当前项目决定。参见[归卷阁样例](../../.agents/skills/minecraft-nbt-modeler/assets/examples/reading-loft/README.md)。
+
+`architect layout-search` 在一个粗建筑方案上评估空间图或坐标扰动。入口在 `nbt_building/layout.py`，`layout_graph.py` 负责将空间边和候选摆位绑定到方案。通过 `plan-build` 取得同一套实际方块证据。候选回执可交回 `plan-build`，经原有 SNBT 保存、出图和用户确认流程继续。参见[粗布局契约](../../.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md#在细化构件前比较空间布局)。
 
 脚本出图后将机位标为待看，实际看图后才登记观察。用户批准触发精修，用户明确要求定稿后才导出正式 NBT。机器接口和脚本接续这些阶段的记录。参见[机器协议](../../.agents/skills/minecraft-nbt-modeler/references/agent-protocol.md)。
 
-统一初稿入口实现后用两类案例验收：
+统一初稿入口使用以下案例验收：
 
 - **归卷阁。** 对 `open`、`blocked`、`wrong-side` 分别记录改造前后的 Agent 可见输出字符数和工具调用数，并检查首条失败回执能否定位问题。成功例应返回制作源和实景图，另两例应分别定位梯顶 `stair_landing` 不可达和柜台 `return_desk.intake` 的 `wrong_side`。
 - **布局明显不同的日式建筑。** 用 `WorkingModel` 制作初稿并接入同一套回读、验证和审阅流程。对照当前项目的需求和实际预览，检查空间组织、屋顶和主题纹样是否保留方案意图，验证记录是否对应本项目声明的约束。

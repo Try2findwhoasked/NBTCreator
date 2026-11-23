@@ -383,5 +383,55 @@ class Libraries(unittest.TestCase):
             cached=next(row for row in rows if row['library_id']=='test.external')
             self.assertEqual(cached['thumbnail'],first['thumbnail'])
 
+    def test_identical_payload_paths_share_one_blob_and_keep_distinct_vault_previews(self):
+        component = dict(schema_version=1, name='试验拱顶', size=[3,3,2], anchor=[0,0,0],
+                         palette=['stone','gold_block'], blocks=[
+                             [0,0,0,0,False],[1,1,0,0,False],[2,2,0,1,False],[2,2,1,0,False]])
+        raw = encode(component)
+        self.data['assets'] = []
+        for identifier, tags in [('ordinary', []), ('vault', ['vault'])]:
+            filename = identifier + '.json'
+            (self.pack / filename).write_bytes(raw)
+            self.data['assets'].append(dict(id=identifier, name=identifier, type='component',
+                                           tags=tags, path=filename, bytes=len(raw), sha256=digest(raw)))
+        self.save_manifest()
+        with patch.object(libraries, 'blob', wraps=libraries.blob) as write:
+            self.add()
+        self.assertEqual(sum(call.args[1] == raw for call in write.call_args_list), 1)
+        items = [row for row in self.call('browse')['items'] if row['library_id']=='test.external']
+        self.assertEqual(len(items), 2)
+        images = {}
+        for row in items:
+            ref = self.reference(row)
+            image = self.call('thumbnail', **ref)
+            candidate = self.call('preview', **ref)
+            camera = candidate['cameras'][0]
+            self.assertEqual(camera['eye'][1] < camera['target'][1], 'vault' in row['tags'])
+            self.assertEqual(candidate['content_sha256'], image['content_sha256'])
+            images[row['id']] = image['thumbnail']
+        self.assertEqual(len(set(images.values())), 2)
+        self.assertEqual(len({Path(p).read_bytes() for p in images.values()}), 2)
+        listed = self.call('browse')['items']
+        self.assertEqual({r['id']:r['thumbnail'] for r in listed if r['library_id']=='test.external'}, images)
+
+    def test_identical_digest_does_not_bypass_alias_path_size_or_type(self):
+        ordinary = self.data['assets'][0]
+        alias = dict(ordinary, id='alias', path='alias.json')
+        self.data['assets'].append(alias)
+        self.save_manifest()
+        self.assert_code('SOURCE_UNAVAILABLE', 'add', source=str(self.pack))
+        raw = (self.pack / ordinary['path']).read_bytes()
+        (self.pack / alias['path']).write_bytes(b' ' * len(raw))
+        self.assert_code('HASH_MISMATCH', 'add', source=str(self.pack))
+        (self.pack / alias['path']).write_bytes(raw)
+        alias['bytes'] = len(raw) + 1
+        self.save_manifest()
+        self.assert_code('HASH_MISMATCH', 'add', source=str(self.pack))
+        alias.update(bytes=len(raw), type='component')
+        self.save_manifest()
+        with self.assertRaises(ValueError):
+            self.add()
+        self.assertEqual(libraries.state(self.workspace)['sources'], [])
+
 
 if __name__ == '__main__': unittest.main(verbosity=2)

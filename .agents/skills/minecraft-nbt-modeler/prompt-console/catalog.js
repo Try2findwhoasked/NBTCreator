@@ -1060,6 +1060,7 @@ globalThis.NbtToolCatalog = {
     "finalize": "nbt_finalize.py",
     "machine": "nbt_machine.py",
     "task-client": "nbt_task_client.py",
+    "creation": "nbt_creation.py",
     "architect": "nbt_architect.py",
     "session": "nbt_engine_session.py"
   },
@@ -1100,6 +1101,24 @@ globalThis.NbtToolCatalog = {
         "input": "按用途选尺寸、空间、材质、开口和机位。入口亭示例内含 save_draft，会发布制作版；只编译和检查时省略。",
         "result": "返回建筑编译与检查；保存时另有 saved、next.request 和 revision_request。",
         "next": "保存后把 next.request 原样交给 architect review-prepare；续版用 revision_request。"
+      },
+      {
+        "title": "比较整栋空间与通路布局",
+        "call": "architect layout-search --request <请求JSON>",
+        "contract": "capabilities --architect-action layout-search",
+        "guide": "architecture-workflow.md",
+        "input": "基于同一粗模方案，用 variables 枚举 XZ 位移，或用 graph 声明空间关系与摆位候选。",
+        "result": "给出通过实际通路和使用面检查的候选，以及各次尝试的失败证据。",
+        "next": "选定候选后将其 plan 交给 architect plan-build，在构造和装饰深化后保存制作版。"
+      },
+      {
+        "title": "复杂整栋的分层、面积与必经连接",
+        "call": "architect layout-check --request <请求JSON>",
+        "contract": "capabilities --architect-action layout-check",
+        "guide": "whole-building-planning.md",
+        "input": "用 program 与 layout 预检布局；用 source 和 source_sha256 回读成品。",
+        "result": "返回目标、实测值、通过状态及楼层和问题坐标。",
+        "next": "用 program-layout-search 生成候选，用 layout-prepare 把选择绑定到建筑方案。"
       },
       {
         "title": "按明确几何装配，或打开制作源续版",
@@ -1218,6 +1237,12 @@ globalThis.NbtToolCatalog = {
         "call": "task-client inspect <prompts 或 tasks> <任务编号>",
         "input": "提示词任务用 prompts，已有建筑修改任务用 tasks。",
         "result": "默认返回任务阶段、来源核对与下一步；按 expand 视图展开，再用 task-client start 明确领取。"
+      },
+      {
+        "title": "执行已领取的建筑初稿",
+        "call": "creation --session <会话名> start",
+        "input": "从已领取的提示词读取冻结模式。极限效果用 --request 显式登记要探索的设计轴。",
+        "result": "本地编译或接收 WorkingModel，回读、检查、出图并保存证据。按模式处理单候选或匿名 A/B 审阅；选用后另存制作版。"
       }
     ],
     "工作区与运行时": [
@@ -1294,6 +1319,14 @@ globalThis.NbtToolCatalog = {
         "next": "需要看图时把 next.request 交给 review-prepare。"
       },
       {
+        "title": "回放并缩减建筑活动失败",
+        "call": "architect failure-replay --request <请求JSON>",
+        "contract": "capabilities --architect-action failure-replay",
+        "guide": "architecture-workflow.md",
+        "input": "通过版 source、源与方案哈希、失败方案或差分组、活动失败判据及检查预算。",
+        "result": "返回原始与缩减失败、候选检查和极小性覆盖。指定 output 可保存可复跑回放包。"
+      },
+      {
         "title": "评估整栋建筑或复核续版质量",
         "call": "architect quality-check / quality-compare --request <请求JSON>",
         "input": "制作源和哈希，可选 review-record 的审阅绑定。对照时提供上一版或失败回执绑定。",
@@ -1347,9 +1380,17 @@ globalThis.NbtToolCatalog = {
         "title": "准备建筑审阅",
         "call": "architect review-prepare --request <请求JSON>",
         "contract": "capabilities --architect-action review-prepare",
-        "input": "JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换失败机位。",
+        "input": "JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换机位，单独出图时用 view_ids 选择机位。",
         "result": "复验保存源并写审阅包及相机；coverage_passed 是机位覆盖检查，visual_status 表示仍待看图（完整回执在 coverage 下）。",
         "next": "运行回执的 render_command 出图，保留同份回执的 review_record_bindings。"
+      },
+      {
+        "title": "推荐建筑审阅补拍机位",
+        "call": "architect review-recommend --request <请求JSON>",
+        "contract": "capabilities --architect-action review-recommend",
+        "input": "填原审阅 pack、pack_sha256 和新 output。可填已登记的 notes_sha256、待补位置及搜索预算。",
+        "result": "按半格脚位和实际模型估计取景，返回推荐机位、预计覆盖与待补原因。",
+        "next": "有推荐时将 next.request 交给 review-prepare，再出图并实际查看。"
       },
       {
         "title": "从制作源渲染实际图片",
@@ -1943,7 +1984,8 @@ globalThis.NbtToolCatalog = {
               "arch",
               "frame",
               "pedestal",
-              "curve_stencil"
+              "curve_stencil",
+              "spectral_repeat"
             ]
           },
           "ornament_profile": {
@@ -1962,7 +2004,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "parametric_compile": {
-      "description": "编译参数化模块候选：柱式、外置楼梯扶手、独立栏杆、梁、托架、拱框、门窗框、基座及家具。配方见parametric_list.object_library；不改当前建筑。",
+      "description": "编译参数化模块候选：可调周期与相位的建筑重复频谱、柱式、外置楼梯扶手、独立栏杆、梁、托架、拱框、门窗框、基座及家具。配方见parametric_list.object_library；不改当前建筑。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -1990,7 +2032,8 @@ globalThis.NbtToolCatalog = {
               "arch",
               "frame",
               "pedestal",
-              "curve_stencil"
+              "curve_stencil",
+              "spectral_repeat"
             ]
           },
           "size": {
@@ -2002,7 +2045,103 @@ globalThis.NbtToolCatalog = {
             },
             "minItems": 3,
             "maxItems": 3,
-            "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+            "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+          },
+          "period": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 64,
+            "description": "重建周期（格）"
+          },
+          "phase": {
+            "type": "integer",
+            "minimum": -64,
+            "maximum": 64,
+            "description": "沿 +X 平移的格数"
+          },
+          "spectrum": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "samples",
+              "height",
+              "depth",
+              "palette",
+              "channels"
+            ],
+            "properties": {
+              "samples": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "palette": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                "minItems": 1,
+                "maxItems": 4096
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "cells",
+                    "coefficients"
+                  ],
+                  "properties": {
+                    "cells": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 4095
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "minItems": 0,
+                      "maxItems": 4096
+                    },
+                    "coefficients": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": -1,
+                          "maximum": 1
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
+                      },
+                      "minItems": 2,
+                      "maxItems": 33
+                    }
+                  }
+                },
+                "minItems": 1,
+                "maxItems": 64
+              }
+            },
+            "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
           },
           "style": {
             "type": "string",
@@ -3610,7 +3749,8 @@ globalThis.NbtToolCatalog = {
               "arch",
               "frame",
               "pedestal",
-              "curve_stencil"
+              "curve_stencil",
+              "spectral_repeat"
             ]
           },
           "size": {
@@ -3622,7 +3762,103 @@ globalThis.NbtToolCatalog = {
             },
             "minItems": 3,
             "maxItems": 3,
-            "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+            "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+          },
+          "period": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 64,
+            "description": "重建周期（格）"
+          },
+          "phase": {
+            "type": "integer",
+            "minimum": -64,
+            "maximum": 64,
+            "description": "沿 +X 平移的格数"
+          },
+          "spectrum": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "samples",
+              "height",
+              "depth",
+              "palette",
+              "channels"
+            ],
+            "properties": {
+              "samples": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "palette": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                "minItems": 1,
+                "maxItems": 4096
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "cells",
+                    "coefficients"
+                  ],
+                  "properties": {
+                    "cells": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 4095
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "minItems": 0,
+                      "maxItems": 4096
+                    },
+                    "coefficients": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": -1,
+                          "maximum": 1
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
+                      },
+                      "minItems": 2,
+                      "maxItems": 33
+                    }
+                  }
+                },
+                "minItems": 1,
+                "maxItems": 64
+              }
+            },
+            "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
           },
           "style": {
             "type": "string",
@@ -5233,7 +5469,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -5363,7 +5600,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -5375,7 +5613,103 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64,
+                "description": "重建周期（格）"
+              },
+              "phase": {
+                "type": "integer",
+                "minimum": -64,
+                "maximum": 64,
+                "description": "沿 +X 平移的格数"
+              },
+              "spectrum": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "samples",
+                  "height",
+                  "depth",
+                  "palette",
+                  "channels"
+                ],
+                "properties": {
+                  "samples": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "cells",
+                        "coefficients"
+                      ],
+                      "properties": {
+                        "cells": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4095
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "minItems": 0,
+                          "maxItems": 4096
+                        },
+                        "coefficients": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1,
+                              "maximum": 1
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "minItems": 2,
+                          "maxItems": 33
+                        }
+                      }
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  }
+                },
+                "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
               },
               "style": {
                 "type": "string",
@@ -6976,7 +7310,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -7341,7 +7676,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -7353,7 +7689,103 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64,
+                "description": "重建周期（格）"
+              },
+              "phase": {
+                "type": "integer",
+                "minimum": -64,
+                "maximum": 64,
+                "description": "沿 +X 平移的格数"
+              },
+              "spectrum": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "samples",
+                  "height",
+                  "depth",
+                  "palette",
+                  "channels"
+                ],
+                "properties": {
+                  "samples": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "cells",
+                        "coefficients"
+                      ],
+                      "properties": {
+                        "cells": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4095
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "minItems": 0,
+                          "maxItems": 4096
+                        },
+                        "coefficients": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1,
+                              "maximum": 1
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "minItems": 2,
+                          "maxItems": 33
+                        }
+                      }
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  }
+                },
+                "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
               },
               "style": {
                 "type": "string",
@@ -9162,7 +9594,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -9174,7 +9607,103 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64,
+                "description": "重建周期（格）"
+              },
+              "phase": {
+                "type": "integer",
+                "minimum": -64,
+                "maximum": 64,
+                "description": "沿 +X 平移的格数"
+              },
+              "spectrum": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "samples",
+                  "height",
+                  "depth",
+                  "palette",
+                  "channels"
+                ],
+                "properties": {
+                  "samples": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "cells",
+                        "coefficients"
+                      ],
+                      "properties": {
+                        "cells": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4095
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "minItems": 0,
+                          "maxItems": 4096
+                        },
+                        "coefficients": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1,
+                              "maximum": 1
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "minItems": 2,
+                          "maxItems": 33
+                        }
+                      }
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  }
+                },
+                "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
               },
               "style": {
                 "type": "string",
@@ -10917,7 +11446,8 @@ globalThis.NbtToolCatalog = {
                         "arch",
                         "frame",
                         "pedestal",
-                        "curve_stencil"
+                        "curve_stencil",
+                        "spectral_repeat"
                       ]
                     },
                     "size": {
@@ -10929,7 +11459,103 @@ globalThis.NbtToolCatalog = {
                       },
                       "minItems": 3,
                       "maxItems": 3,
-                      "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                      "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                    },
+                    "period": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "maximum": 64,
+                      "description": "重建周期（格）"
+                    },
+                    "phase": {
+                      "type": "integer",
+                      "minimum": -64,
+                      "maximum": 64,
+                      "description": "沿 +X 平移的格数"
+                    },
+                    "spectrum": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "samples",
+                        "height",
+                        "depth",
+                        "palette",
+                        "channels"
+                      ],
+                      "properties": {
+                        "samples": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 64
+                        },
+                        "height": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 64
+                        },
+                        "depth": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 64
+                        },
+                        "palette": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 512
+                          },
+                          "minItems": 1,
+                          "maxItems": 4096
+                        },
+                        "channels": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "cells",
+                              "coefficients"
+                            ],
+                            "properties": {
+                              "cells": {
+                                "type": "array",
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 4095
+                                  },
+                                  "minItems": 3,
+                                  "maxItems": 3
+                                },
+                                "minItems": 0,
+                                "maxItems": 4096
+                              },
+                              "coefficients": {
+                                "type": "array",
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number",
+                                    "minimum": -1,
+                                    "maximum": 1
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "minItems": 2,
+                                "maxItems": 33
+                              }
+                            }
+                          },
+                          "minItems": 1,
+                          "maxItems": 64
+                        }
+                      },
+                      "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
                     },
                     "style": {
                       "type": "string",
@@ -12612,7 +13238,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -12624,7 +13251,103 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64,
+                "description": "重建周期（格）"
+              },
+              "phase": {
+                "type": "integer",
+                "minimum": -64,
+                "maximum": 64,
+                "description": "沿 +X 平移的格数"
+              },
+              "spectrum": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "samples",
+                  "height",
+                  "depth",
+                  "palette",
+                  "channels"
+                ],
+                "properties": {
+                  "samples": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "cells",
+                        "coefficients"
+                      ],
+                      "properties": {
+                        "cells": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4095
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "minItems": 0,
+                          "maxItems": 4096
+                        },
+                        "coefficients": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1,
+                              "maximum": 1
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "minItems": 2,
+                          "maxItems": 33
+                        }
+                      }
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  }
+                },
+                "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
               },
               "style": {
                 "type": "string",
@@ -14229,7 +14952,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -14241,7 +14965,103 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64,
+                "description": "重建周期（格）"
+              },
+              "phase": {
+                "type": "integer",
+                "minimum": -64,
+                "maximum": 64,
+                "description": "沿 +X 平移的格数"
+              },
+              "spectrum": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "samples",
+                  "height",
+                  "depth",
+                  "palette",
+                  "channels"
+                ],
+                "properties": {
+                  "samples": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "cells",
+                        "coefficients"
+                      ],
+                      "properties": {
+                        "cells": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4095
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "minItems": 0,
+                          "maxItems": 4096
+                        },
+                        "coefficients": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1,
+                              "maximum": 1
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "minItems": 2,
+                          "maxItems": 33
+                        }
+                      }
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  }
+                },
+                "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
               },
               "style": {
                 "type": "string",
@@ -19437,7 +20257,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "scene_compile": {
-      "description": "按稳定对象ID、尺寸引用和贴附关系编译建筑对象图；检查依赖、实际接触、重叠、保留空间与声明通路，只返回候选。",
+      "description": "按稳定对象ID、尺寸引用和贴附关系编译建筑对象图；检查依赖、实际接触、重叠、保留空间、声明通路与关系锁，只返回候选。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -19446,6 +20266,98 @@ globalThis.NbtToolCatalog = {
             "type": "object",
             "additionalProperties": false,
             "properties": {
+              "relation_locks": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "fixed_position"
+                          ]
+                        },
+                        "object": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "interface": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "position_half": {
+                          "type": "array",
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 128
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "kind",
+                        "object",
+                        "position_half"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "interface_contact"
+                          ]
+                        },
+                        "object": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "target": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "object": {
+                              "type": "string",
+                              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                            },
+                            "interface": {
+                              "type": "string",
+                              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                            }
+                          },
+                          "required": [
+                            "object",
+                            "interface"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "kind",
+                        "object",
+                        "target"
+                      ]
+                    }
+                  ]
+                }
+              },
               "schema_version": {
                 "type": "integer",
                 "enum": [
@@ -19863,15 +20775,115 @@ globalThis.NbtToolCatalog = {
       }
     },
     "scene_save": {
-      "description": "显式保存对象图和编译快照的新版本；校验候选内容与父版本，保留旧版，不写建筑或定稿NBT。",
+      "description": "显式保存对象图和编译快照的新版本；校验候选、父版本及保留或明确解除的关系锁，保留旧版，不写建筑或定稿NBT。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "release_locks": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "string",
+              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+            }
+          },
           "graph": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
+              "relation_locks": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "fixed_position"
+                          ]
+                        },
+                        "object": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "interface": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "position_half": {
+                          "type": "array",
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 128
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "kind",
+                        "object",
+                        "position_half"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "interface_contact"
+                          ]
+                        },
+                        "object": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "target": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "object": {
+                              "type": "string",
+                              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                            },
+                            "interface": {
+                              "type": "string",
+                              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                            }
+                          },
+                          "required": [
+                            "object",
+                            "interface"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "kind",
+                        "object",
+                        "target"
+                      ]
+                    }
+                  ]
+                }
+              },
               "schema_version": {
                 "type": "integer",
                 "enum": [
@@ -20355,7 +21367,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "scene_update": {
-      "description": "修改已有对象并按依赖联动重算，复验整图，检查原保护区与修改预算；返回候选，须另用scene_save保存新版本。",
+      "description": "预览已有对象、纹样或关系锁的修改，按依赖联动重算，验证接触与原约束；返回实际方块差分及候选，或可定位的冲突。候选须另用scene_save保存。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -20376,6 +21388,121 @@ globalThis.NbtToolCatalog = {
             "minLength": 64,
             "maxLength": 64,
             "pattern": "[a-f0-9]{64}"
+          },
+          "add_locks": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "fixed_position"
+                      ]
+                    },
+                    "object": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "interface": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "position_half": {
+                      "type": "array",
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 128
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "object",
+                    "position_half"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "interface_contact"
+                      ]
+                    },
+                    "object": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "target": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "object": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "interface": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        }
+                      },
+                      "required": [
+                        "object",
+                        "interface"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "object",
+                    "target"
+                  ]
+                }
+              ]
+            }
+          },
+          "release_locks": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "string",
+              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+            }
+          },
+          "diff_offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65536
+          },
+          "diff_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2048
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120000
           },
           "changes": {
             "type": "array",
@@ -23044,7 +24171,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "facade_compile": {
-      "description": "生成真实凹窗、窗台与层带的参数化立面候选，返回开口坐标，支持对象图和完整工作模型。",
+      "description": "生成凹窗与层带立面候选。可指定跨数，或按净面宽和固定门洞排窗并保留转角柱。返回局部开口坐标，支持建筑方案、对象图和完整工作模型。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -23057,7 +24184,62 @@ globalThis.NbtToolCatalog = {
           "bays": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 8
+            "maximum": 8,
+            "description": "固定重复跨数。与 contextual 互斥。"
+          },
+          "contextual": {
+            "type": "object",
+            "description": "按净面宽排窗。先保留门框和转角柱，再独立分配门左右的剩余宽度。",
+            "additionalProperties": false,
+            "required": [
+              "width",
+              "entry"
+            ],
+            "properties": {
+              "width": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64,
+                "description": "含两端柱的立面总宽，单位为格。"
+              },
+              "entry": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "x",
+                  "width",
+                  "height"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63,
+                    "description": "门洞首格的局部 X，门框从 X-1 开始。"
+                  },
+                  "width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64,
+                    "description": "门洞净宽。不含各一格的侧框。"
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64,
+                    "description": "从局部 Y=0 起算的门洞净高。"
+                  }
+                }
+              },
+              "column_material": {
+                "type": "string",
+                "description": "转角柱及窗间柱的完整方块状态，默认 trim。"
+              },
+              "beam_material": {
+                "type": "string",
+                "description": "连续水平梁的完整方块状态，默认 trim。梁端使用 trim。"
+              }
+            }
           },
           "storeys": {
             "type": "integer",
@@ -25849,6 +27031,8 @@ globalThis.NbtToolCatalog = {
                   "adopt_beam_rhythm",
                   "wavelet_eave",
                   "adopt_wavelet_eave",
+                  "site_selection",
+                  "adopt_site_selection",
                   "seal",
                   "open_declared"
                 ]
@@ -25913,6 +27097,381 @@ globalThis.NbtToolCatalog = {
       "save": "immutable_snbt_or_assembly_draft_only"
     },
     "actions": {
+      "site_selection": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "site_selection"
+            ]
+          },
+          "goal": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "building": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024
+                      },
+                      "source_sha256": {
+                        "type": "string",
+                        "pattern": "[a-f0-9]{64}"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "source_sha256"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "recipe": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "tool": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z0-9_-]{1,64}"
+                          },
+                          "arguments": {
+                            "type": "object"
+                          }
+                        },
+                        "required": [
+                          "tool",
+                          "arguments"
+                        ]
+                      },
+                      "content_sha256": {
+                        "type": "string",
+                        "pattern": "[a-f0-9]{64}"
+                      }
+                    },
+                    "required": [
+                      "recipe",
+                      "content_sha256"
+                    ]
+                  }
+                ]
+              },
+              "region": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "lo": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "hi": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  }
+                },
+                "required": [
+                  "lo",
+                  "hi"
+                ]
+              },
+              "junction": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4095
+                },
+                "minItems": 3,
+                "maxItems": 3,
+                "description": "宿主内既有路口的整方块路面坐标。"
+              },
+              "entrance": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "floor": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "facing": {
+                    "type": "string",
+                    "enum": [
+                      "north",
+                      "east",
+                      "south",
+                      "west"
+                    ]
+                  }
+                },
+                "required": [
+                  "floor",
+                  "facing"
+                ]
+              },
+              "targets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z0-9_-]{1,64}"
+                    },
+                    "feet": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 64
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "feet"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 8
+              },
+              "anchor_xz": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4095
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "minItems": 1,
+                "maxItems": 64,
+                "description": "待评估的世界 XZ 放置锚点。制作源锚点为局部 [0,0,0]，配方沿用自身锚点。"
+              },
+              "floor_ys": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4095
+                },
+                "minItems": 1,
+                "maxItems": 16,
+                "description": "建筑最低实体层的候选世界 Y。入口标高由局部入口地板的位置推导。"
+              },
+              "quarter_turns": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                "minItems": 1,
+                "maxItems": 4
+              },
+              "roads": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "corridor": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "lo": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 4095
+                          },
+                          "minItems": 3,
+                          "maxItems": 3
+                        },
+                        "hi": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 4095
+                          },
+                          "minItems": 3,
+                          "maxItems": 3
+                        }
+                      },
+                      "required": [
+                        "lo",
+                        "hi"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "stair_state": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "max_bridge_span": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16
+                    },
+                    "bridge_water": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "minItems": 1,
+                "maxItems": 8
+              },
+              "max_candidates": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "max_pad_cut": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 16
+              },
+              "max_pad_fill": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 16
+              },
+              "terrain_states": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "minItems": 1,
+                "maxItems": 64
+              },
+              "fill_state": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "instance_id": {
+                "type": "string",
+                "pattern": "[a-zA-Z0-9_-]{1,64}"
+              }
+            },
+            "required": [
+              "building",
+              "region",
+              "junction",
+              "entrance",
+              "targets",
+              "anchor_xz",
+              "floor_ys",
+              "quarter_turns",
+              "roads",
+              "max_candidates",
+              "max_pad_cut",
+              "max_pad_fill"
+            ]
+          },
+          "preview": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "output": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "candidate_id": {
+                "type": "string",
+                "pattern": "candidate-[0-9]{3}"
+              },
+              "cameras": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "minItems": 0,
+                "maxItems": 64
+              }
+            },
+            "required": [
+              "output"
+            ]
+          }
+        },
+        "required": [
+          "method",
+          "goal"
+        ]
+      },
+      "adopt_site_selection": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "adopt_site_selection"
+            ]
+          },
+          "goal": {
+            "description": "与搜索时逐项一致的目标对象，沿用 site_selection.goal 契约。",
+            "type": "object"
+          },
+          "candidate_id": {
+            "type": "string",
+            "pattern": "candidate-[0-9]{3}"
+          },
+          "candidate_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          }
+        },
+        "required": [
+          "method",
+          "goal",
+          "candidate_id",
+          "candidate_sha256"
+        ]
+      },
       "beam_rhythm": {
         "type": "object",
         "additionalProperties": false,
@@ -26818,6 +28377,11 @@ globalThis.NbtToolCatalog = {
     }
   },
   "architecture": {
+    "layout_actions": [
+      "layout-check",
+      "program-layout-search",
+      "layout-prepare"
+    ],
     "schema_version": 1,
     "description": "建筑方案、风格约束、构造生成、三尺度视图与版本绑定评审。所有结果保持人工看图和显式定稿边界。",
     "cli": "architect <action> --request <JSON>",
@@ -26825,6 +28389,23 @@ globalThis.NbtToolCatalog = {
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "planning": {
+          "type": "object",
+          "required": [
+            "program",
+            "layout"
+          ],
+          "properties": {
+            "program": {
+              "type": "object"
+            },
+            "layout": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "description": "可选的整栋规划绑定。program 与 layout 的完整字段见 architect layout-check。"
+        },
         "schema_version": {
           "type": "integer",
           "enum": [
@@ -28995,6 +30576,638 @@ globalThis.NbtToolCatalog = {
       }
     },
     "actions": {
+      "layout-check": {
+        "type": "object",
+        "properties": {
+          "program": {
+            "type": "object",
+            "required": [
+              "schema_version",
+              "size",
+              "entry",
+              "levels",
+              "spaces",
+              "relations"
+            ],
+            "properties": {
+              "schema_version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1
+              },
+              "size": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 294
+                }
+              },
+              "entry": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 294
+                }
+              },
+              "levels": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "feet_y",
+                    "ceiling_y",
+                    "footprint"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "feet_y": {
+                      "type": "number",
+                      "minimum": 0.5,
+                      "maximum": 293
+                    },
+                    "ceiling_y": {
+                      "type": "number",
+                      "minimum": 1,
+                      "maximum": 294
+                    },
+                    "footprint": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 32,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "lo",
+                          "hi"
+                        ],
+                        "properties": {
+                          "lo": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点起始格。"
+                          },
+                          "hi": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点结束格。"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "voids": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 32,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "lo",
+                          "hi"
+                        ],
+                        "properties": {
+                          "lo": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点起始格。"
+                          },
+                          "hi": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点结束格。"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "reserved": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 32,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "lo",
+                          "hi"
+                        ],
+                        "properties": {
+                          "lo": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点起始格。"
+                          },
+                          "hi": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点结束格。"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "envelope": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 32,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "lo",
+                          "hi"
+                        ],
+                        "properties": {
+                          "lo": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点起始格。"
+                          },
+                          "hi": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点结束格。"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "description": "可选的实体围护边界。只检脚位到顶界区间内的实体；与房间可用轮廓分开。"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "spaces": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 120,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "level",
+                    "purpose"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "level": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "purpose": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "room",
+                        "circulation",
+                        "open"
+                      ]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "user",
+                        "project",
+                        "design"
+                      ]
+                    },
+                    "note": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1000
+                    },
+                    "min_area": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 86436
+                    },
+                    "max_area": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 86436
+                    },
+                    "target_area": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 86436
+                    },
+                    "min_span": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 294
+                    },
+                    "min_reachable_area": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 86436,
+                      "description": "从声明入口实际可达的地面格数下限。"
+                    },
+                    "min_headroom": {
+                      "type": "number",
+                      "minimum": 1.8,
+                      "maximum": 294,
+                      "description": "该空间可站地面上的最小净高。"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "relations": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 240,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "kind",
+                    "from",
+                    "to"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "adjacent",
+                        "wall",
+                        "door",
+                        "stair",
+                        "route"
+                      ]
+                    },
+                    "from": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "to": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "user",
+                        "project",
+                        "design"
+                      ]
+                    },
+                    "note": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1000
+                    },
+                    "min_width": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 294
+                    },
+                    "max_length": {
+                      "type": "number",
+                      "minimum": 0.5,
+                      "maximum": 100000
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "entry_space": {
+                "type": "string",
+                "pattern": "[a-z][a-z0-9_-]{0,63}",
+                "description": "可选的入口所属空间。适用时检查从这里通往所有功能空间的布局连通性。"
+              },
+              "max_extent": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 294
+                },
+                "description": "实际成品全部实体的最大 XYZ 包围尺寸。"
+              }
+            },
+            "additionalProperties": false,
+            "description": "整栋规划任务书。区域使用世界 XZ 方块格，脚位使用 XYZ。楼层顶界不含其所在标高。"
+          },
+          "layout": {
+            "type": "object",
+            "required": [
+              "spaces"
+            ],
+            "properties": {
+              "spaces": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 120,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "regions"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "regions": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 32,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "lo",
+                          "hi"
+                        ],
+                        "properties": {
+                          "lo": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点起始格。"
+                          },
+                          "hi": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点结束格。"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "feet": {
+                      "type": "array",
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 294
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "links": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 240,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "opening": {
+                      "type": "object",
+                      "required": [
+                        "lo",
+                        "hi"
+                      ],
+                      "properties": {
+                        "lo": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 293
+                          },
+                          "description": "世界 XZ 含端点起始格。"
+                        },
+                        "hi": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 293
+                          },
+                          "description": "世界 XZ 含端点结束格。"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "from_feet": {
+                      "type": "array",
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 294
+                      }
+                    },
+                    "to_feet": {
+                      "type": "array",
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 294
+                      }
+                    },
+                    "stair": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false,
+            "description": "具体布局。直通门用与空间相隔的一格墙内开口，跨层连接用两端空间的脚位和可选楼梯系统 ID。"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          }
+        },
+        "additionalProperties": false,
+        "description": "检查任务书和布局，或回读指定哈希的 SNBT 制作源并复测当前规划。",
+        "anyOf": [
+          {
+            "type": "object",
+            "required": [
+              "program",
+              "layout"
+            ],
+            "properties": {
+              "program": {},
+              "layout": {}
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "source",
+              "source_sha256"
+            ],
+            "properties": {
+              "source": {},
+              "source_sha256": {}
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "program-layout-search": {
+        "type": "object",
+        "properties": {
+          "program": {
+            "type": "object",
+            "description": "参见 architect layout-check 的 program 字段。"
+          },
+          "baseline": {
+            "type": "object",
+            "description": "局部或完整基线布局。跨层连接从 links 读取固定的上下层停靠点。"
+          },
+          "locked": {
+            "type": "array",
+            "maxItems": 120,
+            "items": {
+              "type": "string",
+              "pattern": "[a-z][a-z0-9_-]{0,63}"
+            }
+          },
+          "max_steps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "candidate_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          }
+        },
+        "required": [
+          "program"
+        ],
+        "additionalProperties": false,
+        "description": "在整数网格内搜索可行候选，可锁定已有空间并保留跨层连接。"
+      },
+      "layout-prepare": {
+        "type": "object",
+        "properties": {
+          "program": {
+            "type": "object",
+            "description": "参见 architect layout-check 的 program 字段。"
+          },
+          "layout": {
+            "type": "object",
+            "description": "参见 architect layout-check 的 layout 字段。"
+          },
+          "plan": {
+            "type": "object",
+            "description": "已有或待填写空间的可执行建筑方案模板。"
+          }
+        },
+        "required": [
+          "program",
+          "layout",
+          "plan"
+        ],
+        "additionalProperties": false,
+        "description": "将选中的布局绑定到建筑方案并提供空间区域与站位。返回候选，交给 plan-build 生成并实测。"
+      },
       "part-preflight": {
         "type": "object",
         "properties": {
@@ -29039,6 +31252,23 @@ globalThis.NbtToolCatalog = {
             "type": "object",
             "additionalProperties": false,
             "properties": {
+              "planning": {
+                "type": "object",
+                "required": [
+                  "program",
+                  "layout"
+                ],
+                "properties": {
+                  "program": {
+                    "type": "object"
+                  },
+                  "layout": {
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "可选的整栋规划绑定。program 与 layout 的完整字段见 architect layout-check。"
+              },
               "schema_version": {
                 "type": "integer",
                 "enum": [
@@ -31143,6 +33373,482 @@ globalThis.NbtToolCatalog = {
           "id"
         ]
       },
+      "layout-search": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "plan": {
+            "type": "object",
+            "description": "使用现有的 architecture.plan。可省略装饰配方作为粗布局种子。与 plan_id 二选一。"
+          },
+          "plan_id": {
+            "type": "string",
+            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+            "maxLength": 32
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                  "maxLength": 32
+                },
+                "targets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "part",
+                          "stair",
+                          "space",
+                          "space-extent",
+                          "stop",
+                          "route-target",
+                          "review-location"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 127
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "id"
+                    ]
+                  },
+                  "minItems": 1,
+                  "maxItems": 32
+                },
+                "offsets": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": -293,
+                      "maximum": 293
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                  },
+                  "minItems": 1,
+                  "maxItems": 24
+                }
+              },
+              "required": [
+                "id",
+                "targets",
+                "offsets"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 8,
+            "description": "组合 XZ 位移。保留原型字段与距离排序。与 graph 二选一。"
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "space": {
+                  "type": "string",
+                  "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                  "maxLength": 32
+                },
+                "minimum": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 86436
+                },
+                "maximum": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 86436
+                }
+              },
+              "required": [
+                "space",
+                "minimum",
+                "maximum"
+              ]
+            },
+            "minItems": 0,
+            "maxItems": 128
+          },
+          "adjacency": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "spaces": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                    "maxLength": 32
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "max_gap": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 584
+                }
+              },
+              "required": [
+                "spaces",
+                "max_gap"
+              ]
+            },
+            "minItems": 0,
+            "maxItems": 128,
+            "description": "位移模式的 XZ 投影距离约束。空间图通过 graph.edges 声明同层邻接和跨层关系。"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "graph": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "edges": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "adjacent",
+                        "vertical"
+                      ],
+                      "description": "adjacent 检查同层侧边。vertical 引用一段按 spaces 顺序跨层的活动通路。"
+                    },
+                    "spaces": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
+                    },
+                    "max_gap": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 293,
+                      "description": "仅用于 adjacent。允许两空间之间有这么多列方块，默认 0。"
+                    },
+                    "activity": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "segment": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 127,
+                      "description": "从 0 开始，指向该活动相邻两个站位组成的路段。"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "spaces"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 64
+              },
+              "variants": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "spaces": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "lo": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "hi": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "samples": {
+                            "type": "array",
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "number",
+                                "minimum": -588,
+                                "maximum": 588
+                              },
+                              "minItems": 3,
+                              "maxItems": 3
+                            },
+                            "minItems": 1,
+                            "maxItems": 32
+                          }
+                        },
+                        "required": [
+                          "id"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    },
+                    "parts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "position": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "quarter_turns": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3
+                          }
+                        },
+                        "required": [
+                          "id"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    },
+                    "stairs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "lo": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "hi": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "start": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "end": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "width": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 7
+                          },
+                          "centre": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          }
+                        },
+                        "required": [
+                          "id"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    },
+                    "stops": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "activity": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "index": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 127
+                          },
+                          "feet": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -588,
+                              "maximum": 588
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          }
+                        },
+                        "required": [
+                          "activity",
+                          "index",
+                          "feet"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    },
+                    "route_targets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "feet": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -588,
+                              "maximum": 588
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "feet"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 8
+              }
+            },
+            "required": [
+              "edges",
+              "variants"
+            ],
+            "description": "引用同一计划的空间、活动和粗构件。每个候选独立从种子应用绝对放置。与 variables 二选一。"
+          }
+        },
+        "description": "比较同一粗建筑种子的有限布局。选择 variables 或 graph，公共建模验证通过的候选提供 plan。"
+      },
       "plan-build": {
         "type": "object",
         "additionalProperties": false,
@@ -31151,6 +33857,23 @@ globalThis.NbtToolCatalog = {
             "type": "object",
             "additionalProperties": false,
             "properties": {
+              "planning": {
+                "type": "object",
+                "required": [
+                  "program",
+                  "layout"
+                ],
+                "properties": {
+                  "program": {
+                    "type": "object"
+                  },
+                  "layout": {
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "可选的整栋规划绑定。program 与 layout 的完整字段见 architect layout-check。"
+              },
               "schema_version": {
                 "type": "integer",
                 "enum": [
@@ -33285,6 +36008,196 @@ globalThis.NbtToolCatalog = {
           "source_sha256"
         ]
       },
+      "failure-replay": {
+        "description": "从同一通过版重建受控方案差分，复验指定活动失败并在检查预算内缩减。",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          },
+          "expected_plan_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          },
+          "expected_binding_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}",
+            "description": "由生成的 replay.json 提供，校验原回放包绑定。"
+          },
+          "failed_plan": {
+            "type": "object",
+            "description": "完整建筑方案，使用 capabilities --architecture 的 plan 契约。与 groups 二选一。"
+          },
+          "groups": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 128,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "[a-zA-Z0-9_-][a-zA-Z0-9_.-]{0,127}"
+                },
+                "edits": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 128,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "field": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "description": "方案顶层字段。画布、上下文及方案格式版本固定。"
+                      },
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80,
+                        "description": "按已有 ID 替换完整记录，省略时修改整个顶层字段。"
+                      },
+                      "value": {
+                        "description": "替换值。仅顶层字段可以通过省略 value 删除。"
+                      }
+                    },
+                    "required": [
+                      "field"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "edits"
+              ]
+            },
+            "description": "不可重叠的原子方案差分组。与 failed_plan 二选一。"
+          },
+          "failure": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "route_segment"
+                    ]
+                  },
+                  "activity": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 127
+                  },
+                  "reason": {
+                    "enum": [
+                      "invalid_start_pose",
+                      "invalid_or_obstructed_feet_pose",
+                      "no_safe_half_grid_connector",
+                      "unreachable_with_walking_and_half_block_steps"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "activity",
+                  "index",
+                  "reason"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "use_face"
+                    ]
+                  },
+                  "activity": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 127
+                  },
+                  "part": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "object": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "interface": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "reason": {
+                    "enum": [
+                      "wrong_side",
+                      "too_far",
+                      "outside_working_face",
+                      "approach_obstructed",
+                      "invalid_standing_pose",
+                      "horizontal_approach_requires_vertical_face"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "activity",
+                  "index",
+                  "part",
+                  "interface",
+                  "reason"
+                ]
+              }
+            ],
+            "description": "同一活动 ID、零起始路段或停靠序号，以及实际失败原因。"
+          },
+          "max_checks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 128,
+            "description": "候选检查上限，含零差分重建与完整失败方案。"
+          },
+          "output": {
+            "type": "string",
+            "pattern": "[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}",
+            "description": "新回放包目录名，位于当前创作项目 nbt_models/_workspaces/failure_replays 下。"
+          }
+        },
+        "required": [
+          "source",
+          "source_sha256",
+          "expected_plan_sha256",
+          "failure",
+          "max_checks"
+        ]
+      },
       "quality-check": {
         "type": "object",
         "additionalProperties": false,
@@ -33438,6 +36351,60 @@ globalThis.NbtToolCatalog = {
           "previous"
         ]
       },
+      "review-recommend": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "pack": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "pack_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          },
+          "notes_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}",
+            "description": "可选 review-record.sha256。核对登记修订与实际图片后跳过已观察位置。"
+          },
+          "output": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "description": "交给 review-prepare 的新审阅目录。推荐本身为只读操作。"
+          },
+          "locations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 128,
+            "description": "可选的登记位置 ID。省略时搜索所有尚无绑定观察的位置。",
+            "items": {
+              "type": "string",
+              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}$"
+            }
+          },
+          "max_images": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16,
+            "default": 3
+          },
+          "max_candidates": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 512,
+            "default": 128,
+            "description": "进入取景与遮挡估计的相机候选上限。站立探测和重复候选另计。"
+          }
+        },
+        "required": [
+          "pack",
+          "pack_sha256",
+          "output"
+        ]
+      },
       "review-prepare": {
         "type": "object",
         "additionalProperties": false,
@@ -33455,6 +36422,16 @@ globalThis.NbtToolCatalog = {
             "type": "string",
             "minLength": 1,
             "maxLength": 2048
+          },
+          "view_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "description": "只准备列出的原方案机位。省略时仍准备全部机位。",
+            "items": {
+              "type": "string",
+              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}$"
+            }
           },
           "view_overrides": {
             "type": "array",

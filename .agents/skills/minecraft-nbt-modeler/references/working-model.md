@@ -8,6 +8,8 @@
 
 复杂建筑可由[可执行建筑方案](architecture-workflow.md)编排同一个工作模型。方案绑定随制作版保存，普通 `validate` 也复检实际空间、梯段、承托和风格规则；不改变用户看图与定稿边界。
 
+在已有地形上放置单栋建筑并接入既有路口时，使用[联合选址](site-selection.md)检查落点、朝向、首层标高和接路。候选可用正常预览和制作版入口继续编辑。
+
 ## 梁架节奏候选
 
 在 `model` 请求的 `actions` 中使用 `beam_rhythm` 搜索。用 `capabilities --model` 查字段。将既有制作源和 `source_sha256` 放在请求顶层。目标示例在生成的 `search.json` 中。

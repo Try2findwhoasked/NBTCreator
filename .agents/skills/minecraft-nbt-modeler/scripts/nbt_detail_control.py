@@ -1082,7 +1082,7 @@ def main():
     cmd = sub.add_parser('protection-mask');cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('walk-inspect');cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
     cmd = sub.add_parser('agent-tasks');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['create','list','get','discover','record','review'],required=True);cmd.add_argument('--request',type=Path,required=True)
-    cmd = sub.add_parser('architect');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['standards-get','standards-save',*tool_catalog()['project_constraints']['actions'],'deliveries','continue','cross-list','cross-save','quality-check','quality-compare'],required=True);cmd.add_argument('--request',type=Path,required=True)
+    cmd = sub.add_parser('architect');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['standards-get','standards-save',*tool_catalog()['project_constraints']['actions'],'deliveries','continue','cross-list','cross-save','quality-check','quality-compare',*tool_catalog()['architecture']['layout_actions']],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('history');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','get','record','current','derive','finalize'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('retrieve');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['search','source','bundle','read','library','research','saved-web'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('selection-edit');cmd.add_argument('--action',choices=['context','compile'],required=True);cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path)
@@ -1133,7 +1133,7 @@ def main():
             result=save(args.workspace,read_json(args.request))
         elif args.command == 'prompt-publish':
             from nbt_prompts import publish
-            data=read_json(args.request);result=publish(args.workspace,data['index'],data['id'],data['revision'])
+            data=read_json(args.request);result=publish(args.workspace,data['index'],data['id'],data['revision'],creation=data.get('creation'))
         elif args.command == 'prompt-library':
             from nbt_prompts import handoff_statuses,library_list,read_prompt,remove_prompt,organize_prompts
             data=read_json(args.request)

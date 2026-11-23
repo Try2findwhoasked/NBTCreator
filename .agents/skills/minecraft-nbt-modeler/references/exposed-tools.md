@@ -80,6 +80,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 - finalize → scripts/nbt_finalize.py
 - machine → scripts/nbt_machine.py
 - task-client → scripts/nbt_task_client.py
+- creation → scripts/nbt_creation.py
 - architect → scripts/nbt_architect.py
 - session → scripts/nbt_engine_session.py
 
@@ -100,6 +101,8 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
 | --- | --- | --- | --- | --- |
 | 从零起整栋初稿（亭子、入口、空间和构件） | 命令 `architect plan-build --request <请求JSON>` | `capabilities --architect-action plan-build`<br>[请求与用例](simple-building.md) | 按用途选尺寸、空间、材质、开口和机位。入口亭示例内含 save_draft，会发布制作版；只编译和检查时省略。 | 返回建筑编译与检查；保存时另有 saved、next.request 和 revision_request。<br>保存后把 next.request 原样交给 architect review-prepare；续版用 revision_request。 |
+| 比较整栋空间与通路布局 | 命令 `architect layout-search --request <请求JSON>` | `capabilities --architect-action layout-search`<br>[请求与用例](architecture-workflow.md) | 基于同一粗模方案，用 variables 枚举 XZ 位移，或用 graph 声明空间关系与摆位候选。 | 给出通过实际通路和使用面检查的候选，以及各次尝试的失败证据。<br>选定候选后将其 plan 交给 architect plan-build，在构造和装饰深化后保存制作版。 |
+| 复杂整栋的分层、面积与必经连接 | 命令 `architect layout-check --request <请求JSON>` | `capabilities --architect-action layout-check`<br>[请求与用例](whole-building-planning.md) | 用 program 与 layout 预检布局；用 source 和 source_sha256 回读成品。 | 返回目标、实测值、通过状态及楼层和问题坐标。<br>用 program-layout-search 生成候选，用 layout-prepare 把选择绑定到建筑方案。 |
 | 按明确几何装配，或打开制作源续版 | 命令 `model --request <请求JSON>` | `capabilities --model`<br>[请求与用例](simple-building.md) | 新建填 size（XYZ 格数），已有制作版从原保存回执取 source 和 source_sha256；按需要填 actions。 | 返回模型摘要及操作结果；validate:true 复验，save_draft 另存 SNBT。<br>核对 result.validation（启用时）及 result.saved（保存时）；制作源用 render --source 出图。 |
 
 ### 局部修改
@@ -144,6 +147,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 按编号读取已交接的任务 | 命令 `task --id <任务编号>` |  | 从创作项目根目录运行。支持提示词和建筑修改编号。用 --view compact 查看下一步。 | 回读已校验的内容和失效附件提示。读取任务与领取、建模、精修批准分开。 |
 | 查找两类交接任务 | 命令 `task-client list --pending` |  | 省略 --pending 可看其他任务；--kind 可限定 prompts 或 tasks。 | 提供各任务的查看命令，建筑任务来源失效时返回诊断。 |
 | 查看任务记录和绑定证据 | 命令 `task-client inspect <prompts 或 tasks> <任务编号>` |  | 提示词任务用 prompts，已有建筑修改任务用 tasks。 | 默认返回任务阶段、来源核对与下一步；按 expand 视图展开，再用 task-client start 明确领取。 |
+| 执行已领取的建筑初稿 | 命令 `creation --session <会话名> start` |  | 从已领取的提示词读取冻结模式。极限效果用 --request 显式登记要探索的设计轴。 | 本地编译或接收 WorkingModel，回读、检查、出图并保存证据。按模式处理单候选或匿名 A/B 审阅；选用后另存制作版。 |
 
 ### 工作区与运行时
 
@@ -174,6 +178,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 校验候选快照 | 命令 `validate --request <请求JSON> --snapshot <候选快照> --output <新检查目录>` | `validate --help`<br>[请求与用例](diagnostic-guidance.md) | 同一次 control preview 的原始编辑请求与回执的 result.snapshot（after.json）。 | 写 validation.json。ok:true 表示生成报告；result.passed 决定是否通过，失败退出 1。<br>失败时把 result.validation 所指报告交给 diagnostics --kind candidate；通过后检查绑定并实际看图。 |
 | 复验已保存的制作源 | 命令 `model --request <请求JSON>` | `capabilities --model` | JSON 填 source、source_sha256 和 validate:true。路径与哈希从 model 的 result.saved 或 architect 的 saved 取。 | 返回 result.validation；验证抛出冲突时，退出 1 并带错误及冲突。只检查时省略 actions 和 save_draft。 |
 | 复验建筑及绑定方案 | 命令 `architect plan-check --request <请求JSON>` | `capabilities --architect-action plan-check` | JSON 填绑定过建筑方案的 source 和 source_sha256。 | 成功退出 0，返回 validation、绑定方案和 plan_sha256；失败退出 1。<br>需要看图时把 next.request 交给 review-prepare。 |
+| 回放并缩减建筑活动失败 | 命令 `architect failure-replay --request <请求JSON>` | `capabilities --architect-action failure-replay`<br>[请求与用例](architecture-workflow.md) | 通过版 source、源与方案哈希、失败方案或差分组、活动失败判据及检查预算。 | 返回原始与缩减失败、候选检查和极小性覆盖。指定 output 可保存可复跑回放包。 |
 | 评估整栋建筑或复核续版质量 | 命令 `architect quality-check / quality-compare --request <请求JSON>` |  | 制作源和哈希，可选 review-record 的审阅绑定。对照时提供上一版或失败回执绑定。 | 返回五维评分、证据覆盖、优先问题和同条件分差。可用 --compact-report 保留完整回执。 |
 | 查询制作源是否可编辑 | 命令 `control inspect --source <制作源>` |  | 现有制作源路径。 | result.editing_ready 表示是否具备编辑条件，context_readiness 给出上下文缺失或失配的原因。 |
 | 解释检查失败并定位证据 | 命令 `diagnostics --kind <model、review 或 candidate> --report <完整回执>` | `diagnostics --help`<br>[请求与用例](diagnostic-guidance.md) | 建筑执行失败用 model 和 report.path；审阅覆盖或观察用 review；候选检查用 candidate 和 result.validation。 | 返回问题、位置、证据及下一项核对；退出 0 表示解释成功。<br>按证据核对原请求或绑定。需要修改时重新编译及复验。 |
@@ -191,7 +196,8 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 
 | 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
 | --- | --- | --- | --- | --- |
-| 准备建筑审阅 | 命令 `architect review-prepare --request <请求JSON>` | `capabilities --architect-action review-prepare` | JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换失败机位。 | 复验保存源并写审阅包及相机；coverage_passed 是机位覆盖检查，visual_status 表示仍待看图（完整回执在 coverage 下）。<br>运行回执的 render_command 出图，保留同份回执的 review_record_bindings。 |
+| 准备建筑审阅 | 命令 `architect review-prepare --request <请求JSON>` | `capabilities --architect-action review-prepare` | JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换机位，单独出图时用 view_ids 选择机位。 | 复验保存源并写审阅包及相机；coverage_passed 是机位覆盖检查，visual_status 表示仍待看图（完整回执在 coverage 下）。<br>运行回执的 render_command 出图，保留同份回执的 review_record_bindings。 |
+| 推荐建筑审阅补拍机位 | 命令 `architect review-recommend --request <请求JSON>` | `capabilities --architect-action review-recommend` | 填原审阅 pack、pack_sha256 和新 output。可填已登记的 notes_sha256、待补位置及搜索预算。 | 按半格脚位和实际模型估计取景，返回推荐机位、预计覆盖与待补原因。<br>有推荐时将 next.request 交给 review-prepare，再出图并实际查看。 |
 | 从制作源渲染实际图片 | 命令 `render --source <制作源> --cameras <相机JSON> --output <新目录>` | `render --help` | 使用保存回执的制作源；建筑审阅沿用 review-prepare 生成的相机。 | 写 PNG 和 render_manifest.json；检查 status:complete 及源、相机、图像哈希。<br>打开实际图像，建筑审阅用 review-record 登记观察。 |
 | 从候选快照渲染实际图片 | 命令 `render --snapshot <候选after.json> --cameras <相机JSON> --output <新目录>` | `render --help` | 快照来自 control preview 的 result.snapshot；对比前后时沿用相机，给两次出图各选新目录。 | 生成绑定候选快照的 PNG 与渲染清单。<br>打开图片并核对候选绑定；改动仍需通过候选验证。 |
 | 登记建筑看图观察 | 命令 `architect review-record --request <请求JSON>` | `capabilities --architect-action review-record` | 原样取 review-prepare 的 review_record_bindings，再填实际看图得出的 observations 和 issues（无问题填 []）。 | 写观察记录，返回覆盖与交付摘要。精修另须用户看过对应图像并明确同意。 |
@@ -221,7 +227,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | structure_place | 按锚点、旋转、镜像生成放置操作；不实际写建筑，仍须control preview/validate和显式新版本导出。 |
 | structure_save | 直接保存模型生成的资产：spec、component或绑定预览三选一；本地校验和真实预览后入库为待审阅资产，生成资产批次清单。保留手动导入，不产生NBT或设计批准。 |
 | parametric_list | 查询参数化模块、可直接编译的对象配方库、柱式与扶手样式、参数及安装边界；只读。 |
-| parametric_compile | 编译参数化模块候选：柱式、外置楼梯扶手、独立栏杆、梁、托架、拱框、门窗框、基座及家具。配方见parametric_list.object_library；不改当前建筑。 |
+| parametric_compile | 编译参数化模块候选：可调周期与相位的建筑重复频谱、柱式、外置楼梯扶手、独立栏杆、梁、托架、拱框、门窗框、基座及家具。配方见parametric_list.object_library；不改当前建筑。 |
 | parametric_preview | 按参数编译并生成真实独立构件候选与缩略图；不入库、不批准、不写建筑。 |
 | parametric_contract | 由可信调用方给定硬约束，返回供模型输出使用的JSON Schema及语义门禁说明；模型回复不能修改该契约。 |
 | parametric_validate | 使用调用方保留的硬约束验收模型proposal，再运行共享编译器；超限拒绝，不截断、不降级、不写建筑。 |
@@ -238,10 +244,10 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | pattern_create | 用小位图、几何绘图或图层组合创建原生纹样。CLI 回执的 result 直接包含 id、image_sha256 和 fitting_input。把 fitting_input 合入 pattern_microfit 请求，或用 id 和 image_sha256 组装 pattern_asset。 |
 | pattern_assets | 用 action:list 查询纹样资产，用 action:get 和 id 读取指定纹样。copy 可从内置图库创建本地副本。修改资产绑定 content_sha256，重用图像绑定 image_sha256。 |
 | pattern_microfit | 先拟合可辨纹样单元，再铺排；支持质量门槛与硬拓扑约束，可选活版门、石墙、玻璃板、铁栏杆、栅栏、雪层、地毯、压力板、末地烛、链条等精细形状。 |
-| scene_compile | 按稳定对象ID、尺寸引用和贴附关系编译建筑对象图；检查依赖、实际接触、重叠、保留空间与声明通路，只返回候选。 |
-| scene_save | 显式保存对象图和编译快照的新版本；校验候选内容与父版本，保留旧版，不写建筑或定稿NBT。 |
+| scene_compile | 按稳定对象ID、尺寸引用和贴附关系编译建筑对象图；检查依赖、实际接触、重叠、保留空间、声明通路与关系锁，只返回候选。 |
+| scene_save | 显式保存对象图和编译快照的新版本；校验候选、父版本及保留或明确解除的关系锁，保留旧版，不写建筑或定稿NBT。 |
 | scene_read | 读取建筑对象图及不可变版本快照，校验文件哈希；不推定已审阅或已批准。 |
-| scene_update | 修改已有对象并按依赖联动重算，复验整图，检查原保护区与修改预算；返回候选，须另用scene_save保存新版本。 |
+| scene_update | 预览已有对象、纹样或关系锁的修改，按依赖联动重算，验证接触与原约束；返回实际方块差分及候选，或可定位的冲突。候选须另用scene_save保存。 |
 | mount_batch | 从一次绑定的完整源顺序规划最多64次安装，不反复落盘；整体复核覆盖、总预算、最终背衬、净空和路线后原子返回候选，不写入或批准。 |
 | surface_decorate | 保留宿主配方与批量饰面参数，在内存中重新编译嵌纹构件；支持工作区纹样资产绑定，可作为对象图配方，不烘焙掉纹样来源。 |
 | pattern_repeat_detect | 在哈希绑定的拉正图中，用线性二维 FFT 和空间域复核找出矩形基本单元。输出周期、有效像素对、单元来源或失败原因。 |
@@ -252,7 +258,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | compute_info | 检查CPU/CuPy CUDA后端，执行真实设备探测；不安装依赖、不修改模型。 |
 | field_compile | 在显式画布采样有界体场图；支持CSG、超椭球、gyroid及组合扭转/弯曲/渐缩/剪切/波浪/仿射，CPU/GPU返回纯候选。 |
 | pattern_warp | 对绑定纹样进行逆采样透视/旋涡/波浪/放射重复，保留RGBA配色、创建独立资产；不修改原图，变换后须重新拟合和检查拓扑。 |
-| facade_compile | 生成真实凹窗、窗台与层带的参数化立面候选，返回开口坐标，支持对象图和完整工作模型。 |
+| facade_compile | 生成凹窗与层带立面候选。可指定跨数，或按净面宽和固定门洞排窗并保留转角柱。返回局部开口坐标，支持建筑方案、对象图和完整工作模型。 |
 
 
 ## 外部 Agent 机器接口

@@ -1,5 +1,5 @@
 const fs=require('node:fs/promises'),path=require('node:path')
-const defaults={disabledTools:[],zoom:100,autoPreview:true,restoreSession:true,quality:'balanced',previewMode:'3d',startPage:'project',density:'comfortable',colorScheme:'blue',showHints:true,previewDelay:1400,showSelection:true,imageLimit:8,rememberWindow:true,windowWidth:1500,windowHeight:1000,cameraLookSpeed:100,cameraPanSpeed:100,cameraWheelSpeed:100,cameraInvertX:false,cameraInvertY:false}
+const defaults={disabledTools:[],zoom:100,autoPreview:true,restoreSession:true,quality:'balanced',previewMode:'3d',startPage:'project',density:'comfortable',colorScheme:'blue',showHints:true,previewDelay:1400,showSelection:true,imageLimit:8,rememberWindow:true,windowWidth:1500,windowHeight:1000,cameraLookSpeed:100,cameraPanSpeed:100,cameraWheelSpeed:100,cameraInvertX:false,cameraInvertY:false,creationMode:'economy',economyModel:'',qualityModel:''}
 function validate(value){
  const tools=require('../.agents/skills/minecraft-nbt-modeler/tool-catalog.json').tools
  if(!Array.isArray(value.disabledTools)||value.disabledTools.length>Object.keys(tools).length||new Set(value.disabledTools).size!==value.disabledTools.length||value.disabledTools.some(id=>!Object.hasOwn(tools,id)))throw Error('停用工具列表无效')
@@ -7,6 +7,7 @@ function validate(value){
  if(!['project','assets','model','prompt','tasks'].includes(value.startPage)||!['comfortable','compact'].includes(value.density)||!['showHints','showSelection','rememberWindow','restoreSession'].every(k=>typeof value[k]==='boolean')||!Number.isInteger(value.previewDelay)||value.previewDelay<200||value.previewDelay>5000||![8,16,32].includes(value.imageLimit)||!Number.isInteger(value.windowWidth)||value.windowWidth<900||value.windowWidth>7680||!Number.isInteger(value.windowHeight)||value.windowHeight<650||value.windowHeight>4320)throw Error('应用或窗口配置无效')
  if(!['cameraLookSpeed','cameraPanSpeed','cameraWheelSpeed'].every(k=>Number.isInteger(value[k])&&value[k]>=10&&value[k]<=300)||!['cameraInvertX','cameraInvertY'].every(k=>typeof value[k]==='boolean'))throw Error('3D操作配置无效')
  if(!['blue','green','violet','sand','graphite'].includes(value.colorScheme))throw Error('请选择有效的界面配色')
+ if(!['economy','maximum'].includes(value.creationMode)||!['economyModel','qualityModel'].every(key=>typeof value[key]==='string'&&value[key]===value[key].trim()&&value[key].length<=150&&!/[\x00-\x1f\x7f]/.test(value[key])))throw Error('请选择创作模式并填写有效的模型 ID')
  return value
 }
 function createAppSettings(directory){

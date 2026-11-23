@@ -25,7 +25,9 @@
 | API、AI 本地协议与引擎会话 | `mise run test -- api` |
 | 内部 Agent 起草、润色和提示词交接 | `mise run test -- prompt-archive` |
 | 桌面冒烟 | `mise run test -- desktop` |
+| 整栋规划、锁定搜索、SNBT 回读与桌面平面剖面 | `mise run test -- whole-building-planning` |
 | 整栋建筑质量评分、归卷阁真实出图与桌面报告 | `mise run test -- building-quality` |
+| 整栋生成与修改基准 | `mise run test -- building-generation-benchmark` |
 | 工作区契约与路径选择 | `mise run test -- workspace` |
 | 可移植引擎合成回归 | `mise run nbt -- regress --output <新目录>` |
 | 建模工具与操作参数 | `mise run test -- modelling` |
@@ -40,13 +42,21 @@
 | 曲面构件切片、来源绑定与离线回放 | `mise run test -- curve-components` |
 | 曲面 UV 模板、端部、方向与配方编译 | `mise run test -- curve-stencils` |
 | 偏心曲面代表样段、四个材质机位、保护拒绝及审阅绑定 | `mise exec -- python -B tests/engine/curved-surface-review.py` |
-| 建筑方案闭环 | `mise run test -- architecture-workflow` |
+| 建筑方案闭环、空间图与实际通路反例 | `mise run test -- architecture-workflow` |
+| 公共入口、归卷阁粗布局候选与真实审阅图 | `mise run test -- architecture-preview` |
+| 建筑活动失败回放、差分缩减和源保护 | `mise run test -- building-failure-replay` |
+| 单栋联合选址、固定位置对照、河面桥接与续编 | `mise run test -- terrain-site-selection` |
+| 入口亭立面排窗、门洞通行与同机位真实出图 | `mise run test -- contextual-facade-preview` |
 | 模块化对象、结构杆件与窗框 | `mise run test -- modular` |
 | 外部资产库的离线、完整性与回滚 | `mise run test -- asset-libraries` |
 | 外部资产库桌面流程 | `mise run test -- unified-assets` |
 | 工作台旅程、焦点与窗口布局 | `mise run test -- studio-redesign` |
 
 整栋评分的留出样例使用归卷院和折角铜顶展馆。从源码根目录先执行 `mise run ci:build`，再执行 `mise exec -- node tests/desktop/building-quality.mjs --held-out` 生成制作源、审阅包和真实渲染。在读取图像后，用 `review-record` 的量表观察字段登记评审。
+
+加上 `--output <全新目录>` 保留失败回放回归的隔离工作区和 `results.json`。堵梯口和错站柜台侧的包均可用各自的 `replay.json` 从普通 CLI 复跑。用法见[建筑活动失败回放](../.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md#建筑活动失败回放)。
+
+入口亭立面套件派生 9、19、31 格三种面宽及 6 格拒绝用例，在 `build/contextual-facade-*` 留下输入、SNBT、回读证据和同机位纹理 PNG。验收索引为 `results.json`，出图依赖锁定的 Playwright 浏览器。
 
 风格量化专项可在构建前端后运行 `mise exec -- node tests/desktop/building-quality.mjs --style`。命令生成四个已落盘的梁架对照，核对 CLI 与桌面结果，写出 `style-results.json` 和桌面截图。
 
@@ -60,6 +70,8 @@
 - `blind` 由协调员记录 `reviewer_knew_groups: false` 及 `votes`。每条投票写 `reviewer`，并使用 `{path, sha256}` 分别绑定本轮 `reference review-prepare` 的私有 `binding` 和 `review-record` 的 `record`。两种路径都以创作工作区为准。用户与独立 Agent 分别投票。用交换顺序后的匿名包再请同一评审 Agent 作答，同时把该盲审评审的分项等级转记到各制作版的 `architect review-record`。
 
 输出保留同机位修复率、用户与 Agent 偏好、平局、交换顺序的一致性、必要路线回归和修改成本。缺回执、不同条件或超出改动预算时可查验收缺项。替换默认反馈还需在整栋专项回归中通过必要路线和操作面反例。
+
+固定自然语言任务、脚本化复验、外部布局候选和待评图包见[整栋生成与修改基准](../docs/development/BUILDING_GENERATION_BENCHMARK.md)。
 
 单独运行一个检查：
 
@@ -101,3 +113,7 @@ mise exec -- node tests/node/task-cancel.mjs --output build/task-cancel-check
 4. 移动时同步检查相对导入、仓库根目录推导、fixture 调用、套件、验收和当前文档。
 
 [CI 工作流](../.github/workflows/portable.yml)与[产品验收清单](../config/product-acceptance.json)是不同范围的显式执行清单。`docs/archive/` 保留当时的历史路径和结果，不作为当前命令入口。
+
+## 创作模式回归
+
+在仓库根目录运行 `mise run test -- creation-workflows`。引擎回归使用临时创作工作区、冻结 CLI 和 Chromium 实际出图，覆盖强模型升级、局部失败、原请求重试、A/B 比选和制作版回传。桌面回归通过本机模拟接口核对模型档位及提示词入口。模型回复和观察记录为测试数据。

@@ -2,6 +2,8 @@
 
 适用完整建筑或需要稳定构件身份的重设计。先按[整体流程](whole-model-workflow.md)完成用途、玩家站位、通路、空间与顶构的设计，再把能执行和检查的内容写入建筑方案。文本风格仍由 Agent 和用户判断；尺寸、材质、承托及路线交给实际几何检查。
 
+需在编译前比较分层、面积和通路时，先按[整栋建筑量化规划](whole-building-planning.md)生成或检查布局。准备好的方案含可选的 `planning` 绑定，编译和制作源回读都复验对应条件。
+
 ## 入口与设计责任
 
 在创作项目根目录使用冻结入口。小型建筑可以从[可直接运行的入口亭示例](../assets/examples/entry-pavilion.json)开始，按需查询：
@@ -49,6 +51,23 @@ Agent 把自然语言设计转为以下数据，而不是直接猜一串工具�
 **有参考图的初稿**先保留原图方位，定位入口、主要体量和开间。选看得清的交接点，例如窗台伸出墙面多少、玻璃在哪一层、横枋如何搭在门柱上。把这些相对关系转成进深、材质角色和具体方块状态；看不见的厚度、背面和室内另记推导理由。初稿用接近原图的视角比轮廓，再用玩家近景比厚度、接缝和收边。
 
 两条路线都把需要回看的细部写入 `review_locations`，在相邻站位或通路上安排 `activities`。完整的请求、成功初稿、堵梯口变体与看图位置见[可运行的归卷阁样例](../assets/examples/reading-loft/README.md)。
+
+### 在细化构件前比较空间布局
+
+先用同一份粗建筑方案固定围护足迹、空间用途、层标高、入口、使用者和活动顺序。用简化的地板、梯段与工作面配方表达会改变通行的体量。通过 `capabilities --architect-action layout-search` 查字段，再执行 `architect layout-search --request <JSON>`。请求提供粗 `plan`，或已登记的 `plan_id` 和可选 `revision`。
+
+`graph.edges` 以方案 `spaces` 的 ID 为节点。两种边可以共用：
+
+- `adjacent` 核对同一脚位高度的两片空间是否沿侧边相对，角点相接、重叠和跨层都不满足。默认 `max_gap: 0`，留一格墙厚时可设为 1。这项约束描述空间范围。
+- `vertical` 用 `activity` 和从 0 开始的 `segment` 指向已有活动的一段路。按起点到终点填写 `spaces`，两个脚位须对应不同层。实走证据来自原活动路段，梯段检查也随整栋编译运行。
+
+在 `graph.variants` 给出最多八份独立尝试。每份用稳定 ID 填要修改的绝对坐标或方向，其他字段沿用种子。可用 `spaces` 调整水平范围与净空采样，`parts` 调整摆位和旋转，`stairs` 调整梯段坐标和宽度，`stops` 和 `route_targets` 同步脚位。只需尝试种子时写 `{"id":"base"}`。可用 `areas` 指定 XZ 包围盒面积范围。功能空间的 XZ 范围受围护矩形或多边形足迹约束，采用自建围护的方案以画布为边界。候选使用具名 `context.targets`，并把各活动的第一站纳入入口通路检查。
+
+查看 `attempts` 的状态。未通过的行给出约束或模型问题，可按脚位、范围、部件或 `activity_ids` 回到原方案定位。通过的行附入口路径、跨层边、梯段与操作面证据。路径步数是半格搜索的见证点间步数。完整路径可从候选重新运行 `plan-build` 获得。回执按尝试顺序交回最多三份通过的独立候选，可用 `limit` 缩小。候选由 Agent 给出，工具负责约束和实际方块筛查。
+
+将选中行的 `candidates[].plan` 放进 `plan-build` 的 `plan`。在精细配方补齐之后复核受影响的机位、脚位和工作面，再通过 `save_draft` 保存并真实出图。初稿缩略图用于用户确认，手动 NBT 定稿沿用独立入口。归卷阁的[粗布局对照](../assets/examples/reading-loft/README.md#粗布局对照)含两种登梯组织和两个可定位的反例。
+
+已有坐标扰动请求继续使用 `variables`。该模式组合 XZ 偏移，最多 24 次尝试，按总位移从小到大返回候选，`adjacency` 沿用 XZ 投影格距。空间图请求用 `graph` 代替 `variables`，邻接边写在 `graph.edges`。
 
 建模前在已有设计笔记中逐项写清需求来源、使用者、动作、物件或操作面、空间及其连接。需求来源标明用户要求或 Agent 的设计推导，推导附理由。用户要求的重点和本次实际采用的设计承诺都进入回查范围，保留未落实项的具体原因。无需先写长篇故事，也不按物件覆盖百分比评定完成。
 
@@ -106,11 +125,60 @@ Agent 把自然语言设计转为以下数据，而不是直接猜一串工具�
 
 `plan-save` 使用父 `revision` 保存不可变方案修订，`plan-get` 可取指定版本。它们位于 `nbt_models/_workspaces/project_design/plans/`。`plan-build` 使用内联 `plan` 或 `plan_id`，两者选一；包含 `save_draft:{}` 时才发布 SNBT 制作版。
 
+### 先比较粗布局
+
+用 `architect layout-search --request layout.json` 在精做梁架、窗列和饰件前比较同一外壳内的摆法。请求填 `plan` 或已保存的 `plan_id`，其余字段可用 `capabilities --architect-action layout-search` 查询。粗方案至少需要能支撑行走的围护、楼板、梯段、关键工位及活动站位。
+
+`variables` 中每个变量有 `id`、一起移动的 `targets` 和备选 `offsets`，每项位移写成 `[dx, dz]`。例如归卷阁可将 `{"kind":"part","id":"archive_cabinet"}` 配上 `[[0,0],[0,5],[1,5]]`，再为 `{"kind":"stop","id":"file_books","index":0}` 提供独立站位偏移。组合上限为 24。候选按总位移从小到大排序。
+
+| 目标 kind | 位移作用 |
+| --- | --- |
+| `part` | 构件的放置位置 |
+| `stair` | 梯段起点、终点和操作包围盒 |
+| `space` | 空间边界、空间采样点及其活动站位 |
+| `space-extent` | 空间 X/Z 上界，可改变平面面积 |
+| `stop` | 指定活动内的站位，`index` 从 0 开始 |
+| `route-target` | `context.targets` 中的命名终点 |
+| `review-location` | 对应的审阅位置 |
+
+若移动楼梯会改变活动站位、必要路线目标或审阅位置，可在同一个变量中登记这些目标。用 `areas` 指定空间的最小和最大平面格数，用 `adjacency` 指定两空间 XZ 包围盒之间允许的空格数。楼层之间实际能否连通由原有梯段及活动检查验证。
+
+回执的 `attempts` 列出各方案的空间条件和技术失败证据，`candidates` 给出最多三份可继续编辑的 `plan`；空数组表示这一批组合均未通过。选定后用实际方案调整视角、完善构造，再交给 `architect plan-build` 保存并出图。
+
 生成顺序是围护、普通构件、梯段、连接件、按项目要求验密闭、处理已声明洞口、全模型与设计检查、可选保存。候选在临时工作模型中组合，提交仍由原 WorkingModel 执行总预算、保护、留白、原对象图政策和路线检查。任何失败都不发布新制作版。生成几何超过构件存储尺度时，只机械分组，不重新设计接缝。
 
 已有源必须同时提供 `source`、`source_sha256`、`expected_plan_sha256`。续版不能暗改画布、保护、开口或路线。构件保留 ID；受管位置若被手改则报冲突，由 Agent 先判断保留或调整方案。无关自由几何保留，旧源不覆盖。重建也保留原对象图声明的保护、留白和路线。
 
 `architect plan-check` 或普通工作模型的检查/保存会重新执行空间样本、当前构件、梯段、附属构造、承托和风格规则。制作版的 `model-instances.json` 记录方案绑定，核心清单继续校验文件哈希。`inspect` 返回 `architecture_sha256`。没有规则时明确报告风格未作机器验证。
+
+## 建筑活动失败回放
+
+`architect failure-replay` 从同一个已通过的制作版重建方案候选。请求顶层沿用成功 `plan-build` 的 `revision_request`，包含 `source`、`source_sha256` 和 `expected_plan_sha256`。再提供 `failed_plan` 或 `groups`，以及 `failure` 和 `max_checks`。完整字段用 `capabilities --architect-action failure-replay` 查询。
+
+- `failed_plan` 接收完整失败方案。构件、活动等有 ID 的列表在 ID 及顺序一致时逐条拆分。增删或重排的列表整体成组。其余字段各为一组。
+- `groups` 显式指定不可重叠的原子修改。例如 `{"id":"move-cabinet","edits":[{"field":"parts","id":"archive_cabinet","value":{…}}]}` 中的 `value` 是替换后的完整构件记录。省略编辑的 `id` 可替换整个顶层字段，再省略 `value` 可删除字段。有关联的修改可放入同一组。画布、上下文和方案格式版本固定。
+- `failure` 定位具体活动。归卷阁堵梯口使用 `{"kind":"route_segment","activity":"file_books","index":1,"reason":"invalid_or_obstructed_feet_pose"}`。错站柜台侧使用 `{"kind":"use_face","activity":"file_books","index":0,"part":"return_desk","interface":"intake","reason":"wrong_side"}`。序号从零开始。有序空间必须一致。路段匹配还核对原失败的两个脚位，操作面匹配核对命名构件、对象和接口。
+
+先用 `plan-check` 回读固定基线，再验证零差分重建的方块与墙层完全一致。每个不同差分组合消耗一次候选检查，包括零差分和全部差分，基线回读另计。候选复用 `plan-build` 的工作模型、保护规则及实际活动检查。静态碰撞的适用范围仍见[验收说明](validation-workflow.md)。
+
+| 状态 | 含义 |
+| --- | --- |
+| `same_failure` | 实测命中指定活动、位置及原因。保留组见 `remaining_groups`，已有的其他错误仍可在原始回执中查到。 |
+| `different_failure` | 候选失败，且所选活动项已有确定证据，显示该项通过或失败原因或路段脚位不同。 |
+| `pass` | 候选通过建筑检查。 |
+| `unreplayable` | 源或绑定失效，或检查无法得到所选活动项的确定证据，例如中间方案引用无效、较早的检查拦截、未知碰撞形状。 |
+| `budget_exhausted` | 下一项检查超过预算。若已复现目标，仍返回已知最小的差分组。 |
+
+回放先尝试撤回成批差分，再检查剩余组的真子集。 `single_removal_minimal` 表示逐个撤回一组都得到确定的非目标结论。只有所有真子集都得到这样的结论时才设置 `inclusion_minimal`。未检查或无法判断的子集会阻止这项声明。两项声明均受当前差分粒度和静态判据约束。[Zeller 与 Hildebrandt 的差分调试论文](https://www.st.cs.uni-saarland.de/publications/files/zeller-tse-2002.pdf)
+
+请求指定 `output` 时，使用 `nbt_models/_workspaces/failure_replays/<output>` 中的新目录。完整包以 `report.json` 为索引，记录各次检查、原始及缩减证据指针、文件哈希和覆盖。用 `replay.json` 直接重跑，核对 `binding_sha256`、`trace_sha256`、`candidate_checks` 和 `remaining_groups`。绑定覆盖源及版本清单、通过和失败方案、差分、判据、预算和引擎。包依赖原制作版本及其工作区。对修改后的输入可发起新请求。检查结果通过 JSON 状态返回，CLI 参数或目标目录无效时返回非零。包写入失败时报告 `bundle_error`，可换新目录重跑。
+
+```powershell
+mise run nbt -- architect failure-replay --request replay-request.json
+mise run nbt -- architect failure-replay --request nbt_models/_workspaces/failure_replays/stair/replay.json
+```
+
+回放候选在内存中构建，制作版、实际图片确认和显式定稿各沿用原入口。
 
 ## 三层真实看图与问题回写
 
@@ -125,6 +193,14 @@ Agent 把自然语言设计转为以下数据，而不是直接猜一串工具�
 审阅包与图片放在 `nbt_models/_workspaces/` 的新目录，不能写入已发布版本的核心目录。图像缺失、元数据不一致、记录被更改或父修订过时会拒绝回写。
 
 机位失败或需要补拍时，可用同一 `source` 和 `source_sha256` 再执行 `review-prepare`，指定新的 `output`。在 `view_overrides` 中放入要替换的完整机位，沿用原机位的 `id` 和 `layer`，按需调整 `feet` 或 `eye`、`target` 与 `sample_box`。字段用 `capabilities --architect-action plan-save --field plan.views` 查询。新包沿用原方案的位置绑定，重新检查取景和位置可见性。按新包的 `render_command` 出图并实际看图，再用新包的回执登记观察。原制作版和原审阅记录仍可回查。
+
+### 自动推荐补拍机位
+
+从创作目录的 CLI 运行 `architect review-recommend --request 补拍请求.json`。将原 `review-prepare` 回执的 `pack`、`pack_sha256` 和新目录 `output` 填入请求。已有看图记录时，将同一审阅包的 `review-record.sha256` 填入 `notes_sha256`。推荐先核对登记修订和图像证据，再跳过已有观察的位置。可用 `locations` 限定本次要看的登记位置 ID。省略观察哈希时，选中的位置均进入补拍考虑范围。
+
+默认最多估计 128 个相机候选并推荐 3 张图，分别可用 `max_candidates`（1–512）和 `max_images`（1–16）调整。搜索从原机位、附近活动脚位、路线脚位和登记位置的邻域出发，检查半格支撑和玩家净空，沿用原机位的视场、层级、构件或局部取样范围。候选通过射线和原视角最低可见比例后，优先选择能增加最多位置覆盖的机位。搜索统计含实际进入估计的候选数、探测脚位、跳过的重复相机和耗时。取景估计适用约 1.5–16 格的观察距离，搜索范围有限，进场路线与画面辨识度仍需另查。
+
+`recommendations` 含脚位、视向与预计覆盖的位置。查看 `pending_locations` 的失败计数和遮挡格，区分候选预算、遮挡、未知形状和视角门槛。可见性未知的细件保留待看状态。将有结果时返回的 `next.request` 原样交给 `review-prepare`，再运行 `render_command` 出图。该请求用 `view_ids` 只渲染选中的机位。补拍包可独立登记实际观察，省略机位的包会报告 `omitted_views`，完整三层审阅的回传仍需要全套机位和真实图片。人工看图确认和显式定稿仍按原流程执行。
 
 `review-prepare` 的 `coverage.delivery_summary` 列出落盘模型上已查的目标与操作面，观察数从零开始。实际看图并调用 `review-record` 后，取其 `delivery_summary` 回报用户。每条摘要区分可达目标、专项路线、已记观察的机位与位置、取景失败和待回查问题。补充一条从图片读到的具体结论，并附当前源、图片与记录路径。未登记活动、未看位置和未实测的游戏项目按其实际范围说明。
 

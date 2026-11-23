@@ -14,8 +14,12 @@ from courtyard import courtyard
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("case", choices=("open", "blocked", "wrong-side", "courtyard"))
-    case = parser.parse_args().case
+    parser.add_argument("case", choices=("open", "blocked", "wrong-side", "courtyard", "layouts"))
+    parser.add_argument("--candidate", choices=("front", "side"), help="采用一个已通过检查的粗布局并出图。")
+    arguments = parser.parse_args()
+    case = arguments.case
+    if arguments.candidate and case != "layouts":
+        parser.error("--candidate 仅用于 layouts")
     workspace = Path.cwd()
     entry = workspace / ".agents/skills/nbtcreator-workspace/nbt.py"
     if not entry.is_file():
@@ -51,7 +55,20 @@ def main():
             raise SystemExit(result.returncode)
         return json.loads(result.stdout)
 
-    plan = courtyard() if case == "courtyard" else reading_loft(blocked=case == "blocked", wrong_side=case == "wrong-side")
+    if case == "layouts":
+        from layouts import reading_loft_layouts
+
+        result = invoke("layout-search", reading_loft_layouts())
+        for row in result["attempts"]:
+            print(f'{row["id"]} {row["status"]}')
+        if not arguments.candidate:
+            return
+        chosen = next((row for row in result["candidates"] if row["id"] == arguments.candidate), None)
+        if chosen is None:
+            parser.exit(2, "指定候选未通过，请查看 layout-search-result.json。\n")
+        plan = chosen["plan"]
+    else:
+        plan = courtyard() if case == "courtyard" else reading_loft(blocked=case == "blocked", wrong_side=case == "wrong-side")
     record = invoke("plan-save", dict(revision=0, plan=plan))
     build = dict(plan_id=record["id"], revision=record["revision"])
     if case in ("blocked", "wrong-side"):
@@ -65,7 +82,7 @@ def main():
     if not pack["coverage"]["coverage_passed"]:
         raise SystemExit("机位或审阅点被遮挡，请检查 review-prepare-result.json。")
     subprocess.run([sys.executable, "-B", str(entry), *pack["render_command"]], check=True)
-    if case == "open":
+    if case == "open" or (case == "layouts" and arguments.candidate == "front"):
         cameras = Path(__file__).with_name("loft-sections.json")
         subprocess.run([sys.executable, "-B", str(entry), "render", "--source", str(source), "--cameras", str(cameras),
                         "--output", str(run / "sections")], check=True)

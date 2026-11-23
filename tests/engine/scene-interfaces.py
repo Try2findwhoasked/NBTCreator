@@ -5,6 +5,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
@@ -28,6 +29,34 @@ def assembly(height=5, right_height=None):
         dict(id='roof', recipe=solid([13,1,5]), attach=dict(target='beam', face='up', interface='roof_seat'))])
 
 
+def locked_assembly():
+    graph = assembly()
+    graph['relation_locks'] = [
+        dict(id='left_foot', kind='fixed_position', object='left', interface='base', position_half=[4,0,8]),
+        dict(id='right_foot', kind='fixed_position', object='right', interface='base', position_half=[24,0,8]),
+        dict(id='roof_join', kind='interface_contact', object='roof', target=dict(object='beam', interface='roof_seat')),
+    ]
+    return graph
+
+
+def notched_bearing_change():
+    # The right seat has the right height and envelope center, but a notch
+    # under the one-block-wide beam leaves no matching half-cell faces.
+    right = solid([3,5,3])
+    operation = right['arguments']['operations'][0]
+    right['arguments']['operations'] = [
+        dict(operation, lo=[0,0,z], hi=[2,4,z]) for z in (0,2)
+    ]
+    return [
+        dict(id='right', recipe=right, interfaces=[
+            dict(id='base', face='down', lo=[0,0,0], hi=[2,0,2]),
+            dict(id='capital_top', face='up', lo=[0,4,0], hi=[2,4,2]),
+        ]),
+        dict(id='beam', recipe=dict(tool='span_beam', arguments=dict(width=1, material='quartz_block')),
+             interfaces=[dict(id='roof_seat', face='up', lo=[0,0,0], hi=[12,0,0])]),
+    ]
+
+
 class Interfaces(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
@@ -36,6 +65,154 @@ class Interfaces(unittest.TestCase):
 
     def compile(self, graph):
         return dispatch(self.root, 'scene_compile', dict(graph=graph))
+
+    def test_locked_preview_reports_linked_geometry_and_exact_diff(self):
+        from nbt_agent.structure import build
+        from nbt_composition.object_scene import digest, scene_blocks
+
+        graph = locked_assembly()
+        original = self.compile(graph)
+        save_keys = ('graph','graph_sha256','content_sha256')
+        first = dispatch(self.root, 'scene_save', {key:original[key] for key in save_keys})
+        request = {key:first[key] for key in ('id','revision','version')}
+        changes = [dict(id='left', recipe=assembly(7)['objects'][0]['recipe'])]
+        page_args = dict(request, changes=changes, diff_limit=13)
+        result = dispatch(self.root, 'scene_update', page_args)
+        self.assertEqual(result['affected_objects'], ['beam','left','right','roof'])
+        self.assertEqual(result['geometry_changed_objects'], result['affected_objects'])
+        self.assertEqual(result['verification']['relation_locks'][0]['actual_half'], [4,0,8])
+        join = result['verification']['relation_locks'][2]
+        self.assertEqual((join['status'], join['plane_half'], join['contact_face_count']), ('passed',16,156))
+        self.assertEqual(result['graph']['relation_locks'], graph['relation_locks'])
+        before, after = [scene_blocks(build(self.root, entry['spec'])) for entry in (original,result)]
+        expected = [dict(pos=list(p), before=list(before[p]) if p in before else None,
+                         after=list(after[p]) if p in after else None)
+                    for p in sorted(before.keys() | after.keys()) if before.get(p) != after.get(p)]
+        summary = result['block_diff']
+        self.assertEqual(summary['sha256'], digest(expected))
+        self.assertEqual(summary['total'], len(expected))
+        self.assertEqual(summary['entries'], expected[:13])
+        self.assertEqual(summary['next_offset'], 13)
+        page = dispatch(self.root, 'scene_update', dict(page_args, diff_offset=13))['block_diff']
+        self.assertEqual(page['entries'], expected[13:26])
+        self.assertEqual(page['sha256'], summary['sha256'])
+        saved = dispatch(self.root, 'scene_save', {key:result[key] for key in (*save_keys,'parent')})
+        reopened = dispatch(self.root, 'scene_read', dict(id=first['id']))
+        self.assertEqual((reopened['revision'], reopened['parent_version']), (2,first['version']))
+        self.assertEqual(reopened['version'], saved['version'])
+        self.assertEqual(reopened['candidate']['verification']['relation_locks'], result['verification']['relation_locks'])
+        self.assertEqual(reopened['candidate']['content_sha256'], result['content_sha256'])
+
+    def test_lock_conflict_witness_bearing_failure_and_timeout_preserve_head(self):
+        from nbt_composition.scene_relations import SceneCheckError
+
+        original = self.compile(locked_assembly())
+        first = dispatch(self.root, 'scene_save', {key:original[key] for key in ('graph','graph_sha256','content_sha256')})
+        request = {key:first[key] for key in ('id','revision','version')}
+        scene_folder = Path(first['file']).parents[1]
+        files = {file:file.read_bytes() for file in scene_folder.rglob('*.json')}
+        changes = [dict(id=name, lo=[x,1,4]) for name,x in (('left',2),('right',12))]
+        with self.assertRaises(SceneCheckError) as caught:
+            dispatch(self.root, 'scene_update', dict(request, changes=changes))
+        fields = caught.exception.fields
+        self.assertEqual(fields['code'], 'SCENE_RELATION_LOCK_CONFLICT')
+        self.assertEqual([row['lock_id'] for row in fields['conflicts']], ['left_foot','right_foot'])
+        self.assertEqual(fields['conflicts'][0]['actual_half'], [4,2,8])
+        self.assertGreater(fields['preview']['changed_blocks'], 0)
+        self.assertEqual(fields['conflict_proof']['checks'],
+                         [dict(lock_ids=['left_foot'], consistent=False), dict(lock_ids=[], consistent=True)])
+        # Replay with neither lock to verify the proof's actual witness.
+        allowed = dispatch(self.root, 'scene_update', dict(request, changes=changes, release_locks=['left_foot','right_foot']))
+        self.assertEqual(allowed['block_diff']['sha256'], fields['preview']['block_diff']['sha256'])
+        with self.assertRaises(SceneCheckError) as caught:
+            dispatch(self.root, 'scene_update', dict(request, changes=notched_bearing_change()))
+        fields = caught.exception.fields
+        self.assertEqual(fields['code'], 'SCENE_SPAN_CONTACT')
+        self.assertEqual((fields['conflicts'][0]['target'], fields['conflicts'][0]['interface']), ('right','capital_top'))
+        self.assertNotIn('conflict_proof', fields)
+        with patch('nbt_composition.object_scene.monotonic', side_effect=[0,1]), self.assertRaises(SceneCheckError) as caught:
+            dispatch(self.root, 'scene_update', dict(request, changes=changes, timeout_ms=1))
+        self.assertEqual(caught.exception.fields['code'], 'SCENE_PREVIEW_TIMEOUT')
+        self.assertNotIn('conflict_proof', caught.exception.fields)
+        self.assertEqual({file:file.read_bytes() for file in scene_folder.rglob('*.json')}, files)
+
+    def test_wall_layer_diff_honors_protection_before_lock_explanation(self):
+        from nbt_composition.scene_relations import SceneCheckError
+
+        graph = locked_assembly()
+        roof = graph['objects'][-1]
+        replacement = deepcopy(roof['recipe'])
+        replacement['arguments']['operations'][0]['classification'] = 'wall'
+        edit = [dict(id='roof', recipe=replacement)]
+        keys = ('graph','graph_sha256','content_sha256')
+        bindings = ('id','revision','version')
+        original = self.compile(graph)
+        saved = dispatch(self.root, 'scene_save', {key:original[key] for key in keys})
+        value = dispatch(self.root, 'scene_update', dict({key:saved[key] for key in bindings}, changes=edit))
+        self.assertEqual(value['changed_blocks'], 65)
+        self.assertEqual(value['block_diff']['counts'], dict(added=0, removed=0, replaced=65))
+        self.assertEqual(value['block_diff']['entries'][0],
+                         dict(pos=[2,6,3], before=['minecraft:stone',False], after=['minecraft:stone',True]))
+        graph['protected_boxes'] = [dict(lo=[2,6,3], hi=[2,6,3])]
+        original = self.compile(graph)
+        saved = dispatch(self.root, 'scene_save', {key:original[key] for key in keys})
+        with self.assertRaises(SceneCheckError) as caught:
+            dispatch(self.root, 'scene_update', dict({key:saved[key] for key in bindings}, changes=edit))
+        fields = caught.exception.fields
+        self.assertEqual(fields['code'], 'SCENE_PROTECTED_BLOCKS')
+        self.assertEqual(fields['conflicts'][0]['positions'], [[2,6,3]])
+        self.assertNotIn('conflict_proof', fields)
+
+    def test_detached_roof_and_unknown_fine_shapes_do_not_certify_contact(self):
+        from nbt_composition.scene_relations import SceneCheckError
+
+        original = self.compile(locked_assembly())
+        first = dispatch(self.root, 'scene_save', {key:original[key] for key in ('graph','graph_sha256','content_sha256')})
+        request = {key:first[key] for key in ('id','revision','version')}
+        with self.assertRaises(SceneCheckError) as caught:
+            dispatch(self.root, 'scene_update', dict(request, changes=[dict(id='roof', lo=[2,7,3])]))
+        fields = caught.exception.fields
+        self.assertEqual(fields['code'], 'SCENE_RELATION_LOCK_CONFLICT')
+        self.assertEqual(fields['conflicts'][0]['contact_face_count'], 0)
+        self.assertEqual(fields['conflict_proof']['lock_ids'], ['roof_join'])
+        with self.assertRaises(SceneCheckError) as caught:
+            dispatch(self.root, 'scene_update', dict(request, changes=[dict(id='roof', lo=[2,6,4],
+                                                                            recipe=solid([1,1,1],'lantern'))]))
+        fields = caught.exception.fields
+        self.assertEqual(fields['code'], 'SCENE_RELATION_UNKNOWN')
+        self.assertEqual(fields['conflicts'][0]['unknown_shapes'][0]['pos'], [2,6,4])
+        self.assertNotIn('conflict_proof', fields)
+
+    def test_add_and_explicit_release_preserve_source_and_legacy_contract(self):
+        from nbt_composition.scene_relations import SceneCheckError
+
+        graph = assembly()
+        original = self.compile(graph)
+        keys = ('graph','graph_sha256','content_sha256')
+        self.assertNotIn('relation_locks', original['verification'])
+        first = dispatch(self.root, 'scene_save', {key:original[key] for key in keys})
+        first_parent = {key:first[key] for key in ('id','revision','version')}
+        lock = dict(id='roof_corner', kind='fixed_position', object='roof', position_half=[4,12,6])
+        added = dispatch(self.root, 'scene_update', dict(first_parent, add_locks=[lock]))
+        self.assertEqual(added['block_diff']['total'], 0)
+        self.assertEqual(added['content_sha256'], first['content_sha256'])
+        second = dispatch(self.root, 'scene_save', {key:added[key] for key in (*keys,'parent')})
+        second_parent = {key:second[key] for key in first_parent}
+        removed = dispatch(self.root, 'scene_update', dict(second_parent, release_locks=['roof_corner']))
+        with self.assertRaises(SceneCheckError) as caught:
+            dispatch(self.root, 'scene_save', {key:removed[key] for key in (*keys,'parent')})
+        self.assertEqual(caught.exception.fields['code'], 'SCENE_LOCK_TRANSITION')
+        forged = deepcopy(added['graph'])
+        forged['objects'][-1].update(lo=[2,7,3])
+        del forged['objects'][-1]['attach']
+        forged['relation_locks'][0]['position_half'] = [4,14,6]
+        rebased = self.compile(forged)
+        with self.assertRaises(SceneCheckError):
+            dispatch(self.root, 'scene_save', dict({key:rebased[key] for key in keys}, parent=second_parent))
+        third = dispatch(self.root, 'scene_save', {key:removed[key] for key in (*keys,'parent','release_locks')})
+        self.assertEqual(third['revision'], 3)
+        historical = dispatch(self.root, 'scene_read', dict(id=first['id'],version=second['version']))
+        self.assertEqual(historical['candidate']['graph']['relation_locks'], [lock])
 
     def test_reciprocal_contacts_do_not_create_generation_cycles(self):
         graph = dict(schema_version=1, name='互相接触', size=[8,8,8], objects=[

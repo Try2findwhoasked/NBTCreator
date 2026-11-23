@@ -331,13 +331,16 @@ def check_task_index_size(data):
     if len(encode(data))>TASK_INDEX_BYTES:error('TASK_INDEX_LIMIT','提示词任务索引已达容量上限，未写入本次状态变更')
 
 
-def publish(workspace,index,identifier,revision):
+def publish(workspace,index,identifier,revision,*,creation=None):
+    from nbt_agent.creation_policy import normalize
     from nbt_project.queues import write
+    policy=normalize(creation)
     archived=read_prompt(workspace,index,identifier)
     record=archived['record']
     if record['revision']!=revision:raise ValueError('提示词已更新，请重新保存当前任务')
     if archived['source_matches'] is False:raise ValueError('源模型已变化，不能交接旧提示词')
-    task_id=uuid.uuid5(uuid.NAMESPACE_URL,archived['index']+':'+identifier+':'+revision).hex
+    policy_binding=':'+digest(encode(policy)) if policy!=normalize() else ''
+    task_id=uuid.uuid5(uuid.NAMESPACE_URL,archived['index']+':'+identifier+':'+revision+policy_binding).hex
     global_index=task_index(workspace);global_index.parent.mkdir(parents=True,exist_ok=True)
     with index_lock(workspace,global_index.parent):
         data=load_tasks(workspace)
@@ -361,7 +364,8 @@ def publish(workspace,index,identifier,revision):
                   name=record['name'],stage=record['stage'],status='pending',created_at=datetime.now(timezone.utc).isoformat(),
                   directory=relative(workspace,folder),prompt=files['提示词.md']['path'],files=files,
                   archive_index=archived['index'],archive_id=identifier,revision=revision,source=record.get('source'),source_sha256=record.get('source_sha256'),
-                  approval='not_granted_by_prompt',model_written=False)
+                  approval='not_granted_by_prompt',model_written=False,creation=policy,
+                  creation_sha256=digest(encode(dict(revision=revision,creation=policy))))
         if task['source']:
             from nbt_refine import source_binding
             binding=source_binding(inside(workspace,task['source']))
@@ -442,6 +446,10 @@ TASK_ATTACHMENTS={'text':'提示词.md','document':'方案.json','plan':'操作�
 
 def _read_task_record(workspace,record,*,diagnostic=False):
     folder=inside(workspace,record['directory']);contents={};issues=[]
+    if 'creation_sha256' in record and record['creation_sha256']!=digest(encode(dict(revision=record['revision'],creation=record.get('creation')))):
+        if not diagnostic:
+            raise ValueError('任务创作模式绑定已变化')
+        issues.append(dict(file='任务.json',code='ATTACHMENT_INVALID',error='任务创作模式绑定已变化'))
     for name in TASK_ATTACHMENTS.values():
         try:
             raw=task_file(workspace,folder,record,name)
@@ -518,7 +526,9 @@ def task_action(workspace,action,request):
             if item['status']=='completed':protocol.error('TASK_COMPLETED','已完成任务不能重新修改执行状态')
             protocol.check_lease(item,request,required=status=='completed' or bool(request.get('request_id')))
             if status=='completed':
-                item.update(evidence=completion_evidence(workspace,item,request),model_written=item['stage']!='plan',acceptance='pending_user_review')
+                evidence=completion_evidence(workspace,item,request)
+                verify_creation_evidence(workspace,item,evidence)
+                item.update(evidence=evidence,model_written=item['stage']!='plan',acceptance='pending_user_review')
                 item.pop('lease',None)
             item['status']=status
             result=dict(id=item['id'],status=status)
@@ -530,6 +540,28 @@ def task_action(workspace,action,request):
         check_task_index_size(data)
         write(inside(workspace,Path(item['directory'])/'任务.json'),item);write(file,data)
         return result
+
+
+def verify_creation_evidence(workspace,item,evidence):
+    if item['stage']!='draft':
+        return
+    from nbt_agent.protocol import error
+    workflow=inside(workspace,f"nbt_models/_workspaces/creation/{item['id']}/{item.get('lease_epoch',0)}/workflow.json")
+    if not workflow.is_file() and item.get('creation',{}).get('mode')!='maximum':
+        return
+    try:
+        data=json.loads(workflow.read_text(encoding='utf8'))
+        published=data['published']
+        source=inside(workspace,published['source']['source'])
+        review=inside(workspace,published['review']['review_dir'])
+        observations=published['observations']
+        if (data['task']!=item['id'] or data['revision']!=item['revision'] or
+            source!=inside(workspace,evidence['source']) or review!=inside(workspace,evidence['review']) or
+            published['source']['source_sha256']!=evidence['source_sha256'] or not observations.get('observed') or
+            (published['review']['architecture'] and observations['review']['sha256']!=evidence['review_sha256'])):
+            raise ValueError('回传必须使用本轮选中的制作版及实际图像观察')
+    except (OSError,ValueError,KeyError,TypeError) as failure:
+        error('EVIDENCE_INVALID','请用 creation finish 回传本轮发布并已观察的制作版：'+str(failure))
 
 def completion_evidence(workspace,item,request):
     from nbt_agent.protocol import error
@@ -579,6 +611,7 @@ def main():
     cmd=sub.add_parser('scan');cmd.add_argument('--source')
     cmd=sub.add_parser('read');cmd.add_argument('--index');cmd.add_argument('--id');cmd.add_argument('--file');cmd.add_argument('--sha256')
     cmd=sub.add_parser('publish');cmd.add_argument('--index',required=True);cmd.add_argument('--id',required=True);cmd.add_argument('--revision',required=True)
+    cmd.add_argument('--creation',type=Path,help='可选 JSON，冻结本次交接的 mode、economy_model 与 quality_model')
     cmd=sub.add_parser('tasks');cmd.add_argument('--after',type=int,default=0);cmd.add_argument('--status',choices=['pending','in_progress','completed','superseded'])
     cmd=sub.add_parser('task');cmd.add_argument('--id',required=True);cmd.add_argument('--view',choices=(*TASK_VIEWS,'comments','candidates'))
     for action in ('claim','heartbeat','release'):
@@ -588,7 +621,10 @@ def main():
     try:
         if args.command=='read' and not ((args.index and args.id and not args.file) or (args.file and args.sha256 and not args.index)):raise ValueError('read 使用 --index/--id，或交接文件的 --file/--sha256')
         if args.command in ('claim','heartbeat','release'):result=task_action(args.workspace,args.command,json.loads(args.request.read_text(encoding='utf-8-sig')))
-        elif args.command=='publish':result=publish(args.workspace,args.index,args.id,args.revision)
+        elif args.command=='publish':
+            from nbt_project.queues import read_json
+            creation=read_json(args.creation) if args.creation else None
+            result=publish(args.workspace,args.index,args.id,args.revision,creation=creation)
         elif args.command=='tasks':result=tasks(args.workspace,args.after,args.status)
         elif args.command=='task':
             from nbt_agent.protocol import ProtocolError

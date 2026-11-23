@@ -64,8 +64,23 @@ export const suites = {
   'architecture-preview': [
     buildWeb,
     node('tests/desktop/architecture-preview.mjs'),
+    node('tests/desktop/space-graph-preview.mjs'),
   ],
-  'architecture-workflow': [python('-B', 'tests/engine/architecture-workflow.py')],
+  'architecture-workflow': [
+    python('-B', 'tests/engine/architecture-workflow.py'),
+    python('-B', 'tests/engine/space-graph-layouts.py'),
+  ],
+  'building-failure-replay': [python('-B', 'tests/engine/building-failure-replay.py')],
+  'terrain-site-selection': [python('-B', 'tests/engine/terrain-site-selection.py')],
+  'contextual-facade-preview': [
+    buildWeb,
+    node('tests/desktop/contextual-facade-preview.mjs'),
+  ],
+  'creation-workflows': [
+    buildWeb,
+    python('-B', 'tests/engine/creation-workflows.py'),
+    node('tests/desktop/creation-workflows-desktop.mjs'),
+  ],
   'asset-batches': [
     buildWeb,
     python('tests/engine/asset-batches.py'),
@@ -93,11 +108,13 @@ export const suites = {
     node('--test', 'tests/node/batch-links.test.cjs'),
     node('tests/desktop/batch-workspaces-desktop.mjs'),
   ],
+  'building-generation-benchmark': [python('-B', 'tests/engine/building-generation-benchmark.py')],
   'building-quality': [
     buildWeb,
     python('-B', 'tests/engine/building-quality.py'),
     node('tests/desktop/building-quality.mjs'),
   ],
+  'building-repair': [python('-B', 'tests/support/building-repair-trial.py')],
   'catalog': [
     python('tests/engine/catalog-nbt.py'),
     node('tests/desktop/catalog-desktop.mjs'),
@@ -123,6 +140,7 @@ export const suites = {
   ],
   'curve-components': [python('-B', 'tests/engine/curve-components.py')],
   'curve-stencils': [python('-B', 'tests/engine/curve-stencils.py')],
+  'spectral-repeat': [python('-B', 'tests/engine/spectral-repeat.py')],
   'curved-surface': [python('-B', 'tests/engine/curved-surface.py')],
   'desktop': [
     node('--test', 'tests/node/render-pack.test.mjs'),
@@ -194,10 +212,14 @@ export const suites = {
   ],
   'modular': [
     python('-B', 'tests/engine/modular-objects.py'),
+    python('-B', 'tests/engine/spectral-repeat.py'),
     python('-B', 'tests/engine/structural-members.py'),
     python('-B', 'tests/engine/window-frames.py'),
   ],
-  'object-scenes': [python('-B', 'tests/engine/object-scenes.py')],
+  'object-scenes': [
+    python('-B', 'tests/engine/object-scenes.py'),
+    python('-B', 'tests/engine/scene-interfaces.py'),
+  ],
   'parametric': [
     python('-B', 'tests/engine/parametric-components.py'),
     python('-B', 'tests/engine/structure-agent.py'),
@@ -352,6 +374,11 @@ export const suites = {
     node('tests/desktop/walk-desktop.mjs'),
   ],
   'wavelet-eave': [python('-B', 'tests/engine/wavelet-eave.py')],
+  'whole-building-planning': [
+    python('-B', 'tests/engine/whole-building-planning.py'),
+    buildWeb,
+    node('tests/desktop/whole-building-planning.mjs'),
+  ],
   'workbench-ui': [
     buildWeb,
     node('tests/desktop/workbench-ui-desktop.mjs'),

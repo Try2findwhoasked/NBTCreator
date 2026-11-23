@@ -312,6 +312,59 @@ class ArchitectureWorkflow(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'父指纹'):
             dispatch(self.workspace,'plan-build',dict(plan=changed,source=second['saved']['source'],source_sha256=file_hash(second['saved']['source']),expected_plan_sha256=first['plan_sha256']))
 
+    def test_build_scans_engine_once_then_rechecks_before_publication(self):
+        from unittest.mock import patch
+        from nbt_runtime import modeling_session
+
+        with patch.object(modeling_session, '_scan_engine_revision',
+                          wraps=modeling_session._scan_engine_revision) as scan:
+            first = self.make()
+        self.assertEqual(scan.call_count, 2)
+        self.assertTrue(first['checks']['architecture']['passed'])
+
+        source = Path(first['saved']['source'])
+        building = source.parent.parent.parent
+        old_versions = set(building.iterdir())
+        revised = plan()
+        revised['style']['materials']['structure'] = 'polished_andesite'
+        request = dict(first['revision_request'], plan=revised, save_draft={})
+        with patch.object(modeling_session, '_scan_engine_revision',
+                          side_effect=[(('engine', 'before'),), (('engine', 'after'),)]):
+            with self.assertRaisesRegex(ValueError, '引擎版本在构建期间发生变化'):
+                dispatch(self.workspace, 'plan-build', request)
+        self.assertEqual(set(building.iterdir()), old_versions)
+        self.assertEqual(file_hash(source), first['saved']['source_sha256'])
+        rebuilt = dispatch(self.workspace, 'plan-build', request)
+        self.assertTrue(rebuilt['checks']['architecture']['passed'])
+
+    def test_incremental_parts_match_full_rebuild_and_refresh_connected_beam(self):
+        first = self.make()
+        revised = plan()
+        left = next(part for part in revised['parts'] if part['id'] == 'left')
+        left['position'][0] -= 1
+        from unittest.mock import patch
+        from nbt_building.plan import wrapped_recipe
+
+        with patch('nbt_building.plan.wrapped_recipe', wraps=wrapped_recipe) as compile_part:
+            incremental = dispatch(self.workspace, 'plan-build',
+                                   dict(first['revision_request'], plan=revised))
+        full = dispatch(self.workspace, 'plan-build', dict(plan=revised))
+        self.assertEqual([call.args[1]['id'] for call in compile_part.call_args_list], ['left'])
+        self.assertEqual(incremental['rebuild']['reused_parts'], ['porch', 'platform', 'right', 'roof_post'])
+        self.assertEqual(incremental['rebuild']['reused_connections'], ['roof_bearing'])
+        self.assertEqual(incremental['rebuild']['compiled_connections'], ['main_beam'])
+        for field in ('geometry_sha256', 'model_sha256'):
+            self.assertEqual(incremental['model'][field], full['model'][field])
+        self.assertEqual(incremental['checks']['architecture'], full['checks']['architecture'])
+        joint = 'joint_main_beam_0_0_0'
+        self.assertNotEqual(incremental['model']['instances'][joint]['recipe'],
+                            first['model']['instances'][joint]['recipe'])
+        bearing = first['model']['instances']['joint_roof_bearing_0_0_0']
+        obstruction = bearing['recipe']['arguments']['operations'][0]['voxels'][0][:3]
+        revised['parts'].append(box_part('obstruction', obstruction, [1, 1, 1]))
+        with self.assertRaisesRegex(ValueError, '托座越界或占用已有几何'):
+            dispatch(self.workspace, 'plan-build', dict(first['revision_request'], plan=revised))
+
     def test_concurrent_plan_rebuilds_publish_only_one_child(self):
         from concurrent.futures import ThreadPoolExecutor
         from nbt_composition.working_model import ModelConflict
@@ -722,6 +775,78 @@ class ArchitectureWorkflow(unittest.TestCase):
         self.assertFalse(recorded['approval_created'])
         self.assertIn('审阅位置已记录观察 1/1', ' '.join(recorded['delivery_summary']))
         self.assertIn('机位已记录观察 3/4，待看 second_detail', ' '.join(recorded['delivery_summary']))
+        recommendation_request = dict(recorded['review_compare'], output='nbt_models/_workspaces/followup')
+        recommendation = dispatch(self.workspace, 'review-recommend', recommendation_request)
+        self.assertEqual(recommendation['already_observed_locations'], ['hall_operation'])
+        self.assertIsNone(recommendation['next'])
+        self.assertEqual(recommendation['search']['evaluated_candidates'], 0)
+        with self.assertRaisesRegex(ValueError, '审阅观察已变化'):
+            dispatch(self.workspace, 'review-recommend', dict(recommendation_request, notes_sha256=missing['sha256']))
+
+    def test_recommendation_is_bounded_and_prepares_only_selected_source_bound_views(self):
+        spec = plan()
+        spec['review_locations'] = [
+            dict(id='opening', purpose='Operation space', position=[15.65, 3.858, 9], views=['beam']),
+            dict(id='buried', purpose='Inaccessible column core', position=[11.5, 2.5, 12.5], views=['beam']),
+        ]
+        saved = dispatch(self.workspace, 'plan-build', dict(plan=spec, save_draft={}))['saved']
+        binding = {key: saved[key] for key in ('source', 'source_sha256')}
+        old_view = dict(spec['views'][1], eye=[11.5, 2.5, 12.5])
+        del old_view['feet']
+        original = dispatch(self.workspace, 'review-prepare', dict(binding, output='nbt_models/original',
+                             view_overrides=[old_view]))
+        self.assertFalse(original['coverage']['review_locations'][0]['passed'])
+        request = dict(pack=original['pack'], pack_sha256=original['pack_sha256'],
+                       output='nbt_models/supplement', max_images=1, max_candidates=48)
+        request_file = self.workspace / 'recommend.json'
+        request_file.write_text(json.dumps(request), encoding='utf8')
+        status, result = self.cli('review-recommend', '--request', request_file.name)
+        self.assertEqual(status, 0, result)
+        self.assertEqual(result['search']['evaluated_candidates'], 48)
+        self.assertEqual(result['already_observed_locations'], [])
+        self.assertEqual(result['estimated_covered_locations'], ['opening'])
+        self.assertEqual([row['id'] for row in result['pending_locations']], ['buried'])
+        self.assertGreater(result['pending_locations'][0]['failed_tests']['target_inside_solid'], 0)
+        view = result['recommendations'][0]['view']
+        self.assertEqual((view['id'], view['layer']), ('beam', 'structure'))
+        self.assertTrue(all(2 * value == round(2 * value) for value in view['feet']))
+        self.assertFalse((self.workspace / request['output']).exists())
+        with self.assertRaisesRegex(ValueError, '审阅包已变化'):
+            dispatch(self.workspace, 'review-recommend', dict(request, pack_sha256='0'*64))
+        with self.assertRaisesRegex(ValueError, '审阅位置 ID'):
+            dispatch(self.workspace, 'review-recommend', dict(request, locations=['unregistered']))
+        next_request = result['next']['request']
+        with self.assertRaisesRegex(ValueError, 'STALE_SOURCE'):
+            dispatch(self.workspace, 'review-prepare', dict(next_request, source_sha256='0'*64))
+        prepared = dispatch(self.workspace, result['next']['action'], next_request)
+        pack = prepared['coverage']
+        self.assertEqual(pack['source_sha256'], saved['source_sha256'])
+        self.assertEqual(pack['plan_sha256'], result['plan_sha256'])
+        self.assertEqual([row['id'] for row in pack['views']], ['beam'])
+        self.assertEqual(pack['omitted_views'], ['overall', 'reading'])
+        self.assertTrue(pack['review_locations'][0]['passed'])
+        self.assertFalse(pack['coverage_passed'])
+        recorded = dispatch(self.workspace, 'review-record', dict(prepared['review_record_bindings'],
+            render_manifest=str(self.synthetic_render(prepared)), issues=[], observations=[
+                dict(image='beam', note='Synthetic fixture for transport control.', locations=['opening'])]))
+        self.assertEqual(recorded['covered_locations'], ['opening'])
+        self.assertFalse(recorded['observations_complete'])
+        self.assertFalse(recorded['approval_created'])
+        self.assertEqual(file_hash(self.workspace / original['pack']), original['pack_sha256'])
+
+    def test_recommendation_keeps_uncertain_shape_out_of_estimated_coverage(self):
+        from collections import Counter
+        from nbt_assembly import Volume
+        from nbt_building.review_recommend import estimate
+
+        model = Volume([12, 8, 12])
+        point = [5.5, 3.5, 7.5]
+        model.put((5, 3, 5), 'spruce_fence')
+        diagnostics = {'end': (Counter(), Counter())}
+        result = estimate(model, {'fov': 60}, [{'id': 'end', 'position': point}], set(model.blocks),
+                          [5.5, 3.5, 2.5], point, diagnostics)
+        self.assertIsNone(result)
+        self.assertEqual(diagnostics['end'][0], {'uncertain_collision': 1})
 
     def test_same_source_reshoot_rechecks_locations_and_binds_new_images(self):
         spec=plan()

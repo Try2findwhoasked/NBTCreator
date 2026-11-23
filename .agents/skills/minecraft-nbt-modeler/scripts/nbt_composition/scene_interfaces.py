@@ -1,6 +1,7 @@
 """Named half-cell contact surfaces and bounded horizontal beam relations."""
 from copy import deepcopy
 from itertools import product
+from nbt_composition.scene_relations import SceneCheckError
 
 FACES = {'up': (1, 1), 'down': (1, -1), 'east': (0, 1), 'west': (0, -1), 'south': (2, 1), 'north': (2, -1)}
 
@@ -129,11 +130,17 @@ def compile_interfaces(definitions, local_voxels, size, turns, origin, owner='en
     return result
 
 
+def facing_cells(interface):
+    normal = interface['normal']
+    return {tuple(p[i] + normal[i] for i in range(3)) for p in interface['faces_half']}
+
+
 def interface_contact(cells, interface):
     """Every child component must touch the specified face along its normal."""
     from nbt_composition.object_scene import SIX
-    normal = interface['normal']
-    required = {tuple(p[i] + normal[i] for i in range(3)) for p in interface['faces_half']}
+    required = facing_cells(interface)
+    if not cells & required:
+        return False
     remaining = set(cells)
     while remaining:
         first = remaining.pop()
@@ -172,23 +179,30 @@ def span_recipe(node, recipe, completed):
     width, height = args.get('width', 3), args.get('height', 1)
     if any(type(v) is not int or not 1 <= v <= 32 for v in (width, height)):
         raise ValueError('跨梁宽高须为1～32格')
+    def fail(code, message):
+        seats = [dict(object=surface['object'], interface=surface['id'], face=surface['face'],
+                      plane_half=surface['plane_half'], lo_half=surface['lo_half'],
+                      hi_half=surface['hi_half']) for surface in (left, right)]
+        raise SceneCheckError(code, message, [dict(object=node['id'], axis=relation['axis'], width=width,
+                                                   seats=seats, coordinate_space='scene')])
+
     if left['face'] != 'up' or right['face'] != 'up':
-        raise ValueError('水平跨梁需要两个朝上的承托接口')
+        fail('SCENE_SPAN_FACE', '水平跨梁需要两个朝上的承托接口')
     if left['plane_half'] != right['plane_half']:
-        raise ValueError('跨梁两端承托面高度不同：' + relation['from']['object'] + ' → ' + relation['to']['object'])
+        fail('SCENE_SPAN_HEIGHT', '跨梁两端承托面高度不同：' + relation['from']['object'] + ' → ' + relation['to']['object'])
     if left['plane_half'] % 2:
-        raise ValueError('此整块跨梁需要整数高度承托面，不能舍入半格接口')
+        fail('SCENE_SPAN_UNSUPPORTED', '此整块跨梁需要整数高度承托面，不能舍入半格接口')
     axis = 0 if relation['axis'] == 'x' else 2
     tangent = 2 if axis == 0 else 0
     center_left = (left['lo_half'][tangent] + left['hi_half'][tangent] + 1) / 2
     center_right = (right['lo_half'][tangent] + right['hi_half'][tangent] + 1) / 2
     if center_left != center_right:
-        raise ValueError('跨梁承托面未沿声明轴对齐')
+        fail('SCENE_SPAN_ALIGNMENT', '跨梁承托面未沿声明轴对齐')
     low = min(left['lo_half'][axis], right['lo_half'][axis]) // 2
     high = max(left['hi_half'][axis], right['hi_half'][axis]) // 2
     side = (center_left - width) / 2
     if side != int(side):
-        raise ValueError('跨梁截面无法在整数方块网格中居中')
+        fail('SCENE_SPAN_UNSUPPORTED', '跨梁截面无法在整数方块网格中居中')
     size = [1, height, 1]
     size[axis], size[tangent] = high - low + 1, width
     origin = [0, left['plane_half'] // 2, 0]

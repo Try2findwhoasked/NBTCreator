@@ -35,6 +35,8 @@ Windows Portable 按 PR 改动选择验证范围。纯文档改动只运行范�
 
 ## 开始创作
 
+素材库中搜索 **GDMC** 可找到从聚落蓝图拆出的窗列、屋顶尖饰、摊棚条纹、书架墙和敞廊框。搜索 **青藤石肋** 可查看原创 Minecraft 中殿的单跨肋拱和连跨频谱。在频谱配方预览中调整宽度、周期或相位，点击“更新预览”即可查看并放置新组合。[频谱配方与坐标约定](.agents/skills/minecraft-nbt-modeler/references/pattern-spectral.md)
+
 1. 选择创作项目根目录作为工作区，建筑存放在 `nbt_models/`。
 2. 在建筑库中打开建筑；首次创作可在“创作方案”编写、审阅要求，再确认交接给外部 Agent。
 3. 进入模型编辑，用工具或 AI 修改局部，更新候选预览。
@@ -54,6 +56,7 @@ Windows Portable 按 PR 改动选择验证范围。纯文档改动只运行范�
 | 编写方案、审阅与交接建筑任务 | [建筑师工作流](docs/guides/ARCHITECT_WORKFLOW.md) · [首次创作](docs/guides/PROMPT_CREATION.md) |
 | 让应用与 Agent 使用同一项目 | [共享工作区](docs/guides/SHARED_WORKSPACE.md) |
 | 导入和渲染大型 SNBT 分区 | [大型组装制作源](.agents/skills/minecraft-nbt-modeler/references/large-assembly.md) |
+| 为复杂整栋确定分层、净面积、直通门和楼梯 | [整栋建筑量化规划](.agents/skills/minecraft-nbt-modeler/references/whole-building-planning.md) |
 | 按间距与材质目标生成梁架候选 | [梁架节奏原型](.agents/skills/minecraft-nbt-modeler/references/working-model.md#梁架节奏候选) |
 | 配准三视图、生成正交相机与匿名对照 | [三视参考与回投影](.agents/skills/minecraft-nbt-modeler/references/orthographic-reference.md) |
 | 在偏心曲面规划纹样并检查背衬 | [曲面纹样与背衬](.agents/skills/minecraft-nbt-modeler/references/curved-surface.md) |

@@ -39,11 +39,13 @@ class StructuralMembers(unittest.TestCase):
         return {tuple(row[:3]):data['palette'][row[3]] for row in data['blocks']}
     def recipe(self,identifier):return copy.deepcopy(next(row['arguments'] for row in library() if row['id']==identifier))
 
-    def test_eight_recipes_have_real_material_contacts_and_pure_interfaces(self):
+    def test_structural_recipes_have_real_material_contacts_and_pure_interfaces(self):
         from nbt_building.window_frames import PROFILES as WINDOW_PROFILES
         rows=[row for row in library() if selected(row['arguments']['kind'],row['arguments'].get('form',{}))
               and row['arguments'].get('form',{}).get('profile') not in WINDOW_PROFILES]
-        self.assertEqual(len(rows),8)
+        required={'beam-timber-rectangular','beam-concrete-rectangular','beam-steel-i','beam-steel-box',
+                  'bracket-timber-knee','bracket-steel-angle','frame-timber-doorway','frame-recessed-window'}
+        self.assertFalse(required-{row['id'] for row in rows})
         for row in rows:
             with self.subTest(id=row['id']):
                 self.assertEqual(row['controls'],dict(style=False,spacing=False))

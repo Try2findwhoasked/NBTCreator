@@ -16,9 +16,15 @@ class Action:
 
 
 for name,module,handler in (
+    ('layout-check','nbt_building.planning','check'),
+    ('program-layout-search','nbt_building.planning_search','search'),
+    ('layout-prepare','nbt_building.planning_adapter','prepare'),
     ('plan-save','nbt_building.plan','save'),('plan-get','nbt_building.plan','stored'),
     ('part-preflight','nbt_building.plan','preflight'),
+    ('layout-search','nbt_building.layout','search'),
     ('plan-build','nbt_building.plan','build'),('review-prepare','nbt_building.review','prepare'),
+    ('review-recommend','nbt_building.review_recommend','recommend'),
+    ('failure-replay','nbt_building.failure_replay','run'),
     ('review-record','nbt_building.review','record'),('review-compare','nbt_building.review','compare'),
     ('quality-check','nbt_building.quality_review','check'),('quality-compare','nbt_building.quality_review','compare'),
     ('game-checklist','nbt_building.review','game_checklist'),('game-record','nbt_building.review','game_record')):

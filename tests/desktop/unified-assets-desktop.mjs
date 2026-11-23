@@ -16,7 +16,9 @@ execFileSync(python,[path.join(root,'tests/support/make_fixture.py'),modelDir],{
 const source=path.join(modelDir,'synthetic.master.json.gz')
 const sha=raw=>createHash('sha256').update(raw).digest('hex')
 const original=sha(await fs.readFile(source))
-const bundledCount=JSON.parse(await fs.readFile(path.join(skill,'assets/extension-library/library.json'),'utf8')).assets.length
+const bundledRoot=path.join(skill,'assets/extension-library')
+const bundledAssets=JSON.parse(await fs.readFile(path.join(bundledRoot,'library.json'),'utf8')).assets
+const bundledCount=bundledAssets.length
 await fs.mkdir(path.join(workspace,'.nbtcreator'),{recursive:true})
 await fs.writeFile(path.join(workspace,'.nbtcreator/preferences.json'),JSON.stringify({startPage:'project',autoPreview:false}))
 execFileSync(python,['-B','-c',`import sys;sys.path.insert(0,sys.argv[1]);from nbt_components import store;store(sys.argv[2],dict(schema_version=1,name='本地白石方柱',size=[2,3,2],anchor=[1,0,1],palette=['quartz_block'],blocks=[[x,y,z,0,False] for x in range(2) for y in range(3) for z in range(2)]))`,path.join(skill,'scripts'),workspace],{windowsHide:true})
@@ -229,6 +231,35 @@ try{
  await page.waitForFunction(count=>Number(document.getElementById('asset-workspace').dataset.catalogueCount)===count,bundledCount)
  assert.equal(await page.locator('#asset-source-filter option').count(),3)
  checks.workspace_connections_and_local_copies_are_isolated=true
+ const spectral=bundledAssets.find(item=>item.path.startsWith('assets/recipes/spectral_repeat/'))
+ assert.ok(spectral,'expected a bundled frequency recipe')
+ const originalArgs=JSON.parse(await fs.readFile(path.join(bundledRoot,spectral.path),'utf8')).arguments
+ await page.locator('#asset-search').fill(spectral.id)
+ await click(`[data-source-id=bundled][data-asset-ref="nbtcreator.modular/${spectral.id}"]`);await previewReady()
+ assert.equal(await page.locator('#asset-recipe-period').inputValue(),String(originalArgs.period))
+ assert.equal(await page.locator('#asset-recipe-phase').inputValue(),String(originalArgs.phase))
+ for(const axis of ['y','z'])assert.equal(await page.locator('#asset-recipe-'+axis).evaluate(input=>input.readOnly),true)
+ for(const field of ['style','spacing','material','accent','ornament'])assert.equal(await page.locator('#asset-recipe-'+field).isVisible(),false)
+ const period=originalArgs.period===64?63:originalArgs.period+1
+ await page.locator('#asset-recipe-period').fill(String(period))
+ await page.locator('#asset-recipe-phase').fill('')
+ assert.equal(await page.locator('#asset-copy-local').isDisabled(),true)
+ assert.equal(await page.locator('#asset-place').isDisabled(),true)
+ await click('#asset-preview-refresh')
+ assert.match(await page.locator('#asset-preview-status').textContent(),/相位/)
+ await page.locator('#asset-recipe-phase').fill('-1')
+ await click('#asset-preview-refresh');await previewReady()
+ assert.equal(await page.locator('#asset-place').isDisabled(),false)
+ await capture('spectral-period-phase')
+ await click('#asset-copy-local')
+ await page.waitForFunction(()=>document.getElementById('asset-edit-name')===document.activeElement)
+ const imports=path.join(second,'.nbtcreator/asset-libraries/imports')
+ const [originFile]=await fs.readdir(imports)
+ const origin=JSON.parse(await fs.readFile(path.join(imports,originFile),'utf8'))
+ assert.deepEqual(origin.arguments,{...originalArgs,period,phase:-1})
+ const local=JSON.parse(await fs.readFile(path.join(second,'.nbtcreator/components',originFile),'utf8'))
+ assert.equal(origin.content_sha256,local.content_sha256)
+ checks.spectral_copy_binds_the_reviewed_period_phase_and_source_coefficients=true
  await fs.writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks,layouts,errors,output},null,2))
  console.log(JSON.stringify({passed:true,checks,layouts:layouts.length,output}))
 }catch(error){

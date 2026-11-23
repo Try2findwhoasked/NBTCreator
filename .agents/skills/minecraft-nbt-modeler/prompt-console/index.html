@@ -35,6 +35,7 @@
      <label>本轮 AI 指令 <small class="muted">仅用于本轮，不会原样交接</small><textarea id="prompt-ai-instruction" rows="4" maxlength="4000" placeholder="例如：构思一座依山而建的水渠工坊，突出水轮与检修平台的联系；只补充布局和动线。"></textarea></label>
      <details id="prompt-ai-scope"><summary id="prompt-ai-fields-title">AI可修改的参数</summary><p class="muted">只让AI修改勾选项，其余人工参数保持原样。所有字段仍可在方案表单中手工修改；尺寸、名称和硬条件默认由人控制。</p><div id="prompt-ai-fields" class="brief-field-options"></div><button id="prompt-ai-fields-default" type="button">恢复默认范围</button></details>
      <div class="ai-actions"><button id="prompt-ai-generate" type="button" class="primary">生成这条提示词</button><button id="prompt-ai-references" type="button">查找参考素材</button><button id="prompt-ai-settings" type="button">设置 AI 连接</button></div>
+     <details id="prompt-external-draft"><summary>用外部 AI 起草</summary><p class="muted">复制当前设计要求给你选择的外部 AI。把返回的 JSON 粘贴到这里，再逐项审查和采用。</p><div class="ai-actions"><button id="prompt-external-copy" type="button">复制起草请求</button><button id="prompt-external-import" type="button">导入外部建议</button></div><label>外部建议 JSON<textarea id="prompt-external-reply" spellcheck="false" rows="4" maxlength="60000"></textarea></label><label id="prompt-external-copy-fallback" hidden>起草请求<textarea id="prompt-external-request" readonly rows="6"></textarea></label></details>
      <div id="prompt-ai-sources" class="muted"></div><p id="prompt-ai-status" role="status"></p>
      <section id="prompt-ai-proposal" hidden><div class="proposal-heading"><h3>AI 建议</h3><span id="prompt-ai-candidate-state" role="status"></span></div><div id="prompt-ai-comparison"><div id="prompt-ai-review" class="fields"></div><details id="prompt-ai-raw"><summary id="prompt-ai-raw-title">查看原始数据（高级）</summary><label>建议内容<textarea id="prompt-ai-candidate" rows="8" maxlength="60000" spellcheck="false"></textarea></label></details></div><div class="ai-actions"><button id="prompt-ai-apply" type="button" disabled>采用并继续审查</button><button id="prompt-ai-discard" type="button">放弃此候选</button></div></section>
     </section>
@@ -50,7 +51,7 @@
    <div id="status" role="status"></div><div id="output-mode"></div>
    <textarea id="result" readonly aria-label="生成的完整提示词" spellcheck="false"></textarea>
    <div class="output-buttons"><button id="copy">复制完整提示词</button></div>
-   <div id="prompt-task-handoff" hidden><p id="prompt-task-state" role="status"></p><details><summary>让外部助手读取任务</summary><p>在助手对话中手动调用工作区 Skill；可用下面的命令读取这条任务。</p><code id="prompt-task-command"></code><button id="prompt-task-copy" type="button">复制读取命令</button></details></div>
+   <div id="prompt-task-handoff" hidden><p id="prompt-task-state" role="status"></p><details><summary>让外部助手读取任务</summary><p>在当前项目的助手对话中调用 <code>$nbtcreator-agent</code> 并提供任务编号。也可用下面的命令读取任务。</p><code id="prompt-task-command"></code><button id="prompt-task-copy" type="button">复制读取命令</button></details></div>
    <details class="downloads"><summary>下载文件与配置</summary><div><button id="markdown">提示词 .md</button><button id="plan">建造步骤 JSON</button><button id="config">保护配置草案</button></div></details>
    <footer>提示词修改会自动保存到项目目录。外部助手完成建造后，回到建筑库查看、标注，再继续修改。</footer>
   </section>

@@ -72,6 +72,75 @@ class ArchitecturalBay(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.call('facade_compile', sill_material='stone')
 
+    def test_contextual_facade_reserves_the_entry_and_corner_posts_before_repeating(self):
+        for width, count in ((9, 0), (19, 2), (31, 4)):
+            with self.subTest(width=width):
+                x = width // 2 - 1
+                result = self.call('facade_compile', pier_width=1, storeys=1, opening=[3, 2],
+                    material='stone_bricks', trim='stripped_spruce_wood',
+                    glass='light_blue_stained_glass', sill_material='stone_brick_slab[type=bottom,waterlogged=false]',
+                    contextual=dict(width=width, entry=dict(x=x, width=3, height=3),
+                                    column_material='spruce_log[axis=z]', beam_material='dark_oak_log'))
+                voxels = self.voxels(result)
+                self.assertEqual(result['spec']['size'], [width, 6, 3])
+                entry, *windows = result['openings']
+                self.assertEqual((entry['lo'], entry['hi']), ([x, 0, 0], [x + 2, 2, 2]))
+                self.assertEqual(len(windows), count)
+                self.assertTrue(all((a, y, z) not in voxels for a in range(x, x + 3)
+                                    for y in range(3) for z in range(3)))
+                self.assertEqual(voxels[x - 1, 0, 0], 'minecraft:stripped_spruce_wood[axis=y]')
+                self.assertEqual(voxels[x, 3, 0], 'minecraft:stripped_spruce_wood[axis=x]')
+                self.assertEqual(voxels[0, 4, 0], 'minecraft:spruce_log[axis=z]')
+                self.assertEqual(voxels[width - 1, 4, 2], 'minecraft:spruce_log[axis=z]')
+                self.assertEqual(voxels[1, 5, 0], 'minecraft:dark_oak_log[axis=x]')
+                for end in (0, width - 1):
+                    self.assertEqual(voxels[end, 5, 0], 'minecraft:stripped_spruce_wood[axis=x]')
+                for window in windows:
+                    left, bottom, _ = window['lo']
+                    right, top, _ = window['hi']
+                    self.assertGreater(left - 1, 0)
+                    self.assertLess(right + 1, width - 1)
+                    self.assertTrue(right + 1 < x - 1 or left - 1 > x + 3)
+                    self.assertTrue(all((a, y, 0) not in voxels and voxels[a, y, 1] == 'minecraft:light_blue_stained_glass'
+                                        for a in range(left, right + 1) for y in range(bottom, top + 1)))
+                    self.assertEqual(voxels[left, bottom - 1, 0], 'minecraft:stone_brick_slab[type=bottom,waterlogged=false]')
+                self.assertEqual(components(self.solid(voxels)), 1)
+                self.assertTrue(all(joint['face_contact'] for joint in result['construction_graph']['joints']))
+        self.assertEqual(list(self.root.iterdir()), [])
+
+    def test_contextual_facade_rejects_an_impossible_or_conflicting_entry(self):
+        from nbt_composition.working_model import ModelConflict
+        contextual = dict(width=6, entry=dict(x=2, width=3, height=3))
+        with self.assertRaises(ModelConflict) as failure:
+            self.call('facade_compile', pier_width=1, contextual=contextual)
+        self.assertEqual(failure.exception.code, 'FACADE_FIT_FAILED')
+        evidence = failure.exception.conflicts[0]
+        self.assertEqual((evidence['width'], evidence['minimum_width'], evidence['right_available']), (6, 7, 0))
+        with self.assertRaises(ModelConflict) as failure:
+            self.call('facade_compile', pier_width=1, contextual=dict(width=19, entry=dict(x=1, width=3, height=3)))
+        evidence = failure.exception.conflicts[0]
+        self.assertEqual((evidence['left_available'], evidence['right_available']), (0, 14))
+        with self.assertRaises(ModelConflict) as failure:
+            self.call('facade_compile', pier_width=1, contextual=dict(width=19, entry=dict(x=2, width=3, height=7)))
+        self.assertEqual(failure.exception.conflicts[0]['maximum_height'], 6)
+        with self.assertRaisesRegex(ValueError, 'bays'):
+            self.call('facade_compile', bays=2, pier_width=1, contextual=contextual)
+        self.assertEqual(list(self.root.iterdir()), [])
+
+    def test_contextual_facade_retains_offset_entry_and_unglazed_stacked_windows(self):
+        result = self.call('facade_compile', opening=[3, 3], sill_height=1, lintel_height=2, recess=3,
+                           glazing=False, contextual=dict(width=25, entry=dict(x=4, width=2, height=4)))
+        voxels = self.voxels(result)
+        entry, *windows = result['openings']
+        self.assertEqual(entry['lo'], [4, 0, 0])
+        self.assertEqual(result['resolved_form']['flank_widths'], [1, 16])
+        self.assertEqual([row['lo'] for row in windows], [[10, 1, 0], [17, 1, 0], [10, 8, 0], [17, 8, 0]])
+        for opening in result['openings']:
+            ranges = [range(lo, hi + 1) for lo, hi in zip(opening['lo'], opening['hi'])]
+            self.assertTrue(all((x, y, z) not in voxels for x in ranges[0] for y in ranges[1] for z in ranges[2]))
+        self.assertTrue(all((x, y, 1) in voxels for x in (4, 5) for y in range(7, 12)))
+        self.assertEqual(components(self.solid(voxels)), 1)
+
     def test_real_open_tracery_and_glazing_do_not_create_opaque_backing(self):
         for profile in ('round','pointed'):
             for depth in (1,3):

@@ -365,7 +365,15 @@ def check_routes(model, start, targets, *, conservative_obstacles=True, max_pose
     return result
 
 
-def _check_routes(model,start,targets,*,conservative_obstacles,max_poses,space,geometry):
+def reachable_floor_centers(model, start, *, space, max_poses):
+    """Find centered XZ poses with the same swept-player graph as check_routes."""
+    reached = set()
+    report = _check_routes(model, start, [], conservative_obstacles=True, max_poses=max_poses,
+                           space=space, geometry=model.fingerprint(), reached=reached)
+    return reached, report
+
+
+def _check_routes(model,start,targets,*,conservative_obstacles,max_poses,space,geometry,reached=None):
     """Return a JSON-serializable report; failed routes do not raise assertions.
 
     Half-block graph sampling is conservative and can miss narrow/off-grid
@@ -437,7 +445,7 @@ def _check_routes(model,start,targets,*,conservative_obstacles,max_poses,space,g
         node = queue.popleft()
         for i in desired.get(node, ()):
             found.setdefault(i, node)
-        if len(found) == len(named):
+        if reached is None and len(found) == len(named):
             break
         x, y, z = node
         a = (x*.5, y*.5, z*.5)
@@ -456,6 +464,8 @@ def _check_routes(model,start,targets,*,conservative_obstacles,max_poses,space,g
                     queue.append(next_node)
             if search_limit_reached:
                 break
+    if reached is not None:
+        reached.update((x*.5, y*.5, z*.5) for x, y, z in parent if x % 2 and z % 2)
     target_reports = []
     for i, (name, p) in enumerate(named):
         item = dict(name=name, feet=list(p), standing=space.standing(p), reachable=i in found)
