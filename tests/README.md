@@ -44,6 +44,7 @@
 | 建筑方案闭环、空间图与实际通路反例 | `mise run test -- architecture-workflow` |
 | 公共入口、归卷阁粗布局候选与真实审阅图 | `mise run test -- architecture-preview` |
 | 建筑活动失败回放、差分缩减和源保护 | `mise run test -- building-failure-replay` |
+| 单栋联合选址、固定位置对照、河面桥接与续编 | `mise run test -- terrain-site-selection` |
 | 模块化对象、结构杆件与窗框 | `mise run test -- modular` |
 | 外部资产库的离线、完整性与回滚 | `mise run test -- asset-libraries` |
 | 外部资产库桌面流程 | `mise run test -- unified-assets` |

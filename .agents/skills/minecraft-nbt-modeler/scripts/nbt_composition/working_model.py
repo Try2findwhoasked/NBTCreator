@@ -524,6 +524,14 @@ class WorkingModel:
         from nbt_building.wavelet_eave import WaveletEave
         return WaveletEave(self, goal).adopt(strength, candidate_sha256)
 
+    def site_selection(self, goal, preview=None):
+        from nbt_building.site_selection import SiteSelection
+        return SiteSelection(self, goal).search(preview)
+
+    def adopt_site_selection(self, goal, candidate_id, candidate_sha256):
+        from nbt_building.site_selection import SiteSelection
+        return SiteSelection(self, goal).adopt(candidate_id, candidate_sha256)
+
     def _stage_update(self, identifier, recipe, transform):
         if identifier not in self.instances:
             raise ValueError('受管实例不存在')

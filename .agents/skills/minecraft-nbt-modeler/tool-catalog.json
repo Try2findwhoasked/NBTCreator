@@ -26598,6 +26598,8 @@
                   "adopt_beam_rhythm",
                   "wavelet_eave",
                   "adopt_wavelet_eave",
+                  "site_selection",
+                  "adopt_site_selection",
                   "seal",
                   "open_declared"
                 ]
@@ -26662,6 +26664,381 @@
       "save": "immutable_snbt_or_assembly_draft_only"
     },
     "actions": {
+      "site_selection": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "site_selection"
+            ]
+          },
+          "goal": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "building": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024
+                      },
+                      "source_sha256": {
+                        "type": "string",
+                        "pattern": "[a-f0-9]{64}"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "source_sha256"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "recipe": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "tool": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z0-9_-]{1,64}"
+                          },
+                          "arguments": {
+                            "type": "object"
+                          }
+                        },
+                        "required": [
+                          "tool",
+                          "arguments"
+                        ]
+                      },
+                      "content_sha256": {
+                        "type": "string",
+                        "pattern": "[a-f0-9]{64}"
+                      }
+                    },
+                    "required": [
+                      "recipe",
+                      "content_sha256"
+                    ]
+                  }
+                ]
+              },
+              "region": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "lo": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "hi": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  }
+                },
+                "required": [
+                  "lo",
+                  "hi"
+                ]
+              },
+              "junction": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4095
+                },
+                "minItems": 3,
+                "maxItems": 3,
+                "description": "宿主内既有路口的整方块路面坐标。"
+              },
+              "entrance": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "floor": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "facing": {
+                    "type": "string",
+                    "enum": [
+                      "north",
+                      "east",
+                      "south",
+                      "west"
+                    ]
+                  }
+                },
+                "required": [
+                  "floor",
+                  "facing"
+                ]
+              },
+              "targets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z0-9_-]{1,64}"
+                    },
+                    "feet": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 64
+                      },
+                      "minItems": 3,
+                      "maxItems": 3
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "feet"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 8
+              },
+              "anchor_xz": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4095
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "minItems": 1,
+                "maxItems": 64,
+                "description": "待评估的世界 XZ 放置锚点。制作源锚点为局部 [0,0,0]，配方沿用自身锚点。"
+              },
+              "floor_ys": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4095
+                },
+                "minItems": 1,
+              "maxItems": 16,
+              "description": "建筑最低实体层的候选世界 Y。入口标高由局部入口地板的位置推导。"
+              },
+              "quarter_turns": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                },
+                "minItems": 1,
+                "maxItems": 4
+              },
+              "roads": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "corridor": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "lo": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 4095
+                          },
+                          "minItems": 3,
+                          "maxItems": 3
+                        },
+                        "hi": {
+                          "type": "array",
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 4095
+                          },
+                          "minItems": 3,
+                          "maxItems": 3
+                        }
+                      },
+                      "required": [
+                        "lo",
+                        "hi"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "stair_state": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "max_bridge_span": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16
+                    },
+                    "bridge_water": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "minItems": 1,
+                "maxItems": 8
+              },
+              "max_candidates": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "max_pad_cut": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 16
+              },
+              "max_pad_fill": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 16
+              },
+              "terrain_states": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "minItems": 1,
+                "maxItems": 64
+              },
+              "fill_state": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "instance_id": {
+                "type": "string",
+                "pattern": "[a-zA-Z0-9_-]{1,64}"
+              }
+            },
+            "required": [
+              "building",
+              "region",
+              "junction",
+              "entrance",
+              "targets",
+              "anchor_xz",
+              "floor_ys",
+              "quarter_turns",
+              "roads",
+              "max_candidates",
+              "max_pad_cut",
+              "max_pad_fill"
+            ]
+          },
+          "preview": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "output": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "candidate_id": {
+                "type": "string",
+                "pattern": "candidate-[0-9]{3}"
+              },
+              "cameras": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                },
+                "minItems": 0,
+                "maxItems": 64
+              }
+            },
+            "required": [
+              "output"
+            ]
+          }
+        },
+        "required": [
+          "method",
+          "goal"
+        ]
+      },
+      "adopt_site_selection": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "adopt_site_selection"
+            ]
+          },
+          "goal": {
+            "description": "与搜索时逐项一致的目标对象，沿用 site_selection.goal 契约。",
+            "type": "object"
+          },
+          "candidate_id": {
+            "type": "string",
+            "pattern": "candidate-[0-9]{3}"
+          },
+          "candidate_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          }
+        },
+        "required": [
+          "method",
+          "goal",
+          "candidate_id",
+          "candidate_sha256"
+        ]
+      },
       "beam_rhythm": {
         "type": "object",
         "additionalProperties": false,
