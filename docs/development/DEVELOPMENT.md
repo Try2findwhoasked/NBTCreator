@@ -14,11 +14,12 @@ mise install
 mise exec -- node --version
 mise exec -- python --version
 mise exec -- npm ci
+mise exec -- node node_modules/electron/install.js
 mise exec -- npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
 mise exec -- python -m pip install -r .agents/skills/minecraft-nbt-modeler/requirements.txt
 ```
 
-当前 [mise.toml](../../mise.toml)固定 Python 3.14.7，并提供 CPU、GPU、主模型、资产及 UI 测试任务；`mise install` 准备已声明的工具。Node.js 24 仍使用可用环境。`mise exec` 不依赖交互式 shell 的自动激活。
+当前 [mise.toml](../../mise.toml)固定 Python 3.14.7，并使用环境中可用的 Node.js 24。Electron 安装命令下载锁定版本的可执行文件，桌面测试会直接使用该文件。`mise exec` 可用于非交互式 shell。
 
 沿用 npm 和两份 package-lock.json，不混用包管理器。个人环境配置写入已被 Git 忽略的 `mise.local.toml`，不要提交密钥。普通离线编辑和自动化测试无需配置外部 AI 服务。
 
@@ -73,15 +74,15 @@ mise run
 | 工作区入口与迁移契约 | `mise run test -- workspace` |
 | 书库、收藏和网页引用 | `mise run test -- retrieval` |
 | 桌面冒烟 | 先 `mise run build:web`，再 `mise run test -- desktop` |
-| 工作台旅程、焦点、真实交付与六页窗口/缩放矩阵 | `mise run ui:test` |
+| 工作台旅程、焦点、真实交付与六页窗口/缩放矩阵 | `mise run test -- studio-redesign` |
 | 更新检查、下载校验与失败重试（本地模拟） | `mise run test -- updates` |
-| CPU 批量写入与严格校验 | `mise run cpu:test` |
-| 完整主模型、对象关系与接口 | `mise run model:test` |
+| CPU 批量写入与严格校验 | `mise run test -- materialization` |
+| 完整主模型、对象关系与接口 | `mise run test -- model-workflow` |
 | 实际主模型预览 | `mise run test -- model-preview` |
 | 外部 Agent 机器接口 | `mise run test -- agent-protocol` |
 | Agent 离线模拟全流程 | `mise run test -- agent-simulation` |
 
-`mise run test -- --list` 从 [package.json](../../package.json) 的测试脚本读取套件名。专项任务以 [mise.toml](../../mise.toml) 为准。测试分层、单文件运行和前置条件见[测试导航](../../tests/README.md)。修改 `tool-catalog.json` 后先运行 `mise run tools:sync`，再运行 `mise run check`。
+`mise run test -- --list` 读取[套件清单](../../tests/suites.mjs)，该清单也供 CI 和 npm 兼容入口使用。测试分层、单文件运行和前置条件见[测试导航](../../tests/README.md)。修改 `tool-catalog.json` 后先运行 `mise run tools:sync`，再运行 `mise run check`。
 
 桌面自动测试使用隔离的合成工作区，窗口默认最小化，不触发已记录的全屏问题。真实 API 检查会使用指定连接并产生实际请求，入口和边界见[使用指南](../guides/USER_GUIDE.md#ai-与-agent-协作)；常规自动测试使用本机模拟服务。
 
@@ -112,7 +113,11 @@ GPU 任务将可选 NVIDIA 计算环境安装到 `build/gpu-env`；CPU 路径不
 | `desktop/` | Electron 生命周期、受限 preload 桥与本地 worker；Python/NumPy 不进入主线程或 renderer |
 | `.agents/skills/minecraft-nbt-modeler/` | 活动 Python 引擎、前端和可移植 Skill 实现 |
 | `scripts/cli.mjs` | 可独立运行的统一 CLI |
-| `config/`、`scripts/`、`tests/` | 构建与运行约定、维护入口和回归检查 |
+| `config/` | 运行锁定配置、验收要求和其他项目配置 |
+| `scripts/release/` | Electron 打包、便携运行依赖与归档 |
+| `scripts/assets/`、`scripts/benchmarks/` | 捆绑资产生成与校验、计算和物化基准 |
+| `scripts/maintenance/` | 手动维护工具 |
+| `tests/` | 回归套件、测试用例和验收执行器 |
 | `docs/` | 使用指南、开发维护文档与历史记录 |
 | `references/` | 冻结迁移快照及清单，保持原字节不变 |
 | `tools/structures/workbench/` | 导入的 SAODG 兼容组件，模组管理不作为通用功能暴露 |

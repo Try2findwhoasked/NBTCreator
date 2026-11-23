@@ -1,6 +1,6 @@
 import importlib.util,json,tempfile,unittest,zipfile,subprocess,sys
 from pathlib import Path
-spec=importlib.util.spec_from_file_location('archive',Path(__file__).resolve().parents[2]/'scripts/portable-archive.py')
+spec=importlib.util.spec_from_file_location('archive',Path(__file__).resolve().parents[2]/'scripts/release/portable-archive.py')
 archive=importlib.util.module_from_spec(spec);spec.loader.exec_module(archive)
 
 class PortableContracts(unittest.TestCase):

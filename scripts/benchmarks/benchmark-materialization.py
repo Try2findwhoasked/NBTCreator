@@ -2,7 +2,7 @@
 import argparse,hashlib,importlib.util,json,statistics,sys,time
 from datetime import datetime
 from pathlib import Path
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[2]
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--engine',type=Path,default=ROOT/'.agents/skills/minecraft-nbt-modeler');parser.add_argument('--output',type=Path);parser.add_argument('--compare',type=Path);args=parser.parse_args()
@@ -11,7 +11,7 @@ def main():
     from nbt_structure_agent import dispatch,build
     from nbt_components import validate,paste_plan
     from nbt_assembly import Volume
-    module=importlib.util.spec_from_file_location('compute_bench',ROOT/'scripts/benchmark-compute.py');bench=importlib.util.module_from_spec(module);module.loader.exec_module(bench)
+    module=importlib.util.spec_from_file_location('compute_bench',Path(__file__).with_name('benchmark-compute.py'));bench=importlib.util.module_from_spec(module);module.loader.exec_module(bench)
     dense=dict(name='64000方块校验',size=[40]*3,operations=[dict(kind='paste_component',label='实体',classification='wall',lo=[0]*3,hi=[39]*3,palette=['stone_bricks'],voxels=[[x,y,z,0] for x in range(40) for y in range(40) for z in range(40)])])
     mixed=dict(name='混材稀疏构件',size=[48]*3,operations=[dict(kind='paste_component',label='实体',classification='body',lo=[0]*3,hi=[47]*3,palette=['quartz_block','stone_brick_slab[type=top]','stone_brick_stairs[facing=east]'],voxels=[[x,y,z,(x+y+z)%3] for x in range(48) for y in range(32) for z in range(48) if (x+z)%2])])
     component=build(output,mixed)

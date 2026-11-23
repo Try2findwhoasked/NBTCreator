@@ -19,6 +19,8 @@ runs:
       run: |
         mise exec -- npm ci
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        mise exec -- node node_modules/electron/install.js
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         mise exec -- npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         mise exec -- python -m pip install numpy==2.4.2 Pillow==12.1.0 nbtlib==2.0.4

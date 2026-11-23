@@ -19,7 +19,7 @@ const manifest=JSON.parse(await fs.readFile(path.join(folder,zip.replace(/\.zip$
 const splitFiles=(await fs.readdir(folder)).filter(f=>f.endsWith('-app-update.manifest.json')||f.endsWith('-runtime.manifest.json'))
 if(splitFiles.length===2){const entries=[];for(const file of splitFiles)entries.push(...JSON.parse(await fs.readFile(path.join(folder,file),'utf8')).files);assert.equal(new Set(entries.map(f=>f.path)).size,entries.length);assert.deepEqual(entries.sort((a,b)=>a.path.localeCompare(b.path)),manifest.files.sort((a,b)=>a.path.localeCompare(b.path)))}
 const reused=process.argv.indexOf('--unpacked-dir');unpacked=reused<0?output:path.resolve(root,process.argv[reused+1])
-if(reused<0)execFileSync(python,[path.join(root,'scripts/portable-archive.py'),'unpack','--source',path.join(folder,zip),'--output',output],{stdio:'inherit'})
+if(reused<0)execFileSync(python,[path.join(root,'scripts/release/portable-archive.py'),'unpack','--source',path.join(folder,zip),'--output',output],{stdio:'inherit'})
 else{
  await fs.mkdir(output)
  const digest=async file=>{const h=createHash('sha256');for await(const chunk of createReadStream(file))h.update(chunk);return h.digest('hex')}

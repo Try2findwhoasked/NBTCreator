@@ -3,7 +3,7 @@ import argparse,hashlib,json,sys,tempfile,uuid
 from copy import deepcopy
 from pathlib import Path
 
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[2]
 SKILL=ROOT/'.agents/skills/minecraft-nbt-modeler'
 sys.path.insert(0,str(SKILL/'scripts'))
 import nbt_effect_assets as effects
@@ -58,7 +58,7 @@ def definitions():
 
 def check():
     bundle=catalog()
-    if bundle is None or bundle.get('engine_sha256')!=engine_sha():raise ValueError('初始效果需重新生成：python scripts/build-starter-effects.py')
+    if bundle is None or bundle.get('engine_sha256')!=engine_sha():raise ValueError('初始效果需重新生成：python scripts/assets/build-starter-effects.py')
     expected={uuid.uuid5(uuid.NAMESPACE_URL,'nbtcreator:starter-effect:'+key+':1').hex:effects.validate(asset) for key,asset in definitions()}
     if set(expected)!={item['id'] for item in bundle['items']}:raise ValueError('初始效果清单与生成定义不同步')
     for item in bundle['items']:

@@ -1,6 +1,6 @@
 """Rebuild original small grayscale motifs without external images or APIs.
 
-Run from the repository root: mise exec -- python scripts/build-micro-patterns.py
+Run from the repository root: mise exec -- python scripts/assets/build-micro-patterns.py
 Logical pixels represent half-block samples at the preferred wall size.
 """
 import argparse
@@ -10,7 +10,7 @@ from pathlib import Path
 
 from PIL import Image
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 LIBRARY = ROOT / '.agents/skills/minecraft-nbt-modeler/assets/ornament-patterns'
 CATALOG = ROOT / '.agents/skills/minecraft-nbt-modeler/tool-catalog.json'
 

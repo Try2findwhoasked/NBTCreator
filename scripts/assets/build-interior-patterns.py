@@ -10,7 +10,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 LIBRARY = ROOT / '.agents/skills/minecraft-nbt-modeler/assets/ornament-patterns'
 CATALOG = ROOT / '.agents/skills/minecraft-nbt-modeler/tool-catalog.json'
 

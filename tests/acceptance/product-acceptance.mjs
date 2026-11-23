@@ -2,10 +2,10 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import {spawn,execFileSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
-import {root,python} from './paths.mjs'
+import {root,python} from '../../scripts/paths.mjs'
 
 const argv=process.argv.slice(2),option=(name,fallback)=>{const i=argv.indexOf(name);return i<0?fallback:argv[i+1]}
-if(!option('--directory'))throw Error('Usage: npm run test:product -- --directory dist/<full-directory> [--workspace <project>] [--jobs 1|2]')
+if(!option('--directory'))throw Error('Usage: mise run test -- product --directory dist/<full-directory> [--workspace <project>] [--jobs 1|2]')
 const directory=path.resolve(root,option('--directory')),workspace=path.resolve(root,option('--workspace',root))
 const jobs=Number(option('--jobs','2'));if(![1,2].includes(jobs))throw Error('Use one or two simultaneous suites')
 const output=path.resolve(root,option('--out','build/product-acceptance-'+Date.now()))
@@ -17,8 +17,16 @@ const suites=[{id:'private-runtime',runtime:'node',args:['tests/desktop/portable
 const ids=new Set(suites.map(s=>s.id));if(ids.size!==suites.length)throw Error('Duplicate suite identifier')
 for(const requirement of plan.requirements)for(const id of requirement.suites)if(!ids.has(id))throw Error('Missing suite '+id)
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex')
-const tracked=execFileSync('git',['ls-files','-z'],{cwd:root,encoding:'utf8'}).split('\0').filter(Boolean)
-async function snapshot(){const files={};for(const name of tracked){if(!/^(desktop\/|scripts\/|config\/|tests\/|docs\/|\.agents\/skills\/minecraft-nbt-modeler\/|package(?:-lock)?\.json$|AGENTS\.md$|README\.md$)/.test(name))continue;files[name]=digest(await fs.readFile(path.join(root,name)))}return files}
+async function snapshot(){
+ const names=execFileSync('git',['ls-files','-z','--cached','--others','--exclude-standard','--deduplicate'],{cwd:root,encoding:'utf8'}).split('\0').filter(Boolean)
+ const files={}
+ for(const name of names){
+  if(!/^(desktop\/|scripts\/|config\/|tests\/|docs\/|\.agents\/skills\/minecraft-nbt-modeler\/|package(?:-lock)?\.json$|AGENTS\.md$|README\.md$)/.test(name))continue
+  try{files[name]=digest(await fs.readFile(path.join(root,name)))}
+  catch(error){if(error.code!=='ENOENT')throw error}
+ }
+ return files
+}
 const before=await snapshot(),commit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim()
 // Verify the executed application contains this implementation, rather than a
 // previously green application which happens to share its version number.
@@ -73,7 +81,9 @@ async function run(suite){
 }
 async function worker(){while(cursor<suites.length)await run(suites[cursor++])}
 await Promise.all(Array.from({length:jobs},worker))
-const after=await snapshot();report.changed_inputs=Object.keys(before).filter(name=>before[name]!==after[name]);report.inputs_unchanged=!report.changed_inputs.length
+const after=await snapshot()
+report.changed_inputs=[...new Set([...Object.keys(before),...Object.keys(after)])].filter(name=>before[name]!==after[name])
+report.inputs_unchanged=!report.changed_inputs.length
 report.requirements=plan.requirements.map(requirement=>({...requirement,passed:requirement.suites.every(id=>records.get(id)?.status==='passed')}))
 report.passed=report.inputs_unchanged&&report.requirements.every(r=>r.passed)&&report.suites.every(s=>s.status==='passed')
 report.finished_utc=new Date().toISOString();await writes

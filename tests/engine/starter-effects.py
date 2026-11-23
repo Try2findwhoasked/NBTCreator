@@ -35,7 +35,7 @@ class StarterEffects(unittest.TestCase):
    with self.assertRaisesRegex(ValueError,'初始效果资料缺失'):self.listing()
   self.assertFalse(effects.root(self.workspace).exists())
  def test_generated_release_pack_matches_sources(self):
-  spec=importlib.util.spec_from_file_location('starter_builder',ROOT/'scripts/build-starter-effects.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);self.assertEqual(len(module.check()['items']),len(self.bundle['items']))
+  spec=importlib.util.spec_from_file_location('starter_builder',ROOT/'scripts/assets/build-starter-effects.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);self.assertEqual(len(module.check()['items']),len(self.bundle['items']))
  def test_previous_engine_receipt_reuses_identical_files_from_current_release(self):
   item=self.listing()[0];report=effects.file_for(self.workspace,item['id']).parent/'preview/report.json'
   value=json.loads(report.read_text(encoding='utf8'));value['engine_sha256']='0'*64

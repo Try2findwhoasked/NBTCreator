@@ -2,7 +2,7 @@
 
 本文说明全流程产品验收的方法与证据边界，覆盖[产品完善清单](PRODUCT_IMPROVEMENTS.md)以及资产、效果、管理、评分和交付要求。末尾的历史执行记录保留当时发现的问题，不代表当前源码或目录包已完成验收。不能仅因功能已经存在、某个局部测试通过或能够编译，就认为整个目标已达成。
 
-`config/product-acceptance.json` 将要求对应到实际检查；`scripts/product-acceptance.mjs` 运行这些检查并生成带源文件哈希的证据。完整版必须先编译，测试不会边运行边重建前端，也不替用户批准建筑。
+`config/product-acceptance.json` 将要求对应到实际检查；`tests/acceptance/product-acceptance.mjs` 运行这些检查并生成带源文件哈希的证据。完整版必须先编译，测试不会边运行边重建前端，也不替用户批准建筑。
 
 从软件源码根目录执行，输出使用全新的目录：
 

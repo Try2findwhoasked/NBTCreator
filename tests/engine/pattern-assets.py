@@ -39,7 +39,7 @@ class PatternAssets(unittest.TestCase):
                     result = self.call('pattern_compile', **args)
                     self.assertGreater(result['block_count'], 0)
                     self.assertEqual(result['sample_sha256'], asset['image_sha256'])
-        subprocess.run([sys.executable, str(ROOT / 'scripts/build-interior-patterns.py'), '--check'],
+        subprocess.run([sys.executable, str(ROOT / 'scripts/assets/build-interior-patterns.py'), '--check'],
                        cwd=ROOT, check=True, capture_output=True, text=True)
 
     def make(self,**patch):

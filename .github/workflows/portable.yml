@@ -73,11 +73,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- npm run verify:archive
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:api
+          mise run test -- test-runner
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          mise run test -- api
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- python tests/engine/portable-contracts.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:workspace
+          mise run test -- workspace
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- node --test tests/node/prompt-creation.mjs tests/node/agent-handoff.test.mjs tests/node/internal-ai.test.cjs tests/node/component-move.mjs tests/node/updater.test.cjs tests/node/app-settings.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -85,13 +87,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise run assets:check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/asset-libraries.py
+          mise run test -- asset-libraries
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/modular-objects.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/structural-members.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/window-frames.py
+          mise run test -- modular
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify source desktop and model smoke
         if: needs.changes.outputs.scope == 'quick'
@@ -133,7 +131,7 @@ jobs:
       - name: Verify unified asset library desktop flow
         env:
           DEBUG: 'pw:browser'
-        run: mise exec -- node tests/desktop/unified-assets-desktop.mjs
+        run: mise run test -- --prebuilt unified-assets
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
         with:
@@ -171,7 +169,7 @@ jobs:
           $probeRoot = Join-Path $PWD 'build/ci-model-pipelines'
           if (Test-Path -LiteralPath $probeRoot) { throw 'Keep prior regression evidence; expected a fresh CI directory' }
           New-Item -ItemType Directory -Path $probeRoot | Out-Null
-          mise exec -- npm run test:projects
+          mise run test -- projects
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- python tests/engine/surface-mount.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -181,17 +179,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- python tests/engine/protection-mask.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/walk-inspection.py
+          mise run test -- --prebuilt walk
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- python tests/engine/prompt-archive.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/feedback-tasks.py
+          mise run test -- --prebuilt feedback-tasks
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/batches.py
+          mise run test -- --prebuilt batches
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/selection-edit.py
+          mise run test -- --prebuilt selection-edit
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/retrieval.py
+          mise run test -- --prebuilt retrieval
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- python tests/engine/architecture-knowledge.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -199,39 +197,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- python tests/engine/architect-tools.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/agent-protocol.py
+          mise run test -- agent-protocol
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/agent-task-return.py
+          mise run test -- --prebuilt agent-return
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node --test tests/node/retrieval.test.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node --test tests/node/selection-edit.test.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- python tests/engine/auto-roads.py
+          mise run test -- --prebuilt roads
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- node --test tests/node/ai-component.test.mjs tests/node/edit-session-store.test.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/auto-roads-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- node tests/desktop/transform-sliders-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node --test tests/node/batch-links.test.cjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/feedback-tasks-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/batch-workspaces-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/selection-edit-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/retrieval-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/agent-task-return-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:catalog
+          mise run test -- catalog
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- node tests/desktop/prompt-archive-desktop.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/walk-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- python tests/engine/reusable-recipes.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -301,29 +279,29 @@ jobs:
         env:
           DEBUG: 'pw:browser'
         run: |
-          mise exec -- python -B tests/engine/roof-curves.py
+          mise run test -- roof-curves
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- python -B tests/engine/architectural-bay.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:architecture-workflow
+          mise run test -- architecture-workflow
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:architecture-preview
+          mise run test -- --prebuilt architecture-preview
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:model-workflow
+          mise run test -- model-workflow
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:extensions
+          mise run test -- extensions
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- python tests/engine/snbt-source.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- python tests/engine/building-history.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/architect-tools-desktop.mjs
+          mise run test -- --desktop-only architect-tools
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/ai-batch-desktop.mjs
+          mise run test -- --desktop-only ai-batch
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/architect-workspace-desktop.mjs
+          mise run test -- --desktop-only architect
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/feedback-autosave-desktop.mjs
+          mise run test -- --desktop-only feedback-autosave
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $env:NBTCREATOR_TEST_SNBT = '1'
           mise exec -- node tests/desktop/desktop-smoke.mjs
@@ -361,26 +339,26 @@ jobs:
       - uses: ./.github/actions/setup-windows
       - name: Build portable ZIP
         run: |
-          mise exec -- npm run package:portable -- --out dist/portable
+          mise run package:portable -- --out dist/portable
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $notes = Join-Path $PWD "docs/archive/releases/RELEASE_$version.md"
           if (Test-Path -LiteralPath $notes) { Copy-Item -LiteralPath $notes -Destination dist/portable/release-notes.md }
       - name: Verify extracted package with external Python and Git
-        run: mise exec -- npm run test:portable -- --archive-dir dist/portable
+        run: mise run test -- portable --archive-dir dist/portable
       - name: Packaged Electron regression
         run: |
           $env:NBTCREATOR_TEST_EXE = Join-Path $PWD 'dist/portable/NBTCreator-win32-x64/NBTCreator.exe'
           Remove-Item Env:NBTCREATOR_PYTHON -ErrorAction SilentlyContinue
-          mise exec -- npm run test:desktop
+          mise run test -- desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/updater-desktop.mjs
+          mise run test -- --desktop-only updates
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- npm run test:api-desktop
+          mise run test -- api-desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/protection-desktop.mjs
+          mise run test -- --desktop-only protection
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/walk-desktop.mjs
+          mise run test -- --desktop-only walk
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- node tests/desktop/prompt-archive-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -388,15 +366,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           mise exec -- node tests/desktop/workspace-api-desktop.mjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/feedback-tasks-desktop.mjs
+          mise run test -- --desktop-only feedback-tasks
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/batch-workspaces-desktop.mjs
+          mise run test -- --desktop-only batches
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/selection-edit-desktop.mjs
+          mise run test -- --desktop-only selection-edit
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/retrieval-desktop.mjs
+          mise run test -- --desktop-only retrieval
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          mise exec -- node tests/desktop/agent-task-return-desktop.mjs
+          mise run test -- --desktop-only agent-return
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
