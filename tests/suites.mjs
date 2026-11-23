@@ -72,6 +72,10 @@ export const suites = {
   ],
   'building-failure-replay': [python('-B', 'tests/engine/building-failure-replay.py')],
   'terrain-site-selection': [python('-B', 'tests/engine/terrain-site-selection.py')],
+  'contextual-facade-preview': [
+    buildWeb,
+    node('tests/desktop/contextual-facade-preview.mjs'),
+  ],
   'asset-batches': [
     buildWeb,
     python('tests/engine/asset-batches.py'),
