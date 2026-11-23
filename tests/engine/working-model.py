@@ -558,6 +558,8 @@ class WorkingModels(unittest.TestCase):
         self.assertEqual(sorted(run.returncode for run in results),[0,1],[run.stdout+run.stderr for run in results])
         failed=next(json.loads(run.stdout) for run in results if run.returncode)
         self.assertEqual(failed['code'],'STALE_PARENT')
+        self.assertEqual(failed['recovery']['input'],'source, source_sha256')
+        self.assertIn('当前制作版',failed['recovery']['next_check'])
 
 
     def test_unowned_manual_equal_result_never_becomes_owned(self):

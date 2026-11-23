@@ -20,6 +20,7 @@ from nbt_assembly import Volume
 from nbt_model import AIR, AIR_NAMES, state
 from nbt_modeling_session import canonical
 from nbt_change_policy import change_sets, enforce_changes, reserved_position
+from nbt_request_paths import read_request_json
 
 _publication_locks = ContextVar('working_model_publication_locks', default=frozenset())
 
@@ -126,6 +127,16 @@ class ModelConflict(ValueError):
     def __init__(self, code, conflicts):
         self.code, self.conflicts = code, conflicts
         super().__init__(code + ': ' + canonical(conflicts[:32]))
+
+    @property
+    def recovery(self):
+        if self.code == 'STALE_SOURCE':
+            return dict(input='source, source_sha256',
+                        next_check='重新打开任务所指制作源，核对版本、保护与审阅绑定后再生成请求。')
+        if self.code == 'STALE_PARENT':
+            return dict(input='source, source_sha256',
+                        next_check='读取当前制作版及父版本记录，确认改动仍适用于任务后，从当前版本重建续版请求。')
+        return None
 
 
 class WorkingModel:
@@ -1144,13 +1155,12 @@ def verify_version(version):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--workspace', type=Path, default=Path.cwd())
-    parser.add_argument('--request', type=Path, required=True)
+    parser.add_argument('--request', type=Path, required=True,
+                        help='UTF-8 JSON 文件，相对于命令工作目录。JSON 内的 source 和 context 路径相对于创作工作区。')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
     try:
-        if args.request.stat().st_size > 8 * 1024 * 1024:
-            raise ValueError('工作模型请求超过8MiB')
-        request = json.loads(args.request.read_text(encoding='utf-8-sig'))
+        request = read_request_json(args.request, max_bytes=8*1024*1024)
         from nbt_catalog import catalog
         from nbt_structure_agent import _schema
         _schema(request, catalog()['working_model']['parameters'], '工作模型请求')
@@ -1160,6 +1170,8 @@ def main():
             model = WorkingModel.open(args.workspace, request['source'], request.get('context'),
                 source_sha256=request['source_sha256'], kind=request.get('kind', 'building'), limits=request.get('limits'))
         else:
+            if 'size' not in request:
+                raise ValueError('新建工作模型须提供 size（XYZ 格数）；打开已有制作版须提供 source 和 source_sha256。')
             model = WorkingModel(args.workspace, request['size'], request.get('context'), request.get('kind', 'building'), request.get('limits'))
         results = []
         from nbt_extensions import MODEL_ACTIONS
@@ -1182,8 +1194,11 @@ def main():
         print(json.dumps(dict(ok=True, result=result), ensure_ascii=False))
         return 0
     except (ValueError, OSError, KeyError, TypeError, AssertionError) as error:
-        print(json.dumps(dict(ok=False, error=str(error), code=getattr(error, 'code', 'MODEL_INVALID'),
-            conflicts=getattr(error, 'conflicts', [])), ensure_ascii=False))
+        reply = dict(ok=False, error=str(error), code=getattr(error, 'code', 'MODEL_INVALID'),
+                     conflicts=getattr(error, 'conflicts', []))
+        if recovery := getattr(error, 'recovery', None):
+            reply['recovery'] = recovery
+        print(json.dumps(reply, ensure_ascii=False))
         return 1
 
 

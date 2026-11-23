@@ -33,7 +33,7 @@ def capabilities():
 if __name__=='__main__':
     import argparse
     data=capabilities();parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--routes',action='store_true',help='速查容易混淆的检查、构件、看图和交付入口')
+    parser.add_argument('--routes',action='store_true',help='按创作意图速查起步命令、单项契约、结果和接续动作')
     parser.add_argument('--agent-tool',choices=sorted(data['agent_tools']),help='只读取指定高层工具的完整参数Schema')
     parser.add_argument('--model',action='store_true',help='只读取统一工作模型的请求契约')
     parser.add_argument('--architecture',action='store_true',help='只读取建筑方案与评审工作流契约')

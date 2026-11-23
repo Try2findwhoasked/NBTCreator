@@ -15,7 +15,17 @@ mise run nbt -- architect plan-build --request build.json
 
 从源码根目录使用 `mise run nbt -- --workspace <创作项目根目录> architect <action> --request <JSON>`。全部参数以 `tool-catalog.json` 的 `architecture` 为准，不把 schema 复制进脚本或提示词。无需启动 Electron。
 
-`plan-build`、`plan-check`、`part-preflight` 和 `review-prepare` 支持 `--compact-report <nbt_models 内全新JSON路径>`，父目录须已存在。完整回执写入指定文件，终端给出报告路径、哈希及重点问题。保存后的 `plan-build` 和成功的 `plan-check` 在完整回执与终端简报中都提供 `next.request`，可直接交给 `review-prepare` 回读复验。保存成功的回执还提供 `revision_request`，将这些字段与改好的 `plan`、`save_draft` 合并为下一版的请求。准备成功后按报告的 `render_command` 出图，再用其中的 `review_record_bindings` 和真实看图观察提交 `review-record`。相对路径以创作工作区为基准。默认输出仍为完整 JSON。
+`plan-build`、`plan-check`、`part-preflight` 和 `review-prepare` 支持 `--compact-report <nbt_models 内全新JSON路径>`，父目录须已存在。完整回执写入指定文件，终端给出 `report.path`、`report.sha256` 及重点问题。默认输出仍为完整 JSON。相对 `--request` 文件路径从命令工作目录读取；请求内的 `source`、`output`、`pack` 和 `render_manifest` 相对于创作工作区。使用源码全局 `--workspace` 或从创作根目录走生成入口时，这两处基准指向同一目录。
+
+| 回执中的证据 | 如何接续 |
+| --- | --- |
+| 退出 1，`ok:false` | 核对 `error` 和 `code`。有 `report.path` 时把完整失败回执交给 `diagnostics --kind model`。请求缺失、JSON 行列或输出路径错误按提示检查对应输入；报告路径无法写入时终端直接返回错误。 |
+| `STALE_SOURCE` 或 `STALE_PARENT` | 读 `conflicts` 和可用的 `recovery`。重开当前版本，核对任务、保护和原审阅绑定，再用当前回执重建请求。 |
+| `saved` 与 `next.request` | 保存成功后将 `next.request` 原样传给 `review-prepare`。成功的 `plan-check` 也给出同一接法。续版用保存回执的 `revision_request` 合并改好的 `plan` 和 `save_draft`。 |
+| `render_command` 与 `review_record_bindings` | 按命令出图，再核对清单和源、相机、图像绑定。实际打开图片后，将绑定字段和观察提交给 `review-record`。可用 `diagnostics --kind review` 解释审阅包、覆盖回执或观察记录。 |
+| `status: observations_recorded` | 查 `observations_complete`、`coverage_complete` 和 `missing_locations`。覆盖不足时补拍或补看，随后向用户展示实际图像。精修仍须该批图像的用户明确确认。 |
+
+退出码 0 表示本步执行成功。预检的问题在 `parts[].interface_issues`；审阅准备的 `coverage_passed` 仅报告机位覆盖，`visual_status` 给出看图阶段。两者在完整回执的 `coverage` 下，在简报中位于顶层。入口亭的字段来源和最短接续见[入口亭示例](simple-building.md#入口亭的请求与回执)。
 
 Agent 把自然语言设计转为以下数据，而不是直接猜一串工具调用：
 

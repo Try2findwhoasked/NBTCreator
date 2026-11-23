@@ -183,7 +183,7 @@ def save(workspace,request):
 
 
 def select(workspace,request):
-    if ('plan' in request)==('plan_id' in request):raise ValueError('内联plan与plan_id必须选择一种')
+    if ('plan' in request)==('plan_id' in request):raise ValueError('内联plan与plan_id必须选择一种。plan 填本次方案；plan_id 从已保存方案回执取。')
     if 'plan' in request:return normalize(request['plan'])
     return stored(workspace,dict(id=request['plan_id'],**({'revision':request['revision']} if request.get('revision') else {})))['plan']
 
@@ -354,7 +354,7 @@ def build(workspace,request):
         if not request.get('source_sha256'):raise ValueError('已有制作源须提供source_sha256')
         original=WorkingModel.open(workspace,source,source_sha256=request['source_sha256'])
         previous=original.architecture
-        if previous and request.get('expected_plan_sha256')!=previous['sha256']:raise ValueError('建筑方案父指纹不一致')
+        if previous and request.get('expected_plan_sha256')!=previous['sha256']:raise ValueError('建筑方案父指纹不一致：请复验当前制作源，核对 expected_plan_sha256 与其绑定方案。')
         if list(original.model.size)!=resolved['size']:raise ValueError('续版建筑方案不能隐式改变画布')
         normalized=WorkingModel(workspace,resolved['size'],context=resolved['context']).context
         if normalized!=original.context:raise ValueError('续版方案不能替换原保护、预算、开口和路线上下文')

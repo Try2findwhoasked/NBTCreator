@@ -57,6 +57,7 @@ if(command==='doctor'){
   process.exitCode=1
  }else{
   console.log('Usage: nbt [--workspace <directory>] <command> [options]')
+  console.log('全局 --workspace 放在命令前，并将命令工作目录切到该目录。相对 --request 从命令工作目录读取。')
   console.log('Commands: '+['doctor',...Object.keys(scripts),...Object.keys(aliases)].join(' | '))
   console.log('用 capabilities --routes 速查入口，用 <命令> --help 查看参数。')
  }

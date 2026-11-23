@@ -1083,11 +1083,95 @@ globalThis.NbtToolCatalog = {
       "task"
     ]
   },
+  "cli_path_bases": {
+    "request_argument": "command_cwd",
+    "architect_and_model_request_resources": "workspace",
+    "control_and_selection_request_resources": "command_cwd",
+    "portable_request_resources": "workspace",
+    "file_relative_metadata_resources": "metadata_parent"
+  },
   "tool_routes": {
+    "创作起步": [
+      {
+        "title": "从零起整栋初稿（亭子、入口、空间和构件）",
+        "call": "architect plan-build --request <请求JSON>",
+        "contract": "capabilities --architect-action plan-build",
+        "guide": "simple-building.md",
+        "input": "按用途选尺寸、空间、材质、开口和机位。入口亭示例内含 save_draft，会发布制作版；只编译和检查时省略。",
+        "result": "返回建筑编译与检查；保存时另有 saved、next.request 和 revision_request。",
+        "next": "保存后把 next.request 原样交给 architect review-prepare；续版用 revision_request。"
+      },
+      {
+        "title": "按明确几何装配，或打开制作源续版",
+        "call": "model --request <请求JSON>",
+        "contract": "capabilities --model",
+        "guide": "simple-building.md",
+        "input": "新建填 size（XYZ 格数），已有制作版从原保存回执取 source 和 source_sha256；按需要填 actions。",
+        "result": "返回模型摘要及操作结果；validate:true 复验，save_draft 另存 SNBT。",
+        "next": "核对 result.validation（启用时）及 result.saved（保存时）；制作源用 render --source 出图。"
+      }
+    ],
+    "局部修改": [
+      {
+        "title": "给已有建筑局部换材（保留边缘或立柱）",
+        "call": "selection-edit context --request <请求JSON> [--snapshot <同源after.json>]",
+        "guide": "selection-edit.md",
+        "input": "从当前版本回执取 source 和 source_sha256，按实际全模型坐标选整数 lo、hi；快照沿用同一次候选回执。",
+        "result": "读取真实选区，返回以 lo 为原点的 palette、runs、size 和 geometry_sha256。",
+        "next": "保持源、边界和快照，传回 geometry_sha256；编写局部 operations 后调用 selection-edit compile。"
+      },
+      {
+        "title": "编译局部步骤并接回原编辑计划",
+        "call": "selection-edit compile --request <请求JSON> [--snapshot <同源after.json>]",
+        "contract": "capabilities --operation <kind>",
+        "guide": "selection-edit.md",
+        "input": "沿用 context 的输入与几何哈希，operations 从局部 [0,0,0] 起算。按本次修改权限填写 allow_overwrite。",
+        "result": "返回已平移一次且带 write_bounds 的全局 operations。",
+        "next": "原样追加到同一源的 settings.operations；用 control plan、control preview 和 validate 检查候选。"
+      }
+    ],
+    "找素材与复用": [
+      {
+        "title": "查找已有尖拱等资产",
+        "call": "asset-libraries browse --request <请求JSON>",
+        "contract": "asset-libraries --help",
+        "guide": "asset-libraries.md",
+        "input": "JSON 填名称或标签 query 和数量 limit，例如 {\"query\":\"尖拱\",\"limit\":4}。离线查现有来源。",
+        "result": "result.items 含候选及来源、版本、清单和资产哈希，result.errors 列来源异常。",
+        "next": "同一命中的 id、sha256、source_id、version、manifest_sha256 原样交给 asset-libraries preview；复制或放置还需预览的 content_sha256。"
+      },
+      {
+        "title": "重新编译已存配方",
+        "call": "recipes compile --id <配方ID> --position <x,y,z> --size <sx,sy,sz>",
+        "contract": "recipes compile --help",
+        "guide": "reusable-recipes.md",
+        "input": "从 recipes get 取配方及 revision_sha256；按目标模型选择画布、位置、主题和覆盖参数。",
+        "result": "返回编译后的可复用候选操作。",
+        "next": "追加到原编辑计划，再走预览和验证。"
+      },
+      {
+        "title": "从参数生成构件",
+        "call": "components agent --tool parametric_compile --request <请求JSON>",
+        "contract": "capabilities --agent-tool parametric_compile",
+        "guide": "parametric-components.md",
+        "input": "按构件形态选 kind、尺寸和材料；具体参数见单项契约。",
+        "result": "返回编译构件候选及几何信息。",
+        "next": "用 parametric_preview 获取可查看的候选，再选择安装或显式保存资产。"
+      },
+      {
+        "title": "查询屋顶等建模操作",
+        "call": "capabilities --operations",
+        "contract": "capabilities --operation auto_roof",
+        "input": "从操作清单选 kind，屋顶取 auto_roof；结构配方另查 capabilities --recipe structure。",
+        "result": "操作清单返回名称和提示，单项查询返回参数。",
+        "next": "把 auto_roof 填入 operations[].kind，形态和尺寸按单项契约填写。"
+      }
+    ],
     "曲面纹样": [
       {
         "title": "规划和核对曲面样段",
         "call": "curve compose --request <JSON> / curve verify-mask --mask <JSON> --sha256 <哈希> / curve plan --request <JSON> [--compact] / curve verify --plan <JSON> --sha256 <哈希> / curve review-record --request <JSON> / curve review-verify --record <JSON> --sha256 <哈希>",
+        "call_kind": "多步流程",
         "input": "可从来源与内容哈希绑定的构件切片显式映射动作，再绑定宿主、已验证截面、掩模、UV 映射及真实审阅机位。",
         "result": "输出可重算的分层掩模与凸饰、切槽、嵌纹候选，报告实际面、背衬和连续性；不保存制作版或批准。"
       }
@@ -1096,6 +1180,7 @@ globalThis.NbtToolCatalog = {
       {
         "title": "登记、拟合与回投影",
         "call": "reference register|fit|verify-fit|cameras|verify-cameras|compare|verify|review-prepare|review-record|review-verify",
+        "call_kind": "多步流程",
         "input": "提供同尺度三视图、像素原点、轴方向、带依据的锚点及显式轮廓掩模。",
         "result": "输出绑定哈希的 loft 截面、轮廓指标和叠图；不替代看图、真实确认或游戏验证。"
       }
@@ -1110,6 +1195,7 @@ globalThis.NbtToolCatalog = {
       {
         "title": "签发和回装协作切片",
         "call": "assembly slice --request <JSON> / assembly merge --request <JSON>",
+        "call_kind": "多步流程",
         "input": "签发时绑定主稿、范围和必要路线；回装时提供原签发清单哈希及各候选哈希。",
         "result": "复核可写域、重叠、保护和全局路线后保存一个新制作版；不批准或导出。"
       }
@@ -1172,26 +1258,41 @@ globalThis.NbtToolCatalog = {
       {
         "title": "校验候选快照",
         "call": "validate --request <请求JSON> --snapshot <候选快照> --output <新检查目录>",
+        "contract": "validate --help",
+        "guide": "diagnostic-guidance.md",
         "input": "同一次 control preview 的原始编辑请求与回执的 result.snapshot（after.json）。",
-        "result": "写 validation.json，检查源绑定、实际改动、保护和几何。以 result.passed 判定是否通过。"
+        "result": "写 validation.json。ok:true 表示生成报告；result.passed 决定是否通过，失败退出 1。",
+        "next": "失败时把 result.validation 所指报告交给 diagnostics --kind candidate；通过后检查绑定并实际看图。"
       },
       {
         "title": "复验已保存的制作源",
         "call": "model --request <请求JSON>",
-        "input": "JSON 填 source、source_sha256 和 validate:true。路径与哈希从保存回执 result.saved 取。",
-        "result": "返回 result.validation。只检查时省略 actions 和 save_draft。"
+        "contract": "capabilities --model",
+        "input": "JSON 填 source、source_sha256 和 validate:true。路径与哈希从 model 的 result.saved 或 architect 的 saved 取。",
+        "result": "返回 result.validation；验证抛出冲突时，退出 1 并带错误及冲突。只检查时省略 actions 和 save_draft。"
       },
       {
         "title": "复验建筑及绑定方案",
         "call": "architect plan-check --request <请求JSON>",
+        "contract": "capabilities --architect-action plan-check",
         "input": "JSON 填绑定过建筑方案的 source 和 source_sha256。",
-        "result": "返回 validation、绑定方案和 plan_sha256。"
+        "result": "成功退出 0，返回 validation、绑定方案和 plan_sha256；失败退出 1。",
+        "next": "需要看图时把 next.request 交给 review-prepare。"
       },
       {
         "title": "查询制作源是否可编辑",
         "call": "control inspect --source <制作源>",
         "input": "现有制作源路径。",
         "result": "result.editing_ready 表示是否具备编辑条件，context_readiness 给出上下文缺失或失配的原因。"
+      },
+      {
+        "title": "解释检查失败并定位证据",
+        "call": "diagnostics --kind <model、review 或 candidate> --report <完整回执>",
+        "contract": "diagnostics --help",
+        "guide": "diagnostic-guidance.md",
+        "input": "建筑执行失败用 model 和 report.path；审阅覆盖或观察用 review；候选检查用 candidate 和 result.validation。",
+        "result": "返回问题、位置、证据及下一项核对；退出 0 表示解释成功。",
+        "next": "按证据核对原请求或绑定。需要修改时重新编译及复验。"
       }
     ],
     "构件": [
@@ -1204,6 +1305,7 @@ globalThis.NbtToolCatalog = {
       {
         "title": "填写结构配方",
         "call": "recipe.tool = \"structure\"",
+        "call_kind": "JSON 字段",
         "input": "填写建筑方案的 parts[].recipe 或主模型 install 的 recipe。capabilities --recipe structure 返回配方示例。",
         "result": "配方由调用方编译为构件体素，用于组装。"
       },
@@ -1224,26 +1326,47 @@ globalThis.NbtToolCatalog = {
       {
         "title": "准备建筑审阅",
         "call": "architect review-prepare --request <请求JSON>",
+        "contract": "capabilities --architect-action review-prepare",
         "input": "JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换失败机位。",
-        "result": "复验保存源并写审阅包及相机。运行回执的 render_command 出图。"
+        "result": "复验保存源并写审阅包及相机；coverage_passed 是机位覆盖检查，visual_status 表示仍待看图（完整回执在 coverage 下）。",
+        "next": "运行回执的 render_command 出图，保留同份回执的 review_record_bindings。"
       },
       {
-        "title": "渲染实际图片",
+        "title": "从制作源渲染实际图片",
         "call": "render --source <制作源> --cameras <相机JSON> --output <新目录>",
-        "input": "提供制作源与相机。渲染候选时使用 --snapshot 与相机。",
-        "result": "写 PNG 和 render_manifest.json。先打开实际图像，建筑审阅再登记观察。"
+        "contract": "render --help",
+        "input": "使用保存回执的制作源；建筑审阅沿用 review-prepare 生成的相机。",
+        "result": "写 PNG 和 render_manifest.json；检查 status:complete 及源、相机、图像哈希。",
+        "next": "打开实际图像，建筑审阅用 review-record 登记观察。"
+      },
+      {
+        "title": "从候选快照渲染实际图片",
+        "call": "render --snapshot <候选after.json> --cameras <相机JSON> --output <新目录>",
+        "contract": "render --help",
+        "input": "快照来自 control preview 的 result.snapshot；对比前后时沿用相机，给两次出图各选新目录。",
+        "result": "生成绑定候选快照的 PNG 与渲染清单。",
+        "next": "打开图片并核对候选绑定；改动仍需通过候选验证。"
       },
       {
         "title": "登记建筑看图观察",
         "call": "architect review-record --request <请求JSON>",
-        "input": "审阅包路径及哈希、父修订、渲染清单、实际看图所得 observations 和 issues（无问题填 []）。参数用 capabilities --architect-action review-record 查询。",
+        "contract": "capabilities --architect-action review-record",
+        "input": "原样取 review-prepare 的 review_record_bindings，再填实际看图得出的 observations 和 issues（无问题填 []）。",
         "result": "写观察记录，返回覆盖与交付摘要。精修另须用户看过对应图像并明确同意。"
       },
       {
         "title": "保存可编辑 SNBT",
         "call": "model --request <请求JSON>",
         "input": "在 model 或 architect plan-build 的 JSON 请求中填写 save_draft。",
-        "result": "保存新 SNBT 制作版，返回 saved.source 与 saved.source_sha256，供复验和出图。"
+        "result": "保存新 SNBT 制作版，model 返回 result.saved，architect 返回 saved；源路径及哈希供复验和出图。"
+      },
+      {
+        "title": "只读记录定稿所需的审阅输入",
+        "call": "finalize --source <已保存制作源> --inspect-inputs",
+        "contract": "finalize --help",
+        "input": "审阅时用本次对应的制作源。",
+        "result": "返回 source_sha256 和 inputs_sha256，供同一版本显式定稿时传回。",
+        "next": "把哈希与本次审阅关联；输入变化时重新核对审阅。"
       },
       {
         "title": "导出定稿 NBT",

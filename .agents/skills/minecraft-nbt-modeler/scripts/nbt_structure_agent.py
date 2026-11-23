@@ -44,7 +44,9 @@ def _schema(value, schema, label='参数'):
     if 'enum' in schema and value not in schema['enum']:raise ValueError(label+' 不在允许列表')
     if kind=='object':
         props=schema.get('properties',{})
-        if any(k not in value for k in schema.get('required',[])):raise ValueError(label+' 缺少必需字段')
+        missing = [key for key in schema.get('required', []) if key not in value]
+        if missing:
+            raise ValueError(f"{label} 缺少必需字段：{', '.join(missing)}")
         if schema.get('additionalProperties') is False and set(value)-set(props):raise ValueError(label+' 含未开放字段')
         for key,child in value.items():
             if key in props:_schema(child,props[key],label+'.'+key)

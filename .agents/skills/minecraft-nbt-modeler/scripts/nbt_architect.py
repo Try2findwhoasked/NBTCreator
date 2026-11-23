@@ -4,6 +4,7 @@ from pathlib import Path
 from nbt_prompts import inside,relative,index_lock,encode,digest
 from nbt_history import file_hash,now
 from nbt_project_batch import write
+from nbt_request_paths import read_request_json
 from nbt_web_paths import project_paths
 
 FIELDS={'name':'规范名称','materials':'材质与配色','dimensions':'尺度、层高与门窗','circulation':'道路与通行','style':'风格与构造','references':'参考资料说明','notes':'其他统一要求'}
@@ -166,7 +167,7 @@ def compact(action, result, report_file):
 
     keys = ('plan_sha256', 'pack', 'pack_sha256', 'source', 'cameras', 'render_command',
             'read_only', 'asset_written', 'approval_created', 'nbt_exported', 'code',
-            'next', 'revision_request', 'review_record_bindings')
+            'next', 'revision_request', 'review_record_bindings', 'recovery')
     reply = {key: result[key] for key in keys if key in result}
     reply.update(ok=result.get('ok', True), report=dict(path=str(report_file), sha256=file_hash(report_file)))
     if not reply['ok']:
@@ -202,7 +203,9 @@ def compact(action, result, report_file):
 def main():
     from nbt_catalog import catalog
     from nbt_constraints import ACTIONS
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['standards-get','standards-save','deliveries','continue','cross-list','cross-save',*ACTIONS,*catalog().get('architecture',{}).get('actions',{})]);parser.add_argument('--request',type=Path)
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['standards-get','standards-save','deliveries','continue','cross-list','cross-save',*ACTIONS,*catalog().get('architecture',{}).get('actions',{})])
+    parser.add_argument('--request',type=Path,
+                        help='UTF-8 JSON 文件，从命令工作目录读取。JSON 内的制作源和审阅路径以创作工作区为基准。')
     parser.add_argument('--compact-report', type=Path, help='简明回执，显式写完整JSON到 nbt_models 内的全新文件，父目录须已存在（part-preflight / plan-build / plan-check / review-prepare）')
     args=parser.parse_args()
 
@@ -210,13 +213,16 @@ def main():
 
     def run(report_file=None):
         try:
-            request = read(args.request, {}) if args.request else {}
+            request = read_request_json(args.request, max_bytes=8*1024*1024) if args.request is not None else {}
             result = dispatch(workspace, args.action, request)
             attach_next(workspace, args.action, request, result, report_file)
             return result, 0
         except (ValueError, OSError, KeyError, TypeError) as error:
-            return dict(ok=False, error=str(error), code=getattr(error, 'code', 'ARCHITECT_INVALID'),
-                        conflicts=getattr(error, 'conflicts', [])), 1
+            reply = dict(ok=False, error=str(error), code=getattr(error, 'code', 'ARCHITECT_INVALID'),
+                         conflicts=getattr(error, 'conflicts', []))
+            if recovery := getattr(error, 'recovery', None):
+                reply['recovery'] = recovery
+            return reply, 1
 
     if args.compact_report:
         if args.action not in COMPACT_ACTIONS:
@@ -226,7 +232,13 @@ def main():
             if (report_file.is_relative_to(args.workspace.resolve()/'nbt_models/_exports')
                     or any((parent/'model-version.json').is_file() for parent in report_file.parents)):
                 raise ValueError('完整回执不能写入定稿目录或已发布制作版')
-            with report_file.open('xb') as stream:
+            try:
+                stream = report_file.open('xb')
+            except FileExistsError as error:
+                raise ValueError(f'--compact-report 已存在：{report_file}。请使用全新文件路径。') from error
+            except FileNotFoundError as error:
+                raise ValueError(f'--compact-report 的父目录须已存在：{report_file.parent}') from error
+            with stream:
                 result, status = run(report_file)
                 stream.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
             result = compact(args.action, result, report_file)

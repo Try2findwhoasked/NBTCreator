@@ -126,6 +126,10 @@ class Contracts(unittest.TestCase):
    for route in ('task-client inspect prompts <id>','task-client inspect tasks <id>'):
     self.assertLess(entry.index(route),entry.index('capabilities --routes'))
    self.assertIn('asset-libraries browse --request <JSON文件>',entry);self.assertIn('{"query":"尖拱","limit":4}',entry)
+   for hint in ('architect plan-build --request <JSON文件>','capabilities --architect-action plan-build',
+                'model --request <JSON文件>','selection-edit context --request <JSON文件>',
+                'selection-edit.md','result.passed','report.path'):
+    self.assertIn(hint,entry)
    self.assertNotIn('micro-props.md',entry);self.assertNotIn('micro-props.md',index)
    self.assertNotIn(str(ENGINE),entry+index)
    marker=json.loads((root/'.nbtcreator/facade-manifest.json').read_text(encoding='utf8'))
@@ -202,6 +206,16 @@ class Contracts(unittest.TestCase):
    self.assertEqual(set(routes),{'tool_routes','capabilities_sha256','gui_required'})
    self.assertEqual(routes['tool_routes'],capabilities()['tool_routes'])
    self.assertEqual(routes['capabilities_sha256'],capabilities()['capabilities_sha256'])
+   groups=routes['tool_routes']
+   self.assertEqual(list(groups)[:3],['创作起步','局部修改','找素材与复用'])
+   for group,first_call,contract,next_field in (
+       ('创作起步','architect plan-build','capabilities --architect-action plan-build','next.request'),
+       ('局部修改','selection-edit context','selection-edit.md','geometry_sha256'),
+       ('找素材与复用','asset-libraries browse','asset-libraries --help','content_sha256')):
+    route=groups[group][0]
+    self.assertTrue(route['call'].startswith(first_call))
+    self.assertIn(contract,(route.get('contract'),route['guide']))
+    self.assertIn(next_field,route['next'])
    output=subprocess.check_output([*command,'--operations'],cwd=root,text=True,encoding='utf8')
    operations=json.loads(output)['operations']
    self.assertEqual(set(operations),set(capabilities()['tools']))

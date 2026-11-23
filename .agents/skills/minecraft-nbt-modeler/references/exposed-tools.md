@@ -91,79 +91,111 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 
 - `task` → `prompts task`
 
-## 容易混淆的入口
+## 创作速查
 
-从创作项目根目录运行 `mise run nbt -- capabilities --routes` 单独查询这张表。其他命令沿用工作区入口的 mise 前缀。
+从创作项目根目录用生成 Skill 所示前缀执行 `capabilities --routes` 单独查询这张表。已知命令可查 `<命令> --help`。工作区有同名任务时，前缀会指向文件任务。专题从已启用的知识中选读。
+
+### 创作起步
+
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 从零起整栋初稿（亭子、入口、空间和构件） | 命令 `architect plan-build --request <请求JSON>` | `capabilities --architect-action plan-build`<br>[请求与用例](simple-building.md) | 按用途选尺寸、空间、材质、开口和机位。入口亭示例内含 save_draft，会发布制作版；只编译和检查时省略。 | 返回建筑编译与检查；保存时另有 saved、next.request 和 revision_request。<br>保存后把 next.request 原样交给 architect review-prepare；续版用 revision_request。 |
+| 按明确几何装配，或打开制作源续版 | 命令 `model --request <请求JSON>` | `capabilities --model`<br>[请求与用例](simple-building.md) | 新建填 size（XYZ 格数），已有制作版从原保存回执取 source 和 source_sha256；按需要填 actions。 | 返回模型摘要及操作结果；validate:true 复验，save_draft 另存 SNBT。<br>核对 result.validation（启用时）及 result.saved（保存时）；制作源用 render --source 出图。 |
+
+### 局部修改
+
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 给已有建筑局部换材（保留边缘或立柱） | 命令 `selection-edit context --request <请求JSON> [--snapshot <同源after.json>]` | [请求与用例](selection-edit.md) | 从当前版本回执取 source 和 source_sha256，按实际全模型坐标选整数 lo、hi；快照沿用同一次候选回执。 | 读取真实选区，返回以 lo 为原点的 palette、runs、size 和 geometry_sha256。<br>保持源、边界和快照，传回 geometry_sha256；编写局部 operations 后调用 selection-edit compile。 |
+| 编译局部步骤并接回原编辑计划 | 命令 `selection-edit compile --request <请求JSON> [--snapshot <同源after.json>]` | `capabilities --operation <kind>`<br>[请求与用例](selection-edit.md) | 沿用 context 的输入与几何哈希，operations 从局部 [0,0,0] 起算。按本次修改权限填写 allow_overwrite。 | 返回已平移一次且带 write_bounds 的全局 operations。<br>原样追加到同一源的 settings.operations；用 control plan、control preview 和 validate 检查候选。 |
+
+### 找素材与复用
+
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 查找已有尖拱等资产 | 命令 `asset-libraries browse --request <请求JSON>` | `asset-libraries --help`<br>[请求与用例](asset-libraries.md) | JSON 填名称或标签 query 和数量 limit，例如 {"query":"尖拱","limit":4}。离线查现有来源。 | result.items 含候选及来源、版本、清单和资产哈希，result.errors 列来源异常。<br>同一命中的 id、sha256、source_id、version、manifest_sha256 原样交给 asset-libraries preview；复制或放置还需预览的 content_sha256。 |
+| 重新编译已存配方 | 命令 `recipes compile --id <配方ID> --position <x,y,z> --size <sx,sy,sz>` | `recipes compile --help`<br>[请求与用例](reusable-recipes.md) | 从 recipes get 取配方及 revision_sha256；按目标模型选择画布、位置、主题和覆盖参数。 | 返回编译后的可复用候选操作。<br>追加到原编辑计划，再走预览和验证。 |
+| 从参数生成构件 | 命令 `components agent --tool parametric_compile --request <请求JSON>` | `capabilities --agent-tool parametric_compile`<br>[请求与用例](parametric-components.md) | 按构件形态选 kind、尺寸和材料；具体参数见单项契约。 | 返回编译构件候选及几何信息。<br>用 parametric_preview 获取可查看的候选，再选择安装或显式保存资产。 |
+| 查询屋顶等建模操作 | 命令 `capabilities --operations` | `capabilities --operation auto_roof` | 从操作清单选 kind，屋顶取 auto_roof；结构配方另查 capabilities --recipe structure。 | 操作清单返回名称和提示，单项查询返回参数。<br>把 auto_roof 填入 operations[].kind，形态和尺寸按单项契约填写。 |
 
 ### 曲面纹样
 
-| 任务 | 调用或字段 | 输入 | 结果 |
-| --- | --- | --- | --- |
-| 规划和核对曲面样段 | `curve compose --request <JSON> / curve verify-mask --mask <JSON> --sha256 <哈希> / curve plan --request <JSON> [--compact] / curve verify --plan <JSON> --sha256 <哈希> / curve review-record --request <JSON> / curve review-verify --record <JSON> --sha256 <哈希>` | 可从来源与内容哈希绑定的构件切片显式映射动作，再绑定宿主、已验证截面、掩模、UV 映射及真实审阅机位。 | 输出可重算的分层掩模与凸饰、切槽、嵌纹候选，报告实际面、背衬和连续性；不保存制作版或批准。 |
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 规划和核对曲面样段 | 多步流程 `curve compose --request <JSON> / curve verify-mask --mask <JSON> --sha256 <哈希> / curve plan --request <JSON> [--compact] / curve verify --plan <JSON> --sha256 <哈希> / curve review-record --request <JSON> / curve review-verify --record <JSON> --sha256 <哈希>` |  | 可从来源与内容哈希绑定的构件切片显式映射动作，再绑定宿主、已验证截面、掩模、UV 映射及真实审阅机位。 | 输出可重算的分层掩模与凸饰、切槽、嵌纹候选，报告实际面、背衬和连续性；不保存制作版或批准。 |
 
 ### 三视参考
 
-| 任务 | 调用或字段 | 输入 | 结果 |
-| --- | --- | --- | --- |
-| 登记、拟合与回投影 | `reference register|fit|verify-fit|cameras|verify-cameras|compare|verify|review-prepare|review-record|review-verify` | 提供同尺度三视图、像素原点、轴方向、带依据的锚点及显式轮廓掩模。 | 输出绑定哈希的 loft 截面、轮廓指标和叠图；不替代看图、真实确认或游戏验证。 |
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 登记、拟合与回投影 | 多步流程 `reference register\|fit\|verify-fit\|cameras\|verify-cameras\|compare\|verify\|review-prepare\|review-record\|review-verify` |  | 提供同尺度三视图、像素原点、轴方向、带依据的锚点及显式轮廓掩模。 | 输出绑定哈希的 loft 截面、轮廓指标和叠图；不替代看图、真实确认或游戏验证。 |
 
 ### 大型组装
 
-| 任务 | 调用或字段 | 输入 | 结果 |
-| --- | --- | --- | --- |
-| 导入并核验大型组装制作源 | `assembly import --request <JSON>` | 指定画布、工作区内 SNBT 分区、各自 SHA256 与全局偏移；输出为新建筑版本的 master 目录。 | 逐份回读并登记历史；可用 assembly inspect、model 和 render 操作，定稿导出仍须独立支持。 |
-| 签发和回装协作切片 | `assembly slice --request <JSON> / assembly merge --request <JSON>` | 签发时绑定主稿、范围和必要路线；回装时提供原签发清单哈希及各候选哈希。 | 复核可写域、重叠、保护和全局路线后保存一个新制作版；不批准或导出。 |
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 导入并核验大型组装制作源 | 命令 `assembly import --request <JSON>` |  | 指定画布、工作区内 SNBT 分区、各自 SHA256 与全局偏移；输出为新建筑版本的 master 目录。 | 逐份回读并登记历史；可用 assembly inspect、model 和 render 操作，定稿导出仍须独立支持。 |
+| 签发和回装协作切片 | 多步流程 `assembly slice --request <JSON> / assembly merge --request <JSON>` |  | 签发时绑定主稿、范围和必要路线；回装时提供原签发清单哈希及各候选哈希。 | 复核可写域、重叠、保护和全局路线后保存一个新制作版；不批准或导出。 |
 
 ### 任务与交接
 
-| 任务 | 调用或字段 | 输入 | 结果 |
-| --- | --- | --- | --- |
-| 按编号读取已交接的任务 | `task --id <任务编号>` | 从创作项目根目录运行。支持提示词和建筑修改编号。用 --view compact 查看下一步。 | 回读已校验的内容和失效附件提示。读取任务与领取、建模、精修批准分开。 |
-| 查找两类交接任务 | `task-client list --pending` | 省略 --pending 可看其他任务；--kind 可限定 prompts 或 tasks。 | 提供各任务的查看命令，建筑任务来源失效时返回诊断。 |
-| 查看任务记录和绑定证据 | `task-client inspect <prompts 或 tasks> <任务编号>` | 提示词任务用 prompts，已有建筑修改任务用 tasks。 | 默认返回任务阶段、来源核对与下一步；按 expand 视图展开，再用 task-client start 明确领取。 |
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 按编号读取已交接的任务 | 命令 `task --id <任务编号>` |  | 从创作项目根目录运行。支持提示词和建筑修改编号。用 --view compact 查看下一步。 | 回读已校验的内容和失效附件提示。读取任务与领取、建模、精修批准分开。 |
+| 查找两类交接任务 | 命令 `task-client list --pending` |  | 省略 --pending 可看其他任务；--kind 可限定 prompts 或 tasks。 | 提供各任务的查看命令，建筑任务来源失效时返回诊断。 |
+| 查看任务记录和绑定证据 | 命令 `task-client inspect <prompts 或 tasks> <任务编号>` |  | 提示词任务用 prompts，已有建筑修改任务用 tasks。 | 默认返回任务阶段、来源核对与下一步；按 expand 视图展开，再用 task-client start 明确领取。 |
 
 ### 工作区与运行时
 
-| 任务 | 调用或字段 | 输入 | 结果 |
-| --- | --- | --- | --- |
-| 核对同步版本和渲染依赖 | `paths --runtime` | 从已同步的实际创作工作区运行，适用于迁移或批量出图前。 | 报告当前 Python、同步时的运行时、Playwright 和 Chromium 路径。实际图片用 render 验证。 |
-| 检查或修复外部 Agent 资料 | `exposure show` | 看 custom_issues；恢复原文件、exposure import 或 exposure edit --id <编号> --setting remove。 | 修复登记与重新同步工作区入口，仅改变外部 Agent 阅读范围。 |
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 核对同步版本和渲染依赖 | 命令 `paths --runtime` |  | 从已同步的实际创作工作区运行，适用于迁移或批量出图前。 | 报告当前 Python、同步时的运行时、Playwright 和 Chromium 路径。实际图片用 render 验证。 |
+| 检查或修复外部 Agent 资料 | 命令 `exposure show` |  | 看 custom_issues；恢复原文件、exposure import 或 exposure edit --id <编号> --setting remove。 | 修复登记与重新同步工作区入口，仅改变外部 Agent 阅读范围。 |
 
 ### 知识库
 
-| 任务 | 调用或字段 | 输入 | 结果 |
-| --- | --- | --- | --- |
-| 离线检索参考 | `retrieve search --request <JSON文件>` | 填 workflow 和 query；可用 keywords 给短检索词，include_extension_assets 同时查外部 Agent 的离线资产候选。 | 返回已启用文档、书库与收藏的简短命中。用 receipt 和 ref 查看局部出处，或以 selected 保存引用集合。 |
-| 联网补查公开原页 | `retrieve research --request <JSON文件>` | 任务明确要求联网时填 workflow，提供公开 query 或已知 HTTPS urls。 | 返回原文证据、来源和未完成项。默认取得一条即返回。 |
-| 管理网页证据收藏 | `retrieve saved-web --request <JSON文件>` | 填 workflow。action 为 list、add 或 remove，保存或移除时填已有的 web: 证据 id。 | 保存的证据进入本工作流离线搜索，既有引用集合仍绑定原快照。 |
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 离线检索参考 | 命令 `retrieve search --request <JSON文件>` |  | 填 workflow 和 query；可用 keywords 给短检索词，include_extension_assets 同时查外部 Agent 的离线资产候选。 | 返回已启用文档、书库与收藏的简短命中。用 receipt 和 ref 查看局部出处，或以 selected 保存引用集合。 |
+| 联网补查公开原页 | 命令 `retrieve research --request <JSON文件>` |  | 任务明确要求联网时填 workflow，提供公开 query 或已知 HTTPS urls。 | 返回原文证据、来源和未完成项。默认取得一条即返回。 |
+| 管理网页证据收藏 | 命令 `retrieve saved-web --request <JSON文件>` |  | 填 workflow。action 为 list、add 或 remove，保存或移除时填已有的 web: 证据 id。 | 保存的证据进入本工作流离线搜索，既有引用集合仍绑定原快照。 |
 
 ### 检查
 
-| 任务 | 调用或字段 | 输入 | 结果 |
-| --- | --- | --- | --- |
-| 校验候选快照 | `validate --request <请求JSON> --snapshot <候选快照> --output <新检查目录>` | 同一次 control preview 的原始编辑请求与回执的 result.snapshot（after.json）。 | 写 validation.json，检查源绑定、实际改动、保护和几何。以 result.passed 判定是否通过。 |
-| 复验已保存的制作源 | `model --request <请求JSON>` | JSON 填 source、source_sha256 和 validate:true。路径与哈希从保存回执 result.saved 取。 | 返回 result.validation。只检查时省略 actions 和 save_draft。 |
-| 复验建筑及绑定方案 | `architect plan-check --request <请求JSON>` | JSON 填绑定过建筑方案的 source 和 source_sha256。 | 返回 validation、绑定方案和 plan_sha256。 |
-| 查询制作源是否可编辑 | `control inspect --source <制作源>` | 现有制作源路径。 | result.editing_ready 表示是否具备编辑条件，context_readiness 给出上下文缺失或失配的原因。 |
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 校验候选快照 | 命令 `validate --request <请求JSON> --snapshot <候选快照> --output <新检查目录>` | `validate --help`<br>[请求与用例](diagnostic-guidance.md) | 同一次 control preview 的原始编辑请求与回执的 result.snapshot（after.json）。 | 写 validation.json。ok:true 表示生成报告；result.passed 决定是否通过，失败退出 1。<br>失败时把 result.validation 所指报告交给 diagnostics --kind candidate；通过后检查绑定并实际看图。 |
+| 复验已保存的制作源 | 命令 `model --request <请求JSON>` | `capabilities --model` | JSON 填 source、source_sha256 和 validate:true。路径与哈希从 model 的 result.saved 或 architect 的 saved 取。 | 返回 result.validation；验证抛出冲突时，退出 1 并带错误及冲突。只检查时省略 actions 和 save_draft。 |
+| 复验建筑及绑定方案 | 命令 `architect plan-check --request <请求JSON>` | `capabilities --architect-action plan-check` | JSON 填绑定过建筑方案的 source 和 source_sha256。 | 成功退出 0，返回 validation、绑定方案和 plan_sha256；失败退出 1。<br>需要看图时把 next.request 交给 review-prepare。 |
+| 查询制作源是否可编辑 | 命令 `control inspect --source <制作源>` |  | 现有制作源路径。 | result.editing_ready 表示是否具备编辑条件，context_readiness 给出上下文缺失或失配的原因。 |
+| 解释检查失败并定位证据 | 命令 `diagnostics --kind <model、review 或 candidate> --report <完整回执>` | `diagnostics --help`<br>[请求与用例](diagnostic-guidance.md) | 建筑执行失败用 model 和 report.path；审阅覆盖或观察用 review；候选检查用 candidate 和 result.validation。 | 返回问题、位置、证据及下一项核对；退出 0 表示解释成功。<br>按证据核对原请求或绑定。需要修改时重新编译及复验。 |
 
 ### 构件
 
-| 任务 | 调用或字段 | 输入 | 结果 |
-| --- | --- | --- | --- |
-| 预检方案中的单个构件 | `architect part-preflight --request <请求JSON>` | JSON 填 plan 或 plan_id，以及要检查的 part。用 capabilities --architect-action part-preflight 查参数。 | 编译指定构件，返回方块状态支持和接口问题。整栋装配与宿主验证由 plan-build 执行。 |
-| 填写结构配方 | `recipe.tool = "structure"` | 填写建筑方案的 parts[].recipe 或主模型 install 的 recipe。capabilities --recipe structure 返回配方示例。 | 配方由调用方编译为构件体素，用于组装。 |
-| 生成独立构件候选预览 | `components agent --tool structure_preview --request <请求JSON>` | JSON 的 spec 填构件规格。capabilities --agent-tool structure_preview 返回可运行的请求示例。 | 写临时候选快照与缩略图。安装和入库各有独立入口。 |
-| 创建纹样并取得拟合输入 | `components agent --tool pattern_create --request <请求JSON>` | 用 capabilities --agent-tool pattern_create 查小位图或图层配方参数。 | 保存纹样资产，result.fitting_input 可直接合入 pattern_microfit 请求。用 pattern_assets 的 action:get 和 result.id 回查。 |
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 预检方案中的单个构件 | 命令 `architect part-preflight --request <请求JSON>` |  | JSON 填 plan 或 plan_id，以及要检查的 part。用 capabilities --architect-action part-preflight 查参数。 | 编译指定构件，返回方块状态支持和接口问题。整栋装配与宿主验证由 plan-build 执行。 |
+| 填写结构配方 | JSON 字段 `recipe.tool = "structure"` |  | 填写建筑方案的 parts[].recipe 或主模型 install 的 recipe。capabilities --recipe structure 返回配方示例。 | 配方由调用方编译为构件体素，用于组装。 |
+| 生成独立构件候选预览 | 命令 `components agent --tool structure_preview --request <请求JSON>` |  | JSON 的 spec 填构件规格。capabilities --agent-tool structure_preview 返回可运行的请求示例。 | 写临时候选快照与缩略图。安装和入库各有独立入口。 |
+| 创建纹样并取得拟合输入 | 命令 `components agent --tool pattern_create --request <请求JSON>` |  | 用 capabilities --agent-tool pattern_create 查小位图或图层配方参数。 | 保存纹样资产，result.fitting_input 可直接合入 pattern_microfit 请求。用 pattern_assets 的 action:get 和 result.id 回查。 |
 
 ### 看图与交付
 
-| 任务 | 调用或字段 | 输入 | 结果 |
-| --- | --- | --- | --- |
-| 准备建筑审阅 | `architect review-prepare --request <请求JSON>` | JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换失败机位。 | 复验保存源并写审阅包及相机。运行回执的 render_command 出图。 |
-| 渲染实际图片 | `render --source <制作源> --cameras <相机JSON> --output <新目录>` | 提供制作源与相机。渲染候选时使用 --snapshot 与相机。 | 写 PNG 和 render_manifest.json。先打开实际图像，建筑审阅再登记观察。 |
-| 登记建筑看图观察 | `architect review-record --request <请求JSON>` | 审阅包路径及哈希、父修订、渲染清单、实际看图所得 observations 和 issues（无问题填 []）。参数用 capabilities --architect-action review-record 查询。 | 写观察记录，返回覆盖与交付摘要。精修另须用户看过对应图像并明确同意。 |
-| 保存可编辑 SNBT | `model --request <请求JSON>` | 在 model 或 architect plan-build 的 JSON 请求中填写 save_draft。 | 保存新 SNBT 制作版，返回 saved.source 与 saved.source_sha256，供复验和出图。 |
-| 导出定稿 NBT | `finalize --source <已保存制作源> --source-sha256 <审阅源哈希> --inputs-sha256 <审阅输入哈希>` | 审阅时用 --inspect-inputs 记录源和输入哈希；仅在用户明确要求定稿时导出。无墙的独立建筑须在保存时声明 allow_empty_wall_mask:true。 | 验证并在 nbt_models/_exports/ 写 NBT 完整主模型、分片与交付回执。 |
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 准备建筑审阅 | 命令 `architect review-prepare --request <请求JSON>` | `capabilities --architect-action review-prepare` | JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换失败机位。 | 复验保存源并写审阅包及相机；coverage_passed 是机位覆盖检查，visual_status 表示仍待看图（完整回执在 coverage 下）。<br>运行回执的 render_command 出图，保留同份回执的 review_record_bindings。 |
+| 从制作源渲染实际图片 | 命令 `render --source <制作源> --cameras <相机JSON> --output <新目录>` | `render --help` | 使用保存回执的制作源；建筑审阅沿用 review-prepare 生成的相机。 | 写 PNG 和 render_manifest.json；检查 status:complete 及源、相机、图像哈希。<br>打开实际图像，建筑审阅用 review-record 登记观察。 |
+| 从候选快照渲染实际图片 | 命令 `render --snapshot <候选after.json> --cameras <相机JSON> --output <新目录>` | `render --help` | 快照来自 control preview 的 result.snapshot；对比前后时沿用相机，给两次出图各选新目录。 | 生成绑定候选快照的 PNG 与渲染清单。<br>打开图片并核对候选绑定；改动仍需通过候选验证。 |
+| 登记建筑看图观察 | 命令 `architect review-record --request <请求JSON>` | `capabilities --architect-action review-record` | 原样取 review-prepare 的 review_record_bindings，再填实际看图得出的 observations 和 issues（无问题填 []）。 | 写观察记录，返回覆盖与交付摘要。精修另须用户看过对应图像并明确同意。 |
+| 保存可编辑 SNBT | 命令 `model --request <请求JSON>` |  | 在 model 或 architect plan-build 的 JSON 请求中填写 save_draft。 | 保存新 SNBT 制作版，model 返回 result.saved，architect 返回 saved；源路径及哈希供复验和出图。 |
+| 只读记录定稿所需的审阅输入 | 命令 `finalize --source <已保存制作源> --inspect-inputs` | `finalize --help` | 审阅时用本次对应的制作源。 | 返回 source_sha256 和 inputs_sha256，供同一版本显式定稿时传回。<br>把哈希与本次审阅关联；输入变化时重新核对审阅。 |
+| 导出定稿 NBT | 命令 `finalize --source <已保存制作源> --source-sha256 <审阅源哈希> --inputs-sha256 <审阅输入哈希>` |  | 审阅时用 --inspect-inputs 记录源和输入哈希；仅在用户明确要求定稿时导出。无墙的独立建筑须在保存时声明 allow_empty_wall_mask:true。 | 验证并在 nbt_models/_exports/ 写 NBT 完整主模型、分片与交付回执。 |
+
+### 路径和状态
+
+源码入口的全局 `--workspace <目录>` 放在子命令之前，启动器在所选创作目录执行。一些 Python 子命令另有自己的 `--workspace`，用子命令帮助核对。相对 `--request` 文件路径从命令工作目录解析；JSON 内的建筑或工作模型资源相对于创作工作区，control 和 selection-edit 的资源相对于命令工作目录。文件内明确以元数据为基准的引用仍从该元数据所在目录解析。完整 capabilities 的 `cli_path_bases` 给出这几个基准。
+
+先看进程退出码，再看该命令的业务状态和源绑定。参数用法错误通常退出 2。建筑或工作模型执行失败退出 1，检查 `error`、`code` 和 `conflicts`；过期绑定还可查看 `recovery`。候选 validate 生成失败报告时仍可返回 `ok:true`，但 `result.passed:false` 且退出 1。紧凑任务回执用 `source_matches`、`next` 和 `expand` 判断可否接续。看图确认及显式定稿需各自的用户授权。
 
 ## 共用结构 Agent 工具
 

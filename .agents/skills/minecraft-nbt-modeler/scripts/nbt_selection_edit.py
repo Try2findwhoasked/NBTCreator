@@ -28,7 +28,7 @@ def load_selection(request,snapshot):
         if data.get('geometry_sha256')!=model.fingerprint():raise ValueError('选区快照几何不一致')
     if request.get('geometry_sha256') and request['geometry_sha256']!=model.fingerprint():raise ValueError('选区画面已变化，请重新生成')
     lo,hi=request.get('lo'),request.get('hi')
-    if any(not isinstance(p,list) or len(p)!=3 or any(type(v) is not int for v in p) for p in (lo,hi)) or any(lo[i]<0 or lo[i]>hi[i] or hi[i]>=model.size[i] for i in range(3)):raise ValueError('选择模型边界内的整数XYZ范围')
+    if any(not isinstance(p,list) or len(p)!=3 or any(type(v) is not int for v in p) for p in (lo,hi)) or any(lo[i]<0 or lo[i]>hi[i] or hi[i]>=model.size[i] for i in range(3)):raise ValueError('请为 lo 和 hi 填写模型边界内的全局整数 XYZ，且各轴 lo <= hi')
     volume=1
     for i in range(3):volume*=hi[i]-lo[i]+1
     if volume>65536:raise ValueError('自然语言编辑每次选择至多65536格，请缩小选区；不会发送不完整数据')

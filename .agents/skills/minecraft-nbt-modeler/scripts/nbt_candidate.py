@@ -136,7 +136,11 @@ def main():
     parser.add_argument('--snapshot',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args()
-    result=validate_candidate(read_request(args.request),args.snapshot,args.output)
+    try:
+        result=validate_candidate(read_request(args.request),args.snapshot,args.output)
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        print(json.dumps(dict(ok=False,error=str(error)),ensure_ascii=False))
+        return 1
     print(json.dumps(dict(ok=True,result=result),ensure_ascii=False))
     return 0 if result['passed'] else 1
 

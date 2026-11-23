@@ -688,8 +688,10 @@ def normalize_context(model, context_path, camera_path, settings, *, preview_onl
 def reserve_output(output):
     output = Path(output).resolve()
     if output == ROOT or ROOT in output.parents: raise ValueError('Do not save jobs inside the skill installation')
-    if output.exists(): raise FileExistsError('Use a new job output directory')
-    output.mkdir(parents=True)
+    try:
+        output.mkdir(parents=True)
+    except FileExistsError as error:
+        raise FileExistsError(f'Use a new job output directory. --output already exists: {output}') from error
     return output
 
 

@@ -147,7 +147,10 @@ def prepare(workspace,request):
         cameras.append(dict(id=view['id'],role=view['layer'],eye=eye,target=target,fov=view.get('fov',60)))
     from nbt_building.intent import prepare_locations
     locations = prepare_locations(model.model, plan, cameras, checks)
-    output.mkdir(parents=True,exist_ok=False)
+    try:
+        output.mkdir(parents=True,exist_ok=False)
+    except FileExistsError as error:
+        raise FileExistsError(f'请求的 output 已存在：{output}。请使用全新审阅目录。') from error
     write(output/'cameras.json',cameras)
     data=dict(schema_version=1,source=relative(workspace,model.source),source_sha256=model.source_sha256,
         model_sha256=model.inspect()['model_sha256'],plan_sha256=binding['sha256'],

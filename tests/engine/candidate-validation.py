@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -58,6 +59,26 @@ class Candidate(unittest.TestCase):
         self.preview();self.request['settings']['max_changed_blocks']=2
         result=self.check();self.assertFalse(result['passed']);self.assertFalse(result['checks']['change_budget']['passed'])
         issue=next(item for item in result['diagnostics']['issues'] if item['code']=='candidate_change_budget');self.assertIsNone(issue['bounds']);self.assertFalse(issue['automatic_repair']);self.assertEqual(result['diagnostics']['source_sha256'],self.hash)
+    def test_cli_distinguishes_a_failed_candidate_report_from_an_output_conflict(self):
+        self.preview()
+        self.request['settings']['max_changed_blocks']=2
+        (self.root/'request.json').write_text(json.dumps(self.request),encoding='utf8')
+        command=[sys.executable,'-B',str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_candidate.py'),
+            '--request','request.json','--snapshot','preview/after.json','--output','checked']
+        def cli():
+            run=subprocess.run(command,cwd=self.root,capture_output=True,text=True,encoding='utf8')
+            self.assertEqual(run.returncode,1,run.stdout+run.stderr)
+            return json.loads(run.stdout)
+        failed=cli()
+        self.assertTrue(failed['ok'])
+        self.assertFalse(failed['result']['passed'])
+        self.assertEqual(failed['result']['status'],'candidate_failed')
+        report=Path(failed['result']['validation'])
+        saved=report.read_bytes()
+        conflict=cli()
+        self.assertFalse(conflict['ok'])
+        self.assertIn(str(report.parent),conflict['error'])
+        self.assertEqual(report.read_bytes(),saved)
     def test_stale_parameters_reject_exact_snapshot(self):
         self.preview();self.request['settings']['operations'][0]['state']='gold_block'
         result=self.check();self.assertFalse(result['passed']);self.assertFalse(result['checks']['preview_matches_request']['passed'])

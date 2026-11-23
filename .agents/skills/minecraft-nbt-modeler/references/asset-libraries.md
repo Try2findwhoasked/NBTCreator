@@ -110,9 +110,11 @@ component 资产使用 [构件规范](component-assets.md) 的 schema_version/na
 
 ## Agent 与维护入口
 
-在软件仓库根目录使用 `mise exec -- node scripts/cli.mjs --workspace <创作项目> asset-libraries <action> --request <JSON文件>`，创作项目也可用生成的 `mise run nbt -- asset-libraries ...`，无需 Electron。action 为 list/browse/discover/add/refresh/enable/remove/rollback/read/import/thumbnail/preview/resolve/place/copy。返回统一 `{ok,result}` 或 `{ok:false,error,code}`。
+在软件仓库根目录使用 `mise run nbt -- --workspace <创作项目> asset-libraries <action> --request <JSON文件>`。在创作项目根目录按生成 Skill 的 mise 前缀调用，无需 Electron。action 为 list/browse/discover/add/refresh/enable/remove/rollback/read/import/thumbnail/preview/resolve/place/copy。返回统一 `{ok,result}` 或 `{ok:false,error,code}`。
 
-外部 Agent 先把 `{"query":"尖拱","limit":4}` 写入 UTF-8 请求文件，再执行 `mise run nbt -- asset-libraries browse --request <JSON文件>`。按名称和标签返回少量带版本和哈希的候选；具体尺寸仍需回读或预览。无 `query` 的完整目录留给素材浏览器或明确需要全量的调用。
+把 `{"query":"尖拱","limit":4}` 写入 UTF-8 请求文件，再执行 `mise run nbt -- asset-libraries browse --request <JSON文件>`。按需要的名称或标签选 `query`，按要比对的条数填 `limit`。在 `result.items` 找命中，检查 `result.errors` 是否有来源异常。无 `query` 时列出完整目录。
+
+从同一个命中逐项复制 `id`、`sha256`、`source_id`、`version`、`manifest_sha256`，作为 `preview` 的请求顶层。用实际预览核对尺寸和样式；复制或放置时再传该预览的 `result.content_sha256`，并沿用同组参数。版本或参数变化时，重新查命中或预览，以新回执为准。
 
 | action | request |
 | --- | --- |

@@ -63,6 +63,49 @@ class ArchitectureWorkflow(unittest.TestCase):
     def make(self,wood=False):
         return dispatch(self.workspace,'plan-build',dict(plan=plan(wood),save_draft={}))
 
+    def cli(self,*args):
+        script=ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_architect.py'
+        run=subprocess.run([sys.executable,'-B',str(script),*args],cwd=self.workspace,
+            capture_output=True,text=True,encoding='utf8')
+        return run.returncode,json.loads(run.stdout)
+
+    def test_explicit_request_errors_name_the_input_and_keep_omission_supported(self):
+        status,receipt=self.cli('standards-get')
+        self.assertEqual((status,receipt['revision']),(0,0))
+        request=self.workspace/'请求 输入.json'
+        status,receipt=self.cli('standards-get','--request',request.name)
+        self.assertEqual((status,receipt['ok'],receipt['code']),(1,False,'ARCHITECT_INVALID'))
+        self.assertIn('--request',receipt['error'])
+        self.assertIn(str(request.resolve()),receipt['error'])
+        self.assertFalse((self.workspace/'nbt_models').exists())
+        request.write_text('{\n  "plan": }',encoding='utf8')
+        status,receipt=self.cli('plan-build','--request',request.name)
+        self.assertEqual(status,1)
+        self.assertIn(str(request.resolve()),receipt['error'])
+        self.assertIn('第 2 行',receipt['error'])
+        request.write_text('{}',encoding='utf-8-sig')
+        status,receipt=self.cli('plan-check','--request',request.name)
+        self.assertEqual(status,1)
+        self.assertIn('source, source_sha256',receipt['error'])
+
+    def test_cli_reports_stale_source_and_output_conflict_without_overwriting(self):
+        build=self.make()
+        request=self.workspace/'check.json'
+        request.write_text(json.dumps(dict(source=build['saved']['source'],source_sha256='0'*64)),encoding='utf8')
+        report=self.workspace/'nbt_models/check.json'
+        args=('plan-check','--request',request.name,'--compact-report',str(report))
+        status,receipt=self.cli(*args)
+        self.assertEqual((status,receipt['code']),(1,'STALE_SOURCE'))
+        self.assertEqual(receipt['recovery']['input'],'source, source_sha256')
+        saved_bytes=report.read_bytes()
+        self.assertEqual(json.loads(saved_bytes)['recovery'],receipt['recovery'])
+        status,receipt=self.cli(*args)
+        self.assertEqual((status,receipt['code']),(1,'ARCHITECT_INVALID'))
+        self.assertIn('--compact-report',receipt['error'])
+        self.assertIn(str(report.resolve()),receipt['error'])
+        self.assertIn('全新',receipt['error'])
+        self.assertEqual(report.read_bytes(),saved_bytes)
+
     def test_compact_saved_build_handoff_and_read_only_candidate(self):
         script=ROOT/'.agents/skills/minecraft-nbt-modeler/scripts/nbt_architect.py'
         reports=self.workspace/'nbt_models/_workspaces/compact'
