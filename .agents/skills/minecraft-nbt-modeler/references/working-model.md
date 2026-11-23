@@ -8,6 +8,26 @@
 
 复杂建筑可由[可执行建筑方案](architecture-workflow.md)编排同一个工作模型。方案绑定随制作版保存，普通 `validate` 也复检实际空间、梯段、承托和风格规则；不改变用户看图与定稿边界。
 
+## 梁架节奏候选
+
+在 `model` 请求的 `actions` 中使用 `beam_rhythm` 搜索。用 `capabilities --model` 查字段。将既有制作源和 `source_sha256` 放在请求顶层。目标示例在生成的 `search.json` 中。
+
+- `goal.region` 是包含两端的世界 XYZ 修改区域，`origin_xy` 是左柱脚坐标，`span_x` 含两端柱。每榀厚一格，由两根单格截面立柱与一根沿 X 的矩形梁组成。`materials.post` 和 `materials.beam` 分别指定完整方块状态。未注明轴向的原木按构件方向取木纹。
+- `count` 指定榀数，`target_pitch` 指定理想间距，`pitches` 与 `starts` 指定允许尝试的间距和世界 Z 起点，最多 64 种组合。`anchor_z` 可填写既有轴线或入口的实际世界 Z 坐标，用于同分排序。
+- 每组候选作为一次完整写入检查范围、占用、保护区、留空、改动预算、适用的必需路线和装配接口。两根柱脚均须有已知碰撞形状的顶面接触。回执报告方块、墙层和受影响坐标的实际改动量，支承证据限于静态接触。
+- 基线在构件掩模内按固定 XY 对候选实测占用做 Z 向 FFT。比较目标基频及其谐波附近各一格频率 bin 的幅度，并加上相对间距误差、缺块比例和材质状态偏差比例。总误差保留 12 位小数后依次比较离锚点的距离、变动格数、间距和起点。相同幅度的平移候选由约束和位置证据区分。回执包含每榀坐标、实际间隔、误差和拒绝原因。无解返回 `no_legal_candidates` 和 `rejection_counts`。
+- 搜索时可提供 `preview: {"output":"新的预览目录"}` 预览首选。也可同时给出 `pitch`、`start_z` 预览指定候选。检查落盘的 SNBT、快照和真实图像后，用独立的 `adopt_beam_rhythm` 动作传入同一个 `goal`、所选间距及起点和 `candidate_sha256`。采用时重算候选与检查，哈希绑定搜索时的宿主、目标、预算及引擎。制作版保存仍由请求的 `save_draft` 控制。
+
+在软件仓库根目录运行下面的合成示例。每次选一个新的输出目录。
+
+```powershell
+mise exec -- python -B scripts/examples/beam-rhythm.py --workspace build/beam-rhythm-example
+mise run nbt -- render --source build/beam-rhythm-example/beam-rhythm-preview/candidate.snbt --cameras build/beam-rhythm-example/beam-rhythm-preview/cameras.json --output build/beam-rhythm-example/render
+mise run nbt -- --workspace build/beam-rhythm-example model --request adopt.json
+```
+
+示例在 18 个组合中选中 Z=10 起步、间距 6 格的 9 榀梁架。候选报告与预览哈希分别见 `beam-rhythm-report.json` 和 `beam-rhythm-preview/beam-rhythm.json`。在仓库根运行 `mise run test -- beam-rhythm` 复验同谱异位、保护拒绝、无解反馈、完整预算及 CLI 采用。
+
 ## Python 制作脚本
 
 ```python

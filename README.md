@@ -54,6 +54,7 @@ Windows Portable 按 PR 改动选择验证范围。纯文档改动只运行范�
 | 编写方案、审阅与交接建筑任务 | [建筑师工作流](docs/guides/ARCHITECT_WORKFLOW.md) · [首次创作](docs/guides/PROMPT_CREATION.md) |
 | 让应用与 Agent 使用同一项目 | [共享工作区](docs/guides/SHARED_WORKSPACE.md) |
 | 导入和渲染大型 SNBT 分区 | [大型组装制作源](.agents/skills/minecraft-nbt-modeler/references/large-assembly.md) |
+| 按间距与材质目标生成梁架候选 | [梁架节奏原型](.agents/skills/minecraft-nbt-modeler/references/working-model.md#梁架节奏候选) |
 | 配准三视图、生成正交相机与匿名对照 | [三视参考与回投影](.agents/skills/minecraft-nbt-modeler/references/orthographic-reference.md) |
 | 在偏心曲面规划纹样并检查背衬 | [曲面纹样与背衬](.agents/skills/minecraft-nbt-modeler/references/curved-surface.md) |
 | 使用 AI 选点、截图和构件移动 | [AI 放置](docs/guides/AI_PLACEMENT.md) · [AI 工作流](docs/guides/AI_WORKFLOW.md) |

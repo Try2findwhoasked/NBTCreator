@@ -1242,6 +1242,14 @@
         "result": "保存的证据进入本工作流离线搜索，既有引用集合仍绑定原快照。"
       }
     ],
+    "构件节奏": [
+      {
+        "title": "按间距与材质目标生成梁架候选",
+        "call": "model --request <请求JSON>",
+        "input": "在 actions 中使用 beam_rhythm，填写梁架目标、世界修改区域和允许起点。用 capabilities --model 查字段。",
+        "result": "返回通过宿主约束的排序、实测差异和拒绝坐标。可写候选预览，由 adopt_beam_rhythm 明确选择。"
+      }
+    ],
     "检查": [
       {
         "title": "校验候选快照",
@@ -25523,6 +25531,8 @@
                   "detach",
                   "patch",
                   "apply_operations",
+                  "beam_rhythm",
+                  "adopt_beam_rhythm",
                   "seal",
                   "open_declared"
                 ]
@@ -25587,6 +25597,223 @@
       "save": "immutable_snbt_or_assembly_draft_only"
     },
     "actions": {
+      "beam_rhythm": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "beam_rhythm"
+            ]
+          },
+          "goal": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "[a-zA-Z0-9_-]{1,48}",
+                "description": "实例名前缀。每榀附加 -<世界Z>。"
+              },
+              "region": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "lo": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "hi": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  }
+                },
+                "required": [
+                  "lo",
+                  "hi"
+                ]
+              },
+              "origin_xy": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4095
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "span_x": {
+                "type": "integer",
+                "minimum": 3,
+                "maximum": 32
+              },
+              "post_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 63
+              },
+              "beam_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 32
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 32
+              },
+              "target_pitch": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64
+              },
+              "pitches": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 64
+                },
+                "minItems": 1,
+                "maxItems": 8
+              },
+              "starts": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4095
+                },
+                "minItems": 1,
+                "maxItems": 16
+              },
+              "materials": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "beam": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "post": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  }
+                },
+                "required": [
+                  "beam",
+                  "post"
+                ]
+              },
+              "anchor_z": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4095,
+                "description": "既有轴线或入口的世界 Z 坐标，用于同分排序。"
+              }
+            },
+            "required": [
+              "id",
+              "region",
+              "origin_xy",
+              "span_x",
+              "post_height",
+              "beam_height",
+              "count",
+              "target_pitch",
+              "pitches",
+              "starts",
+              "materials"
+            ]
+          },
+          "preview": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "output": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024,
+                "description": "创作工作区相对路径或绝对路径，目录须为新建。"
+              },
+              "pitch": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64
+              },
+              "start_z": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4095
+              },
+              "cameras": {
+                "type": "array",
+                "maxItems": 64
+              }
+            },
+            "required": [
+              "output"
+            ]
+          }
+        },
+        "required": [
+          "method",
+          "goal"
+        ]
+      },
+      "adopt_beam_rhythm": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "adopt_beam_rhythm"
+            ]
+          },
+          "goal": {
+            "type": "object",
+            "description": "与 beam_rhythm 搜索使用同一梁架目标。"
+          },
+          "pitch": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 64
+          },
+          "start_z": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4095
+          },
+          "candidate_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          }
+        },
+        "required": [
+          "method",
+          "goal",
+          "pitch",
+          "start_z",
+          "candidate_sha256"
+        ]
+      },
       "install": {
         "type": "object",
         "additionalProperties": false,

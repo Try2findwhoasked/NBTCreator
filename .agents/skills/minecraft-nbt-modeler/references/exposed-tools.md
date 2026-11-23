@@ -160,6 +160,12 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 联网补查公开原页 | 命令 `retrieve research --request <JSON文件>` |  | 任务明确要求联网时填 workflow，提供公开 query 或已知 HTTPS urls。 | 返回原文证据、来源和未完成项。默认取得一条即返回。 |
 | 管理网页证据收藏 | 命令 `retrieve saved-web --request <JSON文件>` |  | 填 workflow。action 为 list、add 或 remove，保存或移除时填已有的 web: 证据 id。 | 保存的证据进入本工作流离线搜索，既有引用集合仍绑定原快照。 |
 
+### 构件节奏
+
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 按间距与材质目标生成梁架候选 | 命令 `model --request <请求JSON>` |  | 在 actions 中使用 beam_rhythm，填写梁架目标、世界修改区域和允许起点。用 capabilities --model 查字段。 | 返回通过宿主约束的排序、实测差异和拒绝坐标。可写候选预览，由 adopt_beam_rhythm 明确选择。 |
+
 ### 检查
 
 | 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
