@@ -33,7 +33,7 @@
 
 楼梯与半砖由脚本按材质自动配对并定向。方环在墙上 2×2 格可用四个楼梯保留孔洞；平齐地板和吊顶推荐 3×3 格，2×2 会拒绝。复杂花章仍需要 6×6 格，不能把所有纹样强缩成 2×2。已测尺寸在默认石英材质下保留源连通分量和孔洞，墨迹交并比至少 0.8、覆盖误差不高于 0.15；这些数值不是视觉美感或其他材质、尺寸、环绕方式的保证。测试没有提高微型拟合的允许误差。
 
-源码根目录执行 `mise exec -- python scripts/build-micro-patterns.py` 可重建图片、清单和预设枚举，再运行 `mise exec -- npm run sync:tools`。`--check` 只验证，不写文件。针对性回归为 `mise exec -- python -B tests/engine/micro-presets.py`；完整构件回归已包含该项。
+源码根目录执行 `mise exec -- python scripts/assets/build-micro-patterns.py` 可重建图片、清单和预设枚举，再运行 `mise exec -- npm run sync:tools`。`--check` 只验证，不写文件。针对性回归为 `mise exec -- python -B tests/engine/micro-presets.py`；完整构件回归已包含该项。
 
 本目录保留 8 张由内置 ImageGen 生成的大幅灰度掩模，以及 12 项基础几何掩模和上述 12 项微型轮廓，供外部 Agent 通过 `pattern_list`、`pattern_compile`、`pattern_preview`、`pattern_mount` 使用。清单记录每张图片的 SHA256、用途及推荐格数，随工作区冻结运行时一起复制。源码维护时不在本仓库生成创作工作区 facade。
 

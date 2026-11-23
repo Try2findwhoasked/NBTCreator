@@ -70,6 +70,7 @@ Windows Portable 按 PR 改动选择验证范围。纯文档改动只运行范�
 
 ```powershell
 mise exec -- npm ci
+mise exec -- node node_modules/electron/install.js
 mise exec -- npm ci --prefix .agents/skills/minecraft-nbt-modeler/assets/viewer
 mise exec -- python -m pip install -r .agents/skills/minecraft-nbt-modeler/requirements.txt
 mise run dev
@@ -84,11 +85,11 @@ mise run test -- --list
 mise run test -- api
 mise run build:web
 mise run test -- desktop
-mise run architecture:test
-mise run modular:test
+mise run test -- architecture-workflow
+mise run test -- modular
 ```
 
-复杂整栋的 Agent 入口与源绑定审阅流程见[建筑方案闭环](.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md)；`mise run architecture:preview` 在隔离项目中验证公共 CLI、冻结入口与真实出图。
+复杂整栋的 Agent 入口与源绑定审阅流程见[建筑方案闭环](.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md)。`mise run test -- architecture-preview` 在隔离项目中验证公共 CLI、冻结入口与真实出图。
 
 ## 开源许可证
 

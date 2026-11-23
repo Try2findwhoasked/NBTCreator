@@ -20,8 +20,8 @@ description = "Check tool catalogue, portable engine and migration archive integ
 run = ["npm run check:tools", "python -B .agents/skills/minecraft-nbt-modeler/scripts/check_skill.py", "npm run verify:archive"]
 
 [tasks.test]
-description = "Run a test suite from package.json; use --list to see suite names"
-run = "npm --silent run test:suite --"
+description = "Run a regression suite; use --list to see suite names"
+run = "node tests/run-suite.mjs"
 
 [tasks."tools:sync"]
 description = "Refresh generated tool docs and prompt-console data from the catalogue"
@@ -49,7 +49,7 @@ run = "python -B tests/engine/architecture-retrieval-benchmark.py"
 
 [tasks."patterns:check"]
 description = "Check the bundled interior and micro-pattern data against the generators"
-run = ["python -B scripts/build-interior-patterns.py --check", "python -B scripts/build-micro-patterns.py --check"]
+run = ["python -B scripts/assets/build-interior-patterns.py --check", "python -B scripts/assets/build-micro-patterns.py --check"]
 
 [tasks."gpu:setup"]
 description = "Install optional NVIDIA compute libraries in build/gpu-env using pip cache"
@@ -69,55 +69,55 @@ run = "python scripts/gpu-runtime.py python -B tests/engine/compute-transforms.p
 
 [tasks."gpu:benchmark"]
 description = "Measure transfers, cold/warm compute and full tool calls"
-run = "python scripts/gpu-runtime.py python -B scripts/benchmark-compute.py"
+run = "python scripts/gpu-runtime.py python -B scripts/benchmarks/benchmark-compute.py"
 
 [tasks."cpu:test"]
 description = "Verify bulk writes, catalogue invalidation and strict validation"
-run = "python -B tests/engine/materialization.py"
+run = "node tests/run-suite.mjs materialization"
 
 [tasks."model:test"]
 description = "Verify whole-model composition, managed updates and assembly interfaces"
-run = "npm run test:model-workflow"
+run = "node tests/run-suite.mjs model-workflow"
 
 [tasks."fit:test"]
 description = "Verify fine block silhouettes, state transforms and recipe roundtrips"
-run = "npm run test:fitting-shapes"
+run = "node tests/run-suite.mjs fitting-shapes"
 
 [tasks."gpu:materialization"]
 description = "Benchmark CPU materialization with CPU and GPU field inputs"
-run = "python scripts/gpu-runtime.py python -B scripts/benchmark-materialization.py"
+run = "python scripts/gpu-runtime.py python -B scripts/benchmarks/benchmark-materialization.py"
 
 [tasks."architecture:test"]
 description = "Verify executable building plans, source protection and review bindings"
-run = "npm run test:architecture-workflow"
+run = "node tests/run-suite.mjs architecture-workflow"
 
 [tasks."architecture:preview"]
 description = "Build three full buildings through CLI/frozen entry and render three-scale reviews"
-run = "npm run test:architecture-preview"
+run = "node tests/run-suite.mjs architecture-preview"
 
 [tasks."roof:test"]
 description = "Verify curved roof contact, protection and shared structure entry points"
-run = "python -B tests/engine/roof-curves.py"
+run = "node tests/run-suite.mjs roof-curves"
 
 [tasks."modular:test"]
 description = "Verify object recipes, stair handrails, column sections and shared placement"
-run = ["python -B tests/engine/modular-objects.py", "python -B tests/engine/structural-members.py", "python -B tests/engine/window-frames.py"]
+run = "node tests/run-suite.mjs modular"
 
 [tasks."assets:sync"]
 description = "Import a verified official asset library release into the application snapshot"
-run = "python -B scripts/sync-asset-library.py"
+run = "python -B scripts/assets/sync-asset-library.py"
 
 [tasks."assets:check"]
 description = "Verify bundled external asset data and hashes"
-run = "python -B scripts/sync-asset-library.py --check"
+run = "python -B scripts/assets/sync-asset-library.py --check"
 
 [tasks."assets:test"]
 description = "Verify local and remote libraries, integrity, offline use and rollback"
-run = "python -B tests/engine/asset-libraries.py"
+run = "node tests/run-suite.mjs asset-libraries"
 
 [tasks."assets:desktop"]
 description = "Build and verify external asset discovery, preview, import and offline desktop flow"
-run = ["npm run build:web", "node tests/desktop/unified-assets-desktop.mjs"]
+run = "node tests/run-suite.mjs unified-assets"
 
 [tasks."ornate:test"]
 description = "Verify the authored ornate collection; requires sibling NBTCreator-AssetLibrary"
@@ -125,7 +125,7 @@ run = "python -B tests/engine/ornate-library.py --library ../NBTCreator-AssetLib
 
 [tasks."ui:test"]
 description = "Verify studio journeys, focus, delivery and six-page window/zoom layouts"
-run = ["npm run build:web", "node tests/desktop/studio-redesign-desktop.mjs"]
+run = "node tests/run-suite.mjs studio-redesign"
 
 [tasks."ci:build"]
 description = "Build the production frontend for Windows validation"
@@ -134,7 +134,7 @@ run = "npm run build:web"
 
 [tasks."ci:quick"]
 description = "Run model and source desktop smoke tests after ci:build"
-run = ["npm run test:model-workflow", "npm run test:desktop"]
+run = ["node tests/run-suite.mjs model-workflow", "node tests/run-suite.mjs desktop"]
 
 [tasks."ci:renderer"]
 description = "Install the pinned Chromium for source regressions"
@@ -150,22 +150,21 @@ description = "Verify source contracts and asset integrity"
 run = [
   "npm run check:tools",
   "npm run verify:archive",
-  "npm run test:api",
+  "node tests/run-suite.mjs test-runner",
+  "node tests/run-suite.mjs api",
   "python tests/engine/portable-contracts.py",
-  "npm run test:workspace",
+  "node tests/run-suite.mjs workspace",
   "node --test tests/node/prompt-creation.mjs tests/node/agent-handoff.test.mjs tests/node/internal-ai.test.cjs tests/node/component-move.mjs tests/node/updater.test.cjs tests/node/app-settings.test.cjs",
   "node scripts/cli.mjs check",
-  "mise run assets:check",
-  "python tests/engine/asset-libraries.py",
-  "python tests/engine/modular-objects.py",
-  "python tests/engine/structural-members.py",
-  "python tests/engine/window-frames.py",
+  "python -B scripts/assets/sync-asset-library.py --check",
+  "node tests/run-suite.mjs asset-libraries",
+  "node tests/run-suite.mjs modular",
 ]
 
 [tasks."ci:asset-desktop"]
 description = "Verify the unified library in source Electron"
 env = { DEBUG = "pw:browser" }
-run = "node tests/desktop/unified-assets-desktop.mjs"
+run = "node tests/run-suite.mjs --prebuilt unified-assets"
 
 [tasks."ci:model-components"]
 description = "Verify component geometry, curve tools and their desktop entry points"
@@ -175,19 +174,18 @@ run = [
   "python tests/engine/parametric-components.py",
   "python tests/engine/structure-agent.py",
   "python tests/engine/protection-mask.py",
-  "python tests/engine/walk-inspection.py",
+  "node tests/run-suite.mjs --prebuilt walk",
   "python tests/engine/architect-tools.py",
-  "python tests/engine/auto-roads.py",
+  "node tests/run-suite.mjs --prebuilt roads",
   "node --test tests/node/ai-component.test.mjs tests/node/edit-session-store.test.mjs",
-  "node tests/desktop/auto-roads-desktop.mjs",
   "node tests/desktop/transform-sliders-desktop.mjs",
-  "node tests/desktop/walk-desktop.mjs",
   "python tests/engine/reusable-recipes.py",
   "node tests/desktop/structure-agent-desktop.mjs",
-  "npm run test:reference-views",
-  "npm run test:curve-stencils",
-  "npm run test:curve-components",
-  "npm run test:curved-surface",
+  "node tests/run-suite.mjs reference-views",
+  "node tests/run-suite.mjs curve-stencils",
+  "node tests/run-suite.mjs curve-components",
+  "node tests/run-suite.mjs curved-surface",
+  "node tests/run-suite.mjs pattern-repeat",
 ]
 
 [tasks."ci:model-collaboration"]
@@ -195,23 +193,15 @@ description = "Verify project evidence, Agent handoffs and workspace collaborati
 env = { DEBUG = "pw:browser" }
 run = [
   "python tests/engine/prompt-archive.py",
-  "python tests/engine/feedback-tasks.py",
-  "python tests/engine/batches.py",
-  "python tests/engine/selection-edit.py",
-  "python tests/engine/retrieval.py",
+  "node tests/run-suite.mjs --prebuilt feedback-tasks",
+  "node tests/run-suite.mjs --prebuilt batches",
+  "node tests/run-suite.mjs --prebuilt selection-edit",
+  "node tests/run-suite.mjs --prebuilt retrieval",
   "python tests/engine/architecture-knowledge.py",
   "python tests/engine/diagnostic-guidance.py",
-  "python tests/engine/agent-protocol.py",
-  "python tests/engine/agent-task-return.py",
-  "node --test tests/node/retrieval.test.cjs",
-  "node --test tests/node/selection-edit.test.cjs",
-  "node --test tests/node/batch-links.test.cjs",
-  "node tests/desktop/feedback-tasks-desktop.mjs",
-  "node tests/desktop/batch-workspaces-desktop.mjs",
-  "node tests/desktop/selection-edit-desktop.mjs",
-  "node tests/desktop/retrieval-desktop.mjs",
-  "node tests/desktop/agent-task-return-desktop.mjs",
-  "npm run test:catalog",
+  "node tests/run-suite.mjs agent-protocol",
+  "node tests/run-suite.mjs --prebuilt agent-return",
+  "node tests/run-suite.mjs catalog",
   "node tests/desktop/prompt-archive-desktop.mjs",
   "node --test tests/node/edit-session-store.test.mjs tests/node/app-settings.test.cjs tests/node/command-preferences.test.mjs",
 ]
@@ -225,23 +215,22 @@ run = "pwsh -NoProfile -File scripts/ci-model-delivery.ps1"
 description = "Verify building authoring, model and SNBT workflows"
 env = { DEBUG = "pw:browser", NBTCREATOR_TEST_SNBT = "1" }
 run = [
-  "python -B tests/engine/roof-curves.py",
+  "node tests/run-suite.mjs roof-curves",
   "python -B tests/engine/architectural-bay.py",
-  "npm run test:architecture-workflow",
-  "npm run test:architecture-preview",
-  "python -B tests/engine/building-quality.py",
-  "node tests/desktop/building-quality.mjs",
-  "npm run test:beam-rhythm",
-  "npm run test:wavelet-eave",
-  "npm run test:model-workflow",
-  "npm run test:extensions",
+  "node tests/run-suite.mjs architecture-workflow",
+  "node tests/run-suite.mjs --prebuilt architecture-preview",
+  "node tests/run-suite.mjs --prebuilt building-quality",
+  "node tests/run-suite.mjs beam-rhythm",
+  "node tests/run-suite.mjs wavelet-eave",
+  "node tests/run-suite.mjs model-workflow",
+  "node tests/run-suite.mjs extensions",
   "python tests/engine/snbt-source.py",
   "python tests/engine/building-history.py",
-  "node tests/desktop/architect-tools-desktop.mjs",
-  "node tests/desktop/ai-batch-desktop.mjs",
-  "node tests/desktop/architect-workspace-desktop.mjs",
-  "node tests/desktop/feedback-autosave-desktop.mjs",
-  "node tests/desktop/desktop-smoke.mjs",
+  "node tests/run-suite.mjs --desktop-only architect-tools",
+  "node tests/run-suite.mjs --desktop-only ai-batch",
+  "node tests/run-suite.mjs --desktop-only architect",
+  "node tests/run-suite.mjs --desktop-only feedback-autosave",
+  "node tests/run-suite.mjs --desktop-only desktop",
 ]
 
 [tasks."ci:package"]

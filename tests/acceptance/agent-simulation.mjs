@@ -3,7 +3,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import {spawn,execFileSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
-import {root} from './paths.mjs'
+import {root} from '../../scripts/paths.mjs'
 const option=name=>{const index=process.argv.indexOf(name);return index<0?null:process.argv[index+1]}
 const directory=option('--directory'),output=path.join(root,'build','agent-acceptance-'+Date.now()),executable=directory?path.resolve(root,directory,'NBTCreator-win32-x64/NBTCreator.exe'):null
 await fs.mkdir(output,{recursive:true});if(executable)await fs.access(executable)
@@ -32,7 +32,7 @@ async function run(id,args){
 }
 try{
  await run('build',['scripts/build-web.mjs'])
- const pkg=JSON.parse(await fs.readFile(path.join(root,'package.json'),'utf8'));await run('protocols',pkg.scripts['test:api'].split(' ').slice(1))
+ await run('protocols',['tests/run-suite.mjs','api'])
  for(const [id,file] of [['outputs','agent-simulation-desktop.mjs'],['prompt-brief','prompt-brief-desktop.mjs'],['adoption','api-desktop.mjs'],['selection','selection-edit-desktop.mjs'],['assets','structure-agent-desktop.mjs'],['desktop','desktop-smoke.mjs']])await run(id,['tests/desktop/'+file])
  if(directory)await run('private-runtime',['tests/desktop/portable-smoke.mjs','--directory',directory])
  report.passed=true;report.completed_at=new Date().toISOString();await persist();console.log(JSON.stringify({passed:true,suites:report.suites.length,external_api_used:false,output}))

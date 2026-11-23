@@ -3,17 +3,17 @@ import {createHash} from 'node:crypto'
 import path from 'node:path'
 import {execFileSync} from 'node:child_process'
 import {createRequire} from 'node:module'
-import {root,skill,python} from './paths.mjs'
+import {root,skill,python} from '../paths.mjs'
 if(process.platform!=='win32'||process.arch!=='x64')throw Error('Build portable on Windows x64')
 const index=process.argv.indexOf('--out'),out=path.resolve(root,index<0?'dist/portable':process.argv[index+1])
 const directoryOnly=process.argv.includes('--directory-only')
 if(directoryOnly&&process.argv.includes('--app-only'))throw Error('--directory-only requires the full runtime; do not combine with --app-only')
 const version=JSON.parse(await fs.readFile(path.join(root,'package.json'),'utf8')).version
-execFileSync(process.execPath,[path.join(root,'scripts/package.mjs'),'--out',out],{stdio:'inherit'})
+execFileSync(process.execPath,[path.join(root,'scripts/release/package.mjs'),'--out',out],{stdio:'inherit'})
 const app=path.join(out,'NBTCreator-win32-x64'),appRoot=path.join(app,'resources/app'),appOnly=process.argv.includes('--app-only')
 const require=createRequire(path.join(skill,'assets/viewer/package.json'))
 if(!appOnly){
-execFileSync(python,[path.join(root,'scripts/vendor-mise.py'),'--destination',path.join(appRoot,'runtime/mise'),'--cache',path.join(root,'build/downloads')],{stdio:'inherit',windowsHide:true})
+execFileSync(python,[path.join(root,'scripts/release/vendor-mise.py'),'--destination',path.join(appRoot,'runtime/mise'),'--cache',path.join(root,'build/downloads')],{stdio:'inherit',windowsHide:true})
 
 const cli=path.join(path.dirname(require.resolve('playwright/package.json')),'cli.js')
 const env={...process.env,PLAYWRIGHT_BROWSERS_PATH:path.join(root,'build/portable-browser')}
@@ -32,11 +32,11 @@ if(directoryOnly){
  console.log(JSON.stringify({output:app,format:'directory',full_runtime:true,version}))
 }else{
 const archive=path.join(out,`NBTCreator-${version}-windows-x64-portable.zip`)
-if(!appOnly)execFileSync(python,[path.join(root,'scripts/portable-archive.py'),'pack','--source',app,'--output',archive],{stdio:'inherit'})
+if(!appOnly)execFileSync(python,[path.join(root,'scripts/release/portable-archive.py'),'pack','--source',app,'--output',archive],{stdio:'inherit'})
 
 for(const kind of (appOnly?['application']:['application','runtime'])){
  const suffix=kind==='application'?'app-update':'runtime'
- execFileSync(python,[path.join(root,'scripts/portable-archive.py'),'pack','--source',app,'--kind',kind,'--output',path.join(out,`NBTCreator-${version}-windows-x64-${suffix}.zip`)],{stdio:'inherit'})
+ execFileSync(python,[path.join(root,'scripts/release/portable-archive.py'),'pack','--source',app,'--kind',kind,'--output',path.join(out,`NBTCreator-${version}-windows-x64-${suffix}.zip`)],{stdio:'inherit'})
 }
 const tool=await fs.readFile(path.join(root,'tools/constraint-room-migration/migrate.py'))
 const toolName=`NBTCreator-${version}-constraint-room-migration.py`

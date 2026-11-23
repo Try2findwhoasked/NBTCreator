@@ -3,7 +3,7 @@ import argparse,copy,json,statistics,sys,time
 from datetime import datetime
 from pathlib import Path
 import numpy as np
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[2]
 if 'nbt_structure_agent' not in sys.modules:
     sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_compute import info

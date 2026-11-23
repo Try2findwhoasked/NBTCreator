@@ -1,6 +1,6 @@
 param([datetime]$Before = '2026-11-03T20:23:00', [string]$KeepPackage = 'portable-1.14.0')
 $ErrorActionPreference = 'Stop'
-$projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $buildRoot = Join-Path $projectRoot 'build'
 $distRoot = Join-Path $projectRoot 'dist'
 $auditRoot = Join-Path $projectRoot '.nbtcreator/maintenance'

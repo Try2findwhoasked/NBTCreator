@@ -2,22 +2,23 @@
 
 所有命令从 **NBTCreator 仓库根目录**执行，通过 `mise run <task>` 或 `mise exec -- <command>` 启动。环境安装见[开发指南](../docs/development/DEVELOPMENT.md)。
 
-使用 `mise run test -- --list` 列出套件。例如 `mise run test -- workspace` 运行工作区契约，`mise run test -- retrieval` 运行知识库回归。已有 `model:test`、`ui:test` 等专项任务继续可用。
+使用 `mise run test -- --list` 列出套件。例如 `mise run test -- workspace` 运行工作区契约，`mise run test -- retrieval` 运行知识库回归。已有 `model:test`、`ui:test` 等 mise 入口和 `npm run test:<套件>` 继续可用。
 
 ## 目录职责
 
 | 目录 | 放什么 | 执行方式 |
 | --- | --- | --- |
-| `engine/` | Python 引擎、工作区契约、建模与资产回归；另含明确命名的基准和审计脚本 | 按功能使用 npm / mise 任务，或直接运行指定 Python 文件 |
+| `engine/` | Python 引擎、工作区契约、建模与资产回归，另含基准和审计脚本 | 以 mise 套件或指定 Python 文件运行 |
 | `node/` | Node 逻辑、接口与服务回归 | `*.test.cjs`、`*.test.mjs` 使用 `node --test`；其余脚本按下文说明执行 |
 | `desktop/` | Electron 旅程、浏览器渲染、生产前端与便携包集成检查 | 前端相关检查先 `build:web`，再执行指定脚本或组合任务 |
 | `support/` | 合成模型生成器、HTTP 模拟服务、最小化截图等共享辅助代码 | 由测试导入或调用，不作为独立测试集合运行 |
+| `acceptance/` | 产品验收与 Agent 模拟，保存日志和结果 | `mise run test -- product` 或 `mise run test -- agent-simulation` |
 
 按执行环境分层，文件继续按功能命名。例如资产库的 Python 回归在 `engine/asset-libraries.py`，桌面流程在 `desktop/unified-assets-desktop.mjs`。使用 `rg --files tests` 搜索同名功能即可查看相关层。
 
 ## 常用入口
 
-以下是按功能选择的检查，**每条命令只覆盖其列出的范围**。完整任务定义见 [package.json](../package.json) 和 [mise.toml](../mise.toml)。
+以下是按功能选择的检查。用例顺序和构建步骤见 [tests/suites.mjs](suites.mjs)。
 
 | 要验证的内容 | 命令 |
 | --- | --- |
@@ -30,7 +31,7 @@
 | 建模工具与操作参数 | `mise run test -- modelling` |
 | 参数化构件与几何回归 | `mise run test -- parametric` |
 | 二维 FFT 找周期、带洞平面、圆柱及开放曲面的方块和半格回读 | `mise run test -- pattern-repeat` |
-| 主模型、对象关系与接口 | `mise run model:test` |
+| 主模型、对象关系与接口 | `mise run test -- model-workflow` |
 | 梁架节奏、同谱异位、约束与显式采用 | `mise run test -- beam-rhythm` |
 | 单开间檐底小波移植、真实方块回读、轮廓与接缝拒绝 | `mise run test -- wavelet-eave` |
 | 大型组装、四片楼梯冲突、恢复及同机位渲染 | `mise run test -- large-assembly` |
@@ -39,11 +40,11 @@
 | 曲面构件切片、来源绑定与离线回放 | `mise run test -- curve-components` |
 | 曲面 UV 模板、端部、方向与配方编译 | `mise run test -- curve-stencils` |
 | 偏心曲面代表样段、四个材质机位、保护拒绝及审阅绑定 | `mise exec -- python -B tests/engine/curved-surface-review.py` |
-| 建筑方案闭环 | `mise run architecture:test` |
-| 模块化对象、结构杆件与窗框 | `mise run modular:test` |
-| 外部资产库的离线、完整性与回滚 | `mise run assets:test` |
-| 外部资产库桌面流程 | `mise run assets:desktop` |
-| 工作台旅程、焦点与窗口布局 | `mise run ui:test` |
+| 建筑方案闭环 | `mise run test -- architecture-workflow` |
+| 模块化对象、结构杆件与窗框 | `mise run test -- modular` |
+| 外部资产库的离线、完整性与回滚 | `mise run test -- asset-libraries` |
+| 外部资产库桌面流程 | `mise run test -- unified-assets` |
+| 工作台旅程、焦点与窗口布局 | `mise run test -- studio-redesign` |
 
 整栋评分的留出样例使用归卷院和折角铜顶展馆。从源码根目录先执行 `mise run ci:build`，再执行 `mise exec -- node tests/desktop/building-quality.mjs --held-out` 生成制作源、审阅包和真实渲染。在读取图像后，用 `review-record` 的量表观察字段登记评审。
 
@@ -70,7 +71,9 @@ mise run build:web
 mise exec -- node tests/desktop/default-preview-desktop.mjs
 ```
 
-`engine/` 沿用原来的文件名和独立运行方式。多数 Python 文件使用连字符命名，不符合默认 `unittest discover` 的 `test*.py` 模式；不要把默认 discovery 的成功当作引擎回归已执行。`test:modelling` 通过 `engine/modelling-suite.py` 显式枚举 `modelling-*.py`。
+`engine/` 沿用原来的文件名和独立运行方式。多数 Python 文件使用连字符命名，不符合默认 `unittest discover` 的 `test*.py` 模式。`mise run test -- modelling` 通过 `engine/modelling-suite.py` 显式枚举 `modelling-*.py`。
+
+已有生产前端构建时，`mise run test -- --prebuilt retrieval` 跳过套件内的构建步骤。CI 在设置 `NBTCREATOR_TEST_EXE` 后使用 `mise run test -- --desktop-only retrieval`，只执行套件中的桌面脚本。套件名之后的参数传给最后一个执行步骤，例如 `mise run test -- portable --directory dist/full-folder`。
 
 `node/` 中 `component-move.mjs`、`prompt-creation.mjs` 和 `workspace-resolution.cjs` 也使用 `node --test`；`feedback-evidence.mjs` 是直接执行的断言脚本。`task-cancel.mjs` 会启动真实 Python 工作，需要显式传入尚不存在的输出目录：
 
@@ -94,7 +97,7 @@ mise exec -- node tests/node/task-cancel.mjs --output build/task-cancel-check
 
 1. 根据执行环境选择目录；可复用的辅助代码放在 `support/`，合成数据和输出写入隔离临时目录或被忽略的 `build/`。
 2. 逻辑回归优先沿用 `*.test.cjs` / `*.test.mjs`；Electron 旅程沿用 `*-desktop.mjs`；Python 沿用所在模块的独立脚本方式。
-3. 为新增测试接入适用的 npm / mise 任务，按需加入 CI 或产品验收。仅创建文件并不会使现有任务自动运行它。
-4. 移动时同步检查相对导入、仓库根目录推导、fixture 调用、脚本内枚举、npm / mise、CI、验收清单和当前文档。
+3. 将新增测试加入 [套件清单](suites.mjs) 中合适的套件。新套件会出现在 `mise run test -- --list`，无需新增 npm 或 mise 别名。按需在 CI 中调用该套件，或将用例加入产品验收。
+4. 移动时同步检查相对导入、仓库根目录推导、fixture 调用、套件、验收和当前文档。
 
 [CI 工作流](../.github/workflows/portable.yml)与[产品验收清单](../config/product-acceptance.json)是不同范围的显式执行清单。`docs/archive/` 保留当时的历史路径和结果，不作为当前命令入口。

@@ -74,7 +74,7 @@ class MicroPresets(unittest.TestCase):
 
     def test_assets_are_reproducible_binary_masks_and_discoverable(self):
         self.assertEqual(len(self.patterns), 14)
-        subprocess.run([sys.executable, str(ROOT / 'scripts/build-micro-patterns.py'), '--check'],
+        subprocess.run([sys.executable, str(ROOT / 'scripts/assets/build-micro-patterns.py'), '--check'],
                        cwd=ROOT, check=True, capture_output=True, text=True)
         for key, item in self.patterns.items():
             with self.subTest(preset=key):

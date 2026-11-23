@@ -4,20 +4,20 @@ $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 
 npm.cmd run package:portable -- --out $OutputDirectory
-npm.cmd run test:portable -- --archive-dir $OutputDirectory
+node tests/run-suite.mjs portable --archive-dir $OutputDirectory
 
 $env:NBTCREATOR_TEST_EXE = Join-Path (Resolve-Path -LiteralPath $OutputDirectory).Path 'NBTCreator-win32-x64/NBTCreator.exe'
 Remove-Item Env:NBTCREATOR_PYTHON -ErrorAction SilentlyContinue
-npm.cmd run test:desktop
-node tests/desktop/updater-desktop.mjs
-npm.cmd run test:api-desktop
-node tests/desktop/protection-desktop.mjs
-node tests/desktop/walk-desktop.mjs
+node tests/run-suite.mjs desktop
+node tests/run-suite.mjs --desktop-only updates
+node tests/run-suite.mjs api-desktop
+node tests/run-suite.mjs --desktop-only protection
+node tests/run-suite.mjs --desktop-only walk
 node tests/desktop/prompt-archive-desktop.mjs
 node tests/desktop/mesh-scheduling-desktop.mjs
 node tests/desktop/workspace-api-desktop.mjs
-node tests/desktop/feedback-tasks-desktop.mjs
-node tests/desktop/batch-workspaces-desktop.mjs
-node tests/desktop/selection-edit-desktop.mjs
-node tests/desktop/retrieval-desktop.mjs
-node tests/desktop/agent-task-return-desktop.mjs
+node tests/run-suite.mjs --desktop-only feedback-tasks
+node tests/run-suite.mjs --desktop-only batches
+node tests/run-suite.mjs --desktop-only selection-edit
+node tests/run-suite.mjs --desktop-only retrieval
+node tests/run-suite.mjs --desktop-only agent-return

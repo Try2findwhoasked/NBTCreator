@@ -5,7 +5,7 @@ $probeRoot = Join-Path $PWD ('build/ci-model-delivery-' + [Guid]::NewGuid().ToSt
 New-Item -ItemType Directory -Path $probeRoot | Out-Null
 Write-Output "Model delivery evidence: $probeRoot"
 
-npm.cmd run test:projects
+node tests/run-suite.mjs projects
 node --test tests/node/backend-result.test.mjs tests/node/mesh-scheduling.test.mjs
 node tests/desktop/mesh-scheduling-desktop.mjs
 python tests/engine/render-runtime.py
