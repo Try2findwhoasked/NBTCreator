@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -84,7 +85,16 @@ class Reusable(unittest.TestCase):
  def test_warm_listing_reads_index_instead_of_operation_voxels_and_refreshes_changes(self):
   saved=recipes.store(self.workspace,recipe());recipes.listing(self.workspace)
   with patch('nbt_recipes.load',side_effect=AssertionError('warm list must use metadata cache')):self.assertEqual(recipes.listing(self.workspace)['items'][0]['id'],saved['id'])
-  value=recipes.load(self.workspace,saved['id']);value['name']='更新名称';recipes.store(self.workspace,value,saved['id']);self.assertEqual(recipes.listing(self.workspace)['items'][0]['name'],'更新名称')
+  asset=Path(saved['file']);original=asset.stat();stat=Path.stat
+  value=recipes.load(self.workspace,saved['id']);value['name']='更新名称';recipes.store(self.workspace,value,saved['id'])
+  self.assertEqual(asset.stat().st_size,original.st_size)
+  def stat_with_same_times(path,*args,**kwargs):
+   info=stat(path,*args,**kwargs)
+   if path!=asset:return info
+   return SimpleNamespace(st_size=info.st_size,st_mtime_ns=original.st_mtime_ns,
+       st_ctime_ns=original.st_ctime_ns,st_dev=info.st_dev,st_ino=info.st_ino)
+  with patch.object(Path,'stat',stat_with_same_times):
+   self.assertEqual(recipes.listing(self.workspace)['items'][0]['name'],'更新名称')
   text=(self.workspace/'.nbtcreator/reusable/index/catalog.json').read_text(encoding='utf8');self.assertNotIn(str(self.workspace),text);self.assertNotIn('operations',json.loads(text)[saved['id']]['summary'])
  def test_parameter_bounds_include_repeat_and_rotated_target_not_only_source_box(self):
   op=dict(kind='repeat_region',label='阵列',lo=[0,0,0],hi=[1,1,1],offset=[3,0,0],count=4)

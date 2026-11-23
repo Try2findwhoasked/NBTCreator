@@ -150,7 +150,8 @@ def listing(workspace):
     current={}
     for file in sorted(folder.glob('*.json'),key=lambda p:p.stat().st_mtime_ns,reverse=True):
         try:
-            asset_file(workspace,file.stem);stat=file.stat();stamp=[stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns];cached=previous.get(file.stem)
+            asset_file(workspace,file.stem);stat=file.stat();cached=previous.get(file.stem)
+            stamp=[stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns,stat.st_dev,stat.st_ino]
             if isinstance(cached,dict) and cached.get('stamp')==stamp and isinstance(cached.get('summary'),dict) and 'revision_sha256' in cached['summary']:summary=cached['summary']
             else:
                 value=load(workspace,file.stem)
