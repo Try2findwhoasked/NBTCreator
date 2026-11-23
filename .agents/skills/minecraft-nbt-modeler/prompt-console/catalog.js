@@ -1260,6 +1260,12 @@ globalThis.NbtToolCatalog = {
         "call": "model --request <请求JSON>",
         "input": "在 actions 中使用 beam_rhythm，填写梁架目标、世界修改区域和允许起点。用 capabilities --model 查字段。",
         "result": "返回通过宿主约束的排序、实测差异和拒绝坐标。可写候选预览，由 adopt_beam_rhythm 明确选择。"
+      },
+      {
+        "title": "移植单个开间的檐底细节",
+        "call": "model --request <请求JSON>",
+        "input": "在 actions 使用 wavelet_eave。填写实际目标与参考檐边、方向、屋脊和细节尺度。用 capabilities --model 查字段。",
+        "result": "返回目标与实测半格曲线、实际改动、轮廓和接缝复验。看真实预览后可用 adopt_wavelet_eave 选择。"
       }
     ],
     "检查": [
@@ -25597,6 +25603,8 @@ globalThis.NbtToolCatalog = {
                   "apply_operations",
                   "beam_rhythm",
                   "adopt_beam_rhythm",
+                  "wavelet_eave",
+                  "adopt_wavelet_eave",
                   "seal",
                   "open_declared"
                 ]
@@ -25875,6 +25883,274 @@ globalThis.NbtToolCatalog = {
           "goal",
           "pitch",
           "start_z",
+          "candidate_sha256"
+        ]
+      },
+      "wavelet_eave": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "wavelet_eave"
+            ]
+          },
+          "goal": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "target": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "start": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "description": "第一个采样站点的世界 XYZ。"
+                  },
+                  "length": {
+                    "type": "integer",
+                    "minimum": 8,
+                    "maximum": 64
+                  },
+                  "along": {
+                    "type": "string",
+                    "enum": [
+                      "east",
+                      "west",
+                      "north",
+                      "south"
+                    ],
+                    "description": "由首站走向末站的局部方向。"
+                  },
+                  "inward": {
+                    "type": "string",
+                    "enum": [
+                      "east",
+                      "west",
+                      "north",
+                      "south"
+                    ],
+                    "description": "由檐边指向内侧背衬的方向，与 along 垂直。"
+                  }
+                },
+                "required": [
+                  "start",
+                  "length",
+                  "along",
+                  "inward"
+                ]
+              },
+              "reference": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "start": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "description": "第一个采样站点的世界 XYZ。"
+                  },
+                  "length": {
+                    "type": "integer",
+                    "minimum": 8,
+                    "maximum": 64
+                  },
+                  "along": {
+                    "type": "string",
+                    "enum": [
+                      "east",
+                      "west",
+                      "north",
+                      "south"
+                    ],
+                    "description": "由首站走向末站的局部方向。"
+                  },
+                  "inward": {
+                    "type": "string",
+                    "enum": [
+                      "east",
+                      "west",
+                      "north",
+                      "south"
+                    ],
+                    "description": "由檐边指向内侧背衬的方向，与 along 垂直。"
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "可选外部 SNBT/NBT，相对路径以创作项目为准。"
+                  },
+                  "source_sha256": {
+                    "type": "string",
+                    "pattern": "[a-f0-9]{64}"
+                  }
+                },
+                "required": [
+                  "start",
+                  "length",
+                  "along",
+                  "inward"
+                ]
+              },
+              "ridge": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "lo": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  },
+                  "hi": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4095
+                    },
+                    "minItems": 3,
+                    "maxItems": 3
+                  }
+                },
+                "required": [
+                  "lo",
+                  "hi"
+                ],
+                "description": "含实物方块的冻结屋脊闭区间。"
+              },
+              "materials": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "slab": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "生成上或双半砖用的基础方块 ID。"
+                  },
+                  "stair": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "生成向内直角上楼梯用的基础方块 ID。"
+                  }
+                },
+                "required": [
+                  "slab",
+                  "stair"
+                ]
+              },
+              "taper": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 16,
+                "description": "从固定端点到全强度的余弦过渡距离，单位为格。"
+              },
+              "levels": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4
+                },
+                "minItems": 1,
+                "maxItems": 4
+              },
+              "strengths": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0.25,
+                  "maximum": 3
+                },
+                "minItems": 1,
+                "maxItems": 8
+              }
+            },
+            "required": [
+              "target",
+              "reference",
+              "ridge",
+              "materials",
+              "taper",
+              "levels",
+              "strengths"
+            ]
+          },
+          "preview": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "output": {
+                "type": "string",
+                "minLength": 1,
+                "description": "全新的候选预览输出目录。"
+              },
+              "strength": {
+                "type": "number",
+                "minimum": 0.25,
+                "maximum": 3,
+                "description": "可选预览强度，省略时预览首选候选。"
+              },
+              "cameras": {
+                "type": "array",
+                "maxItems": 64
+              }
+            },
+            "required": [
+              "output"
+            ]
+          }
+        },
+        "required": [
+          "method",
+          "goal"
+        ]
+      },
+      "adopt_wavelet_eave": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "adopt_wavelet_eave"
+            ]
+          },
+          "goal": {
+            "type": "object",
+            "description": "与搜索时完全相同的檐口移植目标。"
+          },
+          "strength": {
+            "type": "number",
+            "minimum": 0.25,
+            "maximum": 3
+          },
+          "candidate_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          }
+        },
+        "required": [
+          "method",
+          "goal",
+          "strength",
           "candidate_sha256"
         ]
       },

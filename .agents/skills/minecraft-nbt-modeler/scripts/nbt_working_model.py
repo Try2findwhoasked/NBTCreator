@@ -4,7 +4,7 @@ This module owns in-memory candidates, not an execution daemon. Generators use
 the existing structure contract; every host write passes the same diff policy.
 Saving publishes a complete SNBT authoring version, never a binary NBT export.
 """
-from copy import deepcopy
+from copy import copy, deepcopy
 from contextlib import contextmanager
 from contextvars import ContextVar
 import argparse
@@ -394,6 +394,23 @@ class WorkingModel:
             self._routes(candidate)
         self._instance_policy(candidate, walls, instances)
 
+    def _check_candidate_building(self, staged, instances):
+        """Recheck declared building constraints on a staged complete model."""
+        if self.phase != 'opened' and self._architecture is None:
+            return 'not_declared'
+        candidate = copy(self)
+        candidate._adopt_edits(staged, instances)
+        if candidate.phase == 'opened':
+            candidate.validate()
+            return 'opened_passed'
+        from nbt_building.plan import check_model
+        checks = check_model(candidate, candidate._architecture)['checks']
+        blocking = {'retained_constraints', 'activity_routes', 'sample_routes', 'stair_segments', 'bearing_contact'}
+        failed = [dict(id=row['id'], kind=row['kind']) for row in checks if row['kind'] in blocking and not row['passed']]
+        if failed:
+            raise ModelConflict('DESIGN_INVALID', failed)
+        return 'architecture_routes_and_contacts_passed'
+
     def _adopt_edits(self, staged, instances):
         candidate, walls, difference, total = staged
         self._unchanged()
@@ -498,6 +515,14 @@ class WorkingModel:
     def adopt_beam_rhythm(self, goal, pitch, start_z, candidate_sha256):
         from nbt_beam_rhythm import BeamRhythm
         return BeamRhythm(self, goal).adopt(pitch, start_z, candidate_sha256)
+
+    def wavelet_eave(self, goal, preview=None):
+        from nbt_wavelet_eave import WaveletEave
+        return WaveletEave(self, goal).search(preview)
+
+    def adopt_wavelet_eave(self, goal, strength, candidate_sha256):
+        from nbt_wavelet_eave import WaveletEave
+        return WaveletEave(self, goal).adopt(strength, candidate_sha256)
 
     def _stage_update(self, identifier, recipe, transform):
         if identifier not in self.instances:

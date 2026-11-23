@@ -28,6 +28,30 @@ mise run nbt -- --workspace build/beam-rhythm-example model --request adopt.json
 
 示例在 18 个组合中选中 Z=10 起步、间距 6 格的 9 榀梁架。候选报告与预览哈希分别见 `beam-rhythm-report.json` 和 `beam-rhythm-preview/beam-rhythm.json`。在仓库根运行 `mise run test -- beam-rhythm` 复验同谱异位、保护拒绝、无解反馈、完整预算及 CLI 采用。
 
+## 单开间檐底小波移植
+
+在 `model` 的 `actions` 中使用 `wavelet_eave`，用 `capabilities --model` 查请求字段。顶层 `source` 和 `source_sha256` 绑定现有制作源。
+
+- `goal.target` 和 `goal.reference` 以世界 XYZ 的 `start`、水平 `along`、垂直于沿线的水平 `inward`、相同的 `length`（8～64 格）逐格对齐。两段可采用不同朝向。参考可位于同一模型的另一段檐口，也可在 `reference` 内通过 `source` 与 `source_sha256` 绑定外部 SNBT/NBT。
+- 采样限于同高、单格宽的直檐，檐边上半层须连续。曲线以格为单位，读出下半层从内侧连续占据的进深 0、0.5 或 1。三种输出分别由干燥上半砖、朝内的干燥直上楼梯、干燥双半砖表达。变动位置使用 `materials.slab` 和 `materials.stair` 指定的方块 ID。原有实例拥有的方块位置会使候选被拒绝。
+- NumPy 使用 B3 样条不降采样分解。各层滤波间隔为 1、2、4、8 格，采用镜像延拓。工具从参考减去目标的选定细节带（`levels`），将差值按 `taper` 做余弦渐变后叠加到原目标，两端保持原状态。`strengths` 限定本次尝试的强度，工具比较编译后实测曲线与未量化目标的均方根误差。
+- `ridge` 圈定必须保留的实际屋脊。候选必须保持所有整格占据坐标和三轴正投影的半格占据轮廓。工具复查两端内外接缝、相邻站点、向内背衬的已知形状面接触和楼梯朝向，并沿用保护、留白、预算和适用的通路及装配检查。检查范围为静态几何。回执列出实际变更、接缝、背衬和测试过的投影射线。受控强度下无合法结果时返回 `no_legal_candidates` 与逐项原因。
+- `preview: {"output":"全新目录"}` 写首选候选的制作源、快照、机位和回读报告。可增加 `strength` 选择其他合法候选。使用 `render` 查看候选和原稿的同机位纹理图，再用独立的 `adopt_wavelet_eave` 动作传入同一 `goal`、`strength` 和 `candidate_sha256`。采用会重新检查源、实际方块与全部约束。显式保存制作版仍使用 `save_draft`，用户批准和定稿仍各走原入口。
+
+在软件仓库根目录运行三开间廊屋样例。每次使用全新的示例和渲染目录。
+
+```powershell
+mise exec -- python -B scripts/examples/wavelet-eave.py --workspace build/wavelet-eave-example
+$root = (Resolve-Path 'build/wavelet-eave-example').Path
+$before = (Get-Content -Raw (Join-Path $root 'search.json') | ConvertFrom-Json).source
+$cameras = Join-Path $root 'preview/cameras.json'
+mise run nbt -- --workspace $root render --source $before --cameras $cameras --output (Join-Path $root 'render-before')
+mise run nbt -- --workspace $root render --source (Join-Path $root 'preview/candidate.snbt') --cameras $cameras --output (Join-Path $root 'render-after')
+mise run nbt -- --workspace $root model --request adopt.json
+```
+
+样例的 `wavelet-eave-report.json` 记录目标、量化和实测曲线，`readback-evidence.json` 从落盘方块独立重建三个完整投影并记录屋脊、包络和逐格差异。使用 `mise run test -- wavelet-eave` 复验成功、无合法轮廓、保护与预算、接缝、支承、楼梯、源绑定和采用流程。运行只依赖当前 Python/NumPy 引擎。
+
 ## Python 制作脚本
 
 ```python
