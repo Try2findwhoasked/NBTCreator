@@ -6,6 +6,7 @@
 
 | 当前要解决的问题 | 先读 | 需要时再展开 |
 | --- | --- | --- |
+| 复杂整栋或多层布局的量化约束 | [整栋建筑量化规划](whole-building-planning.md)覆盖任务书、候选生成、锁定、编译转接及成品复验 |
 | 从用途形成简单独立初稿 | [简单独立建筑初稿](simple-building.md) | 复杂空间与构造按需读[整体流程](whole-model-workflow.md)、[玩家尺度](player-scale.md)、[创作原则](design-principles.md)、[空间细节](spatial-detail-design.md)及[建筑方案](architecture-workflow.md)对应章节 |
 | 整栋初稿有地面嵌纹、屏风边饰或墙面徽记 | [纹样来源](pattern-authoring.md)、[纹样拟合](pattern-fitting.md)中的适用章节 | 选定代表单元、承载面和观看距离，回主模型出近景并复核通路 |
 | 把设计落实为完整主模型 | [建筑方案闭环](architecture-workflow.md)、[工作模型](working-model.md) | [参数化构件](parametric-components.md)、[对象图](object-scenes.md)、[通用几何](modelling-tools.md) |
