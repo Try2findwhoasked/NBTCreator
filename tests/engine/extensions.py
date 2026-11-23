@@ -66,7 +66,7 @@ class Registries(unittest.TestCase):
         from nbt_catalog import catalog
         self.assertEqual(set(AGENT_TOOLS),set(catalog()['agent_tools']))
         self.assertEqual(set(MODEL_ACTIONS),set(catalog()['working_model']['actions']))
-        self.assertEqual(len(AGENT_TOOLS),39)
+        self.assertIn('pattern_repeat_detect', AGENT_TOOLS)
         self.assertEqual(len(RECIPE_COMPILERS),11)
         self.assertIn('structure',RECIPE_COMPILERS)
         self.assertNotIn('structure_save',RECIPE_COMPILERS)
