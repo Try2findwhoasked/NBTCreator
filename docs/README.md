@@ -23,7 +23,9 @@ NBTCreator 的文档按使用指南、开发维护和历史记录归类。首次
 | 文档 | 内容 |
 | --- | --- |
 | [开发指南](development/DEVELOPMENT.md) | mise 环境、依赖安装、启动、检查、打包及主要目录 |
+| [创作 CLI 的 Agent 可理解性评估](development/AUTHORING_CLI_DISCOVERABILITY.md) | 命令查找、请求字段、回执接力、错误诊断与改进验收 |
 | [架构与文件结构](development/ARCHITECTURE.md) | 运行边界、任务生命周期、源码与创作目录、发布门禁 |
+| [建筑质量评分与建模反馈设计](development/BUILDING_QUALITY_FEEDBACK.md) | 五维量表、版本证据、建模反馈与替换验收 |
 | [构建与发布](development/CI_CD.md) | CI 门禁、完整包与分离包、版本标签和发布边界 |
 | [API 与 Skill 集成](development/API_INTEGRATION.md) | 连接配置、任务类型、发送范围、取消重试和机器接口 |
 | [内部 AI 与对外 Skill](development/INTERNAL_AI.md) | 工作流资料、创作偏好、请求参数、增量返回和诊断 |
