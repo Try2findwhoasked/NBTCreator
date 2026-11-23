@@ -10,7 +10,7 @@ import unittest
 
 ENGINE = Path(__file__).resolve().parents[2]/'.agents/skills/minecraft-nbt-modeler/scripts'
 sys.path.insert(0, str(ENGINE))
-from nbt_architecture_knowledge import INDEX, build, search
+from nbt_knowledge.architecture_books import INDEX, build, search
 
 
 class ArchitectureKnowledge(unittest.TestCase):

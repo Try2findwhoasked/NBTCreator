@@ -20,7 +20,7 @@ PALETTES=dict(original=BASE,stone=dict(BASE,wall='stone_brick_wall'),
 
 
 def worker(request):
-    from nbt_structure_agent import dispatch,build
+    from nbt_agent.structure import dispatch,build
     from nbt_pattern.panel import sample_input
     from nbt_pattern.ornament_sample import sample_image,resize_sample
     from nbt_pattern.quality import source_bitmap,assess

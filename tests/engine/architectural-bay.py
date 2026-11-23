@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_structure_agent import dispatch,build
+from nbt_agent.structure import dispatch,build
 from nbt_collision import collision_cells
 from nbt_engine_session import serve
 from nbt_pattern.assets import load
@@ -58,7 +58,7 @@ class ArchitecturalBay(unittest.TestCase):
         self.assertEqual(larger['spec']['size'][1:], unglazed['spec']['size'][1:])
 
     def test_facade_recipe_uses_the_shared_scene_and_working_model_entry(self):
-        from nbt_working_model import WorkingModel
+        from nbt_composition.working_model import WorkingModel
         recipe = dict(tool='facade_compile', arguments=dict(bays=2, storeys=1))
         graph = dict(schema_version=1, name='窗墙试件', size=[32, 16, 8],
                      objects=[dict(id='front', lo=[0, 0, 0], recipe=recipe)])

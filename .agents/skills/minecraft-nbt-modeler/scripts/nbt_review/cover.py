@@ -132,7 +132,7 @@ def section_cover(source, geometry, cache, generate=False):
 def _generate(source, geometry, target, stamp):
     """Explicit-open fallback only; never called by library thumbnail browsing."""
     from nbt_refine import read_master
-    from nbt_preview import make_grid, render
+    from nbt_review.preview import make_grid, render
     import numpy as np
     source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
     model, _ = read_master(source)

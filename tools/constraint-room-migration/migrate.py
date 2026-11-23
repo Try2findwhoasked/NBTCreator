@@ -16,8 +16,8 @@ sys.path.insert(0, str(ENGINE))
 
 from nbt_project.constraints import archive_directory_revision, dispatch, save_directory_rule
 from nbt_detail_control import catalog
-from nbt_project_batch import write
-from nbt_prompts import read_prompt, scan
+from nbt_project.queues import write
+from nbt_project.prompts import read_prompt, scan
 from nbt_project.rooms import GROUPS, ROOMS, ROOM_FILE, SHAPE_NAMES, UNASSIGNED, component_name, enclosed, init_layout, room_info
 from nbt_project.web_paths import project_paths, workspace_path
 
@@ -160,7 +160,7 @@ def preview(source, target):
 
 @contextmanager
 def migration_lock(target):
-    from nbt_prompts import index_lock
+    from nbt_project.prompts import index_lock
     directory=target/'nbt_models/_migration'
     directory.mkdir(parents=True,exist_ok=True)
     with index_lock(target,directory):

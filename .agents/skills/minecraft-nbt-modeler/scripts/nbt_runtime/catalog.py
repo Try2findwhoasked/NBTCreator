@@ -3,7 +3,7 @@ from functools import lru_cache
 import hashlib,json
 from pathlib import Path
 
-FILE=Path(__file__).resolve().parents[1]/'tool-catalog.json'
+FILE=Path(__file__).resolve().parents[2]/'tool-catalog.json'
 
 @lru_cache(maxsize=2)
 def _read(path,size,mtime,ctime):

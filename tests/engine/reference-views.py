@@ -12,7 +12,7 @@ from PIL import Image,ImageDraw
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_reference_views import register_reference,load_reference,fit_profile,save_fit,verify_fit
+from nbt_review.reference_views import register_reference,load_reference,fit_profile,save_fit,verify_fit
 from nbt_review.reference_projection import compare_reference,verify_comparison
 from nbt_review.reference_camera import prepare_cameras,verify_cameras
 
@@ -75,7 +75,7 @@ class ReferenceViews(unittest.TestCase):
   self.assertLess(first[3]-first[2],0);self.assertGreater(second[1]-second[0],0)
   self.assertEqual(first[3],second[0]);self.assertEqual(first[3],2)
  def test_registered_anchors_build_a_coarse_model_and_reproject(self):
-  from nbt_working_model import WorkingModel
+  from nbt_composition.working_model import WorkingModel
   for anchor in self.request['anchors']:
    if anchor['world'][1]==8:
     original=next(item for item in self.request['anchors'] if item['id']==anchor['id'].replace('_8','_0'))
@@ -119,13 +119,13 @@ class ReferenceViews(unittest.TestCase):
   self.request['anchors'][0]['views']['front']=[1,1]
   with self.assertRaisesRegex(ValueError,'锚点'):register_reference(self.root,self.request)
  def test_reference_changed_during_read_is_rejected(self):
-  from nbt_reference_views import _image_bytes
+  from nbt_review.reference_views import _image_bytes
   result=register_reference(self.root,self.request);manifest=Path(result['manifest']);front=manifest.parent/'images/front.png'
   def mutate(path):
    value=_image_bytes(path)
    if Path(path).name=='top.png':front.write_bytes(front.read_bytes()+b'changed')
    return value
-  with patch('nbt_reference_views._image_bytes',side_effect=mutate):
+  with patch('nbt_review.reference_views._image_bytes',side_effect=mutate):
    with self.assertRaisesRegex(ValueError,'变化'):load_reference(manifest,result['manifest_sha256'])
 
  def projection_request(self):
@@ -214,7 +214,7 @@ class ReferenceViews(unittest.TestCase):
   result=compare_reference(self.root,request)
   self.assertEqual(result['regions'][0]['metrics']['silhouette_iou'],0.0)
  def test_assembly_projection_verification_binds_every_partition(self):
-  from nbt_large_assembly import AssemblyVolume,save_assembly
+  from nbt_composition.large_assembly import AssemblyVolume,save_assembly
   request=self.projection_request();model=AssemblyVolume((300,384,300))
   model.put((4,0,6),'stone');model.put((5,0,6),'stone_slab[type=bottom,waterlogged=false]')
   source=save_assembly(self.root/'nbt_models/standalone/assembly/v01/master',model,set(),

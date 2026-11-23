@@ -9,7 +9,7 @@ import unittest
 import shutil
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_batches import dispatch,workspace_root
+from nbt_project.batches import dispatch,workspace_root
 from nbt_assembly import Volume
 from nbt_refine import save_master
 
@@ -48,7 +48,7 @@ class Batches(unittest.TestCase):
   task=self.call('create',name='恢复');index=self.workspace/'nbt_models/_workspaces/batches/index.json';data=json.loads(index.read_text());data['tasks']=[];index.write_text(json.dumps(data));self.assertEqual(len(self.call('discover')['candidates']),1);recovered=self.call('import',name='恢复',workspace_dir=task['workspace_dir']);self.assertEqual(recovered['id'],task['id']);self.assertEqual(len(self.call('list')['tasks']),1)
  def test_failed_index_commit_preserves_previous_readable_registration(self):
   task=self.call('create',name='中断');source=self.model()
-  with patch('nbt_batches.write_index',side_effect=OSError('simulated interrupted commit')):
+  with patch('nbt_project.batches.write_index',side_effect=OSError('simulated interrupted commit')):
    with self.assertRaises(OSError):self.call('record',id=task['id'],revision=task['revision'],models=[dict(source=str(source))])
   previous=self.call('get',id=task['id']);self.assertEqual(previous['revision'],task['revision']);self.assertEqual(previous['models'],[]);self.assertEqual(self.call('list')['errors'],[])
  def test_relative_registration_survives_workspace_relocation(self):

@@ -5,7 +5,7 @@ from nbt_mounting.curved_connect import MAX_BRIDGE_EDGES,_bounded_topology,_comp
 from nbt_mounting.cylinder_fit import half_cells
 from nbt_model import AIR_NAMES
 from nbt_mounting.surface_mount import _full
-from nbt_working_model import ModelConflict,value_at
+from nbt_composition.working_model import ModelConflict,value_at
 
 
 def _voxel_cells(positions):

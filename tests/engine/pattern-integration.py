@@ -10,7 +10,7 @@ from PIL import Image,ImageDraw
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_structure_agent import dispatch,build
+from nbt_agent.structure import dispatch,build
 from nbt_assembly import Volume
 from nbt_refine import save_master
 from nbt_selection_edit import sha

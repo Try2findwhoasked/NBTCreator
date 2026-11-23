@@ -50,7 +50,7 @@ def registered_engine(folder,expected):
 
 
 def runtime_status(workspace,install=None,cache=None,rebind=False):
-    from nbt_render_runtime import render_environment,selected_install,save_binding,probe,static_runtime,_relative,frozen_folder
+    from nbt_runtime.render import render_environment,selected_install,save_binding,probe,static_runtime,_relative,frozen_folder
     info=paths(workspace);active=python_versions();issues=[]
     implementation=Path(info['engine'])
     engine=implementation

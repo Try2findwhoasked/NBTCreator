@@ -4,11 +4,11 @@ from pathlib import Path
 from unittest.mock import patch
 import numpy as np
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_structure_agent import dispatch,build
+from nbt_agent.structure import dispatch,build
 from nbt_pattern.assets import load
 from nbt_selection_edit import sha
 from nbt_pattern.spectral import smooth,kernel_for
-from nbt_modeling_session import ModellingSession
+from nbt_runtime.modeling_session import ModellingSession
 
 
 class PillarSpectral(unittest.TestCase):

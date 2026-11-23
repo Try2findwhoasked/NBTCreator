@@ -52,8 +52,8 @@ class PhysicalReference(unittest.TestCase):
 
 
     def test_identical_models_receive_identical_quality_scores_across_palettes(self):
-        from nbt_structure_agent import dispatch
-        from nbt_modeling_session import current
+        from nbt_agent.structure import dispatch
+        from nbt_runtime.modeling_session import current
         base=dict(slab='stone_brick_slab',stairs='stone_brick_stairs')
         args=dict(surface='wall',preset='micro-diamond',size_uv=[4,4],micro_alignment='fixed',material='stone_bricks',quality_profile='ornate')
         coarse=dispatch(self.root,'pattern_microfit',dict(args,shapes=base))

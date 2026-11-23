@@ -7,9 +7,9 @@ from pathlib import Path
 import tempfile
 
 from nbt_assembly import Volume
-from nbt_large_assembly import MAX_MANIFEST_BYTES, _part_path, _workspace_path, require_creative_workspace
+from nbt_composition.large_assembly import MAX_MANIFEST_BYTES, _part_path, _workspace_path, require_creative_workspace
 from nbt_snbt import read_snbt,save_snbt
-from nbt_working_model import WorkingModel, ModelConflict, digest, empty_volume, model_hash, point, value_at
+from nbt_composition.working_model import WorkingModel, ModelConflict, digest, empty_volume, model_hash, point, value_at
 
 MAX_BOXES = 100_000
 MAX_PROTECTED_CELLS = 2_000_000
@@ -66,7 +66,7 @@ def _protected_boxes(model, context, routes, region):
     for field in ('protected_boxes','reserved_boxes'):
         for value in context.get(field,[]):add(*_bounds(value,'保护或保留范围'))
     if context.get('openings'):
-        from nbt_whole_validation import standalone_openings
+        from nbt_composition.whole_validation import standalone_openings
         standalone_openings(model,context)
         for opening in context['openings']:
             lo,hi=_bounds(dict(lo=opening['lo'],hi=opening['hi']),'开口')

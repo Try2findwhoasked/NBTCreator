@@ -3,7 +3,7 @@ import gzip,json,sys,tempfile,unittest
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_refine import save_master,read_master
-from nbt_project_repair import repair
+from nbt_project.repair import repair
 
 class Recovery(unittest.TestCase):
  def setUp(self):

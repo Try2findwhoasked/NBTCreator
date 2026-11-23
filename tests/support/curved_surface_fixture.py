@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 
 from PIL import Image
-from nbt_reference_views import register_reference,save_fit
-from nbt_working_model import WorkingModel
+from nbt_review.reference_views import register_reference,save_fit
+from nbt_composition.working_model import WorkingModel
 
 
 def create_curve_fixture(workspace):

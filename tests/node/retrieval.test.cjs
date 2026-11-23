@@ -22,7 +22,7 @@ test('actual Python web evidence survives renderer and stored-candidate validati
  const program=`import json, sys
 from pathlib import Path
 sys.path.insert(0,sys.argv[1])
-from nbt_retrieval import dispatch
+from nbt_knowledge.retrieval import dispatch
 workspace=Path(sys.argv[2]); flow='prompt'
 entry=dict(source_url='https://example.org/archive',title='Archive '+('窗'*165),publisher='Archive',section='Chapel window',text='Fixture-only paragraph.',accessed_at='2020-01-01T00:00:00+00:00',content_kind='summary',reader='offline test')
 item=dispatch(workspace,'import-web',dict(workflow=flow,evidence=[entry]))['evidence'][0]

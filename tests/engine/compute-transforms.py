@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 import numpy as np
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_structure_agent import dispatch,build
+from nbt_agent.structure import dispatch,build
 from nbt_compute import execute,gpu,info
 from nbt_geometry.deform import coordinates,warp_pixels
 from nbt_geometry.field_compute import sample

@@ -48,7 +48,7 @@ def write_render_binding(workspace, engine):
     save_binding(folder,data)
 
 def save_binding(folder,data):
-    from nbt_asset_libraries import atomic
+    from nbt_assets.libraries import atomic
     atomic(folder/'render-runtime.json',(json.dumps(data,ensure_ascii=False,indent=2)+'\n').encode('utf8'))
 
 def synced_browser_version(engine):

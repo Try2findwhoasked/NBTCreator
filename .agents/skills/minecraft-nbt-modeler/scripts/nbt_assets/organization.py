@@ -1,7 +1,7 @@
 """Semantic organization without changing geometry or component IDs."""
 import hashlib,json,uuid
 from pathlib import Path
-from nbt_project_batch import write
+from nbt_project.queues import write
 ROOT=Path(__file__).resolve().parents[2]
 TAXONOMY=json.loads((ROOT/'config/asset-taxonomy.json').read_text(encoding='utf8'))
 
@@ -11,10 +11,10 @@ def semantic_tags(data):
     return [next((group['name'] for group in TAXONOMY['groups'] if any(word in data['name'] for word in group['words'])),TAXONOMY['fallback'])]
 
 def organize(workspace):
-    import nbt_components as components
-    import nbt_recipes as recipes
-    from nbt_asset_batches import organize as snapshot
-    from nbt_effect_assets import dispatch as effects
+    import nbt_assets.components as components
+    import nbt_assets.recipes as recipes
+    from nbt_assets.batches import organize as snapshot
+    from nbt_assets.effects import dispatch as effects
     workspace=Path(workspace).resolve()
     if not components.library_root(workspace).resolve().is_relative_to(workspace):raise ValueError('构件库超出工作区，未执行整理')
     folder=workspace/'nbt_models/asset_library';folder.mkdir(parents=True,exist_ok=True)
@@ -26,7 +26,7 @@ def organize(workspace):
         old=components.load(workspace,item['id'])['content_sha256'];write(backup/(item['id']+'.json'),data);components.update(workspace,item['id'],tags=tags)
         if components.load(workspace,item['id'])['content_sha256']!=old:raise ValueError('整理改变了构件几何')
         changes.append(dict(id=item['id'],name=item['name'],before_tags=data.get('tags',[]),after_tags=tags,original_sha256=hashlib.sha256(raw).hexdigest()))
-    from nbt_effect_assets import validate as validate_effect,fingerprint
+    from nbt_assets.effects import validate as validate_effect,fingerprint
     existing=effects(workspace,'list',{})['items'];known={fingerprint(item['settings']) for item in existing};legacy=[];legacy_errors=[]
     allowed={'strength','seed','style_note','operations','structure','replace','pattern','weathering','floor'}
     for relative in ['nbt_models/_workspaces/effects','nbt_models/_workspaces/desktop','nbt_models/_workspaces/bootstrap','nbt_models/effects']:

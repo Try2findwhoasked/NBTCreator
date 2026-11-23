@@ -13,12 +13,12 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 ENGINE = ROOT / '.agents/skills/minecraft-nbt-modeler'
 sys.path.insert(0, str(ENGINE / 'scripts'))
-from nbt_render_runtime import render_environment
+from nbt_runtime.render import render_environment
 from nbt_exposure import apply
 from nbt_assembly import Volume
 from nbt_refine import save_master
 from nbt_task import inspect_source, checked_preview_snapshot
-from nbt_large_assembly import AssemblyVolume, save_assembly
+from nbt_composition.large_assembly import AssemblyVolume, save_assembly
 
 
 class RenderRuntime(unittest.TestCase):

@@ -2,8 +2,8 @@
 import json,sys,tempfile,subprocess,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2];SCRIPTS=ROOT/'.agents/skills/minecraft-nbt-modeler/scripts';sys.path.insert(0,str(SCRIPTS))
-from nbt_structure_agent import dispatch,build
-from nbt_components import paste_plan
+from nbt_agent.structure import dispatch,build
+from nbt_assets.components import paste_plan
 from nbt_assembly import Volume
 from nbt_building.parametric import KINDS
 

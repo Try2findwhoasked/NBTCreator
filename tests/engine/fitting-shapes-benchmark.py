@@ -18,7 +18,7 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_fit_shapes import fine_options,project_shape,_half_shape
 from nbt_model import state
-from nbt_structure_agent import dispatch,build
+from nbt_agent.structure import dispatch,build
 
 
 COARSE=dict(slab='quartz_slab',stairs='quartz_stairs')

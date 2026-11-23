@@ -7,10 +7,10 @@ import tempfile
 import unittest
 import shutil
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_retrieval import dispatch, read_bundle
+from nbt_knowledge.retrieval import dispatch, read_bundle
 from unittest.mock import patch
-from nbt_components import store,load,update
-from nbt_structure_agent import build
+from nbt_assets.components import store,load,update
+from nbt_agent.structure import build
 
 def strings(value):
  if isinstance(value,str):return [value]
@@ -33,7 +33,7 @@ class Retrieval(unittest.TestCase):
   self.assertEqual(self.call('search',query='zephyrquill')['knowledge'],[])
   found=external('search',query='zephyrquill');hit,=found['knowledge']
   self.assertEqual(hit['ref'],'R1');self.assertNotIn('id',hit);self.assertIn('两侧石墩',hit['text'])
-  with patch('nbt_retrieval.search',side_effect=AssertionError('bundle re-ran search')):
+  with patch('nbt_knowledge.retrieval.search',side_effect=AssertionError('bundle re-ran search')):
    bundle=external('bundle',receipt=found['receipt'],selected=['R1'])
   receipt={key:bundle[key] for key in ('id','sha256')}
   checked=external('read',**receipt)

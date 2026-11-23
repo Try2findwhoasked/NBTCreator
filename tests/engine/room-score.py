@@ -3,7 +3,7 @@ import json,sys,tempfile,unittest
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_refine import save_master
-from nbt_room_score import score_room,VISUAL,PROFILES
+from nbt_review.room_score import score_room,VISUAL,PROFILES
 class Scoring(unittest.TestCase):
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name);self.source=self.root/'room.master.json.gz';self.m=Volume((10,7,10));self.m.box([0,0,0],[9,6,9],'stone');self.m.box([1,1,1],[8,5,8],'air');self.context=self.root/'coordinates.json';self.context.write_text(json.dumps(dict(mode='standalone',openings=[],start=[2.5,1,2.5],targets={'end':[7.5,1,7.5]})));self.request=dict(source=str(self.source),context=str(self.context));self.save()

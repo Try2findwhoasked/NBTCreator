@@ -8,7 +8,7 @@ from nbt_assembly import Volume
 from nbt_model import Model, load, AIR_NAMES
 from nbt_wall_layers import _write_sparse, read_sparse
 from nbt_delivery import validate_file_prefix
-from nbt_whole_validation import active_xz_cells, standalone_cells
+from nbt_composition.whole_validation import active_xz_cells, standalone_cells
 
 
 def _sha(file):return hashlib.sha256(Path(file).read_bytes()).hexdigest()

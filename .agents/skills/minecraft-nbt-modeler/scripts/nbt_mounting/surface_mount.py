@@ -6,7 +6,7 @@ from nbt_model import AIR_NAMES
 from nbt_registry import effective
 from nbt_collision import FULL_CUBES
 from nbt_selection_edit import load_selection,sha
-from nbt_components import placement
+from nbt_assets.components import placement
 
 NORMALS={'south':(2,1),'north':(2,-1),'east':(0,1),'west':(0,-1),'up':(1,1),'down':(1,-1)}
 
@@ -97,7 +97,7 @@ def _reject(s,point,code,message,**facts):
 
 def _object(workspace,proposal,normal,pattern=False,reuse_backing=False):
     from nbt_building.parametric import compile_object
-    from nbt_structure_agent import build
+    from nbt_agent.structure import build
     kind=proposal['surface'] if pattern else proposal['kind']
     if kind=='cylinder' and pattern:
         raise ValueError('圆柱环绕请使用pattern_cylinder_mount及三维目标框')
@@ -120,7 +120,7 @@ def _object(workspace,proposal,normal,pattern=False,reuse_backing=False):
     if pattern and ('microfit' in compiled or reuse_backing) and kind in ('wall','column','ceiling'):
         # Existing walls/ceilings provide the backing of a micro ornament.
         # Keep only its relief, so a small glyph does not add another wall layer.
-        from nbt_components import validate
+        from nbt_assets.components import validate
         data={k:v for k,v in data.items() if k!='content_sha256'}
         axis=1 if kind=='ceiling' else 2;layer=0 if kind=='ceiling' else 1
         data['blocks']=[[*b[:axis],0,*b[axis+1:]] for b in data['blocks'] if b[axis]==layer]

@@ -7,15 +7,15 @@ import shutil
 import uuid
 from pathlib import Path
 
-import nbt_components as library
+import nbt_assets.components as library
 
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[2]
 from nbt_extensions import AGENT_TOOLS
 SUPPORTED_AGENT_TOOLS=AGENT_TOOLS.keys()
 
 
 def _definitions():
-    from nbt_catalog import catalog
+    from nbt_runtime.catalog import catalog
     tools=catalog()['agent_tools']
     if set(tools)!=SUPPORTED_AGENT_TOOLS:raise ValueError('结构Agent目录与Python实现不一致')
     return tools
@@ -65,14 +65,14 @@ def build(workspace, spec):
     schema=_definitions()['structure_preview']['parameters']['properties']['spec']
     _schema(spec,schema,'结构方案')
     size=library.vector(spec['size']);operations=[]
-    from nbt_catalog import catalog as read_catalog
+    from nbt_runtime.catalog import catalog as read_catalog
     catalog=read_catalog()
     group=str(uuid.uuid4())
     for op in spec.get('operations',[]):
         if not isinstance(op,dict) or op.get('kind') not in catalog['tools']:raise ValueError('未知结构工具')
         allowed=set(catalog['common'])|set(catalog['operation_parameters'][op['kind']]['properties'])|{'kind','overwrite'}
         if set(op)-allowed:raise ValueError('结构步骤含未开放字段（不接收代码、路径或写入组）')
-        from nbt_operation_parameters import validate_operation
+        from nbt_runtime.operation_parameters import validate_operation
         validate_operation(op)
         operations.append(dict(op,write_group=group) if op['kind'] in ('box','beam','frame','hollow_box','geometry') else dict(op))
     for placed in spec.get('placements',[]):
@@ -276,7 +276,7 @@ def _handle_structure_save(workspace,tool,arguments):
     directory=(root/prepared['preview_id']).resolve()
     if not directory.is_relative_to(root) or _preview_fingerprint(directory)!=prepared['preview_sha256']:raise ValueError('预览已改变，请重新生成')
 
-    from nbt_prompts import index_lock
+    from nbt_project.prompts import index_lock
     with index_lock(Path(workspace).resolve(),directory):
         receipt=directory/'saved-asset.json'
         if receipt.is_file():
@@ -290,7 +290,7 @@ def _handle_structure_save(workspace,tool,arguments):
         shutil.copyfile(directory/'thumbnail.jpg',Path(item['file']).with_suffix('.jpg'))
         recipes=library.library_root(workspace)/'recipes';recipes.mkdir(exist_ok=True)
         (recipes/(item['id']+'.json')).write_text(json.dumps(dict(spec=draft.get('spec'),parametric_recipe=draft.get('parametric_recipe'),pattern_recipe=draft.get('pattern_recipe'),reference_sources=draft.get('reference_sources',[]),preview_sha256=prepared['preview_sha256'],content_sha256=item['content_sha256'],verification=dict(design='pending_visual_review',game='not_checked')),ensure_ascii=False),encoding='utf8')
-        from nbt_asset_batches import register_components
+        from nbt_assets.batches import register_components
         batch=register_components(workspace,[item],arguments.get('batch_name',item['name']))
         result=dict(item,preview_id=prepared['preview_id'],preview_sha256=prepared['preview_sha256'],batch_id=batch['id'],batch_manifest=batch['manifest'],nbt_exported=False,approval_created=False)
         receipt.write_text(json.dumps(result,ensure_ascii=False),encoding='utf8');return result
@@ -323,7 +323,7 @@ def _handle_structure_view(workspace,tool,arguments):
 def _handle_structure_preview(workspace,tool,arguments):
     sources=[]
     if arguments.get('reference_bundle'):
-        from nbt_retrieval import read_bundle
+        from nbt_knowledge.retrieval import read_bundle
         sources=read_bundle(workspace,dict(arguments['reference_bundle'],workflow='component'),audience=None)['sources']
     return preview(workspace,build(workspace,arguments['spec']),arguments['spec'],sources)
 

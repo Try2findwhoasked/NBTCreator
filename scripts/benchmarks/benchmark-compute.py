@@ -4,13 +4,13 @@ from datetime import datetime
 from pathlib import Path
 import numpy as np
 ROOT=Path(__file__).resolve().parents[2]
-if 'nbt_structure_agent' not in sys.modules:
+if 'nbt_agent.structure' not in sys.modules:
     sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_compute import info
 from nbt_geometry.deform import warp_pixels
 from nbt_geometry.field_compute import sample
 from nbt_pattern.spectral import smooth
-from nbt_structure_agent import dispatch
+from nbt_agent.structure import dispatch
 
 
 def column_request(backend='cpu'):

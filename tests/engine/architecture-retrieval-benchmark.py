@@ -11,7 +11,7 @@ from time import perf_counter
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_retrieval import dispatch
+from nbt_knowledge.retrieval import dispatch
 
 
 # Each case lists an eligible style, a query, and text that must actually occur in the hit.

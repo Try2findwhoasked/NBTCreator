@@ -4,8 +4,8 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_structure_agent import dispatch,build
-from nbt_modeling_session import current
+from nbt_agent.structure import dispatch,build
+from nbt_runtime.modeling_session import current
 
 
 class OrnateFitting(unittest.TestCase):

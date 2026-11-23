@@ -10,7 +10,7 @@ from threading import Thread
 from time import monotonic, time
 from urllib.parse import quote, urlencode, urlsplit
 
-from nbt_asset_libraries import atomic
+from nbt_assets.libraries import atomic
 from .public_web import WebError, extract, get, public_url
 
 CACHE_TTL = 24*3600

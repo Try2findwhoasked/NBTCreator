@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import sys
 from time import perf_counter
-from nbt_modeling_session import ModellingSession,engine_revision
+from nbt_runtime.modeling_session import ModellingSession,engine_revision
 
 MAX_REQUEST=8*1024*1024
 MAX_RESPONSE=32*1024*1024

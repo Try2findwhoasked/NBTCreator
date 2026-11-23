@@ -2,7 +2,7 @@
 from nbt_mounting.cylinder_fit import SIX,half_cells,topology
 from nbt_model import AIR_NAMES
 from nbt_mounting.surface_mount import _full
-from nbt_working_model import ModelConflict,value_at
+from nbt_composition.working_model import ModelConflict,value_at
 
 MAX_TOPOLOGY_VOLUME=500000
 MAX_BRIDGE_EDGES=65536

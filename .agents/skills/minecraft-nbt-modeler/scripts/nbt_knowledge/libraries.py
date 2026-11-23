@@ -9,8 +9,8 @@ import re
 import sqlite3
 from urllib.parse import urlsplit, urlunsplit
 
-import nbt_architecture_knowledge as books
-from nbt_asset_libraries import atomic
+import nbt_knowledge.architecture_books as books
+from nbt_assets.libraries import atomic
 
 
 MAX_CONNECTIONS = 16

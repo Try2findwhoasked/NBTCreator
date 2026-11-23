@@ -11,10 +11,10 @@ from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_reference_views import register_reference,save_fit
-from nbt_working_model import WorkingModel
+from nbt_review.reference_views import register_reference,save_fit
+from nbt_composition.working_model import WorkingModel
 from nbt_refine import read_master
-from nbt_curved_surface import plan_curve,verify_curve
+from nbt_mounting.curved_surface import plan_curve,verify_curve
 
 
 class CurvedSurface(unittest.TestCase):
@@ -111,7 +111,7 @@ class CurvedSurface(unittest.TestCase):
   def surface(sections,y,u):return [u,0],[1,0]
   def faces(model,expected,normal,y,maximum):
    return ((3,2,3),(1,0,0),0) if expected[0]<.1 else ((2,2,3),(0,0,1),0)
-  with patch('nbt_curved_surface._actual_face',side_effect=faces),patch('nbt_curved_surface._surface_point',side_effect=surface):
+  with patch('nbt_mounting.curved_surface._actual_face',side_effect=faces),patch('nbt_mounting.curved_surface._surface_point',side_effect=surface):
    with self.assertRaisesRegex(ValueError,'CURVE_BACKING_CONFLICT'):plan_curve(self.root,request)
    self.assertFalse((self.root/request['output']).exists())
    data['palette']['W']['max_effective_depth']=2;self.write_mask(data);request['mask_sha256']=hashlib.sha256(self.mask.read_bytes()).hexdigest()
@@ -172,7 +172,7 @@ class CurvedSurface(unittest.TestCase):
   self.assertGreater(result['summary']['changed_positions'],1)
   self.assertTrue(verify_curve(self.root,result['plan'],result['plan_sha256'])['valid'])
  def test_opt_in_connector_is_in_candidate_and_recomputed_by_verifier(self):
-  from nbt_curved_surface import _surface_point
+  from nbt_mounting.curved_surface import _surface_point
   geometry=json.loads(Path(self.fit['output']).read_text(encoding='utf8'))['geometry']['sections']
   first,_=_surface_point(geometry,2.5,.05)
   working=WorkingModel(self.root,[20,10,16]);working.model.put((2,2,1),'stone');working.model.put((2,2,3),'stone')
@@ -184,7 +184,7 @@ class CurvedSurface(unittest.TestCase):
   before=Path(saved['source']).read_bytes()
   def faces(model,expected,normal,y,maximum):
    return ((2,2,1),(0,0,1),0) if expected==first else ((2,2,3),(1,0,0),0)
-  with patch('nbt_curved_surface._actual_face',side_effect=faces):
+  with patch('nbt_mounting.curved_surface._actual_face',side_effect=faces):
    result=plan_curve(self.root,request)
    self.assertTrue(result['continuity']['passed']);self.assertEqual(result['summary']['connectors_added'],1)
    self.assertEqual(result['summary']['raw_writes'],result['summary']['requested_positions']+result['summary']['merged_writes'])
@@ -204,7 +204,7 @@ class CurvedSurface(unittest.TestCase):
   request['mapping'].update(u_start=0,u_span=.2,connect_raised=dict(max_new_blocks=2,max_bridge_steps=2));before=Path(saved['source']).read_bytes()
   def surface(sections,y,u):return [u,0],[0,1]
   def faces(model,expected,normal,y,maximum):return ((2,2,1),(0,0,1),0) if expected[0]<.1 else ((5,2,1),(0,0,1),0)
-  with patch('nbt_curved_surface._actual_face',side_effect=faces),patch('nbt_curved_surface._surface_point',side_effect=surface):
+  with patch('nbt_mounting.curved_surface._actual_face',side_effect=faces),patch('nbt_mounting.curved_surface._surface_point',side_effect=surface):
    result=plan_curve(self.root,request);self.assertEqual(result['summary']['connectors_added'],2)
    self.assertTrue(result['continuity']['passed'])
    self.assertEqual(result['samples'][0]['connectors'][0]['path'],[[3,2,2],[4,2,2]])
@@ -218,8 +218,8 @@ class CurvedSurface(unittest.TestCase):
   request['mapping'].update(u_start=0,u_span=.2,connect_raised=dict(max_new_blocks=2,max_bridge_steps=2));before=Path(saved['source']).read_bytes()
   def surface(sections,y,u):return [u,0],[0,1]
   def faces(model,expected,normal,y,maximum):return ((2,2,1),(0,0,1),0) if y==2 else ((4,3,1),(0,0,1),0)
-  with patch('nbt_curved_surface._actual_face',side_effect=faces),patch('nbt_curved_surface._surface_point',side_effect=surface):
-   from nbt_working_model import ModelConflict
+  with patch('nbt_mounting.curved_surface._actual_face',side_effect=faces),patch('nbt_mounting.curved_surface._surface_point',side_effect=surface):
+   from nbt_composition.working_model import ModelConflict
    with self.assertRaises(ModelConflict) as error:plan_curve(self.root,request)
    self.assertEqual(error.exception.code,'CURVE_CONNECT_AMBIGUOUS');conflict=error.exception.conflicts[0]
    self.assertEqual(len(conflict['paths']),3);self.assertFalse((self.root/request['output']).exists())
@@ -256,7 +256,7 @@ class CurvedSurface(unittest.TestCase):
   def surface(sections,y,u):return ([2.5,2] if u<.1 else [4.5,2]),[0,-1]
   def faces(model,expected,normal,y,maximum):
    return ((2,2,2),(0,0,-1),0) if expected[0]<3 else ((4,2,2),(0,0,-1),0)
-  with patch('nbt_curved_surface._actual_face',side_effect=faces),patch('nbt_curved_surface._surface_point',side_effect=surface):
+  with patch('nbt_mounting.curved_surface._actual_face',side_effect=faces),patch('nbt_mounting.curved_surface._surface_point',side_effect=surface):
    result=plan_curve(self.root,request);self.assertTrue(result['continuity']['passed'])
    self.assertEqual(result['summary']['recess_connectors_added'],1)
    connector=result['samples'][0]['connectors'][0]
@@ -320,7 +320,7 @@ class CurvedSurface(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'CURVE_LAYER_SUPPORT|重叠'):plan_curve(self.root,request)
   self.assertFalse((self.root/request['output']).exists())
  def test_layered_overlap_details_are_bounded_and_counted(self):
-  from nbt_curved_surface import _mask
+  from nbt_mounting.curved_surface import _mask
   data=self.layered_mask();data['layers'][0]['rows']=['R'*20]*20;data['layers'][1]['rows']=['W'*20]*20
   self.write_mask(data);parsed,_=_mask(self.mask,hashlib.sha256(self.mask.read_bytes()).hexdigest())
   self.assertEqual(parsed['overlapping_uv'],400);self.assertEqual(parsed['overlap_pairs'],400)
@@ -349,7 +349,7 @@ class CurvedSurface(unittest.TestCase):
   def surface(sections,y,u):return [u,0],[0,1]
   def faces(model,expected,normal,y,maximum):
    return ((4,3,1),(0,0,1),0) if y==3 else ((2,2,1),(0,0,1),0) if expected[0]<.1 else ((9,2,1),(0,0,1),0)
-  with patch('nbt_curved_surface._actual_face',side_effect=faces),patch('nbt_curved_surface._surface_point',side_effect=surface):
+  with patch('nbt_mounting.curved_surface._actual_face',side_effect=faces),patch('nbt_mounting.curved_surface._surface_point',side_effect=surface):
    with self.assertRaisesRegex(ValueError,'layer'):plan_curve(self.root,request)
    self.assertFalse((self.root/request['output']).exists())
    choice['layer']='band';data['layers'][0]['connections']={'raised':False};self.write_mask(data)
@@ -363,17 +363,17 @@ class CurvedSurface(unittest.TestCase):
  def test_layered_sampling_limit_is_global_not_per_layer(self):
   data=self.layered_mask();data['layers'][0]['rows']=['R'*64]*64;data['layers'][1]['rows']=['W'*64]*64
   self.write_mask(data);request=self.request();request['mapping']['u_subsamples']=2
-  with patch('nbt_curved_surface._actual_face') as search:
+  with patch('nbt_mounting.curved_surface._actual_face') as search:
    with self.assertRaisesRegex(ValueError,'8192'):plan_curve(self.root,request)
    search.assert_not_called()
   self.assertFalse((self.root/request['output']).exists())
  def test_layered_recess_error_identifies_the_source_layer(self):
-  from nbt_curved_surface import _calculate_layers
-  from nbt_working_model import ModelConflict
+  from nbt_mounting.curved_surface import _calculate_layers
+  from nbt_composition.working_model import ModelConflict
   error=ModelConflict('CURVE_RECESS_DISCONNECTED',[dict(reason='曲面凹槽笔画无法连接',symbol='W',uv=[1,2])])
   mask=dict(layers=[dict(id='windows',rows=['W'],connections={})])
   mapping=dict(u_start=0,u_span=.25,y_start=0,max_distance=2)
-  with patch('nbt_curved_surface._calculate_single',side_effect=error):
+  with patch('nbt_mounting.curved_surface._calculate_single',side_effect=error):
    with self.assertRaises(ModelConflict) as raised:_calculate_layers(None,None,mask,mapping)
   self.assertEqual(raised.exception.code,'CURVE_RECESS_DISCONNECTED')
   self.assertEqual(raised.exception.conflicts[0]['layer'],'windows')
@@ -423,7 +423,7 @@ class CurvedSurface(unittest.TestCase):
   def faces(model,expected,normal,y,maximum):
    return (((2,2,1),(0,0,1),0) if expected[0]<.1 else ((2,2,3),(1,0,0),0) if expected[0]<.2 else
            ((7,2,1),(0,0,1),0) if expected[0]<.3 else ((7,2,3),(1,0,0),0))
-  with patch('nbt_curved_surface._actual_face',side_effect=faces),patch('nbt_curved_surface._surface_point',side_effect=surface):
+  with patch('nbt_mounting.curved_surface._actual_face',side_effect=faces),patch('nbt_mounting.curved_surface._surface_point',side_effect=surface):
    with self.assertRaisesRegex(ValueError,'总预算'):plan_curve(self.root,request)
   self.assertFalse((self.root/request['output']).exists());self.assertEqual(Path(saved['source']).read_bytes(),before)
  def test_layered_recess_write_budget_applies_across_all_layers(self):
@@ -440,7 +440,7 @@ class CurvedSurface(unittest.TestCase):
    x=2 if u<.1 else 4 if u<.2 else 8 if u<.3 else 10
    return [x+.5,2],[0,-1]
   def faces(model,expected,normal,y,maximum):return ((int(expected[0]),2,2),(0,0,-1),0)
-  with patch('nbt_curved_surface._actual_face',side_effect=faces),patch('nbt_curved_surface._surface_point',side_effect=surface):
+  with patch('nbt_mounting.curved_surface._actual_face',side_effect=faces),patch('nbt_mounting.curved_surface._surface_point',side_effect=surface):
    with self.assertRaisesRegex(ValueError,'总预算'):plan_curve(self.root,request)
   self.assertFalse((self.root/request['output']).exists());self.assertEqual(Path(saved['source']).read_bytes(),before)
  def test_disconnected_subsamples_within_one_pixel_are_reported(self):
@@ -457,7 +457,7 @@ class CurvedSurface(unittest.TestCase):
   self.assertFalse(result['continuity']['passed'])
   self.assertGreater(result['continuity']['broken_pairs'],0)
  def test_stroke_connected_through_another_mask_cell_is_not_a_break(self):
-  from nbt_curved_surface import _continuity
+  from nbt_mounting.curved_surface import _continuity
   def sample(u,v,positions):
    return dict(uv=[u,v],symbol='R',changes=[dict(pos=pos,after=['minecraft:stone',False]) for pos in positions])
   samples=[sample(0,0,[[0,0,0]]),sample(1,0,[[2,0,0]]),sample(0,1,[[0,1,0]]),
@@ -466,20 +466,20 @@ class CurvedSurface(unittest.TestCase):
   self.assertTrue(result['passed'])
   self.assertEqual(result['disconnected_strokes'],0)
  def test_vertically_adjacent_bottom_slabs_do_not_touch(self):
-  from nbt_curved_surface import _continuity
+  from nbt_mounting.curved_surface import _continuity
   slab='minecraft:stone_brick_slab[type=bottom,waterlogged=false]'
   samples=[dict(uv=[0,y],symbol='R',changes=[dict(pos=[0,y,0],after=[slab,False])]) for y in (0,1)]
   result=_continuity(samples,['R','R'],False)
   self.assertFalse(result['passed']);self.assertEqual(result['disconnected_strokes'],1)
  def test_oversized_sampling_report_fails_before_creating_candidate_directory(self):
   request=self.request()
-  with patch('nbt_curved_surface.MAX_MANIFEST',2048):
+  with patch('nbt_mounting.curved_surface.MAX_MANIFEST',2048):
    with self.assertRaisesRegex(ValueError,'报告过大'):plan_curve(self.root,request)
   self.assertFalse((self.root/request['output']).exists())
  def test_excessive_face_sampling_is_refused_before_search(self):
   data=json.loads(self.mask.read_text(encoding='utf8'));data['rows']=['R'*64]*64;data['palette']={'R':data['palette']['R']}
   self.write_mask(data);request=self.request();request['mapping']['u_subsamples']=3
-  with patch('nbt_curved_surface._actual_face') as search:
+  with patch('nbt_mounting.curved_surface._actual_face') as search:
    with self.assertRaisesRegex(ValueError,'采样.*上限'):plan_curve(self.root,request)
    search.assert_not_called()
   self.assertFalse((self.root/request['output']).exists())
@@ -554,7 +554,7 @@ class CurvedSurface(unittest.TestCase):
    scope='复核合成候选',crop=None,output='nbt_models/_workspaces/reference-reviews/curve-revised'))
   revised_record=record_review(self.root,dict(public=revised['public'],public_sha256=revised['public_sha256'],decision='inconclusive',actor='agent',
    observations=[dict(view='view-01',note='仍有断笔',remaining='继续调整')],output='nbt_models/_workspaces/reference-reviews/revised-record.json'))
-  from nbt_curved_surface import record_curve_followup,verify_curve_followup
+  from nbt_mounting.curved_surface import record_curve_followup,verify_curve_followup
   followup_request=dict(plan=result['plan'],plan_sha256=result['plan_sha256'],status='unresolved',
    remaining='继续调整断笔',review_feedback=dict(binding=revised['binding'],binding_sha256=revised['binding_sha256'],
     record=revised_record['record'],record_sha256=revised_record['record_sha256'],observation=0),
@@ -574,7 +574,7 @@ class CurvedSurface(unittest.TestCase):
    output='nbt_models/_workspaces/reference-reviews/recropped-followup.json')
   with self.assertRaisesRegex(ValueError,'裁切|相机'):record_curve_followup(self.root,invalid)
   self.assertFalse((self.root/invalid['output']).exists())
-  from nbt_curved_surface import _review_feedback
+  from nbt_mounting.curved_surface import _review_feedback
   mask_bytes=self.mask.read_bytes();calls=0
   def mutate_mask_after_initial_verification(*args):
    nonlocal calls
@@ -582,7 +582,7 @@ class CurvedSurface(unittest.TestCase):
    if calls==3:self.mask.write_bytes(mask_bytes+b' ')
    return value
   followup=record_curve_followup(self.root,followup_request)
-  with patch('nbt_curved_surface._review_feedback',side_effect=mutate_mask_after_initial_verification):
+  with patch('nbt_mounting.curved_surface._review_feedback',side_effect=mutate_mask_after_initial_verification):
    with self.assertRaisesRegex(ValueError,'哈希|变化'):verify_curve_followup(self.root,followup['record'],followup['record_sha256'])
   self.mask.write_bytes(mask_bytes)
   self.assertTrue(verify_curve_followup(self.root,followup['record'],followup['record_sha256'])['valid'])
@@ -615,7 +615,7 @@ class CurvedSurface(unittest.TestCase):
   file.write_text(json.dumps(proof),encoding='utf8');forged=hashlib.sha256(file.read_bytes()).hexdigest()
   with self.assertRaisesRegex(ValueError,'采样.*不一致'):verify_curve(self.root,file,forged)
  def test_eccentric_retreat_with_a_corner_samples_each_actual_height(self):
-  from nbt_reference_views import load_reference
+  from nbt_review.reference_views import load_reference
   original=json.loads(Path(self.fit['output']).read_text(encoding='utf8'))
   reference=self.root/original['reference'];registered=load_reference(reference,original['reference_sha256'])
   rows=[dict(row) for row in self.fixture.rows];rows[1]['corner']=True
@@ -682,7 +682,7 @@ class CurvedConnectors(unittest.TestCase):
   self.assertEqual([item['pos'] for item in result],[[3,2,2],[4,2,2]])
   self.assertTrue(all(item['path']==[[3,2,2],[4,2,2]] for item in result))
  def test_multi_block_path_does_not_cross_a_protected_cell(self):
-  from nbt_working_model import ModelConflict
+  from nbt_composition.working_model import ModelConflict
   self.working=WorkingModel(self.root,[8,6,8]);self.changes={};self.owners={};self.samples=[];self.supports=[]
   for index,x in enumerate((2,5)):
    pos=(x,2,2);host=(x,2,1);self.working.model.put(host,'stone');self.supports.append(host)
@@ -709,7 +709,7 @@ class CurvedConnectors(unittest.TestCase):
    self.changes[pos]=change;self.owners[pos]='R';self.samples.append(dict(uv=[index,0],symbol='R',kind='raise',
     faces=[dict(host=list(host),face_normal=[0,0,1])],changes=[change],effective_writes=1))
   before=dict(self.changes)
-  from nbt_working_model import ModelConflict
+  from nbt_composition.working_model import ModelConflict
   with self.assertRaisesRegex(ModelConflict,'歧义') as error:self.connect(limit=2,steps=2)
   self.assertEqual(error.exception.code,'CURVE_CONNECT_AMBIGUOUS')
   self.assertEqual(len(error.exception.conflicts[0]['paths']),3)
@@ -726,7 +726,7 @@ class CurvedConnectors(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'指定.*路径|路径.*无效'):self.connect(limit=2,steps=2,choices=invalid)
   self.assertEqual(self.changes,before)
   choice=[dict(endpoints=endpoints,path=[[3,2,2],[4,2,2]])]
-  from nbt_working_model import ModelConflict
+  from nbt_composition.working_model import ModelConflict
   with self.assertRaisesRegex(ModelConflict,'CURVE_PROTECTED'):self.connect({(4,2,2)},limit=2,steps=2,choices=choice)
   with self.assertRaisesRegex(ValueError,'预算'):self.connect(limit=1,steps=2,choices=choice)
   self.assertEqual(self.changes,before)
@@ -757,7 +757,7 @@ class CurvedConnectors(unittest.TestCase):
   self.assertEqual([item['pos'] for item in result],[[3,2,2]])
   self.assertEqual(result[0]['reused'],[[4,2,2]])
  def test_ambiguous_or_protected_bridges_refuse_without_partial_changes(self):
-  from nbt_working_model import ModelConflict
+  from nbt_composition.working_model import ModelConflict
   before=dict(self.changes)
   with self.assertRaisesRegex(ModelConflict,'CURVE_PROTECTED'):self.connect({(3,2,2)})
   self.assertEqual(self.changes,before);self.assertEqual(len(self.samples[0]['changes']),1)
@@ -766,7 +766,7 @@ class CurvedConnectors(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'歧义'):self.connect()
   self.assertEqual(self.changes,before)
  def test_bridging_budget_and_existing_other_write_are_enforced(self):
-  from nbt_working_model import ModelConflict
+  from nbt_composition.working_model import ModelConflict
   with self.assertRaisesRegex(ValueError,'预算'):self.connect(limit=0)
   bridge=(3,2,2);self.changes[bridge]=dict(pos=list(bridge),before=['minecraft:air',False],after=['minecraft:gold_block',False]);self.owners[bridge]='I'
   with self.assertRaisesRegex(ModelConflict,'CURVE_OVERLAP'):self.connect()
@@ -795,7 +795,7 @@ class CurvedConnectors(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'不同.*笔画'):self.connect()
   self.assertEqual(self.changes,before)
  def test_later_protected_stroke_does_not_leave_an_earlier_connector(self):
-  from nbt_working_model import ModelConflict
+  from nbt_composition.working_model import ModelConflict
   self.mask['rows']=['RR.RR']
   for uv,pos,host,face in [([3,0],(5,3,4),(5,3,3),(0,0,1)),([4,0],(6,3,5),(5,3,5),(1,0,0))]:
    self.working.model.put(host,'stone');change=dict(pos=list(pos),before=['minecraft:air',False],after=['minecraft:stone_bricks',False])
@@ -858,7 +858,7 @@ class CurvedRecessConnectors(unittest.TestCase):
   self.assertEqual(self.changes[(3,2,3)]['after'],['minecraft:gold_block',True])
   self.assertNotIn((3,2,4),self.changes)
  def test_recess_budget_protection_and_insufficient_backing_are_atomic(self):
-  from nbt_working_model import ModelConflict
+  from nbt_composition.working_model import ModelConflict
   self.spec.update(kind='inlay',depth=2,state='minecraft:gold_block',wall=True);self.rebuild_endpoints();before=dict(self.changes)
   with self.assertRaisesRegex(ValueError,'预算'):self.connect(limit=1)
   with self.assertRaisesRegex(ModelConflict,'CURVE_PROTECTED'):self.connect({(3,2,3)})
@@ -866,12 +866,12 @@ class CurvedRecessConnectors(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'背衬|厚度'):self.connect()
   self.assertEqual(self.changes,before);self.assertTrue(all('connectors' not in sample for sample in self.samples))
  def test_recess_does_not_carve_an_existing_support(self):
-  from nbt_working_model import ModelConflict
+  from nbt_composition.working_model import ModelConflict
   self.supports.append(self.middle);before=dict(self.changes)
   with self.assertRaisesRegex(ModelConflict,'CURVE_BACKING_CONFLICT'):self.connect()
   self.assertEqual(self.changes,before)
  def test_recess_failure_in_later_stroke_leaves_all_edits_unchanged(self):
-  from nbt_working_model import ModelConflict
+  from nbt_composition.working_model import ModelConflict
   self.mask['rows']=['CC.CC']
   for x in (2,3,4):
    for z in (2,3):self.working.model.put((x,4,z),'stone')
@@ -913,7 +913,7 @@ class CurvedRecessConnectors(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'无法连接'):self.connect()
   self.assertEqual(self.changes,before)
  def test_disconnected_recess_reports_real_endpoints_and_material_gap(self):
-  from nbt_working_model import ModelConflict
+  from nbt_composition.working_model import ModelConflict
   self.spec.update(kind='inlay',depth=1,state='minecraft:stone_brick_slab[type=bottom,waterlogged=false]',wall=True)
   self.hosts=[(2,2,2),(2,3,2)]
   for y in (2,3):
@@ -1045,7 +1045,7 @@ class ActualEccentricConnectors(unittest.TestCase):
   sys.path.insert(0,str(ROOT/'tests/support'))
   from curved_surface_fixture import create_curve_fixture
   from nbt_exposure import apply
-  from nbt_working_model import ModelConflict
+  from nbt_composition.working_model import ModelConflict
   with tempfile.TemporaryDirectory() as temp:
    workspace=Path(temp);request=create_curve_fixture(workspace);original=Path(request['source']).read_bytes()
    request['mapping']['connect_recess']=dict(max_new_blocks=64)

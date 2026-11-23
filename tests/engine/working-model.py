@@ -11,7 +11,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'
 sys.path.insert(0, str(SCRIPTS))
-from nbt_working_model import WorkingModel, ModelConflict, model_hash, value_at, verify_version, file_hash
+from nbt_composition.working_model import WorkingModel, ModelConflict, model_hash, value_at, verify_version, file_hash
 from nbt_refine import read_master
 
 
@@ -260,7 +260,7 @@ class WorkingModels(unittest.TestCase):
 
     def test_history_failure_is_retryable_without_duplicate_version(self):
         m = self.new(kind='component')
-        with patch('nbt_history.record_produced_version', side_effect=ValueError('synthetic history failure')):
+        with patch('nbt_project.history.record_produced_version', side_effect=ValueError('synthetic history failure')):
             first = m.save_draft('恢复测试')
         self.assertTrue(first['history_pending'])
         second = m.save_draft('恢复测试')
@@ -269,13 +269,13 @@ class WorkingModels(unittest.TestCase):
         self.assertEqual(len(list((self.root / 'nbt_models/standalone/恢复测试').glob('v_model_*'))), 1)
         self.put(m,[3,1,3],'stone')
         self.assertFalse(m.save_draft()['history_pending'])
-        with patch('nbt_history.record_produced_version',return_value=dict(recorded=False,error='synthetic unavailable history')):
+        with patch('nbt_project.history.record_produced_version',return_value=dict(recorded=False,error='synthetic unavailable history')):
             pending = self.new(kind='component').save_draft('真实返回错误封装')
         self.assertTrue(pending['history_pending'])
 
     def test_failure_before_publication_exposes_no_partial_version(self):
         m = self.new(kind='component')
-        with patch('nbt_working_model.os.rename', side_effect=OSError('synthetic rename failure')):
+        with patch('nbt_composition.working_model.os.rename', side_effect=OSError('synthetic rename failure')):
             with self.assertRaises(OSError):
                 m.save_draft('发布失败')
         self.assertFalse(list((self.root / 'nbt_models').rglob('*.snbt')))
@@ -314,7 +314,7 @@ class WorkingModels(unittest.TestCase):
 
     def test_finalize_rejects_managed_buildings_before_the_opened_phase(self):
         from nbt_finalize import finalize, release_path, inspect_inputs
-        from nbt_whole_validation import validate_whole
+        from nbt_composition.whole_validation import validate_whole
 
         context = dict(mode='standalone', openings=[], require_enclosure=True, interior_probes=[[3,2,3]],
                        start=[2.5,1,2.5], targets={'inside':[5.5,1,5.5]})
@@ -602,11 +602,11 @@ class WorkingModels(unittest.TestCase):
         self.assertEqual(m._history_source(m._building), Path(c['source']).relative_to(m.workspace).as_posix())
 
     def test_pending_history_ancestors_are_recorded_before_children(self):
-        from nbt_history import History
+        from nbt_project.history import History
         m = self.new(kind='component')
         a = m.save_draft('待补历史')
         self.put(m, [1,1,1], 'stone')
-        with patch('nbt_history.record_produced_version', return_value=dict(recorded=False,error='offline')):
+        with patch('nbt_project.history.record_produced_version', return_value=dict(recorded=False,error='offline')):
             b = m.save_draft()
         self.assertTrue(b['history_pending'])
         self.put(m, [2,1,1], 'stone')
@@ -622,7 +622,7 @@ class WorkingModels(unittest.TestCase):
         self.assertFalse(retry.save_draft()['history_pending'])
 
     def test_history_selection_and_derive_invalidate_old_model_head(self):
-        from nbt_history import History
+        from nbt_project.history import History
         m = self.new(kind='component')
         a = m.save_draft('历史切头')
         self.put(m, [1,1,1], 'stone')
@@ -653,7 +653,7 @@ class WorkingModels(unittest.TestCase):
 
     def test_history_derivation_and_cli_publication_share_one_building_head(self):
         from concurrent.futures import ThreadPoolExecutor
-        from nbt_history import History
+        from nbt_project.history import History
 
         model = self.new(kind='component')
         original = model.save_draft('历史派生并发')
@@ -729,7 +729,7 @@ class WorkingModels(unittest.TestCase):
             m.save_draft('路线检查')
 
     def test_candidate_validation_uses_saved_managed_reserved_space(self):
-        from nbt_candidate import validate_candidate
+        from nbt_review.candidate import validate_candidate
         from nbt_detail_control import default_settings,preview_effect
 
         model=self.room()
@@ -786,7 +786,7 @@ class WorkingModels(unittest.TestCase):
 
     def test_desktop_component_draft_uses_component_validation(self):
         from nbt_web_revision import convert_web_json
-        from nbt_candidate import validate_candidate
+        from nbt_review.candidate import validate_candidate
         from nbt_detail_control import default_settings,preview_effect
         m = self.new(kind='component')
         m.install('panel',block_recipe(),[4,1,4])
@@ -804,7 +804,7 @@ class WorkingModels(unittest.TestCase):
         preview=preview_effect(payload,self.root/'preview')
         result=validate_candidate(payload,preview['snapshot'],self.root/'validation')
         self.assertTrue(result['passed'],result)
-        from nbt_project_batch import check_source
+        from nbt_project.queues import check_source
         batch=check_source(Path(first['source']))
         self.assertTrue(batch['passed'],batch)
         self.assertEqual(batch['checks']['geometry_routes']['details']['whole_model'],'not_applicable_to_component')
@@ -825,7 +825,7 @@ class WorkingModels(unittest.TestCase):
         self.assertFalse(result['history_pending'])
 
     def test_standalone_48_draft_can_be_derived_with_instances(self):
-        from nbt_history import History
+        from nbt_project.history import History
         m = WorkingModel(self.root,[48,6,48],kind='component')
         m.install('panel',block_recipe(),[4,1,4])
         first = m.save_draft('方形独立构件')
@@ -842,7 +842,7 @@ class WorkingModels(unittest.TestCase):
         self.assertNotEqual(reopened.parent_revision,first['revision'])
 
     def test_old_pending_history_with_missing_parent_is_repaired_from_manifest(self):
-        from nbt_history import History
+        from nbt_project.history import History
         m = self.new(kind='component')
         a = m.save_draft('修复历史父链')
         self.put(m,[1,1,1],'stone')
@@ -882,7 +882,7 @@ class WorkingModels(unittest.TestCase):
         self.assertEqual(m._history_source(m._building),Path(c['source']).relative_to(m.workspace).as_posix())
 
     def test_history_selection_preflights_managed_files_before_committing(self):
-        from nbt_history import History
+        from nbt_project.history import History
         m = self.new(kind='component')
         a = m.save_draft('选择版本检查')
         self.put(m,[1,1,1],'stone')

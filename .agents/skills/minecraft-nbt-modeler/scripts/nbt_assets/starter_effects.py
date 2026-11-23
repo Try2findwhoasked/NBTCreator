@@ -1,7 +1,7 @@
 """Install versioned, data-only starter effects without replacing workspace assets."""
 import hashlib,json,shutil,uuid
 from pathlib import Path
-from nbt_project_batch import write
+from nbt_project.queues import write
 
 ROOT=Path(__file__).resolve().parents[2]
 BUNDLE=ROOT/'assets/starter-tool-effects'
@@ -12,7 +12,7 @@ def sha(file):return hashlib.sha256(file.read_bytes()).hexdigest()
 
 
 def engine_sha():
-    names=['nbt_effect_assets.py','nbt_detail_control.py','nbt_tools.py','nbt_floors.py','nbt_weathering.py','nbt_patterns.py','nbt_operation_parameters.py','nbt_composition/change_policy.py','nbt_composition/operation_scope.py','nbt_collision.py','nbt_model.py','nbt_assembly.py']
+    names=['nbt_assets/effects.py','nbt_detail_control.py','nbt_tools.py','nbt_floors.py','nbt_weathering.py','nbt_patterns.py','nbt_runtime/operation_parameters.py','nbt_composition/change_policy.py','nbt_composition/operation_scope.py','nbt_collision.py','nbt_model.py','nbt_assembly.py']
     files=[ROOT/'tool-catalog.json',*(ROOT/'scripts'/name for name in names)]
     return hashlib.sha256(''.join(sha(file) for file in files).encode()).hexdigest()
 
@@ -38,7 +38,7 @@ def checked_files(item):
 
 
 def install(workspace):
-    from nbt_effect_assets import root,validate
+    from nbt_assets.effects import root,validate
     bundle=catalog()
     if bundle is None:return dict(installed=0)
     workspace=Path(workspace).resolve();base=root(workspace);ledger=base/'.starter-effects.json'
@@ -73,7 +73,7 @@ def install(workspace):
 
 
 def cached_preview(workspace,data):
-    from nbt_effect_assets import file_for
+    from nbt_assets.effects import file_for
     folder=file_for(workspace,data['id']).parent/'preview';report=folder/'report.json'
     if not report.resolve().is_relative_to(Path(workspace).resolve()) or not report.is_file():return None
     try:

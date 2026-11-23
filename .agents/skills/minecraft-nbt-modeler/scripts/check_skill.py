@@ -18,7 +18,12 @@ def main():
             path = unquote(target.split('#', 1)[0]).strip('<>')
             if not (file.parent / path).is_file():
                 errors.append(f'{file.relative_to(root)}: missing {target}')
-    for file in (root / 'scripts').rglob('*.py'):
+    scripts = root / 'scripts'
+    catalogue = json.loads((root / 'tool-catalog.json').read_text(encoding='utf8'))
+    for command, entry in catalogue['commands'].items():
+        if not (scripts / entry).is_file():
+            errors.append(f'Command {command}: missing scripts/{entry}')
+    for file in scripts.rglob('*.py'):
         try:
             ast.parse(file.read_text(encoding='utf8'), filename=str(file))
         except SyntaxError as error:

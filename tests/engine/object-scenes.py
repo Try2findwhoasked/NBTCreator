@@ -3,7 +3,7 @@ import json,sys,tempfile,unittest,subprocess
 from pathlib import Path
 from copy import deepcopy
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_structure_agent import dispatch,build
+from nbt_agent.structure import dispatch,build
 
 def ref(name,measure,offset=0):return dict(object=name,measure=measure,offset=offset)
 def structure(size,hi=None):

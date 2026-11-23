@@ -7,7 +7,7 @@ import numpy as np
 
 from nbt_building.structural_members import full, grain
 from nbt_building.beam_local import KERNEL, LocalFrameMatch
-from nbt_catalog import catalog
+from nbt_runtime.catalog import catalog
 from nbt_composition.change_policy import ChangePolicyError
 from nbt_collision import collision_cells
 from nbt_extensions import compile_recipe
@@ -15,8 +15,8 @@ from nbt_model import AIR_NAMES
 from nbt_composition.preflight import route_summary
 from nbt_composition.object_scene import engine_hash
 from nbt_composition.scene_interfaces import obstacle_height
-from nbt_structure_agent import _schema
-from nbt_working_model import ModelConflict, digest, file_hash, model_hash, write_json
+from nbt_agent.structure import _schema
+from nbt_composition.working_model import ModelConflict, digest, file_hash, model_hash, write_json
 
 
 def z_amplitudes(occupancy, depth):

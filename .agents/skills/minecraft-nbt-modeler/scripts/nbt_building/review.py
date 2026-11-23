@@ -5,13 +5,13 @@ import math
 from pathlib import Path
 
 from nbt_building.plan import fingerprint,normalize,resolve,actual_part,view_sample_points
-from nbt_prompts import inside,relative,index_lock
-from nbt_project_batch import write
-from nbt_history import file_hash
+from nbt_project.prompts import inside,relative,index_lock
+from nbt_project.queues import write
+from nbt_project.history import file_hash
 
 
 def load_model(workspace,request):
-    from nbt_working_model import WorkingModel
+    from nbt_composition.working_model import WorkingModel
     model=WorkingModel.open(workspace,inside(workspace,request['source']),source_sha256=request['source_sha256'])
     if not model.architecture:raise ValueError('制作源没有建筑方案绑定，请先通过plan-build建立可追踪方案')
     return model

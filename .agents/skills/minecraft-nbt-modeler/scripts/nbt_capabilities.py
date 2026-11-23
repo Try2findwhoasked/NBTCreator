@@ -5,11 +5,11 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 
 def _checked_catalog():
-    from nbt_catalog import snapshot
+    from nbt_runtime.catalog import snapshot
     data,digest=snapshot()
     from nbt_refine import SUPPORTED_OPERATION_KINDS
     if set(data['tools'])!=SUPPORTED_OPERATION_KINDS:raise ValueError('Engine and shared catalogue differ')
-    from nbt_structure_agent import SUPPORTED_AGENT_TOOLS
+    from nbt_agent.structure import SUPPORTED_AGENT_TOOLS
     if set(data.get('agent_tools',{}))!=SUPPORTED_AGENT_TOOLS:raise ValueError('Structure agent tools and catalogue differ')
     from nbt_review.walk_view import SUPPORTED_INSPECTION_TOOLS
     if set(data.get('inspection_tools',{}))!=SUPPORTED_INSPECTION_TOOLS:raise ValueError('Inspection tools and catalogue differ')

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from nbt_catalog import catalog
+from nbt_runtime.catalog import catalog
 from nbt_composition.change_policy import ChangePolicyError
 from nbt_collision import FACING, collision_cells
 from nbt_model import state
@@ -14,8 +14,8 @@ from nbt_composition.preflight import bounds
 from nbt_composition.object_scene import engine_hash
 from nbt_refine import read_master
 from nbt_registry import effective
-from nbt_structure_agent import _schema
-from nbt_working_model import ModelConflict, digest, file_hash, model_hash, value_at, write_json
+from nbt_agent.structure import _schema
+from nbt_composition.working_model import ModelConflict, digest, file_hash, model_hash, value_at, write_json
 
 
 def detail_bands(curve, levels):
@@ -381,7 +381,7 @@ class WaveletEave:
         candidate._adopt_edits(staged, None)
         output = (candidate.workspace / Path(preview['output'])).resolve()
         result = candidate.preview(output, preview.get('cameras', []))
-        from nbt_large_assembly import is_assembly_source, read_assembly
+        from nbt_composition.large_assembly import is_assembly_source, read_assembly
         source = Path(result['source'])
         disk, walls = read_assembly(source) if is_assembly_source(source) else read_master(source)
         if model_hash(disk, walls) != row['model_sha256']:

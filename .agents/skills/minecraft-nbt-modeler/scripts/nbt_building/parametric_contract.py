@@ -5,7 +5,7 @@ from nbt_model import state, AIR_NAMES
 from nbt_pattern.ornament import PROFILES
 
 def contract(constraints):
-    from nbt_structure_agent import _schema,definitions
+    from nbt_agent.structure import _schema,definitions
     _schema(constraints,definitions()['parametric_contract']['parameters']['properties']['constraints'],'硬约束')
     c=constraints
     if c.get('min_density',0)>c.get('max_density',100):raise ValueError('最小装饰密度不能大于最大值')
@@ -34,7 +34,7 @@ def contract(constraints):
                 trust='constraints必须来自调用方保留的用户要求；禁止从模型返回对象中取回constraints。JSON Schema不替代本地语义验收。',model_modified=False)
 
 def validate(workspace,proposal,constraints):
-    from nbt_structure_agent import _schema
+    from nbt_agent.structure import _schema
     from nbt_building.parametric import compile_object
     checked=contract(constraints);_schema(proposal,checked['response_schema'],'模型方案')
     # Impose the trusted budget when the model omits it; never accept an explicit excess.
@@ -49,7 +49,7 @@ def validate(workspace,proposal,constraints):
     spec=result['spec']
     if result['block_count']>c.get('max_blocks',65536) or len(spec['operations'])>c.get('max_operations',128):raise ValueError('实际方块或操作数量违反硬约束')
     if 'materials' in c:
-        from nbt_structure_agent import build
+        from nbt_agent.structure import build
         allowed={state(s) for s in c['materials']};actual=set(build(workspace,spec)['palette'])
         if actual-allowed:raise ValueError('实际材质违反白名单（含默认材质和工具生成材质）')
     return dict(result,accepted=True,constraints=deepcopy(c),constraints_sha256=checked['constraints_sha256'],approval_created=False)

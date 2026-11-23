@@ -34,7 +34,7 @@ def binary_wall_mask_hash(source):
 def source_binding(source):
     from nbt_library import saved_coordinates_hash
     from nbt_project.web_paths import project_paths
-    from nbt_working_model import managed_manifest
+    from nbt_composition.working_model import managed_manifest
 
     source=Path(source)
     manifest=managed_manifest(source)
@@ -113,7 +113,7 @@ def resolve_wall_mask(model, walls, context):
     if not declared <= model.blocks.keys():
         raise ValueError('显式墙层归属越界或指向空气')
     if getattr(model,'_wall_mask_declared',False) and declared!=walls:
-        from nbt_working_model import ModelConflict
+        from nbt_composition.working_model import ModelConflict
         raise ModelConflict('WALL_SOURCE_MISMATCH', [dict(source_walls=len(walls), context_walls=len(declared))])
     return declared
 
@@ -131,7 +131,7 @@ def save_master(path,model,walls):
 
 
 def layout(model,config):
-    from nbt_whole_validation import validation_mode,standalone_cells
+    from nbt_composition.whole_validation import validation_mode,standalone_cells
     if validation_mode(config)=='standalone':
         return standalone_cells(model,config) or []
     if type(config.get('cell_size',48)) is not int or config.get('cell_size',48)!=48:
@@ -198,12 +198,12 @@ def validate_saodg(model,config):
 
 
 def validate(model,config):
-    from nbt_whole_validation import validate_whole
+    from nbt_composition.whole_validation import validate_whole
     return validate_whole(model,config)
 
 
 def protections(model,config):
-    from nbt_whole_validation import protective_openings
+    from nbt_composition.whole_validation import protective_openings
     protected=set()
     protected.update(protective_openings(model,config))
     for bounds in config.get('protected_boxes',[]):protected.update(box_points(bounds['lo'],bounds['hi']))
@@ -225,7 +225,7 @@ def protections(model,config):
 
 def _render(model,camera,path):
     import numpy as np
-    from nbt_preview import make_grid,render
+    from nbt_review.preview import make_grid,render
     grid,colors,approx=make_grid(model,cuts=camera.get('cuts',[]))
     eye=np.array(camera['eye'],float);target=np.array(camera['target'],float)
     if not np.all(np.isfinite(eye)) or not np.all(np.isfinite(target)) or np.linalg.norm(eye-target)<1e-6:raise ValueError('Invalid camera')
@@ -241,8 +241,8 @@ def _render(model,camera,path):
 
 
 def refinement_context(source, config, source_hash):
-    from nbt_history import source_workspace
-    from nbt_working_model import WorkingModel, managed_manifest
+    from nbt_project.history import source_workspace
+    from nbt_composition.working_model import WorkingModel, managed_manifest
 
     if not managed_manifest(source):
         from nbt_library import inherit_edit_constraints
@@ -276,7 +276,7 @@ def prepare(source,config,review_dir):
     cells=layout(model,config)
     walls=resolve_wall_mask(model,walls,config)
     config.pop('wall_positions',None)
-    from nbt_whole_validation import validation_mode
+    from nbt_composition.whole_validation import validation_mode
     standalone=validation_mode(config)=='standalone'
     if any(not model.in_bounds(p) or (not standalone and (p[0]//48,p[2]//48) not in cells) for p in walls):raise ValueError('Invalid wall mask')
     walls.intersection_update(model.blocks)
@@ -470,7 +470,7 @@ def refine(review_dir,plan,output_dir,*,task_session=None,actor='external_agent'
                                         or working.model.blocks!=original or working.walls!=walls):
         raise ValueError('制作源或约束与审阅快照不一致，请重新生成审阅图')
     cells=layout(model,config)
-    from nbt_whole_validation import validation_mode
+    from nbt_composition.whole_validation import validation_mode
     standalone=validation_mode(config)=='standalone'
     protected=protections(model,config);operations=plan['operations']
     if not operations or not isinstance(plan.get('style_note'),str) or not plan['style_note'].strip():
@@ -559,7 +559,7 @@ def refine(review_dir,plan,output_dir,*,task_session=None,actor='external_agent'
             plan=plan)})['source'])
     else:
         from contextlib import nullcontext
-        from nbt_agent_tasks import publication
+        from nbt_agent.tasks import publication
         from nbt_snbt import save_snbt
         from nbt_project.web_paths import project_paths
         source=Path(record['source'])
@@ -573,7 +573,7 @@ def refine(review_dir,plan,output_dir,*,task_session=None,actor='external_agent'
             save_snbt(master,model,walls,palette=getattr(baseline,'_snbt_palette',None),extras=getattr(baseline,'_snbt_extras',None))
             write_json(out/'coordinates.json',config)
             if producer:
-                from nbt_prompts import relative
+                from nbt_project.prompts import relative
                 write_json(out/'agent-publication.json',dict(publication=producer,source=relative(workspace,master),binding=source_binding(master)))
     final=dict(source_geometry_sha256=record['source_geometry_sha256'],refined_geometry_sha256=model.fingerprint(),
                approval_receipt_sha256=approval_hash,operations=summary,**difference,

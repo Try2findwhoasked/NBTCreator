@@ -13,9 +13,9 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
-import nbt_asset_libraries as libraries
-from nbt_asset_libraries import dispatch, encode, digest, LibraryError
-from nbt_structure_agent import dispatch as agent
+import nbt_assets.libraries as libraries
+from nbt_assets.libraries import dispatch, encode, digest, LibraryError
+from nbt_agent.structure import dispatch as agent
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -238,7 +238,7 @@ class Libraries(unittest.TestCase):
         self.write_pack(component); self.data['assets'][0]['type'] = 'component'; self.save_manifest()
         self.add(); row = next(r for r in self.call('list')['items'] if r['library_id'] == 'test.external')
         imported = self.call('import', id=row['id'], sha256=row['sha256'])
-        from nbt_components import load, listing
+        from nbt_assets.components import load, listing
         item = load(self.workspace, imported['item']['id'])
         self.assertEqual(item['review_status'], 'pending_visual_review')
         self.assertFalse(imported['nbt_exported']); self.assertFalse(imported['approval_created'])
@@ -323,7 +323,7 @@ class Libraries(unittest.TestCase):
             self.assertEqual(read['asset']['source_id'],item['source_id'])
             self.assertEqual(read['data']['arguments']['size'],item['arguments']['size'])
         self.assertEqual(len(self.call('list')['items']),1)
-        from nbt_components import listing as local_components
+        from nbt_assets.components import listing as local_components
         self.assertEqual(local_components(self.workspace)['items'],[])
 
     def test_browse_keyword_returns_small_version_bound_candidates(self):
@@ -340,7 +340,7 @@ class Libraries(unittest.TestCase):
         args=dict(size=[3,10,3],material='gold_block')
         preview=self.call('preview',**ref,arguments=args)
         self.assertEqual(preview['size'],[3,10,3]);self.assertFalse(preview['approval_created'])
-        from nbt_components import listing as local_components,load
+        from nbt_assets.components import listing as local_components,load
         self.assertEqual(local_components(self.workspace)['items'],[])
         ready=dict(ref,arguments=args,content_sha256=preview['content_sha256'])
         placed=self.call('place',**ready,position=[5,1,5],size=[16,24,16])
@@ -376,7 +376,7 @@ class Libraries(unittest.TestCase):
         def offline(source,*args,**kwargs):
             self.assertFalse(libraries.remote(source))
             return original(source,*args,**kwargs)
-        with patch.object(libraries,'fetch',side_effect=offline),patch('nbt_components.thumbnail',side_effect=AssertionError('cached thumbnail was regenerated')):
+        with patch.object(libraries,'fetch',side_effect=offline),patch('nbt_assets.components.thumbnail',side_effect=AssertionError('cached thumbnail was regenerated')):
             second=self.call('thumbnail',**self.reference(item))
             self.assertEqual(second['thumbnail'],first['thumbnail'])
             rows=self.call('browse')['items']

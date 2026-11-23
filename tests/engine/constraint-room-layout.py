@@ -13,9 +13,9 @@ from nbt_project.room_links import add_room_links, read_links
 from nbt_project.rooms import init_layout, register_room, room_dirs, room_info, update_room
 from nbt_detail_control import catalog
 from nbt_assembly import Volume
-from nbt_prompts import publish, read_task, save, scan
+from nbt_project.prompts import publish, read_task, save, scan
 from nbt_refine import save_master, digest
-from nbt_history import History
+from nbt_project.history import History
 
 spec=importlib.util.spec_from_file_location('room_migration',ROOT/'tools/constraint-room-migration/migrate.py')
 migration=importlib.util.module_from_spec(spec)

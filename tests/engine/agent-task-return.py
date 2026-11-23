@@ -6,7 +6,7 @@ import tempfile
 import unittest
 import shutil
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_agent_tasks import dispatch
+from nbt_agent.tasks import dispatch
 from nbt_assembly import Volume
 from nbt_refine import save_master
 from nbt_task import write_snapshot

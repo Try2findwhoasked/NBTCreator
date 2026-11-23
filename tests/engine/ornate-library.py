@@ -4,7 +4,7 @@ from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_components import validate,placement,paste_plan
+from nbt_assets.components import validate,placement,paste_plan
 from nbt_tools import transformed_state
 from nbt_registry import effective
 from nbt_assembly import Volume
@@ -16,8 +16,8 @@ LIBRARY=ROOT.parent/'NBTCreator-AssetLibrary'
 
 class OrnateLibrary(unittest.TestCase):
     def test_actual_registry_download_component_import_and_fully_offline_reads(self):
-        from nbt_asset_libraries import dispatch as libraries
-        from nbt_structure_agent import dispatch
+        from nbt_assets.libraries import dispatch as libraries
+        from nbt_agent.structure import dispatch
         manifest=json.loads((LIBRARY/'library.json').read_text(encoding='utf8'))
         allowed={'/library.json','/registry.json'}|{'/'+r['path'] for r in manifest['assets']};requested=[]
         class Handler(SimpleHTTPRequestHandler):
@@ -83,7 +83,7 @@ class OrnateLibrary(unittest.TestCase):
             self.assertEqual((LIBRARY/row['path']).read_bytes(),raw)
 
     def test_baked_windows_match_the_current_parametric_engine(self):
-        from nbt_structure_agent import dispatch
+        from nbt_agent.structure import dispatch
         manifest=json.loads((LIBRARY/'library.json').read_text(encoding='utf8'));rows={r['id']:r for r in manifest['assets']}
         for row in rows.values():
             if row['type']!='parametric_recipe' or not row['id'].startswith('ornate-window-'):continue

@@ -199,7 +199,7 @@ def extract(raw, media, charset, query):
         raise WebError('UNREADABLE','原页需要人工完成访问验证')
     terms = sorted(set(tokens(query))-STOPWORDS)
     if query and re.search(r'[\u3400-\u9fff]',query):
-        from nbt_architecture_knowledge import ALIASES
+        from nbt_knowledge.architecture_books import ALIASES
         terms.extend(word for dictionary in (ALIASES,WEB_TERMS) for term,aliases in dictionary.items() if term in query for word in aliases)
     patterns = {term:re.compile(r'(?<!\w)'+re.escape(term)+r'(?!\w)' if term.isascii() else re.escape(term),re.I)
                 for term in terms}

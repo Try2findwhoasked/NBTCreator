@@ -1,7 +1,7 @@
 """Compare a managed update against its exact host before selecting a candidate."""
-from nbt_components import PlacementBoundsError
+from nbt_assets.components import PlacementBoundsError
 from nbt_model import AIR_NAMES
-from nbt_working_model import ModelConflict, constraint_context, digest, model_hash
+from nbt_composition.working_model import ModelConflict, constraint_context, digest, model_hash
 
 
 def bounds(points):

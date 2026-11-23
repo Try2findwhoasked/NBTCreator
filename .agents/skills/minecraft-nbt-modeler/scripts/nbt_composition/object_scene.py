@@ -4,7 +4,7 @@ from collections import deque
 import hashlib,json,os,re,uuid
 from pathlib import Path
 from nbt_model import AIR_NAMES
-from nbt_modeling_session import canonical,engine_revision
+from nbt_runtime.modeling_session import canonical,engine_revision
 
 FACES={'up':(1,1),'down':(1,-1),'east':(0,1),'west':(0,-1),'south':(2,1),'north':(2,-1)}
 SIX=((1,0,0),(-1,0,0),(0,1,0),(0,-1,0),(0,0,1),(0,0,-1))
@@ -119,9 +119,9 @@ def attached(a,b):
 
 
 def compile_scene(workspace,graph):
-    from nbt_structure_agent import _schema,definitions,build
+    from nbt_agent.structure import _schema,definitions,build
     from nbt_extensions import compile_recipe
-    from nbt_components import placement
+    from nbt_assets.components import placement
     _schema(graph,definitions()['scene_compile']['parameters']['properties']['graph'],'建筑对象图')
     if len(canonical(graph).encode())>512*1024:raise ValueError('建筑对象图超过512KiB')
     for box in [*graph.get('reserved_boxes',[]),*graph.get('protected_boxes',[])]:
@@ -295,7 +295,7 @@ def atomic(file,raw):
 
 
 def save_scene(workspace,arguments):
-    from nbt_prompts import index_lock
+    from nbt_project.prompts import index_lock
     candidate=compile_scene(workspace,arguments['graph'])
     if candidate['graph_sha256']!=arguments['graph_sha256'] or candidate['content_sha256']!=arguments['content_sha256']:raise ValueError('对象图或编译内容已变化，请重新检查候选')
     parent=arguments.get('parent');identifier=parent['id'] if parent else uuid.uuid4().hex
@@ -321,7 +321,7 @@ def save_scene(workspace,arguments):
 
 
 def transition(workspace,before,after):
-    from nbt_structure_agent import build
+    from nbt_agent.structure import build
     for key in ('size','protected_boxes','reserved_boxes','routes','max_changed_blocks'):
         if before['graph'].get(key)!=after['graph'].get(key):raise ValueError('场景续版须保留原范围、保护、留白、路线和预算约束')
     def voxels(spec):

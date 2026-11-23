@@ -2,9 +2,9 @@ from pathlib import Path
 import copy,json,sys,tempfile,unittest,uuid
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_architect import dispatch
+from nbt_project.architect import dispatch
 from nbt_project.constraints import validate_snapshot,validate_selection
-from nbt_prompts import save,read_prompt
+from nbt_project.prompts import save,read_prompt
 
 class ProjectConstraints(unittest.TestCase):
  def setUp(self):

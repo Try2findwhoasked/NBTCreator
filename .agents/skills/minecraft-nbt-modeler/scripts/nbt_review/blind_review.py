@@ -11,8 +11,8 @@ import tempfile
 
 import numpy as np
 from PIL import Image
-from nbt_large_assembly import _workspace_path,require_creative_workspace
-from nbt_reference_views import MAX_MANIFEST,SHA,_hash
+from nbt_composition.large_assembly import _workspace_path,require_creative_workspace
+from nbt_review.reference_views import MAX_MANIFEST,SHA,_hash
 from nbt_task import checked_preview_snapshot,preview_source_matches
 
 MAX_IMAGE=64*1024*1024
@@ -179,7 +179,7 @@ def _validate_observations(workspace,decision,actor,observations,ids):
             raise ValueError('盲评观察字段无效')
         entry=dict(row)
         if 'reference' in row:
-            from nbt_reference_views import load_reference
+            from nbt_review.reference_views import load_reference
             reference=row['reference']
             if not isinstance(reference,dict) or set(reference)!={'manifest','sha256','view','lo','hi'}:
                 raise ValueError('盲评参考区域字段无效')

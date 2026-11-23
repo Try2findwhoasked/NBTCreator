@@ -48,7 +48,7 @@ def panel_materials(args):
 
 
 def compile_panel(workspace, args):
-    from nbt_modeling_session import current,canonical,engine_revision
+    from nbt_runtime.modeling_session import current,canonical,engine_revision
     from nbt_pattern.ornament_sample import sample_image
     root,sample=sample_input(workspace,args)
     # Verify the real raster hash even on a cache hit. Cached data never
@@ -69,7 +69,7 @@ def compile_panel(workspace, args):
 
 
 def _compile_panel(workspace, args):
-    from nbt_structure_agent import build
+    from nbt_agent.structure import build
 
     if args.get('fit_mode')=='micro':
         from nbt_pattern.microfit import compile_microfit

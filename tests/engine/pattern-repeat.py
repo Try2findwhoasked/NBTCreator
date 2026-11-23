@@ -16,12 +16,12 @@ SCRIPTS = ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'
 sys.path[:0] = [str(SCRIPTS), str(ROOT/'tests/support')]
 from curved_surface_fixture import create_curve_fixture
 from nbt_assembly import Volume
-from nbt_curved_surface import plan_curve,verify_curve
+from nbt_mounting.curved_surface import plan_curve,verify_curve
 from nbt_mounting.cylinder_pattern import cylinder_geometry
 from nbt_pattern.microfit import fit_colored_unit
 from nbt_refine import read_master,save_master
 from nbt_selection_edit import sha
-from nbt_structure_agent import dispatch
+from nbt_agent.structure import dispatch
 from nbt_tools import transformed_state
 
 

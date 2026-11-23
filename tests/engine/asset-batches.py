@@ -1,10 +1,10 @@
 from pathlib import Path
 import base64,json,sys,tempfile,unittest,shutil
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_asset_batches import dispatch
+from nbt_assets.batches import dispatch
 from nbt_refine import save_master
 from nbt_assembly import Volume
-import nbt_components as components
+import nbt_assets.components as components
 
 class Batches(unittest.TestCase):
  def setUp(self):

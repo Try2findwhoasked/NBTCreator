@@ -5,7 +5,7 @@ from types import SimpleNamespace
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_refine import save_master,read_master
-from nbt_history import History,dispatch,resolve_git
+from nbt_project.history import History,dispatch,resolve_git
 
 class BuildingHistory(unittest.TestCase):
  def setUp(self):
@@ -27,12 +27,12 @@ class BuildingHistory(unittest.TestCase):
   self.assertEqual(self.history.state()[1],head)
  def test_capacity_warning_reports_index_and_disk_space(self):
   self.record()
-  with patch('nbt_history.MAX_STATE',100),patch('nbt_history.shutil.disk_usage',return_value=SimpleNamespace(free=100)):
+  with patch('nbt_project.history.MAX_STATE',100),patch('nbt_project.history.shutil.disk_usage',return_value=SimpleNamespace(free=100)):
    capacity=self.history.list()['index_capacity']
   self.assertTrue(capacity['warning']);self.assertTrue(capacity['disk_warning']);self.assertEqual(capacity['disk_free_bytes'],100)
  def test_omitted_text_can_be_read_on_demand_with_ownership_and_hash_checks(self):
   first=self.record();identifier=first['version']['id']
-  with patch('nbt_history.MAX_PREVIEW_TOTAL',0):self.assertEqual(self.history.get(identifier)['manifest']['files']['note.md']['text_omitted'],'preview_limit')
+  with patch('nbt_project.history.MAX_PREVIEW_TOTAL',0):self.assertEqual(self.history.get(identifier)['manifest']['files']['note.md']['text_omitted'],'preview_limit')
   self.assertEqual(dispatch(self.workspace,'get',dict(id=identifier,name='note.md'))['text'],'版本说明')
   with self.assertRaises(ValueError):self.history.get_text(identifier,'../note.md')
   node=self.history.get(identifier)['manifest'];self.history.object_file(node['files']['note.md']['sha256']).write_bytes(b'bad')

@@ -54,7 +54,7 @@ def decorate_ends(workspace,spec,data,args,parts):
     if not settings:return spec,data,{}
     from nbt_pattern.panel import compile_panel
     from nbt_mounting.batch import decorate
-    from nbt_structure_agent import build
+    from nbt_agent.structure import build
     w,h,d=spec['size'];entries=[];groups={}
     for part,setting in settings.items():
         pattern=deepcopy(setting['pattern']);pattern.setdefault('surface','wall')

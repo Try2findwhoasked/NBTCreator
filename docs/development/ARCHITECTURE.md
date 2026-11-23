@@ -77,15 +77,17 @@ NBTCreator/
 │  ├─ SKILL.md、references/             共享工作流与可选专题
 │  ├─ tool-catalog.json                工具契约源
 │  ├─ scripts/                         公共命令、建模 API 和共享运行时
-│  │  ├─ nbt_assets/                   素材组织、素材库兼容与内置效果
+│  │  ├─ nbt_agent/                    构建工具、Agent 任务、租约与机器协议
+│  │  ├─ nbt_assets/                   素材库、构件、配方和效果
 │  │  ├─ nbt_building/                 建筑方案、参数化构造和梁架细节
-│  │  ├─ nbt_composition/              模型组合、操作范围和接合接口
+│  │  ├─ nbt_composition/              整模修改、分片装配和接合接口
 │  │  ├─ nbt_geometry/                 体素选区、阵列、变形和道路
-│  │  ├─ nbt_knowledge/                书库连接、网页取证与文本检索
+│  │  ├─ nbt_knowledge/                建筑书库、网页取证与参考资料检索
 │  │  ├─ nbt_mounting/                 表面贴装、曲面浮雕和重复布局
 │  │  ├─ nbt_pattern/                  纹样采样、设计、质量评估和面板编译
-│  │  ├─ nbt_project/                  项目布局、约束、房间和请求路径
-│  │  ├─ nbt_review/                   参考视角、封面、诊断和只读审阅
+│  │  ├─ nbt_project/                  项目布局、建模批次、提示词和版本历史
+│  │  ├─ nbt_review/                   诊断预览、参考视角和候选审阅
+│  │  ├─ nbt_runtime/                  工具目录、参数校验、缓存和渲染依赖
 │  │  └─ fixtures/                     可移植的合成回归
 │  ├─ prompt-console/                  创作方案、提示词编译、任务队列
 │  ├─ assets/viewer/                   3D 工作台、静态服务、前端构建
@@ -104,7 +106,7 @@ NBTCreator/
 └─ references/                        只读迁移参考
 ```
 
-公共命令由 `tool-catalog.json` 路由到 `scripts/` 顶层的入口。创作脚本使用工具说明中的 Python 导入，例如 `from nbt_model import Model`。内部实现按职责使用子包，新增内部模块时放入对应子包。灰度纹样由 `nbt_pattern/` 处理，整模方块混材使用 `nbt_patterns.py`。冻结运行时和版本指纹都包含子目录。
+公共命令由 `tool-catalog.json` 路由到 `scripts/` 顶层的入口。创作脚本使用工具说明中的 Python 导入，例如 `from nbt_model import Model`。内部实现按职责使用子包，新增内部模块时放入对应子包。灰度纹样由 `nbt_pattern/` 处理，整模方块混材使用 `nbt_patterns.py`。Agent 任务、资产工具、整模编辑和预览继续从原命令路径进入对应子包。顶层入口也导出同一个 Python 实现，例如 `nbt_working_model.WorkingModel` 和 `nbt_modeling_session.ModellingSession`。冻结运行时和版本指纹都包含子目录。
 
 在软件仓库根目录运行 `mise run nbt -- regress --output <新目录>` 可执行合成回归。单独重跑某套时，把夹具文件名传给 `scripts/fixtures/run.py`。
 

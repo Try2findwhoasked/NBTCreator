@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[2];SCRIPTS=ROOT/'.agents/skills/minecraft-
 from nbt_assembly import Volume
 from nbt_refine import save_master
 from nbt_review.walk_view import inspect_walk
-from nbt_diagnostics import explain
+from nbt_review.diagnostics import explain
 from nbt_review.protection_view import ProtectionConflict
 
 class Guidance(unittest.TestCase):

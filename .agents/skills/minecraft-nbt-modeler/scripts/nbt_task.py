@@ -217,7 +217,7 @@ def main():
         raise RuntimeError(f'Optional viewer dependencies missing. Run npm ci --prefix "{viewer}"')
     cameras = json.loads(args.cameras.read_text(encoding='utf8')) if args.cameras else None
     if args.command == 'render':
-        from nbt_render_runtime import render_environment
+        from nbt_runtime.render import render_environment
         render_env = render_environment(ROOT)
         if args.snapshot and args.provenance:
             raise ValueError('Preview already binds its geometry; do not attach source provenance')

@@ -6,11 +6,11 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_working_model import WorkingModel, verify_version
+from nbt_composition.working_model import WorkingModel, verify_version
 from nbt_assembly import Volume
 from nbt_refine import save_master
-from nbt_large_assembly import AssemblyVolume, save_assembly
-from nbt_reference_views import register_reference
+from nbt_composition.large_assembly import AssemblyVolume, save_assembly
+from nbt_review.reference_views import register_reference
 from nbt_review.reference_camera import prepare_cameras
 from nbt_snbt import save_snbt
 from PIL import Image

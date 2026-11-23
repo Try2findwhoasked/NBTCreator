@@ -392,7 +392,7 @@ def from_model(model, *, validation=None, review=None, missing_review=None):
     binding = model.architecture
     code, conflicts = None, []
     if validation is None:
-        from nbt_working_model import ModelConflict
+        from nbt_composition.working_model import ModelConflict
         try:
             if model.phase == 'opened' and not model.context.get('require_routes'):
                 model._routes(model.model)
@@ -404,7 +404,7 @@ def from_model(model, *, validation=None, review=None, missing_review=None):
             from nbt_building.plan import check_model
             validation = dict(architecture=check_model(model, binding))
     from nbt_building.plan import resolve
-    from nbt_prompts import relative
+    from nbt_project.prompts import relative
     return assess(resolve(binding['plan']), binding['sha256'], model.model.fingerprint(),
                   source=relative(model.workspace, model.source) if model.source else None,
                   source_sha256=model.source_sha256, validation=validation, conflicts=conflicts, code=code,

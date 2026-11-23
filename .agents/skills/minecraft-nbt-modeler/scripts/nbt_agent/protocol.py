@@ -20,7 +20,7 @@ def replay(workspace,index,action,request):
     receipt=index.get('operation_receipts',{}).get(key)
     if receipt is None:return None
     if receipt['fingerprint']!=fingerprint(action,request):error('IDEMPOTENCY_CONFLICT','相同 request_id 不能用于不同请求')
-    from nbt_prompts import inside
+    from nbt_project.prompts import inside
     file=inside(workspace,receipt['path']);raw=file.read_bytes()
     if hashlib.sha256(raw).hexdigest()!=receipt['sha256']:error('RECEIPT_CHANGED','原操作回执已变化，未重复执行')
     result=json.loads(raw)
@@ -35,7 +35,7 @@ def receipt(workspace,index,action,request,result):
     key=request_key(request)
     if key is None:return
     if len(index.get('operation_receipts',{}))>=20000:error('RECEIPT_LIMIT','操作回执索引达到上限，请归档后继续')
-    from nbt_prompts import inside,relative
+    from nbt_project.prompts import inside,relative
     raw=canonical(result);sha=hashlib.sha256(raw).hexdigest()
     file=inside(workspace,Path('nbt_models/_workspaces/agent_protocol/receipts')/(sha+'.json'));file.parent.mkdir(parents=True,exist_ok=True)
     try:

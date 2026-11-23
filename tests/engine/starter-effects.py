@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 import nbt_assets.starter_effects as starter
-import nbt_effect_assets as effects
-import nbt_components as components
+import nbt_assets.effects as effects
+import nbt_assets.components as components
 
 
 class StarterEffects(unittest.TestCase):

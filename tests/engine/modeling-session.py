@@ -5,8 +5,8 @@ from unittest.mock import patch
 from PIL import Image
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_modeling_session import ModellingSession
-from nbt_structure_agent import dispatch,build
+from nbt_modeling_session import ModellingSession, engine_revision
+from nbt_agent.structure import dispatch,build
 from nbt_selection_edit import sha
 from nbt_assembly import Volume
 from nbt_refine import save_master
@@ -15,14 +15,27 @@ import nbt_pattern.micro_alignment as nbt_micro_alignment,nbt_pattern.panel as n
 
 
 class TransportTests(unittest.TestCase):
+    def test_engine_revision_fingerprints_public_entries_and_nested_implementations(self):
+        skill = ROOT / '.agents/skills/minecraft-nbt-modeler'
+        revision = dict(engine_revision())
+        for relative in (
+            'tool-catalog.json',
+            'references/block-registry-1.20.1.json',
+            'scripts/nbt_engine_session.py',
+            'scripts/nbt_agent/structure.py',
+            'scripts/nbt_runtime/modeling_session.py',
+        ):
+            with self.subTest(file=relative):
+                self.assertEqual(revision[relative], sha(skill / relative))
+
     def test_changed_engine_and_oversized_input_never_execute_a_tool(self):
         from io import BytesIO
         from nbt_engine_session import serve,MAX_REQUEST
         request=dict(id='version-check',method='agent',params=dict(tool='pattern_list',arguments={}))
-        with tempfile.TemporaryDirectory() as workspace,patch('nbt_engine_session.engine_revision',side_effect=['before','after']),patch('nbt_structure_agent.dispatch') as dispatched:
+        with tempfile.TemporaryDirectory() as workspace,patch('nbt_engine_session.engine_revision',side_effect=['before','after']),patch('nbt_agent.structure.dispatch') as dispatched:
             output=BytesIO();serve(workspace,BytesIO((json.dumps(request)+'\n').encode()),output)
             self.assertEqual(json.loads(output.getvalue())['code'],'STALE_ENGINE');dispatched.assert_not_called()
-        with tempfile.TemporaryDirectory() as workspace,patch('nbt_structure_agent.dispatch') as dispatched:
+        with tempfile.TemporaryDirectory() as workspace,patch('nbt_agent.structure.dispatch') as dispatched:
             output=BytesIO();serve(workspace,BytesIO(b'x'*(MAX_REQUEST+1)),output)
             self.assertEqual(output.getvalue(),b'');dispatched.assert_not_called()
 

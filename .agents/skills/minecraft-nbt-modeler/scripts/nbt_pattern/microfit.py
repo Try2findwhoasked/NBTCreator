@@ -79,7 +79,7 @@ def reference(root,sample,width,height,factor,*,raster=None):
     """One physical source analysis, shared by every block-palette resolution."""
     from hashlib import sha256
     from nbt_pattern.bitmap_topology import component_masks
-    from nbt_modeling_session import current,canonical,engine_revision
+    from nbt_runtime.modeling_session import current,canonical,engine_revision
     if sample.get('noise_strength',0):raise ValueError('微型单元优先保留主轮廓，请设noise_strength=0')
     if type(factor) is not int or factor not in (1,2,16,32):raise ValueError('不支持的拟合采样精度')
     image=sample_image(root,sample) if raster is None else raster
@@ -403,7 +403,7 @@ def fit_reference(data,sample,width,height,options,factor,max_error,*,joint=True
 
 
 def fit_colored_unit(root,sample,width,height,options,factor,ornament,args,*,raster=None,raster_sha256=None):
-    from nbt_modeling_session import current,canonical,engine_revision
+    from nbt_runtime.modeling_session import current,canonical,engine_revision
     # Reuse the solved unit across names, backing materials and tile layouts.
     # Verify real image bytes before a hit; store only detached data, not a
     # closure or transformed/world geometry from an earlier installation.
@@ -483,7 +483,7 @@ def shape_family(name):
 
 
 def compile_microfit(workspace,args):
-    from nbt_structure_agent import build
+    from nbt_agent.structure import build
 
     width,height=args['size_uv']
     surface=args['surface']

@@ -1,7 +1,7 @@
 """Shared catalogue parameter validation, independent from example defaults."""
 import json,math
 from pathlib import Path
-CATALOG=json.loads((Path(__file__).resolve().parents[1]/'tool-catalog.json').read_text(encoding='utf8'))
+CATALOG=json.loads((Path(__file__).resolve().parents[2]/'tool-catalog.json').read_text(encoding='utf8'))
 def validate_operation(op):
     schema=CATALOG['operation_parameters'][op['kind']]
     def check(value,s):

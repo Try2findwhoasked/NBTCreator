@@ -8,7 +8,7 @@ from nbt_registry import normalize
 from nbt_model import AIR_NAMES,load
 from nbt_delivery import verify_delivery
 from generate_sealed_models import read_nbt
-from nbt_catalog import catalog
+from nbt_runtime.catalog import catalog
 INFRA={'master','masters','runtime','parts','layers','delivery'}
 LABELS={key:shape.get('archive_label',shape['label']) for key,shape in catalog()['building_shapes'].items()}
 def read_json(p):return json.loads(Path(p).read_text(encoding='utf-8-sig'))
@@ -43,7 +43,7 @@ def version_root(master):
 @lru_cache(maxsize=1024)
 def _state(value):return normalize(value)
 def read_geometry(file):
- from nbt_large_assembly import is_assembly_source,read_assembly
+ from nbt_composition.large_assembly import is_assembly_source,read_assembly
  if is_assembly_source(file):
   model,walls=read_assembly(file);return model,walls,sorted({(x//48,z//48) for x,y,z in model.blocks})
  if Path(file).suffix.lower()=='.snbt':
@@ -180,7 +180,7 @@ def inherit_edit_constraints(context, source):
  if file is None:return context
  saved=canonical_context(file)
  if saved==context:return context
- from nbt_whole_validation import requires_enclosure,validation_mode
+ from nbt_composition.whole_validation import requires_enclosure,validation_mode
 
  context=dict(context)
  geometry_fields=('mode','openings','ports','door_y','openings_policy','opening_size',
@@ -245,7 +245,7 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
  for p in candidates:
   try:
    digest=sha(p)
-   from nbt_large_assembly import is_assembly_source
+   from nbt_composition.large_assembly import is_assembly_source
    if digest in geometry_cache and not is_assembly_source(p):
     record=geometry_cache[digest]
     if not record['valid']:raise ValueError(record['error'])
@@ -256,7 +256,7 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
    geometry_cache[digest]=dict(valid=False,error=str(error))
  if selected is None:result['reasons'].append('没有可读取且哈希一致的完整主模型');return result
  result['valid']=False
- from nbt_whole_validation import requires_enclosure, validation_mode
+ from nbt_composition.whole_validation import requires_enclosure, validation_mode
  standalone_config=None
  enclosure_required=True
  for candidate in [unit/'coordinates.json',unit/'config.json',unit/'context.json']:
@@ -280,7 +280,7 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
  if not standalone and not 8<=result['size'][1]<=48:result['reasons'].append('当前切片高度不在8至48')
  result['shape']=shape_of(result['size'],result['cells']);result['shape_zh']=LABELS[result['shape']]
  if standalone:
-  from nbt_whole_validation import active_xz_cells
+  from nbt_composition.whole_validation import active_xz_cells
   try:
    stride=standalone_config.get('cell_size',48)
    cells=active_xz_cells(result['size'],standalone_config.get('cells'),stride)
@@ -314,7 +314,7 @@ def audit_unit(unit,masters,geometry_cache,delivery_cache):
  # Final deliveries can live in the approved mirrored _exports tree.
  # Bind that packet to these exact source bytes before accepting its evidence.
  try:
-  from nbt_history import source_workspace
+  from nbt_project.history import source_workspace
   from nbt_finalize import release_path
   released=release_path(source_workspace(selected),selected)
   receipt=read_json(released/'release.json')
@@ -395,7 +395,7 @@ def register_building(master,name_zh,cells=None,mode=None,cell_size=48):
  model,walls,inferred=read_geometry(master);shape=shape_of(model.size,cells or inferred)
  if mode not in (None,'standalone','saodg'):raise ValueError('未知建筑模式')
  if mode=='standalone':
-  from nbt_whole_validation import standalone_cells
+  from nbt_composition.whole_validation import standalone_cells
   cells=standalone_cells(model,dict(cells=cells,cell_size=cell_size)) or []
   shape=shape_of(model.size,cells or inferred,cell_size)
  parts=Path(master).resolve().parts
@@ -425,6 +425,6 @@ if __name__=='__main__':
    if not authored.exists():save_snbt(authored,model,walls)
    source=authored
   result=register_building(source,args.name_zh)
-  from nbt_history import record_produced_version,source_workspace
+  from nbt_project.history import record_produced_version,source_workspace
   result['history']=record_produced_version(source_workspace(source),source,message='登记 SNBT 制作源',actor='import')
  print(json.dumps(result,ensure_ascii=False))

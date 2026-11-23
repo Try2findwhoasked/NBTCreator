@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from nbt_refine import read_master
 from nbt_assembly import Volume
-from nbt_recipes import translate_operation
+from nbt_assets.recipes import translate_operation
 
 ROOT=Path(__file__).resolve().parents[1]
 CATALOG=json.loads((ROOT/'tool-catalog.json').read_text(encoding='utf8'))
@@ -48,7 +48,7 @@ def compile_operations(operations,lo,hi,size,overwrite):
             if 'max_writes' in extra:
                 message+='总变化预算由预览请求的 settings.max_changed_blocks 指定。'
             raise ValueError(message)
-        from nbt_operation_parameters import validate_operation
+        from nbt_runtime.operation_parameters import validate_operation
         validate_operation(raw)
         operation=dict(raw);operation.setdefault('label','选区编辑 '+str(index+1));operation.setdefault('classification','inherit')
         if kind not in ('beam','auto_floor'):

@@ -61,7 +61,7 @@ def validate(request):
     from nbt_review.ai_designs import check_designs
     check_materials(result)
     if mode=='component':
-        from nbt_structure_agent import build
+        from nbt_agent.structure import build
         data=build(request['workspace'],result['spec'])
         if required:
             from nbt_assembly import Volume
@@ -94,7 +94,7 @@ def validate(request):
     if mode=='small_structure' and context.get('size'):
         from nbt_assembly import Volume
         from nbt_detail_control import compile_plan,default_settings
-        from nbt_recipes import translate_operation
+        from nbt_assets.recipes import translate_operation
         from uuid import uuid4
         patch=result['settings_patch'];lo,hi=patch['lo'],patch['hi'];size=[b-a+1 for a,b in zip(lo,hi)]
         group=str(uuid4())

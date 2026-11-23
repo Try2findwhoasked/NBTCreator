@@ -6,7 +6,7 @@ sys.path.insert(0,str(root/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_refine import save_master,read_master
 from nbt_selection_edit import sha
-from nbt_structure_agent import dispatch
+from nbt_agent.structure import dispatch
 from nbt_mounting.surface_mount import NORMALS
 
 class Mount(unittest.TestCase):

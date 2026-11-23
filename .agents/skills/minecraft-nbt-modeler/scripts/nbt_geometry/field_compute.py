@@ -87,7 +87,7 @@ def sample(args):
 
 
 def compile_field(workspace,args):
-    from nbt_structure_agent import build
+    from nbt_agent.structure import build
     from nbt_collision import collision_cells
     from nbt_model import state
     material=state(args.get('material','stone_bricks'));occupied,reason=collision_cells(material)

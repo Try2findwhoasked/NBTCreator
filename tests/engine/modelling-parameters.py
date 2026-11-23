@@ -1,8 +1,8 @@
 import sys,unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_recipes import translate_operation
-from nbt_operation_parameters import validate_operation
+from nbt_assets.recipes import translate_operation
+from nbt_runtime.operation_parameters import validate_operation
 class Parameters(unittest.TestCase):
  def test_mode_requirements_and_integer_points(self):
   base=dict(kind='align_region',lo=[0,0,0],hi=[2,2,2],mode='anchor')
@@ -20,7 +20,7 @@ class Parameters(unittest.TestCase):
   self.assertEqual(loft['geometry']['sections'][0],dict(y=22,vertices=[[11,33],[14,33],[14,36]]))
  def test_external_structure_agent_radial_and_anchor(self):
   import tempfile
-  from nbt_structure_agent import build
+  from nbt_agent.structure import build
   seed=dict(kind='box',label='seed',classification='body',lo=[2,2,2],hi=[2,2,2],state='stone')
   radial=dict(kind='array_region',label='ring',classification='body',lo=[2,2,2],hi=[2,2,2],mode='radial',source_anchor=[2,2,2],centre=[16,2,16],radius=5,count=4)
   anchor=dict(kind='align_region',label='anchor',classification='body',lo=[2,2,2],hi=[2,2,2],mode='anchor',source_anchor=[2,2,2],target_anchor=[25,2,25])
@@ -40,7 +40,7 @@ class Parameters(unittest.TestCase):
    with self.assertRaises(ValueError):validate_operation(dict(base,geometry=shape))
  def test_external_agent_stair_roof_and_section_modes(self):
   import tempfile
-  from nbt_structure_agent import build
+  from nbt_agent.structure import build
   cases=[dict(kind='auto_stairs',mode='straight',start=[4,2,4],end=[24,6,4]),dict(kind='auto_stairs',mode='switchback',start=[4,2,4],end=[4,6,7],flight_length=12),dict(kind='auto_stairs',mode='spiral',start=[4,2,4],end=[4,8,4],centre=[10,2,10],radius=6)]
   cases += [dict(kind='auto_roof',roof=roof,rise=4,footprint=[[4,4],[20,20]],break_fraction=.4,break_height=.7) for roof in ('gable','hip','gambrel','dome')]
   cases += [dict(kind='geometry',geometry=dict(shape='section_sweep',vertices=[[-1,-1],[1,-1],[1,1],[-1,1]],points=[[4,8,4],[20,8,4]])),dict(kind='geometry',geometry=dict(shape='loft',sections=[dict(y=4,vertices=[[4,4],[16,4],[16,16],[4,16]]),dict(y=12,vertices=[[7,7],[13,7],[13,13],[7,13]])])),dict(kind='geometry',geometry=dict(shape='revolve',centre=[16,4,16],profile=[[2,0],[4,0],[4,8],[2,8]]))]
@@ -52,7 +52,7 @@ class Parameters(unittest.TestCase):
      self.assertTrue(result['blocks'])
  def test_external_agent_selection_ground_path_and_terrain(self):
   import tempfile
-  from nbt_structure_agent import build
+  from nbt_agent.structure import build
   def box(lo,hi,state='stone'):return dict(kind='box',label='base',classification='body',lo=lo,hi=hi,state=state)
   cases=[
    [box([2,2,2],[3,3,3]),dict(kind='selection_replace',seed_position=[2,2,2],from_states=['stone'],state='andesite')],

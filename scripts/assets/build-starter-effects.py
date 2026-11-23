@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 SKILL=ROOT/'.agents/skills/minecraft-nbt-modeler'
 sys.path.insert(0,str(SKILL/'scripts'))
-import nbt_effect_assets as effects
+import nbt_assets.effects as effects
 from nbt_assets.starter_effects import BUNDLE,catalog,checked_files,engine_sha,sha
 
 

@@ -9,7 +9,7 @@ import numpy as np
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_pattern.bitmap_topology import component_sizes,component_masks,topology
-from nbt_structure_agent import dispatch
+from nbt_agent.structure import dispatch
 
 
 def reference(mask,diagonal,interior):

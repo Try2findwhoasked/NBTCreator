@@ -4,8 +4,8 @@ import json
 from nbt_building.plan import fingerprint, resolve
 from nbt_building.quality import BLOCKING_CODES, SCORES, from_model
 from nbt_building.quality_plan import DIMENSIONS, items
-from nbt_history import file_hash
-from nbt_prompts import inside, relative
+from nbt_project.history import file_hash
+from nbt_project.prompts import inside, relative
 
 
 def record_quality(workspace, model, pack, request, manifest_file, manifest_sha256):
