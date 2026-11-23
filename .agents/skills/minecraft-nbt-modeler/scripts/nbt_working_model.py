@@ -19,8 +19,8 @@ import tempfile
 from nbt_assembly import Volume
 from nbt_model import AIR, AIR_NAMES, state
 from nbt_modeling_session import canonical
-from nbt_change_policy import ChangePolicyError, change_sets, enforce_changes, reserved_position
-from nbt_request_paths import read_request_json
+from nbt_composition.change_policy import ChangePolicyError, change_sets, enforce_changes, reserved_position
+from nbt_project.request_paths import read_request_json
 
 _publication_locks = ContextVar('working_model_publication_locks', default=frozenset())
 
@@ -59,7 +59,7 @@ def write_json(file, value):
 
 def managed_manifest(source):
     """Recognize managed drafts even when their manifest has been lost."""
-    from nbt_web_paths import project_paths
+    from nbt_project.web_paths import project_paths
     source = Path(source).resolve()
     version = project_paths(source)['version']
     description = version / 'room_description.json'
@@ -83,8 +83,8 @@ def head_file(workspace, building):
 
 
 def publish_head(workspace, source):
-    from nbt_object_scene import atomic
-    from nbt_web_paths import project_paths
+    from nbt_composition.object_scene import atomic
+    from nbt_project.web_paths import project_paths
     source = Path(source).resolve()
     manifest = managed_manifest(source)
     head = dict(revision=manifest['revision'] if manifest else None,
@@ -198,7 +198,7 @@ class WorkingModel:
     @classmethod
     def open(cls, workspace, source, context=None, source_sha256=None, **options):
         from nbt_refine import read_master, resolve_wall_mask
-        from nbt_web_paths import project_paths
+        from nbt_project.web_paths import project_paths
         workspace = Path(workspace).resolve()
         source = (workspace / source).resolve()
         source_hash = file_hash(source)
@@ -471,7 +471,7 @@ class WorkingModel:
                 p = tuple(operation['lo'][i] + v for i, v in enumerate((x, y, z)))
                 value = operation['palette'][index]
                 values[p] = [value, value not in AIR_NAMES and operation['classification'] == 'wall']
-        from nbt_object_scene import engine_hash
+        from nbt_composition.object_scene import engine_hash
         compiled = dict(content_sha256=component['content_sha256'], engine_sha256=engine_hash(),
             compile_order=result.get('compile_order'), objects=world_objects(result.get('objects'), component, transform),
             verification=result.get('verification', {}),
@@ -509,19 +509,19 @@ class WorkingModel:
         return dict(recipe=recipe, transform=transform, baseline=rows, compiled=compiled), edits
 
     def beam_rhythm(self, goal, preview=None):
-        from nbt_beam_rhythm import BeamRhythm
+        from nbt_building.beam_rhythm import BeamRhythm
         return BeamRhythm(self, goal).search(preview)
 
     def adopt_beam_rhythm(self, goal, pitch, start_z, candidate_sha256):
-        from nbt_beam_rhythm import BeamRhythm
+        from nbt_building.beam_rhythm import BeamRhythm
         return BeamRhythm(self, goal).adopt(pitch, start_z, candidate_sha256)
 
     def wavelet_eave(self, goal, preview=None):
-        from nbt_wavelet_eave import WaveletEave
+        from nbt_building.wavelet_eave import WaveletEave
         return WaveletEave(self, goal).search(preview)
 
     def adopt_wavelet_eave(self, goal, strength, candidate_sha256):
-        from nbt_wavelet_eave import WaveletEave
+        from nbt_building.wavelet_eave import WaveletEave
         return WaveletEave(self, goal).adopt(strength, candidate_sha256)
 
     def _stage_update(self, identifier, recipe, transform):
@@ -534,7 +534,7 @@ class WorkingModel:
         transform = deepcopy(transform if transform is not None else previous['transform'])
         values, compiled = self._compile(recipe, transform)
         if previous['recipe']['tool'] == 'scene_compile':
-            from nbt_object_scene import compile_scene, transition
+            from nbt_composition.object_scene import compile_scene, transition
             if recipe['tool'] != 'scene_compile':
                 raise ValueError('受管场景续版须保留对象图约束')
             before_scene = compile_scene(self.workspace, previous['recipe']['arguments']['graph'])
@@ -566,13 +566,13 @@ class WorkingModel:
         return previous, proposed, values, edits, conflicts
 
     def preflight_update(self, identifier, recipe=None, transform=None):
-        from nbt_model_preflight import evaluate_update
+        from nbt_composition.preflight import evaluate_update
         report, _, _ = evaluate_update(self, identifier, recipe, transform)
         return report
 
     def update(self, identifier, recipe=None, transform=None, preflight_sha256=None):
         if preflight_sha256 is not None:
-            from nbt_model_preflight import evaluate_update
+            from nbt_composition.preflight import evaluate_update
             if not isinstance(preflight_sha256, str) or not re.fullmatch('[a-f0-9]{64}', preflight_sha256):
                 raise ValueError('装配预检哈希无效')
             report, staged, instances = evaluate_update(self, identifier, recipe, transform)
@@ -670,8 +670,8 @@ class WorkingModel:
     def _assembly_checks(self, model=None, instances=None):
         """Recheck declared interfaces after host carving and manual edits."""
         from nbt_collision import collision_cells
-        from nbt_object_scene import attached, touches
-        from nbt_scene_interfaces import check_interface_geometry, interface_contact
+        from nbt_composition.object_scene import attached, touches
+        from nbt_composition.scene_interfaces import check_interface_geometry, interface_contact
         model = self.model if model is None else model
         instances = self.instances if instances is None else instances
         checks = []
@@ -855,7 +855,7 @@ class WorkingModel:
                       model_sha256=candidate_sha, visual_review='pending', asset_written=False)
         decisions = {name: row['preflight'] for name, row in self.instances.items() if 'preflight' in row}
         if decisions:
-            from nbt_model_preflight import candidate_state_sha256
+            from nbt_composition.preflight import candidate_state_sha256
             state_sha = candidate_state_sha256(self, candidate_sha, self.instances)
             decisions = {name: decision for name, decision in decisions.items()
                          if decision.get('candidate_state_sha256') == state_sha}
@@ -870,7 +870,7 @@ class WorkingModel:
         return head_file(self.workspace, building)
 
     def _read_head(self, building):
-        from nbt_web_paths import prior_workspace_paths,workspace_path
+        from nbt_project.web_paths import prior_workspace_paths,workspace_path
         candidates=[building,*prior_workspace_paths(self.workspace,building)]
         files=[file for folder in candidates if (file:=self._head_file(folder)).is_file()]
         if not files:return None
@@ -880,7 +880,7 @@ class WorkingModel:
 
     def _history_source(self, building):
         from nbt_history import History, digest as history_digest
-        from nbt_web_paths import prior_workspace_paths,workspace_path
+        from nbt_project.web_paths import prior_workspace_paths,workspace_path
         try:
             history = History(self.workspace)
             data, _ = history.state()
@@ -893,7 +893,7 @@ class WorkingModel:
             return None
 
     def _assert_parent(self, building):
-        from nbt_web_paths import workspace_path
+        from nbt_project.web_paths import workspace_path
         head = self._read_head(building)
         history_source = self._history_source(building)
         source = self.source.relative_to(self.workspace).as_posix() if self.source else None
@@ -941,7 +941,7 @@ class WorkingModel:
             raise ValueError('大型模型保存须先绑定组装制作源')
         from nbt_library import LABELS, shape_of
         from nbt_refine import save_master, read_master
-        from nbt_object_scene import atomic
+        from nbt_composition.object_scene import atomic
         from nbt_agent_tasks import publication
         from nbt_whole_validation import interior_probe_error
         self._unchanged()
@@ -968,7 +968,7 @@ class WorkingModel:
             raise ValueError('制作版保存在实际创作工作区，不写入软件源码或安装目录')
         if self._building:
             building = self._building
-            from nbt_web_paths import project_paths
+            from nbt_project.web_paths import project_paths
             description = project_paths(self.source)['version'] / 'room_description.json'
             old = json.loads(description.read_text(encoding='utf8')) if description.is_file() else {}
             name_zh = name_zh or old.get('name_zh')
@@ -1013,7 +1013,7 @@ class WorkingModel:
                 if not re.fullmatch(r'[a-z][a-z0-9_-]{0,63}\.json', name):
                     raise ValueError('制作附属资料须为具名JSON，不接收任意输出路径')
                 write_json(stage / 'editing' / name, content)
-            from nbt_object_scene import engine_hash
+            from nbt_composition.object_scene import engine_hash
             files = {p.relative_to(stage).as_posix(): file_hash(p) for p in stage.rglob('*') if p.is_file()}
             manifest = dict(schema_version=1, kind=self.kind, phase=self.phase, actor=actor, model_sha256=model_hash(self.model, self.walls),
                 parent_revision=self.parent_revision, parent_source=self.source.relative_to(self.workspace).as_posix() if self.source and self.source.is_relative_to(self.workspace / 'nbt_models') else None,

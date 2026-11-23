@@ -8,7 +8,7 @@ from nbt_registry import effective
 from nbt_components import placement,paste_plan
 from nbt_assembly import Volume
 from nbt_snbt import save_snbt,read_snbt
-from nbt_object_scene import halfcells,SIX
+from nbt_composition.object_scene import halfcells,SIX
 
 
 def connected(values):

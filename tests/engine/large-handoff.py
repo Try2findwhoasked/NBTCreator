@@ -11,7 +11,7 @@ import unittest
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_large_assembly import AssemblyVolume,save_assembly
-from nbt_assembly_handoff import create_slice,merge_slices
+from nbt_composition.assembly_handoff import create_slice,merge_slices
 from nbt_snbt import read_snbt,save_snbt
 from nbt_working_model import WorkingModel,ModelConflict
 
@@ -67,7 +67,7 @@ class Handoff(unittest.TestCase):
    if Path(destination).name=='slice.json':raise OSError('synthetic slice interruption')
    return real_link(source,destination)
   request=self.request()
-  with patch('nbt_assembly_handoff.os.link',side_effect=fail_manifest):
+  with patch('nbt_composition.assembly_handoff.os.link',side_effect=fail_manifest):
    with self.assertRaisesRegex(OSError,'slice interruption'):create_slice(self.root,request)
   folder=self.root/request['output'];self.assertFalse((folder/'slice.json').exists())
   original=(folder/'baseline.snbt').read_bytes()
@@ -83,7 +83,7 @@ class Handoff(unittest.TestCase):
    if Path(destination).name=='slice.json':raise OSError('synthetic slice interruption')
    return real_link(source,destination)
   request=self.request()
-  with patch('nbt_assembly_handoff.os.link',side_effect=fail_manifest):
+  with patch('nbt_composition.assembly_handoff.os.link',side_effect=fail_manifest):
    with self.assertRaises(OSError):create_slice(self.root,request)
   folder=self.root/request['output'];baseline=folder/'baseline.snbt';baseline.write_bytes(b'changed')
   with self.assertRaisesRegex(ValueError,'变化|占用'):create_slice(self.root,request)
@@ -199,7 +199,7 @@ class Handoff(unittest.TestCase):
   from unittest.mock import patch
   entry=self.edited_slice('interrupted',[2,0,0],[3,4,2],[([2,4,0],'gold_block',False)])
   request=self.merge_request([entry])
-  with patch('nbt_object_scene.atomic',side_effect=OSError('synthetic head interruption')):
+  with patch('nbt_composition.object_scene.atomic',side_effect=OSError('synthetic head interruption')):
    with self.assertRaisesRegex(OSError,'head interruption'):merge_slices(self.root,request)
   versions=list((self.root/'nbt_models/standalone/handoff').glob('v_model_*'))
   self.assertEqual(len(versions),1);self.assertTrue((versions[0]/'master/assembly.json').is_file())

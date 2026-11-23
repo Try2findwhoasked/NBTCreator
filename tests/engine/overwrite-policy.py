@@ -2,7 +2,7 @@ import sys, unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
-from nbt_change_policy import enforce_overwrite, enforce_changes
+from nbt_composition.change_policy import enforce_overwrite, enforce_changes
 
 GROUP='12345678-1234-1234-1234-123456789abc'
 class Overwrite(unittest.TestCase):

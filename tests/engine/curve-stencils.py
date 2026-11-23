@@ -99,7 +99,7 @@ class CurveStencils(unittest.TestCase):
   self.assertEqual(error.exception.code,'INCOMPATIBLE')
  def test_bound_diagonal_recipe_composes_without_implicit_mirroring(self):
   import nbt_asset_libraries as libraries
-  from nbt_curve_components import compose_curve_mask,verify_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   import json
   row=next(item for item in libraries.browse(self.root)['items'] if item['source_id']=='bundled' and item['asset_id']=='curve-diagonal-band')
   ref={key:row[key] for key in ('id','sha256','source_id','version','manifest_sha256')}

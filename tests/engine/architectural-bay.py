@@ -8,7 +8,7 @@ sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_structure_agent import dispatch,build
 from nbt_collision import collision_cells
 from nbt_engine_session import serve
-from nbt_pattern_assets import load
+from nbt_pattern.assets import load
 
 
 def components(points):

@@ -310,11 +310,11 @@ def main():
     args=parser.parse_args()
     try:
         if args.action=='verify':
-            from nbt_reference_projection import verify_comparison
+            from nbt_review.reference_projection import verify_comparison
             result=verify_comparison(args.workspace,args.report,args.sha256)
         elif args.action=='verify-fit':result=verify_fit(args.workspace,args.fit,args.sha256)
         elif args.action=='verify-cameras':
-            from nbt_reference_camera import verify_cameras
+            from nbt_review.reference_camera import verify_cameras
             result=verify_cameras(args.workspace,args.bundle,args.sha256)
         else:
             if args.request.stat().st_size>MAX_MANIFEST:raise ValueError('参考请求过大')
@@ -322,10 +322,10 @@ def main():
             if args.action=='register':result=register_reference(args.workspace,request)
             elif args.action=='fit':result=save_fit(args.workspace,request,args.output)
             elif args.action=='cameras':
-                from nbt_reference_camera import prepare_cameras
+                from nbt_review.reference_camera import prepare_cameras
                 result=prepare_cameras(args.workspace,request)
             elif args.action in ('review-prepare','review-record','review-verify'):
-                from nbt_blind_review import prepare_review,record_review,verify_review
+                from nbt_review.blind_review import prepare_review,record_review,verify_review
                 if args.action=='review-prepare':result=prepare_review(args.workspace,request)
                 elif args.action=='review-record':result=record_review(args.workspace,request)
                 else:
@@ -333,7 +333,7 @@ def main():
                         raise ValueError('盲评核对请求字段无效')
                     result=verify_review(args.workspace,request['binding'],request['binding_sha256'],request.get('record'),request.get('record_sha256'))
             else:
-                from nbt_reference_projection import compare_reference
+                from nbt_review.reference_projection import compare_reference
                 result=compare_reference(args.workspace,request)
         print(json.dumps(result,ensure_ascii=False));return 0
     except (ValueError,OSError,KeyError,TypeError) as error:

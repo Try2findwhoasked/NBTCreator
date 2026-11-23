@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 import uuid
 from nbt_prompts import encode,digest,inside,relative,index_lock
-from nbt_web_paths import project_paths
+from nbt_project.web_paths import project_paths
 import nbt_agent_protocol as protocol
 
 def now():return datetime.now(timezone.utc).isoformat()

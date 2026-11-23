@@ -11,7 +11,7 @@ from PIL import Image
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_cover import section_cover
+from nbt_review.cover import section_cover
 
 
 class SectionCover(unittest.TestCase):

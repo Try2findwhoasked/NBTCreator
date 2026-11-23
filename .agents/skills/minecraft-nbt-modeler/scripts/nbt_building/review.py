@@ -296,7 +296,7 @@ def verify_for_return(workspace,review,expected):
 
 
 def compare(workspace,request):
-    from nbt_web_paths import project_paths
+    from nbt_project.web_paths import project_paths
     file,pack=load_pack(workspace,request);model=load_model(workspace,request)
     if project_paths(inside(workspace,pack['source']))['workdir']!=project_paths(model.source)['workdir']:raise ValueError('问题回查需要同一建筑的新制作版')
     notes_file=file.parent/'review-notes.json'

@@ -13,7 +13,7 @@ def validate_candidate(request, snapshot, output):
     from nbt_refine import read_master, protections, resolve_wall_mask, binary_wall_mask_hash
     from nbt_task import checked_preview_snapshot
     from nbt_whole_validation import validate_whole
-    from nbt_change_policy import change_sets,enforce_changes
+    from nbt_composition.change_policy import change_sets,enforce_changes
 
     output=reserve_output(output)
     report=dict(schema_version=1,status='candidate_failed',passed=False,checks={},
@@ -130,7 +130,7 @@ def validate_candidate(request, snapshot, output):
 
 
 def main():
-    from nbt_request_paths import read_request
+    from nbt_project.request_paths import read_request
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--request',type=Path,required=True)
     parser.add_argument('--snapshot',type=Path,required=True)

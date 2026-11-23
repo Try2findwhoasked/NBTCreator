@@ -95,7 +95,7 @@ def thumbnail(data, target, camera=None):
 
 def store(workspace, data):
     data=validate(data)
-    from nbt_asset_organization import semantic_tags
+    from nbt_assets.organization import semantic_tags
     data['tags']=semantic_tags(data);data['archived']=False;identifier=uuid.uuid4().hex;file=component_file(workspace,identifier)
     file.parent.mkdir(parents=True,exist_ok=True)
     image=file.with_suffix('.jpg');temporary=file.with_suffix('.tmp')

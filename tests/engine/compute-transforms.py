@@ -7,9 +7,9 @@ import numpy as np
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_structure_agent import dispatch,build
 from nbt_compute import execute,gpu,info
-from nbt_deform import coordinates,warp_pixels
-from nbt_field_compute import sample
-from nbt_spectral import smooth
+from nbt_geometry.deform import coordinates,warp_pixels
+from nbt_geometry.field_compute import sample
+from nbt_pattern.spectral import smooth
 
 REQUIRE_GPU='--require-gpu' in sys.argv
 if REQUIRE_GPU:sys.argv.remove('--require-gpu')
@@ -25,7 +25,7 @@ class ComputeTransforms(unittest.TestCase):
     def call(self,tool,**args):return dispatch(self.root,tool,args)
     def asset(self):
         from PIL import Image
-        from nbt_pattern_assets import store
+        from nbt_pattern.assets import store
         image=Image.new('RGBA',(64,64),(0,0,0,0))
         image.paste((138,197,244,117),(12,8,37,52))
         return store(self.root,image,'彩色试件',[],dict(generator='test_fixture'))
@@ -106,7 +106,7 @@ class ComputeTransforms(unittest.TestCase):
         warped=self.call('pattern_warp',name='变形试件',source=self.bound(a),transforms=[dict(kind='affine',matrix=np.eye(3).tolist())],backend='cpu')
         actual=np.asarray(Image.open(warped['image']).convert('RGBA'))
         np.testing.assert_array_equal(actual[source[...,3]>0],source[source[...,3]>0]);self.assertEqual(Path(a['image']).read_bytes(),before)
-        import nbt_deform
+        import nbt_geometry.deform as nbt_deform
         original=nbt_deform.warp_pixels;files=self.files()
         def change(*args,**kwargs):
             result=original(*args,**kwargs);Path(a['image']).write_bytes(b'concurrent change');return result

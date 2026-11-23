@@ -11,7 +11,7 @@ sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_refine import save_master
 from nbt_collision import check_routes
-from nbt_walk_view import inspect_walk
+from nbt_review.walk_view import inspect_walk
 
 
 class WalkInspection(unittest.TestCase):

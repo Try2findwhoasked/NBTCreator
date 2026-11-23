@@ -79,8 +79,8 @@ def contacts(writer,a,b):
 
 def finish(workspace,writer,args,name,**receipt):
     from nbt_structure_agent import build
-    from nbt_pattern_panel import sample_input
-    from nbt_ornament_sample import sample_image
+    from nbt_pattern.panel import sample_input
+    from nbt_pattern.ornament_sample import sample_image
     for request in receipt.pop('_bound_patterns',[]):
         root,sample=sample_input(workspace,request);sample_image(root,sample)
     if len(writer.blocks)>args.get('max_changed_blocks',65536):raise ValueError('建筑构造超过方块预算')

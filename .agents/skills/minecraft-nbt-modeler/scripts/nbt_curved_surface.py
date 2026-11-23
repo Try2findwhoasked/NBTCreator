@@ -14,7 +14,7 @@ from nbt_large_assembly import MAX_AXIS,_workspace_path,is_assembly_source,read_
 from nbt_model import AIR_NAMES,state
 from nbt_reference_views import MAX_MANIFEST,verify_fit
 from nbt_refine import protections
-from nbt_surface_mount import _full
+from nbt_mounting.surface_mount import _full
 from nbt_working_model import ModelConflict,WorkingModel,digest,model_hash,value_at
 
 MAX_MASK=4*1024*1024
@@ -41,7 +41,7 @@ def _mask(file,expected,workspace=None):
         workspace=Path(workspace).resolve();file=_workspace_path(workspace,str(file));base=workspace/'nbt_models/_workspaces/curve-masks'
         if file.name!='mask.json' or not file.parent.is_relative_to(base) or file.parent==base:
             raise ValueError('来源绑定的曲面掩模路径无效')
-        from nbt_curve_components import _verify_data
+        from nbt_mounting.curve_components import _verify_data
         data,_=_verify_data(workspace,file,data,expected)
     if isinstance(data,dict) and type(data.get('schema_version')) is int and data['schema_version']==2:
         return _layered_mask(data),raw
@@ -52,7 +52,7 @@ def _mask(file,expected,workspace=None):
 
 
 def _repeat_mask(workspace,data):
-    from nbt_repeat_layout import verify_inputs
+    from nbt_mounting.repeat_layout import verify_inputs
     from nbt_structure_agent import _definitions,_schema
 
     def pair(value,minimum,maximum):
@@ -180,7 +180,7 @@ def _surface_point(sections,y,u):
 
 
 def _repeat_state(value,face,mirrored):
-    from nbt_cylinder_pattern import FACES,touches_backing
+    from nbt_mounting.cylinder_pattern import FACES,touches_backing
     from nbt_tools import transformed_state
 
     turns=next(turns for _,dx,dz,turns in FACES if (dx,0,dz)==face)
@@ -330,7 +330,7 @@ def _mapping(value):
 
 def _review_feedback(workspace,source,source_sha256,value):
     """Bind a candidate to one actual observation on a review of its source."""
-    from nbt_blind_review import _json,_pair,verify_review
+    from nbt_review.blind_review import _json,_pair,verify_review
     keys={'binding','binding_sha256','record','record_sha256','observation'}
     if not isinstance(value,dict) or set(value)!=keys or type(value['observation']) is not int or value['observation']<0:
         raise ValueError('曲面审阅意见绑定无效')
@@ -353,7 +353,7 @@ def _calculate_single(working,sections,mask,mapping,*,repeat=None):
         raise ValueError('曲面实际面采样超过8192次上限，请缩小样段或减少采样')
     protected=protections(working.model,working._protection_context());changes={};owners={};samples=[];supports=[];recess_checks=[]
     if repeat is not None:
-        from nbt_change_policy import reserved_position
+        from nbt_composition.change_policy import reserved_position
         from nbt_refine import box_points
         for instance in working.instances.values():
             for box in instance['compiled'].get('policy', {}).get('protected_boxes', []):
@@ -421,7 +421,7 @@ def _calculate_single(working,sections,mask,mapping,*,repeat=None):
                 effective_writes=sum(item['before']!=item['after'] for item in rows_changed),changes=rows_changed))
     connectors=[]
     if connection is not None:
-        from nbt_curved_connect import connect_raised
+        from nbt_mounting.curved_connect import connect_raised
         choices=connection.get('path_choices')
         if choices is not None and any('layer' in item for item in choices):raise ValueError('单层曲面指定路径不使用 layer 字段')
         connectors=connect_raised(working,mask,samples,changes,owners,protected,supports,connection['max_new_blocks'],
@@ -429,7 +429,7 @@ def _calculate_single(working,sections,mask,mapping,*,repeat=None):
         raw_writes+=len(connectors)
     recess_connectors=[]
     if recess is not None:
-        from nbt_curved_recess import connect_recesses
+        from nbt_mounting.curved_recess import connect_recesses
         recess_connectors=connect_recesses(working,mask,samples,changes,owners,protected,supports,recess['max_new_blocks'],
                                             math.isclose(span,1.0,rel_tol=0,abs_tol=1e-12),maximum)
         raw_writes+=sum(len(item['writes']) for item in recess_connectors)
@@ -574,7 +574,7 @@ def _calculate(working,sections,mask,mapping):
 
 def _calculate_repeat(working,sections,mask,mapping):
     from string import ascii_uppercase,digits
-    from nbt_repeat_layout import phased_cells,solve_repeat_unit
+    from nbt_mounting.repeat_layout import phased_cells,solve_repeat_unit
 
     _,span,_,_,subsamples,connection,recess=_mapping(mapping)
     if subsamples!=1 or connection is not None or recess is not None:
@@ -610,7 +610,7 @@ def _calculate_repeat(working,sections,mask,mapping):
 
 def _repeat_readback(model,samples,summary):
     if 'repeat_tiling' not in summary:return
-    from nbt_repeat_layout import evidence
+    from nbt_mounting.repeat_layout import evidence
 
     repeat=summary['repeat_tiling']
     positions={tuple(item['uv']):(item['phase_uv'],item['unit_state'],tuple(item['changes'][0]['pos']),item['changes'][0]['after'][0])
@@ -733,7 +733,7 @@ def verify_curve(workspace,plan,expected_sha256):
 
 
 def _followup_inputs(workspace,plan,plan_sha256,feedback):
-    from nbt_blind_review import _json,_pair,verify_review
+    from nbt_review.blind_review import _json,_pair,verify_review
     candidate=verify_curve(workspace,plan,plan_sha256)
     plan_file=_workspace_path(workspace,str(plan));proof=_json(plan_file,plan_sha256)
     if 'review_feedback' not in proof:raise ValueError('曲面候选没有绑定原始审阅意见')
@@ -780,7 +780,7 @@ def record_curve_followup(workspace,request):
 
 
 def verify_curve_followup(workspace,record,expected_sha256):
-    from nbt_blind_review import _json
+    from nbt_review.blind_review import _json
     workspace=Path(workspace).resolve();record=_workspace_path(workspace,str(record));proof=_json(record,expected_sha256)
     fields={'schema_version','kind','plan','plan_sha256','review_feedback','status','remaining','approval_created','boundary'}
     if (not isinstance(proof,dict) or set(proof)!=fields or type(proof['schema_version']) is not int or proof['schema_version']!=1 or
@@ -815,11 +815,11 @@ def main():
             if args.compact:result={key:value for key,value in result.items() if key!='samples'}
         elif args.action=='verify':result=verify_curve(args.workspace,args.plan,args.sha256)
         elif args.action=='compose':
-            from nbt_curve_components import compose_curve_mask
+            from nbt_mounting.curve_components import compose_curve_mask
             if args.request.stat().st_size>MAX_MANIFEST:raise ValueError('曲面构件组合请求过大')
             result=compose_curve_mask(args.workspace,json.loads(args.request.read_text(encoding='utf-8-sig')))
         elif args.action=='verify-mask':
-            from nbt_curve_components import verify_curve_mask
+            from nbt_mounting.curve_components import verify_curve_mask
             result=verify_curve_mask(args.workspace,args.mask,args.sha256)
         elif args.action=='review-record':
             if args.request.stat().st_size>MAX_MANIFEST:raise ValueError('曲面复核请求过大')

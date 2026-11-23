@@ -43,7 +43,7 @@ class CurveComponents(unittest.TestCase):
   ref={key:row[key] for key in ('id','sha256','source_id','version','manifest_sha256')}
   return libraries,source,ref
  def test_local_component_slice_repeats_and_binds_source(self):
-  from nbt_curve_components import compose_curve_mask,verify_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   from nbt_curved_surface import _mask
   request=self.request();result=compose_curve_mask(self.workspace,request)
   data=json.loads(Path(result['mask']).read_text(encoding='utf8'))
@@ -55,18 +55,18 @@ class CurveComponents(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'变化|哈希|内容'):verify_curve_mask(self.workspace,result['mask'],result['mask_sha256'])
   with self.assertRaisesRegex(ValueError,'变化|哈希|内容'):_mask(Path(result['mask']),result['mask_sha256'],self.workspace)
  def test_explicit_layer_connection_scope_survives_source_bound_composition(self):
-  from nbt_curve_components import compose_curve_mask,verify_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   request=self.request();request['layers'][0]['connections']={'raised':False,'recess':False}
   result=compose_curve_mask(self.workspace,request);data=json.loads(Path(result['mask']).read_text(encoding='utf8'))
   self.assertEqual(data['layers'][0]['connections'],{'raised':False,'recess':False})
   self.assertTrue(verify_curve_mask(self.workspace,result['mask'],result['mask_sha256'])['valid'])
  def test_archived_local_component_invalidates_bound_mask(self):
   from nbt_components import update
-  from nbt_curve_components import compose_curve_mask,verify_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   result=compose_curve_mask(self.workspace,self.request());update(self.workspace,self.component['id'],archived=True)
   with self.assertRaisesRegex(ValueError,'归档'):verify_curve_mask(self.workspace,result['mask'],result['mask_sha256'])
  def test_source_mapping_and_bounds_cannot_silently_drop_or_clip(self):
-  from nbt_curve_components import compose_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask
   request=self.request();request['layers'][0]['mapping'].pop()
   with self.assertRaisesRegex(ValueError,'映射'):compose_curve_mask(self.workspace,request)
   self.assertFalse((self.workspace/request['output']).exists())
@@ -77,10 +77,10 @@ class CurveComponents(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'映射'):compose_curve_mask(self.workspace,request)
   self.assertFalse((self.workspace/request['output']).exists())
  def test_software_source_root_is_not_a_creative_workspace(self):
-  from nbt_curve_components import compose_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask
   with self.assertRaisesRegex(ValueError,'不是创作工作区'):compose_curve_mask(ROOT,self.request())
  def test_existing_output_directory_is_never_overwritten(self):
-  from nbt_curve_components import compose_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask
   request=self.request();destination=self.workspace/request['output'];destination.mkdir(parents=True)
   marker=destination/'keep.txt';marker.write_text('用户内容',encoding='utf8')
   with self.assertRaisesRegex(ValueError,'新目录|存在'):compose_curve_mask(self.workspace,request)
@@ -96,7 +96,7 @@ class CurveComponents(unittest.TestCase):
   for name in ('curved-surface.md','orthographic-reference.md','large-assembly.md'):self.assertIn(name,selected)
   self.assertIn('曲面纹样与构件复用',selected);self.assertIn('大型组装与协作切片',selected)
  def test_explicit_asset_layers_can_overlap_on_a_real_curved_host(self):
-  from nbt_curve_components import compose_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask
   from nbt_curved_surface import plan_curve,verify_curve
   from curved_surface_fixture import create_curve_fixture
   request=self.request();request['size']=[2,2];request['layers'][0]['counts']=[1,1]
@@ -114,14 +114,14 @@ class CurveComponents(unittest.TestCase):
   self.mutate_component()
   with self.assertRaisesRegex(ValueError,'变化|哈希|内容'):verify_curve(self.workspace,candidate['plan'],candidate['plan_sha256'])
  def test_cross_layer_overlap_requires_explicit_permission(self):
-  from nbt_curve_components import compose_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask
   request=self.request();other=deepcopy(request['layers'][0]);other['id']='second';request['layers'].append(other)
   with self.assertRaisesRegex(ValueError,'重叠'):compose_curve_mask(self.workspace,request)
   self.assertFalse((self.workspace/request['output']).exists())
   request['overlaps']=[['band','second']];result=compose_curve_mask(self.workspace,request)
   self.assertFalse(result['approval_created']);self.assertEqual(result['layers'],2)
  def test_rehashed_composition_cannot_forge_a_mask(self):
-  from nbt_curve_components import compose_curve_mask,verify_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   result=compose_curve_mask(self.workspace,self.request());mask=Path(result['mask']);data=json.loads(mask.read_text(encoding='utf8'))
   data['layers'][0]['rows'][0]='R.RR'
   receipt=Path(result['manifest']);proof=json.loads(receipt.read_text(encoding='utf8'))
@@ -131,7 +131,7 @@ class CurveComponents(unittest.TestCase):
   data['composition']['sha256']=sha(receipt);mask.write_text(json.dumps(data),encoding='utf8')
   with self.assertRaisesRegex(ValueError,'不一致|哈希'):verify_curve_mask(self.workspace,mask,sha(mask))
  def test_source_change_during_composition_does_not_publish(self):
-  from nbt_curve_components import compose_curve_mask,_component
+  from nbt_mounting.curve_components import compose_curve_mask,_component
   calls=0
   def mutate(*args):
    nonlocal calls
@@ -139,11 +139,11 @@ class CurveComponents(unittest.TestCase):
    if calls==1:self.mutate_component()
    return value
   request=self.request()
-  with patch('nbt_curve_components._component',side_effect=mutate):
+  with patch('nbt_mounting.curve_components._component',side_effect=mutate):
    with self.assertRaisesRegex(ValueError,'变化|哈希|内容'):compose_curve_mask(self.workspace,request)
   self.assertFalse((self.workspace/request['output']).exists())
  def test_source_change_during_final_publication_removes_only_new_output(self):
-  from nbt_curve_components import compose_curve_mask,_component
+  from nbt_mounting.curve_components import compose_curve_mask,_component
   calls=0
   def mutate(*args):
    nonlocal calls
@@ -151,11 +151,11 @@ class CurveComponents(unittest.TestCase):
    if calls==2:self.mutate_component()
    return value
   request=self.request()
-  with patch('nbt_curve_components._component',side_effect=mutate):
+  with patch('nbt_mounting.curve_components._component',side_effect=mutate):
    with self.assertRaisesRegex(ValueError,'变化|哈希|内容'):compose_curve_mask(self.workspace,request)
   self.assertFalse((self.workspace/request['output']).exists())
  def test_source_change_during_candidate_planning_prevents_publication(self):
-  from nbt_curve_components import compose_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask
   from nbt_curved_surface import plan_curve,_calculate
   from curved_surface_fixture import create_curve_fixture
   request=self.request();request['size']=[2,2];request['layers'][0]['counts']=[1,1]
@@ -169,7 +169,7 @@ class CurveComponents(unittest.TestCase):
    with self.assertRaisesRegex(ValueError,'变化|哈希|内容'):plan_curve(self.workspace,fixture)
   self.assertFalse((self.workspace/fixture['output']).exists());self.assertEqual(Path(fixture['source']).read_bytes(),original)
  def test_repeated_identical_cells_are_counted_and_conflicts_rejected(self):
-  from nbt_curve_components import compose_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask
   request=self.request();request['size']=[3,2];request['layers'][0]['spacing']=[1,1]
   result=compose_curve_mask(self.workspace,request);proof=json.loads(Path(result['manifest']).read_text(encoding='utf8'))
   self.assertEqual(proof['stats'][0]['merged_cells'],1)
@@ -183,14 +183,14 @@ class CurveComponents(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'不同动作重叠'):compose_curve_mask(self.workspace,request)
   self.assertFalse((self.workspace/request['output']).exists())
  def test_composed_mask_remains_bound_after_workspace_relocation(self):
-  from nbt_curve_components import compose_curve_mask,verify_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   result=compose_curve_mask(self.workspace,self.request())
   with tempfile.TemporaryDirectory() as parent:
    moved=Path(parent)/'creative';shutil.copytree(self.workspace,moved)
    mask=moved/Path(result['mask']).relative_to(self.workspace)
    self.assertTrue(verify_curve_mask(moved,mask,result['mask_sha256'])['valid'])
  def test_connected_component_is_resolved_offline_and_disabling_invalidates(self):
-  from nbt_curve_components import compose_curve_mask,verify_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   payload=load(self.workspace,self.component['id']);payload.pop('id')
   libraries,source,ref=self.library(payload,'component');ref['content_sha256']=payload['content_sha256']
   request=self.request();request['layers'][0]['source']=dict(kind='library',ref=ref)
@@ -211,7 +211,7 @@ class CurveComponents(unittest.TestCase):
   run=subprocess.run(command,cwd=self.workspace,capture_output=True,text=True,encoding='utf8',timeout=90)
   self.assertNotEqual(run.returncode,0);self.assertRegex(run.stdout,'移除|停用|来源')
  def test_library_version_change_invalidates_mask_and_rollback_restores_it(self):
-  from nbt_curve_components import compose_curve_mask,verify_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   payload=load(self.workspace,self.component['id']);payload.pop('id')
   libraries,source,ref=self.library(payload,'component');ref['content_sha256']=payload['content_sha256']
   request=self.request();request['layers'][0]['source']=dict(kind='library',ref=ref)
@@ -224,7 +224,7 @@ class CurveComponents(unittest.TestCase):
   self.assertTrue(verify_curve_mask(self.workspace,result['mask'],result['mask_sha256'])['valid'])
  def test_bundled_component_is_resolved_without_network(self):
   import nbt_asset_libraries as libraries
-  from nbt_curve_components import compose_curve_mask,verify_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   row=next(item for item in libraries.browse(self.workspace)['items'] if item['source_id']=='bundled' and item['type']=='component')
   ref={key:row[key] for key in ('id','sha256','source_id','version','manifest_sha256')}
   data=libraries.read_asset(self.workspace,ref)['data'];ref['content_sha256']=data['content_sha256']
@@ -246,7 +246,7 @@ class CurveComponents(unittest.TestCase):
   self.assertEqual(run.returncode,0,run.stdout+run.stderr);self.assertTrue(json.loads(run.stdout)['valid'])
  def test_parameterized_library_source_binds_arguments_and_compiled_content(self):
   import nbt_asset_libraries as libraries
-  from nbt_curve_components import compose_curve_mask,verify_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   recipe=dict(schema_version=1,kind='nbtcreator.parametric-recipe',
               arguments=dict(kind='pillar',name='合成柱',size=[3,3,3],material='stone'))
   libraries,source,ref=self.library(recipe,'parametric_recipe');arguments=dict(size=[3,5,3])
@@ -264,7 +264,7 @@ class CurveComponents(unittest.TestCase):
   self.assertFalse((self.workspace/bad['output']).exists())
  def test_bundled_ornament_reports_quantization_on_real_eccentric_host(self):
   import nbt_asset_libraries as libraries
-  from nbt_curve_components import compose_curve_mask
+  from nbt_mounting.curve_components import compose_curve_mask
   from nbt_curved_surface import plan_curve,verify_curve
   from curved_surface_fixture import create_curve_fixture
   row=next(item for item in libraries.browse(self.workspace)['items']

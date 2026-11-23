@@ -157,7 +157,7 @@ def protective_openings(model, config):
 
 
 def validate_whole(model, config):
-    from nbt_change_policy import reserved_position
+    from nbt_composition.change_policy import reserved_position
     from nbt_refine import point
 
     reserved=config.get('reserved_boxes',[])

@@ -3,7 +3,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_tools import modelling_plan
-from nbt_arrays import array_placements
+from nbt_geometry.arrays import array_placements
 class Arrays(unittest.TestCase):
  def setUp(self):
   self.m=Volume((32,20,32));self.m.put((2,2,2),'stone');self.op=dict(kind='array_region',lo=[2,2,2],hi=[2,2,2],mode='path',points=[[10,2,10],[14,2,10],[14,2,14]],spacing=2)

@@ -481,7 +481,7 @@ class LargeAssembly(unittest.TestCase):
             tracemalloc.stop()
 
     def test_shared_walk_inspector_crosses_partitions_and_binds_every_part(self):
-        from nbt_walk_view import inspect_walk
+        from nbt_review.walk_view import inspect_walk
         from nbt_collision import check_routes
         model = AssemblyVolume((300,384,300))
         for x in range(290,299):

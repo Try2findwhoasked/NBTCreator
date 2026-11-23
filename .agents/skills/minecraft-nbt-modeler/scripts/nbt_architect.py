@@ -4,8 +4,8 @@ from pathlib import Path
 from nbt_prompts import inside,relative,index_lock,encode,digest
 from nbt_history import file_hash,now
 from nbt_project_batch import write
-from nbt_request_paths import read_request_json
-from nbt_web_paths import project_paths
+from nbt_project.request_paths import read_request_json
+from nbt_project.web_paths import project_paths
 
 FIELDS={'name':'规范名称','materials':'材质与配色','dimensions':'尺度、层高与门窗','circulation':'道路与通行','style':'风格与构造','references':'参考资料说明','notes':'其他统一要求'}
 
@@ -115,7 +115,7 @@ def versions(workspace,request):
 def dispatch(workspace,action,request):
     workspace=Path(workspace).resolve()
     if not isinstance(request,dict):raise ValueError('工具参数须为对象')
-    from nbt_constraints import ACTIONS,dispatch as constraints
+    from nbt_project.constraints import ACTIONS,dispatch as constraints
     if action in ACTIONS:return constraints(workspace,action,request)
     from nbt_catalog import catalog
     if action in catalog().get('architecture',{}).get('actions',{}):
@@ -163,7 +163,7 @@ def attach_next(workspace, action, request, result, report_file=None):
 
 
 def compact(action, result, report_file):
-    from nbt_diagnostic_delta import summary
+    from nbt_review.diagnostic_delta import summary
 
     report = dict(path=str(report_file), sha256=file_hash(report_file))
     quality = result if action == 'quality-check' and result.get('ok', True) else result.get('quality')
@@ -212,7 +212,7 @@ def compact(action, result, report_file):
 
 def main():
     from nbt_catalog import catalog
-    from nbt_constraints import ACTIONS
+    from nbt_project.constraints import ACTIONS
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['standards-get','standards-save','deliveries','continue','cross-list','cross-save',*ACTIONS,*catalog().get('architecture',{}).get('actions',{})])
     parser.add_argument('--request',type=Path,
                         help='UTF-8 JSON 文件，从命令工作目录读取。JSON 内的制作源和审阅路径以创作工作区为基准。')

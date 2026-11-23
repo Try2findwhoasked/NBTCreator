@@ -9,7 +9,7 @@ import re
 import sqlite3
 from tempfile import TemporaryDirectory
 
-from nbt_text_search import chunks, han_bigrams
+from nbt_knowledge.text_search import chunks, han_bigrams
 
 INDEX = 'architecture.sqlite'
 MAX_DOCUMENT_BYTES = 8*1024**2

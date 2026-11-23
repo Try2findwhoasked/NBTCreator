@@ -5,9 +5,9 @@ from unittest.mock import patch
 import numpy as np
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_structure_agent import dispatch,build
-from nbt_pattern_assets import load
+from nbt_pattern.assets import load
 from nbt_selection_edit import sha
-from nbt_spectral import smooth,kernel_for
+from nbt_pattern.spectral import smooth,kernel_for
 from nbt_modeling_session import ModellingSession
 
 
@@ -84,7 +84,7 @@ class PillarSpectral(unittest.TestCase):
         _,small=smooth(np.ones((8,8)),'disk',1);_,large=smooth(np.ones((256,256)),'disk',20)
         self.assertEqual(small['algorithm'],'numpy_spatial_disk_convolution');self.assertEqual(large['algorithm'],'numpy_real_fft_linear_convolution')
     def test_bandpass_and_asset_writes_stay_out_of_pure_sessions(self):
-        from nbt_spectral import filter_values
+        from nbt_pattern.spectral import filter_values
         source=np.random.default_rng(8).uniform(0,255,(41,37))
         spatial,_=filter_values(source,dict(filter='bandpass',radius=2,outer_radius=7,kernel='disk',method='spatial',normalize=True))
         fft,_=filter_values(source,dict(filter='bandpass',radius=2,outer_radius=7,kernel='disk',method='fft',normalize=True))
@@ -110,7 +110,7 @@ class PillarSpectral(unittest.TestCase):
             with self.assertRaises(ValueError):self.call('pattern_filter',dict(request,**patch_args))
         self.assertEqual(files,{p:p.read_bytes() for p in self.root.rglob('*') if p.is_file()})
     def test_filter_rechecks_image_changed_during_fft_before_creating_an_asset(self):
-        import nbt_spectral
+        import nbt_pattern.spectral as nbt_spectral
         builtin=load(self.root,'builtin:micro-fleur-de-lis');asset=self.call('pattern_assets',dict(action='copy',id=builtin['id'],image_sha256=builtin['image_sha256'],name='测试源'))
         original=nbt_spectral.filter_values;folders=list((self.root/'nbt_models/asset_library/patterns').iterdir())
         def changed(*args):

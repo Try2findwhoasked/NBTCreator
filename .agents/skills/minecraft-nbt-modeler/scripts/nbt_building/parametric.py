@@ -12,11 +12,11 @@ STYLES = {'classic':'框架与收边','stepped':'层叠与加厚','open':'减少
 
 def listing(arguments=None, workspace=None):
     from nbt_structure_agent import definitions
-    from nbt_ornament import PROFILES
-    from nbt_ornament_sample import ARCHITECTURAL_SAMPLES
+    from nbt_pattern.ornament import PROFILES
+    from nbt_pattern.ornament_sample import ARCHITECTURAL_SAMPLES
     from nbt_building.object_forms import THEMES, FORM_FIELDS
     from nbt_building.classical_column import ORDERS
-    from nbt_object_library import library
+    from nbt_assets.object_library import library
     from nbt_building.object_forms import PROFILES as FORM_PROFILES
     arguments=arguments or {}
     return dict(schema_version=1,column_orders=ORDERS,object_library=library(arguments.get('kind'), workspace=workspace),form_profiles=FORM_PROFILES,architectural_samples=ARCHITECTURAL_SAMPLES,themes=THEMES,form_fields=FORM_FIELDS,parameters=definitions()['parametric_compile']['parameters'],
@@ -152,7 +152,7 @@ def compile_object(workspace, arguments):
     spec=dict(name=name,size=list(arguments['size']),anchor=[cx,y,cz] if kind=='ceiling' else [cx,0,0] if kind=='wall' else [cx,0,cz],
               tags=['parametric',kind,style],operations=ops,max_changed_blocks=arguments.get('max_changed_blocks',65536))
     data=build(workspace,spec)
-    from nbt_ornament import decorate
+    from nbt_pattern.ornament import decorate
     ornament=decorate(spec,data,arguments,workspace)
     if ornament['added_or_recolored_blocks']:data=build(workspace,spec)
     end_decorations={}

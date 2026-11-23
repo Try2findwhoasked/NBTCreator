@@ -14,7 +14,7 @@ from nbt_large_assembly import AssemblyVolume,read_assembly,save_assembly,verify
 from nbt_history import History
 from nbt_working_model import WorkingModel
 from nbt_working_model import ModelConflict
-from nbt_assembly_handoff import create_slice,merge_slices
+from nbt_composition.assembly_handoff import create_slice,merge_slices
 from nbt_snbt import read_snbt,save_snbt
 
 

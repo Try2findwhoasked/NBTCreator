@@ -7,7 +7,7 @@ from pathlib import Path
 import shutil
 import uuid
 
-from nbt_web_paths import project_paths
+from nbt_project.web_paths import project_paths
 
 
 def sha(file):

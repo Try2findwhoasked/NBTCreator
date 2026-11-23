@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
 
 from nbt_collision import collision_cells
-from nbt_model_preflight import bounds
+from nbt_composition.preflight import bounds
 from nbt_refine import read_master
 from nbt_working_model import WorkingModel, digest, file_hash, write_json
 

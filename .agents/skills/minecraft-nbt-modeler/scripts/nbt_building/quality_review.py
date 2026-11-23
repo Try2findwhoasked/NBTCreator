@@ -12,7 +12,7 @@ def record_quality(workspace, model, pack, request, manifest_file, manifest_sha2
     scores = request.get('quality_observations', [])
     if not scores:
         return {}
-    from nbt_blind_review import _render
+    from nbt_review.blind_review import _render
 
     # Use the same render verification as anonymous A/B review.
     verified = _render(workspace, dict(manifest=str(manifest_file), sha256=manifest_sha256))

@@ -123,7 +123,7 @@ class StructureAgent(unittest.TestCase):
  def test_stair_orientation_is_inferred_from_image_contours(self):
   from PIL import Image
   from nbt_collision import collision_cells
-  from nbt_ornament_sample import match_silhouette
+  from nbt_pattern.ornament_sample import match_silhouette
   masks={'wall':[(1,1,1,0),(1,1,0,1),(1,0,1,1),(0,1,1,1)],
          'ceiling':[(1,1,0,0),(0,0,1,1),(1,0,1,0),(0,1,0,1)]}
   for surface,variants in masks.items():

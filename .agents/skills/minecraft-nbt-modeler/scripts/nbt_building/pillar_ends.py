@@ -52,8 +52,8 @@ def end_layers(form,part,size,box,material):
 def decorate_ends(workspace,spec,data,args,parts):
     form=args.get('form',{});settings={part:form[part+'_pattern'] for part in ('base','capital') if part+'_pattern' in form}
     if not settings:return spec,data,{}
-    from nbt_pattern_panel import compile_panel
-    from nbt_mount_batch import decorate
+    from nbt_pattern.panel import compile_panel
+    from nbt_mounting.batch import decorate
     from nbt_structure_agent import build
     w,h,d=spec['size'];entries=[];groups={}
     for part,setting in settings.items():

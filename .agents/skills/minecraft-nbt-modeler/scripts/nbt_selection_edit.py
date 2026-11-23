@@ -90,7 +90,7 @@ def dispatch(action,request,snapshot=None):
 
 def main():
     import argparse
-    from nbt_request_paths import read_request
+    from nbt_project.request_paths import read_request
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('action',choices=['context','compile']);parser.add_argument('--request',type=Path,required=True);parser.add_argument('--snapshot',type=Path);args=parser.parse_args()
     try:print(json.dumps(dispatch(args.action,read_request(args.request),args.snapshot),ensure_ascii=False));return 0
     except (ValueError,OSError,KeyError,TypeError) as error:print(json.dumps(dict(error=str(error)),ensure_ascii=False));return 1

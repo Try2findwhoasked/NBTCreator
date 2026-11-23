@@ -7,10 +7,10 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_constraints import dispatch
-from nbt_constraint_registry import builtin_constraints
-from nbt_room_links import add_room_links, read_links
-from nbt_rooms import init_layout, register_room, room_dirs, room_info, update_room
+from nbt_project.constraints import dispatch
+from nbt_project.constraint_registry import builtin_constraints
+from nbt_project.room_links import add_room_links, read_links
+from nbt_project.rooms import init_layout, register_room, room_dirs, room_info, update_room
 from nbt_detail_control import catalog
 from nbt_assembly import Volume
 from nbt_prompts import publish, read_task, save, scan

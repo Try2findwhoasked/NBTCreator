@@ -159,7 +159,7 @@ class Registries(unittest.TestCase):
 
     def test_registry_changes_invalidate_warm_computation_results(self):
         from PIL import Image
-        import nbt_micro_alignment
+        import nbt_pattern.micro_alignment as nbt_micro_alignment
         source=self.root/'pattern.png'
         Image.new('L',(16,16),255).save(source)
         args=dict(surface='wall',size_uv=[2,2],sample=dict(path='pattern.png',sha256=hashlib.sha256(source.read_bytes()).hexdigest(),noise_strength=0))
@@ -199,7 +199,7 @@ class Registries(unittest.TestCase):
         import os
         import subprocess
         script = """from nbt_extensions import RECIPE_COMPILERS, RecipeCompilation
-from nbt_object_scene import engine_hash
+from nbt_composition.object_scene import engine_hash
 RECIPE_COMPILERS.register('local', lambda workspace,args: RecipeCompilation(spec={'material':'MATERIAL'}))
 print(engine_hash())
 """

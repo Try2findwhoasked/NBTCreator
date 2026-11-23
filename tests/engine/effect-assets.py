@@ -3,7 +3,7 @@ import json,sys,tempfile,unittest
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_effect_assets import dispatch
 from nbt_asset_batches import dispatch as batches
-from nbt_asset_organization import organize
+from nbt_assets.organization import organize
 from nbt_refine import read_master
 import nbt_components as components
 

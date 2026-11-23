@@ -505,7 +505,7 @@ class WorkingModels(unittest.TestCase):
         self.assertNotEqual(first['revision'],second['revision'])
         self.assertEqual(m.save_draft()['revision'],second['revision'])
         another = self.new(kind='component')
-        with patch('nbt_object_scene.atomic',side_effect=OSError('synthetic head failure')):
+        with patch('nbt_composition.object_scene.atomic',side_effect=OSError('synthetic head failure')):
             with self.assertRaises(OSError):
                 another.save_draft('指针恢复')
         retried = another.save_draft('指针恢复')
@@ -870,7 +870,7 @@ class WorkingModels(unittest.TestCase):
         m = self.new(kind='component')
         a = m.save_draft('中断重放')
         self.put(m,[1,1,1],'stone')
-        with patch('nbt_object_scene.atomic',side_effect=OSError('head interrupted')):
+        with patch('nbt_composition.object_scene.atomic',side_effect=OSError('head interrupted')):
             with self.assertRaises(OSError):
                 m.save_draft()
         other = WorkingModel.open(self.root,a['source'])

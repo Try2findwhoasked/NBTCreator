@@ -1,7 +1,7 @@
 """Half-step stair/ramp candidates with flat turns and real collision checks."""
 import math
 from nbt_model import AIR_NAMES,state
-from nbt_placement import finish_plan
+from nbt_geometry.placement import finish_plan
 
 
 def stair_plan(model,op,protected=()):

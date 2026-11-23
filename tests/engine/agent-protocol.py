@@ -10,7 +10,7 @@ from nbt_refine import save_master
 from nbt_assembly import Volume
 from nbt_machine import dispatch as machine
 from nbt_task_client import TaskClient, inspect
-from nbt_diagnostic_delta import delta
+from nbt_review.diagnostic_delta import delta
 class Contracts(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.w=Path(self.tmp.name)
@@ -173,7 +173,7 @@ class Contracts(unittest.TestCase):
   return publish(self.w,saved['index'],saved['id'],saved['revision'])
 
  def test_compact_prompt_preserves_stage_constraints_and_verbatim_excerpts(self):
-  from nbt_constraints import checksum
+  from nbt_project.constraints import checksum
   session=uuid.uuid4().hex
   text='完整正文 '+('很长的模板文字 ' * 200)
   purpose='先收卷，再走到庭院。'
@@ -437,7 +437,7 @@ class Contracts(unittest.TestCase):
   import time
   from nbt_agent_tasks import load_index
   from nbt_prompts import index_lock
-  from nbt_web_paths import project_paths
+  from nbt_project.web_paths import project_paths
   from nbt_working_model import publication_lock
   task=self.create();index,_=load_index(self.w);building=project_paths(self.source)['workdir']
   # Signal just before the contender attempts the real cross-process building

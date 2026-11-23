@@ -75,7 +75,7 @@ def main():
     parser.add_argument('--incremental',action='store_true',help='Group current issues even without a baseline')
     args=parser.parse_args()
     try:
-        from nbt_diagnostic_delta import delta,load
+        from nbt_review.diagnostic_delta import delta,load
         if args.incremental or args.baseline or args.kind in ('model','review'):
             result=delta(args.kind,args.report,args.baseline)
         else:

@@ -109,7 +109,7 @@ def checked_preview_snapshot(file):
 
 def publish_render_manifest(output, source, snapshot_data, preview=None, preview_bytes=None, *,
                             camera_file=None, camera_bundle=None, camera_bundle_sha256=None, workspace=None):
-    from nbt_object_scene import atomic
+    from nbt_composition.object_scene import atomic
     from nbt_refine import digest
 
     manifest = output / 'render_manifest.json'
@@ -131,7 +131,7 @@ def publish_render_manifest(output, source, snapshot_data, preview=None, preview
         if camera_bundle is not None or camera_bundle_sha256 is not None:
             if camera_bundle is None or camera_bundle_sha256 is None or camera_file is None or workspace is None:
                 raise ValueError('参考相机清单、哈希和相机文件须同时提供')
-            from nbt_reference_camera import checked_registered_camera
+            from nbt_review.reference_camera import checked_registered_camera
             binding=checked_registered_camera(workspace,camera_bundle,camera_bundle_sha256,camera_file,report.get('width'),report.get('height'))
         if not preview_source_matches(source,snapshot_data) or (preview is not None and preview.read_bytes()!=preview_bytes):
             raise ValueError('Preview/source changed while finalizing render evidence')
@@ -226,7 +226,7 @@ def main():
         if bool(args.camera_bundle)!=bool(args.camera_bundle_sha256):
             raise ValueError('参考相机清单和哈希须同时提供')
         if args.camera_bundle:
-            from nbt_reference_camera import checked_registered_camera
+            from nbt_review.reference_camera import checked_registered_camera
             checked_registered_camera(Path.cwd(),args.camera_bundle,args.camera_bundle_sha256,args.cameras,args.width,args.height)
         if args.output.exists():
             raise FileExistsError('Batch output must be a new directory; preserve reviewed images')

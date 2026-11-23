@@ -7,7 +7,7 @@ import argparse,json,os,re,hashlib,time,shutil
 from pathlib import Path
 from collections import defaultdict,Counter
 from nbt_library import *
-from nbt_web_paths import project_paths
+from nbt_project.web_paths import project_paths
 SKILL=Path(__file__).resolve().parents[1]
 SCOPE={'nbt_models','选择','结构审查_20261101','room_models','dungeon_review_20261030','skill_validation','skill_package_validation','detail_fix_control_web'}
 def scoped_files(workspace):

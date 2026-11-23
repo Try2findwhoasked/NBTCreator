@@ -14,7 +14,7 @@ sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_snbt import save_snbt
 from nbt_task import write_snapshot
-from nbt_blind_review import prepare_review,record_review,verify_review
+from nbt_review.blind_review import prepare_review,record_review,verify_review
 
 
 def sha(file):return hashlib.sha256(Path(file).read_bytes()).hexdigest()
@@ -133,7 +133,7 @@ class BlindReview(unittest.TestCase):
   meta=self.manifests[0].parent/'front.json';data=json.loads(meta.read_text(encoding='utf8'));data['camera']['ortho_height']=99;write(meta,data)
   with self.assertRaisesRegex(ValueError,'元数据|哈希'):prepare_review(self.root,self.request())
  def test_nonfinite_camera_coordinates_never_match(self):
-  from nbt_blind_review import _camera_matches
+  from nbt_review.blind_review import _camera_matches
   camera={k:self.view[k] for k in ('eye','target','up','fov','projection','ortho_height')}
   camera['eye']=[float('inf'),2,-10]
   self.assertFalse(_camera_matches(camera,camera))
@@ -177,7 +177,7 @@ class BlindReview(unittest.TestCase):
   data['approval_created']=True;write(file,data)
   with self.assertRaisesRegex(ValueError,'记录|批准'):verify_review(self.root,pack['binding'],pack['binding_sha256'],file,sha(file))
  def test_observation_changed_during_verification_is_rejected(self):
-  from nbt_blind_review import _pair
+  from nbt_review.blind_review import _pair
   pack=prepare_review(self.root,self.request())
   request=dict(public=pack['public'],public_sha256=pack['public_sha256'],decision='A',actor='agent',
                observations=[dict(view='view-01',note='候选比较',remaining='')],
@@ -188,7 +188,7 @@ class BlindReview(unittest.TestCase):
    value=_pair(*args);calls+=1
    if calls==2:file.write_bytes(file.read_bytes()+b' ')
    return value
-  with patch('nbt_blind_review._pair',side_effect=mutate):
+  with patch('nbt_review.blind_review._pair',side_effect=mutate):
    with self.assertRaisesRegex(ValueError,'记录.*变化'):verify_review(self.root,pack['binding'],pack['binding_sha256'],file,result['record_sha256'])
  def test_shared_and_frozen_cli_keep_review_and_approval_separate(self):
   from nbt_exposure import apply

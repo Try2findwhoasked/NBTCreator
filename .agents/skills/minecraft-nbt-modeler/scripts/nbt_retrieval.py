@@ -9,7 +9,7 @@ import uuid
 from itertools import zip_longest
 from nbt_knowledge import libraries
 from nbt_architecture_knowledge import ALIASES
-from nbt_text_search import chunks, retrieval_query, score
+from nbt_knowledge.text_search import chunks, retrieval_query, score
 
 ROOT=Path(__file__).resolve().parents[1]
 CATALOG=json.loads((ROOT/'tool-catalog.json').read_text(encoding='utf8'))

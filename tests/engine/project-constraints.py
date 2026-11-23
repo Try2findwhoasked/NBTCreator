@@ -3,7 +3,7 @@ import copy,json,sys,tempfile,unittest,uuid
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_architect import dispatch
-from nbt_constraints import validate_snapshot,validate_selection
+from nbt_project.constraints import validate_snapshot,validate_selection
 from nbt_prompts import save,read_prompt
 
 class ProjectConstraints(unittest.TestCase):
@@ -67,7 +67,7 @@ class ProjectConstraints(unittest.TestCase):
   cells=self.call('constraints-save',revision=3,name='横向两格',rules={'cells':[[0,0],[1,0]],'cell_size':32})['saved']
   with self.assertRaisesRegex(ValueError,'超出'):validate_selection([cells],dict(size=[32,24,32]))
  def test_interrupted_new_save_leaves_library_retryable(self):
-  with patch('nbt_constraints.write',side_effect=OSError('interrupted')):
+  with patch('nbt_project.constraints.write',side_effect=OSError('interrupted')):
    with self.assertRaises(OSError):self.create()
   result=self.create();self.assertEqual(result['saved']['revision'],1);validate_snapshot(result['saved'])
  def test_workspaces_are_isolated_and_snapshot_identity_is_bound(self):

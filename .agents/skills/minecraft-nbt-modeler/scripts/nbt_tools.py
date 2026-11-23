@@ -93,7 +93,7 @@ def shape_mask(grid, spec, depth=0):
             return masks[0] & ~masks[1]
         return (np.logical_or if kind == 'union' else np.logical_and).reduce(masks)
     if kind in ('section_sweep', 'loft', 'revolve'):
-        from nbt_section_geometry import section_mask
+        from nbt_geometry.section_geometry import section_mask
         return section_mask(grid, spec)
     if kind == 'box':
         field = grid.box(xyz(spec['min']), xyz(spec['max']))
@@ -164,25 +164,25 @@ def modelling_plan(model, operation, protected=()):
         from nbt_building.roofs import roof_plan
         return roof_plan(model, operation, protected)
     if kind == 'terrain_road':
-        from nbt_terrain_roads import terrain_road_plan
+        from nbt_geometry.terrain_roads import terrain_road_plan
         return terrain_road_plan(model, operation, protected)
     if kind == 'auto_stairs':
         from nbt_building.stairs import stair_plan
         return stair_plan(model, operation, protected)
     if kind == 'array_region':
-        from nbt_arrays import array_plan
+        from nbt_geometry.arrays import array_plan
         return array_plan(model, operation, protected)
     if kind == 'align_region':
-        from nbt_alignment import alignment_plan
+        from nbt_geometry.alignment import alignment_plan
         return alignment_plan(model, operation, protected)
     if kind == 'selection_replace':
-        from nbt_selection import selection_plan
+        from nbt_geometry.selection import selection_plan
         return selection_plan(model, operation, protected)
     if kind == 'paste_component':
         from nbt_components import paste_plan
         return paste_plan(model, operation, protected)
     if kind == 'auto_road':
-        from nbt_roads import road_plan
+        from nbt_geometry.roads import road_plan
         return road_plan(model, operation, protected)
     points = [(x, y, z) for x in range(lo[0], hi[0]+1) for y in range(lo[1], hi[1]+1) for z in range(lo[2], hi[2]+1)]
     domain = set(points); protected = set(map(tuple, protected))

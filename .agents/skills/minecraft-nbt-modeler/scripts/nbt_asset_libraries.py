@@ -503,7 +503,7 @@ def browse(workspace, *, query=None, limit=6):
     if query is not None:
         if not isinstance(query,str) or not query.strip() or len(query)>300:fail('INVALID_REQUEST','输入1～300字的资产名称或标签')
         if type(limit) is not int or not 1<=limit<=32:fail('INVALID_REQUEST','资产检索数量须为1～32')
-        from nbt_text_search import score
+        from nbt_knowledge.text_search import score
     errors = []
     try: config = state(workspace)
     except (OSError, ValueError) as error:

@@ -7,7 +7,7 @@ from nbt_assembly import Volume
 from nbt_refine import save_master,read_master
 from nbt_selection_edit import sha
 from nbt_structure_agent import dispatch
-from nbt_surface_mount import NORMALS
+from nbt_mounting.surface_mount import NORMALS
 
 class Mount(unittest.TestCase):
     def setUp(self):
@@ -60,7 +60,7 @@ class Mount(unittest.TestCase):
         surface=self.fixture();context=self.root/surface['context']
         context.write_text(json.dumps(dict(mode='standalone',openings=[dict(id='gate',lo=[8,4,20],hi=[10,7,20],facing='south')])))
         surface['context_sha256']=sha(context);before=sha(self.root/surface['source'])
-        with patch('nbt_surface_mount._object') as compiled:
+        with patch('nbt_mounting.surface_mount._object') as compiled:
             with self.assertRaisesRegex(ValueError,'实际开洞阶段.*not open'):self.call('surface',surface=surface)
             with self.assertRaisesRegex(ValueError,'实际开洞阶段.*not open'):
                 dispatch(self.root,'pattern_mount',dict(surface=surface,surface_sha256='0'*64,
@@ -184,7 +184,7 @@ class Mount(unittest.TestCase):
                 dict(lo=[3,5,21],hi=[17,12,21])])
 
     def test_route_comparison_detects_blocked_required_leg_with_alternate_path(self):
-        from nbt_mount_review import compare_routes
+        from nbt_mounting.review import compare_routes
         before=Volume((12,6,12));before.box([0,0,0],[11,0,11],'stone')
         after=Volume(before.size);after.blocks=dict(before.blocks)
         after.box([5,1,3],[5,2,3],'stone')

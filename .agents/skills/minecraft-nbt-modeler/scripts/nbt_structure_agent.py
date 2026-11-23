@@ -157,12 +157,12 @@ def _handle_compute_info(workspace,tool,arguments):
 
 
 def _handle_field_compile(workspace,tool,arguments):
-    from nbt_field_compute import compile_field
+    from nbt_geometry.field_compute import compile_field
     return compile_field(workspace,arguments)
 
 
 def _handle_pattern_warp(workspace,tool,arguments):
-    from nbt_deform import create_warped
+    from nbt_geometry.deform import create_warped
     return create_warped(workspace,arguments)
 
 
@@ -172,42 +172,42 @@ def _handle_architecture(workspace,tool,arguments):
 
 
 def _handle_mount_batch(workspace,tool,arguments):
-    from nbt_mount_batch import mount_batch,decorate
+    from nbt_mounting.batch import mount_batch,decorate
     return (mount_batch if tool=='mount_batch' else decorate)(workspace,arguments)
 
 
 def _handle_scene(workspace,tool,arguments):
-    from nbt_object_scene import dispatch_scene
+    from nbt_composition.object_scene import dispatch_scene
     return dispatch_scene(workspace,tool,arguments)
 
 
 def _handle_pattern_filter(workspace,tool,arguments):
-    from nbt_spectral import create_filtered
+    from nbt_pattern.spectral import create_filtered
     return create_filtered(workspace,arguments)
 
 
 def _handle_pattern_repeat_detect(workspace,tool,arguments):
-    from nbt_pattern_repeat import inspect_repeat
+    from nbt_pattern.repeat import inspect_repeat
     return inspect_repeat(workspace,arguments)
 
 
 def _handle_pattern_create(workspace,tool,arguments):
-    from nbt_pattern_design import create
+    from nbt_pattern.design import create
     return create(workspace,arguments)
 
 
 def _handle_pattern_assets(workspace,tool,arguments):
-    from nbt_pattern_assets import dispatch as pattern_assets
+    from nbt_pattern.assets import dispatch as pattern_assets
     return pattern_assets(workspace,arguments)
 
 
 def _handle_pattern_cylinder_mount(workspace,tool,arguments):
-    from nbt_cylinder_pattern import mount_cylinder
+    from nbt_mounting.cylinder_pattern import mount_cylinder
     return mount_cylinder(workspace,arguments)
 
 
 def _handle_pattern(workspace,tool,arguments):
-    from nbt_pattern_panel import compile_panel,library as pattern_library
+    from nbt_pattern.panel import compile_panel,library as pattern_library
     if tool=='pattern_list':
         return dict(patterns=pattern_library(),micro_cylinder_policy=dict(source_surface='column',fit_mode='micro',geometry='actual_halfcube_corner_topology_and_backing_checks_required'))
     result=compile_panel(workspace,dict(arguments,fit_mode='micro') if tool=='pattern_microfit' else arguments)
@@ -223,7 +223,7 @@ def _handle_pattern(workspace,tool,arguments):
 
 
 def _handle_surface(workspace,tool,arguments):
-    from nbt_surface_mount import dispatch as mount_dispatch
+    from nbt_mounting.surface_mount import dispatch as mount_dispatch
     return mount_dispatch(workspace,tool,arguments)
 
 

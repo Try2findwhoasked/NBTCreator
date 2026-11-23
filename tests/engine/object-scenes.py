@@ -132,7 +132,7 @@ class Scenes(unittest.TestCase):
 
     def test_frozen_workspace_can_save_while_source_directory_remains_forbidden(self):
         from nbt_exposure import apply
-        from nbt_object_scene import scene_root
+        from nbt_composition.object_scene import scene_root
         apply(self.root,dict(schema_version=1,enabled_groups=['modelling']))
         facade=self.root/'.agents/skills/nbtcreator-workspace/nbt.py';file=self.root/'request.json'
         def invoke(tool,args):

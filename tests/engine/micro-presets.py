@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'
 sys.path.insert(0, str(SCRIPTS))
 from nbt_structure_agent import dispatch, build, definitions
-from nbt_pattern_panel import LIBRARY
+from nbt_pattern.panel import LIBRARY
 from nbt_collision import collision_cells
 
 

@@ -6,7 +6,7 @@ import sys
 import tempfile
 import unittest
 ROOT=Path(__file__).resolve().parents[2];SCRIPTS=ROOT/'.agents/skills/minecraft-nbt-modeler/scripts';sys.path.insert(0,str(SCRIPTS))
-from nbt_protection_view import mask,ProtectionConflict
+from nbt_review.protection_view import mask,ProtectionConflict
 from nbt_refine import read_master,protections
 from nbt_detail_control import default_settings,preview_effect
 

@@ -17,7 +17,7 @@ import nbt_components as components
 from nbt_assembly import Volume
 from nbt_tools import modelling_plan
 from nbt_refine import operation_candidates
-from nbt_change_policy import enforce_overwrite,enforce_changes
+from nbt_composition.change_policy import enforce_overwrite,enforce_changes
 
 
 def recipe():

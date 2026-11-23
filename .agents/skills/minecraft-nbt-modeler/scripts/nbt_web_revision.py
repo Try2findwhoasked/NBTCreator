@@ -10,8 +10,8 @@ import tempfile
 from nbt_detail_control import read_json,write_json,digest,canonical,preview_effect
 from nbt_refine import read_master,validate,layout,protections,resolve_wall_mask,binary_wall_mask_hash
 from nbt_assembly import Volume
-from nbt_web_paths import project_paths,reserve_version
-from nbt_request_paths import read_request,portable_request
+from nbt_project.web_paths import project_paths,reserve_version
+from nbt_project.request_paths import read_request,portable_request
 from nbt_whole_validation import validation_mode
 
 def resolve_request(file):
@@ -96,7 +96,7 @@ def _convert_web_json(input_file,workdir,resolved):
                 raise ValueError('独立素材的空墙mask须显式设置allow_empty_wall_mask=true')
             if not standalone and any(not any((p[0]//48,p[2]//48)==tuple(cell) for p in walls) for cell in cells):
                 raise ValueError('每个有效分片都需要原稿中明确记录的墙体归属，不能按方块材质猜测')
-        from nbt_change_policy import enforce_changes,change_sets
+        from nbt_composition.change_policy import enforce_changes,change_sets
         difference=enforce_changes(baseline.blocks,model.blocks,base_walls,walls,
             protected=protections(baseline,config),maximum=config['max_changed_blocks'])
         geometry_changed,layers_changed=change_sets(baseline.blocks,model.blocks,base_walls,walls)

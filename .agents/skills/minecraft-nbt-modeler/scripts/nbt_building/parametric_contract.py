@@ -2,7 +2,7 @@
 from copy import deepcopy
 import hashlib,json
 from nbt_model import state, AIR_NAMES
-from nbt_ornament import PROFILES
+from nbt_pattern.ornament import PROFILES
 
 def contract(constraints):
     from nbt_structure_agent import _schema,definitions
