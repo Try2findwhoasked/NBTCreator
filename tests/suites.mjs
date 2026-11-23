@@ -70,6 +70,7 @@ export const suites = {
     python('-B', 'tests/engine/architecture-workflow.py'),
     python('-B', 'tests/engine/space-graph-layouts.py'),
   ],
+  'building-failure-replay': [python('-B', 'tests/engine/building-failure-replay.py')],
   'asset-batches': [
     buildWeb,
     python('tests/engine/asset-batches.py'),

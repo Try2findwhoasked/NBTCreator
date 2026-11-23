@@ -151,6 +151,35 @@ Agent 把自然语言设计转为以下数据，而不是直接猜一串工具�
 
 `architect plan-check` 或普通工作模型的检查/保存会重新执行空间样本、当前构件、梯段、附属构造、承托和风格规则。制作版的 `model-instances.json` 记录方案绑定，核心清单继续校验文件哈希。`inspect` 返回 `architecture_sha256`。没有规则时明确报告风格未作机器验证。
 
+## 建筑活动失败回放
+
+`architect failure-replay` 从同一个已通过的制作版重建方案候选。请求顶层沿用成功 `plan-build` 的 `revision_request`，包含 `source`、`source_sha256` 和 `expected_plan_sha256`。再提供 `failed_plan` 或 `groups`，以及 `failure` 和 `max_checks`。完整字段用 `capabilities --architect-action failure-replay` 查询。
+
+- `failed_plan` 接收完整失败方案。构件、活动等有 ID 的列表在 ID 及顺序一致时逐条拆分。增删或重排的列表整体成组。其余字段各为一组。
+- `groups` 显式指定不可重叠的原子修改。例如 `{"id":"move-cabinet","edits":[{"field":"parts","id":"archive_cabinet","value":{…}}]}` 中的 `value` 是替换后的完整构件记录。省略编辑的 `id` 可替换整个顶层字段，再省略 `value` 可删除字段。有关联的修改可放入同一组。画布、上下文和方案格式版本固定。
+- `failure` 定位具体活动。归卷阁堵梯口使用 `{"kind":"route_segment","activity":"file_books","index":1,"reason":"invalid_or_obstructed_feet_pose"}`。错站柜台侧使用 `{"kind":"use_face","activity":"file_books","index":0,"part":"return_desk","interface":"intake","reason":"wrong_side"}`。序号从零开始。有序空间必须一致。路段匹配还核对原失败的两个脚位，操作面匹配核对命名构件、对象和接口。
+
+先用 `plan-check` 回读固定基线，再验证零差分重建的方块与墙层完全一致。每个不同差分组合消耗一次候选检查，包括零差分和全部差分，基线回读另计。候选复用 `plan-build` 的工作模型、保护规则及实际活动检查。静态碰撞的适用范围仍见[验收说明](validation-workflow.md)。
+
+| 状态 | 含义 |
+| --- | --- |
+| `same_failure` | 实测命中指定活动、位置及原因。保留组见 `remaining_groups`，已有的其他错误仍可在原始回执中查到。 |
+| `different_failure` | 候选失败，且所选活动项已有确定证据，显示该项通过或失败原因或路段脚位不同。 |
+| `pass` | 候选通过建筑检查。 |
+| `unreplayable` | 源或绑定失效，或检查无法得到所选活动项的确定证据，例如中间方案引用无效、较早的检查拦截、未知碰撞形状。 |
+| `budget_exhausted` | 下一项检查超过预算。若已复现目标，仍返回已知最小的差分组。 |
+
+回放先尝试撤回成批差分，再检查剩余组的真子集。 `single_removal_minimal` 表示逐个撤回一组都得到确定的非目标结论。只有所有真子集都得到这样的结论时才设置 `inclusion_minimal`。未检查或无法判断的子集会阻止这项声明。两项声明均受当前差分粒度和静态判据约束。[Zeller 与 Hildebrandt 的差分调试论文](https://www.st.cs.uni-saarland.de/publications/files/zeller-tse-2002.pdf)
+
+请求指定 `output` 时，使用 `nbt_models/_workspaces/failure_replays/<output>` 中的新目录。完整包以 `report.json` 为索引，记录各次检查、原始及缩减证据指针、文件哈希和覆盖。用 `replay.json` 直接重跑，核对 `binding_sha256`、`trace_sha256`、`candidate_checks` 和 `remaining_groups`。绑定覆盖源及版本清单、通过和失败方案、差分、判据、预算和引擎。包依赖原制作版本及其工作区。对修改后的输入可发起新请求。检查结果通过 JSON 状态返回，CLI 参数或目标目录无效时返回非零。包写入失败时报告 `bundle_error`，可换新目录重跑。
+
+```powershell
+mise run nbt -- architect failure-replay --request replay-request.json
+mise run nbt -- architect failure-replay --request nbt_models/_workspaces/failure_replays/stair/replay.json
+```
+
+回放候选在内存中构建，制作版、实际图片确认和显式定稿各沿用原入口。
+
 ## 三层真实看图与问题回写
 
 需要五维分数、证据覆盖率及续版复验时，在编译前登记[整栋建筑质量清单](building-quality.md)，在完成真实出图后将量表观察随 `review-record` 提交。
