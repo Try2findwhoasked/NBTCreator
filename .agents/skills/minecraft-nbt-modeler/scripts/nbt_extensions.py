@@ -184,7 +184,7 @@ for _tool in ('parametric_compile', 'pattern_compile', 'pattern_microfit', 'surf
     RECIPE_COMPILERS.register(_tool, _AgentRecipe(_tool))
 
 for _method in ('install', 'preflight_update', 'update', 'remove', 'detach', 'patch', 'apply_operations',
-                'beam_rhythm', 'adopt_beam_rhythm', 'seal', 'open_declared'):
+                'beam_rhythm', 'adopt_beam_rhythm', 'wavelet_eave', 'adopt_wavelet_eave', 'seal', 'open_declared'):
     MODEL_ACTIONS.register(_method, _ModelAction(_method))
 
 

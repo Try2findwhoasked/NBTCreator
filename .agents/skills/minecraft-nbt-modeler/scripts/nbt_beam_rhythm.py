@@ -183,23 +183,6 @@ class BeamRhythm:
                       material=material_mismatches / expected_count)
         return measured, errors
 
-    def _check_bound_building(self, staged, instances):
-        host = self.host
-        if host.phase != 'opened' and host._architecture is None:
-            return 'not_declared'
-        candidate = copy(host)
-        candidate._adopt_edits(staged, instances)
-        if candidate.phase == 'opened':
-            candidate.validate()
-            return 'opened_passed'
-        from nbt_building.plan import check_model
-        checks = check_model(candidate, candidate._architecture)['checks']
-        blocking = ('retained_constraints', 'activity_routes', 'sample_routes', 'stair_segments', 'bearing_contact')
-        failed = [dict(id=row['id'], kind=row['kind']) for row in checks if row['kind'] in blocking and not row['passed']]
-        if failed:
-            raise ModelConflict('DESIGN_INVALID', failed)
-        return 'architecture_routes_and_contacts_passed'
-
     def _evaluate(self, pitch, start):
         host = self.host
         starts = [start + i * pitch for i in range(self.goal['count'])]
@@ -228,7 +211,7 @@ class BeamRhythm:
             assembly = host._assembly_checks(candidate, instances)
             if not assembly['passed']:
                 raise ModelConflict('ASSEMBLY_INVALID', [check for check in assembly['checks'] if not check['passed']])
-            building_checks = self._check_bound_building(staged, instances)
+            building_checks = host._check_candidate_building(staged, instances)
         except (ModelConflict, ChangePolicyError) as error:
             if getattr(error, 'code', '').startswith(('STALE_', 'CONTEXT_')):
                 raise

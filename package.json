@@ -22,6 +22,7 @@
     "test:fitting-shapes": "python -B tests/engine/fitting-shapes.py && python -B tests/engine/ornament-reference.py && python -B tests/engine/fine-collision-envelopes.py",
     "test:object-scenes": "python -B tests/engine/object-scenes.py",
     "test:beam-rhythm": "python -B tests/engine/beam-rhythm.py",
+    "test:wavelet-eave": "python -B tests/engine/wavelet-eave.py",
     "test:model-workflow": "python -B tests/engine/working-model.py && python -B tests/engine/large-assembly.py && python -B tests/engine/large-handoff.py && python -B tests/engine/scene-interfaces.py && python -B tests/engine/object-scenes.py",
     "test:large-assembly": "python -B tests/engine/large-assembly-scale.py",
     "test:reference-views": "python -B tests/engine/reference-views.py && python -B tests/engine/blind-review.py",

@@ -165,6 +165,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
 | --- | --- | --- | --- | --- |
 | 按间距与材质目标生成梁架候选 | 命令 `model --request <请求JSON>` |  | 在 actions 中使用 beam_rhythm，填写梁架目标、世界修改区域和允许起点。用 capabilities --model 查字段。 | 返回通过宿主约束的排序、实测差异和拒绝坐标。可写候选预览，由 adopt_beam_rhythm 明确选择。 |
+| 移植单个开间的檐底细节 | 命令 `model --request <请求JSON>` |  | 在 actions 使用 wavelet_eave。填写实际目标与参考檐边、方向、屋脊和细节尺度。用 capabilities --model 查字段。 | 返回目标与实测半格曲线、实际改动、轮廓和接缝复验。看真实预览后可用 adopt_wavelet_eave 选择。 |
 
 ### 检查
 

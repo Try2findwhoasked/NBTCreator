@@ -31,6 +31,7 @@
 | 参数化构件与几何回归 | `mise run test -- parametric` |
 | 主模型、对象关系与接口 | `mise run model:test` |
 | 梁架节奏、同谱异位、约束与显式采用 | `mise run test -- beam-rhythm` |
+| 单开间檐底小波移植、真实方块回读、轮廓与接缝拒绝 | `mise run test -- wavelet-eave` |
 | 大型组装、四片楼梯冲突、恢复及同机位渲染 | `mise run test -- large-assembly` |
 | 三视配准、回投影与匿名审阅绑定 | `mise run test -- reference-views` |
 | 曲面实际宿主、分层叠放、纹样、背衬与候选回放 | `mise run test -- curved-surface` |
