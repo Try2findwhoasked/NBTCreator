@@ -8,7 +8,7 @@
 
 | 版本 | 记录 |
 | --- | --- |
-| 5.0.1 | [梁架局部匹配、重复纹样与檐底移植](releases/RELEASE_5.0.1.md) |
+| 5.1.0 | [结构打开提速、建模增强与引擎模块整理](releases/RELEASE_5.1.0.md) |
 | 4.3.0 | [外部 Agent 知识检索与 AI 提示词编辑](releases/RELEASE_4.3.0.md) |
 | 4.2.0 | [知识检索、建模与 Agent 版本校验](releases/RELEASE_4.2.0.md) |
 | 4.1.0 | [编辑会话与发布冲突恢复](releases/RELEASE_4.1.0.md) |
