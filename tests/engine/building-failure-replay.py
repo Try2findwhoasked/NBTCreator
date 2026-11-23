@@ -76,6 +76,7 @@ def verify_bundle(workspace, result):
 
 
 def exercise(output):
+    output = output.resolve()
     assert_nonmonotone_search()
     workspace = output / 'workspace'
     workspace.mkdir(parents=True)
