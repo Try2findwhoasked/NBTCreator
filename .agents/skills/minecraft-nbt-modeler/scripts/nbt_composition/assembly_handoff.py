@@ -7,13 +7,14 @@ from pathlib import Path
 import tempfile
 
 from nbt_assembly import Volume
-from nbt_composition.large_assembly import MAX_MANIFEST_BYTES, _part_path, _workspace_path, require_creative_workspace
+from nbt_composition.large_assembly import MAX_BLOCKS, MAX_MANIFEST_BYTES, _part_path, _workspace_path, require_creative_workspace
 from nbt_snbt import read_snbt,save_snbt
 from nbt_composition.working_model import WorkingModel, ModelConflict, digest, empty_volume, model_hash, point, value_at
 
 MAX_BOXES = 100_000
 MAX_PROTECTED_CELLS = 2_000_000
 MAX_HANDOFF_BYTES = 16*1024*1024
+MAX_SLICE_BATCH = 16
 
 
 def _bounds(value, label):
@@ -92,8 +93,18 @@ def _protected_boxes(model, context, routes, region):
 
 def create_slice(workspace,request):
     workspace=require_creative_workspace(workspace)
-    if not isinstance(request,dict) or set(request)-{'source','source_sha256','context','region','write_bounds','output'}:
+    if not isinstance(request, dict):
         raise ValueError('组装切片请求字段无效')
+    fields = {'source', 'source_sha256', 'context'}
+    slice_fields = {'region', 'write_bounds', 'output'}
+    batch = 'slices' in request
+    if set(request) - (fields | ({'slices'} if batch else slice_fields)):
+        raise ValueError('组装切片请求字段无效')
+    slices = request['slices'] if batch else [{key: request.get(key) for key in slice_fields}]
+    if not isinstance(slices, list) or not 1 <= len(slices) <= MAX_SLICE_BATCH:
+        raise ValueError(f'每次须签发 1 至 {MAX_SLICE_BATCH} 个切片')
+    if any(not isinstance(item, dict) or set(item) != slice_fields for item in slices):
+        raise ValueError('切片须包含 region、write_bounds 和 output')
     source=_workspace_path(workspace,request.get('source'))
     if not source.is_relative_to(workspace/'nbt_models'):
         raise ValueError('组装切片源须位于工作区 nbt_models')
@@ -103,6 +114,23 @@ def create_slice(workspace,request):
     working=WorkingModel.open(workspace,source,request.get('context'),source_sha256=expected)
     if not working._assembly_binding:
         raise ValueError('切片源须为组装制作源')
+
+    regions = [_slice_spec(workspace, working, item) for item in slices]
+    destinations = [item[-1] for item in regions]
+    unique = set(destinations)
+    if len(unique) != len(destinations) or any(unique.intersection(path.parents) for path in destinations):
+        raise ValueError('同批切片输出目录须各自独立')
+    routes = _route_report(working.model, working.context)
+    host_hash = model_hash(working.model, working.walls)
+    locals_with_walls = _slice_geometry(working, regions)
+    receipts = [
+        _write_slice(workspace, working, source, expected, host_hash, routes, region, local, walls)
+        for region, (local, walls) in zip(regions, locals_with_walls)
+    ]
+    return dict(slices=receipts, source_sha256=expected, approval_created=False) if batch else receipts[0]
+
+
+def _slice_spec(workspace, working, request):
     lo,hi=_bounds(request.get('region'),'切片范围')
     size=tuple(hi[i]-lo[i]+1 for i in range(3))
     if any(n>294 for n in size):raise ValueError('切片每轴最多294格')
@@ -115,7 +143,33 @@ def create_slice(workspace,request):
         raise ValueError('切片输出须为 assembly-handoffs 下的新目录')
     if destination.exists() and (not destination.is_dir() or not ((destination/'.slice-publication.json').is_file() or (destination/'slice.json').is_file())):
         raise ValueError('切片输出目录已被占用，无法安全重试')
-    routes=_route_report(working.model,working.context)
+    return lo, hi, size, writable_lo, writable_hi, destination
+
+
+def _slice_geometry(working, regions):
+    buckets = {}
+    results = []
+    for lo, hi, size, *_ in regions:
+        local, walls = Volume(size), set()
+        results.append((local, walls))
+        for x in range(max(0, lo[0]) // 32, min(working.model.size[0] - 1, hi[0]) // 32 + 1):
+            buckets.setdefault(x, []).append((lo, hi, local, walls))
+    total = 0
+    for p, value in working.model.blocks.items():
+        for lo, hi, local, walls in buckets.get(p[0] // 32, ()):
+            if all(a <= v <= b for v, a, b in zip(p, lo, hi)):
+                total += 1
+                if total > MAX_BLOCKS:
+                    raise ValueError('本批切片包含的方块过多，请分批签发')
+                translated = tuple(v - a for v, a in zip(p, lo))
+                local.blocks[translated] = value
+                if p in working.walls:
+                    walls.add(translated)
+    return results
+
+
+def _write_slice(workspace, working, source, expected, host_hash, routes, region, local, walls):
+    lo, hi, size, writable_lo, writable_hi, destination = region
     protected=_protected_boxes(working.model,working.context,routes,(lo,hi))
     writable_local_lo=tuple(writable_lo[i]-lo[i] for i in range(3))
     writable_local_hi=tuple(writable_hi[i]-lo[i] for i in range(3))
@@ -128,11 +182,6 @@ def create_slice(workspace,request):
             protected.add((tuple(a),tuple(b)))
     if len(protected)>MAX_BOXES or sum(math.prod(b[i]-a[i]+1 for i in range(3)) for a,b in protected)>MAX_PROTECTED_CELLS:
         raise ValueError('切片保护范围过大，请缩小切片')
-    local=Volume(size);walls=set()
-    for p,value in working.model.blocks.items():
-        if all(lo[i]<=p[i]<=hi[i] for i in range(3)):
-            translated=tuple(p[i]-lo[i] for i in range(3));local.blocks[translated]=value
-            if p in working.walls:walls.add(translated)
     context=dict(mode='standalone',openings=[],protected_boxes=[dict(lo=list(a),hi=list(b)) for a,b in sorted(protected)])
     destination.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.slice-',dir=destination.parent) as temporary:
@@ -141,7 +190,7 @@ def create_slice(workspace,request):
         if len(context_raw)>MAX_HANDOFF_BYTES:raise ValueError('切片保护配置过大')
         (stage/'coordinates.json').write_bytes(context_raw)
         record=dict(schema_version=1,kind='nbtcreator-assembly-slice',source=source.relative_to(workspace).as_posix(),
-                    source_sha256=expected,source_model_sha256=model_hash(working.model,working.walls),
+                    source_sha256=expected,source_model_sha256=host_hash,
                     assembly_partitions=[dict(file=name,sha256=sha) for name,sha in working._assembly_binding[2]],
                     origin=list(lo),size=list(size),write_bounds=dict(lo=list(writable_lo),hi=list(writable_hi)),
                     baseline=dict(file='baseline.snbt',sha256=saved['source_sha256']),

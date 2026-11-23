@@ -302,6 +302,64 @@ def wrapped_recipe(workspace,part):
     return dict(tool='scene_compile',arguments=dict(graph=dict(schema_version=1,name=part['id'],size=data['size'],objects=[node])))
 
 
+def literal_structure(part):
+    from nbt_extensions import AGENT_TOOLS, RECIPE_COMPILERS, _AgentRecipe, _LazyTool, _structure_recipe
+
+    recipe = part['recipe']
+    if recipe['tool'] != 'structure':
+        return False
+    arguments = recipe['arguments']
+    operations = arguments.get('operations')
+    return (
+        not arguments.get('placements') and not arguments.get('include_air')
+        and isinstance(operations, list) and operations
+        and all(isinstance(op, dict) and op.get('kind') in ('box', 'beam', 'frame', 'hollow_box', 'paste_component')
+                for op in operations)
+        and RECIPE_COMPILERS.resolve('structure') is _structure_recipe
+        and RECIPE_COMPILERS.resolve('scene_compile') == _AgentRecipe('scene_compile')
+        and AGENT_TOOLS.resolve('scene_compile') == _LazyTool('nbt_agent.structure', '_handle_scene', 'scene_compile')
+    )
+
+
+def part_build_key(part, instance):
+    return fingerprint([part, instance])
+
+
+def instance_values(instances, names):
+    return {tuple(row['pos']): row['after'] for name in names for row in instances[name]['baseline']}
+
+
+def replay_part(model, identifier, old):
+    values = instance_values({identifier: old}, [identifier])
+    instance, edits = model._install_rows(identifier, old['recipe'], old['transform'], values,
+                                         old['compiled'], model._owned_positions())
+    model._commit_edits(edits, model.instances | {identifier: instance})
+
+
+def connection_build_key(spec, receipt, groups, instances, engine):
+    return fingerprint([spec, receipt, [instances[name] for name in groups], engine])
+
+
+def reusable_connection(model, spec, previous, instances, engine, budget):
+    identifier = spec['id']
+    key = previous.get('reusable_connections', {}).get(identifier)
+    groups = previous.get('connections', {}).get(identifier, [])
+    if not key or not groups or any(name not in instances for name in groups):
+        return None
+    receipt = previous['systems'][identifier]
+    if connection_build_key(spec, receipt, groups, instances, engine) != key:
+        return None
+    voxels = instance_values(instances, groups)
+    if len(voxels) > budget:
+        return None
+    permits_matching_state = spec['kind'] == 'beam_link'
+    for point, (value, _) in voxels.items():
+        current = model.get(point)
+        if current not in AIR_NAMES and (not permits_matching_state or current != value):
+            return None
+    return voxels, receipt
+
+
 def preflight(workspace,request):
     from nbt_collision import state_support
     from nbt_composition.scene_interfaces import InterfaceError
@@ -356,8 +414,19 @@ def preflight(workspace,request):
 
 
 def build(workspace,request):
+    from nbt_runtime.modeling_session import engine_revision_scope
+
+    with engine_revision_scope() as verify_revision:
+        result = _build(workspace, request, verify_revision)
+        if 'save_draft' not in request and not request.get('output'):
+            verify_revision()
+        return result
+
+
+def _build(workspace, request, verify_revision):
     from nbt_composition.working_model import ModelConflict,WorkingModel,value_at,model_hash
-    from nbt_building.construction_systems import CONSTRUCTION_SYSTEMS
+    from nbt_composition.object_scene import engine_hash
+    from nbt_building.construction_systems import CONSTRUCTION_SYSTEMS, beam_link, bearing_block
     from nbt_building.quality import BLOCKING_CODES, assess, from_model
     plan=select(workspace,request);resolved=resolve(plan);workspace=Path(workspace).resolve()
     source=request.get('source')
@@ -388,6 +457,8 @@ def build(workspace,request):
         for identifier in reversed(previous['generated_instances']):
             if identifier in scratch.instances:scratch.remove(identifier)
     binding=dict(schema_version=1,sha256=fingerprint(plan),plan=plan,parts={},generated_instances=[],systems={},connections={},stairs={},envelope_groups=[],retained_policies=deepcopy((previous or {}).get('retained_policies',{})))
+    binding['reusable_parts'] = {}
+    binding['reusable_connections'] = {}
     for identifier,instance in original.instances.items():
         policy=instance['compiled'].get('policy',{})
         if any(policy.get(key) for key in ('protected_boxes','reserved_boxes','routes')):
@@ -397,9 +468,23 @@ def build(workspace,request):
     if resolved.get('envelope'):
         voxels,receipt=CONSTRUCTION_SYSTEMS.resolve('enclosure')(scratch.model,resolved['envelope'],budget)
         binding['envelope_groups']=install_geometry(scratch,'env',voxels);binding['generated_instances']+=binding['envelope_groups'];binding['systems']['envelope']=receipt
+    reusable = {}
+    reused, compiled = [], []
+    prior_keys = (previous or {}).get('reusable_parts', {})
+    engine = engine_hash()
     for part in resolved['parts']:
         identifier=part_id(part['id'])
-        scratch.install(identifier,wrapped_recipe(workspace,part),part['position'],quarter_turns=part.get('quarter_turns',0),mirror=part.get('mirror'))
+        old = original.instances.get(identifier)
+        if literal_structure(part):
+            reusable[identifier] = part
+        if (identifier in reusable and identifier in prior_keys and old
+                and old['compiled']['engine_sha256'] == engine and part_build_key(part, old) == prior_keys[identifier]):
+            replay_part(scratch, identifier, old)
+            reused.append(part['id'])
+        else:
+            scratch.install(identifier, wrapped_recipe(workspace, part), part['position'],
+                            quarter_turns=part.get('quarter_turns', 0), mirror=part.get('mirror'))
+            compiled.append(part['id'])
         binding['parts'][part['id']]=identifier;binding['generated_instances'].append(identifier)
     for stair in resolved['stairs']:
         try:
@@ -412,11 +497,27 @@ def build(workspace,request):
             raise
         identifiers=install_geometry(scratch,'stair_'+stair['id'],voxels)
         binding['generated_instances']+=identifiers;binding['systems'][stair['id']]=receipt;binding['stairs'][stair['id']]=identifiers
+    reusable_connections = {}
+    reused_connections, compiled_connections = [], []
+    builtin_connections = {'beam_link': beam_link, 'bearing_block': bearing_block}
     for relation in resolved['connections']:
         spec=dict(relation,_surfaces=[surface(scratch,binding,relation[key]) for key in ('from','to')])
-        voxels,receipt=CONSTRUCTION_SYSTEMS.resolve(relation['kind'])(scratch.model,spec,budget)
+        generator = CONSTRUCTION_SYSTEMS.resolve(relation['kind'])
+        builtin = generator is builtin_connections[relation['kind']]
+        cached = reusable_connection(scratch.model, spec, previous or {}, original.instances, engine, budget) if builtin else None
+        if cached is None:
+            voxels, receipt = generator(scratch.model, spec, budget)
+            compiled_connections.append(relation['id'])
+        else:
+            voxels, receipt = cached
+            reused_connections.append(relation['id'])
         identifiers=install_geometry(scratch,'joint_'+relation['id'],voxels)
         binding['generated_instances']+=identifiers;binding['systems'][relation['id']]=receipt;binding['connections'][relation['id']]=identifiers
+        # Do not reuse incomplete footprints when coincident owned voxels were skipped.
+        if builtin and instance_values(scratch.instances, identifiers) == {
+            pos: list(value) for pos, value in voxels.items()
+        }:
+            reusable_connections[relation['id']] = (spec, receipt, identifiers)
     for identifier,instance in original.instances.items():
         if identifier not in previous_ids:
             scratch.instances[identifier]['compiled']['policy']=deepcopy(instance['compiled'].get('policy',{}))
@@ -433,9 +534,22 @@ def build(workspace,request):
         raise
     # Engine-declared carving updates every generated part's current baseline.
     # Retain owned-air records so the next rebuild can safely remove the same group.
+    carved_instances = set()
     for identifier in binding['generated_instances']:
-        for row in scratch.instances[identifier]['baseline']:
-            row['after']=value_at(scratch.model,scratch.walls,tuple(row['pos']))
+        instance = scratch.instances[identifier]
+        carved = False
+        for row in instance['baseline']:
+            after = value_at(scratch.model, scratch.walls, tuple(row['pos']))
+            carved |= row['after'] != after
+            row['after'] = after
+        if identifier in reusable and not carved:
+            binding['reusable_parts'][identifier] = part_build_key(reusable[identifier], instance)
+        if carved:
+            carved_instances.add(identifier)
+    for identifier, (spec, receipt, groups) in reusable_connections.items():
+        if not carved_instances.intersection(groups):
+            binding['reusable_connections'][identifier] = connection_build_key(
+                spec, receipt, groups, scratch.instances, engine)
     positions=set(original.model.blocks)|set(scratch.model.blocks)|original.walls|scratch.walls
     edits=[dict(pos=list(p),before=value_at(original.model,original.walls,p),after=value_at(scratch.model,scratch.walls,p)) for p in sorted(positions)
         if value_at(original.model,original.walls,p)!=value_at(scratch.model,scratch.walls,p)]
@@ -467,10 +581,14 @@ def build(workspace,request):
         raise
     if not report['architecture']['passed']:raise ValueError('建筑方案实际检查未通过：'+json.dumps(report['architecture'],ensure_ascii=False))
     result=dict(plan_sha256=binding['sha256'],checks=report,model=original.inspect(),asset_written=False,approval_created=False,nbt_exported=False)
+    result['rebuild'] = dict(reused_parts=reused, compiled_parts=compiled,
+                             reused_connections=reused_connections, compiled_connections=compiled_connections)
     if request.get('output'):
+        verify_revision()
         output=inside(workspace,request['output']);result['preview']=original.preview(output,[])
     if 'save_draft' in request:
-        saved = original.save_draft(name_zh=request['save_draft'].get('name_zh', plan['name']))
+        saved = original.save_draft(name_zh=request['save_draft'].get('name_zh', plan['name']),
+                                    before_publish=verify_revision)
         result['saved'] = saved
         result['revision_request'] = dict(source=saved['source'], source_sha256=saved['source_sha256'],
                                           expected_plan_sha256=result['plan_sha256'])

@@ -1,0 +1,24 @@
+{
+  "arguments": {
+    "accent": "acacia_planks",
+    "form": {
+      "border": 1,
+      "frame_depth": 1,
+      "profile": "doorway"
+    },
+    "kind": "frame",
+    "material": "acacia_planks",
+    "name": "镇政厅 · 金合欢木敞廊框",
+    "size": [
+      9,
+      6,
+      3
+    ]
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

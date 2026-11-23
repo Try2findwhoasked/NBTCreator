@@ -59,6 +59,8 @@ mise run nbt -- render --source nbt_models/standalone/example/v01/master/assembl
 
 在创作工作区运行 `mise run nbt -- assembly slice --request slice-request.json`。回执包含 `manifest`、`manifest_sha256`、`baseline` 和 `context`。保留**签发时**的清单哈希，由协调方自行提交回装请求；不能把片作者修改后重新计算的清单哈希当成原授权。局部 SNBT 的坐标以回执 `origin` 为原点；随附 `coordinates.json` 保护只读邻区，以及已声明的保护、保留、开口和全局路线扫掠净空及支撑。若声明起终点或路线段，签发前会实际走测；未声明路线时 `routes_checked` 为 `false`，不代表通行通过。单片每轴不超过 294 格，投影保护范围合计最多 200 万格。签发中断后可用相同请求重试；已有文件与发布记录不匹配时会拒绝覆盖，需检查或选择新目录。
 
+同一宿主可一次签发多个切片。用 `slices` 数组取代顶层的 `region`、`write_bounds` 和 `output`，每个元素各填这三个字段。宿主及全局路线检查在批内共享，回执的 `slices` 按请求顺序给出单片回执。每批最多 16 片，切片内的方块总数最多 400 万，输出目录须互相独立。每片各自校验并发布，中断后可重试同一批，已签发的切片按原哈希复用。
+
 片作者使用该 `baseline` 和 `context` 通过 `model` 生成局部 SNBT 候选，并向协调方提供候选路径及 SHA256。回装请求中的 `context` 须与签发时同一组宿主约束一致：
 
 ```json

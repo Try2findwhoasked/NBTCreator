@@ -1,0 +1,236 @@
+{
+  "arguments": {
+    "kind": "spectral_repeat",
+    "name": "镇政厅 · 侧廊连续窗",
+    "period": 3,
+    "phase": 0,
+    "size": [
+      30,
+      7,
+      2
+    ],
+    "spectrum": {
+      "channels": [
+        {
+          "cells": [
+            [
+              0,
+              0,
+              1
+            ],
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              1,
+              1,
+              1
+            ],
+            [
+              2,
+              0,
+              0
+            ],
+            [
+              2,
+              1,
+              1
+            ],
+            [
+              3,
+              0,
+              0
+            ],
+            [
+              3,
+              1,
+              1
+            ],
+            [
+              4,
+              0,
+              0
+            ],
+            [
+              4,
+              1,
+              1
+            ],
+            [
+              5,
+              0,
+              0
+            ],
+            [
+              5,
+              1,
+              1
+            ],
+            [
+              6,
+              0,
+              0
+            ]
+          ],
+          "coefficients": [
+            [
+              0.333333333333,
+              0.0
+            ],
+            [
+              0.333333333333,
+              0.0
+            ]
+          ]
+        },
+        {
+          "cells": [
+            [
+              0,
+              0,
+              1
+            ],
+            [
+              1,
+              0,
+              5
+            ],
+            [
+              1,
+              1,
+              2
+            ],
+            [
+              2,
+              0,
+              5
+            ],
+            [
+              3,
+              0,
+              5
+            ],
+            [
+              4,
+              0,
+              5
+            ],
+            [
+              5,
+              0,
+              5
+            ],
+            [
+              5,
+              1,
+              4
+            ],
+            [
+              6,
+              0,
+              0
+            ],
+            [
+              6,
+              1,
+              2
+            ]
+          ],
+          "coefficients": [
+            [
+              0.333333333333,
+              0.0
+            ],
+            [
+              -0.166666666667,
+              -0.288675134595
+            ]
+          ]
+        },
+        {
+          "cells": [
+            [
+              0,
+              0,
+              1
+            ],
+            [
+              1,
+              0,
+              5
+            ],
+            [
+              1,
+              1,
+              2
+            ],
+            [
+              2,
+              0,
+              5
+            ],
+            [
+              3,
+              0,
+              5
+            ],
+            [
+              4,
+              0,
+              5
+            ],
+            [
+              5,
+              0,
+              5
+            ],
+            [
+              5,
+              1,
+              3
+            ],
+            [
+              6,
+              0,
+              0
+            ],
+            [
+              6,
+              1,
+              2
+            ]
+          ],
+          "coefficients": [
+            [
+              0.333333333333,
+              0.0
+            ],
+            [
+              -0.166666666667,
+              0.288675134595
+            ]
+          ]
+        }
+      ],
+      "depth": 2,
+      "height": 7,
+      "palette": [
+        "minecraft:acacia_planks",
+        "minecraft:birch_planks",
+        "minecraft:birch_slab[type=bottom,waterlogged=false]",
+        "minecraft:birch_stairs[facing=east,half=top,shape=straight,waterlogged=false]",
+        "minecraft:birch_stairs[facing=west,half=top,shape=straight,waterlogged=false]",
+        "minecraft:white_stained_glass"
+      ],
+      "samples": 3
+    }
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

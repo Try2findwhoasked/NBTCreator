@@ -106,6 +106,26 @@ Agent 把自然语言设计转为以下数据，而不是直接猜一串工具�
 
 `plan-save` 使用父 `revision` 保存不可变方案修订，`plan-get` 可取指定版本。它们位于 `nbt_models/_workspaces/project_design/plans/`。`plan-build` 使用内联 `plan` 或 `plan_id`，两者选一；包含 `save_draft:{}` 时才发布 SNBT 制作版。
 
+### 先比较粗布局
+
+用 `architect layout-search --request layout.json` 在精做梁架、窗列和饰件前比较同一外壳内的摆法。请求填 `plan` 或已保存的 `plan_id`，其余字段可用 `capabilities --architect-action layout-search` 查询。粗方案至少需要能支撑行走的围护、楼板、梯段、关键工位及活动站位。
+
+`variables` 中每个变量有 `id`、一起移动的 `targets` 和备选 `offsets`，每项位移写成 `[dx, dz]`。例如归卷阁可将 `{"kind":"part","id":"archive_cabinet"}` 配上 `[[0,0],[0,5],[1,5]]`，再为 `{"kind":"stop","id":"file_books","index":0}` 提供独立站位偏移。组合上限为 24。候选按总位移从小到大排序。
+
+| 目标 kind | 位移作用 |
+| --- | --- |
+| `part` | 构件的放置位置 |
+| `stair` | 梯段起点、终点和操作包围盒 |
+| `space` | 空间边界、空间采样点及其活动站位 |
+| `space-extent` | 空间 X/Z 上界，可改变平面面积 |
+| `stop` | 指定活动内的站位，`index` 从 0 开始 |
+| `route-target` | `context.targets` 中的命名终点 |
+| `review-location` | 对应的审阅位置 |
+
+若移动楼梯会改变活动站位、必要路线目标或审阅位置，可在同一个变量中登记这些目标。用 `areas` 指定空间的最小和最大平面格数，用 `adjacency` 指定两空间 XZ 包围盒之间允许的空格数。楼层之间实际能否连通由原有梯段及活动检查验证。
+
+回执的 `attempts` 列出各方案的空间条件和技术失败证据，`candidates` 给出最多三份可继续编辑的 `plan`；空数组表示这一批组合均未通过。选定后用实际方案调整视角、完善构造，再交给 `architect plan-build` 保存并出图。
+
 生成顺序是围护、普通构件、梯段、连接件、按项目要求验密闭、处理已声明洞口、全模型与设计检查、可选保存。候选在临时工作模型中组合，提交仍由原 WorkingModel 执行总预算、保护、留白、原对象图政策和路线检查。任何失败都不发布新制作版。生成几何超过构件存储尺度时，只机械分组，不重新设计接缝。
 
 已有源必须同时提供 `source`、`source_sha256`、`expected_plan_sha256`。续版不能暗改画布、保护、开口或路线。构件保留 ID；受管位置若被手改则报冲突，由 Agent 先判断保留或调整方案。无关自由几何保留，旧源不覆盖。重建也保留原对象图声明的保护、留白和路线。

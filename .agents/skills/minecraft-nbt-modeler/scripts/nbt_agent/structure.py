@@ -123,7 +123,7 @@ def _camera(data,hint):
                 up=[0,0,-1] if abs(hint.get('elevation',25))>89 else [0,1,0],fov=55)
 
 
-def preview(workspace,data,spec=None,reference_sources=None):
+def preview(workspace,data,spec=None,reference_sources=None,*,camera_hint=None):
     from nbt_assembly import Volume
     from nbt_refine import save_master
     from nbt_task import write_snapshot
@@ -133,7 +133,8 @@ def preview(workspace,data,spec=None,reference_sources=None):
     for x,y,z,index,wall in data['blocks']:
         model.put((x,y,z),data['palette'][index])
         if wall:walls.add((x,y,z))
-    camera=_camera(data,(spec or {}).get('camera',{}));source=directory/'draft.master.json.gz';save_master(source,model,walls)
+    camera=_camera(data,camera_hint if camera_hint is not None else (spec or {}).get('camera',{}))
+    source=directory/'draft.master.json.gz';save_master(source,model,walls)
     snapshot=directory/'snapshot.json';view=write_snapshot(source,snapshot,cameras=[camera]);view['name']=data['name']
     snapshot.write_text(json.dumps(view,ensure_ascii=False,separators=(',',':')),encoding='utf8')
     cameras=directory/'cameras.json';cameras.write_text(json.dumps([camera],ensure_ascii=False),encoding='utf8')

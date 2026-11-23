@@ -1,0 +1,136 @@
+{
+  "arguments": {
+    "kind": "spectral_repeat",
+    "name": "图书馆 · 三联书架墙",
+    "period": 4,
+    "phase": 0,
+    "size": [
+      12,
+      4,
+      2
+    ],
+    "spectrum": {
+      "channels": [
+        {
+          "cells": [
+            [
+              0,
+              0,
+              1
+            ],
+            [
+              0,
+              1,
+              0
+            ],
+            [
+              1,
+              0,
+              1
+            ],
+            [
+              1,
+              1,
+              0
+            ],
+            [
+              2,
+              0,
+              1
+            ],
+            [
+              2,
+              1,
+              0
+            ],
+            [
+              3,
+              1,
+              1
+            ]
+          ],
+          "coefficients": [
+            [
+              0.75,
+              0.0
+            ],
+            [
+              0.0,
+              -0.25
+            ],
+            [
+              0.25,
+              0.0
+            ]
+          ]
+        },
+        {
+          "cells": [
+            [
+              0,
+              0,
+              1
+            ],
+            [
+              0,
+              1,
+              1
+            ],
+            [
+              1,
+              0,
+              1
+            ],
+            [
+              1,
+              1,
+              1
+            ],
+            [
+              2,
+              0,
+              1
+            ],
+            [
+              2,
+              1,
+              1
+            ],
+            [
+              3,
+              1,
+              1
+            ]
+          ],
+          "coefficients": [
+            [
+              0.25,
+              0.0
+            ],
+            [
+              0.0,
+              0.25
+            ],
+            [
+              -0.25,
+              0.0
+            ]
+          ]
+        }
+      ],
+      "depth": 2,
+      "height": 4,
+      "palette": [
+        "minecraft:bookshelf",
+        "minecraft:oak_planks"
+      ],
+      "samples": 4
+    }
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

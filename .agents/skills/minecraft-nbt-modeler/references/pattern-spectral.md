@@ -1,5 +1,11 @@
 # 纹样频域滤波
 
+## 复用建筑中的重复构造
+
+在素材库搜索 `GDMC`，选择窗列、屋顶尖饰或摊棚条纹。在配方里修改宽度、周期和相位后点击“更新预览”，可按当前参数复制或放置。周期用方块格数表示，正相位沿构件局部 +X 方向平移。保持宽度并增大周期，同一跨里的重复次数会减少。高度和深度来自原作截面。
+
+`spectral_repeat` 配方将相同的 YZ 截面归为一类，对各类别沿 X 的 0/1 信号分别执行 `rfft(norm="forward")`，按频率递增保存实部和虚部。第 k 项对应 k/samples 周期/格，系数的模和辐角给出幅值和相位。引擎逆变换得到原生周期的截面顺序，再按目标周期选取原截面，最后按宽度裁切。读取已登记的配方并覆盖顶层 `period`、`phase`、`size` 即可通过 `asset-libraries preview` 复用。灰度图模糊和锐化仍使用下文的 `pattern_filter`。
+
 `pattern_filter` 读取带实际图像SHA的纹样资产，生成一个新的灰度纹样资产。默认可用已有NumPy；backend=gpu/auto可使用[可选GPU后端](compute-transforms.md)，compute回执记录实际运行位置。它不新增SciPy依赖、不覆盖源图或建筑。内置ID可由 pattern_assets get 读取；工作区资产同样使用 id / image_sha256。外部图片先按原资产导入流程保存。
 
 ```json
