@@ -1,5 +1,6 @@
 """Source-bound three-scale review, issue localization and explicit game handoff."""
 from copy import deepcopy
+from hashlib import sha256
 import json
 import math
 from pathlib import Path
@@ -93,10 +94,33 @@ def delivery_summary(validation, pack, observed, covered, issues, manual=()):
     return lines
 
 
+def view_geometry(model, binding, view):
+    if view.get('target_part'):
+        _, points = actual_part(model, binding, view['target_part'])
+        box = bounds(points)
+        default_target = [(lo + hi) / 2 for lo, hi in zip(box['lo'], box['hi'])]
+    else:
+        points = set(model.model.blocks)
+        default_target = [v / 2 for v in model.model.size]
+    return view_sample_points(points, view), view.get('target') or default_target
+
+
+def camera_eye(view):
+    if 'feet' not in view:
+        return view['eye']
+    x, y, z = view['feet']
+    return [x, y + 1.62, z]
+
+
 def prepare(workspace,request):
     from nbt_collision import _Space
     model=load_model(workspace,request);validation=model.validate();binding=model.architecture
     plan=binding['plan']
+    authored_ids = [view['id'] for view in plan['views']]
+    selected = request.get('view_ids', authored_ids)
+    if len(set(selected)) != len(selected) or not set(selected) <= set(authored_ids):
+        raise ValueError('审阅机位须引用不同的原方案机位 ID')
+    omitted = [identifier for identifier in authored_ids if identifier not in selected]
     overrides=request.get('view_overrides',[])
     if overrides:
         authored={view['id']:view for view in plan['views']}
@@ -107,6 +131,8 @@ def prepare(workspace,request):
                 raise ValueError('补拍机位须引用不同的原方案机位 ID')
             if view.get('layer')!=authored[identifier]['layer']:
                 raise ValueError('补拍机位须沿用原层级：'+identifier)
+            if identifier not in selected:
+                raise ValueError('补拍机位须包含在本次选取的机位中：'+identifier)
             replacements[identifier]=view
         plan=normalize(dict(plan,views=[replacements.get(view['id'],view) for view in plan['views']]))
     plan=resolve(plan);space=_Space(model.model)
@@ -114,14 +140,11 @@ def prepare(workspace,request):
     if output.is_relative_to(model.source.parent.parent):raise ValueError('审阅包不能写入已发布制作版目录')
     cameras=[];checks=[]
     for view in plan['views']:
+        if view['id'] not in selected:
+            continue
         if ('feet' in view)==('eye' in view):raise ValueError('视角须选择真实脚位feet或外部eye之一：'+view['id'])
-        pose=view.get('feet');eye=[pose[0],pose[1]+1.62,pose[2]] if pose else view['eye']
-        if view.get('target_part'):
-            _,points=actual_part(model,binding,view['target_part']);box=bounds(points)
-            target=view.get('target') or [(box['lo'][i]+box['hi'][i])/2 for i in range(3)]
-        else:
-            points=set(model.model.blocks);target=view.get('target') or [v/2 for v in model.model.size]
-        points=view_sample_points(points,view)
+        pose=view.get('feet');eye=camera_eye(view)
+        points,target=view_geometry(model,binding,view)
         if sum((eye[i]-target[i])**2 for i in range(3))<.01:raise ValueError('视角方向长度为零')
         seen=visibility(model.model,eye,points,target,view.get('fov',60))
         standing=space.standing(pose) if pose else None
@@ -155,12 +178,14 @@ def prepare(workspace,request):
     data=dict(schema_version=1,source=relative(workspace,model.source),source_sha256=model.source_sha256,
         model_sha256=model.inspect()['model_sha256'],plan_sha256=binding['sha256'],
         cameras='cameras.json',cameras_sha256=file_hash(output/'cameras.json'),views=checks,
-        coverage_passed=all(row['passed'] for row in checks) and all(row['passed'] for row in locations),
+        coverage_passed=not omitted and all(row['passed'] for row in checks) and all(row['passed'] for row in locations),
         review_locations=locations,required_layers=['massing','structure','detail'],
         visual_status='awaiting_actual_images_and_observations',aesthetics='not_certified',approval_created=False)
     data['delivery_summary'] = delivery_summary(validation, data, set(), set(), [])
     if overrides:
         data['overridden_views']=list(replacements)
+    if omitted:
+        data['omitted_views'] = omitted
     write(output/'review-pack.json',data)
     bindings = dict(pack=relative(workspace, output/'review-pack.json'), pack_sha256=file_hash(output/'review-pack.json'),
                     render_manifest=relative(workspace, output/'render/render_manifest.json'), revision=0)
@@ -169,16 +194,41 @@ def prepare(workspace,request):
         render_command=['render','--source',str(model.source),'--cameras',str(output/'cameras.json'),'--output',str(output/'render')])
 
 
-def load_pack(workspace,request):
+def load_pack_model(workspace,request):
     file=inside(workspace,request['pack'])
-    if file_hash(file)!=request['pack_sha256']:raise ValueError('审阅包已变化')
-    pack=json.loads(file.read_text(encoding='utf8'));source=inside(workspace,pack['source'])
+    raw = file.read_bytes()
+    if sha256(raw).hexdigest()!=request['pack_sha256']:raise ValueError('审阅包已变化')
+    pack=json.loads(raw);source=inside(workspace,pack['source'])
     cameras=(file.parent/pack['cameras']).resolve()
     if not cameras.is_relative_to(file.parent.resolve()):raise ValueError('审阅机位路径越界')
     if file_hash(source)!=pack['source_sha256'] or file_hash(cameras)!=pack['cameras_sha256']:raise ValueError('审阅源或机位已变化')
     model=load_model(workspace,dict(source=pack['source'],source_sha256=pack['source_sha256']))
     if model.architecture['sha256']!=pack['plan_sha256'] or model.inspect()['model_sha256']!=pack['model_sha256']:raise ValueError('审阅包与制作源的方案或几何身份不符')
+    return file,pack,model
+
+
+def load_pack(workspace,request):
+    file,pack,_=load_pack_model(workspace,request)
     return file,pack
+
+
+def load_observations(workspace, file, pack, pack_sha256, notes_sha256):
+    notes_file = inside(workspace, file.parent / 'review-notes.json')
+    with notes_file.open('rb') as stream:
+        raw = stream.read(8 * 1024 * 1024 + 1)
+    if len(raw) > 8 * 1024 * 1024 or sha256(raw).hexdigest() != notes_sha256:
+        raise ValueError('指定审阅观察已变化或过大')
+    notes = json.loads(raw)
+    if notes['pack_sha256'] != pack_sha256 or any(notes.get(key) != pack[key] for key in ('source', 'source_sha256', 'plan_sha256')):
+        raise ValueError('观察记录与审阅包或制作源不一致')
+    history = inside(workspace, file.parent / 'observations' / f"{notes['revision']}-{fingerprint(notes)}.json")
+    if file_hash(history) != notes_sha256:
+        raise ValueError('观察未绑定已登记的审阅修订')
+    for observation in notes['observations']:
+        row = notes['images'][observation['image']]
+        if file_hash(inside(workspace, row['path'])) != row['sha256'] or file_hash(inside(workspace, row['metadata'])) != row['metadata_sha256']:
+            raise ValueError('原图像证据已变化')
+    return notes
 
 
 def record(workspace,request):
@@ -238,7 +288,7 @@ def record(workspace,request):
             observations=request['observations'],images=images,issues=issues,covered_layers=sorted(layers),
             covered_locations=covered_locations,missing_locations=missing_locations,delivery_summary=summary,
             manual_location_observations=manual,
-            observations_complete=observed == set(views) and not missing_locations,
+            observations_complete=not pack.get('omitted_views') and observed == set(views) and not missing_locations,
             coverage_complete=set(pack['required_layers'])<=layers and pack['coverage_passed'] and not missing_locations,
             status='observations_recorded',aesthetics='requires_agent_and_user_judgment',approval_created=False,game='not_checked')
         data.update(quality_data)
@@ -259,7 +309,6 @@ def record(workspace,request):
 
 def verify_for_return(workspace,review,expected):
     """Accept recorded three-scale review evidence without preparing a second thumbnail set."""
-    from hashlib import sha256
     from PIL import Image
 
     notes_file=inside(workspace,review/'review-notes.json')
@@ -274,7 +323,7 @@ def verify_for_return(workspace,review,expected):
     if file_hash(history)!=expected:raise ValueError('三尺度审阅未绑定实际登记的观察修订')
     views={row['id']:row['layer'] for row in pack['views']}
     observed={row['image'] for row in notes['observations']}
-    if set(notes['images'])!=set(views) or set(views)!=observed or not {'massing','structure','detail'}<=set(views.values()):
+    if pack.get('omitted_views') or set(notes['images'])!=set(views) or set(views)!=observed or not {'massing','structure','detail'}<=set(views.values()):
         raise ValueError('回传需要全景、构造和细部的实际图像与观察记录')
     for row in notes['images'].values():
         path=inside(workspace,row['path'])

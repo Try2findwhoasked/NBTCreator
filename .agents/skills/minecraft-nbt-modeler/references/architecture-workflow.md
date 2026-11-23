@@ -165,6 +165,14 @@ Agent 把自然语言设计转为以下数据，而不是直接猜一串工具�
 
 机位失败或需要补拍时，可用同一 `source` 和 `source_sha256` 再执行 `review-prepare`，指定新的 `output`。在 `view_overrides` 中放入要替换的完整机位，沿用原机位的 `id` 和 `layer`，按需调整 `feet` 或 `eye`、`target` 与 `sample_box`。字段用 `capabilities --architect-action plan-save --field plan.views` 查询。新包沿用原方案的位置绑定，重新检查取景和位置可见性。按新包的 `render_command` 出图并实际看图，再用新包的回执登记观察。原制作版和原审阅记录仍可回查。
 
+### 自动推荐补拍机位
+
+从创作目录的 CLI 运行 `architect review-recommend --request 补拍请求.json`。将原 `review-prepare` 回执的 `pack`、`pack_sha256` 和新目录 `output` 填入请求。已有看图记录时，将同一审阅包的 `review-record.sha256` 填入 `notes_sha256`。推荐先核对登记修订和图像证据，再跳过已有观察的位置。可用 `locations` 限定本次要看的登记位置 ID。省略观察哈希时，选中的位置均进入补拍考虑范围。
+
+默认最多估计 128 个相机候选并推荐 3 张图，分别可用 `max_candidates`（1–512）和 `max_images`（1–16）调整。搜索从原机位、附近活动脚位、路线脚位和登记位置的邻域出发，检查半格支撑和玩家净空，沿用原机位的视场、层级、构件或局部取样范围。候选通过射线和原视角最低可见比例后，优先选择能增加最多位置覆盖的机位。搜索统计含实际进入估计的候选数、探测脚位、跳过的重复相机和耗时。取景估计适用约 1.5–16 格的观察距离，搜索范围有限，进场路线与画面辨识度仍需另查。
+
+`recommendations` 含脚位、视向与预计覆盖的位置。查看 `pending_locations` 的失败计数和遮挡格，区分候选预算、遮挡、未知形状和视角门槛。可见性未知的细件保留待看状态。将有结果时返回的 `next.request` 原样交给 `review-prepare`，再运行 `render_command` 出图。该请求用 `view_ids` 只渲染选中的机位。补拍包可独立登记实际观察，省略机位的包会报告 `omitted_views`，完整三层审阅的回传仍需要全套机位和真实图片。人工看图确认和显式定稿仍按原流程执行。
+
 `review-prepare` 的 `coverage.delivery_summary` 列出落盘模型上已查的目标与操作面，观察数从零开始。实际看图并调用 `review-record` 后，取其 `delivery_summary` 回报用户。每条摘要区分可达目标、专项路线、已记观察的机位与位置、取景失败和待回查问题。补充一条从图片读到的具体结论，并附当前源、图片与记录路径。未登记活动、未看位置和未实测的游戏项目按其实际范围说明。
 
 ## 目标游戏验收

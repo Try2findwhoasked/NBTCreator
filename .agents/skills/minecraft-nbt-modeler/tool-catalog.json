@@ -1353,9 +1353,17 @@
         "title": "准备建筑审阅",
         "call": "architect review-prepare --request <请求JSON>",
         "contract": "capabilities --architect-action review-prepare",
-        "input": "JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换失败机位。",
+        "input": "JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换机位，单独出图时用 view_ids 选择机位。",
         "result": "复验保存源并写审阅包及相机；coverage_passed 是机位覆盖检查，visual_status 表示仍待看图（完整回执在 coverage 下）。",
         "next": "运行回执的 render_command 出图，保留同份回执的 review_record_bindings。"
+      },
+      {
+        "title": "推荐建筑审阅补拍机位",
+        "call": "architect review-recommend --request <请求JSON>",
+        "contract": "capabilities --architect-action review-recommend",
+        "input": "填原审阅 pack、pack_sha256 和新 output。可填已登记的 notes_sha256、待补位置及搜索预算。",
+        "result": "按半格脚位和实际模型估计取景，返回推荐机位、预计覆盖与待补原因。",
+        "next": "有推荐时将 next.request 交给 review-prepare，再出图并实际查看。"
       },
       {
         "title": "从制作源渲染实际图片",
@@ -35329,6 +35337,60 @@
           "previous"
         ]
       },
+      "review-recommend": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "pack": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "pack_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          },
+          "notes_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}",
+            "description": "可选 review-record.sha256。核对登记修订与实际图片后跳过已观察位置。"
+          },
+          "output": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "description": "交给 review-prepare 的新审阅目录。推荐本身为只读操作。"
+          },
+          "locations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 128,
+            "description": "可选的登记位置 ID。省略时搜索所有尚无绑定观察的位置。",
+            "items": {
+              "type": "string",
+              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}$"
+            }
+          },
+          "max_images": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16,
+            "default": 3
+          },
+          "max_candidates": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 512,
+            "default": 128,
+            "description": "进入取景与遮挡估计的相机候选上限。站立探测和重复候选另计。"
+          }
+        },
+        "required": [
+          "pack",
+          "pack_sha256",
+          "output"
+        ]
+      },
       "review-prepare": {
         "type": "object",
         "additionalProperties": false,
@@ -35346,6 +35408,16 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 2048
+          },
+          "view_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "description": "只准备列出的原方案机位。省略时仍准备全部机位。",
+            "items": {
+              "type": "string",
+              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}$"
+            }
           },
           "view_overrides": {
             "type": "array",
