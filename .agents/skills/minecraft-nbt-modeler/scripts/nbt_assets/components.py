@@ -310,4 +310,6 @@ def main():
         else:result=placement(load(args.workspace,args.id),xyz(args.position),xyz(args.size),args.quarter_turns,args.mirror,args.overwrite)
         print(json.dumps(dict(ok=True,result=result),ensure_ascii=False));return 0
     except (ValueError,OSError,TypeError,KeyError,AssertionError) as error:
-        print(json.dumps(dict(ok=False,error=str(error)),ensure_ascii=False));return 1
+        from nbt_composition.scene_relations import scene_error_fields
+        result=dict(ok=False,error=str(error),**scene_error_fields(error))
+        print(json.dumps(result,ensure_ascii=False));return 1

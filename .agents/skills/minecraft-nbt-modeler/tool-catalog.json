@@ -20238,7 +20238,7 @@
       }
     },
     "scene_compile": {
-      "description": "按稳定对象ID、尺寸引用和贴附关系编译建筑对象图；检查依赖、实际接触、重叠、保留空间与声明通路，只返回候选。",
+      "description": "按稳定对象ID、尺寸引用和贴附关系编译建筑对象图；检查依赖、实际接触、重叠、保留空间、声明通路与关系锁，只返回候选。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -20247,6 +20247,98 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+              "relation_locks": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "fixed_position"
+                          ]
+                        },
+                        "object": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "interface": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "position_half": {
+                          "type": "array",
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 128
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "kind",
+                        "object",
+                        "position_half"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "interface_contact"
+                          ]
+                        },
+                        "object": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "target": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "object": {
+                              "type": "string",
+                              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                            },
+                            "interface": {
+                              "type": "string",
+                              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                            }
+                          },
+                          "required": [
+                            "object",
+                            "interface"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "kind",
+                        "object",
+                        "target"
+                      ]
+                    }
+                  ]
+                }
+              },
               "schema_version": {
                 "type": "integer",
                 "enum": [
@@ -20664,15 +20756,115 @@
       }
     },
     "scene_save": {
-      "description": "显式保存对象图和编译快照的新版本；校验候选内容与父版本，保留旧版，不写建筑或定稿NBT。",
+      "description": "显式保存对象图和编译快照的新版本；校验候选、父版本及保留或明确解除的关系锁，保留旧版，不写建筑或定稿NBT。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "release_locks": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "string",
+              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+            }
+          },
           "graph": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
+              "relation_locks": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "fixed_position"
+                          ]
+                        },
+                        "object": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "interface": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "position_half": {
+                          "type": "array",
+                          "minItems": 3,
+                          "maxItems": 3,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 128
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "kind",
+                        "object",
+                        "position_half"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "interface_contact"
+                          ]
+                        },
+                        "object": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "target": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "object": {
+                              "type": "string",
+                              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                            },
+                            "interface": {
+                              "type": "string",
+                              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                            }
+                          },
+                          "required": [
+                            "object",
+                            "interface"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "kind",
+                        "object",
+                        "target"
+                      ]
+                    }
+                  ]
+                }
+              },
               "schema_version": {
                 "type": "integer",
                 "enum": [
@@ -21156,7 +21348,7 @@
       }
     },
     "scene_update": {
-      "description": "修改已有对象并按依赖联动重算，复验整图，检查原保护区与修改预算；返回候选，须另用scene_save保存新版本。",
+      "description": "预览已有对象、纹样或关系锁的修改，按依赖联动重算，验证接触与原约束；返回实际方块差分及候选，或可定位的冲突。候选须另用scene_save保存。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -21177,6 +21369,121 @@
             "minLength": 64,
             "maxLength": 64,
             "pattern": "[a-f0-9]{64}"
+          },
+          "add_locks": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "fixed_position"
+                      ]
+                    },
+                    "object": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "interface": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "position_half": {
+                      "type": "array",
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 128
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "object",
+                    "position_half"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "interface_contact"
+                      ]
+                    },
+                    "object": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                    },
+                    "target": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "object": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        },
+                        "interface": {
+                          "type": "string",
+                          "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+                        }
+                      },
+                      "required": [
+                        "object",
+                        "interface"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "object",
+                    "target"
+                  ]
+                }
+              ]
+            }
+          },
+          "release_locks": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "string",
+              "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,63}"
+            }
+          },
+          "diff_offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65536
+          },
+          "diff_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2048
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120000
           },
           "changes": {
             "type": "array",

@@ -210,7 +210,10 @@ export const suites = {
     python('-B', 'tests/engine/structural-members.py'),
     python('-B', 'tests/engine/window-frames.py'),
   ],
-  'object-scenes': [python('-B', 'tests/engine/object-scenes.py')],
+  'object-scenes': [
+    python('-B', 'tests/engine/object-scenes.py'),
+    python('-B', 'tests/engine/scene-interfaces.py'),
+  ],
   'parametric': [
     python('-B', 'tests/engine/parametric-components.py'),
     python('-B', 'tests/engine/structure-agent.py'),
