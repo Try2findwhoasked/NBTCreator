@@ -151,7 +151,7 @@ def stair_system(model, specification, budget):
     for index,(a,b) in enumerate(zip(report['feet'],report['feet'][1:]),1):
         route=check_routes(candidate,a,[b],max_poses=1000)
         if not route['passed']:
-            from nbt_working_model import ModelConflict
+            from nbt_composition.working_model import ModelConflict
             raise ModelConflict('STAIR_ROUTE_FAILED',[dict(instance=specification.get('id'),segment=index,
                 start=a,end=b,report=route)])
     return voxels,dict(kind='stair_system',feet=report['feet'],route_segments=report['route_segments'],positions=all_positions+[list(p) for p in voxels],borrowed_floor=borrowed,

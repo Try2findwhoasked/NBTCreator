@@ -37,9 +37,9 @@ GROUPS={
 
 def sync_runtime(workspace):
     """Copy a verified local runtime, preserving any previous or edited snapshot."""
-    from nbt_render_runtime import write_render_binding
+    from nbt_runtime.render import write_render_binding
     write_render_binding(workspace, ENGINE)
-    from nbt_history import write_git_binding
+    from nbt_project.history import write_git_binding
     write_git_binding(workspace,ENGINE)
     files=[]
     for directory,dirs,names in os.walk(ENGINE):
@@ -464,7 +464,7 @@ raise SystemExit(subprocess.call([sys.executable,'-B',str(engine/'scripts'/scrip
     from nbt_knowledge.libraries import atomic
     from nbt_paths import python_versions
     metadata=json.loads((runtime/'runtime-manifest.json').read_text(encoding='utf8'))
-    from nbt_render_runtime import synced_browser_version
+    from nbt_runtime.render import synced_browser_version
     binding=dict(python=python_versions(),bundle_sha256=metadata['bundle_sha256'],electron=os.environ.get('NBTCREATOR_ELECTRON_VERSION'),
                  chromium=synced_browser_version(ENGINE))
     atomic(folder/'engine-runtime.json',(json.dumps(binding,ensure_ascii=False,indent=2)+'\n').encode('utf8'))

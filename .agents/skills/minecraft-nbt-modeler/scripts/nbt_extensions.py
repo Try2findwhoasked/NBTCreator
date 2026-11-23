@@ -122,7 +122,7 @@ class _AgentRecipe:
     tool: str
 
     def __call__(self, workspace, arguments):
-        from nbt_structure_agent import dispatch
+        from nbt_agent.structure import dispatch
         if arguments.get('preview') or arguments.get('review'):
             raise ValueError('纯配方编译不接收预览或审阅写入选项')
         result = dispatch(workspace, self.tool, arguments)
@@ -177,7 +177,7 @@ _TOOL_GROUPS = {
 }
 for _handler, _tools in _TOOL_GROUPS.items():
     for _tool in _tools:
-        AGENT_TOOLS.register(_tool, _LazyTool('nbt_structure_agent', _handler, _tool))
+        AGENT_TOOLS.register(_tool, _LazyTool('nbt_agent.structure', _handler, _tool))
 
 RECIPE_COMPILERS.register('structure', _structure_recipe)
 for _tool in ('parametric_compile', 'pattern_compile', 'pattern_microfit', 'surface_decorate',
@@ -200,8 +200,8 @@ def revision_token():
 def compile_recipe(workspace, recipe):
     """Shared by object scenes and the working model, including local plugins."""
     from copy import deepcopy
-    from nbt_structure_agent import build
-    from nbt_components import validate
+    from nbt_agent.structure import build
+    from nbt_assets.components import validate
     if not isinstance(recipe, dict) or set(recipe) != {'tool', 'arguments'} or not isinstance(recipe['arguments'], dict):
         raise ValueError('构件配方须含 tool 和 arguments 对象')
     result = RECIPE_COMPILERS.resolve(recipe['tool'])(workspace, deepcopy(recipe['arguments']))

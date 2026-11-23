@@ -11,13 +11,13 @@ ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/ski
 from nbt_assembly import Volume
 from nbt_refine import save_master
 from nbt_task import write_snapshot
-from nbt_feedback_tasks import dispatch
+from nbt_agent.feedback_tasks import dispatch
 
 def sha(file):return hashlib.sha256(Path(file).read_bytes()).hexdigest()
 
 class FeedbackTasks(unittest.TestCase):
  def test_durable_retry_does_not_duplicate_group_or_require_unchanged_live_evidence(self):
-  from nbt_agent_protocol import ProtocolError
+  from nbt_agent.protocol import ProtocolError
   listing=self.call('list');member=listing['comments'][0];request=dict(self.request,request_id='feedback-retry-0001',revision=0,title='真实分组',members=[dict(key=member['key'],evidence_sha256=member['evidence_sha256'])]);result=dispatch(self.workspace,'create',request)
   self.assertEqual(dispatch(self.workspace,'create',request),result)
   with self.assertRaises(ProtocolError) as failure:dispatch(self.workspace,'create',dict(request,title='不同意图'))

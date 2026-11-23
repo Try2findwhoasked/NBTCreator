@@ -88,7 +88,7 @@ class BlindReview(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'观察字段'):record_review(self.root,request)
   self.assertFalse((self.root/request['output']).exists())
  def test_observation_reference_region_binds_registered_image_and_bounds(self):
-  from nbt_reference_views import register_reference
+  from nbt_review.reference_views import register_reference
   folder=self.root/'reference-input';folder.mkdir();views={}
   for name,u,v in [('front','x','-y'),('side','z','-y'),('top','x','z')]:
    file=folder/(name+'.png');Image.new('RGB',(64,64),'white').save(file)
@@ -114,14 +114,14 @@ class BlindReview(unittest.TestCase):
    cwd=self.root,capture_output=True,text=True,encoding='utf8',timeout=60)
   self.assertEqual(run.returncode,0,run.stdout+run.stderr);cli_record=json.loads(run.stdout)
   self.assertTrue(verify_review(self.root,pack['binding'],pack['binding_sha256'],cli_record['record'],cli_record['record_sha256'])['valid'])
-  from nbt_reference_views import load_reference
+  from nbt_review.reference_views import load_reference
   record_file=Path(result['record']);original=record_file.read_bytes();calls=0
   def mutate_during_reference_verification(*args):
    nonlocal calls
    value=load_reference(*args);calls+=1
    if calls==2:record_file.write_bytes(original+b' ')
    return value
-  with patch('nbt_reference_views.load_reference',side_effect=mutate_during_reference_verification):
+  with patch('nbt_review.reference_views.load_reference',side_effect=mutate_during_reference_verification):
    with self.assertRaisesRegex(ValueError,'记录.*变化'):verify_review(self.root,pack['binding'],pack['binding_sha256'],result['record'],result['record_sha256'])
   record_file.write_bytes(original)
   request['output']='nbt_models/_workspaces/reference-reviews/out-of-bounds.json';region['hi']=[64,30]

@@ -179,7 +179,7 @@ def modelling_plan(model, operation, protected=()):
         from nbt_geometry.selection import selection_plan
         return selection_plan(model, operation, protected)
     if kind == 'paste_component':
-        from nbt_components import paste_plan
+        from nbt_assets.components import paste_plan
         return paste_plan(model, operation, protected)
     if kind == 'auto_road':
         from nbt_geometry.roads import road_plan

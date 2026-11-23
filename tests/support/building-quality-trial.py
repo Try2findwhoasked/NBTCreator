@@ -13,8 +13,8 @@ sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_review.blind_review import verify_review
 from nbt_building.review import load_model
 from nbt_building.workflow import dispatch
-from nbt_prompts import inside, relative
-from nbt_working_model import value_at
+from nbt_project.prompts import inside, relative
+from nbt_composition.working_model import value_at
 
 REVIEW_FIELDS = ('pack', 'pack_sha256', 'notes_sha256')
 

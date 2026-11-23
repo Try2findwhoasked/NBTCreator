@@ -7,8 +7,8 @@ import uuid
 
 from nbt_extensions import HandlerRegistry
 from nbt_model import AIR_NAMES, state
-from nbt_prompts import inside, relative, index_lock, encode, digest
-from nbt_project_batch import write
+from nbt_project.prompts import inside, relative, index_lock, encode, digest
+from nbt_project.queues import write
 
 DESIGN_CHECKS=HandlerRegistry('building_design_checks')
 
@@ -17,13 +17,13 @@ def fingerprint(value):return digest(encode(value))
 
 
 def contract():
-    from nbt_catalog import catalog
+    from nbt_runtime.catalog import catalog
     return catalog()['architecture']
 
 
 def normalize(plan):
-    from nbt_structure_agent import _schema
-    from nbt_whole_validation import check_opening_policy, requires_enclosure, validation_mode
+    from nbt_agent.structure import _schema
+    from nbt_composition.whole_validation import check_opening_policy, requires_enclosure, validation_mode
     if len(json.dumps(plan,ensure_ascii=False,allow_nan=False).encode())>1024*1024:raise ValueError('建筑方案超过1MiB')
     _schema(plan,contract()['plan'],'建筑方案')
     plan=deepcopy(plan)
@@ -36,7 +36,7 @@ def normalize(plan):
         raise ValueError('要求密闭时须提供实际室内探针')
     check_opening_policy(context, context.get('openings', []))
     if 'standards_snapshot' in plan:
-        from nbt_architect import validate_standard
+        from nbt_project.architect import validate_standard
         validate_standard(plan['standards_snapshot'])
     for field in ('parts','stairs','connections','rules'):
         plan.setdefault(field,[])
@@ -111,7 +111,7 @@ def resolve(plan):
             return deepcopy(result)
         return {key:visit(item,stack) for key,item in value.items()}
     result=visit(root)
-    from nbt_structure_agent import _schema
+    from nbt_agent.structure import _schema
     _schema(result,contract()['plan'],'解析后的建筑方案')
     def vector(value,integer=False):
         if not isinstance(value,list) or len(value)!=3 or any(type(v) not in ((int,) if integer else (int,float)) or not isfinite(v) for v in value):raise ValueError('建筑坐标需要三个有限数值')
@@ -288,7 +288,7 @@ def wrapped_recipe(workspace,part):
     try:
         data, metadata = compile_recipe(workspace, recipe)
     except ValueError as error:
-        from nbt_working_model import ModelConflict
+        from nbt_composition.working_model import ModelConflict
         if getattr(error, 'conflicts', None):
             raise ModelConflict(error.code, [
                 {'coordinate_space': 'recipe', **row, 'part': part['id']} for row in error.conflicts
@@ -305,7 +305,7 @@ def wrapped_recipe(workspace,part):
 def preflight(workspace,request):
     from nbt_collision import state_support
     from nbt_composition.scene_interfaces import InterfaceError
-    from nbt_working_model import WorkingModel
+    from nbt_composition.working_model import WorkingModel
     resolved=resolve(select(workspace,request))
     model=WorkingModel(workspace,resolved['size'])
     parts=[]
@@ -356,7 +356,7 @@ def preflight(workspace,request):
 
 
 def build(workspace,request):
-    from nbt_working_model import ModelConflict,WorkingModel,value_at,model_hash
+    from nbt_composition.working_model import ModelConflict,WorkingModel,value_at,model_hash
     from nbt_building.construction_systems import CONSTRUCTION_SYSTEMS
     from nbt_building.quality import BLOCKING_CODES, assess, from_model
     plan=select(workspace,request);resolved=resolve(plan);workspace=Path(workspace).resolve()
@@ -420,7 +420,7 @@ def build(workspace,request):
     for identifier,instance in original.instances.items():
         if identifier not in previous_ids:
             scratch.instances[identifier]['compiled']['policy']=deepcopy(instance['compiled'].get('policy',{}))
-    from nbt_whole_validation import requires_enclosure
+    from nbt_composition.whole_validation import requires_enclosure
     if requires_enclosure(scratch.context):
         scratch.seal()
     try:

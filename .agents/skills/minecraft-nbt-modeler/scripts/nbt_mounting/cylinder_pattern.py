@@ -37,7 +37,7 @@ def touches_backing(value,face):
 
 def compile_cylinder(workspace,args):
     from nbt_pattern.panel import sample_input,panel_materials
-    from nbt_structure_agent import build
+    from nbt_agent.structure import build
 
     diameter,height=args['size_uv']
     core,ring=cylinder_geometry(diameter,args.get('seam_degrees',180))
@@ -114,7 +114,7 @@ def mount_cylinder(workspace,args):
     from nbt_library import canonical_context
     from nbt_refine import protections,box_points
     from nbt_detail_control import default_settings,compile_plan,simulate_plan
-    from nbt_structure_agent import build
+    from nbt_agent.structure import build
 
     request=dict(args['target'])
     for key in ('source','context','snapshot'):

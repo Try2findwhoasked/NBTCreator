@@ -12,7 +12,7 @@ from nbt_refine import read_master,validate,layout,protections,resolve_wall_mask
 from nbt_assembly import Volume
 from nbt_project.web_paths import project_paths,reserve_version
 from nbt_project.request_paths import read_request,portable_request
-from nbt_whole_validation import validation_mode
+from nbt_composition.whole_validation import validation_mode
 
 def resolve_request(file):
     file=Path(file).resolve()
@@ -31,8 +31,8 @@ def resolve_request(file):
 
 def convert_web_json(input_file,workdir=None):
     request_file,request,expected=resolve_request(input_file)
-    from nbt_working_model import publication_lock
-    from nbt_history import source_workspace
+    from nbt_composition.working_model import publication_lock
+    from nbt_project.history import source_workspace
     source=Path(request['source']).resolve()
     workspace=source_workspace(source)
     root=Path(workdir).resolve() if workdir else project_paths(source)['workdir']
@@ -43,7 +43,7 @@ def convert_web_json(input_file,workdir=None):
     if (project_paths(source)['version']/'model-version.json').is_file() and root!=project_paths(source)['workdir']:
         raise ValueError('受管制作版沿用原建筑版本目录；跨建筑复制请先显式导入')
     with publication_lock(workspace,root):
-        from nbt_working_model import WorkingModel
+        from nbt_composition.working_model import WorkingModel
         guard=WorkingModel.open(workspace,source,request['context'])
         guard._assert_parent(project_paths(source)['workdir'])
         return _convert_web_json(input_file,workdir,(request_file,request,expected))
@@ -154,7 +154,7 @@ def _convert_web_json(input_file,workdir,resolved):
             write_json(target/'conversion.json',receipt)
         except Exception as error:
             receipt.update(status='failed',error=str(error));write_json(target/'conversion.json',receipt);raise
-        from nbt_history import source_workspace,record_produced_version
+        from nbt_project.history import source_workspace,record_produced_version
         workspace=source_workspace(authored)
         try:
             release_converted_version(workspace,receipt,saved['source_sha256'])

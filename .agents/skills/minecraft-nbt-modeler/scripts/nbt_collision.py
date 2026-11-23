@@ -346,7 +346,7 @@ def _position(value):
 
 def check_routes(model, start, targets, *, conservative_obstacles=True, max_poses=None):
     """Check exact declared walking routes; reuse only identical geometry/inputs."""
-    from nbt_modeling_session import current,canonical,engine_revision
+    from nbt_runtime.modeling_session import current,canonical,engine_revision
     if max_poses is not None and (type(max_poses) is not int or max_poses<1):raise ValueError('max_poses must be a positive integer')
     start=_position(start)
     named=[(str(name),_position(p)) for name,p in (targets.items() if isinstance(targets,dict) else enumerate(targets))]

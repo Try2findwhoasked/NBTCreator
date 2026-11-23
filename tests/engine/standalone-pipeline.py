@@ -14,7 +14,7 @@ from nbt_assembly import Volume
 from nbt_openings import open_declared_openings
 from nbt_refine import save_master,read_master,prepare,record_user_approval,refine,validate,protections
 from nbt_model import Model
-from nbt_whole_validation import validate_whole
+from nbt_composition.whole_validation import validate_whole
 from nbt_standalone_delivery import export_standalone,verify_standalone
 from nbt_detail_control import default_settings,preview_effect
 from nbt_web_revision import convert_web_json
@@ -305,7 +305,7 @@ class Standalone(unittest.TestCase):
         self.assertEqual(revised.blocks,model.blocks);self.assertEqual(new_walls,walls);self.assertEqual(source.read_bytes(),original)
 
     def test_next_version_uses_new_wall_assignment_when_legacy_context_had_a_mask(self):
-        from nbt_working_model import WorkingModel
+        from nbt_composition.working_model import WorkingModel
 
         out,model,walls,config,source,request=self.fixture('legacy-mask-update')
         config['floor_context']=dict(wall_positions=[list(p) for p in sorted(walls)])
@@ -346,7 +346,7 @@ class Standalone(unittest.TestCase):
         self.assertTrue(source.is_file())
 
     def test_replacing_legacy_context_keeps_openings_enclosure_and_required_routes(self):
-        from nbt_candidate import validate_candidate
+        from nbt_review.candidate import validate_candidate
         from nbt_detail_control import context_readiness,inspect_source
         from nbt_library import saved_coordinates_hash
 
@@ -483,7 +483,7 @@ class Standalone(unittest.TestCase):
                     finalize(out,source,register_history=False)
 
     def test_legacy_working_copy_rejects_changed_recovered_probe_evidence(self):
-        from nbt_working_model import WorkingModel
+        from nbt_composition.working_model import WorkingModel
 
         out,_,_,source_config,source,request=self.fixture('legacy-stale-probe')
         probes=source_config.pop('interior_probes')

@@ -3,9 +3,9 @@
 from pathlib import Path, PurePosixPath
 
 from nbt_project.constraints import valid_constraint_id
-from nbt_history import now
-from nbt_project_batch import write
-from nbt_prompts import index_lock
+from nbt_project.history import now
+from nbt_project.queues import write
+from nbt_project.prompts import index_lock
 from nbt_project.rooms import enclosed, read_small
 from nbt_project.web_paths import workspace_path
 

@@ -7,8 +7,8 @@ from pathlib import Path
 import re
 import tempfile
 
-from nbt_large_assembly import _workspace_path,require_creative_workspace
-from nbt_reference_views import MAX_MANIFEST
+from nbt_composition.large_assembly import _workspace_path,require_creative_workspace
+from nbt_review.reference_views import MAX_MANIFEST
 
 MAX_MASK=4*1024*1024
 SHA=re.compile(r'^[a-f0-9]{64}$')
@@ -39,7 +39,7 @@ def _component(workspace,source):
     if source['kind']=='local':
         if set(source)!={'kind','id','content_sha256'} or not isinstance(source['content_sha256'],str) or not SHA.fullmatch(source['content_sha256']):
             raise ValueError('本地构件来源或内容哈希无效')
-        from nbt_components import load
+        from nbt_assets.components import load
         data=load(workspace,source['id'])
         if data.get('archived'):raise ValueError('本地构件已归档')
         if data['content_sha256']!=source['content_sha256']:raise ValueError('本地构件内容哈希已变化')
@@ -47,7 +47,7 @@ def _component(workspace,source):
     if set(source)!={'kind','ref'} or not isinstance(source['ref'],dict):raise ValueError('拓展构件来源无效')
     ref=source['ref'];required={'id','sha256','source_id','version','manifest_sha256','content_sha256'}
     if not required<=set(ref) or set(ref)-required-{'arguments'}:raise ValueError('拓展构件须绑定来源、版本及内容哈希')
-    from nbt_asset_libraries import asset_action
+    from nbt_assets.libraries import asset_action
     return asset_action(workspace,'resolve',deepcopy(ref))['component']
 
 
@@ -100,7 +100,7 @@ def _compose_body(workspace,spec):
         layers.append(layer);stats.append(dict(id=entry['id'],source_content_sha256=component['content_sha256'],
                                               selected_blocks=len(selected),merged_cells=duplicates))
     body=dict(schema_version=2,name=spec['name'].strip(),layers=layers,overlaps=deepcopy(spec['overlaps']))
-    from nbt_curved_surface import _layered_mask
+    from nbt_mounting.curved_surface import _layered_mask
     _layered_mask(body)
     return body,stats
 

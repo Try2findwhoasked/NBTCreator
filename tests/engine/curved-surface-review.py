@@ -14,16 +14,16 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
 
-import nbt_asset_libraries as libraries
+import nbt_assets.libraries as libraries
 from nbt_assembly import Volume
 from nbt_review.blind_review import prepare_review
-from nbt_components import store
+from nbt_assets.components import store
 from nbt_mounting.curve_components import compose_curve_mask
-from nbt_curved_surface import plan_curve, verify_curve
-from nbt_reference_views import register_reference, save_fit
+from nbt_mounting.curved_surface import plan_curve, verify_curve
+from nbt_review.reference_views import register_reference, save_fit
 from nbt_snbt import save_snbt
-from nbt_structure_agent import build
-from nbt_working_model import ModelConflict
+from nbt_agent.structure import build
+from nbt_composition.working_model import ModelConflict
 
 
 def digest(path):

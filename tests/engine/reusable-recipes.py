@@ -12,8 +12,8 @@ from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[2]
 SCRIPTS=ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'
 sys.path.insert(0,str(SCRIPTS))
-import nbt_recipes as recipes
-import nbt_components as components
+import nbt_assets.recipes as recipes
+import nbt_assets.components as components
 from nbt_assembly import Volume
 from nbt_tools import modelling_plan
 from nbt_refine import operation_candidates
@@ -84,7 +84,7 @@ class Reusable(unittest.TestCase):
   source=components.store(moved,self.component());run=subprocess.run([sys.executable,str(SCRIPTS/'nbt_components.py'),'batch','--id',source['id'],'--position','5,2,5','--size','24,16,24','--counts','2,1,1','--spacing','4,0,0'],cwd=moved,capture_output=True,text=True,encoding='utf8');self.assertEqual(run.returncode,0,run.stdout+run.stderr);self.assertEqual(json.loads(run.stdout)['result']['copies'],2)
  def test_warm_listing_reads_index_instead_of_operation_voxels_and_refreshes_changes(self):
   saved=recipes.store(self.workspace,recipe());recipes.listing(self.workspace)
-  with patch('nbt_recipes.load',side_effect=AssertionError('warm list must use metadata cache')):self.assertEqual(recipes.listing(self.workspace)['items'][0]['id'],saved['id'])
+  with patch('nbt_assets.recipes.load',side_effect=AssertionError('warm list must use metadata cache')):self.assertEqual(recipes.listing(self.workspace)['items'][0]['id'],saved['id'])
   asset=Path(saved['file']);original=asset.stat();stat=Path.stat
   value=recipes.load(self.workspace,saved['id']);value['name']='更新名称';recipes.store(self.workspace,value,saved['id'])
   self.assertEqual(asset.stat().st_size,original.st_size)

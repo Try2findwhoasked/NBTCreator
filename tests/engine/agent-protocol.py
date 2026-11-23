@@ -3,13 +3,13 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_agent_protocol import ProtocolError
-from nbt_agent_tasks import dispatch
-from nbt_prompts import save,publish,task_action,read_task,tasks
+from nbt_agent.protocol import ProtocolError
+from nbt_agent.tasks import dispatch
+from nbt_project.prompts import save,publish,task_action,read_task,tasks
 from nbt_refine import save_master
 from nbt_assembly import Volume
-from nbt_machine import dispatch as machine
-from nbt_task_client import TaskClient, inspect
+from nbt_agent.machine import dispatch as machine
+from nbt_agent.task_client import TaskClient, inspect
 from nbt_review.diagnostic_delta import delta
 class Contracts(unittest.TestCase):
  def setUp(self):
@@ -30,7 +30,7 @@ class Contracts(unittest.TestCase):
   stale=inspect(self.w,'tasks',identifier);self.assertIs(stale['source_matches'],False);self.assertEqual(stale['next']['action'],'stop')
   with self.assertRaises(ProtocolError):TaskClient(self.w,'stale-inspect').start('tasks',identifier,'agent',60)
  def test_prompt_attachment_damage_keeps_other_views_and_releases_owned_lease(self):
-  from nbt_task_client import discover_tasks
+  from nbt_agent.task_client import discover_tasks
   prompt=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'方案','buildingShape':'single'}},'仍可回读正文')
   task=self.create()
   self.assertEqual({(row['id'],row['kind']) for row in discover_tasks(self.w,'all',True)['tasks']},
@@ -75,14 +75,14 @@ class Contracts(unittest.TestCase):
    TaskClient(self.w,'stopped').start('tasks',task['id'],'worker',60)
  def test_claim_is_exclusive_and_expiry_fences_old_worker(self):
   task=self.create();req=self.request(id=task['id'],owner='one',ttl_seconds=60)
-  with patch('nbt_agent_protocol.time.time',return_value=100):first=dispatch(self.w,'claim',req)
+  with patch('nbt_agent.protocol.time.time',return_value=100):first=dispatch(self.w,'claim',req)
   self.assertNotIn('token',first['lease']);self.assertIn('lease_token',first)
-  with patch('nbt_agent_protocol.time.time',return_value=110):
+  with patch('nbt_agent.protocol.time.time',return_value=110):
    self.assertEqual(dispatch(self.w,'claim',req),first)
    with self.assertRaises(ProtocolError):dispatch(self.w,'claim',self.request(id=task['id'],owner='two'))
-  with patch('nbt_agent_protocol.time.time',return_value=161):second=dispatch(self.w,'claim',self.request(id=task['id'],owner='two'))
+  with patch('nbt_agent.protocol.time.time',return_value=161):second=dispatch(self.w,'claim',self.request(id=task['id'],owner='two'))
   self.assertGreater(second['lease']['fence'],first['lease']['fence'])
-  with patch('nbt_agent_protocol.time.time',return_value=162):
+  with patch('nbt_agent.protocol.time.time',return_value=162):
    with self.assertRaises(ProtocolError):dispatch(self.w,'heartbeat',self.request(id=task['id'],lease_token=first['lease_token'],fence=first['lease']['fence']))
    renewed=dispatch(self.w,'heartbeat',self.request(id=task['id'],lease_token=second['lease_token'],fence=second['lease']['fence']))
    self.assertGreater(renewed['lease']['expires_at'],second['lease']['expires_at'])
@@ -116,10 +116,10 @@ class Contracts(unittest.TestCase):
   with self.assertRaises(ProtocolError) as failure:client.change('heartbeat')
   self.assertEqual(failure.exception.code,'TASK_SUPERSEDED')
  def test_prompt_index_capacity_failure_keeps_last_readable_state(self):
-  from nbt_prompts import task_index
+  from nbt_project.prompts import task_index
   task=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'容量测试','buildingShape':'single'}},'测试任务')
   index=task_index(self.w);before=index.read_bytes()
-  with patch('nbt_prompts.TASK_INDEX_BYTES',len(before)):
+  with patch('nbt_project.prompts.TASK_INDEX_BYTES',len(before)):
    with self.assertRaises(ProtocolError) as failure:
     task_action(self.w,'claim',self.request(id=task['id'],owner='agent'))
    self.assertEqual(failure.exception.code,'TASK_INDEX_LIMIT')
@@ -128,8 +128,8 @@ class Contracts(unittest.TestCase):
  def test_expired_prompt_returns_to_pending_discovery_without_exposing_token(self):
   saved=save(self.w,dict(session_id=uuid.uuid4().hex,document={'project':{'stage':'draft','name':'超时任务','buildingShape':'single'}},text='synthetic',plan={},context={}))
   task=publish(self.w,saved['index'],saved['id'],saved['revision'])
-  with patch('nbt_agent_protocol.time.time',return_value=100):claimed=task_action(self.w,'claim',self.request(id=task['id'],owner='agent',ttl_seconds=60))
-  with patch('nbt_agent_protocol.time.time',return_value=161):
+  with patch('nbt_agent.protocol.time.time',return_value=100):claimed=task_action(self.w,'claim',self.request(id=task['id'],owner='agent',ttl_seconds=60))
+  with patch('nbt_agent.protocol.time.time',return_value=161):
    pending=tasks(self.w,status='pending')['items'];self.assertEqual(len(pending),1);self.assertTrue(pending[0]['lease_expired']);self.assertNotIn('token',pending[0]['lease'])
    with self.assertRaises(ProtocolError) as failure:task_action(self.w,'task-status',self.request(id=task['id'],status='completed',lease_token=claimed['lease_token'],fence=claimed['lease']['fence']))
    self.assertEqual(failure.exception.code,'LEASE_EXPIRED')
@@ -209,18 +209,18 @@ class Contracts(unittest.TestCase):
    if encoded['method'] in ('tasks.claim','tasks.record'):
     self.assertTrue(data['ok']);raise OSError('simulated response lost')
    return data
-  with patch('nbt_task_client.dispatch',side_effect=lost_response):
+  with patch('nbt_agent.task_client.dispatch',side_effect=lost_response):
    with self.assertRaises(OSError):client.start('tasks',task['id'],'local-agent',60)
   session=TaskClient(self.w,'return')
   request_id=session.status()['pending']['request_id']
-  with patch('nbt_task_client.dispatch',wraps=machine) as calls:
+  with patch('nbt_agent.task_client.dispatch',wraps=machine) as calls:
    answer=session.retry()
    self.assertEqual(calls.call_args_list[0].args[1]['request_id'],request_id)
   self.assertEqual(answer['phase'],'active');self.assertNotIn('lease_token',answer)
   renewed=session.change('heartbeat')
   self.assertGreater(renewed['revision'],answer['revision'])
   target=self.source.parent.parent.parent/'v02/master/model.snbt';target.parent.mkdir(parents=True);target.write_bytes(self.source.read_bytes())
-  with patch('nbt_task_client.dispatch',side_effect=lost_response):
+  with patch('nbt_agent.task_client.dispatch',side_effect=lost_response):
    with self.assertRaises(OSError):session.change('complete',new_source=str(target),summary='等待用户审查')
   completed=TaskClient(self.w,'return').retry()
   self.assertEqual(completed['phase'],'completed')
@@ -243,8 +243,8 @@ class Contracts(unittest.TestCase):
    self.assertEqual(failure.exception.code,'SOURCE_CHANGED');sidecar.write_bytes(original)
 
  def test_stale_worker_cannot_publish_and_return_rejects_an_ancestor(self):
-  from nbt_working_model import WorkingModel
-  from nbt_history import History
+  from nbt_composition.working_model import WorkingModel
+  from nbt_project.history import History
   context=dict(mode='standalone',require_enclosure=False,openings=[],allow_empty_wall_mask=True,start=[2.5,1,2.5],targets={'other':[5.5,1,5.5]})
   working=WorkingModel(self.w,[8,6,8],context=context)
   working.apply_operations([dict(kind='box',label='floor',classification='body',lo=[0,0,0],hi=[7,0,7],state='stone')]);working.open_declared()
@@ -253,10 +253,10 @@ class Contracts(unittest.TestCase):
    model.apply_operations([dict(kind='box',label='edit',classification='body',lo=position,hi=position,state='gold_block')])
   edit(working,[1,1,1]);base=working.save_draft()
   task=dispatch(self.w,'create',self.request(source=base['source'],source_sha256=base['source_sha256']))
-  with patch('nbt_agent_protocol.time.time',return_value=100):
+  with patch('nbt_agent.protocol.time.time',return_value=100):
    old=TaskClient(self.w,'old');old.start('tasks',task['id'],'old',60)
   first=WorkingModel.open(self.w,base['source']);second=WorkingModel.open(self.w,base['source']);edit(first,[1,1,2]);edit(second,[1,1,3])
-  with patch('nbt_agent_protocol.time.time',return_value=200):
+  with patch('nbt_agent.protocol.time.time',return_value=200):
    new=TaskClient(self.w,'new');new.start('tasks',task['id'],'new',60)
    with self.assertRaises(ProtocolError) as stale:first.save_draft(task_session='old')
    self.assertEqual(stale.exception.code,'LEASE_NOT_OWNER')
@@ -266,7 +266,7 @@ class Contracts(unittest.TestCase):
     new.change('complete',new_source=ancestor['source'],summary='旧祖先不是成果')
    self.assertEqual(previous.exception.code,'RETURN_LINEAGE_MISMATCH')
    candidate=second.save_draft(task_session='new');edit(second,[1,1,4]);candidate=second.save_draft(task_session='new')
-   with patch('nbt_history.record_produced_version',return_value=dict(recorded=False,error='synthetic history failure')):
+   with patch('nbt_project.history.record_produced_version',return_value=dict(recorded=False,error='synthetic history failure')):
     completed=new.change('complete',new_source=candidate['source'],summary='验证多次保存后回传')
    self.assertTrue(completed['completion']['history_pending']);self.assertIn('synthetic history failure',completed['completion']['history_error'])
    repaired=new.retry();self.assertFalse(repaired['completion']['history_pending'])
@@ -276,7 +276,7 @@ class Contracts(unittest.TestCase):
   self.assertIn('agent:'+task['id'],History(self.w).get(node)['version']['tasks'])
 
  def test_released_expired_and_invalid_tasks_unblock_ordinary_publication(self):
-  from nbt_working_model import WorkingModel
+  from nbt_composition.working_model import WorkingModel
   context=dict(mode='standalone',require_enclosure=False,openings=[],allow_empty_wall_mask=True,start=[2.5,1,2.5],targets={'other':[5.5,1,5.5]})
   working=WorkingModel(self.w,[8,6,8],context=context)
   working.apply_operations([dict(kind='box',label='floor',classification='body',lo=[0,0,0],hi=[7,0,7],state='stone')]);working.open_declared()
@@ -289,7 +289,7 @@ class Contracts(unittest.TestCase):
     candidate=WorkingModel.open(self.w,base['source'])
     pos=[i+1,1,1]
     candidate.apply_operations([dict(kind='box',label='edit',classification='body',lo=pos,hi=pos,state='gold_block')])
-    with patch('nbt_agent_protocol.time.time',return_value=100+200*i):
+    with patch('nbt_agent.protocol.time.time',return_value=100+200*i):
      client.start('tasks',task['id'],'worker',60)
      old=client.lease_params(client.load())
      with self.assertRaises(ProtocolError) as locked:candidate.save_draft()
@@ -300,21 +300,21 @@ class Contracts(unittest.TestCase):
       self.assertEqual(changed.exception.code,'SOURCE_CHANGED')
      if scenario!='expired':
       self.assertEqual(client.change('release')['phase'],'released')
-    with patch('nbt_agent_protocol.time.time',return_value=161+200*i):
+    with patch('nbt_agent.protocol.time.time',return_value=161+200*i):
      with self.assertRaises(ProtocolError):candidate.save_draft(task_session=scenario)
      base=candidate.save_draft()
      with self.assertRaises(ProtocolError):
       dispatch(self.w,'record',self.request(**old,new_source=base['source'],new_source_sha256=base['source_sha256'],summary='过期执行者'))
 
  def test_damaged_registration_recovery_preserves_fencing_and_original(self):
-  from nbt_agent_tasks import load_index,checkpoint
-  from nbt_working_model import WorkingModel
+  from nbt_agent.tasks import load_index,checkpoint
+  from nbt_composition.working_model import WorkingModel
   context=dict(mode='standalone',require_enclosure=False,openings=[],allow_empty_wall_mask=True,start=[2.5,1,2.5],targets={'end':[5.5,1,5.5]})
   model=WorkingModel(self.w,[8,6,8],context=context)
   model.apply_operations([dict(kind='box',label='floor',classification='body',lo=[0,0,0],hi=[7,0,7],state='stone')])
   model.open_declared();base=model.save_draft('登记恢复')
   for i,case in enumerate(('released','expired','active')):
-   with self.subTest(case=case),patch('nbt_agent_protocol.time.time',return_value=100+200*i):
+   with self.subTest(case=case),patch('nbt_agent.protocol.time.time',return_value=100+200*i):
     task=dispatch(self.w,'create',self.request(source=base['source'],source_sha256=base['source_sha256']))
     client=TaskClient(self.w,case);client.start('tasks',task['id'],case,60)
     old=client.lease_params(client.load())
@@ -341,7 +341,7 @@ class Contracts(unittest.TestCase):
      archived=broken.parent.with_name('archived-'+broken.parent.name)
      broken.parent.rename(archived)
      broken=archived/broken.name
-    with patch('nbt_agent_protocol.time.time',return_value=200*i+(101 if case=='active' else 200)):
+    with patch('nbt_agent.protocol.time.time',return_value=200*i+(101 if case=='active' else 200)):
      recovered=dispatch(self.w,'recover',request)
      self.assertEqual(recovered,dispatch(self.w,'recover',request))
      self.assertEqual(recovered['active_lease'],case=='active')
@@ -356,10 +356,10 @@ class Contracts(unittest.TestCase):
       dispatch(self.w,'record',self.request(**old,new_source=base['source'],new_source_sha256=base['source_sha256'],summary='过期执行者'))
 
  def test_candidate_reuse_crosses_cli_and_frozen_entry_with_fresh_evidence(self):
-  from nbt_working_model import WorkingModel
+  from nbt_composition.working_model import WorkingModel
   from nbt_refine import prepare
   from nbt_exposure import apply
-  from nbt_agent_tasks import sha
+  from nbt_agent.tasks import sha
   context=dict(mode='standalone',require_enclosure=False,openings=[],allow_empty_wall_mask=True,start=[2.5,1,2.5],targets={'end':[5.5,1,5.5]})
   model=WorkingModel(self.w,[8,6,8],context=context)
   model.apply_operations([dict(kind='box',label='floor',classification='body',lo=[0,0,0],hi=[7,0,7],state='stone')])
@@ -405,7 +405,7 @@ class Contracts(unittest.TestCase):
   self.assertEqual(returned[0]['acceptance'],'pending_user_review')
 
  def test_named_legacy_building_is_stable_after_original_description_loss(self):
-  from nbt_agent_tasks import publication,load_index
+  from nbt_agent.tasks import publication,load_index
   root=self.w/'nbt_models/standalone/历史建筑'
   sources=[]
   for name in ('版本_初稿','版本_修改'):
@@ -435,10 +435,10 @@ class Contracts(unittest.TestCase):
 
  def test_waiting_for_building_does_not_hold_task_registry(self):
   import time
-  from nbt_agent_tasks import load_index
-  from nbt_prompts import index_lock
+  from nbt_agent.tasks import load_index
+  from nbt_project.prompts import index_lock
   from nbt_project.web_paths import project_paths
-  from nbt_working_model import publication_lock
+  from nbt_composition.working_model import publication_lock
   task=self.create();index,_=load_index(self.w);building=project_paths(self.source)['workdir']
   # Signal just before the contender attempts the real cross-process building
   # lock. The parent has already acquired it, like a desktop conversion.
@@ -446,8 +446,8 @@ class Contracts(unittest.TestCase):
 import sys
 from pathlib import Path
 sys.path.insert(0,sys.argv[1])
-import nbt_working_model as model
-import nbt_agent_tasks as tasks
+import nbt_composition.working_model as model
+import nbt_agent.tasks as tasks
 workspace,source,building=map(Path,sys.argv[2:5])
 original=model.publication_lock
 def signal(*args):
@@ -479,19 +479,19 @@ else:
  def test_task_client_renews_then_stops_on_release(self):
   published=self.publish_prompt(uuid.uuid4().hex,{'project':{'stage':'draft','name':'续租','buildingShape':'single'}},'测试任务')
   client=TaskClient(self.w,'renewer')
-  with patch('nbt_agent_protocol.time.time',return_value=100):initial=client.start('prompts',published['id'],'agent',60)
-  with patch('nbt_agent_protocol.time.time',return_value=120),patch('nbt_task_client.time.sleep',side_effect=lambda _:client.change('release')):
+  with patch('nbt_agent.protocol.time.time',return_value=100):initial=client.start('prompts',published['id'],'agent',60)
+  with patch('nbt_agent.protocol.time.time',return_value=120),patch('nbt_agent.task_client.time.sleep',side_effect=lambda _:client.change('release')):
    final=client.keepalive()
   self.assertEqual(final['phase'],'released');self.assertEqual(final['revision'],initial['revision']+2)
   self.assertEqual(tasks(self.w,status='pending')['items'][0]['id'],published['id'])
 
  def test_task_client_refuses_stale_source_and_expired_lease(self):
   task=self.create();client=TaskClient(self.w,'stale')
-  with patch('nbt_agent_protocol.time.time',return_value=100):client.start('tasks',task['id'],'agent',60)
-  with patch('nbt_agent_protocol.time.time',return_value=161):
+  with patch('nbt_agent.protocol.time.time',return_value=100):client.start('tasks',task['id'],'agent',60)
+  with patch('nbt_agent.protocol.time.time',return_value=161):
    with self.assertRaises(ProtocolError) as expired:client.change('heartbeat')
   self.assertEqual(expired.exception.code,'LEASE_EXPIRED')
-  with patch('nbt_agent_protocol.time.time',return_value=162):client.start('tasks',task['id'],'agent',60)
+  with patch('nbt_agent.protocol.time.time',return_value=162):client.start('tasks',task['id'],'agent',60)
   self.source.write_bytes(b'changed')
   with self.assertRaises(ProtocolError) as stale:client.change('heartbeat')
   self.assertEqual(stale.exception.code,'SOURCE_CHANGED')

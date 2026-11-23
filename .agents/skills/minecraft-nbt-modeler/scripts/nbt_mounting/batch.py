@@ -16,7 +16,7 @@ def surface_on(base,plane,model,walls):
 
 
 def run(workspace,base,args):
-    from nbt_structure_agent import _schema,definitions
+    from nbt_agent.structure import _schema,definitions
     from nbt_detail_control import default_settings,compile_plan,simulate_plan
     from nbt_mounting.review import compare_routes
     model,walls=base['model'],base['walls'];occupied=set();operations=[];receipts=[];checks=[];ids=set()
@@ -92,7 +92,7 @@ def mount_batch(workspace,args):
 
 
 def decorate(workspace,args):
-    from nbt_structure_agent import dispatch,build
+    from nbt_agent.structure import dispatch,build
     from nbt_assembly import Volume
     host=args['host']
     data=build(workspace,host['arguments'] if host['tool']=='structure' else dispatch(workspace,host['tool'],host['arguments'])['spec'])

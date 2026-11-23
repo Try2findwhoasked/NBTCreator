@@ -97,9 +97,9 @@ def measure(name, command, output):
 
 def internal(stage, output):
     from nbt_assembly import Volume
-    from nbt_history import History
+    from nbt_project.history import History
     from nbt_refine import read_master, save_master
-    from nbt_working_model import WorkingModel, value_at
+    from nbt_composition.working_model import WorkingModel, value_at
     workspace = output / 'workspace'
     version = workspace / 'nbt_models/standalone/synthetic-large/v01'
     source = version / 'master/source.master.json.gz'

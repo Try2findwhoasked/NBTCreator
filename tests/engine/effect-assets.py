@@ -1,11 +1,11 @@
 from pathlib import Path
 import json,sys,tempfile,unittest
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_effect_assets import dispatch
-from nbt_asset_batches import dispatch as batches
+from nbt_assets.effects import dispatch
+from nbt_assets.batches import dispatch as batches
 from nbt_assets.organization import organize
 from nbt_refine import read_master
-import nbt_components as components
+import nbt_assets.components as components
 
 class Effects(unittest.TestCase):
  def setUp(self):
@@ -19,12 +19,12 @@ class Effects(unittest.TestCase):
    for key in ['lo','hi','whole_region','max_changed_blocks']:settings.pop(key)
    item=dispatch(self.root,'save',dict(asset=dict(name=panel,settings=settings)));preview=dispatch(self.root,'preview',dict(id=item['id']));self.assertTrue(Path(preview['after_snapshot']).is_file());self.assertGreaterEqual(preview['changed_blocks'],0)
  def test_effect_json_batch_import_and_generated_manifest(self):
-  from nbt_effect_assets import file_for
+  from nbt_assets.effects import file_for
   item=dispatch(self.root,'save',dict(asset=self.asset));result=batches(self.root,'import',dict(paths=[str(file_for(self.root,item['id']))]));self.assertEqual(result['count'],1);self.assertEqual(result['entries'][0]['type'],'effect');listing=batches(self.root,'generate',dict(scope='effects',name='效果清单'));self.assertEqual(batches(self.root,'read',dict(id=listing['id']))['count'],len(dispatch(self.root,'list',{})['items']))
  def test_partial_panel_settings_preview_and_compile_without_filling_target_values(self):
   settings=dict(pattern=dict(enabled=True,fraction=.02,palette=[dict(state='andesite',weight=1)]));item=dispatch(self.root,'save',dict(asset=dict(name='局部混材配置',settings=settings)));self.assertEqual(dispatch(self.root,'compile',dict(id=item['id']))['settings'],settings);preview=dispatch(self.root,'preview',dict(id=item['id']));self.assertGreater(preview['changed_blocks'],0);self.assertFalse(preview['nbt_exported'])
  def test_local_floor_level_translates_with_recipe_origin(self):
-  from nbt_recipes import translate_operation
+  from nbt_assets.recipes import translate_operation
   op=dict(kind='weathering',lo=[0,1,0],hi=[15,2,15],floor=dict(levels=[1],fraction=.1));moved=translate_operation(op,[4,3,4]);self.assertEqual(moved['floor']['levels'],[4]);self.assertEqual(op['floor']['levels'],[1]);self.assertEqual(moved['lo'],[4,4,4])
  def test_forbidden_bindings_and_stale_content_rejected(self):
   for settings in [dict(source='secret'),dict(max_changed_blocks=99999),dict(lo=[0,0,0]),dict(operations=[dict(self.asset['settings']['operations'][0],write_group='a'*36)])]:
@@ -33,7 +33,7 @@ class Effects(unittest.TestCase):
   with self.assertRaises(ValueError):dispatch(self.root,'compile',dict(id=item['id'],content_sha256='0'*64))
   self.assertEqual(dispatch(self.root,'compile',dict(id=item['id']))['settings'],self.asset['settings'])
  def test_legacy_settings_and_recipe_defaults_are_migrated_idempotently(self):
-  import nbt_recipes as recipes
+  import nbt_assets.recipes as recipes
   file=self.root/'nbt_models/_workspaces/effects/01.json';file.parent.mkdir(parents=True);file.write_text(json.dumps(dict(settings=self.asset['settings'],source='old.master')))
   recipes.store(self.root,dict(schema_version=1,asset_type='recipe',name='参数梁',tags=['01'],parameters={'width':dict(type='integer',default=3)},operations=[dict(kind='box',label='梁',classification='body',lo=[1,3,1],hi=[{'param':'width'},3,1],state='stone')]))
   result=organize(self.root);self.assertEqual(len(result['migrated_effects']),1);self.assertEqual(len(result['migrated_recipes']),1);self.assertTrue(file.is_file());self.assertEqual(organize(self.root)['migrated_recipes'],[]);item=dispatch(self.root,'get',dict(id=result['migrated_recipes'][0]['effect_id']));self.assertTrue(item['source_recipe_id']);compiled=dispatch(self.root,'compile',dict(id=item['id'],position=[4,3,4]));self.assertEqual(compiled['settings']['operations'][0]['lo'],[5,6,5])

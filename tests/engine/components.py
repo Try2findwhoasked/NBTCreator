@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-import nbt_components as components
+import nbt_assets.components as components
 from nbt_assembly import Volume
 from nbt_refine import save_master
 from nbt_tools import modelling_plan
@@ -40,7 +40,7 @@ class Components(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'边界'):components.placement(data,[23,15,23],list(self.model.size))
  def test_portable_index_is_reused_and_refreshes_after_rename_archive(self):
   item=self.captured();components.listing(self.workspace)
-  with patch('nbt_components.load',side_effect=AssertionError('warm list must not parse voxels')):
+  with patch('nbt_assets.components.load',side_effect=AssertionError('warm list must not parse voxels')):
    self.assertEqual(len(components.listing(self.workspace)['items']),1)
   components.update(self.workspace,item['id'],name='木柱',tags=['可复用'],archived=True)
   row=components.listing(self.workspace)['items'][0];self.assertEqual(row['name'],'木柱');self.assertTrue(row['archived'])

@@ -29,7 +29,7 @@ for name,module,handler in (
 def check(workspace,request):
     from nbt_building.review import load_model
     from nbt_building.quality import BLOCKING_CODES, from_model
-    from nbt_working_model import ModelConflict
+    from nbt_composition.working_model import ModelConflict
     model=load_model(workspace,request)
     try:
         if model.phase == 'opened' and not model.context.get('require_routes'):
@@ -47,8 +47,8 @@ def check(workspace,request):
 
 
 def dispatch(workspace,action,request):
-    from nbt_catalog import catalog
-    from nbt_structure_agent import _schema
+    from nbt_runtime.catalog import catalog
+    from nbt_agent.structure import _schema
     definitions=catalog()['architecture']['actions']
     if set(definitions)!=set(ARCHITECT_ACTIONS):raise ValueError('建筑工作流目录与实现不一致')
     _schema(request,definitions[action],'建筑工作流请求')

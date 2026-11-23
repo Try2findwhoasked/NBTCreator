@@ -8,8 +8,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_structure_agent import dispatch
-from nbt_working_model import WorkingModel, model_hash
+from nbt_agent.structure import dispatch
+from nbt_composition.working_model import WorkingModel, model_hash
 
 
 def solid(size, state='stone'):
@@ -125,7 +125,7 @@ class Interfaces(unittest.TestCase):
         self.assertNotEqual(result['graph_sha256'],first['graph_sha256'])
 
     def test_host_carving_invalidates_actual_interface_instead_of_reusing_old_receipt(self):
-        from nbt_working_model import value_at
+        from nbt_composition.working_model import value_at
         m=WorkingModel(self.root,[64,24,48],kind='component')
         m.install('portal',dict(tool='scene_compile',arguments=dict(graph=assembly())),[10,1,2])
         p=(12,5,6)
@@ -142,7 +142,7 @@ class Interfaces(unittest.TestCase):
             objects=[dict(id='block',lo=[1,1,1],recipe=solid([1,1,1]))])
         m = WorkingModel(self.root,[12,8,12],kind='component')
         m.install('scene',dict(tool='scene_compile',arguments=dict(graph=graph)),[0,0,0])
-        from nbt_working_model import value_at
+        from nbt_composition.working_model import value_at
         with self.assertRaisesRegex(ValueError,'保护'):
             m.patch([dict(pos=[1,1,1],before=value_at(m.model,m.walls,(1,1,1)),after=['minecraft:gold_block',False])])
         with self.assertRaisesRegex(ValueError,'保护'):
@@ -164,7 +164,7 @@ class Interfaces(unittest.TestCase):
             m = WorkingModel(self.root,[8,8,8],kind='component')
             m.install('slab',dict(tool='scene_compile',arguments=dict(graph=graph)),[3,0,3],quarter_turns=turns,mirror='x')
             p = m.instances['slab']['compiled']['objects'][0]['voxel_positions'][0]
-            from nbt_working_model import value_at
+            from nbt_composition.working_model import value_at
             m.patch([dict(pos=p,before=value_at(m.model,m.walls,tuple(p)),after=['minecraft:stone',False])])
             self.assertFalse(m.inspect()['assembly_checks']['passed'])
             with self.assertRaisesRegex(ValueError,'ASSEMBLY'):
@@ -183,7 +183,7 @@ class Interfaces(unittest.TestCase):
         m.save_draft('自由摆件')
 
     def test_scene_reserved_spaces_and_routes_follow_host_rotation(self):
-        from nbt_working_model import value_at
+        from nbt_composition.working_model import value_at
         graph = dict(schema_version=1,name='有路的平台',size=[6,4,3],
             objects=[dict(id='floor',lo=[0,0,0],recipe=solid([6,1,3]))],
             reserved_boxes=[dict(lo=[3,1,1],hi=[3,3,1])],
@@ -203,7 +203,7 @@ class Interfaces(unittest.TestCase):
             m.patch(wall)
 
     def test_scene_protection_preserves_unowned_host_geometry_and_old_records(self):
-        from nbt_working_model import value_at
+        from nbt_composition.working_model import value_at
         graph = dict(schema_version=1,name='宿主保护',size=[6,4,3],
             objects=[dict(id='piece',lo=[0,0,0],recipe=solid([1,1,1]))],
             protected_boxes=[dict(lo=[3,1,1],hi=[3,1,1])])

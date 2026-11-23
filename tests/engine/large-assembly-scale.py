@@ -10,10 +10,10 @@ import time
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_large_assembly import AssemblyVolume,read_assembly,save_assembly,verify_assembly_binding
-from nbt_history import History
-from nbt_working_model import WorkingModel
-from nbt_working_model import ModelConflict
+from nbt_composition.large_assembly import AssemblyVolume,read_assembly,save_assembly,verify_assembly_binding
+from nbt_project.history import History
+from nbt_composition.working_model import WorkingModel
+from nbt_composition.working_model import ModelConflict
 from nbt_composition.assembly_handoff import create_slice,merge_slices
 from nbt_snbt import read_snbt,save_snbt
 

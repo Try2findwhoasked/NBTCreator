@@ -2,5 +2,5 @@
 
 
 def library(kind=None, workspace=None):
-    from nbt_asset_libraries import recipes
+    from nbt_assets.libraries import recipes
     return recipes(workspace, kind)

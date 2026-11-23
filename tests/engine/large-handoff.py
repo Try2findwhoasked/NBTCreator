@@ -10,10 +10,10 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_large_assembly import AssemblyVolume,save_assembly
+from nbt_composition.large_assembly import AssemblyVolume,read_assembly,save_assembly
 from nbt_composition.assembly_handoff import create_slice,merge_slices
 from nbt_snbt import read_snbt,save_snbt
-from nbt_working_model import WorkingModel,ModelConflict
+from nbt_composition.working_model import WorkingModel,ModelConflict
 
 
 class Handoff(unittest.TestCase):
@@ -119,7 +119,7 @@ class Handoff(unittest.TestCase):
   original=Path(self.source['source']).read_bytes();request=self.merge_request(slices)
   result=merge_slices(self.root,request)
   self.assertFalse(result['saved']['history_pending']);self.assertFalse(result['saved']['nbt_exported'])
-  model,walls=__import__('nbt_large_assembly').read_assembly(result['saved']['source'])
+  model,walls=read_assembly(result['saved']['source'])
   for x in (0,2,4,6):self.assertEqual(model.get((x,4,0)),'minecraft:gold_block')
   self.assertEqual(walls,{(0,4,0)});self.assertEqual(Path(self.source['source']).read_bytes(),original)
   self.assertTrue(result['routes']['passed']);self.assertEqual(result['changed_positions'],4)
@@ -191,7 +191,7 @@ class Handoff(unittest.TestCase):
    result=actual_save(*args,**kwargs)
    file=Path(entry['candidate']);file.write_bytes(file.read_bytes()+b' ')
    return result
-  with patch('nbt_large_assembly.save_snbt',side_effect=mutate):
+  with patch('nbt_composition.large_assembly.save_snbt',side_effect=mutate):
    with self.assertRaisesRegex(ValueError,'回装期间.*变化'):merge_slices(self.root,self.merge_request([entry]))
   self.assertFalse(list((self.root/'nbt_models/standalone/handoff').glob('v_model_*')))
 
@@ -212,7 +212,7 @@ class Handoff(unittest.TestCase):
   second=self.edited_slice('second',[2,0,0],[3,4,2],[([3,4,0],'quartz_block',False)])
   saved=merge_slices(self.root,self.merge_request([first]))['saved']
   with self.assertRaisesRegex(ModelConflict,'STALE_PARENT'):merge_slices(self.root,self.merge_request([second]))
-  restored,_=__import__('nbt_large_assembly').read_assembly(saved['source'])
+  restored,_=read_assembly(saved['source'])
   self.assertEqual(restored.get((2,4,0)),'minecraft:gold_block');self.assertEqual(restored.get((3,4,0)),'minecraft:air')
 
  def test_four_stair_slices_reject_headroom_conflict_then_pass_round_trip(self):

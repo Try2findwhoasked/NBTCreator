@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_structure_agent import dispatch,build
+from nbt_agent.structure import dispatch,build
 
 
 class CurveStencils(unittest.TestCase):
@@ -65,7 +65,7 @@ class CurveStencils(unittest.TestCase):
   args['material']='stone';args['style']='classic'
   with self.assertRaisesRegex(ValueError,'不使用'):dispatch(self.root,'parametric_compile',args)
  def test_compile_and_preview_share_the_same_schema_and_listing(self):
-  from nbt_structure_agent import definitions
+  from nbt_agent.structure import definitions
   definitions=definitions()
   self.assertEqual(definitions['parametric_compile']['parameters'],definitions['parametric_preview']['parameters'])
   listing=dispatch(self.root,'parametric_list',dict(kind='curve_stencil'))
@@ -79,7 +79,7 @@ class CurveStencils(unittest.TestCase):
   self.assertEqual(result['size'],[12,8,1]);self.assertFalse(result['approval_created'])
   self.assertEqual(result['verification']['design'],'pending_visual_review')
  def test_bundled_six_recipes_resolve_with_bound_content(self):
-  import nbt_asset_libraries as libraries
+  import nbt_assets.libraries as libraries
   expected={'curve-ring-segment','curve-dark-seam','curve-vertical-rib','curve-window-column','curve-diagonal-band','curve-skirt-segment'}
   listing=libraries.browse(self.root);items=[row for row in listing['items'] if row['source_id']=='bundled' and row.get('arguments',{}).get('kind')=='curve_stencil']
   self.assertEqual({row['asset_id'] for row in items},expected)
@@ -91,14 +91,14 @@ class CurveStencils(unittest.TestCase):
     self.assertEqual(resolved['component']['content_sha256'],component['content_sha256'])
     self.assertFalse(resolved['approval_created'])
  def test_older_engine_rejects_new_library_before_decoding_assets(self):
-  import nbt_asset_libraries as libraries
+  import nbt_assets.libraries as libraries
   from unittest.mock import patch
   raw=(ROOT/'.agents/skills/minecraft-nbt-modeler/assets/extension-library/library.json').read_bytes()
   with patch.object(libraries,'APP_VERSION',(4,3,0)):
    with self.assertRaises(libraries.LibraryError) as error:libraries.manifest(raw)
   self.assertEqual(error.exception.code,'INCOMPATIBLE')
  def test_bound_diagonal_recipe_composes_without_implicit_mirroring(self):
-  import nbt_asset_libraries as libraries
+  import nbt_assets.libraries as libraries
   from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   import json
   row=next(item for item in libraries.browse(self.root)['items'] if item['source_id']=='bundled' and item['asset_id']=='curve-diagonal-band')

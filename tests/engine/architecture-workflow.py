@@ -9,9 +9,9 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_architect import dispatch
+from nbt_project.architect import dispatch
 from nbt_building.plan import fingerprint,normalize,resolve
-from nbt_working_model import WorkingModel,file_hash
+from nbt_composition.working_model import WorkingModel,file_hash
 
 
 def box_part(identifier,lo,size,role='structure',material='structure'):
@@ -220,7 +220,7 @@ class ArchitectureWorkflow(unittest.TestCase):
         schema=interfaces[0]['parameters']
         self.assertTrue(all(result['parameters']==schema for result in interfaces))
         example=interfaces[0]['example']
-        from nbt_structure_agent import _schema
+        from nbt_agent.structure import _schema
         _schema(example['part']['interfaces'],schema)
         self.assertEqual(example['part']['interfaces'][0]['id'],example['stop']['use_face']['interface'])
         sample_box=query('--architect-action','plan-save','--field','plan.views.sample_box')
@@ -314,7 +314,7 @@ class ArchitectureWorkflow(unittest.TestCase):
 
     def test_concurrent_plan_rebuilds_publish_only_one_child(self):
         from concurrent.futures import ThreadPoolExecutor
-        from nbt_working_model import ModelConflict
+        from nbt_composition.working_model import ModelConflict
 
         first = self.make()
         source = first['saved']['source']
@@ -509,8 +509,8 @@ class ArchitectureWorkflow(unittest.TestCase):
             issues=[dict(id='pillar-review',layer='structure',part='left',positions=[[11,2,12]],text='Transport fixture; verify relocation only.',images=['beam'])])
         notes=dispatch(self.workspace,'review-record',request)
         self.assertFalse(notes['approval_created']);self.assertTrue(notes['coverage_complete'])
-        from nbt_prompts import save,publish
-        from nbt_task_client import TaskClient
+        from nbt_project.prompts import save,publish
+        from nbt_agent.task_client import TaskClient
         prompt=save(self.workspace,dict(session_id='a'*32,document=dict(project=dict(stage='draft',name='三尺度证据',buildingShape='single')),
             text='合成回传检查',plan=dict(operations=[]),context={}))
         task=publish(self.workspace,prompt['index'],prompt['id'],prompt['revision'])
@@ -532,8 +532,8 @@ class ArchitectureWorkflow(unittest.TestCase):
         self.assertEqual(issue['state'],'needs_new_visual_observation');self.assertFalse(issue['old_positions_are_current'])
         self.assertNotEqual(issue['current_bounds'],issue['previous_bounds'])
         self.assertEqual(file_hash(self.workspace/notes['path']),notes['sha256'])
-        from nbt_agent_tasks import dispatch as tasks
-        from nbt_agent_protocol import ProtocolError
+        from nbt_agent.tasks import dispatch as tasks
+        from nbt_agent.protocol import ProtocolError
         target=new['saved']['source']
         plan_path=self.workspace/'nbt_models/changed-plan.json'
         plan_path.write_text(json.dumps(changed),encoding='utf8')
@@ -572,7 +572,7 @@ class ArchitectureWorkflow(unittest.TestCase):
         with self.assertRaises(ValueError):model.validate()
 
     def test_catalogue_and_workflow_registries_are_consistent(self):
-        from nbt_catalog import catalog
+        from nbt_runtime.catalog import catalog
         from nbt_building.workflow import ARCHITECT_ACTIONS
         from nbt_building.plan import DESIGN_CHECKS
         contract=catalog()['architecture']
@@ -790,7 +790,7 @@ class ArchitectureWorkflow(unittest.TestCase):
         self.assertFalse((self.workspace/'nbt_models/_exports').exists())
 
     def test_project_standard_snapshot_is_preserved_without_claiming_text_was_verified(self):
-        from nbt_architect import FIELDS
+        from nbt_project.architect import FIELDS
         standard=dispatch(self.workspace,'standards-save',dict(revision=0,fields={key:'石构规范' if key=='name' else '保留本次文字设计依据' for key in FIELDS}))
         spec=plan();spec['standards_snapshot']=standard
         result=dispatch(self.workspace,'plan-build',dict(plan=spec,save_draft={}))

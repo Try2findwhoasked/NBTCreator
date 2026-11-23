@@ -4,9 +4,9 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-import nbt_components as components
-import nbt_effect_assets as effects
-import nbt_recipes as recipes
+import nbt_assets.components as components
+import nbt_assets.effects as effects
+import nbt_assets.recipes as recipes
 
 p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,required=True);p.add_argument('--output',type=Path,required=True);args=p.parse_args();workspace=args.workspace.resolve()
 files=[*components.library_root(workspace).glob('*.json'),*effects.root(workspace).glob('*/effect.json'),*(workspace/'.nbtcreator/reusable').glob('*.json')]

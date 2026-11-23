@@ -1,9 +1,9 @@
 from pathlib import Path
 import json,sys,tempfile,unittest
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_structure_agent import dispatch
-from nbt_asset_batches import dispatch as batches
-import nbt_components as library
+from nbt_agent.structure import dispatch
+from nbt_assets.batches import dispatch as batches
+import nbt_assets.components as library
 
 class GeneratedAssets(unittest.TestCase):
  def setUp(self):

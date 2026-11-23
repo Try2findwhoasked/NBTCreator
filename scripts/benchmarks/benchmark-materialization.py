@@ -8,8 +8,8 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument('--engine',type=Path,default=ROOT/'.agents/skills/minecraft-nbt-modeler');parser.add_argument('--output',type=Path);parser.add_argument('--compare',type=Path);args=parser.parse_args()
     output=args.output or ROOT/'build'/('materialization-'+datetime.now().strftime('%Y%m%d-%H%M%S-%f'));output.mkdir(parents=True,exist_ok=False)
     sys.path.insert(0,str(args.engine.resolve()/'scripts'))
-    from nbt_structure_agent import dispatch,build
-    from nbt_components import validate,paste_plan
+    from nbt_agent.structure import dispatch,build
+    from nbt_assets.components import validate,paste_plan
     from nbt_assembly import Volume
     module=importlib.util.spec_from_file_location('compute_bench',Path(__file__).with_name('benchmark-compute.py'));bench=importlib.util.module_from_spec(module);module.loader.exec_module(bench)
     dense=dict(name='64000方块校验',size=[40]*3,operations=[dict(kind='paste_component',label='实体',classification='wall',lo=[0]*3,hi=[39]*3,palette=['stone_bricks'],voxels=[[x,y,z,0] for x in range(40) for y in range(40) for z in range(40)])])

@@ -13,12 +13,12 @@ SCRIPTS=ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'
 sys.path.insert(0,str(SCRIPTS))
 from nbt_assembly import Volume
 from nbt_collision import collision_cells
-from nbt_components import load,placement
+from nbt_assets.components import load,placement
 from nbt_mounting.cylinder_pattern import cylinder_geometry,touches_backing
 from nbt_refine import save_master
 from nbt_registry import effective
 from nbt_selection_edit import sha
-from nbt_structure_agent import dispatch,build
+from nbt_agent.structure import dispatch,build
 from nbt_tools import transformed_state
 
 

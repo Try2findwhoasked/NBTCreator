@@ -6,7 +6,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_asset_libraries import BUNDLED, bundled, manifest, payload, fetch, child_location, atomic, encode, digest, MAX_MANIFEST, MAX_ASSET
+from nbt_assets.libraries import BUNDLED, bundled, manifest, payload, fetch, child_location, atomic, encode, digest, MAX_MANIFEST, MAX_ASSET
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--source', type=Path)

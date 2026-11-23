@@ -3,7 +3,7 @@
 from contextlib import closing
 import sqlite3
 
-from nbt_architecture_knowledge import expression
+from nbt_knowledge.architecture_books import expression
 from nbt_knowledge.text_search import han_bigrams
 from .public_web import WEB_TERMS
 from .web_research import ID, read, raw_json, sha

@@ -11,9 +11,9 @@ from functools import lru_cache
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_structure_agent import dispatch, build
+from nbt_agent.structure import dispatch, build
 from nbt_assets.object_library import library
-from nbt_components import placement, paste_plan
+from nbt_assets.components import placement, paste_plan
 from nbt_assembly import Volume
 from nbt_snbt import save_snbt, read_snbt
 from nbt_registry import effective

@@ -6,8 +6,8 @@ import os
 from pathlib import Path
 import tempfile
 
-from nbt_large_assembly import _workspace_path,assembly_source_matches,is_assembly_source,read_assembly,require_creative_workspace,verify_assembly_binding
-from nbt_reference_views import MAX_MANIFEST,SHA,VIEW_AXES,_hash,load_reference
+from nbt_composition.large_assembly import _workspace_path,assembly_source_matches,is_assembly_source,read_assembly,require_creative_workspace,verify_assembly_binding
+from nbt_review.reference_views import MAX_MANIFEST,SHA,VIEW_AXES,_hash,load_reference
 from nbt_refine import binary_wall_mask_hash,digest,read_master
 
 

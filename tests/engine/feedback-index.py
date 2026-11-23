@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_refine import save_master
-from nbt_feedback import collect, scan, version_source, sha
+from nbt_project.feedback import collect, scan, version_source, sha
 
 
 class Feedback(unittest.TestCase):

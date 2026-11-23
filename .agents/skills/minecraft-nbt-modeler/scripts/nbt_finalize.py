@@ -6,7 +6,7 @@ from nbt_model import Model,load
 from nbt_library import canonical_context,coordinate_snapshot,saved_coordinates
 from nbt_refine import read_master,validate,layout,binary_wall_mask_hash,resolve_wall_mask,source_binding
 from nbt_project.web_paths import project_paths
-from nbt_whole_validation import validation_mode
+from nbt_composition.whole_validation import validation_mode
 
 def sha(file):return hashlib.sha256(Path(file).read_bytes()).hexdigest()
 def write(file,value):Path(file).write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
@@ -78,7 +78,7 @@ def load_release(target, inputs):
 
 
 def inspect_inputs(workspace,source):
-    from nbt_agent_protocol import canonical
+    from nbt_agent.protocol import canonical
 
     workspace=Path(workspace).resolve();source=(workspace/Path(source)).resolve()
     release_path(workspace,source)
@@ -90,10 +90,10 @@ def finalize(workspace,source,*,register_history=True,expected_source_sha256=Non
     workspace=Path(workspace).resolve();source=Path(source)
     if not source.is_absolute():source=workspace/source
     source=source.resolve();target=release_path(workspace,source)
-    from nbt_large_assembly import is_assembly_source
+    from nbt_composition.large_assembly import is_assembly_source
     if is_assembly_source(source):
         raise ValueError('组装制作源尚不支持 NBT 定稿，请保留分区制作版')
-    from nbt_working_model import WorkingModel,managed_manifest
+    from nbt_composition.working_model import WorkingModel,managed_manifest
     manifest=managed_manifest(source)
     managed_building=manifest and manifest['kind']=='building'
     if managed_building and manifest['phase']!='opened':
@@ -173,7 +173,7 @@ def finalize(workspace,source,*,register_history=True,expected_source_sha256=Non
             raise
     result=released_result(target,result)
     if register_history:
-        from nbt_history import record_produced_version
+        from nbt_project.history import record_produced_version
         result['history']=record_produced_version(workspace,source,message='定稿并导出 NBT',actor='human')
     return result
 def main():

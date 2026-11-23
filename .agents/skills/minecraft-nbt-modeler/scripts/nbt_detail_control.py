@@ -18,7 +18,7 @@ from nbt_model import state
 from nbt_project.request_paths import read_request, metadata_path
 from nbt_project.web_paths import project_paths, workspace_path
 from nbt_collision import collision_cells
-from nbt_catalog import catalog as tool_catalog
+from nbt_runtime.catalog import catalog as tool_catalog
 from nbt_library import InvalidCoordinateDescription,saved_coordinates
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1156,7 +1156,7 @@ def main():
             from nbt_batches import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request))
         elif args.command == 'feedback-tasks':
-            from nbt_feedback_tasks import dispatch
+            from nbt_agent.feedback_tasks import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request))
         elif args.command == 'project-batch':
             from nbt_project_batch import dispatch
@@ -1171,7 +1171,7 @@ def main():
             write_json(output/'walk-inspection.json',result)
             result['report_file']=str(output/'walk-inspection.json')
         elif args.command == 'agent-tasks':
-            from nbt_agent_tasks import dispatch
+            from nbt_agent.tasks import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request))
         elif args.command == 'architect':
             from nbt_architect import dispatch
@@ -1180,7 +1180,7 @@ def main():
             from nbt_history import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request))
         elif args.command == 'retrieve':
-            from nbt_retrieval import dispatch
+            from nbt_knowledge.retrieval import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request))
         elif args.command == 'selection-edit':
             from nbt_selection_edit import dispatch
@@ -1189,7 +1189,7 @@ def main():
             import nbt_components as components
             data=read_request(args.request) if args.request else {}
             if args.action=='agent':
-                from nbt_structure_agent import dispatch
+                from nbt_agent.structure import dispatch
                 if set(data)!={'tool','arguments'}:raise ValueError('结构Agent请求须包含tool和arguments')
                 result=dispatch(args.workspace,data['tool'],data['arguments'])
             elif args.action=='list':result=components.listing(args.workspace)

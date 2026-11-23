@@ -5,7 +5,7 @@ from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_model import Model,state
-from nbt_structure_agent import build,definitions,dispatch
+from nbt_agent.structure import build,definitions,dispatch
 from nbt_capabilities import capabilities
 from nbt_detail_control import default_settings,compile_plan,simulate_plan
 
@@ -61,14 +61,14 @@ class Materialization(unittest.TestCase):
                     if sum(abs(a-b) for a,b in zip(points[i],points[j]))==1:parent[root(i)]=root(j)
             self.assertEqual(component_count(points),len({root(i) for i in range(len(points))}))
     def test_catalogue_snapshot_refreshes_when_file_changes(self):
-        import nbt_catalog
+        import nbt_runtime.catalog as nbt_catalog
         file=self.root/'catalog.json';file.write_text('{"value":1}')
         with patch.object(nbt_catalog,'FILE',file):
             self.assertEqual(nbt_catalog.snapshot()[0]['value'],1);old=nbt_catalog.snapshot()[1]
             file.write_text('{"value":200}');self.assertEqual(nbt_catalog.snapshot()[0]['value'],200)
             self.assertNotEqual(nbt_catalog.snapshot()[1],old)
     def test_component_rows_still_reject_bool_float_duplicate_and_bad_layers(self):
-        import nbt_components
+        import nbt_assets.components as nbt_components
         fixture=dict(schema_version=1,name='fixture',size=[4]*3,anchor=[0]*3,palette=['stone'],blocks=[[1,1,1,0,True]])
         for row in [[True,1,1,0,True],[1.,1,1,0,True],[4,1,1,0,True],[1,1,1,True,True],[1,1,1,0,1]]:
             with self.subTest(row=row),self.assertRaises(ValueError):nbt_components.validate(dict(fixture,blocks=[row]))

@@ -1,0 +1,601 @@
+"""Archive workbench prompts and discover/read them without launching Electron."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import uuid
+import copy
+import time
+from itertools import chain
+from contextlib import contextmanager
+from datetime import datetime, timezone, timedelta
+from nbt_project.web_paths import project_paths, workspace_path
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+def encode(value):
+    return (json.dumps(value,ensure_ascii=False,sort_keys=True,indent=2)+'\n').encode('utf8')
+
+def inside(workspace, value):
+    root=Path(workspace).resolve();target=workspace_path(root,value)
+    if not target.is_relative_to(root/'nbt_models'):
+        raise ValueError('提示词只能存取当前工作区 nbt_models 内的文件；外部模型请切换到对应工作区')
+    return target
+
+def relative(workspace, file):
+    return Path(file).resolve().relative_to(Path(workspace).resolve()).as_posix()
+
+@contextmanager
+def index_lock(workspace,directory,timeout=2):
+    target=inside(workspace,directory/'.write.lock')
+    with target.open('a+b') as stream:
+        if stream.seek(0,2)==0:stream.write(b'0');stream.flush()
+        deadline=time.monotonic()+timeout
+        while True:
+            try:
+                stream.seek(0)
+                if os.name=='nt':
+                    import msvcrt
+                    msvcrt.locking(stream.fileno(),msvcrt.LK_NBLCK,1)
+                else:
+                    import fcntl
+                    fcntl.flock(stream,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                break
+            except OSError:
+                if time.monotonic()>=deadline:
+                    from nbt_agent.protocol import error
+                    error('LOCK_BUSY','任务索引正在写入，请稍后重试',retryable=True)
+                time.sleep(.01)
+        try:yield
+        finally:
+            stream.seek(0)
+            if os.name=='nt':msvcrt.locking(stream.fileno(),msvcrt.LK_UNLCK,1)
+            else:fcntl.flock(stream,fcntl.LOCK_UN)
+
+def save(workspace, payload):
+    workspace=Path(workspace).resolve()
+    session=payload.get('session_id','')
+    if not re.fullmatch('[a-f0-9]{32}',session):raise ValueError('提示词任务编号无效')
+    document=payload.get('document');text=payload.get('text')
+    if not isinstance(document,dict) or not isinstance(document.get('project'),dict):raise ValueError('缺少提示词方案')
+    if not isinstance(text,str) or not text.strip() or len(text.encode('utf8'))>512*1024:raise ValueError('提示词正文须非空且不超过512KiB')
+    if len(encode(document))>2*1024*1024:raise ValueError('提示词方案超过2MiB')
+    if document.get('design_standard') is not None:
+        from nbt_project.architect import validate_standard
+        validate_standard(document['design_standard'])
+    context = payload.get('context', {})
+    if not isinstance(context, dict):
+        raise ValueError('上下文草案必须为 JSON 对象')
+    if 'constraints' in document:
+        from nbt_project.constraints import validate_selection
+        selected = validate_selection(document['constraints'], document['project'])
+        context = dict(context)
+        for key in ('require_enclosure', 'openings_policy', 'opening_size', 'cells', 'cell_size'):
+            if key in selected:
+                context[key] = selected[key]
+        if 'integration' in selected and not document['project'].get('source'):
+            context['mode'] = selected['integration']
+    if not isinstance(document.get('design_override',''),str) or len(document.get('design_override',''))>4000:raise ValueError('建筑规范例外最多4000字')
+    if not isinstance(document.get('user_requirements',''),str) or len(document.get('user_requirements',''))>4000:raise ValueError('必须满足的要求须为不超过4000字的文字')
+    catalog=json.loads((Path(__file__).resolve().parents[2]/'tool-catalog.json').read_text(encoding='utf8'))
+    design=catalog['prompt_design'];project=document['project']
+    for key in design['fields']:
+        if key!='size' and key in project and (not isinstance(project[key],str) or len(project[key])>4000):raise ValueError('设计参数文字无效：'+key)
+    if 'size_policy' in project and (not isinstance(project['size_policy'],str) or project['size_policy'] not in design['size_policies']):raise ValueError('尺寸约束方式无效')
+    scope=document.get('workbench',{}).get('brief_fields') if isinstance(document.get('workbench',{}),dict) else None
+    if scope is not None and (not isinstance(scope,list) or any(not isinstance(key,str) or key not in design['fields'] for key in scope) or len(set(scope))!=len(scope)):raise ValueError('AI改写范围无效')
+    document=copy.deepcopy(document);project=document['project'];stage=project.get('stage');source=None;source_hash=None
+    if stage not in ('draft','plan','refine'):raise ValueError('提示词阶段无效')
+    if stage=='draft':
+        shape=project.get('buildingShape');name=project.get('name','')
+        if shape not in catalog['building_shapes'] or not isinstance(name,str) or not name.strip():raise ValueError('填写建筑名称与有效形状')
+        name=re.sub(r'[<>:"/\\|?*\x00-\x1f]','_',name).rstrip('. ')[:70] or '未命名建筑'
+        if name in ('.','..'):raise ValueError('建筑名称无效')
+        from nbt_project.rooms import layout_project, enclosing_room, init_layout, empty_project, project_folder
+        workbench=document.get('workbench')
+        layout_scope=workbench.get('layout_project','nbt_models') if isinstance(workbench,dict) else 'nbt_models'
+        grouped=layout_project(workspace,layout_scope) if isinstance(layout_scope,str) and layout_scope else None
+        if grouped is None and isinstance(workbench,dict) and workbench.get('layout_project')=='nbt_models':
+            target=project_folder(workspace,'nbt_models')
+            if empty_project(target):
+                init_layout(target)
+                grouped=target
+        registered=project.get('room_folder')
+        if registered:
+            room=inside(workspace,registered)
+            if grouped is None or not room.is_relative_to(grouped) or not enclosing_room(grouped,room) or (room/'房间.json').is_file() is False:
+                raise ValueError('房间登记无效，请重新选择房间')
+            directory=room/'提示词方案'
+        elif grouped is not None:
+            directory=inside(workspace,Path('nbt_models/_workspaces/方案草稿')/session)/'提示词方案'
+        else:
+            directory=inside(workspace,Path('nbt_models')/shape/name)/'提示词方案'
+    else:
+        source=inside(workspace,project.get('source',''))
+        if not source.is_file():raise ValueError('源模型不存在，请重新载入当前建筑')
+        source_hash=digest(source.read_bytes())
+        if document.get('source_sha256') and document['source_sha256']!=source_hash:raise ValueError('源模型已变化，请重新载入当前建筑后导出提示词')
+        directory=inside(workspace,project_paths(source)['version'])/'提示词方案'
+    for key in ('source','contextPath','reviewPath','output'):
+        value=project.get(key)
+        if isinstance(value,str) and value and Path(value).is_absolute():
+            resolved=Path(value).resolve()
+            if resolved.is_relative_to(workspace):
+                replacement=relative(workspace,resolved);project[key]=replacement;text=text.replace(value,replacement)
+    directory=inside(workspace,directory);directory.mkdir(parents=True,exist_ok=True)
+    index_file=directory/'提示词索引.json'
+    with index_lock(workspace,directory):
+        index=load_index(workspace,index_file)[1] if index_file.exists() else dict(schema_version=1,records=[])
+        if index.get('schema_version')!=1 or not isinstance(index.get('records'),list):raise ValueError('提示词索引无效，未覆盖')
+        previous=next((item for item in index['records'] if item.get('id')==session),None)
+        if previous and previous.get('deleted_at'):raise ValueError('这条创作方案已删除，请新建方案')
+        files={'提示词.md':text.encode('utf8'),'方案.json':encode(document),'操作计划.json':encode(payload.get('plan',{})),'上下文草案.json':encode(context)}
+        hashes={name:digest(raw) for name,raw in files.items()};revision=digest(encode(dict(files=hashes,source_sha256=source_hash)))
+        folder=inside(workspace,directory/'修订'/session/revision);folder.mkdir(parents=True,exist_ok=True)
+        for name,raw in files.items():
+            target=inside(workspace,folder/name)
+            try:
+                with target.open('xb') as stream:stream.write(raw)
+            except FileExistsError:
+                if digest(target.read_bytes())!=hashes[name]:raise ValueError('已归档提示词修订被改动；未覆盖')
+        if source and digest(source.read_bytes())!=source_hash:raise ValueError('导出期间源模型已变化，未更新提示词索引')
+        record=dict(id=session,name=project.get('name',''),stage=stage,source=relative(workspace,source) if source else None,
+                    source_sha256=source_hash,revision=revision,updated_at=datetime.now(timezone.utc).isoformat(),
+                    files={name:dict(path=os.path.relpath(folder/name,directory).replace('\\','/'),sha256=hashes[name]) for name in files},
+                    approval='not_granted_by_prompt',model_written=False,
+                    review_state='reviewed' if isinstance(document.get('workbench'),dict) and document['workbench'].get('status')=='reviewed' else 'pending',
+                    generation_state=document.get('workbench',{}).get('generated') if isinstance(document.get('workbench'),dict) else None,
+                    queue_created_at=document.get('workbench',{}).get('created_at') if isinstance(document.get('workbench'),dict) and type(document['workbench'].get('created_at')) is int else None)
+        if previous and previous.get('revision')==revision:record=previous
+        else:
+            index['records']=[item for item in index['records'] if item.get('id')!=session]+[record]
+            temporary=index_file.with_name(index_file.name+'.'+uuid.uuid4().hex+'.tmp')
+            temporary.write_bytes(encode(index));temporary.replace(index_file)
+        return dict(id=session,revision=revision,updated_at=record['updated_at'],index=relative(workspace,index_file),directory=relative(workspace,directory),
+                    prompt=relative(workspace,folder/'提示词.md'),source_sha256=source_hash,unchanged=bool(previous and previous.get('revision')==revision))
+
+def load_index(workspace, file):
+    file=inside(workspace,file)
+    if file.name!='提示词索引.json' or file.parent.name!='提示词方案' or file.stat().st_size>4*1024*1024:raise ValueError('请选择扫描返回的提示词索引')
+    data=json.loads(file.read_text(encoding='utf-8-sig'))
+    if data.get('schema_version')!=1 or not isinstance(data.get('records'),list):raise ValueError('提示词索引格式无效')
+    if any(not isinstance(item,dict) or not isinstance(item.get('id'),str) or not re.fullmatch('[a-f0-9]{32}',item['id']) or not isinstance(item.get('updated_at'),str) or not isinstance(item.get('files'),dict) for item in data['records']):raise ValueError('提示词索引记录无效')
+    return file,data
+
+def read_prompt(workspace,index,id):
+    file,data=load_index(workspace,index);records=[item for item in data['records'] if item.get('id')==id]
+    if len(records)!=1:raise ValueError('提示词编号不存在或不唯一，请重新扫描')
+    record=records[0];contents={}
+    if record.get('deleted_at'):raise ValueError('这条创作方案已删除')
+    for name in ('提示词.md','方案.json','操作计划.json','上下文草案.json'):
+        item=record['files'][name];target=inside(workspace,file.parent/item['path'])
+        if not target.is_relative_to(file.parent) or target.stat().st_size>2*1024*1024:raise ValueError('提示词产物路径或大小无效')
+        raw=target.read_bytes()
+        if digest(raw)!=item['sha256']:raise ValueError('提示词产物已变化，不能按原索引读取：'+name)
+        contents[name]=raw.decode('utf8') if name.endswith('.md') else json.loads(raw)
+    actual=None
+    if record.get('source'):
+        source=inside(workspace,record['source']);actual=digest(source.read_bytes()) if source.is_file() else None
+    return dict(record=record,index=relative(workspace,file),source_matches=actual==record.get('source_sha256') if record.get('source') else None,
+                text=contents['提示词.md'],document=contents['方案.json'],plan=contents['操作计划.json'],context=contents['上下文草案.json'],approval='not_granted_by_prompt')
+
+def set_prompt_recycled(workspace,index,identifier,revision,recycled,updated_at=None):
+    file,_=load_index(workspace,index)
+    with index_lock(workspace,file.parent):
+        _,data=load_index(workspace,file)
+        records=[item for item in data['records'] if item['id']==identifier]
+        if len(records)!=1:raise ValueError('提示词编号不存在或不唯一，请重新扫描')
+        record=records[0]
+        if record['revision']!=revision or updated_at is not None and record['updated_at']!=updated_at:
+            raise ValueError('方案已更新，请刷新列表后重试')
+        if bool(record.get('deleted_at'))!=recycled:
+            if recycled:record['deleted_at']=datetime.now(timezone.utc).isoformat()
+            else:record.pop('deleted_at',None)
+            temporary=file.with_name(file.name+'.'+uuid.uuid4().hex+'.tmp')
+            temporary.write_bytes(encode(data));temporary.replace(file)
+    return dict(id=identifier,deleted=recycled)
+
+
+def remove_prompt(workspace,index,identifier,revision):
+    return set_prompt_recycled(workspace,index,identifier,revision,True)
+
+def read_handoff(workspace,file,expected):
+    target=inside(workspace,file)
+    if target.name!='交给Agent.md' or 'Agent交接' not in target.parts or target.stat().st_size>512*1024:raise ValueError('请选择扫描返回的 Agent 交接提示词')
+    raw=target.read_bytes()
+    if digest(raw)!=expected:raise ValueError('交接提示词已变化，请重新扫描')
+    return dict(file=relative(workspace,target),sha256=expected,text=raw.decode('utf8'),approval='not_granted_by_prompt')
+
+def scan(workspace, source=None, *, include_recycled=False):
+    workspace=Path(workspace).resolve();models=workspace/'nbt_models';items=[];errors=[];deleted=set()
+    selected=relative(workspace,inside(workspace,source)) if source else None
+    for directory,dirs,names in chain(os.walk(models,followlinks=False),os.walk(models/'_workspaces/方案草稿',followlinks=False)):
+        dirs[:]=[name for name in dirs if name not in {'_workspaces','_migration','_exports','修订','修改意见'} and not (Path(directory)/name).is_symlink()]
+        if '交给Agent.md' in names and 'Agent交接' in Path(directory).parts:
+            file=Path(directory)/'交给Agent.md'
+            try:
+                if file.stat().st_size>512*1024:raise ValueError('交接提示词过大')
+                file=inside(workspace,file);request_file=file.parent/'request.json';request=json.loads(request_file.read_text(encoding='utf-8-sig')) if request_file.is_file() else {};bound_source=request.get('source');bound_source=relative(workspace,inside(workspace,bound_source)) if bound_source else None
+                if not selected or selected==bound_source:items.append(dict(kind='handoff',file=relative(workspace,file),sha256=digest(file.read_bytes()),source=bound_source,source_sha256=request.get('source_sha256'),updated_at=datetime.fromtimestamp(file.stat().st_mtime,timezone.utc).isoformat()))
+            except (OSError,ValueError) as error:errors.append(dict(file=relative(workspace,file),error=str(error)))
+        if '提示词索引.json' not in names:continue
+        file=Path(directory)/'提示词索引.json'
+        try:
+            _,data=load_index(workspace,file)
+            for record in data['records']:
+                if record.get('deleted_at'):
+                    deleted.add(record['id'])
+                    if not include_recycled:continue
+                if selected and (not record.get('source') or relative(workspace,inside(workspace,record['source']))!=selected):continue
+                item={key:record.get(key) for key in ('id','name','stage','source','source_sha256','revision','updated_at','review_state','generation_state','queue_created_at')}
+                if record.get('deleted_at'):item['deleted_at']=record['deleted_at']
+                items.append(item|dict(kind='workbench',index=relative(workspace,file)))
+        except (ValueError,OSError,KeyError) as error:errors.append(dict(index=relative(workspace,file),error=str(error)))
+    return dict(schema_version=1,items=sorted((item for item in items if include_recycled or item.get('id') not in deleted),key=lambda item:item.get('updated_at') or '',reverse=True),errors=errors,full_text_loaded=False)
+
+
+def prompt_group_file(workspace):
+    return inside(workspace,'nbt_models/_workspaces/prompt_groups/groups.json')
+
+
+def read_prompt_groups(workspace):
+    file=prompt_group_file(workspace)
+    if not file.is_file():return {}
+    if file.stat().st_size>4*1024*1024:raise ValueError('方案分组记录过大')
+    return json.loads(file.read_text(encoding='utf8'))
+
+
+def library_list(workspace):
+    from nbt_agent.protocol import redact
+
+    result=scan(workspace,include_recycled=True)
+    current={}
+    for item in result['items']:
+        if item['kind']=='workbench':current.setdefault(item['id'],item)
+    published={(task.get('archive_id'),task['revision']):task for task in load_tasks(workspace)['records']}
+    groups=read_prompt_groups(workspace)
+    for item in current.values():
+        task=published.get((item['id'],item['revision']))
+        item['published_task']=dict(id=task['id'],directory=task['directory'],status=redact(task)['status']) if task else None
+        item['group']=groups.get(item['id'],'')
+    return dict(result,items=list(current.values()),workspace=str(workspace.resolve()))
+
+
+def handoff_statuses(workspace):
+    from nbt_agent.protocol import redact
+
+    return {'statuses': {task['id']: redact(task)['status'] for task in load_tasks(workspace)['records']}}
+
+
+def organize_prompts(workspace,payload):
+    action=payload.get('action');items=payload.get('items')
+    if action not in ('trash','restore','group') or not isinstance(items,list) or not 1<=len(items)<=100:
+        raise ValueError('请选择 1～100 条方案')
+    group=payload.get('group','')
+    if action=='group' and (not isinstance(group,str) or len(group.strip())>60):
+        raise ValueError('分组名称最多 60 字')
+    file=prompt_group_file(workspace);file.parent.mkdir(parents=True,exist_ok=True)
+    results=[];changed=False
+    with index_lock(workspace,file.parent):
+        current={item['id']:item for item in library_list(workspace)['items']}
+        groups=read_prompt_groups(workspace)
+        for item in items:
+            identifier=item.get('id') if isinstance(item,dict) else None
+            try:
+                latest=current.get(identifier) if isinstance(identifier,str) else None
+                if not latest or any(item.get(key)!=latest[key] for key in ('index','revision','updated_at')):
+                    raise ValueError('方案已更新，请刷新列表后重试')
+                if action=='group':
+                    if latest.get('deleted_at'):raise ValueError('请先恢复方案')
+                    if group.strip():groups[identifier]=group.strip()
+                    else:groups.pop(identifier,None)
+                    changed=True
+                else:
+                    set_prompt_recycled(workspace,latest['index'],identifier,latest['revision'],action=='trash',latest['updated_at'])
+                results.append(dict(id=identifier,status='complete'))
+            except (ValueError,OSError,KeyError) as error:results.append(dict(id=identifier,status='failed',error=str(error)))
+        if changed:
+            from nbt_project.queues import write
+            write(file,groups)
+    return dict(items=results)
+
+
+def task_index(workspace):
+    return inside(workspace,'nbt_models/_workspaces/prompt_tasks/任务索引.json')
+
+
+TASK_INDEX_BYTES=4*1024*1024
+
+
+def load_tasks(workspace):
+    file=task_index(workspace)
+    if not file.exists():return dict(schema_version=1,records=[])
+    if file.stat().st_size>TASK_INDEX_BYTES:raise ValueError('提示词任务索引超过4MiB')
+    data=json.loads(file.read_text(encoding='utf8'))
+    if data.get('schema_version')!=1 or not isinstance(data.get('records'),list):raise ValueError('提示词任务索引无效')
+    for item in data['records']:
+        if not isinstance(item,dict) or not re.fullmatch('[a-f0-9]{32}',str(item.get('id',''))) or type(item.get('sequence')) is not int or item['sequence']<1:raise ValueError('提示词任务记录无效')
+    return data
+
+
+def check_task_index_size(data):
+    from nbt_agent.protocol import error
+    if len(encode(data))>TASK_INDEX_BYTES:error('TASK_INDEX_LIMIT','提示词任务索引已达容量上限，未写入本次状态变更')
+
+
+def publish(workspace,index,identifier,revision):
+    from nbt_project.queues import write
+    archived=read_prompt(workspace,index,identifier)
+    record=archived['record']
+    if record['revision']!=revision:raise ValueError('提示词已更新，请重新保存当前任务')
+    if archived['source_matches'] is False:raise ValueError('源模型已变化，不能交接旧提示词')
+    task_id=uuid.uuid5(uuid.NAMESPACE_URL,archived['index']+':'+identifier+':'+revision).hex
+    global_index=task_index(workspace);global_index.parent.mkdir(parents=True,exist_ok=True)
+    with index_lock(workspace,global_index.parent):
+        data=load_tasks(workspace)
+        previous=next((item for item in data['records'] if item['id']==task_id),None)
+        if previous:
+            return dict(read_task(workspace,task_id)['task'],unchanged=True)
+        stamp=datetime.now(timezone(timedelta(hours=8))).strftime('%Y%m%d_%H%M%S')
+        folder=inside(workspace,Path(index).parent/'任务'/(stamp+'_'+task_id[:12]));folder.mkdir(parents=True,exist_ok=True)
+        files={}
+        for name in ('提示词.md','方案.json','操作计划.json','上下文草案.json'):
+            item=record['files'][name]
+            raw=inside(workspace,Path(index).parent/item['path']).read_bytes()
+            if digest(raw)!=item['sha256']:raise ValueError('提示词修订已变化，未发布任务')
+            target=inside(workspace,folder/name)
+            try:
+                with target.open('xb') as stream:stream.write(raw)
+            except FileExistsError:
+                if digest(target.read_bytes())!=item['sha256']:raise ValueError('任务文件已存在不同内容，未覆盖')
+            files[name]=dict(path=relative(workspace,target),sha256=item['sha256'])
+        task=dict(id=task_id,sequence=max((item['sequence'] for item in data['records']),default=0)+1,
+                  name=record['name'],stage=record['stage'],status='pending',created_at=datetime.now(timezone.utc).isoformat(),
+                  directory=relative(workspace,folder),prompt=files['提示词.md']['path'],files=files,
+                  archive_index=archived['index'],archive_id=identifier,revision=revision,source=record.get('source'),source_sha256=record.get('source_sha256'),
+                  approval='not_granted_by_prompt',model_written=False)
+        if task['source']:
+            from nbt_refine import source_binding
+            binding=source_binding(inside(workspace,task['source']))
+            if binding['source_sha256']!=task['source_sha256']:raise ValueError('发布期间制作源已变化')
+            task['input_binding']=binding
+        for item in data['records']:
+            if (item['archive_index']==task['archive_index'] and item['archive_id']==identifier
+                    and item['status'] not in ('completed','superseded')):
+                item.update(status='superseded',superseded_by=task_id,state_revision=item.get('state_revision',0)+1)
+                item.pop('lease',None)
+        data['records'].append(task);check_task_index_size(data)
+        write(inside(workspace,folder/'任务.json'),task)
+        write(global_index,data)
+        return dict(task,unchanged=False)
+
+
+def tasks(workspace,after=0,status=None):
+    if type(after) is not int or after<0:raise ValueError('任务游标须为非负整数')
+    data=load_tasks(workspace)
+    from nbt_agent.protocol import redact
+    records=[redact(item) for item in data['records']]
+    items=[{key:item[key] for key in ('id','sequence','name','stage','status','created_at','directory','prompt','revision','state_revision','lease','lease_expired') if key in item} for item in records if item['sequence']>after and (status is None or item['status']==status)]
+    return dict(items=sorted(items,key=lambda item:item['sequence']),cursor=max((item['sequence'] for item in data['records']),default=0),full_text_loaded=False)
+
+
+def task_file(workspace, folder, record, name):
+    item=record['files'][name];file=inside(workspace,item['path'])
+    if not file.is_relative_to(folder) or file.stat().st_size>2*1024*1024:raise ValueError('任务文件路径或大小无效')
+    raw=file.read_bytes()
+    if digest(raw)!=item['sha256']:raise ValueError('任务文件已变化：'+name)
+    return raw
+
+
+def published_constraint_links(workspace, errors):
+    """Use exact recorded paths without loading task text or matching room names."""
+    from nbt_project.constraints import validate_snapshot
+    from nbt_project.rooms import read_small
+
+    try:records=load_tasks(workspace)['records']
+    except (OSError,ValueError,KeyError,TypeError) as error:
+        errors.append(dict(file='任务索引.json',reason=str(error)))
+        return
+    for record in records:
+        try:
+            folder=inside(workspace,record['directory'])
+            document=json.loads(task_file(workspace,folder,record,'方案.json'))
+            rules=document.get('constraints',[])
+            if not rules:continue
+            for item in rules:validate_snapshot(item)
+            ids={item['id'] for item in rules}
+            handoff=dict(kind='handoff',path=relative(workspace,inside(workspace,record['files']['方案.json']['path'])),name=record.get('name',''))
+            if record.get('source'):
+                yield inside(workspace,record['source']),ids,[handoff]
+                continue
+            if record.get('stage')!='draft':continue
+            receipt=inside(workspace,folder/'初稿回传.json')
+            if receipt.is_file() and receipt.parent==folder:
+                try:
+                    returned=read_small(receipt)
+                    source=inside(workspace,returned['source'])
+                    if source.is_file():
+                        with source.open('rb') as stream:
+                            if hashlib.file_digest(stream,'sha256').hexdigest()==returned['source_sha256']:
+                                yield source,ids,[handoff,dict(kind='receipt',path=relative(workspace,receipt))]
+                                continue
+                except (OSError,ValueError,KeyError,TypeError) as error:
+                    errors.append(dict(file=relative(workspace,receipt),reason=str(error)))
+            output=document.get('project',{}).get('output')
+            if output and folder.parent.name=='任务' and folder.parent.parent.name=='提示词方案':
+                room=inside(workspace,output)
+                if room==folder.parent.parent.parent:yield room,ids,[handoff]
+        except (OSError,ValueError,KeyError,TypeError,AttributeError) as error:
+            errors.append(dict(file=record.get('directory','任务索引.json'),reason=str(error)))
+
+
+TASK_ATTACHMENTS={'text':'提示词.md','document':'方案.json','plan':'操作计划.json','context':'上下文草案.json'}
+
+
+def _read_task_record(workspace,record,*,diagnostic=False):
+    folder=inside(workspace,record['directory']);contents={};issues=[]
+    for name in TASK_ATTACHMENTS.values():
+        try:
+            raw=task_file(workspace,folder,record,name)
+            contents[name]=raw.decode('utf8') if name.endswith('.md') else json.loads(raw)
+        except (OSError,ValueError,KeyError) as failure:
+            if not diagnostic:raise
+            issues.append(dict(file=name,code='ATTACHMENT_MISSING' if isinstance(failure,FileNotFoundError) else 'ATTACHMENT_INVALID',
+                               error=str(failure) if not isinstance(failure,OSError) else '任务附件无法读取'))
+    source=inside(workspace,record['source']) if record.get('source') else None
+    matches=None
+    if source:
+        try:
+            with source.open('rb') as stream:matches=hashlib.file_digest(stream,'sha256').hexdigest()==record['source_sha256']
+            if matches and record.get('input_binding'):
+                from nbt_refine import source_binding
+                matches=source_binding(source)==record['input_binding']
+        except (ValueError,OSError):matches=False
+    from nbt_agent.protocol import redact
+    return dict(task=redact(record),directory=str(folder),prompt=str(inside(workspace,record['prompt'])),
+        **{view:contents.get(name) for view,name in TASK_ATTACHMENTS.items()},source_matches=matches,
+        attachment_issues=issues,ready_for_execution=not issues and matches is not False,approval='not_granted_by_prompt')
+
+
+TASK_VIEWS=('full','compact','text','document','plan','context')
+
+
+def read_task(workspace,identifier,*,view='full',diagnostic=False):
+    from nbt_agent.protocol import error
+    records=load_tasks(workspace)['records']
+    record=next((item for item in records if item['id']==identifier),None)
+    if not record:error('TASK_NOT_FOUND','提示词任务不存在，请先 prompts tasks')
+    if view not in TASK_VIEWS:
+        error('INVALID_REQUEST','view 须为 full、compact、text、document、plan 或 context')
+    data=_read_task_record(workspace,record,diagnostic=diagnostic or view!='full')
+    if view=='full':return data
+    if view!='compact':
+        if data[view] is None:
+            error('TASK_EVIDENCE_CHANGED','无法读取本视图的绑定附件',
+                  details={'attachment_issues':data['attachment_issues'],'next':'检查已发布任务的附件或重新发布'})
+        return dict(id=identifier,revision=record['revision'],source_matches=data['source_matches'],view=view,
+                    attachment_issues=data['attachment_issues'],ready_for_execution=data['ready_for_execution'],**{view:data[view]})
+    from nbt_project.prompt_view import compact
+    previous=max((item for item in records if item['sequence']<record['sequence']
+        and item.get('archive_id')==record['archive_id'] and item.get('archive_index')==record['archive_index']),
+        key=lambda item:item['sequence'],default=None)
+    older=None
+    if previous is not None:
+        try:older=_read_task_record(workspace,previous)
+        except (ValueError,OSError,KeyError,TypeError):pass
+    return compact(data,previous,older)
+
+
+def task_action(workspace,action,request):
+    from nbt_project.queues import write
+    import nbt_agent.protocol as protocol
+    workspace=Path(workspace).resolve();file=task_index(workspace);file.parent.mkdir(parents=True,exist_ok=True)
+    with index_lock(workspace,file.parent):
+        data=load_tasks(workspace);replayed=protocol.replay(workspace,data,'prompts.'+action,request)
+        if replayed is not None:return replayed
+        item=next((item for item in data['records'] if item['id']==request.get('id')),None)
+        if not item:protocol.error('TASK_NOT_FOUND','提示词任务不存在')
+        if item['status']=='superseded':protocol.error('TASK_SUPERSEDED','此任务已被新版替代')
+        if 'expected_revision' in request and request['expected_revision']!=item.get('state_revision',0):protocol.error('REVISION_CONFLICT','任务状态已改变',retryable=True,details={'current_revision':item.get('state_revision',0)})
+        if action in ('claim','heartbeat') or (action=='task-status' and request.get('request_id')):
+            original=_read_task_record(workspace,item,diagnostic=True)
+            if original['source_matches'] is False:protocol.error('SOURCE_CHANGED','任务原建筑已变化，请核对来源')
+            if original['attachment_issues']:
+                protocol.error('TASK_EVIDENCE_CHANGED','任务绑定附件已变化，请核对交接',details={'attachment_issues':original['attachment_issues']})
+        if action in ('claim','heartbeat','release'):
+            result=protocol.lease_action(item,action,request)
+        elif action=='task-status':
+            status=request.get('status')
+            if status not in ('pending','in_progress','completed'):protocol.error('INVALID_REQUEST','任务状态无效')
+            if item['status']=='completed':protocol.error('TASK_COMPLETED','已完成任务不能重新修改执行状态')
+            protocol.check_lease(item,request,required=status=='completed' or bool(request.get('request_id')))
+            if status=='completed':
+                item.update(evidence=completion_evidence(workspace,item,request),model_written=item['stage']!='plan',acceptance='pending_user_review')
+                item.pop('lease',None)
+            item['status']=status
+            result=dict(id=item['id'],status=status)
+            if status=='completed':result.update(evidence=item['evidence'],model_written=item['model_written'],acceptance=item['acceptance'])
+        else:protocol.error('METHOD_NOT_FOUND','未知任务动作')
+        item['state_revision']=item.get('state_revision',0)+1
+        result.update(state_revision=item['state_revision'],approval='not_granted_by_prompt')
+        protocol.receipt(workspace,data,'prompts.'+action,request,result)
+        check_task_index_size(data)
+        write(inside(workspace,Path(item['directory'])/'任务.json'),item);write(file,data)
+        return result
+
+def completion_evidence(workspace,item,request):
+    from nbt_agent.protocol import error
+    from nbt_agent.tasks import return_parent
+    from nbt_refine import _current_review
+
+    if item['stage']=='plan':
+        summary=request.get('summary')
+        if request.get('review') or not isinstance(summary,str) or not 1<=len(summary.strip())<=8000:
+            error('EVIDENCE_REQUIRED','只读计划任务须提供源检查结果和未验证事项的说明，不提交制作版')
+        return dict(source=item['source'],source_sha256=item['source_sha256'],summary=summary.strip())
+    if not request.get('review') or not request.get('review_sha256'):
+        error('EVIDENCE_REQUIRED','完成提示词任务须提供当前制作版的审阅目录和审阅文件哈希')
+    review=inside(workspace,request['review']);expected=request['review_sha256']
+    try:
+        if request.get('review_kind','refinement')=='architecture':
+            from nbt_building.review import verify_for_return
+            evidence=verify_for_return(workspace,review,expected)
+            if item.get('source'):return_parent(workspace,inside(workspace,item['source']),inside(workspace,evidence['source']))
+            return evidence
+        if request.get('review_kind','refinement')!='refinement':raise ValueError('未知审阅证据格式')
+        record=_current_review(review,expected)
+        source=inside(workspace,record['source'])
+        if not record.get('validation_sha256'):
+            raise ValueError('审阅缺少绑定的完整模型验证记录')
+        baseline=json.loads((review/'baseline_validation.json').read_text(encoding='utf8'))
+        if baseline.get('passed') is not True:
+            raise ValueError('审阅缺少通过的完整模型验证记录')
+        if not {'whole','entry'}.issubset({thumb['role'] for thumb in record['thumbnails']}):
+            raise ValueError('审阅缺少全景和入口预览')
+        from PIL import Image
+        for image in [*record['thumbnails'],record['sheet']]:
+            with Image.open(review/image['file']) as preview:preview.verify()
+    except (ValueError,OSError,KeyError,TypeError) as failure:
+        error('EVIDENCE_INVALID',str(failure))
+    if item.get('source'):return_parent(workspace,inside(workspace,item['source']),source)
+    return dict(source=relative(workspace,source),source_sha256=record['source_sha256'],review=relative(workspace,review),
+                review_sha256=expected,validation_sha256=record['validation_sha256'],preview_sha256=record['sheet']['sha256'])
+
+def task_status(workspace,identifier,status):
+    return task_action(workspace,'task-status',dict(id=identifier,status=status))
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());sub=parser.add_subparsers(dest='command',required=True)
+    cmd=sub.add_parser('save');cmd.add_argument('--request',type=Path,required=True)
+    cmd=sub.add_parser('scan');cmd.add_argument('--source')
+    cmd=sub.add_parser('read');cmd.add_argument('--index');cmd.add_argument('--id');cmd.add_argument('--file');cmd.add_argument('--sha256')
+    cmd=sub.add_parser('publish');cmd.add_argument('--index',required=True);cmd.add_argument('--id',required=True);cmd.add_argument('--revision',required=True)
+    cmd=sub.add_parser('tasks');cmd.add_argument('--after',type=int,default=0);cmd.add_argument('--status',choices=['pending','in_progress','completed','superseded'])
+    cmd=sub.add_parser('task');cmd.add_argument('--id',required=True);cmd.add_argument('--view',choices=(*TASK_VIEWS,'comments','candidates'))
+    for action in ('claim','heartbeat','release'):
+        cmd=sub.add_parser(action);cmd.add_argument('--request',type=Path,required=True)
+    cmd=sub.add_parser('task-status');cmd.add_argument('--id',required=True);cmd.add_argument('--status',choices=['pending','in_progress','completed'],required=True)
+    args=parser.parse_args()
+    try:
+        if args.command=='read' and not ((args.index and args.id and not args.file) or (args.file and args.sha256 and not args.index)):raise ValueError('read 使用 --index/--id，或交接文件的 --file/--sha256')
+        if args.command in ('claim','heartbeat','release'):result=task_action(args.workspace,args.command,json.loads(args.request.read_text(encoding='utf-8-sig')))
+        elif args.command=='publish':result=publish(args.workspace,args.index,args.id,args.revision)
+        elif args.command=='tasks':result=tasks(args.workspace,args.after,args.status)
+        elif args.command=='task':
+            from nbt_agent.protocol import ProtocolError
+            from nbt_agent.task_client import inspect
+            try:result=inspect(args.workspace,'prompts',args.id,args.view or 'full')
+            except ProtocolError as failure:
+                if failure.code!='TASK_NOT_FOUND':raise
+                result=inspect(args.workspace,'tasks',args.id,args.view or 'compact')
+        elif args.command=='task-status':result=task_status(args.workspace,args.id,args.status)
+        else:result=save(args.workspace,json.loads(args.request.read_text(encoding='utf-8-sig'))) if args.command=='save' else scan(args.workspace,args.source) if args.command=='scan' else read_handoff(args.workspace,args.file,args.sha256) if args.file else read_prompt(args.workspace,args.index,args.id)
+        print(json.dumps(result,ensure_ascii=False));return 0
+    except (ValueError,OSError,KeyError,TypeError) as error:
+        response=dict(error=str(error))
+        if getattr(error,'code',None):response.update(code=error.code,details=error.details)
+        print(json.dumps(response,ensure_ascii=False));return 1

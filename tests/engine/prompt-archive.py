@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_prompts import save,scan,read_prompt,read_handoff,publish,tasks,read_task,task_action,task_status,remove_prompt,library_list,organize_prompts,handoff_statuses
+from nbt_project.prompts import save,scan,read_prompt,read_handoff,publish,tasks,read_task,task_action,task_status,remove_prompt,library_list,organize_prompts,handoff_statuses
 
 class Prompts(unittest.TestCase):
  def setUp(self):
@@ -38,7 +38,7 @@ class Prompts(unittest.TestCase):
   self.assertEqual(visible['status'],'in_progress')
   duplicate=publish(self.workspace,saved['index'],saved['id'],saved['revision'])
   self.assertNotIn('token',duplicate['lease'])
-  with patch('nbt_agent_protocol.time.time',return_value=lease['lease']['expires_at']+1):
+  with patch('nbt_agent.protocol.time.time',return_value=lease['lease']['expires_at']+1):
    self.assertEqual(handoff_statuses(self.workspace),{'statuses':{task_id:'pending'}})
    self.assertEqual(library_list(self.workspace)['items'][0]['published_task']['status'],'pending')
  def test_invalid_human_fields_and_edit_scope_are_rejected_before_archiving(self):
@@ -120,7 +120,7 @@ class Prompts(unittest.TestCase):
   for process in processes:
    stdout,stderr=process.communicate(timeout=10);self.assertEqual(process.returncode,0,stdout+stderr)
   self.assertEqual(len(scan(self.workspace)['items']),2)
-  directory=self.workspace/'nbt_models/single/测试厅/提示词方案';code="import sys,time;sys.path.insert(0,sys.argv[1]);from nbt_prompts import index_lock;from pathlib import Path\nwith index_lock(Path(sys.argv[2]),Path(sys.argv[3])): print('locked',flush=True);time.sleep(60)"
+  directory=self.workspace/'nbt_models/single/测试厅/提示词方案';code="import sys,time;sys.path.insert(0,sys.argv[1]);from nbt_project.prompts import index_lock;from pathlib import Path\nwith index_lock(Path(sys.argv[2]),Path(sys.argv[3])): print('locked',flush=True);time.sleep(60)"
   owner=subprocess.Popen([sys.executable,'-c',code,str(script.parent),str(self.workspace),str(directory)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
   try:self.assertEqual(owner.stdout.readline().strip(),'locked')
   finally:owner.terminate();owner.communicate(timeout=10)

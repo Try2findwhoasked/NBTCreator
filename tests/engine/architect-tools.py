@@ -2,12 +2,12 @@ from pathlib import Path
 import copy,json,sys,tempfile,unittest,uuid,shutil
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_architect import dispatch,FIELDS,validate_standard
-from nbt_history import file_hash,History
+from nbt_project.architect import dispatch,FIELDS,validate_standard
+from nbt_project.history import file_hash,History
 from nbt_assembly import Volume
 from nbt_snbt import save_snbt
 from nbt_task import write_snapshot
-from nbt_prompts import save,read_prompt
+from nbt_project.prompts import save,read_prompt
 from nbt_finalize import finalize
 
 class ArchitectTools(unittest.TestCase):
@@ -20,7 +20,7 @@ class ArchitectTools(unittest.TestCase):
  def call(self,action,**params):return dispatch(self.w,action,params)
  def norms(self):return self.call('standards-save',revision=0,fields={key:'统一采用石砖' if key=='materials' else '石构山城' if key=='name' else '' for key in FIELDS})
  def test_interrupted_standards_commit_can_resume_existing_revision_archive(self):
-  with patch('nbt_architect.write',side_effect=OSError('interrupted')):
+  with patch('nbt_project.architect.write',side_effect=OSError('interrupted')):
    with self.assertRaises(OSError):self.norms()
   result=self.norms();self.assertEqual(result['revision'],1);self.assertEqual(self.call('standards-get'),result)
  def feedback(self):

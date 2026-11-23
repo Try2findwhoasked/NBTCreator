@@ -1,6 +1,6 @@
 """Compose named objects and regenerate a bounded region of a known recipe."""
-from nbt_components import placement
-from nbt_structure_agent import build
+from nbt_assets.components import placement
+from nbt_agent.structure import build
 from nbt_building.parametric import compile_object
 from nbt_mounting.surface_mount import digest
 

@@ -11,7 +11,7 @@ KINDS.update(MODULAR_KINDS)
 STYLES = {'classic':'框架与收边','stepped':'层叠与加厚','open':'减少封闭面并保留骨架'}
 
 def listing(arguments=None, workspace=None):
-    from nbt_structure_agent import definitions
+    from nbt_agent.structure import definitions
     from nbt_pattern.ornament import PROFILES
     from nbt_pattern.ornament_sample import ARCHITECTURAL_SAMPLES
     from nbt_building.object_forms import THEMES, FORM_FIELDS
@@ -26,7 +26,7 @@ def listing(arguments=None, workspace=None):
                 model_modified=False)
 
 def compile_object(workspace, arguments):
-    from nbt_structure_agent import _schema, definitions, build
+    from nbt_agent.structure import _schema, definitions, build
     _schema(arguments,definitions()['parametric_compile']['parameters'],'参数化构件')
     if arguments['kind']=='curve_stencil':
         from nbt_building.curve_stencils import compile_stencil

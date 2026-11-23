@@ -14,7 +14,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_knowledge.public_web import WebError, extract, public_address, public_url
-from nbt_retrieval import dispatch
+from nbt_knowledge.retrieval import dispatch
 from nbt_knowledge.web_research import location, persist, research
 
 

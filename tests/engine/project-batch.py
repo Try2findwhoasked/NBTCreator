@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[2];SCRIPTS=ROOT/'.agents/skills/minecraft-nbt-modeler/scripts';sys.path.insert(0,str(SCRIPTS))
-import nbt_project_batch as batch
+import nbt_project.queues as batch
 
 
 class Batch(unittest.TestCase):
@@ -25,8 +25,8 @@ class Batch(unittest.TestCase):
 
  def test_reports_stage_skips_and_components_separately_from_route_success(self):
   from nbt_refine import read_master,save_master
-  from nbt_whole_validation import validate_whole
-  from nbt_working_model import WorkingModel
+  from nbt_composition.whole_validation import validate_whole
+  from nbt_composition.working_model import WorkingModel
 
   context=dict(mode='standalone',openings=[],require_enclosure=True,interior_probes=[[2,2,2]],
                start=[2.5,1,2.5],targets={'far':[5.5,1,5.5]})
@@ -75,7 +75,7 @@ class Batch(unittest.TestCase):
   queue=self.create();batch.dispatch(self.workspace,'cancel',dict(id=queue['id']));result=batch.run(self.workspace,queue['id']);self.assertEqual(result['status'],'cancelled');self.assertEqual(result['progress']['pending'],2);batch.retry(self.workspace,queue['id']);result=batch.run(self.workspace,queue['id']);self.assertEqual(result['progress']['complete'],2)
  def test_real_runner_lock_and_interruption_recovery(self):
   queue=self.create();file=batch.folder(self.workspace,queue['id'])/'queue.json';data=batch.load(self.workspace,queue['id']);data['status']='running';data['items'][0]['steps']['check']['status']='running';batch.write(file,data)
-  code='import sys;sys.path.insert(0,sys.argv[1]);from nbt_project_batch import runner_lock;\nwith runner_lock(sys.argv[2]):\n print("locked",flush=True);sys.stdin.readline()'
+  code='import sys;sys.path.insert(0,sys.argv[1]);from nbt_project.queues import runner_lock;\nwith runner_lock(sys.argv[2]):\n print("locked",flush=True);sys.stdin.readline()'
   process=subprocess.Popen([sys.executable,'-c',code,str(SCRIPTS),str(self.workspace)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True);self.addCleanup(lambda:process.kill() if process.poll() is None else None);self.assertEqual(process.stdout.readline().strip(),'locked');self.assertEqual(batch.recover(self.workspace,queue['id'])['status'],'running')
   with self.assertRaisesRegex(ValueError,'已有批量任务'):batch.retry(self.workspace,queue['id'])
   process.communicate('\n',timeout=5);result=batch.recover(self.workspace,queue['id']);self.assertEqual(result['status'],'interrupted');self.assertEqual(result['items'][0]['steps']['check']['status'],'cancelled');batch.retry(self.workspace,queue['id']);self.assertEqual(batch.run(self.workspace,queue['id'])['progress']['complete'],2)

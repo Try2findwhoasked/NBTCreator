@@ -14,7 +14,7 @@ sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_model import Model, ports
 from nbt_refine import save_master
 from nbt_detail_control import default_settings,preview_effect,digest
-from nbt_candidate import validate_candidate
+from nbt_review.candidate import validate_candidate
 from nbt_detail_control import inspect_source,source_snapshot
 from nbt_refine import prepare,record_user_approval,refine
 from nbt_detail_control import catalog
@@ -146,7 +146,7 @@ class Candidate(unittest.TestCase):
 
         argv=['nbt.py','render','--snapshot',str(snapshot),'--cameras',str(cameras),'--output',str(output)]
         with (patch.object(nbt_task,'ROOT',self.root),patch.object(sys,'argv',argv),
-              patch('nbt_render_runtime.render_environment',return_value={}),
+              patch('nbt_runtime.render.render_environment',return_value={}),
               patch.object(nbt_task.subprocess,'call',side_effect=render)):
             with self.assertRaisesRegex(ValueError,'changed while rendering'):
                 nbt_task.main()
@@ -191,7 +191,7 @@ class Candidate(unittest.TestCase):
     def test_context_requirements_follow_enclosure_and_opening_policy(self):
         from nbt_assembly import Volume
         from nbt_detail_control import context_readiness
-        from nbt_whole_validation import validate_whole
+        from nbt_composition.whole_validation import validate_whole
 
         context=Path(self.request['context'])
         model=Volume((8,6,8))

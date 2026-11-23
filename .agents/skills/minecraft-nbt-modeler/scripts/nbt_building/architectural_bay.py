@@ -78,7 +78,7 @@ def contacts(writer,a,b):
 
 
 def finish(workspace,writer,args,name,**receipt):
-    from nbt_structure_agent import build
+    from nbt_agent.structure import build
     from nbt_pattern.panel import sample_input
     from nbt_pattern.ornament_sample import sample_image
     for request in receipt.pop('_bound_patterns',[]):
@@ -203,7 +203,7 @@ def vault_field(w,d,spring,rise,profile):
 
 
 def compile_vault(workspace,args):
-    from nbt_structure_agent import dispatch,build
+    from nbt_agent.structure import dispatch,build
     w,d=args['size_xz'];spring=args['spring_y'];rise=args['rise'];thickness=args.get('thickness',2);recess=args.get('recess_depth',2)
     counts=args.get('coffer_counts',[3,3]);columns,rows=counts
     if min(w//columns,d//rows)<4:raise ValueError('凹格单元至少4格；应减小分格数量或增大跨间')
@@ -267,7 +267,7 @@ def arch_moulding(writer,axis,constant,low,high,spring,rise,profile,material,tri
 
 
 def compile_bay(workspace,args):
-    from nbt_structure_agent import dispatch,build
+    from nbt_agent.structure import dispatch,build
     span=args.get('span',20);depth=args.get('depth',20);p=args.get('pier_width',5);spring=2+args.get('spring_height',12);rise=args.get('rise',12);profile=args.get('profile','pointed')
     materials=args.get('materials',{});stone=full(materials.get('stone','stone_bricks'));trim=full(materials.get('trim','polished_andesite'));accent=full(materials.get('accent','quartz_block'));wall=full(materials.get('wall','calcite'));floor_base=full(materials.get('floor','polished_deepslate'))
     left=2+p-1;right=left+span+1;front=4;back=front+depth+1

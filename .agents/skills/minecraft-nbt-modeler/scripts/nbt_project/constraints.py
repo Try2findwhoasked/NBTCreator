@@ -2,10 +2,10 @@
 import copy, hashlib, json, re, uuid
 from functools import lru_cache
 from pathlib import Path
-from nbt_prompts import inside, relative, index_lock, encode
-from nbt_history import now
-from nbt_project_batch import write
-from nbt_catalog import catalog
+from nbt_project.prompts import inside, relative, index_lock, encode
+from nbt_project.history import now
+from nbt_project.queues import write
+from nbt_runtime.catalog import catalog
 
 ACTIONS=('constraints-registry','constraints-list','constraints-save','constraints-delete')
 RULES=set(catalog()['project_constraints']['rules']['properties'])
@@ -30,7 +30,7 @@ def validate_rules(rules):
         if 'size' in rules and any((x+1)*rules['cell_size']>rules['size'][0] or (z+1)*rules['cell_size']>rules['size'][2] for x,z in cells):raise ValueError('有效网格超出约束尺寸')
     if 'integration' in rules and rules['integration'] not in ('standalone', 'saodg'):
         raise ValueError('接入扩展无效')
-    from nbt_whole_validation import opening_policy, requires_enclosure
+    from nbt_composition.whole_validation import opening_policy, requires_enclosure
     context = {key: rules[key] for key in ('require_enclosure', 'openings_policy', 'opening_size') if key in rules}
     context['mode'] = rules.get('integration', 'standalone')
     requires_enclosure(context)
@@ -79,7 +79,7 @@ def validate_selection(items,project=None):
     if project:
         integration = merged.get('integration', project.get('integration', 'standalone'))
         if project.get('source'):
-            from nbt_whole_validation import validation_mode
+            from nbt_composition.whole_validation import validation_mode
             source_mode = validation_mode(project.get('context') or {})
             if 'integration' in merged and source_mode != integration:
                 raise ValueError('接入约束与已有建筑不符')

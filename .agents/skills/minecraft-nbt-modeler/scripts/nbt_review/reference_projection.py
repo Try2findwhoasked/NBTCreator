@@ -12,8 +12,8 @@ import numpy as np
 from PIL import Image,ImageDraw
 
 from nbt_collision import collision_cells
-from nbt_large_assembly import _workspace_path,assembly_source_matches,is_assembly_source,read_assembly,require_creative_workspace,verify_assembly_binding
-from nbt_reference_views import MAX_MANIFEST,VIEW_AXES,_hash,_image_bytes,load_reference
+from nbt_composition.large_assembly import _workspace_path,assembly_source_matches,is_assembly_source,read_assembly,require_creative_workspace,verify_assembly_binding
+from nbt_review.reference_views import MAX_MANIFEST,VIEW_AXES,_hash,_image_bytes,load_reference
 from nbt_refine import binary_wall_mask_hash,digest,read_master
 
 

@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path[:0]=[str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'),str(ROOT/'tests/support')]
-from nbt_components import store,load,component_file,validate
+from nbt_assets.components import store,load,component_file,validate
 
 
 def sha(file):return hashlib.sha256(Path(file).read_bytes()).hexdigest()
@@ -33,7 +33,7 @@ class CurveComponents(unittest.TestCase):
   file=component_file(self.workspace,self.component['id']);data=load(self.workspace,self.component['id']);data.pop('id');data.pop('content_sha256')
   data['blocks'][0][3]=1;file.write_text(json.dumps(validate(data),ensure_ascii=False),encoding='utf8')
  def library(self,payload,asset_type):
-  import nbt_asset_libraries as libraries
+  import nbt_assets.libraries as libraries
   folder=self.workspace/'library-source';folder.mkdir();raw=libraries.encode(payload);(folder/'asset.json').write_bytes(raw)
   manifest=dict(schema_version=1,kind=libraries.FORMAT,id='test.curves',name='合成曲面库',version='1.0.0',license='CC0-1.0',
    assets=[dict(id='sample',name='合成素材',type=asset_type,path='asset.json',bytes=len(raw),sha256=libraries.digest(raw))])
@@ -44,7 +44,7 @@ class CurveComponents(unittest.TestCase):
   return libraries,source,ref
  def test_local_component_slice_repeats_and_binds_source(self):
   from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
-  from nbt_curved_surface import _mask
+  from nbt_mounting.curved_surface import _mask
   request=self.request();result=compose_curve_mask(self.workspace,request)
   data=json.loads(Path(result['mask']).read_text(encoding='utf8'))
   self.assertEqual(data['layers'][0]['rows'],['RRRR','....'])
@@ -61,7 +61,7 @@ class CurveComponents(unittest.TestCase):
   self.assertEqual(data['layers'][0]['connections'],{'raised':False,'recess':False})
   self.assertTrue(verify_curve_mask(self.workspace,result['mask'],result['mask_sha256'])['valid'])
  def test_archived_local_component_invalidates_bound_mask(self):
-  from nbt_components import update
+  from nbt_assets.components import update
   from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   result=compose_curve_mask(self.workspace,self.request());update(self.workspace,self.component['id'],archived=True)
   with self.assertRaisesRegex(ValueError,'归档'):verify_curve_mask(self.workspace,result['mask'],result['mask_sha256'])
@@ -97,7 +97,7 @@ class CurveComponents(unittest.TestCase):
   self.assertIn('曲面纹样与构件复用',selected);self.assertIn('大型组装与协作切片',selected)
  def test_explicit_asset_layers_can_overlap_on_a_real_curved_host(self):
   from nbt_mounting.curve_components import compose_curve_mask
-  from nbt_curved_surface import plan_curve,verify_curve
+  from nbt_mounting.curved_surface import plan_curve,verify_curve
   from curved_surface_fixture import create_curve_fixture
   request=self.request();request['size']=[2,2];request['layers'][0]['counts']=[1,1]
   request['layers'][0]['support_expectations']={'R':dict(state='blackstone',wall=True)}
@@ -156,7 +156,7 @@ class CurveComponents(unittest.TestCase):
   self.assertFalse((self.workspace/request['output']).exists())
  def test_source_change_during_candidate_planning_prevents_publication(self):
   from nbt_mounting.curve_components import compose_curve_mask
-  from nbt_curved_surface import plan_curve,_calculate
+  from nbt_mounting.curved_surface import plan_curve,_calculate
   from curved_surface_fixture import create_curve_fixture
   request=self.request();request['size']=[2,2];request['layers'][0]['counts']=[1,1]
   mask=compose_curve_mask(self.workspace,request);fixture=create_curve_fixture(self.workspace)
@@ -165,7 +165,7 @@ class CurveComponents(unittest.TestCase):
   original=Path(fixture['source']).read_bytes()
   def mutate(*args):
    value=_calculate(*args);self.mutate_component();return value
-  with patch('nbt_curved_surface._calculate',side_effect=mutate):
+  with patch('nbt_mounting.curved_surface._calculate',side_effect=mutate):
    with self.assertRaisesRegex(ValueError,'变化|哈希|内容'):plan_curve(self.workspace,fixture)
   self.assertFalse((self.workspace/fixture['output']).exists());self.assertEqual(Path(fixture['source']).read_bytes(),original)
  def test_repeated_identical_cells_are_counted_and_conflicts_rejected(self):
@@ -223,7 +223,7 @@ class CurveComponents(unittest.TestCase):
   libraries.dispatch(self.workspace,'rollback',dict(id=source['id']))
   self.assertTrue(verify_curve_mask(self.workspace,result['mask'],result['mask_sha256'])['valid'])
  def test_bundled_component_is_resolved_without_network(self):
-  import nbt_asset_libraries as libraries
+  import nbt_assets.libraries as libraries
   from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   row=next(item for item in libraries.browse(self.workspace)['items'] if item['source_id']=='bundled' and item['type']=='component')
   ref={key:row[key] for key in ('id','sha256','source_id','version','manifest_sha256')}
@@ -245,7 +245,7 @@ class CurveComponents(unittest.TestCase):
    cwd=self.workspace,capture_output=True,text=True,encoding='utf8',timeout=90)
   self.assertEqual(run.returncode,0,run.stdout+run.stderr);self.assertTrue(json.loads(run.stdout)['valid'])
  def test_parameterized_library_source_binds_arguments_and_compiled_content(self):
-  import nbt_asset_libraries as libraries
+  import nbt_assets.libraries as libraries
   from nbt_mounting.curve_components import compose_curve_mask,verify_curve_mask
   recipe=dict(schema_version=1,kind='nbtcreator.parametric-recipe',
               arguments=dict(kind='pillar',name='合成柱',size=[3,3,3],material='stone'))
@@ -263,9 +263,9 @@ class CurveComponents(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'变化|更新|STALE|预览'):compose_curve_mask(self.workspace,bad)
   self.assertFalse((self.workspace/bad['output']).exists())
  def test_bundled_ornament_reports_quantization_on_real_eccentric_host(self):
-  import nbt_asset_libraries as libraries
+  import nbt_assets.libraries as libraries
   from nbt_mounting.curve_components import compose_curve_mask
-  from nbt_curved_surface import plan_curve,verify_curve
+  from nbt_mounting.curved_surface import plan_curve,verify_curve
   from curved_surface_fixture import create_curve_fixture
   row=next(item for item in libraries.browse(self.workspace)['items']
            if item['source_id']=='bundled' and item['id'].endswith('/ornate-pattern-meander-frieze'))

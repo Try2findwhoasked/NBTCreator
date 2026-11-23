@@ -9,8 +9,8 @@ import unittest
 ROOT=Path(__file__).resolve().parents[2]
 SCRIPTS=ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'
 sys.path.insert(0,str(SCRIPTS))
-from nbt_structure_agent import dispatch,build,definitions
-from nbt_components import load,placement
+from nbt_agent.structure import dispatch,build,definitions
+from nbt_assets.components import load,placement
 
 
 class StructureAgent(unittest.TestCase):
@@ -115,7 +115,7 @@ class StructureAgent(unittest.TestCase):
   self.assertEqual(frozen['fitting'],fit)
   viewed=dispatch(self.root,'pattern_preview',dict(preset='cosmati-floor',surface='floor',size_uv=[16,16]))
   saved=dispatch(self.root,'structure_save',{k:viewed[k] for k in ('preview_id','preview_sha256')})
-  from nbt_components import library_root
+  from nbt_assets.components import library_root
   record=json.loads((library_root(self.root)/'recipes'/(saved['id']+'.json')).read_text(encoding='utf8'))
   self.assertEqual(record['pattern_recipe']['sample_sha256'],viewed['sample_sha256'])
   self.assertEqual(record['pattern_recipe']['parameters']['preset'],'cosmati-floor')

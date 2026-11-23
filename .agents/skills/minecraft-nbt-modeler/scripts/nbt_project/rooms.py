@@ -2,7 +2,7 @@
 import json
 import re
 from pathlib import Path
-from nbt_catalog import catalog
+from nbt_runtime.catalog import catalog
 
 GROUPS = '约束'
 ROOMS = '房间'
@@ -56,7 +56,7 @@ def has_layout(project):
 
 
 def init_layout(project):
-    from nbt_project_batch import write
+    from nbt_project.queues import write
     project = Path(project).resolve()
     marker = enclosed(project, project / GROUPS / LAYOUT)
     if not has_layout(project):
@@ -168,8 +168,8 @@ def owner_group(workspace, project, owner):
 def update_room(workspace, request, *, move=False):
     from nbt_project.constraint_registry import builtin_constraints
     from nbt_project.constraints import directory_records
-    from nbt_project_batch import write
-    from nbt_prompts import index_lock
+    from nbt_project.queues import write
+    from nbt_project.prompts import index_lock
     from nbt_project.web_paths import workspace_path
 
     folder=request.get('folder')
@@ -220,8 +220,8 @@ def update_room(workspace, request, *, move=False):
 
 
 def register_room(workspace, request):
-    from nbt_project_batch import write
-    from nbt_prompts import index_lock
+    from nbt_project.queues import write
+    from nbt_project.prompts import index_lock
 
     project = project_folder(workspace, request.get('project', 'nbt_models'))
     project_key = relative(workspace, project)

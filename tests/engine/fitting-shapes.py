@@ -14,12 +14,12 @@ sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_fit_shapes import FIT_SHAPES, FitShape, fine_options, project_shape
 from nbt_pattern.microfit import options_for
 from nbt_model import state
-from nbt_modeling_session import engine_revision
+from nbt_runtime.modeling_session import engine_revision
 from nbt_refine import read_master
 from nbt_registry import effective
-from nbt_structure_agent import dispatch, build
+from nbt_agent.structure import dispatch, build
 from nbt_tools import transformed_state
-from nbt_working_model import WorkingModel
+from nbt_composition.working_model import WorkingModel
 
 
 class FittingShapes(unittest.TestCase):

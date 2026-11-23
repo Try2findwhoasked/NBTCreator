@@ -108,7 +108,7 @@ def compile_stencil(workspace,arguments):
     spec=dict(name=name.strip(),size=list(size),anchor=[0,0,0],tags=['parametric','curve-stencil',profile],
               operations=[dict(kind='paste_component',label='曲面 UV 模板',classification='body',lo=[0,0,0],
                                hi=[width-1,height-1,0],palette=[material],voxels=voxels)],max_changed_blocks=limit)
-    from nbt_structure_agent import build
+    from nbt_agent.structure import build
     component=build(workspace,spec)
     identity=dict(generator='nbt_curve_stencil',revision=1,parameters=arguments,spec=spec)
     return dict(spec=spec,ornament={},parts={},construction=dict(profile=profile,axis='uv',caps=list(caps),cells=len(points)),

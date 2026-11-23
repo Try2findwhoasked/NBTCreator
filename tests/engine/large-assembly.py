@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_snbt import save_snbt
-from nbt_large_assembly import AssemblyVolume, read_assembly, save_assembly, verify_assembly_binding
+from nbt_composition.large_assembly import AssemblyVolume, read_assembly, save_assembly, verify_assembly_binding
 
 
 class LargeAssembly(unittest.TestCase):
@@ -70,7 +70,7 @@ class LargeAssembly(unittest.TestCase):
             result = read_snbt(path)
             path.write_bytes(path.read_bytes() + b' ')
             return result
-        with patch('nbt_large_assembly.read_snbt', side_effect=mutate):
+        with patch('nbt_composition.large_assembly.read_snbt', side_effect=mutate):
             with self.assertRaisesRegex(ValueError, '变化'): read_assembly(self.manifest)
 
     def test_bound_model_detects_later_partition_or_manifest_mutation(self):
@@ -89,7 +89,7 @@ class LargeAssembly(unittest.TestCase):
             model, walls = read_snbt(path)
             model._wall_mask_declared = False
             return model, walls
-        with patch('nbt_large_assembly.read_snbt', side_effect=missing_wall):
+        with patch('nbt_composition.large_assembly.read_snbt', side_effect=missing_wall):
             with self.assertRaisesRegex(ValueError, '显式墙层'): read_assembly(self.manifest)
         self.write([part], size=(True, 384, 300))
         with self.assertRaisesRegex(ValueError, '尺寸'): read_assembly(self.manifest)
@@ -139,7 +139,7 @@ class LargeAssembly(unittest.TestCase):
     def test_interrupted_manifest_publish_never_exposes_a_readable_source(self):
         model = AssemblyVolume((8, 8, 8)); model.put((1, 1, 1), 'stone')
         target = self.root / 'interrupted'
-        with patch('nbt_large_assembly.os.link', side_effect=OSError('synthetic interruption')):
+        with patch('nbt_composition.large_assembly.os.link', side_effect=OSError('synthetic interruption')):
             with self.assertRaisesRegex(OSError, 'interruption'):
                 save_assembly(target, model, set(), [dict(offset=[0, 0, 0], size=[8, 8, 8])])
         self.assertFalse((target / 'assembly.json').exists())
@@ -166,7 +166,7 @@ class LargeAssembly(unittest.TestCase):
         self.assertEqual(json.loads(manifest.read_text(encoding='utf8'))['status'], 'failed')
 
     def test_history_archives_all_partitions_and_restores_after_source_changes(self):
-        from nbt_history import History
+        from nbt_project.history import History
         model = AssemblyVolume((300, 384, 300)); model.put((299, 295, 299), 'stone')
         result = save_assembly(self.root / 'nbt_models/standalone/large/v01/master', model, {(299, 295, 299)},
                                [dict(offset=[294, 294, 294], size=[6, 90, 6])])
@@ -196,7 +196,7 @@ class LargeAssembly(unittest.TestCase):
         self.assertEqual(read_assembly(recovered['source'])[0].blocks,model.blocks)
 
     def test_history_refuses_partition_changed_during_archiving(self):
-        from nbt_history import History
+        from nbt_project.history import History
         model = AssemblyVolume((300, 384, 300)); model.put((299, 295, 299), 'stone')
         result = save_assembly(self.root / 'nbt_models/standalone/race/v01/master', model, set(),
                                [dict(offset=[294, 294, 294], size=[6, 90, 6])])
@@ -223,7 +223,7 @@ class LargeAssembly(unittest.TestCase):
         model, walls = read_assembly(source)
         self.assertEqual(model.size, (300, 384, 300)); self.assertEqual(len(model.blocks), 2)
         self.assertEqual(walls, {(3, 293, 3)}); self.assertFalse(result['history_pending'])
-        from nbt_history import History
+        from nbt_project.history import History
         self.assertTrue(History(self.root).list(str(source))['versions'][0]['source_matches'])
         from nbt_detail_control import catalog, inspect_source, source_snapshot, default_settings
         listing = catalog(self.root, index_only=True)['models']
@@ -274,7 +274,7 @@ class LargeAssembly(unittest.TestCase):
         self.assertFalse(result['history_pending'])
 
     def test_cli_import_rejects_paths_outside_the_workspace(self):
-        from nbt_large_assembly import import_assembly
+        from nbt_composition.large_assembly import import_assembly
         source = self.part('a', (0, 0, 0))
         request = dict(size=[300, 384, 300], output='nbt_models/standalone/test/v01/master',
                        partitions=[dict(source='../outside.snbt', sha256=source['sha256'], offset=[0, 0, 0])])
@@ -300,7 +300,7 @@ class LargeAssembly(unittest.TestCase):
         self.assertEqual(read_assembly(source)[0].get((299,295,299)), 'minecraft:stone')
 
     def test_working_model_rejects_partition_mutation_after_open(self):
-        from nbt_working_model import WorkingModel, ModelConflict
+        from nbt_composition.working_model import WorkingModel, ModelConflict
         model = AssemblyVolume((300,384,300)); model.put((299,295,299), 'stone')
         result = save_assembly(self.root / 'nbt_models/standalone/large/v01/master', model, set(),
                                [dict(offset=[294,294,294], size=[6,90,6])])
@@ -312,8 +312,8 @@ class LargeAssembly(unittest.TestCase):
             working.patch([dict(pos=[299,295,299],before=['minecraft:stone',False],after=['minecraft:gold_block',False])])
 
     def test_working_model_saves_and_reopens_assembly_with_overlapping_part_bounds(self):
-        from nbt_working_model import WorkingModel, verify_version
-        from nbt_large_assembly import import_assembly
+        from nbt_composition.working_model import WorkingModel, verify_version
+        from nbt_composition.large_assembly import import_assembly
         first = self.part('a', (0,0,0), wall=True)
         second = self.part('b', (1,1,1), material='gold_block')
         request = dict(size=[300,384,300], output='nbt_models/standalone/large/v01/master',
@@ -328,7 +328,7 @@ class LargeAssembly(unittest.TestCase):
         self.assertFalse(saved['nbt_exported'])
         self.assertEqual(Path(source['source']).read_bytes(), original)
         manifest = verify_version(saved['output']); self.assertEqual(manifest['master'], 'master/assembly.json')
-        with patch('nbt_large_assembly.read_assembly',side_effect=AssertionError('must not decode all parts')):
+        with patch('nbt_composition.large_assembly.read_assembly',side_effect=AssertionError('must not decode all parts')):
             self.assertEqual(verify_version(saved['output'])['revision'],manifest['revision'])
         reopened = WorkingModel.open(self.root, saved['source'], source_sha256=saved['source_sha256'])
         self.assertEqual(reopened.model.get((1,1,1)), 'minecraft:stone')
@@ -336,7 +336,7 @@ class LargeAssembly(unittest.TestCase):
         self.assertEqual(reopened.walls, {(0,0,0),(1,1,1)})
         self.assertTrue(Path(saved['source']).is_file())
         self.assertFalse(list(Path(saved['output']).rglob('*.nbt')))
-        from nbt_history import History
+        from nbt_project.history import History
         history = History(self.root)
         identifier = saved['history']['version']['id']
         derived = history.derive(identifier)
@@ -345,8 +345,8 @@ class LargeAssembly(unittest.TestCase):
         self.assertEqual(restored.walls, reopened.walls)
 
     def test_save_preserves_partition_extras_and_candidate_preview(self):
-        from nbt_working_model import WorkingModel
-        from nbt_large_assembly import import_assembly
+        from nbt_composition.working_model import WorkingModel
+        from nbt_composition.large_assembly import import_assembly
         from nbt_snbt import N, root
         part_model = Volume((4,4,4)); part_model.put((1,1,1),'stone')
         part_model._snbt_extras = {'custom':N.Compound({'name':N.String('retained')})}
@@ -366,7 +366,7 @@ class LargeAssembly(unittest.TestCase):
         self.assertEqual(read_assembly(saved['source'])[0].get((1,1,1)), 'minecraft:gold_block')
 
     def test_changed_assembly_during_candidate_save_is_not_published(self):
-        from nbt_working_model import WorkingModel, ModelConflict
+        from nbt_composition.working_model import WorkingModel, ModelConflict
         from nbt_snbt import save_snbt as real_save_snbt
         model = AssemblyVolume((300,384,300)); model.put((299,295,299), 'stone')
         imported = save_assembly(self.root/'nbt_models/standalone/race/v01/master', model, set(),
@@ -377,19 +377,19 @@ class LargeAssembly(unittest.TestCase):
             result = real_save_snbt(*args, **kwargs)
             part.write_bytes(part.read_bytes()+b' ')
             return result
-        with patch('nbt_large_assembly.save_snbt',side_effect=tamper):
+        with patch('nbt_composition.large_assembly.save_snbt',side_effect=tamper):
             with self.assertRaisesRegex(ModelConflict,'STALE_SOURCE'):working.save_draft(name_zh='并发测试')
         self.assertFalse(list(source.parents[2].glob('v_model_*')))
 
     def test_managed_version_integrity_rejects_modified_partition_without_full_decode(self):
-        from nbt_working_model import WorkingModel,verify_version
+        from nbt_composition.working_model import WorkingModel,verify_version
         model=AssemblyVolume((300,384,300));model.put((299,295,299),'stone')
         source=save_assembly(self.root/'nbt_models/standalone/version/v01/master',model,set(),
                              [dict(offset=[294,294,294],size=[6,90,6])])
         saved=WorkingModel.open(self.root,source['source'],source_sha256=source['source_sha256']).save_draft(name_zh='版本校验')
         manifest=Path(saved['source']);part=manifest.parent/json.loads(manifest.read_text())['partitions'][0]['file']
         part.write_bytes(part.read_bytes()+b' ')
-        with patch('nbt_large_assembly.read_assembly',side_effect=AssertionError('must not decode all parts')):
+        with patch('nbt_composition.large_assembly.read_assembly',side_effect=AssertionError('must not decode all parts')):
             with self.assertRaisesRegex(ValueError,'变化|哈希'):verify_version(saved['output'])
 
     def test_model_cli_saves_and_previews_a_hash_bound_assembly_candidate(self):
@@ -420,7 +420,7 @@ class LargeAssembly(unittest.TestCase):
         self.assertEqual(read_assembly(source['source'])[0].get((299,295,299)), 'minecraft:stone')
 
     def test_model_reuses_component_install_and_box_operations_above_294(self):
-        from nbt_working_model import WorkingModel
+        from nbt_composition.working_model import WorkingModel
         model = AssemblyVolume((300,384,300)); model.put((299,295,299), 'stone')
         source = save_assembly(self.root/'nbt_models/standalone/operations/v01/master', model, set(),
                                [dict(offset=[294,294,294],size=[6,90,6])])
@@ -440,7 +440,7 @@ class LargeAssembly(unittest.TestCase):
 
     def test_routes_cross_a_partition_and_blocked_candidate_is_rejected(self):
         from nbt_collision import check_routes
-        from nbt_working_model import WorkingModel, ModelConflict
+        from nbt_composition.working_model import WorkingModel, ModelConflict
         model = AssemblyVolume((300,384,300))
         for x in range(290,299):
             for z in range(3): model.put((x,0,z),'stone')

@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_extensions import HandlerRegistry, RecipeCompilation, AGENT_TOOLS, RECIPE_COMPILERS, MODEL_ACTIONS, compile_recipe
 from nbt_modeling_session import ModellingSession, engine_revision
-from nbt_structure_agent import dispatch, definitions
-from nbt_working_model import WorkingModel, main as model_main
+from nbt_agent.structure import dispatch, definitions
+from nbt_composition.working_model import WorkingModel, main as model_main
 
 
 def cube_spec(material='stone'):
@@ -63,7 +63,7 @@ class Registries(unittest.TestCase):
             registry.register('invalid',42)
 
     def test_builtin_registries_match_public_tools_and_action_contracts(self):
-        from nbt_catalog import catalog
+        from nbt_runtime.catalog import catalog
         self.assertEqual(set(AGENT_TOOLS),set(catalog()['agent_tools']))
         self.assertEqual(set(MODEL_ACTIONS),set(catalog()['working_model']['actions']))
         self.assertIn('pattern_repeat_detect', AGENT_TOOLS)
@@ -101,7 +101,7 @@ class Registries(unittest.TestCase):
         # Simulate the catalogue declaration required for public/JSON exposure.
         declared = definitions()
         declared['scene_compile']['parameters']['properties']['graph']['properties']['objects']['items']['properties']['recipe']['properties']['tool']['enum'].append('extension_cube')
-        with patch('nbt_structure_agent._definitions',return_value=declared):
+        with patch('nbt_agent.structure._definitions',return_value=declared):
             result = dispatch(self.root,'scene_compile',dict(graph=graph))
         self.assertEqual(result['block_count'],1)
         self.assertEqual(len(calls),2)
@@ -146,13 +146,13 @@ class Registries(unittest.TestCase):
         with patch.object(sys,'argv',argv),redirect_stdout(StringIO()):
             self.assertEqual(model_main(),1)
         self.assertEqual(calls,[])
-        from nbt_catalog import catalog
+        from nbt_runtime.catalog import catalog
         declared=deepcopy(catalog())
         declared['working_model']['parameters']['properties']['actions']['items']['properties']['method']['enum'].append('paint_one')
         declared['working_model']['actions']['paint_one']=dict(type='object',additionalProperties=False,
             properties=dict(method=dict(type='string',enum=['paint_one'])),required=['method'])
         output=StringIO()
-        with patch('nbt_catalog.catalog',return_value=declared),patch.object(sys,'argv',argv),redirect_stdout(output):
+        with patch('nbt_runtime.catalog.catalog',return_value=declared),patch.object(sys,'argv',argv),redirect_stdout(output):
             self.assertEqual(model_main(),0)
         self.assertEqual(json.loads(output.getvalue())['result']['model']['samples'][0]['value'],['minecraft:gold_block',False])
         self.assertEqual(len(calls),1)

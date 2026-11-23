@@ -116,7 +116,7 @@ def dispatch(workspace,args):
     if action=='update':
         data=load(workspace,args['id'])
         if data['builtin']:raise ValueError('内置纹样请先保存副本')
-        from nbt_prompts import index_lock
+        from nbt_project.prompts import index_lock
         folder=folder_for(workspace,args['id'])
         with index_lock(Path(workspace).resolve(),folder):
             data=load(workspace,args['id'])

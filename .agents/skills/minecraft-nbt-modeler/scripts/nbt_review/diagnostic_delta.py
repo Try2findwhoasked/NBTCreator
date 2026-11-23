@@ -157,7 +157,7 @@ def summary(kind, report):
                 for index, row in enumerate(whole.get('route_legs', [])):
                     routes(row['report'], f'{path}/whole_model/route_legs/{index}/report', row['name'])
     else:
-        from nbt_diagnostics import explain
+        from nbt_review.diagnostics import explain
         for row in explain(kind, report)['issues']:
             # These explanations derive from the raw record rather than one stable JSON field.
             add(row['code'], row['target'], '', row)

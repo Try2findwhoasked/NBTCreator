@@ -7,7 +7,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / '.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_collision import collision_cells
-from nbt_structure_agent import dispatch, build
+from nbt_agent.structure import dispatch, build
 from nbt_tools import modelling_plan
 
 

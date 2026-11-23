@@ -11,7 +11,7 @@ def inspect_walk(request, snapshot=None):
     from nbt_refine import read_master
     from nbt_library import canonical_context, saved_coordinates
     from nbt_assembly import Volume
-    from nbt_large_assembly import AssemblyVolume, is_assembly_source, read_assembly, verify_assembly_files
+    from nbt_composition.large_assembly import AssemblyVolume, is_assembly_source, read_assembly, verify_assembly_files
     from nbt_collision import _Space, check_routes, RADIUS, PLAYER_HEIGHT
 
     def sha(file):
@@ -105,6 +105,6 @@ def inspect_walk(request, snapshot=None):
     if assembly_binding:
         try:verify_assembly_files(assembly_binding)
         except (ValueError,OSError) as error:raise ValueError('检查期间组装分区发生变化，请重新检查') from error
-    from nbt_diagnostics import explain
+    from nbt_review.diagnostics import explain
     result['diagnostics']=explain('walk',result)
     return result
