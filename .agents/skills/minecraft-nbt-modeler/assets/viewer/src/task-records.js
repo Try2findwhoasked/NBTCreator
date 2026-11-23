@@ -1,5 +1,5 @@
 export function initTaskRecords(){
- const $=id=>document.getElementById(id),labels={batch:'批量预览与检查',ai:'AI 构建 / 方案',plan:'生成修改方案',preview:'效果预览',snapshot:'载入3D模型',render:'纹理出图',revision:'导出建筑新版本',prepare:'生成审阅图',apply:'已确认精修',preset:'保存参数',validate:'检查候选效果',compare:'只读版本对比','walk-inspect':'玩家尺度与通路检查'},statuses={running:'运行中',complete:'已完成',failed:'失败',cancelled:'已取消'}
+ const $=id=>document.getElementById(id),labels={batch:'批量预览与检查',ai:'AI 构建 / 方案',plan:'生成修改方案',preview:'效果预览',open:'打开建筑',snapshot:'载入3D模型',render:'纹理出图',revision:'导出建筑新版本',prepare:'生成审阅图',apply:'已确认精修',preset:'保存参数',validate:'检查候选效果',compare:'只读版本对比','walk-inspect':'玩家尺度与通路检查'},statuses={running:'运行中',complete:'已完成',failed:'失败',cancelled:'已取消'}
  const effectiveStatus=job=>(job.kind==='validate'&&job.result?.passed===false||job.kind==='walk-inspect'&&job.result?.report?.passed===false||job.kind==='batch'&&job.result?.progress?.failed>0)?'failed':job.status
  const phaseName=job=>({capture:'视口截图',api:'API 生成',preview:'本地预览'}[job.phase]??(job.kind==='ai'?'AI 请求':'本地任务'))
  const text=(tag,value,cls)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=value;if(cls)e.className=cls;return e}
@@ -47,7 +47,7 @@ export function initTaskRecords(){
   }
   const location=job.result?.output??job.directory;if(location)body.append(text('h3','输出位置'),text('p',location,'task-location'))
   if(job.source)body.prepend(text('p','对象：'+objectName(job)))
-  if(job.status!=='running'&&['preview','validate','snapshot','render','revision','walk-inspect'].includes(job.kind)){
+  if(job.status!=='running'&&['preview','validate','open','snapshot','render','revision','walk-inspect'].includes(job.kind)){
    const back=text('button',job.kind==='revision'?'返回建筑库查看版本':'返回建筑继续处理');back.type='button';back.onclick=async()=>{try{dialog.close();if(job.kind==='revision')window.creatorWorkspace.select('project');else{if(job.source)await window.detailControl.openModel({source:job.source});else window.creatorWorkspace.select('model');window.creatorStudio?.showPanel(job.kind==='validate'||job.kind==='walk-inspect'?'checks':'tools')}}catch(error){body.append(text('p','建筑未能打开：'+error.message,'task-entry-error'));dialog.showModal()}};body.append(back)
   }
   const links=text('div',undefined,'task-file-links');for(const file of downloads(job)){const a=text('a',file.name);a.href=file.url;a.download=file.file??file.name;links.append(a)}if(links.children.length)body.append(text('h3','下载产物'),links)

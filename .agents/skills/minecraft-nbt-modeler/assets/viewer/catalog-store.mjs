@@ -34,8 +34,11 @@ export function createCatalogStore({workspace,scan}){
   }catch{ return {catalog:await refresh(),cached:false} }
  }
  async function record(info){
-  if(!current?.models.some(item=>item.source===info.source))return
-  current={...current,models:current.models.map(item=>item.source===info.source?{...item,geometry_sha256:info.geometry_sha256,size:info.size,unverified:false,unreadable:false}:item)}
+  const known=current?.models.find(item=>item.source===info.source)
+  if(!known)return
+  if(!known.unverified&&!known.unreadable&&known.geometry_sha256===info.geometry_sha256&&
+     Array.isArray(known.size)&&Array.isArray(info.size)&&known.size.length===info.size.length&&known.size.every((value,index)=>value===info.size[index]))return
+  current={...current,models:current.models.map(item=>item===known?{...item,geometry_sha256:info.geometry_sha256,size:info.size,unverified:false,unreadable:false}:item)}
   await persist(current)
  }
  async function recordFailure(source,error){if(!current?.models.some(item=>item.source===source))return;current={...current,models:current.models.map(item=>item.source===source?{...item,unverified:false,unreadable:true,error}:item)};await persist(current)}
