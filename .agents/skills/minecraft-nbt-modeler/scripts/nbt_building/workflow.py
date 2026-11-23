@@ -20,6 +20,7 @@ for name,module,handler in (
     ('part-preflight','nbt_building.plan','preflight'),
     ('plan-build','nbt_building.plan','build'),('review-prepare','nbt_building.review','prepare'),
     ('review-record','nbt_building.review','record'),('review-compare','nbt_building.review','compare'),
+    ('quality-check','nbt_building.quality_review','check'),('quality-compare','nbt_building.quality_review','compare'),
     ('game-checklist','nbt_building.review','game_checklist'),('game-record','nbt_building.review','game_record')):
     ARCHITECT_ACTIONS.register(name,Action(module,handler))
 
@@ -27,8 +28,22 @@ for name,module,handler in (
 @ARCHITECT_ACTIONS.register('plan-check')
 def check(workspace,request):
     from nbt_building.review import load_model
+    from nbt_building.quality import BLOCKING_CODES, from_model
+    from nbt_working_model import ModelConflict
     model=load_model(workspace,request)
-    return dict(validation=model.validate(),plan=model.architecture['plan'],plan_sha256=model.architecture['sha256'],read_only=True)
+    try:
+        if model.phase == 'opened' and not model.context.get('require_routes'):
+            model._routes(model.model)
+        validation = model.validate()
+    except ModelConflict as error:
+        if error.code in BLOCKING_CODES:
+            error.quality = from_model(model)
+        raise
+    binding = model.architecture
+    result = dict(validation=validation,plan=binding['plan'],plan_sha256=binding['sha256'],read_only=True)
+    if 'quality' in binding['plan']:
+        result['quality'] = from_model(model, validation=validation)
+    return result
 
 
 def dispatch(workspace,action,request):

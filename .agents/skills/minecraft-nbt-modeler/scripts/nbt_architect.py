@@ -142,7 +142,7 @@ def dispatch(workspace,action,request):
     if action in ('cross-list','cross-save'):return cross(workspace,action,request)
     raise ValueError('未知建筑师工具')
 
-COMPACT_ACTIONS = ('part-preflight', 'plan-build', 'plan-check', 'review-prepare')
+COMPACT_ACTIONS = ('part-preflight', 'plan-build', 'plan-check', 'review-prepare', 'quality-check', 'quality-compare')
 
 
 def attach_next(workspace, action, request, result, report_file=None):
@@ -165,11 +165,21 @@ def attach_next(workspace, action, request, result, report_file=None):
 def compact(action, result, report_file):
     from nbt_diagnostic_delta import summary
 
+    report = dict(path=str(report_file), sha256=file_hash(report_file))
+    quality = result if action == 'quality-check' and result.get('ok', True) else result.get('quality')
+    if action in ('quality-check', 'quality-compare') and result.get('ok', True):
+        return dict(ok=True, report=report, **(
+            dict(binding=result['binding'], quality_summary=result['summary'], quality_pointer='') if quality else
+            dict(bindings=result['bindings'], binding_changes=result['binding_changes'],
+                 dimension_deltas={key: item['delta'] for key, item in result['dimensions'].items()},
+                 issues=result['issues'][:3], issue_count=len(result['issues']))))
     keys = ('plan_sha256', 'pack', 'pack_sha256', 'source', 'cameras', 'render_command',
             'read_only', 'asset_written', 'approval_created', 'nbt_exported', 'code',
             'next', 'revision_request', 'review_record_bindings', 'recovery')
     reply = {key: result[key] for key in keys if key in result}
-    reply.update(ok=result.get('ok', True), report=dict(path=str(report_file), sha256=file_hash(report_file)))
+    reply.update(ok=result.get('ok', True), report=report)
+    if quality:
+        reply.update(quality_summary=quality['summary'], quality_pointer='/quality')
     if not reply['ok']:
         reply['error'] = result['code'] if result['conflicts'] else result['error']
     if action == 'review-prepare' and reply['ok']:
@@ -206,7 +216,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--workspace',type=Path,default=Path.cwd());parser.add_argument('action',choices=['standards-get','standards-save','deliveries','continue','cross-list','cross-save',*ACTIONS,*catalog().get('architecture',{}).get('actions',{})])
     parser.add_argument('--request',type=Path,
                         help='UTF-8 JSON 文件，从命令工作目录读取。JSON 内的制作源和审阅路径以创作工作区为基准。')
-    parser.add_argument('--compact-report', type=Path, help='简明回执，显式写完整JSON到 nbt_models 内的全新文件，父目录须已存在（part-preflight / plan-build / plan-check / review-prepare）')
+    parser.add_argument('--compact-report', type=Path,
+                        help='简明回执，显式写完整 JSON 到 nbt_models 内的全新文件，父目录须已存在（'
+                             + ' / '.join(COMPACT_ACTIONS) + '）')
     args=parser.parse_args()
 
     workspace = args.workspace.resolve()
@@ -222,6 +234,8 @@ def main():
                          conflicts=getattr(error, 'conflicts', []))
             if recovery := getattr(error, 'recovery', None):
                 reply['recovery'] = recovery
+            if hasattr(error, 'quality'):
+                reply['quality'] = error.quality
             return reply, 1
 
     if args.compact_report:

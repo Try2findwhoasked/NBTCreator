@@ -196,12 +196,23 @@ def _validate_observations(workspace,decision,actor,observations,ids):
 
 def prepare_review(workspace,request):
     workspace=require_creative_workspace(workspace)
-    if not isinstance(request,dict) or set(request)!={'renders','scope','crop','output'} or not isinstance(request['scope'],str) or not 1<=len(request['scope'].strip())<=2000:
+    required={'renders','scope','crop','output'}
+    if not isinstance(request,dict) or not required<=set(request) or set(request)-required-{'reverse_of'} or not isinstance(request['scope'],str) or not 1<=len(request['scope'].strip())<=2000:
         raise ValueError('盲评请求或范围无效')
     destination=_workspace_path(workspace,request['output']);base=workspace/'nbt_models/_workspaces/reference-reviews'
     if not destination.is_relative_to(base) or destination==base or destination.exists() or destination.is_symlink():raise ValueError('盲评输出须为 reference-reviews 下的新目录')
     rows=_pair(workspace,request['renders']);width,height=rows[0]['report']['width'],rows[0]['report']['height']
     crop=_crop(request['crop'],width,height);assignment=[0,1] if secrets.randbelow(2)==0 else [1,0]
+    if 'reverse_of' in request:
+        reverse=request['reverse_of']
+        if not isinstance(reverse,dict) or set(reverse)!={'binding','binding_sha256'}:
+            raise ValueError('交换顺序需要上一轮盲评绑定和哈希')
+        verify_review(workspace,reverse['binding'],reverse['binding_sha256'])
+        previous=_json(_workspace_path(workspace,reverse['binding']),reverse['binding_sha256'])
+        originals=[dict(manifest=row['manifest'].relative_to(workspace).as_posix(),sha256=row['manifest_sha256']) for row in rows]
+        if previous['renders']!=originals or previous['crop']!=crop:
+            raise ValueError('交换顺序须沿用同一对渲染、原始输入顺序和裁切')
+        assignment=previous['assignment'][::-1]
     destination.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.blind-',dir=destination.parent) as temporary:
         stage=Path(temporary);public=stage/'public';private=stage/'private'

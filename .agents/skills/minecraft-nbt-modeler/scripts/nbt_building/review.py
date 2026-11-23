@@ -183,6 +183,7 @@ def load_pack(workspace,request):
 
 def record(workspace,request):
     file,pack=load_pack(workspace,request);manifest_file=inside(workspace,request['render_manifest'])
+    manifest_sha256=file_hash(manifest_file)
     manifest=json.loads(manifest_file.read_text(encoding='utf8'))
     if manifest.get('status')!='complete' or manifest.get('source_sha256')!=pack['source_sha256'] or manifest.get('cameras_sha256')!=pack['cameras_sha256']:
         raise ValueError('实际出图未完成或源/相机绑定不一致')
@@ -221,7 +222,10 @@ def record(workspace,request):
             _,points=actual_part(model,binding,issue['part']);row['part_bounds']=bounds(points)
         if any(any(not 0<=p[i]<model.model.size[i] for i in range(3)) for p in issue.get('positions',[])):raise ValueError('问题坐标越界')
         issues.append(row)
-    summary = delivery_summary(model.validate(), pack, observed, covered_locations, issues, manual)
+    validation = model.validate()
+    summary = delivery_summary(validation, pack, observed, covered_locations, issues, manual)
+    from nbt_building.quality_review import read_review, record_quality
+    quality_data = record_quality(workspace, model, pack, request, manifest_file, manifest_sha256)
     notes_file=file.parent/'review-notes.json'
     load_pack(workspace,request)
     for row in images.values():
@@ -237,12 +241,20 @@ def record(workspace,request):
             observations_complete=observed == set(views) and not missing_locations,
             coverage_complete=set(pack['required_layers'])<=layers and pack['coverage_passed'] and not missing_locations,
             status='observations_recorded',aesthetics='requires_agent_and_user_judgment',approval_created=False,game='not_checked')
+        data.update(quality_data)
         history=file.parent/'observations'/f"{data['revision']}-{fingerprint(data)}.json"
         if history.exists():raise ValueError('观察修订已存在，未覆盖')
+        if quality_data and file_hash(manifest_file)!=manifest_sha256:raise ValueError('实际出图清单在记录期间变化')
         write(history,data);write(notes_file,data)
-    path,sha256=relative(workspace,notes_file),file_hash(notes_file)
-    return dict(data,path=path,sha256=sha256,
-                review_compare=dict(pack=request['pack'],pack_sha256=request['pack_sha256'],notes_sha256=sha256))
+        sha256=file_hash(notes_file)
+    path=relative(workspace,notes_file)
+    review_binding=dict(pack=request['pack'],pack_sha256=request['pack_sha256'],notes_sha256=sha256)
+    result=dict(data,path=path,sha256=sha256,review_compare=review_binding)
+    if 'quality' in binding['plan']:
+        from nbt_building.quality import from_model
+        evidence, gap = read_review(workspace, model, review_binding)
+        result['quality'] = from_model(model, validation=validation, review=evidence, missing_review=gap)
+    return result
 
 
 def verify_for_return(workspace,review,expected):
@@ -301,7 +313,14 @@ def compare(workspace,request):
                 _,points=actual_part(model,binding,issue['part']);row.update(part=issue['part'],current_bounds=bounds(points),previous_bounds=issue.get('part_bounds'))
             except ValueError:row.update(part=issue['part'],current_bounds=None,target_removed=True)
         results.append(row)
-    return dict(issues=results,approval_created=False,original_issues_unchanged=True,requires_same_view_comparison=True)
+    result = dict(issues=results,approval_created=False,original_issues_unchanged=True,requires_same_view_comparison=True)
+    if 'quality' in binding['plan'] or notes.get('quality_observations'):
+        from nbt_building.quality_review import compare as compare_quality
+        result['quality'] = compare_quality(workspace, dict(
+            source=request['source'], source_sha256=request['source_sha256'], review=request.get('current_review'),
+            previous=dict(source=pack['source'], source_sha256=pack['source_sha256'],
+                          review={key: request[key] for key in ('pack', 'pack_sha256', 'notes_sha256')})))
+    return result
 
 
 GAME_CHECKS=['placement','neighbors','rotation','walking','lighting']

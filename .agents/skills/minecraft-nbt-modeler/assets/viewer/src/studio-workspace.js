@@ -61,7 +61,7 @@ export function initStudioWorkspace({state,gather,openModel}){
  // Existing validation creates its diagnostics after this node.
  const checks=document.querySelector('.preview-controls')
  const diagnosticTools=document.createElement('div');diagnosticTools.className='studio-secondary-actions'
- for(const id of ['room-score-open','open-version-compare'])if($(id))diagnosticTools.append($(id))
+ for(const id of ['room-score-open','building-quality-open','open-version-compare'])if($(id))diagnosticTools.append($(id))
  pages.checks.append(card('本次修改的检查结果',checks),card('进一步检查',diagnosticTools))
  const coordinates=document.createElement('details');coordinates.id='studio-check-coordinates';coordinates.className='studio-form-help';coordinates.hidden=true
  coordinates.innerHTML='<summary>补齐检查资料</summary><label>坐标配置 JSON<input id="studio-check-context-path" type="text" spellcheck="false"></label><button id="studio-check-context-apply" type="button">使用配置并重新预览</button><p role="status"></p>'
