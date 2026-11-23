@@ -402,7 +402,7 @@ def fit_reference(data,sample,width,height,options,factor,max_error,*,joint=True
         max_error=max_error,placement='fit_once_then_copy',threshold_candidates=len(thresholds),**counts)
 
 
-def fit_colored_unit(root,sample,width,height,options,factor,ornament,args):
+def fit_colored_unit(root,sample,width,height,options,factor,ornament,args,*,raster=None,raster_sha256=None):
     from nbt_modeling_session import current,canonical,engine_revision
     # Reuse the solved unit across names, backing materials and tile layouts.
     # Verify real image bytes before a hit; store only detached data, not a
@@ -411,7 +411,7 @@ def fit_colored_unit(root,sample,width,height,options,factor,ornament,args):
     settings={key:args.get(key,default) for key,default in (
         ('micro_max_error',.65),('micro_alignment','auto'),('quality_profile','balanced'),('min_quality_score',0))}
     key=(str(Path(root).resolve()),engine_revision(),canonical(sample),width,height,
-         canonical(options),factor,ornament,canonical(settings))
+         canonical(options),factor,ornament,canonical(settings),raster_sha256)
     cache=current();hit=cache.get('micro_unit',key)
     if hit is not None:return {(u,v):value for u,v,value in hit['unit']},hit['quality']
     from nbt_micro_alignment import adaptive_fit
@@ -422,13 +422,13 @@ def fit_colored_unit(root,sample,width,height,options,factor,ornament,args):
         coarse_options,coarse_factor=options_for(ornament,coarse_shapes or None,args['surface'])
         try:
             seed,_,_=adaptive_fit(root,sample,width,height,coarse_options,coarse_factor,
-                args.get('micro_max_error',.65),'fixed',quality_profile=args.get('quality_profile','balanced'),min_quality_score=0)
+                args.get('micro_max_error',.65),'fixed',quality_profile=args.get('quality_profile','balanced'),min_quality_score=0,raster=raster)
             options.seeds=(seed,)
         except ValueError:
             options.seeds=()
     unit,quality,color_at=adaptive_fit(root,sample,width,height,options,factor,
                                      args.get('micro_max_error',.65),args.get('micro_alignment','auto'),
-                                     quality_profile=args.get('quality_profile','balanced'),min_quality_score=args.get('min_quality_score',0))
+                                     quality_profile=args.get('quality_profile','balanced'),min_quality_score=args.get('min_quality_score',0),raster=raster)
     for (u,v),value in list(unit.items()):
         if value==ornament:
             value=color_at(u,v) or ornament
@@ -439,9 +439,8 @@ def fit_colored_unit(root,sample,width,height,options,factor,ornament,args):
     return unit,quality
 
 
-def compile_microfit(workspace,args):
+def solve_micro_unit(workspace,args):
     from nbt_pattern_panel import sample_input,panel_materials
-    from nbt_structure_agent import build
 
     width,height=args['size_uv']
     if not all(1<=n<=12 for n in (width,height)):raise ValueError('微型单元每轴须为1～12格，主纹建议2～8格')
@@ -450,14 +449,23 @@ def compile_microfit(workspace,args):
     if args.get('full_blocks_only') and 'shapes' in args:raise ValueError('full_blocks_only不能同时指定shapes')
     shapes=None if args.get('full_blocks_only') else companions(ornament,surface,args.get('shapes'))
     options,factor=options_for(ornament,shapes,surface)
+    detection=None;raster=None;raster_sha256=None
+    if 'repeat_detection' in args:
+        if 'sample' not in args:raise ValueError('重复检测须提供带路径和哈希的拉正图 sample')
+        from nbt_pattern_repeat import detect
+        detection,raster=detect(workspace,sample,args['repeat_detection'])
+        if not detection['detected']:
+            raise ValueError('重复证据不足，请用 pattern_repeat_detect 查看候选或手工提供单元：'+detection['reason'])
+        raster_sha256=detection['unit_rgba_sha256']
     auto_wall=bool(shapes and 'wall' in shapes and 'shapes' not in args)
     try:
-        unit,quality=fit_colored_unit(root,sample,width,height,options,factor,ornament,args)
+        unit,quality=fit_colored_unit(root,sample,width,height,options,factor,ornament,args,raster=raster,raster_sha256=raster_sha256)
     except ValueError as error:
         if not auto_wall:raise
         fallback={key:value for key,value in shapes.items() if key!='wall'}
         options,factor=options_for(ornament,fallback or None,surface)
-        unit,quality=fit_colored_unit(root,sample,width,height,options,factor,ornament,args)
+        unit,quality=fit_colored_unit(root,sample,width,height,options,factor,ornament,args,raster=raster,raster_sha256=raster_sha256)
+        shapes=fallback or None
         quality['auto_wall_search']=dict(attempted=True,fallback=True,reason=str(error))
     else:
         if auto_wall:quality['auto_wall_search']=dict(attempted=True,fallback=False)
@@ -465,12 +473,27 @@ def compile_microfit(workspace,args):
         quality.update(projection_resolution=factor,geometry_basis='static_shape_envelopes_texture_alpha_excluded',
                        state_policy='explicit_states_no_neighbor_or_redstone_simulation',collision_validated=False)
         quality['approximate_states']=sorted({value for value in unit.values() if getattr(options,'geometry',{}).get(value) and options.geometry[value].approximate})
+    if detection is not None:quality['repeat_detection']=detection
+    return unit,quality,shapes,body,ornament,sample
+
+
+def shape_family(name):
+    families=('stairs','slab','trapdoor','wall','pane','bars','fence','carpet','pressure_plate','end_rod','chain','snow')
+    return next((family for family in families if name.endswith('_'+family) or name=='minecraft:'+family),'full')
+
+
+def compile_microfit(workspace,args):
+    from nbt_structure_agent import build
+
+    width,height=args['size_uv']
+    surface=args['surface']
+    unit,quality,shapes,body,ornament,sample=solve_micro_unit(workspace,args)
     columns,rows=args.get('tile_counts',[1,1]);gap_u,gap_v=args.get('gap_uv',[1,1])
     blocks={};counts={};stairs={};slabs={}
     def decorate(point,value,turns=0):
         value=transformed_state(value,turns,None) if turns else value
         blocks[point]=value;name,props=effective(value)
-        family=next((family for family in ('stairs','slab','trapdoor','wall','pane','bars','fence','carpet','pressure_plate','end_rod','chain','snow') if name.endswith('_'+family) or name=='minecraft:'+family),'full')
+        family=shape_family(name)
         counts[family]=counts.get(family,0)+1
         if family=='stairs':key=props['facing']+'/'+props['half'];stairs[key]=stairs.get(key,0)+1
         if family=='slab':key=props['type'];slabs[key]=slabs.get(key,0)+1

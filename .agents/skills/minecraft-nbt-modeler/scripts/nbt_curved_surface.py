@@ -45,7 +45,35 @@ def _mask(file,expected,workspace=None):
         data,_=_verify_data(workspace,file,data,expected)
     if isinstance(data,dict) and type(data.get('schema_version')) is int and data['schema_version']==2:
         return _layered_mask(data),raw
+    if isinstance(data,dict) and type(data.get('schema_version')) is int and data['schema_version']==3:
+        if workspace is None:raise ValueError('曲面连续铺排须提供创作工作区')
+        return _repeat_mask(workspace,data),raw
     return _single_mask(data),raw
+
+
+def _repeat_mask(workspace,data):
+    from nbt_repeat_layout import verify_inputs
+    from nbt_structure_agent import _definitions,_schema
+
+    def pair(value,minimum,maximum):
+        return (isinstance(value,list) and len(value)==2 and
+                all(type(n) is int and minimum<=n<=maximum for n in value))
+    required={'schema_version','name','size_uv','anchor_uv','object'}
+    if (not required<=set(data) or set(data)-required-{'clip_uv'} or not isinstance(data['name'],str) or
+        not 1<=len(data['name'].strip())<=120 or not pair(data['size_uv'],1,64) or not pair(data['anchor_uv'],0,4096)):
+        raise ValueError('曲面连续铺排掩模字段、名称或尺寸无效')
+    proposal=data['object']
+    _schema(proposal,_definitions()['pattern_microfit']['parameters'])
+    if proposal['surface'] not in ('wall','column') or set(proposal)&{'diameter','seam_degrees','preview','max_changed_blocks'}:
+        raise ValueError('曲面连续铺排只接受墙或柱的微型单元，使用宿主预算和审阅机位')
+    clips=data.get('clip_uv',[])
+    if not isinstance(clips,list) or len(clips)>64:raise ValueError('曲面 UV 裁切框最多64个')
+    for box in clips:
+        if (not isinstance(box,dict) or set(box)!={'lo','hi'} or not all(pair(box[k],0,63) for k in ('lo','hi')) or
+            any(not 0<=a<=b<n for a,b,n in zip(box['lo'],box['hi'],data['size_uv']))):
+            raise ValueError('曲面 UV 裁切框须位于采样网格内')
+    verify_inputs(workspace,proposal)
+    return data
 
 
 def _single_mask(data):
@@ -149,6 +177,17 @@ def _surface_point(sections,y,u):
     if length<1e-8:raise ValueError('曲面截面存在退化边')
     sign=1 if area>0 else -1
     return [p[i]+(q[i]-p[i])*fraction for i in range(2)],[sign*tangent[1]/length,-sign*tangent[0]/length]
+
+
+def _repeat_state(value,face,mirrored):
+    from nbt_cylinder_pattern import FACES,touches_backing
+    from nbt_tools import transformed_state
+
+    turns=next(turns for _,dx,dz,turns in FACES if (dx,0,dz)==face)
+    world=transformed_state(value,turns,'x' if mirrored else None)
+    if not touches_backing(world,dict(dx=face[0],dz=face[2])):
+        raise ValueError('曲面通铺状态缺少精确半格背衬接触')
+    return world
 
 
 def _actual_face(model,expected,normal,y,maximum):
@@ -308,11 +347,18 @@ def _review_feedback(workspace,source,source_sha256,value):
                 observation=value['observation'])
 
 
-def _calculate_single(working,sections,mask,mapping):
+def _calculate_single(working,sections,mask,mapping,*,repeat=None):
     start,span,y_start,maximum,subsamples,connection,recess=_mapping(mapping)
     if sum(len(row)-row.count('.') for row in mask['rows'])*subsamples>MAX_FACE_SAMPLES:
         raise ValueError('曲面实际面采样超过8192次上限，请缩小样段或减少采样')
     protected=protections(working.model,working._protection_context());changes={};owners={};samples=[];supports=[];recess_checks=[]
+    if repeat is not None:
+        from nbt_change_policy import reserved_position
+        from nbt_refine import box_points
+        for instance in working.instances.values():
+            for box in instance['compiled'].get('policy', {}).get('protected_boxes', []):
+                protected.update(box_points(box['lo'],box['hi']))
+        reserved=working.context.get('reserved_boxes') or []
     merged_writes=0;raw_writes=0;collapsed_pixels=0
     rows=mask['rows'];width=len(rows[0])
     for row_index,row in enumerate(rows):
@@ -328,10 +374,17 @@ def _calculate_single(working,sections,mask,mapping):
                 except ValueError as error:raise ValueError(str(error)+'：'+json.dumps(dict(uv=[column,row_index],subsample=sub,y=y),ensure_ascii=False)) from error
                 planned=[];backing=[]
                 if kind=='raise':
+                    value=spec['state']
+                    if repeat is not None:
+                        p=tuple(host[i]+face[i] for i in range(3))
+                        if p in protected or reserved_position((p,),reserved) is not None:
+                            repeat['clipped'][column,row_index]='protected' if p in protected else 'reserved'
+                            break
+                        value=_repeat_state(value,face,repeat['mirrored'])
                     for depth in range(1,spec['height']+1):
                         p=tuple(host[i]+face[i]*depth for i in range(3))
                         if not working.model.in_bounds(p) or working.model.get(p) not in AIR_NAMES:raise ValueError('凸饰外侧被占用或越界：'+str(p))
-                        planned.append((p,[spec['state'],spec['wall']]))
+                        planned.append((p,[value,spec['wall']]))
                     supports.append(host)
                 else:
                     for depth in range(spec['depth']+spec['backing']):
@@ -351,13 +404,14 @@ def _calculate_single(working,sections,mask,mapping):
                     raw_writes+=1
                     if pos in protected:raise ModelConflict('CURVE_PROTECTED',[dict(pos=list(pos),uv=[column,row_index])])
                     if pos in changes:
-                        if owners[pos]!=symbol or changes[pos]['after']!=after:
+                        if repeat is not None or owners[pos]!=symbol or changes[pos]['after']!=after:
                             raise ModelConflict('CURVE_OVERLAP',[dict(pos=list(pos),uv=[column,row_index])])
                         change=changes[pos];merged_writes+=1;local_merged+=1
                     else:
                         before=value_at(working.model,working.walls,pos)
                         change=dict(pos=list(pos),before=before,after=after);changes[pos]=change;owners[pos]=symbol;new_positions+=1
                     if pos not in local_seen:rows_changed.append(change);local_seen.add(pos)
+            if repeat is not None and (column,row_index) in repeat['clipped']:continue
             if not new_positions:collapsed_pixels+=1
             primary=faces[0]
             samples.append(dict(uv=[column,row_index],symbol=symbol,u=primary['u'],kind=kind,role=spec['role'],expected_xz=primary['expected_xz'],
@@ -513,7 +567,56 @@ def _calculate_layers(working,sections,mask,mapping):
 
 
 def _calculate(working,sections,mask,mapping):
+    if mask.get('schema_version')==3:
+        return _calculate_repeat(working,sections,mask,mapping)
     return _calculate_layers(working,sections,mask,mapping) if 'layers' in mask else _calculate_single(working,sections,mask,mapping)
+
+
+def _calculate_repeat(working,sections,mask,mapping):
+    from string import ascii_uppercase,digits
+    from nbt_repeat_layout import phased_cells,solve_repeat_unit
+
+    _,span,_,_,subsamples,connection,recess=_mapping(mapping)
+    if subsamples!=1 or connection is not None or recess is not None:
+        raise ValueError('开放曲面通铺使用逐 UV 单次采样，几何回读会报告断缝')
+    if math.isclose(span,1.,rel_tol=0,abs_tol=1e-12):
+        raise ValueError('放样曲面通铺仅支持开放段；闭合圆柱请使用 pattern_cylinder_mount')
+    size=mask['size_uv'];anchor=mask['anchor_uv'];proposal=mask['object'];period=proposal['size_uv']
+    unit,quality,shapes,_,_,sample=solve_repeat_unit(working.workspace,proposal)
+    if set(shapes or {})-{'slab','stairs'}:raise ValueError('开放曲面通铺只支持整方块、楼梯和半砖')
+    states=sorted(set(unit.values()))
+    if len(states)>36:raise ValueError('曲面通铺单元的状态数超过36')
+    symbols=dict(zip(states,ascii_uppercase+digits))
+    palette={symbol:dict(kind='raise',state=value,height=1,wall=True,role='repeat') for value,symbol in symbols.items()}
+    rows=[['.']*size[0] for _ in range(size[1])]
+    clipped={};fit={}
+    for uv,phase,value in phased_cells(unit,period,size,anchor):
+        if any(all(a<=n<=b for a,n,b in zip(box['lo'],uv,box['hi'])) for box in mask.get('clip_uv',[])):
+            clipped[uv]='explicit_uv_clip'
+        else:
+            u,v=uv;rows[v][u]=symbols[value];fit[uv]=(phase,value)
+    vertices=sections[0]['vertices']
+    area=sum(x*z1-x1*z for (x,z),(x1,z1) in zip(vertices,vertices[1:]+vertices[:1]))
+    samples,changes,continuity,summary=_calculate_single(working,sections,dict(rows=[''.join(row) for row in rows],palette=palette),
+                                                        mapping,repeat=dict(clipped=clipped,mirrored=area>0))
+    if not changes:raise ValueError('曲面通铺裁切后没有可安装的饰面方块')
+    for item in samples:
+        phase,value=fit[tuple(item['uv'])]
+        item.update(phase_uv=list(phase),unit_state=value)
+    summary['repeat_tiling']=dict(period_uv=period,size_uv=size,anchor_uv=anchor,sample_sha256=sample['sha256'],microfit=quality,
+                                  clipped=[dict(uv=list(uv),reason=reason) for uv,reason in sorted(clipped.items())])
+    return samples,changes,continuity,summary
+
+
+def _repeat_readback(model,samples,summary):
+    if 'repeat_tiling' not in summary:return
+    from nbt_repeat_layout import evidence
+
+    repeat=summary['repeat_tiling']
+    positions={tuple(item['uv']):(item['phase_uv'],item['unit_state'],tuple(item['changes'][0]['pos']),item['changes'][0]['after'][0])
+               for item in samples}
+    clipped={tuple(item['uv']):item['reason'] for item in repeat['clipped']}
+    repeat.update(evidence(model,repeat['size_uv'],repeat['period_uv'],repeat['anchor_uv'],positions,clipped,check_u_edges=True))
 
 
 def plan_curve(workspace,request):
@@ -534,6 +637,9 @@ def plan_curve(workspace,request):
     working=WorkingModel.open(workspace,source,request.get('context'),source_sha256=request['source_sha256'])
     feedback=_review_feedback(workspace,source,request['source_sha256'],request['review_feedback']) if 'review_feedback' in request else None
     samples,changes,continuity,summary=_calculate(working,sections,mask,mapping)
+    if 'repeat_tiling' in summary:
+        working.patch(changes)
+        _repeat_readback(working.model,samples,summary)
     # Reject oversized evidence before creating a candidate directory. Paths and
     # fixed receipt fields are included conservatively because preview generates
     # several paths underneath the requested output directory.
@@ -541,7 +647,7 @@ def plan_curve(workspace,request):
     estimate_size=len(json.dumps(estimate,ensure_ascii=False,separators=(',',':')).encode('utf8'))
     if estimate_size+8*len(str(destination).encode('utf8'))+8192>MAX_MANIFEST:
         raise ValueError('曲面候选报告过大，请缩小样段或减少采样')
-    working.patch(changes)
+    if 'repeat_tiling' not in summary:working.patch(changes)
     def recheck():
         working._unchanged();verify_fit(workspace,profile,request['profile_sha256'])
         _mask(mask_file,request['mask_sha256'],workspace)
@@ -600,9 +706,12 @@ def verify_curve(workspace,plan,expected_sha256):
         raise ValueError('曲面宿主或保护上下文已变化')
     fit=json.loads(profile.read_text(encoding='utf8'))
     samples,changes,continuity,summary=_calculate(working,fit['geometry']['sections'],mask,proof['mapping'])
+    if 'repeat_tiling' in summary:
+        working.patch(changes)
+        _repeat_readback(working.model,samples,summary)
     if samples!=proof['samples'] or continuity!=proof['continuity'] or summary!=proof['summary']:
         raise ValueError('曲面采样、背衬或连续性与绑定输入不一致')
-    working.patch(changes)
+    if 'repeat_tiling' not in summary:working.patch(changes)
     if _sha(candidate)!=proof['candidate_sha256']:raise ValueError('曲面候选源哈希已变化')
     candidate_model,candidate_walls=read_assembly(candidate) if is_assembly_source(candidate) else read_master(candidate)
     if (candidate_model.blocks!=working.model.blocks or candidate_walls!=working.walls or

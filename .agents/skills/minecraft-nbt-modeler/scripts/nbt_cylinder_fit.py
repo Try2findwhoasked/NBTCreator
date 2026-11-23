@@ -51,6 +51,27 @@ def topology(cells):
     return dict(face_components=len(components(cells)),handles=handles,cavities=cavities,half_cells=len(cells))
 
 
+def corner_state(left_local,right_local,left_world,right_world,material,shapes,turns):
+    a=set(collision_cells(left_local)[0]);b=set(collision_cells(right_local)[0])
+    shared=[any((1,y,depth) in a and (0,y,depth) in b for depth in (0,1)) for y in (0,1)]
+    if not any(shared):return None
+    if all(shared):
+        if len(collision_cells(left_world)[0])==8:return left_world
+        if len(collision_cells(right_world)[0])==8:return right_world
+        return transformed_state(material,turns,None)
+    if not shapes or 'slab' not in shapes:raise ValueError('圆柱转角连接需要匹配的半砖，请在shapes提供slab或允许自动同材质半砖')
+    name,props=effective(shapes['slab'])
+    if not name.endswith('_slab') or props.get('waterlogged')!='false':raise ValueError('圆柱转角须使用未含水半砖')
+    return state(f'{name}[type={"bottom" if shared[0] else "top"},waterlogged=false]')
+
+
+def corner_position(left,right,core,ring_points):
+    choices=[(left['x'],right['z']),(right['x'],left['z'])]
+    candidates=[p for p in choices if p not in core and p not in ring_points]
+    if len(candidates)!=1:raise ValueError('圆柱转角无法建立唯一外侧连接，请调整单元宽度或直径')
+    return candidates[0]
+
+
 def prepare_unit(unit,core,ring,offset,width,height,material,shapes,reference):
     """Map one fitted unit, connecting only ink continuous in the source unit."""
     selected=[ring[(offset+u)%len(ring)] for u in range(width)]
@@ -60,23 +81,12 @@ def prepare_unit(unit,core,ring,offset,width,height,material,shapes,reference):
     for u in range(width-1):
         left,right=selected[u],selected[u+1]
         if abs(left['x']-right['x'])+abs(left['z']-right['z'])<=1:continue
-        choices=[(left['x'],right['z']),(right['x'],left['z'])]
-        candidates=[p for p in choices if p not in core and p not in ring_points]
-        if len(candidates)!=1:raise ValueError('圆柱转角无法建立唯一外侧连接，请调整单元宽度或直径')
-        x,z=candidates[0]
+        x,z=corner_position(left,right,core,ring_points)
         for v in range(height):
             if (u,v) not in unit or (u+1,v) not in unit:continue
-            a=set(collision_cells(unit[u,v])[0]);b=set(collision_cells(unit[u+1,v])[0])
-            shared=[any((1,y,depth) in a and (0,y,depth) in b for depth in (0,1)) for y in (0,1)]
-            if not any(shared):continue
-            if all(shared):
-                left_value=blocks[left['x'],v,left['z']];right_value=blocks[right['x'],v,right['z']]
-                value=left_value if len(collision_cells(left_value)[0])==8 else right_value if len(collision_cells(right_value)[0])==8 else transformed_state(material,left['turns'],None)
-            else:
-                if not shapes or 'slab' not in shapes:raise ValueError('圆柱转角连接需要匹配的半砖，请在shapes提供slab或允许自动同材质半砖')
-                name,props=effective(shapes['slab'])
-                if not name.endswith('_slab') or props.get('waterlogged')!='false':raise ValueError('圆柱转角须使用未含水半砖')
-                value=state(f'{name}[type={"bottom" if shared[0] else "top"},waterlogged=false]')
+            value=corner_state(unit[u,v],unit[u+1,v],blocks[left['x'],v,left['z']],
+                               blocks[right['x'],v,right['z']],material,shapes,left['turns'])
+            if value is None:continue
             point=(x,v,z)
             if point in blocks and blocks[point]!=value:raise ValueError('圆柱转角连接发生冲突')
             blocks[point]=value;bridges.add(point)

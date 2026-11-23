@@ -28,6 +28,7 @@
 | 可移植引擎合成回归 | `mise run nbt -- regress --output <新目录>` |
 | 建模工具与操作参数 | `mise run test -- modelling` |
 | 参数化构件与几何回归 | `mise run test -- parametric` |
+| 二维 FFT 找周期、带洞平面、圆柱及开放曲面的方块和半格回读 | `mise run test -- pattern-repeat` |
 | 主模型、对象关系与接口 | `mise run model:test` |
 | 大型组装、四片楼梯冲突、恢复及同机位渲染 | `mise run test -- large-assembly` |
 | 三视配准、回投影与匿名审阅绑定 | `mise run test -- reference-views` |
@@ -69,6 +70,7 @@ mise exec -- node tests/node/task-cancel.mjs --output build/task-cancel-check
 - 基准、复杂场景及现有工作区审计需按脚本参数显式运行，例如 `engine/fitting-shapes-benchmark.py`、`engine/fitting-shapes-complex.py`、`engine/workspace-library-audit.py`。
 - 大型组装验收生成约 38 万方块并执行真实材质渲染，耗时和内存明显高于普通回归；结果保存在 `build/large-assembly-scale-*`，静态走测和截图不代表游戏内验证。
 - 曲面引擎回归覆盖偏心退台宿主、凸饰转角、凹槽背衬、跨层支承及素材绑定。另有可选的代表样段检查，生成约 25 万块宿主，在同一候选中核对斜搭板、双暗窗、切槽和开口卷纹。它使用生产渲染器输出正面、斜面、剖面和远景，运行前需构建前端。结果保存在 `build/curve-review-*`，从 `acceptance.json` 可找到候选、保护拒绝、成对渲染和审阅清单。视觉结论由人工查看这些图像后记录。
+- 用 `mise exec -- python -B tests/engine/pattern-repeat.py --output build/pattern-repeat-review --render` 在全新的目录保留周期纹样候选、回执和材质预览。生产渲染需先构建前端。
 
 ## 新增或移动测试
 

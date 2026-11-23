@@ -156,6 +156,7 @@ _TOOL_GROUPS = {
     '_handle_mount_batch': ('mount_batch', 'surface_decorate'),
     '_handle_scene': ('scene_compile', 'scene_save', 'scene_read', 'scene_update'),
     '_handle_pattern_filter': ('pattern_filter',),
+    '_handle_pattern_repeat_detect': ('pattern_repeat_detect',),
     '_handle_pattern_create': ('pattern_create',),
     '_handle_pattern_assets': ('pattern_assets',),
     '_handle_pattern_cylinder_mount': ('pattern_cylinder_mount',),

@@ -46,11 +46,11 @@ def aligned_colors(image,sample,width,height):
     return material_at
 
 
-def adaptive_fit(root,sample,width,height,options,factor,max_error,mode,*,quality_profile='balanced',min_quality_score=0):
+def adaptive_fit(root,sample,width,height,options,factor,max_error,mode,*,quality_profile='balanced',min_quality_score=0,raster=None):
     from nbt_microfit import reference,fit_reference,contour_error
 
     if mode not in ('auto','fixed'):raise ValueError('micro_alignment须为auto或fixed')
-    image=sample_image(root,sample)
+    image=sample_image(root,sample) if raster is None else raster
     original=reference(root,sample,width,height,factor,raster=image)
     from nbt_pattern_quality import assess,source_bitmap
     target=(width*factor*8,height*factor*8)
