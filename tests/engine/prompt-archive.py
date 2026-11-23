@@ -98,6 +98,20 @@ class Prompts(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'已变化'):save(self.workspace,p)
   (self.workspace/r['prompt']).write_text('tampered',encoding='utf8')
   with self.assertRaisesRegex(ValueError,'产物已变化'):read_prompt(self.workspace,r['index'],r['id'])
+ @unittest.skipUnless(sys.platform == 'win32', 'Windows extended path')
+ def test_prompt_path_retries_transient_extended_path_and_checks_the_result(self):
+  from nbt_project.prompts import inside
+  relative = Path('nbt_models/single/test-hall')
+  allowed = self.workspace / relative
+  extended = Path('\\\\?\\' + str(allowed))
+  escaped = self.workspace / 'outside'
+  with patch('nbt_project.prompts.workspace_path', side_effect=[extended, allowed]) as resolve:
+   self.assertEqual(inside(self.workspace, relative), allowed)
+   self.assertEqual(resolve.call_count, 2)
+  with patch('nbt_project.prompts.workspace_path', side_effect=[extended, escaped]) as resolve:
+   with self.assertRaisesRegex(ValueError, '当前工作区'):
+    inside(self.workspace, relative)
+   self.assertEqual(resolve.call_count, 2)
  def test_workspace_escape_and_non_prompt_files_are_rejected(self):
   p=copy.deepcopy(self.payload);p['document']['project'].update(stage='plan',source='../outside/master.json.gz')
   with self.assertRaisesRegex(ValueError,'当前工作区'):save(self.workspace,p)

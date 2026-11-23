@@ -20,7 +20,12 @@ def encode(value):
     return (json.dumps(value,ensure_ascii=False,sort_keys=True,indent=2)+'\n').encode('utf8')
 
 def inside(workspace, value):
-    root=Path(workspace).resolve();target=workspace_path(root,value)
+    root = Path(workspace).resolve()
+    target = workspace_path(root, value)
+    extended_prefix = '\\\\?\\'
+    # Windows resolution can briefly retain the extended prefix while a parent is created.
+    if target.drive.startswith(extended_prefix) and not root.drive.startswith(extended_prefix):
+        target = workspace_path(root, value)
     if not target.is_relative_to(root/'nbt_models'):
         raise ValueError('提示词只能存取当前工作区 nbt_models 内的文件；外部模型请切换到对应工作区')
     return target
