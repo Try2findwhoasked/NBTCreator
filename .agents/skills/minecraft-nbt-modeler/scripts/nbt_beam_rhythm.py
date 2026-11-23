@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 
 from nbt_building.structural_members import full, grain
+from nbt_beam_local import KERNEL, LocalFrameMatch
 from nbt_catalog import catalog
 from nbt_change_policy import ChangePolicyError
 from nbt_collision import collision_cells
@@ -13,6 +14,7 @@ from nbt_extensions import compile_recipe
 from nbt_model import AIR_NAMES
 from nbt_model_preflight import route_summary
 from nbt_object_scene import engine_hash
+from nbt_scene_interfaces import obstacle_height
 from nbt_structure_agent import _schema
 from nbt_working_model import ModelConflict, digest, file_hash, model_hash, write_json
 
@@ -75,6 +77,9 @@ class BeamRhythm:
         self.height = goal['post_height'] + goal['beam_height']
         if self.height > 64:
             raise ValueError('单榀梁架总高最多64格')
+        self.clearance = goal.get('clearance_height', min(2, goal['post_height']) if goal.get('local_match') else None)
+        if self.clearance is not None and self.clearance > goal['post_height']:
+            raise ValueError('梁架净空高度不得超过柱高')
 
         host._unchanged()
         self.source = dict(source_sha256=host.source_sha256, parent_revision=host.parent_revision,
@@ -85,6 +90,10 @@ class BeamRhythm:
         self.component, self.compilation = compile_recipe(host.workspace, self.recipe)
         self.template = {(x, y): self.component['palette'][index]
                          for x, y, _, index, _ in self.component['blocks']}
+        self.local = None
+        if goal.get('local_match'):
+            self.local = LocalFrameMatch(host.model, self.compilation['objects'], self.template, goal['origin_xy'],
+                                         self.lo, self.hi)
         self.occupied = host._owned_positions()
         self.placements = {}
 
@@ -122,6 +131,27 @@ class BeamRhythm:
         if missing:
             raise ModelConflict('UNSUPPORTED_FRAME', missing)
         return checks
+
+    def _clearance(self, candidate, starts):
+        if self.clearance is None:
+            return dict(status='not_declared')
+        blockers = []
+        for z in starts:
+            for x in range(self.origin_x + 1, self.origin_x + self.width - 1):
+                for y in range(self.origin_y - 1, self.origin_y + self.clearance):
+                    pos = (x, y, z)
+                    state = candidate.get(pos)
+                    cells, reason = collision_cells(state)
+                    if y < self.origin_y:
+                        # Tall block envelopes can extend half a cell into the opening.
+                        blocked = reason is not None and obstacle_height(state) != 2
+                    else:
+                        blocked = bool(cells) or reason is not None
+                    if blocked:
+                        blockers.append(dict(pos=list(pos), state=state, collision_reason=reason))
+        if blockers:
+            raise ModelConflict('FRAME_CLEARANCE', blockers)
+        return dict(status='passed', width=self.width - 2, height=self.clearance, frame_count=len(starts))
 
     def _measure(self, candidate, starts):
         # Trace the compiled frame footprint in each candidate's actual geometry.
@@ -193,6 +223,7 @@ class BeamRhythm:
             staged = host._stage_edits(edits)
             candidate, walls, changes, total_changes = staged
             support = self._support(candidate, starts)
+            clearance = self._clearance(candidate, starts)
             host._check_edit_policies(candidate, walls, instances)
             assembly = host._assembly_checks(candidate, instances)
             if not assembly['passed']:
@@ -209,13 +240,16 @@ class BeamRhythm:
         routes = ('required_passed' if host.context.get('require_routes') else
                   'not_required' if host.context.get('start') and host.context.get('targets') else 'not_declared')
         measured, errors = self._measure(candidate, starts)
+        if self.local is not None:
+            row['local_match'] = self.local.measure(starts, pitch)
+            errors['local'] = row['local_match']['error']
         selection = dict(pitch=pitch, start_z=start)
         candidate_hash = model_hash(candidate, walls)
         token = digest([self.source, self.goal, selection, self.component['content_sha256'], candidate_hash])
         row.update(applicable=True, measured=measured, errors=errors, score=round(sum(errors.values()), 12),
                    anchor_delta=abs(start - self.goal.get('anchor_z', start)), changes=changes, total_changes=total_changes,
                    checks=dict(protection='passed', reserved='passed', budget='passed', supports=support,
-                               routes=routes, bound_building=building_checks, managed_policies='passed',
+                               clearance=clearance, routes=routes, bound_building=building_checks, managed_policies='passed',
                                assembly='passed', structural_load='not_checked'),
                    model_sha256=candidate_hash, candidate_sha256=token)
         return row, (staged, instances)
@@ -260,6 +294,15 @@ class BeamRhythm:
                       candidates=sorted(accepted, key=self._rank) + rejected,
                       rejection_counts=dict(Counter(row['problem']['code'] for row in rejected)),
                       model_modified=False, asset_written=False, approval_created=False)
+        if self.local is not None:
+            anchors = {}
+            for row in sorted(accepted, key=lambda row: (-round(row['local_match']['strength'], 12), self._rank(row))):
+                strength = row['local_match']['strength']
+                if strength > 0:
+                    anchors.setdefault(row['start_z'], dict(pitch=row['pitch'], start_z=row['start_z'], strength=strength))
+            report['local_match'] = dict(method='direct_z_correlation', kernel=KERNEL.tolist(),
+                                         status='measured' if self.local.has_evidence else 'no_matching_source_evidence',
+                                         anchor_candidates=list(anchors.values()))
         if selected is not None:
             row, state = selected
             candidate = copy(self.host)

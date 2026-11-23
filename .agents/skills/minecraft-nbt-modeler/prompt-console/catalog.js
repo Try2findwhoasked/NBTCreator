@@ -25790,6 +25790,16 @@ globalThis.NbtToolCatalog = {
                 "minimum": 0,
                 "maximum": 4095,
                 "description": "既有轴线或入口的世界 Z 坐标，用于同分排序。"
+              },
+              "local_match": {
+                "type": "boolean",
+                "description": "对宿主的梁柱实际状态沿 Z 做短核互相关，加入排序并报告错位和缺件。默认关闭。"
+              },
+              "clearance_height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 63,
+                "description": "每榀两柱之间的静态净空高度，不超过柱高。开启局部匹配时默认取柱高与 2 的较小值。"
               }
             },
             "required": [
