@@ -154,9 +154,9 @@ class WholeBuildingPlanning(unittest.TestCase):
         program, layout = example()
         program['entry_space'] = 'entry'
         request = dict(program=program, baseline=layout, locked=['entry', 'archive'], candidate_limit=3)
-        found = dispatch(Path.cwd(), 'layout-search', request)
+        found = dispatch(Path.cwd(), 'program-layout-search', request)
         self.assertEqual(found['status'], 'found')
-        self.assertEqual(found, dispatch(Path.cwd(), 'layout-search', request))
+        self.assertEqual(found, dispatch(Path.cwd(), 'program-layout-search', request))
         for candidate in found['candidates']:
             slots = {row['id']: row for row in candidate['layout']['spaces']}
             self.assertEqual(slots['entry'], layout['spaces'][0])
@@ -164,16 +164,16 @@ class WholeBuildingPlanning(unittest.TestCase):
             self.assertIn(layout['links'][1], candidate['layout']['links'])
             self.assertTrue(candidate['report']['passed'])
 
-        missing = dispatch(Path.cwd(), 'layout-search', dict(program=program))
+        missing = dispatch(Path.cwd(), 'program-layout-search', dict(program=program))
         self.assertEqual(missing['status'], 'input_required')
         self.assertEqual(missing['checks'][0]['reason'], 'missing_stair_landings')
 
     def test_search_budget_differs_from_exhausting_the_supported_domain(self):
         program, layout = example()
         program['spaces'][1]['min_area'] = 80
-        limited = dispatch(Path.cwd(), 'layout-search', dict(program=program, baseline=layout, max_steps=1))
+        limited = dispatch(Path.cwd(), 'program-layout-search', dict(program=program, baseline=layout, max_steps=1))
         self.assertEqual(limited['status'], 'budget_exhausted')
-        impossible = dispatch(Path.cwd(), 'layout-search', dict(program=program, baseline=layout, locked=['entry']))
+        impossible = dispatch(Path.cwd(), 'program-layout-search', dict(program=program, baseline=layout, locked=['entry']))
         self.assertEqual(impossible['status'], 'infeasible')
         self.assertEqual(impossible['termination'], 'exhausted')
 
@@ -190,7 +190,7 @@ class WholeBuildingPlanning(unittest.TestCase):
         baseline = dict(spaces=[dict(id='entry', regions=[rect(5, 1, 7, 2)])])
         with tempfile.TemporaryDirectory() as temporary:
             workspace = Path(temporary)
-            found = dispatch(workspace, 'layout-search', dict(program=program, baseline=baseline, locked=['entry']))
+            found = dispatch(workspace, 'program-layout-search', dict(program=program, baseline=baseline, locked=['entry']))
             self.assertEqual(found['status'], 'found')
             candidate = found['candidates'][0]['layout']
             prepared = dispatch(workspace, 'layout-prepare', dict(program=program, layout=candidate, plan=plan))

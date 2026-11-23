@@ -64,8 +64,12 @@ export const suites = {
   'architecture-preview': [
     buildWeb,
     node('tests/desktop/architecture-preview.mjs'),
+    node('tests/desktop/space-graph-preview.mjs'),
   ],
-  'architecture-workflow': [python('-B', 'tests/engine/architecture-workflow.py')],
+  'architecture-workflow': [
+    python('-B', 'tests/engine/architecture-workflow.py'),
+    python('-B', 'tests/engine/space-graph-layouts.py'),
+  ],
   'asset-batches': [
     buildWeb,
     python('tests/engine/asset-batches.py'),

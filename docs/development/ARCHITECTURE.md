@@ -62,6 +62,8 @@ flowchart LR
 
 归卷阁提供编排回归用例。外部 Skill 按任务选读对应案例段落，例如楼梯出口、室内站位或操作面的验证。布局、尺度、风格及机位由 Agent 按当前项目决定。参见[归卷阁样例](../../.agents/skills/minecraft-nbt-modeler/assets/examples/reading-loft/README.md)。
 
+`architect layout-search` 在一个粗建筑方案上评估空间图或坐标扰动。入口在 `nbt_building/layout.py`，`layout_graph.py` 负责将空间边和候选摆位绑定到方案。通过 `plan-build` 取得同一套实际方块证据。候选回执可交回 `plan-build`，经原有 SNBT 保存、出图和用户确认流程继续。参见[粗布局契约](../../.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md#在细化构件前比较空间布局)。
+
 脚本出图后将机位标为待看，实际看图后才登记观察。用户批准触发精修，用户明确要求定稿后才导出正式 NBT。机器接口和脚本接续这些阶段的记录。参见[机器协议](../../.agents/skills/minecraft-nbt-modeler/references/agent-protocol.md)。
 
 统一初稿入口实现后用两类案例验收：

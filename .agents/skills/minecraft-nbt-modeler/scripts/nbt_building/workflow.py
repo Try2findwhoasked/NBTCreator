@@ -17,7 +17,7 @@ class Action:
 
 for name,module,handler in (
     ('layout-check','nbt_building.planning','check'),
-    ('layout-search','nbt_building.planning_search','search'),
+    ('program-layout-search','nbt_building.planning_search','search'),
     ('layout-prepare','nbt_building.planning_adapter','prepare'),
     ('plan-save','nbt_building.plan','save'),('plan-get','nbt_building.plan','stored'),
     ('part-preflight','nbt_building.plan','preflight'),

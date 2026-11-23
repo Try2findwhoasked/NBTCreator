@@ -1085,7 +1085,7 @@
         "call": "architect layout-search --request <请求JSON>",
         "contract": "capabilities --architect-action layout-search",
         "guide": "architecture-workflow.md",
-        "input": "填粗模方案、楼梯和工位的可选 XZ 位移、空间面积与邻接条件。",
+        "input": "基于同一粗模方案，用 variables 枚举 XZ 位移，或用 graph 声明空间关系与摆位候选。",
         "result": "给出通过实际通路和使用面检查的候选，以及各次尝试的失败证据。",
         "next": "选定候选后将其 plan 交给 architect plan-build，在构造和装饰深化后保存制作版。"
       },
@@ -1105,7 +1105,7 @@
         "guide": "whole-building-planning.md",
         "input": "用 program 与 layout 预检布局；用 source 和 source_sha256 回读成品。",
         "result": "返回目标、实测值、通过状态及楼层和问题坐标。",
-        "next": "用 layout-search 生成候选，用 layout-prepare 把选择绑定到建筑方案。"
+        "next": "用 program-layout-search 生成候选，用 layout-prepare 把选择绑定到建筑方案。"
       },
       {
         "title": "按明确几何装配，或打开制作源续版",
@@ -27551,7 +27551,7 @@
     }
   },
   "architecture": {
-    "layout_actions": ["layout-check", "layout-search", "layout-prepare"],
+    "layout_actions": ["layout-check", "program-layout-search", "layout-prepare"],
     "schema_version": 1,
     "description": "建筑方案、风格约束、构造生成、三尺度视图与版本绑定评审。所有结果保持人工看图和显式定稿边界。",
     "cli": "architect <action> --request <JSON>",
@@ -30318,7 +30318,7 @@
           }
         ]
       },
-      "layout-search": {
+      "program-layout-search": {
         "type": "object",
         "properties": {
           "program": {
@@ -32630,7 +32630,8 @@
               ]
             },
             "minItems": 1,
-            "maxItems": 8
+            "maxItems": 8,
+            "description": "组合 XZ 位移。保留原型字段与距离排序。与 graph 二选一。"
           },
           "areas": {
             "type": "array",
@@ -32691,17 +32692,330 @@
               ]
             },
             "minItems": 0,
-            "maxItems": 128
+            "maxItems": 128,
+            "description": "位移模式的 XZ 投影距离约束。空间图通过 graph.edges 声明同层邻接和跨层关系。"
           },
           "limit": {
             "type": "integer",
             "minimum": 1,
             "maximum": 3
+          },
+          "graph": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "edges": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "adjacent",
+                        "vertical"
+                      ],
+                      "description": "adjacent 检查同层侧边。vertical 引用一段按 spaces 顺序跨层的活动通路。"
+                    },
+                    "spaces": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
+                    },
+                    "max_gap": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 293,
+                      "description": "仅用于 adjacent。允许两空间之间有这么多列方块，默认 0。"
+                    },
+                    "activity": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "segment": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 127,
+                      "description": "从 0 开始，指向该活动相邻两个站位组成的路段。"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "spaces"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 64
+              },
+              "variants": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "spaces": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "lo": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "hi": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "samples": {
+                            "type": "array",
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "number",
+                                "minimum": -588,
+                                "maximum": 588
+                              },
+                              "minItems": 3,
+                              "maxItems": 3
+                            },
+                            "minItems": 1,
+                            "maxItems": 32
+                          }
+                        },
+                        "required": [
+                          "id"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    },
+                    "parts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "position": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "quarter_turns": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3
+                          }
+                        },
+                        "required": [
+                          "id"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    },
+                    "stairs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "lo": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "hi": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "start": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "end": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "width": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 7
+                          },
+                          "centre": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          }
+                        },
+                        "required": [
+                          "id"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    },
+                    "stops": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "activity": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "index": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 127
+                          },
+                          "feet": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -588,
+                              "maximum": 588
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          }
+                        },
+                        "required": [
+                          "activity",
+                          "index",
+                          "feet"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    },
+                    "route_targets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "feet": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -588,
+                              "maximum": 588
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "feet"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 8
+              }
+            },
+            "required": [
+              "edges",
+              "variants"
+            ],
+            "description": "引用同一计划的空间、活动和粗构件。每个候选独立从种子应用绝对放置。与 variables 二选一。"
           }
         },
-        "required": [
-          "variables"
-        ]
+        "description": "比较同一粗建筑种子的有限布局。选择 variables 或 graph，公共建模验证通过的候选提供 plan。"
       },
       "plan-build": {
         "type": "object",

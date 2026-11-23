@@ -41,7 +41,8 @@
 | 曲面构件切片、来源绑定与离线回放 | `mise run test -- curve-components` |
 | 曲面 UV 模板、端部、方向与配方编译 | `mise run test -- curve-stencils` |
 | 偏心曲面代表样段、四个材质机位、保护拒绝及审阅绑定 | `mise exec -- python -B tests/engine/curved-surface-review.py` |
-| 建筑方案闭环 | `mise run test -- architecture-workflow` |
+| 建筑方案闭环、空间图与实际通路反例 | `mise run test -- architecture-workflow` |
+| 公共入口、归卷阁粗布局候选与真实审阅图 | `mise run test -- architecture-preview` |
 | 模块化对象、结构杆件与窗框 | `mise run test -- modular` |
 | 外部资产库的离线、完整性与回滚 | `mise run test -- asset-libraries` |
 | 外部资产库桌面流程 | `mise run test -- unified-assets` |

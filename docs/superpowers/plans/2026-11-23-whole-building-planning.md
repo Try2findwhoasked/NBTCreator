@@ -53,7 +53,7 @@
 
 **Files:** nbt_building/planning_search.py、nbt_building/workflow.py、tool-catalog.json、tests/engine/whole-building-planning.py。
 
-**Interface:** `architect layout-search` 接受任务书、可选基线布局与锁定集合、上限，返回可重复的合法候选及逐项结果。`architect layout-prepare` 接收已选布局，把空间、入口和构件留位转接给当前建筑方案，可与用户构造配方一同编译。
+**Interface:** `architect program-layout-search` 接受任务书、可选基线布局与锁定集合、上限，返回可重复的合法候选及逐项结果。`architect layout-prepare` 接收已选布局，把空间、入口和构件留位转接给当前建筑方案，可与用户构造配方一同编译。
 
 - [x] 测定相同输入输出、固定区域不移动、矛盾输入与预算耗尽、自动候选经建筑方案生成和落盘复验。
 - [x] 实现有界矩形搜索。面积、边界、占用、邻接先剪枝。按偏差和稳定次序给出若干不同方案。

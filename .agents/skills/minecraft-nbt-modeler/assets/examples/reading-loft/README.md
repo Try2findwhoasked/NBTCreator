@@ -28,6 +28,26 @@ python -B $example courtyard
 
 `sections/` 另有同源的首层、夹层平面和沿梯纵剖。对照[相机及切面坐标](loft-sections.json)看柜台与梯脚的相对位置、夹层出口的转身空间和梯段上方余量。在 ID 为 `file_books` 的活动检查中读取 `use_faces`，可找到两处操作面的接口名、世界朝向、实际距离和命中半格。
 
+## 粗布局对照
+
+从同一创作项目运行下面第一条命令查看候选。第二条命令显式采用 `front` 并保存粗制作版、回读检查、准备审阅与真实出图。
+
+```powershell
+python -B $example layouts
+python -B $example layouts --candidate front
+```
+
+[粗方案请求](layouts.py)省去窗列和厅内梁架，固定围护、入口、两个使用层级及管理员的收卷、登梯、归架顺序。入口空间与收卷厅为同层侧邻接，收卷厅到夹层绑定 `file_books` 的跨层路段。
+
+| 候选 | 布局与结果 |
+| --- | --- |
+| `front` | 在右侧朝北的柜台收卷，再从厅前部沿左侧直梯走到夹层前缘。 |
+| `side` | 从左侧柜台的南面收卷，穿厅到东侧回转，再沿横向梯段进入夹层东侧。 |
+| `blocked` | 书柜堵住 `stair_landing`，脚位为 `[5.5, 5, 19.5]`，影响 `file_books`。 |
+| `wrong-side` | 所需路线可走，但在 `[13.5, 2, 11.5]` 站到 `return_desk.intake` 的背面，影响 `file_books`。 |
+
+在 `layout-search-result.json` 查看各候选的路线起止、通过证据和失败定位。选用 `front` 时，`review/render/` 保留整体、门槛和台面三层审阅图，`sections/` 保留两层平面和梯段剖面。继续细化时沿同一脚位复查梯口护边、转身及搬运空间，并保留实际图像供用户确认。
+
 ## 堵梯口例
 
 `blocked` 把同一只三格宽的书柜从后排 `[4, 5, 24]` 移到梯顶 `[4, 5, 19]`。它正好占住出口脚位 `[5.5, 5, 19.5]`。`plan-build` 应以非零状态退出；在本次 `plan-build-result.json` 中查找 `ROUTE_FAILED`、目标 `stair_landing` 和该脚位。看到文件路径、依赖或机位错误时，应按实际错误排查。

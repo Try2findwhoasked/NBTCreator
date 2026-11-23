@@ -336,7 +336,7 @@ export function initBuildingPlanning({ api, context, openMenu }) {
   pick('search').onclick = () => run(async () => {
     const data = request()
     clearResults()
-    const found = await api('architect/layout-search', { program: data.program, baseline: data.layout, locked: [...fixed] })
+    const found = await api('architect/program-layout-search', { program: data.program, baseline: data.layout, locked: [...fixed] })
     options = found.candidates
     if (options.length) {
       present(options[0].report, data.program, options[0].layout)
