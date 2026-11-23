@@ -16952,6 +16952,10 @@ globalThis.NbtToolCatalog = {
           "anchor_uv"
         ],
         "properties": {
+          "repeat_tiling": {
+            "type": "boolean",
+            "description": "用 anchor_uv 为整面固定相位，拟合一个单元再裁切洞口、保护和留白。"
+          },
           "compare_routes": {
             "type": "boolean"
           },
@@ -17073,6 +17077,43 @@ globalThis.NbtToolCatalog = {
               "size_uv"
             ],
             "properties": {
+              "repeat_detection": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "valid_mask": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "path",
+                      "sha256"
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2048
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    },
+                    "description": "与参考图原始尺寸相同的有效掩模，白色为已观察像素，黑色或透明为遮挡。"
+                  },
+                  "max_period_uv": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 128
+                    },
+                    "description": "U、V 搜索的最大像素周期，各轴默认128。"
+                  }
+                }
+              },
               "surface": {
                 "type": "string",
                 "enum": [
@@ -17674,6 +17715,17 @@ globalThis.NbtToolCatalog = {
           "object"
         ],
         "properties": {
+          "repeat_anchor_uv": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "description": "启用整圈连续铺排。以轮廓序号和局部 Y 格指定相位原点，U 周期须整除周长。"
+          },
           "compare_routes": {
             "type": "boolean"
           },
@@ -17810,6 +17862,43 @@ globalThis.NbtToolCatalog = {
               "size_uv"
             ],
             "properties": {
+              "repeat_detection": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "valid_mask": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "path",
+                      "sha256"
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2048
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    },
+                    "description": "与参考图原始尺寸相同的有效掩模，白色为已观察像素，黑色或透明为遮挡。"
+                  },
+                  "max_period_uv": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 128
+                    },
+                    "description": "U、V 搜索的最大像素周期，各轴默认128。"
+                  }
+                }
+              },
               "surface": {
                 "type": "string",
                 "enum": [
@@ -18793,6 +18882,43 @@ globalThis.NbtToolCatalog = {
           "size_uv"
         ],
         "properties": {
+          "repeat_detection": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "valid_mask": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "description": "与参考图原始尺寸相同的有效掩模，白色为已观察像素，黑色或透明为遮挡。"
+              },
+              "max_period_uv": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 128
+                },
+                "description": "U、V 搜索的最大像素周期，各轴默认128。"
+              }
+            }
+          },
           "surface": {
             "type": "string",
             "enum": [
@@ -21066,6 +21192,123 @@ globalThis.NbtToolCatalog = {
           "host",
           "installations"
         ]
+      }
+    },
+    "pattern_repeat_detect": {
+      "description": "在哈希绑定的拉正图中，用线性二维 FFT 和空间域复核找出矩形基本单元。输出周期、有效像素对、单元来源或失败原因。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sample"
+        ],
+        "properties": {
+          "sample": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "channel": {
+                "type": "string",
+                "enum": [
+                  "luminance",
+                  "alpha"
+                ]
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "colors": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rgb",
+                    "material"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "rgb": {
+                      "type": "string",
+                      "pattern": "^#[0-9a-fA-F]{6}$"
+                    },
+                    "material": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    }
+                  }
+                }
+              },
+              "invert": {
+                "type": "boolean"
+              },
+              "crop": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "minItems": 4,
+                "maxItems": 4
+              }
+            }
+          },
+          "detection": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "valid_mask": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "description": "与参考图原始尺寸相同的有效掩模，白色为已观察像素，黑色或透明为遮挡。"
+              },
+              "max_period_uv": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 128
+                },
+                "description": "U、V 搜索的最大像素周期，各轴默认128。"
+              }
+            }
+          }
+        }
       }
     },
     "pattern_filter": {
@@ -25500,6 +25743,7 @@ globalThis.NbtToolCatalog = {
     "tools": [
       "pattern_list",
       "pattern_compile",
+      "pattern_repeat_detect",
       "pattern_microfit",
       "parametric_list",
       "parametric_contract",

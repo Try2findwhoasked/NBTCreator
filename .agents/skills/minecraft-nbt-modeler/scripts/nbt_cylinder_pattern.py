@@ -106,7 +106,7 @@ def compile_cylinder(workspace,args):
 
 
 def mount_cylinder(workspace,args):
-    """Fit only the exterior ornament to a hash-bound, intact column core."""
+    """Fit only the exterior ornament to a hash-bound column core."""
     from pathlib import Path
     from nbt_model import AIR_NAMES
     from nbt_selection_edit import load_selection,sha
@@ -131,17 +131,6 @@ def mount_cylinder(workspace,args):
     proposal=args['object']
     if proposal['surface']!='cylinder':
         raise ValueError('圆柱环绕安装须使用surface=cylinder')
-    from nbt_pattern_panel import compile_panel
-    compiled=compile_panel(workspace,proposal)
-    data=build(workspace,compiled['spec'])
-    if [hi[i]-lo[i]+1 for i in range(3)]!=data['size']:
-        raise ValueError('目标框须等于圆柱外径×高度×外径，外径为柱芯直径加2格')
-    core,_=cylinder_geometry(compiled['cylinder']['diameter'],proposal.get('seam_degrees',180))
-    for x,z in core:
-        for y in range(data['size'][1]):
-            cells,reason=collision_cells(model.get((lo[0]+x,lo[1]+y,lo[2]+z)))
-            if reason or len(cells)!=8:
-                raise ValueError('原柱芯不完整或不是受支持的完整方块，不能确认环绕接触')
     protected=protections(model,config);reserved=set()
     for bounds in args.get('reserved_boxes',[]):
         if any(bounds['lo'][i]>bounds['hi'][i] or bounds['hi'][i]>=model.size[i] for i in range(3)):
@@ -149,19 +138,39 @@ def mount_cylinder(workspace,args):
         if (bounds['hi'][0]-bounds['lo'][0]+1)*(bounds['hi'][1]-bounds['lo'][1]+1)*(bounds['hi'][2]-bounds['lo'][2]+1)>65536:
             raise ValueError('单个留白范围超过65536格')
         reserved.update(box_points(bounds['lo'],bounds['hi']))
-    voxels=[];written=set()
-    for x,y,z,index,_ in data['blocks']:
-        if (x,z) in core:
-            continue
-        point=(lo[0]+x,lo[1]+y,lo[2]+z)
-        if point in protected:raise ValueError('圆柱外饰触及保护区域或声明开口')
-        if point in reserved:raise ValueError('圆柱外饰占用显式留白')
-        if model.get(point) not in AIR_NAMES:raise ValueError('圆柱外饰位置已有方块，不能覆盖')
-        voxels.append([x,y,z,index]);written.add(point)
+    anchor=args.get('repeat_anchor_uv')
+    if anchor is not None:
+        from nbt_repeat_layout import cylinder, evidence, verify_inputs
+        palette,voxels,changes,compiled,size,positions,clipped,connectors,clipped_connectors=cylinder(
+            workspace,proposal,model,lo,hi,anchor,protected,reserved,config.get('reserved_boxes'))
+        written=set(changes)
+        content_hash=digest(sorted(changes.items()))
+    else:
+        from nbt_pattern_panel import compile_panel
+        compiled=compile_panel(workspace,proposal)
+        data=build(workspace,compiled['spec'])
+        if [hi[i]-lo[i]+1 for i in range(3)]!=data['size']:
+            raise ValueError('目标框须等于圆柱外径×高度×外径，外径为柱芯直径加2格')
+        core,_=cylinder_geometry(compiled['cylinder']['diameter'],proposal.get('seam_degrees',180))
+        for x,z in core:
+            for y in range(data['size'][1]):
+                cells,reason=collision_cells(model.get((lo[0]+x,lo[1]+y,lo[2]+z)))
+                if reason or len(cells)!=8:
+                    raise ValueError('原柱芯不完整或不是受支持的完整方块，不能确认环绕接触')
+        palette=data['palette'];content_hash=compiled['content_sha256']
+        voxels=[];written=set()
+        for x,y,z,index,_ in data['blocks']:
+            if (x,z) in core:
+                continue
+            point=(lo[0]+x,lo[1]+y,lo[2]+z)
+            if point in protected:raise ValueError('圆柱外饰触及保护区域或声明开口')
+            if point in reserved:raise ValueError('圆柱外饰占用显式留白')
+            if model.get(point) not in AIR_NAMES:raise ValueError('圆柱外饰位置已有方块，不能覆盖')
+            voxels.append([x,y,z,index]);written.add(point)
     budget=args.get('max_changed_blocks',4096)
     if len(written)>budget:raise ValueError('圆柱候选超过总变化预算')
     operations=[dict(kind='paste_component',label='既有圆柱环绕外饰',classification='wall',
-                     lo=lo,hi=hi,palette=data['palette'],voxels=voxels,overwrite=False)]
+                     lo=lo,hi=hi,palette=palette,voxels=voxels,overwrite=False)]
     settings=default_settings();settings.update(operations=operations,max_changed_blocks=budget)
     plan=compile_plan(settings,list(model.size))
     candidate,candidate_walls,_=simulate_plan(model,walls,plan,dict(config,max_changed_blocks=budget))
@@ -172,16 +181,26 @@ def mount_cylinder(workspace,args):
     _unchanged(binding)
     pattern={k:compiled[k] for k in ('surface','sample_sha256','shape_counts','fitting','cylinder','stair_orientations','slab_orientations','orientation_policy')}
     if 'microfit' in compiled:pattern['microfit']=compiled['microfit']
-    result=dict(operations=operations,placements=[dict(lo=lo,hi=hi,connector_positions=[])],skipped=[],
+    if anchor is not None:
+        verify_inputs(workspace,proposal)
+        repeat=evidence(candidate,size,proposal['size_uv'],anchor,positions,clipped,closed=True,
+            connectors=connectors,check_u_edges=True,clipped_connectors=clipped_connectors)
+        if repeat['seam_geometry_matches'] is False:
+            mismatches=[joint for joint in repeat['half_cell_joints'] if joint['status'] in ('mismatch','unsupported_shape')]
+            raise ValueError(f'圆柱通铺的实际半格接缝与单元不符：{mismatches[:4]}')
+        pattern['repeat_tiling']=repeat
+    result=dict(operations=operations,placements=[dict(lo=lo,hi=hi,
+        connector_positions=sorted({p for p,_ in connectors.values()}) if anchor is not None else [])],skipped=[],
         source_sha256=request['source_sha256'],geometry_sha256=model.fingerprint(),context_sha256=request['context_sha256'],
         snapshot_sha256=snapshot_hash,candidate_geometry_sha256=candidate.fingerprint(),
-        recipe_sha256=digest(dict(parameters=proposal,content_sha256=compiled['content_sha256'])),pattern=pattern,
+        recipe_sha256=digest(dict(parameters=proposal,content_sha256=content_hash)),pattern=pattern,
         changed_blocks=len(written),max_changed_blocks=budget,model_modified=False,approval_created=False,
-        verification=dict(mount_contact=True,intact_core=True,protection=True,occupancy=True,budget=True,
+        verification=dict(mount_contact=True,intact_core=not compiled['cylinder'].get('masked_core_air'),protection=True,occupancy=True,budget=True,
                           routes=routes,structural_load='not_checked',design='pending_visual_review'))
     result['plan_sha256']=digest(dict(result=result,arguments=args))
     if args.get('review'):
         from nbt_mount_review import write_review
         result['review']=write_review(workspace,binding,candidate,candidate_walls,result,args['review'])
         _unchanged(binding)
+        if anchor is not None:verify_inputs(workspace,proposal)
     return result

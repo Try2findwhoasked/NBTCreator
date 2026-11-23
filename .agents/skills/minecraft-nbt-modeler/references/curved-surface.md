@@ -50,6 +50,31 @@
 
 可将用户制作的掩模保存在创作项目，或按项目约定放入独立资产库；不要把用户图源或私有模型打入软件资源。输入使用文件 SHA256，掩模内容变化后需重新规划。
 
+## 开放曲面连续铺排
+
+版本 3 掩模使用一次微型单元拟合，再在开放 UV 段内铺排。沿用 `curve plan` 的源、截面、掩模哈希和宿主保护。以下示例将样本拟合成 2×2 格单元，铺到 8×4 的采样网格。省略 `object.repeat_detection` 可使用手工裁好的单元，保留此字段则按[参考图找周期](pattern-fitting.md#自动找重复单元与整面通铺)。
+
+```json
+{
+  "schema_version":3,
+  "name":"开放曲面纹带",
+  "size_uv":[8,4],
+  "anchor_uv":[1,0],
+  "clip_uv":[{"lo":[3,1],"hi":[4,2]}],
+  "object":{
+    "surface":"wall",
+    "size_uv":[2,2],
+    "sample":{"path":"inputs/repeats.png","sha256":"<参考图 SHA256>"},
+    "repeat_detection":{},
+    "shapes":{"slab":"quartz_slab","stairs":"quartz_stairs"}
+  }
+}
+```
+
+`anchor_uv` 是整个段的相位原点，V 从 `mapping.y_start` 向上。已知洞口或缺失采样面须用闭区间 `clip_uv` 标明，截面采样继续按原坐标进行。写入位置处于宿主保护或留白时也会裁切。此模式使用单层凸饰、逐 UV 单次采样和 `u_span < 1`。量化到同一方块或无法定位实际支承面时拒绝，转角断缝保留在半格诊断供审阅。闭合圆柱使用 `pattern_cylinder_mount`。
+
+`summary.repeat_tiling` 记录局部相位、材质状态回读和实际半格接触。用 `curve verify` 重放后再看图。相位正确、静态接触符合预期和游戏效果分别检查。
+
 ## 从已有构件组合掩模
 
 素材库提供六种可调的**平面 UV 模板**：环段、暗缝、竖肋、窗列、斜搭带和裙边分片。它们使用 `parametric_compile` 的 `kind: "curve_stencil"`，尺寸为 `[U格数,V格数,1]`；模板里的标记方块只描述轮廓，不指定最终是凸饰、切槽还是嵌纹。素材界面可预览模板并复制绑定了参数与内容哈希的曲面素材引用，但不会将平面模板直接当作曲面成品放置。

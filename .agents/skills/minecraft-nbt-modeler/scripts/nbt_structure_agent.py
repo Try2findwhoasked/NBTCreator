@@ -186,6 +186,11 @@ def _handle_pattern_filter(workspace,tool,arguments):
     return create_filtered(workspace,arguments)
 
 
+def _handle_pattern_repeat_detect(workspace,tool,arguments):
+    from nbt_pattern_repeat import inspect_repeat
+    return inspect_repeat(workspace,arguments)
+
+
 def _handle_pattern_create(workspace,tool,arguments):
     from nbt_pattern_design import create
     return create(workspace,arguments)

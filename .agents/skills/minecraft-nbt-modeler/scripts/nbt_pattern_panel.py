@@ -54,6 +54,11 @@ def compile_panel(workspace, args):
     # Verify the real raster hash even on a cache hit. Cached data never
     # replaces installation protection, source or geometry checks.
     sample_image(root,sample)
+    if 'repeat_detection' in args:
+        if args.get('fit_mode')!='micro':raise ValueError('repeat_detection 须使用微型单元拟合')
+        # The validity mask is a second source dependency. Recheck it on each
+        # invocation; the solved unit itself is still cached by its raster hash.
+        return _compile_panel(workspace,args)
     parameters={k:v for k,v in args.items() if k!='preview'}
     key=(str(Path(workspace).resolve()),str(Path(root).resolve()),engine_revision(),canonical(sample),canonical(parameters))
     cache=current();hit=cache.get('pattern_compile',key)

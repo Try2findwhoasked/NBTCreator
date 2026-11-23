@@ -69,11 +69,14 @@ def _query(s):
                 nxt=(uv[0]+step[0],uv[1]+step[1])
                 if nxt in remaining:remaining.remove(nxt);queue.append(nxt)
         components.append(dict(lo_uv=[min(p[i] for p in group) for i in range(2)],hi_uv=[max(p[i] for p in group) for i in range(2)],cells=len(group),touches_edge=any(u in (0,s['width']-1) or v in (0,s['height']-1) for u,v in group),classification='unclassified_air_gap'))
-    margin=r.get('opening_margin',1);avoid=set()
+    margin=r.get('opening_margin',1);avoid=set();opening_avoid=set()
     for u,v in gaps:
         for du in range(-margin,margin+1):
-            for dv in range(-margin,margin+1):avoid.add((u+du,v+dv))
+            for dv in range(-margin,margin+1):
+                avoid.add((u+du,v+dv))
+                if status[u,v]=='air_gap':opening_avoid.add((u+du,v+dv))
     safe-=avoid
+    s['opening_avoid']=opening_avoid
     s['cell_info']={tuple(cell['uv']):cell for cell in cells}
     record=dict(schema_version=1,source_sha256=r['source_sha256'],geometry_sha256=s['model'].fingerprint(),context_sha256=r['context_sha256'],snapshot_sha256=s['snapshot_hash'],
                 lo=s['lo'],hi=s['hi'],normal=r['normal'],size_uv=[s['width'],s['height']],min_support=r.get('min_support',1),opening_margin=margin,cells=cells,opening_candidates=components,
@@ -131,10 +134,11 @@ def _object(workspace,proposal,normal,pattern=False,reuse_backing=False):
     dims=[data['size'][0],data['size'][2] if normal in ('up','down') else data['size'][1]]
     return compiled,data,turns,anchor,dims
 
-def _plan(s,data,turns,uv,safe,reserved,protected,fit=None,inlay=False,embed_depth=0,support_reads=None):
+def _plan(s,data,turns,uv,safe,reserved,protected,fit=None,inlay=False,embed_depth=0,support_reads=None,*,prepared=None):
     if not 0<=uv[0]<s['width'] or not 0<=uv[1]<s['height']:
         raise ValueError('安装锚点超出所选平面')
-    position=list(_point(s,*uv,0 if inlay else 1-embed_depth));placed=placement(data,position,list(s['model'].size),turns,overwrite=inlay or embed_depth>0)
+    position=list(_point(s,*uv,0 if inlay else 1-embed_depth))
+    placed=prepared if prepared is not None else placement(data,position,list(s['model'].size),turns,overwrite=inlay or embed_depth>0)
     # Every projected written voxel requires a supported backing cell. This is
     # deliberately stricter than a few contact points on arbitrary furniture.
     edits=[];carved=set()
@@ -254,12 +258,17 @@ def _mount(workspace,s,tool,arguments,record,safe):
     from nbt_refine import box_points
     from nbt_detail_control import default_settings,compile_plan,simulate_plan
     is_pattern=tool=='pattern_mount'
+    repeat=is_pattern and arguments.get('repeat_tiling',False)
     embed_depth=arguments.get('embed_depth',0)
     if type(embed_depth) is not int or not 0<=embed_depth<=6:raise ValueError('embed_depth 须为0～6的整数格')
     if embed_depth and (not is_pattern or arguments['object']['surface']=='floor'):
         raise ValueError('embed_depth 用于平面墙饰、柱饰或吊顶；地板已经平齐镶嵌')
     if embed_depth and arguments.get('surface_fit'):raise ValueError('嵌入使用完整原背衬，不叠加悬空贴面连接')
-    compiled,data,turns,anchor,dims=_object(workspace,arguments['object'],s['request']['normal'],is_pattern,embed_depth>0)
+    if repeat:
+        if arguments.get('surface_fit'):raise ValueError('连续铺排只支持逐格接触的安装面')
+        data=None;turns=0
+    else:
+        compiled,data,turns,anchor,dims=_object(workspace,arguments['object'],s['request']['normal'],is_pattern,embed_depth>0)
     inlay=is_pattern and arguments['object']['surface']=='floor'
     protected=s['protected'];reserved=set()
     for bounds in arguments.get('reserved_boxes',[]):
@@ -268,6 +277,10 @@ def _mount(workspace,s,tool,arguments,record,safe):
         for i in range(3):volume*=bounds['hi'][i]-bounds['lo'][i]+1
         if volume>65536:raise ValueError('单个留白范围超过65536格')
         reserved.update(box_points(bounds['lo'],bounds['hi']))
+    prepared=None
+    if repeat:
+        from nbt_repeat_layout import planar, evidence, verify_inputs
+        compiled,prepared,phase_positions,clipped,u_sign=planar(workspace,s,arguments,safe,reserved,protected,embed_depth,inlay)
     if tool in ('parametric_mount','pattern_mount'):anchors=[arguments['anchor_uv']];policy='reject'
     else:
         edge=arguments.get('edge_margin',0);gaps=arguments.get('gap_uv',[2,2]);axes=[]
@@ -282,7 +295,7 @@ def _mount(workspace,s,tool,arguments,record,safe):
     operations=[];accepted=[];skipped=[];occupied=set();support_reads=set();budget=arguments.get('max_changed_blocks',4096)
     for uv in anchors:
         try:
-            placed,points,connections=_plan(s,data,turns,uv,safe,reserved,protected,arguments.get('surface_fit'),inlay,embed_depth,support_reads)
+            placed,points,connections=_plan(s,data,turns,uv,safe,reserved,protected,arguments.get('surface_fit'),inlay,embed_depth,support_reads,prepared=prepared)
             if occupied.intersection(points):raise ValueError('布局构件互相重叠')
         except ValueError as error:
             if policy=='reject':raise ValueError(f'安装锚点{uv}失败：{error}') from error
@@ -317,11 +330,16 @@ def _mount(workspace,s,tool,arguments,record,safe):
                                world_stair_orientations=orientations,orientation_policy=compiled['orientation_policy'])
         if 'microfit' in compiled:result['pattern']['microfit']=compiled['microfit']
         if 'visual_quality' in compiled:result['pattern']['visual_quality']=compiled['visual_quality']
+    if repeat:
+        verify_inputs(workspace,arguments['object'])
+        result['pattern']['repeat_tiling']=evidence(candidate,(s['width'],s['height']),arguments['object']['size_uv'],
+            arguments['anchor_uv'],phase_positions,clipped,u_sign=u_sign,horizontal=s['axis']==1)
     result['plan_sha256']=digest(dict(result=result,arguments=arguments))
     if arguments.get('review'):
         from nbt_mount_review import write_review
         result['review']=write_review(workspace,s,candidate,candidate_walls,result,arguments['review'])
         _unchanged(s)
+        if repeat:verify_inputs(workspace,arguments['object'])
     return result,candidate,candidate_walls,support_reads
 
 
