@@ -128,6 +128,53 @@ class BeamRhythm(unittest.TestCase):
         with self.assertRaisesRegex(ModelConflict, 'STALE_BEAM_RHYTHM_CANDIDATE'):
             host.adopt_beam_rhythm(goal=goal, pitch=6, start_z=10, candidate_sha256=best['candidate_sha256'])
 
+    def test_local_correlation_disambiguates_phase_and_locates_source_defects(self):
+        spec = importlib.util.spec_from_file_location('beam_rhythm_example', EXAMPLE)
+        example = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(example)
+        host = self.host()
+        host.apply_operations(example.local_probe_operations())
+        goal = dict(self.goal, count=5, pitches=[6], starts=[9, 10], anchor_z=9, clearance_height=2)
+        baseline = host.beam_rhythm(goal=goal)
+        local_goal = dict(goal, local_match=True)
+        local = host.beam_rhythm(goal=local_goal)
+        self.assertEqual((baseline['eligible'], local['eligible']), (2, 2))
+        self.assertEqual(baseline['best']['start_z'], 9)
+        self.assertNotIn('local_match', baseline['best'])
+        self.assertAlmostEqual(baseline['candidates'][0]['errors']['spectrum'],
+                               baseline['candidates'][1]['errors']['spectrum'], places=12)
+        best = local['best']
+        self.assertEqual(best['start_z'], 10)
+        self.assertEqual(local['local_match']['anchor_candidates'][0]['start_z'], 10)
+        matches = {(row['component'], row['expected_pos'][2]): row for row in best['local_match']['components']}
+        self.assertEqual(matches['beam', 22]['status'], 'shifted')
+        self.assertEqual(matches['beam', 22]['observed_pos'], [5, 9, 23])
+        self.assertEqual(matches['left_post', 28]['status'], 'partial')
+        self.assertEqual(matches['beam', 28]['status'], 'missing')
+        self.assertTrue(all(matches[part, 34]['status'] == 'missing' for part in ('beam', 'left_post', 'right_post')))
+        selection = dict(pitch=6, start_z=10, candidate_sha256=best['candidate_sha256'])
+        with self.assertRaisesRegex(ModelConflict, 'STALE_BEAM_RHYTHM_CANDIDATE'):
+            host.adopt_beam_rhythm(goal=goal, **selection)
+        self.assertEqual(host.adopt_beam_rhythm(goal=local_goal, **selection)['model_sha256'], best['model_sha256'])
+
+    def test_local_mode_stays_neutral_without_evidence_and_keeps_clearance_hard(self):
+        host = self.host()
+        goal = dict(self.goal, count=2, pitches=[6], starts=[9, 10], local_match=True)
+        report = host.beam_rhythm(goal=goal)
+        self.assertEqual(report['local_match']['status'], 'no_matching_source_evidence')
+        self.assertEqual(report['local_match']['anchor_candidates'], [])
+        self.assertEqual(report['best']['errors']['local'], 0)
+        host.apply_operations([dict(kind='box', label='阻挡净空', lo=[9, 2, 10], hi=[9, 2, 10], state='stone'),
+                               dict(kind='box', label='贴合柱脚', lo=[5, 2, 10], hi=[5, 2, 10],
+                                    state='stripped_spruce_log[axis=y]')])
+        report = host.beam_rhythm(goal=goal)
+        self.assertEqual(report['best']['start_z'], 9)
+        self.assertEqual(report['rejection_counts'], {'FRAME_CLEARANCE': 1})
+        rejected = report['candidates'][-1]
+        self.assertEqual(rejected['problem']['conflicts'][0]['pos'], [9, 2, 10])
+        self.assertNotIn('score', rejected)
+        self.assertEqual([row['start_z'] for row in report['local_match']['anchor_candidates']], [9])
+
     def test_public_cli_example(self):
         spec = importlib.util.spec_from_file_location('beam_rhythm_example', EXAMPLE)
         example = importlib.util.module_from_spec(spec)

@@ -28,6 +28,20 @@ mise run nbt -- --workspace build/beam-rhythm-example model --request adopt.json
 
 示例在 18 个组合中选中 Z=10 起步、间距 6 格的 9 榀梁架。候选报告与预览哈希分别见 `beam-rhythm-report.json` 和 `beam-rhythm-preview/beam-rhythm.json`。在仓库根运行 `mise run test -- beam-rhythm` 复验同谱异位、保护拒绝、无解反馈、完整预算及 CLI 采用。
 
+### 局部匹配试验
+
+在同一个梁架目标中设置 `local_match: true`。引擎按已编译的左柱、右柱和横梁样板，从原模型的修改区域读取每个 Z 切片中匹配的方块状态比例。各构件的曲线单独用 7 点核 `[1,2,4,8,4,2,1]/8` 做直接互相关，两端补零，窗口半径最多为 `floor((pitch-1)/2)`，避免相邻两榀共用一处源证据。取候选各榀上的平均响应（单个响应截断到 1），将 `1 - 响应` 加入原有 FFT、间距、几何和材质误差。源区没有匹配证据时，局部项对排序的贡献为零。
+
+回执的 `local_match.anchor_candidates` 给出合法候选中的建议起点。每个合法候选的 `local_match.components` 给出构件名称、预期与实测位置、Z 偏差及匹配块数，标记对齐、错位、部分匹配或缺件。判断依据是原模型里与样板状态相同的方块。采用沿用增补规则，错位旧件需另行编辑。
+
+`clearance_height` 可独立指定两柱间的静态净空高度，局部模式默认取柱高与 2 格的较小值。开启或关闭局部匹配进行对照时，显式给两组同一个净空值。净空、保护、支承、适用路线和预算在评分前检查。`FRAME_CLEARANCE` 返回阻挡方块坐标。
+
+```powershell
+mise exec -- python -B scripts/examples/beam-rhythm.py --local-probe --workspace build/beam-rhythm-local
+```
+
+示例对同一宿主做两次单轮枚举，保存关闭局部匹配的 `beam-rhythm-baseline.json` 和开启后的 `beam-rhythm-report.json`。预览和显式采用沿用上方命令，目录换为本次输出。基准的 CLI 耗时包括进程启动和候选复验。
+
 ## Python 制作脚本
 
 ```python
