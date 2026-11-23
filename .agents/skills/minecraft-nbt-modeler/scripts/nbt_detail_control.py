@@ -15,8 +15,8 @@ import sys
 from nbt_refine import (read_master, prepare, refine, validate, protections, _current_review,
                         operation_candidates, refinement_context, resolve_wall_mask, binary_wall_mask_hash)
 from nbt_model import state
-from nbt_request_paths import read_request, metadata_path
-from nbt_web_paths import project_paths, workspace_path
+from nbt_project.request_paths import read_request, metadata_path
+from nbt_project.web_paths import project_paths, workspace_path
 from nbt_collision import collision_cells
 from nbt_catalog import catalog as tool_catalog
 from nbt_library import InvalidCoordinateDescription,saved_coordinates
@@ -54,9 +54,9 @@ def viewing_context(source):
 
 
 def link_legacy_room_constraints(workspace, models, groups, errors):
-    from nbt_constraints import SHAPES
+    from nbt_project.constraints import SHAPES
     from nbt_prompts import published_constraint_links
-    from nbt_room_links import LINKS_FILE, read_links
+    from nbt_project.room_links import LINKS_FILE, read_links
 
     rules={group['id']:group for group in groups if not group['archived']}
     root=workspace/'nbt_models'
@@ -111,9 +111,9 @@ def catalog(workspace, cache_path=None, include_bugged=False, index_only=False):
     if marker.is_file() and read_json(marker).get('status')!='complete':return dict(models=[],skipped=0,scanned=0,cache_hits=0,migration_in_progress=True)
     files = []
     constraint_folders=[];layout_roots=[];legacy_scopes=[]
-    from nbt_constraints import FOLDER_FILE, SHAPES, folder_parts, directory_records, dispatch as constraints_dispatch
-    from nbt_constraint_registry import builtin_constraints
-    from nbt_rooms import GROUPS, has_layout, room_dirs, room_info
+    from nbt_project.constraints import FOLDER_FILE, SHAPES, folder_parts, directory_records, dispatch as constraints_dispatch
+    from nbt_project.constraint_registry import builtin_constraints
+    from nbt_project.rooms import GROUPS, has_layout, room_dirs, room_info
     from nbt_large_assembly import is_assembly_source, read_assembly
     for directory, dirs, names in os.walk(root):
         quarantined=include_bugged and 'bugged' in Path(directory).relative_to(root).parts
@@ -735,7 +735,7 @@ def export_plan(request, output):
             elif operation['kind'] == 'weathering': edits, report = weathering_plan(virtual, operation, protected)
             elif operation['kind']=='auto_floor': edits, report = auto_floor_plan(virtual, operation, config, protected)
             else: edits,report=operation_candidates(virtual,operation,protected),{}
-            from nbt_change_policy import enforce_overwrite, clip_protected
+            from nbt_composition.change_policy import enforce_overwrite, clip_protected
             edits=clip_protected(operation,edits,protected)
             enforce_overwrite(virtual,virtual_walls,operation,edits,write_owners)
             conflicts=[p for p,value in edits if p in protected and virtual.get(p)!=value]
@@ -777,9 +777,9 @@ def simulate_plan(model, walls, plan, config):
     virtual.blocks=dict(model.blocks);protected=protections(virtual,config)
     write_owners={};written_positions=0
     for number, operation in enumerate(plan['operations'], 1):
-        from nbt_operation_scope import scoped_operation,enforce_scope
+        from nbt_composition.operation_scope import scoped_operation,enforce_scope
         operation,bounds=scoped_operation(operation,model.size)
-        from nbt_change_policy import enforce_overwrite, clip_protected
+        from nbt_composition.change_policy import enforce_overwrite, clip_protected
         try:
             if operation['kind']=='pattern': edits,_=pattern_plan(virtual,operation,protected)
             elif operation['kind']=='weathering': edits,_=weathering_plan(virtual,operation,protected)
@@ -802,7 +802,7 @@ def simulate_plan(model, walls, plan, config):
                    (virtual.get(p)!=value or (value not in AIR_NAMES and
                     (classification=='wall' and p not in walls or classification=='body' and p in walls)))]
         if conflicts:
-            from nbt_protection_view import ProtectionConflict
+            from nbt_review.protection_view import ProtectionConflict
             failure=ProtectionConflict(operation.get('label',operation['kind']),conflicts)
             failure.details['plan_step']=number
             raise failure
@@ -814,7 +814,7 @@ def simulate_plan(model, walls, plan, config):
                 else:walls.discard(position)
             elif value.split('[')[0] in ('minecraft:air','minecraft:cave_air','minecraft:void_air') or operation.get('classification')=='body':walls.discard(position)
             elif operation.get('classification')=='wall' or position in moved_walls:walls.add(position)
-    from nbt_change_policy import enforce_changes
+    from nbt_composition.change_policy import enforce_changes
     difference=enforce_changes(model.blocks,virtual.blocks,source_walls,walls,protected,maximum=config.get('max_changed_blocks'))
     return virtual,walls,difference
 
@@ -889,7 +889,7 @@ def preview_effect(request, output):
                     registry_sha256=registry()['blocks_sha256'],preview_only=True,
                     verification=dict(routes='not_checked',game='not_checked',design='pending_visual_review'))
     write_json(output/'before.json',snapshot(model,source_walls));write_json(output/'after.json',snapshot(virtual,walls))
-    from nbt_compare import describe
+    from nbt_review.compare import describe
     diff=describe(model,virtual,source_walls,walls)
     diff.update(before_source_sha256=baseline,after_source_sha256=baseline,before_geometry_sha256=model.fingerprint(),after_geometry_sha256=virtual.fingerprint())
     write_json(output/'difference.json',diff)
@@ -1079,7 +1079,7 @@ def main():
             from nbt_project_repair import repair
             result=repair(args.workspace,args.source,args.category,args.source_sha256)
         elif args.command == 'cover':
-            from nbt_cover import section_cover
+            from nbt_review.cover import section_cover
             result = section_cover(args.source,args.geometry,args.cache,generate=args.generate_missing)
         elif args.command == 'asset-libraries':
             from nbt_asset_libraries import dispatch
@@ -1101,13 +1101,13 @@ def main():
             elif data.get('action')=='list':result=library_list(args.workspace)
             elif data.get('action')=='task-statuses':result=handoff_statuses(args.workspace)
             elif data.get('action')=='register-room':
-                from nbt_rooms import register_room
+                from nbt_project.rooms import register_room
                 result=register_room(args.workspace,data)
             elif data.get('action') in ('update-room','move-room'):
-                from nbt_rooms import update_room
+                from nbt_project.rooms import update_room
                 result=update_room(args.workspace,data,move=data['action']=='move-room')
             elif data.get('action')=='add-room-links':
-                from nbt_room_links import add_room_links
+                from nbt_project.room_links import add_room_links
                 result=add_room_links(args.workspace,data)
             elif data.get('action') in ('trash','restore','group'):result=organize_prompts(args.workspace,data)
             else:raise ValueError('未知提示词列表操作')
@@ -1121,10 +1121,10 @@ def main():
             from nbt_project_batch import dispatch
             result=dispatch(args.workspace,args.action,read_request(args.request) if args.request else {})
         elif args.command == 'protection-mask':
-            from nbt_protection_view import mask
+            from nbt_review.protection_view import mask
             result=mask(read_request(args.request))
         elif args.command == 'walk-inspect':
-            from nbt_walk_view import inspect_walk
+            from nbt_review.walk_view import inspect_walk
             result=inspect_walk(read_request(args.request),args.snapshot)
             output=reserve_output(args.output)
             write_json(output/'walk-inspection.json',result)
@@ -1183,7 +1183,7 @@ def main():
         elif args.command == 'preview': result = preview_effect(read_request(args.request), args.output)
         elif args.command == 'snapshot': result = source_snapshot(read_request(args.request), args.output)
         elif args.command == 'compare':
-            from nbt_compare import compare_sources
+            from nbt_review.compare import compare_sources
             result=compare_sources(read_request(args.request),args.output)
         else: result = apply_approved(read_request(args.request), args.bundle, args.review, args.output)
         print(json.dumps(dict(ok=True, result=result), ensure_ascii=False))

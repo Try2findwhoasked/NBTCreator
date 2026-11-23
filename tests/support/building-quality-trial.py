@@ -10,7 +10,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
 
-from nbt_blind_review import verify_review
+from nbt_review.blind_review import verify_review
 from nbt_building.review import load_model
 from nbt_building.workflow import dispatch
 from nbt_prompts import inside, relative

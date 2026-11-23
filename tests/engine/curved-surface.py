@@ -486,7 +486,7 @@ class CurvedSurface(unittest.TestCase):
  def test_candidate_can_bind_a_review_observation_and_expires_with_it(self):
   from PIL import Image
   from nbt_task import write_snapshot
-  from nbt_blind_review import prepare_review,record_review
+  from nbt_review.blind_review import prepare_review,record_review
   def sha(file):return hashlib.sha256(Path(file).read_bytes()).hexdigest()
   def write(file,data):Path(file).write_text(json.dumps(data,ensure_ascii=False),encoding='utf8')
   view=dict(id='front',role='正面',eye=[8,5,-24],target=[8,4,6],up=[0,1,0],fov=60,
@@ -512,14 +512,14 @@ class CurvedSurface(unittest.TestCase):
    output='nbt_models/_workspaces/reference-reviews/curve-observation.json'))
   request=self.request();request['review_feedback']=dict(binding=pack['binding'],binding_sha256=pack['binding_sha256'],
     record=record['record'],record_sha256=record['record_sha256'],observation=0)
-  from nbt_blind_review import _pair
+  from nbt_review.blind_review import _pair
   record_file=Path(record['record']);record_bytes=record_file.read_bytes();calls=0
   def mutate_during_binding(*args):
    nonlocal calls
    value=_pair(*args);calls+=1
    if calls==3:record_file.write_bytes(record_bytes+b' ')
    return value
-  with patch('nbt_blind_review._pair',side_effect=mutate_during_binding):
+  with patch('nbt_review.blind_review._pair',side_effect=mutate_during_binding):
    with self.assertRaisesRegex(ValueError,'变化|哈希'):plan_curve(self.root,request)
   self.assertFalse((self.root/request['output']).exists());record_file.write_bytes(record_bytes)
   result=plan_curve(self.root,request);self.assertTrue(verify_curve(self.root,result['plan'],result['plan_sha256'])['valid'])
@@ -658,7 +658,7 @@ class CurvedConnectors(unittest.TestCase):
                             changes=[change],effective_writes=1))
   self.mask=dict(rows=['RR'],palette={'R':self.spec});self.supports=list(self.hosts)
  def connect(self,protected=None,limit=4,steps=1,choices=None):
-  from nbt_curved_connect import connect_raised
+  from nbt_mounting.curved_connect import connect_raised
   return connect_raised(self.working,self.mask,self.samples,self.changes,self.owners,protected or set(),self.supports,limit,False,steps,choices)
  def test_unique_corner_bridge_is_supported_by_actual_endpoints(self):
   before=dict(self.working.model.blocks);result=self.connect()
@@ -843,7 +843,7 @@ class CurvedRecessConnectors(unittest.TestCase):
     faces=[dict(host=list(host),face_normal=list(self.normal),expected_xz=[host[0]+.5,host[2]],analytic_normal_xz=[0,-1])],
     changes=edits,effective_writes=len(edits)))
  def connect(self,protected=None,limit=8):
-  from nbt_curved_recess import connect_recesses
+  from nbt_mounting.curved_recess import connect_recesses
   return connect_recesses(self.working,self.mask,self.samples,self.changes,self.owners,protected or set(),self.supports,limit,False)
  def test_cut_bridge_checks_actual_face_and_preserves_backing(self):
   before=dict(self.working.model.blocks);result=self.connect()
@@ -928,7 +928,7 @@ class CurvedRecessConnectors(unittest.TestCase):
   self.assertTrue(detail['endpoints'][0]['cut_connected']);self.assertFalse(detail['endpoints'][0]['material_connected'])
   self.assertEqual(self.changes,before);self.assertEqual(self.supports,supports)
  def test_disconnected_recess_details_are_bounded_and_distinguish_plain_cut(self):
-  from nbt_curved_recess import _disconnected_endpoints
+  from nbt_mounting.curved_recess import _disconnected_endpoints
   edges=[];cut_index={}
   for x in range(20):
    a=(x*4,0,0);b=(x*4+2,0,0);cut_index[a]=x*2;cut_index[b]=x*2+1

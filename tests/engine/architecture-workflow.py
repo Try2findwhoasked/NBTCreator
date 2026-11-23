@@ -278,7 +278,7 @@ class ArchitectureWorkflow(unittest.TestCase):
         self.assertEqual(opened.model.get((0,2,1)),'minecraft:red_carpet')
         self.assertTrue(opened.validate()['assembly']['passed'])
         from nbt_building.plan import surface
-        from nbt_scene_interfaces import InterfaceError
+        from nbt_composition.scene_interfaces import InterfaceError
         opened.model.put((0,1,0),'red_carpet')
         with self.assertRaises(InterfaceError) as blocked:
             surface(opened,opened.architecture,dict(part='tea_table',interface='serving_edge'))

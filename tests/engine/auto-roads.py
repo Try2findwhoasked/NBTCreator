@@ -27,7 +27,7 @@ class Roads(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'已有方块'):modelling_plan(self.model,self.op)
   self.assertTrue(modelling_plan(self.model,dict(self.op,overwrite=True))[0]);self.assertEqual(self.model.get((4,3,4)),'minecraft:gold_block')
  def test_overshoot_reports_footprint_at_endpoints(self):
-  from nbt_roads import RoadBoundsError
+  from nbt_geometry.roads import RoadBoundsError
   op=dict(self.op, lo=[0,3,0], hi=[8,3,2], start=[4,3,0], end=[4,3,2], width=7)
   with self.assertRaises(RoadBoundsError) as caught:modelling_plan(self.model,op)
   issue=caught.exception.conflicts[0]

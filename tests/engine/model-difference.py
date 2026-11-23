@@ -4,7 +4,7 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_refine import save_master
-from nbt_compare import describe, compare_sources
+from nbt_review.compare import describe, compare_sources
 
 class Differences(unittest.TestCase):
     def test_states_layers_dimensions_and_lossless_runs(self):

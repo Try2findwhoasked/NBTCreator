@@ -25,7 +25,7 @@ def folder(workspace,identifier):
 
 def source_path(workspace,value):
     if not isinstance(value,str) or not value:raise ValueError('模型路径无效')
-    from nbt_web_paths import workspace_path
+    from nbt_project.web_paths import workspace_path
     source=workspace_path(workspace,value);models=(Path(workspace).resolve()/'nbt_models').resolve()
     if not source.is_relative_to(models) or not source.is_file():raise ValueError('请选择当前工作区建筑库中的文件')
     return source
@@ -194,7 +194,7 @@ def run(workspace,identifier):
                         source=source_path(workspace,item['source'])
                         if stamp(source)!=item['stamp']:raise ValueError('源文件在排队后发生变化，请按当前文件重试')
                         if action=='preview':
-                            from nbt_cover import section_cover
+                            from nbt_review.cover import section_cover
                             result=dict(section_cover(source,'',Path(workspace)/'.nbtcreator/cache/section-covers',generate=True))
                             if not result.get('image'):raise ValueError('未生成当前版本预览')
                         else:result=check_source(source)

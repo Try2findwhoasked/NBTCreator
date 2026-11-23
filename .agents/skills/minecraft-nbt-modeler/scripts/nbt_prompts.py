@@ -11,7 +11,7 @@ import time
 from itertools import chain
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
-from nbt_web_paths import project_paths, workspace_path
+from nbt_project.web_paths import project_paths, workspace_path
 
 def digest(raw):
     return hashlib.sha256(raw).hexdigest()
@@ -70,7 +70,7 @@ def save(workspace, payload):
     if not isinstance(context, dict):
         raise ValueError('上下文草案必须为 JSON 对象')
     if 'constraints' in document:
-        from nbt_constraints import validate_selection
+        from nbt_project.constraints import validate_selection
         selected = validate_selection(document['constraints'], document['project'])
         context = dict(context)
         for key in ('require_enclosure', 'openings_policy', 'opening_size', 'cells', 'cell_size'):
@@ -94,7 +94,7 @@ def save(workspace, payload):
         if shape not in catalog['building_shapes'] or not isinstance(name,str) or not name.strip():raise ValueError('填写建筑名称与有效形状')
         name=re.sub(r'[<>:"/\\|?*\x00-\x1f]','_',name).rstrip('. ')[:70] or '未命名建筑'
         if name in ('.','..'):raise ValueError('建筑名称无效')
-        from nbt_rooms import layout_project, enclosing_room, init_layout, empty_project, project_folder
+        from nbt_project.rooms import layout_project, enclosing_room, init_layout, empty_project, project_folder
         workbench=document.get('workbench')
         layout_scope=workbench.get('layout_project','nbt_models') if isinstance(workbench,dict) else 'nbt_models'
         grouped=layout_project(workspace,layout_scope) if isinstance(layout_scope,str) and layout_scope else None
@@ -392,8 +392,8 @@ def task_file(workspace, folder, record, name):
 
 def published_constraint_links(workspace, errors):
     """Use exact recorded paths without loading task text or matching room names."""
-    from nbt_constraints import validate_snapshot
-    from nbt_rooms import read_small
+    from nbt_project.constraints import validate_snapshot
+    from nbt_project.rooms import read_small
 
     try:records=load_tasks(workspace)['records']
     except (OSError,ValueError,KeyError,TypeError) as error:
@@ -478,7 +478,7 @@ def read_task(workspace,identifier,*,view='full',diagnostic=False):
                   details={'attachment_issues':data['attachment_issues'],'next':'检查已发布任务的附件或重新发布'})
         return dict(id=identifier,revision=record['revision'],source_matches=data['source_matches'],view=view,
                     attachment_issues=data['attachment_issues'],ready_for_execution=data['ready_for_execution'],**{view:data[view]})
-    from nbt_prompt_view import compact
+    from nbt_project.prompt_view import compact
     previous=max((item for item in records if item['sequence']<record['sequence']
         and item.get('archive_id')==record['archive_id'] and item.get('archive_index')==record['archive_index']),
         key=lambda item:item['sequence'],default=None)

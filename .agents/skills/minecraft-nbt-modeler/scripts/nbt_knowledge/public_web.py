@@ -10,7 +10,7 @@ import ssl
 from time import monotonic
 from urllib.parse import parse_qsl, quote, urljoin, urlsplit, urlunsplit
 
-from nbt_text_search import tokens
+from nbt_knowledge.text_search import tokens
 
 USER_AGENT = 'NBTCreator-Research/1 (https://github.com/Try2findwhoasked/NBTCreator)'
 MAX_BYTES = 2*1024*1024

@@ -225,7 +225,7 @@ def view_sample_points(points, view):
 
 def surface(model,binding,reference):
     if reference['part']=='envelope':
-        from nbt_scene_interfaces import compile_interfaces
+        from nbt_composition.scene_interfaces import compile_interfaces
         _,points=actual_part(model,binding,'envelope')
         definitions=resolve(binding['plan']).get('envelope',{}).get('interfaces',[])
         interfaces=compile_interfaces(definitions,{p:(model.model.get(p),p in model.walls) for p in points},model.model.size,0,[0,0,0])
@@ -234,7 +234,7 @@ def surface(model,binding,reference):
     row,_=actual_part(model,binding,reference['part'])
     name=reference.get('object','body')
     node=next((item for item in row['compiled'].get('objects',[]) if item['id']==name),None)
-    from nbt_scene_interfaces import InterfaceError, check_interface_geometry
+    from nbt_composition.scene_interfaces import InterfaceError, check_interface_geometry
     interface=reference['interface'];owner=reference['part']+'.'+name
     if node is None or interface not in node.get('interfaces',{}):
         raise InterfaceError('INTERFACE_MISSING','构件接口不存在',interface,owner)
@@ -304,7 +304,7 @@ def wrapped_recipe(workspace,part):
 
 def preflight(workspace,request):
     from nbt_collision import state_support
-    from nbt_scene_interfaces import InterfaceError
+    from nbt_composition.scene_interfaces import InterfaceError
     from nbt_working_model import WorkingModel
     resolved=resolve(select(workspace,request))
     model=WorkingModel(workspace,resolved['size'])
@@ -498,7 +498,7 @@ def palette_rule(model,binding,resolved,rule):
 
 
 def material_role_names(resolved, roles):
-    from nbt_microfit import companions,options_for
+    from nbt_pattern.microfit import companions,options_for
 
     allowed = set()
     for role in roles:
@@ -569,7 +569,7 @@ def ratio_rule(model,binding,resolved,rule):
 
 def check_model(model,binding):
     from nbt_collision import _Space
-    from nbt_scene_interfaces import interface_contact
+    from nbt_composition.scene_interfaces import interface_contact
     plan=normalize(binding['plan']);resolved=resolve(plan)
     if fingerprint(plan)!=binding['sha256']:raise ValueError('建筑方案绑定指纹不符')
     normalized=model.__class__(model.workspace,resolved['size'],context=resolved['context']).context

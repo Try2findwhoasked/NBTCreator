@@ -5,7 +5,7 @@ from pathlib import Path
 from nbt_model import Model,load
 from nbt_library import canonical_context,coordinate_snapshot,saved_coordinates
 from nbt_refine import read_master,validate,layout,binary_wall_mask_hash,resolve_wall_mask,source_binding
-from nbt_web_paths import project_paths
+from nbt_project.web_paths import project_paths
 from nbt_whole_validation import validation_mode
 
 def sha(file):return hashlib.sha256(Path(file).read_bytes()).hexdigest()

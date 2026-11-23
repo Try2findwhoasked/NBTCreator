@@ -87,7 +87,7 @@ class Batch(unittest.TestCase):
   relocated=self.workspace/'moved';shutil.copytree(self.workspace/'nbt_models',relocated/'nbt_models');shutil.copytree(self.workspace/'.nbtcreator',relocated/'.nbtcreator');batch.retry(relocated,queue['id']);self.assertEqual(batch.run(relocated,queue['id'])['progress']['complete'],2)
  def test_preview_cache_is_reused_and_progress_covers_both_actions(self):
   image=self.workspace/'.nbtcreator/cache/section-covers/generated/test/overview.png';image.parent.mkdir(parents=True);image.write_bytes(b'cache');queue=self.create(['preview','check'])
-  with patch('nbt_cover.section_cover',return_value=dict(image=str(image),thumbnail=str(image),cached=True,section=True)) as render:
+  with patch('nbt_review.cover.section_cover',return_value=dict(image=str(image),thumbnail=str(image),cached=True,section=True)) as render:
    result=batch.run(self.workspace,queue['id']);self.assertEqual(render.call_count,2);self.assertEqual(result['progress']['total'],4);self.assertEqual(result['progress']['complete'],4);self.assertTrue(result['items'][0]['steps']['preview']['result']['image'].startswith('.nbtcreator/'))
 
  def test_retry_does_not_mix_completed_preview_with_changed_coordinates(self):
@@ -96,7 +96,7 @@ class Batch(unittest.TestCase):
   image=self.workspace/'overview.png';image.write_bytes(b'fixture')
   queue=self.create(['preview','check'])
   identifier=queue['id']
-  with patch('nbt_cover.section_cover',return_value=dict(image=str(image),thumbnail=str(image))):
+  with patch('nbt_review.cover.section_cover',return_value=dict(image=str(image),thumbnail=str(image))):
    with patch.object(batch,'check_source',side_effect=OSError('synthetic check failure')):
     result=batch.run(self.workspace,identifier)
    preview=result['items'][0]['steps']['preview']

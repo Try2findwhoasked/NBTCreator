@@ -58,7 +58,7 @@ def check_materials(result):
 def validate(request):
     mode=request['mode'];result=request['result'];context=request['context']
     required=context.get('required_designs',[])
-    from nbt_ai_designs import check_designs
+    from nbt_review.ai_designs import check_designs
     check_materials(result)
     if mode=='component':
         from nbt_structure_agent import build

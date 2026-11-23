@@ -57,9 +57,9 @@ NBTCreator 5.0.0 已补充按任务组织的创作速查、请求与回执接续
 - **从当前上下文查得**的字段，例如制作源路径、选区世界坐标和打开的模型版本。已有源请求要说明以哪个工作区为路径基准，局部坐标用哪个原点。
 - **从上一步原样传递**的字段，例如 `source_sha256`、`next.request`、完整资产引用和预览内容哈希。示例注明来源字段及哪些值应该随输入变化而重查。
 
-单项 Schema 已能说明类型和枚举。对降低长链路错误更有用的是在最小示例旁写清字段的取得方式、预期结果和一个典型错误。优先复用现有样例和回执，避免在多个入口复制整份 Schema。[建筑方案字段查询](../../.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md) · [请求路径解析](../../.agents/skills/minecraft-nbt-modeler/scripts/nbt_request_paths.py) · [资产引用与放置](../../.agents/skills/minecraft-nbt-modeler/references/asset-libraries.md)
+单项 Schema 已能说明类型和枚举。对降低长链路错误更有用的是在最小示例旁写清字段的取得方式、预期结果和一个典型错误。优先复用现有样例和回执，避免在多个入口复制整份 Schema。[建筑方案字段查询](../../.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md) · [请求路径解析](../../.agents/skills/minecraft-nbt-modeler/scripts/nbt_project/request_paths.py) · [资产引用与放置](../../.agents/skills/minecraft-nbt-modeler/references/asset-libraries.md)
 
-路径还存在一个易误读之处。源码 CLI 的总帮助将全局 `--workspace` 放在子命令前，若干 Python 子命令又有各自的 `--workspace` 参数。`capabilities` 的 `path_policy` 字面值是 `request_relative_with_absolute_legacy_compatibility`，而共享请求助手按显式工作区或当前目录解析 `source`、`context` 等资源路径字段。帮助和机器元数据宜明确区分「请求文件路径」和「请求内资源路径」，写明各自的基准。修改现有元数据前应先核对调用方。[源码 CLI](../../scripts/cli.mjs) · [能力元数据](../../.agents/skills/minecraft-nbt-modeler/scripts/nbt_capabilities.py) · [共享请求路径解析](../../.agents/skills/minecraft-nbt-modeler/scripts/nbt_request_paths.py)
+路径还存在一个易误读之处。源码 CLI 的总帮助将全局 `--workspace` 放在子命令前，若干 Python 子命令又有各自的 `--workspace` 参数。`capabilities` 的 `path_policy` 字面值是 `request_relative_with_absolute_legacy_compatibility`，而共享请求助手按显式工作区或当前目录解析 `source`、`context` 等资源路径字段。帮助和机器元数据宜明确区分「请求文件路径」和「请求内资源路径」，写明各自的基准。修改现有元数据前应先核对调用方。[源码 CLI](../../scripts/cli.mjs) · [能力元数据](../../.agents/skills/minecraft-nbt-modeler/scripts/nbt_capabilities.py) · [共享请求路径解析](../../.agents/skills/minecraft-nbt-modeler/scripts/nbt_project/request_paths.py)
 
 ### 用回执告诉模型当前到了哪一步
 

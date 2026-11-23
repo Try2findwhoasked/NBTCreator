@@ -5,7 +5,7 @@ from pathlib import Path
 from nbt_refine import read_master
 from nbt_assembly import Volume
 from nbt_collision import _Space,PLAYER_HEIGHT,RADIUS
-from nbt_walk_view import inspect_walk
+from nbt_review.walk_view import inspect_walk
 
 PLAYER_SCALE=dict(unit='block',edition='Java 1.20.1',pose='standing',width=2*RADIUS,height=PLAYER_HEIGHT,comfort_width=4*RADIUS,comfort_height=2.5,grid=0.5,minimum_full_block_opening=[1,2],notes=['按实际碰撞形状检查，不按方块名称或外观判断','舒适宽度与净高为设计建议，不是通行硬门槛','仅验证普通站立步行，不代表潜行、跳跃或游泳可达'])
 
@@ -166,7 +166,7 @@ def main():
     try:
         if args.rubric:print(json.dumps(dict(ok=True,result=rubric()),ensure_ascii=False));return 0
         if not args.request or not args.output:raise ValueError('请提供--request和新的--output目录，或用--rubric读取评价函数')
-        from nbt_request_paths import read_request
+        from nbt_project.request_paths import read_request
         report=score_room(read_request(args.request),args.snapshot);args.output.mkdir(parents=True,exist_ok=False);file=args.output/'room-score.json';file.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf8');print(json.dumps(dict(ok=True,result=dict(report,report_file=str(file.resolve()))),ensure_ascii=False));return 0
     except Exception as error:print(json.dumps(dict(ok=False,error=str(error)),ensure_ascii=False));return 1
 

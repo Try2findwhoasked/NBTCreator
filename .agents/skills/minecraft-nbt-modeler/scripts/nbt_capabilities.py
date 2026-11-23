@@ -11,11 +11,11 @@ def _checked_catalog():
     if set(data['tools'])!=SUPPORTED_OPERATION_KINDS:raise ValueError('Engine and shared catalogue differ')
     from nbt_structure_agent import SUPPORTED_AGENT_TOOLS
     if set(data.get('agent_tools',{}))!=SUPPORTED_AGENT_TOOLS:raise ValueError('Structure agent tools and catalogue differ')
-    from nbt_walk_view import SUPPORTED_INSPECTION_TOOLS
+    from nbt_review.walk_view import SUPPORTED_INSPECTION_TOOLS
     if set(data.get('inspection_tools',{}))!=SUPPORTED_INSPECTION_TOOLS:raise ValueError('Inspection tools and catalogue differ')
     from nbt_building.workflow import ARCHITECT_ACTIONS
     if set(data.get('architecture',{}).get('actions',{}))!=set(ARCHITECT_ACTIONS):raise ValueError('Architecture workflow and catalogue differ')
-    from nbt_constraints import ACTIONS
+    from nbt_project.constraints import ACTIONS
     if set(data.get('project_constraints',{}).get('actions',[]))!=set(ACTIONS):raise ValueError('Project constraints and catalogue differ')
     return data,digest
 

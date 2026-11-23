@@ -17,8 +17,8 @@ sys.path[:0] = [str(SCRIPTS), str(ROOT/'tests/support')]
 from curved_surface_fixture import create_curve_fixture
 from nbt_assembly import Volume
 from nbt_curved_surface import plan_curve,verify_curve
-from nbt_cylinder_pattern import cylinder_geometry
-from nbt_microfit import fit_colored_unit
+from nbt_mounting.cylinder_pattern import cylinder_geometry
+from nbt_pattern.microfit import fit_colored_unit
 from nbt_refine import read_master,save_master
 from nbt_selection_edit import sha
 from nbt_structure_agent import dispatch
@@ -110,7 +110,7 @@ class PatternRepeat(unittest.TestCase):
             entry = report['candidates']['u'][lag-1]
             self.assertTrue(entry['eligible'])
             self.assertEqual(entry['valid_pairs'],int((valid[:,:-lag] & valid[:,lag:]).sum()))
-        from nbt_pattern_repeat import detect
+        from nbt_pattern.repeat import detect
         _,unit = detect(self.root,sample,settings)
         np.testing.assert_array_equal(np.tile(np.asarray(unit)[:,:,:3],(6,6,1))[:31,:45],rgb[truth])
         settings['valid_mask']['sha256'] = '0'*64
@@ -160,7 +160,7 @@ class PatternRepeat(unittest.TestCase):
         review = self.cameras(('plane',[13,9,22],[9,3,7]),('opening',[9,3,21],[9,3,8]))
         args = dict(surface=surface,surface_sha256=query['surface_sha256'],object=proposal,anchor_uv=[1,1],
                     repeat_tiling=True,reserved_boxes=[dict(lo=reserved,hi=reserved)],review=review,require_routes=True)
-        with patch('nbt_microfit.fit_colored_unit',wraps=fit_colored_unit) as fit:
+        with patch('nbt_pattern.microfit.fit_colored_unit',wraps=fit_colored_unit) as fit:
             result = self.call('pattern_mount',args)
             self.assertEqual(fit.call_count,1)
         self.assertTrue(result['verification']['routes']['passed'])

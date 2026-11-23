@@ -3,7 +3,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_assembly import Volume
 from nbt_tools import modelling_plan
-from nbt_selection import select_voxels
+from nbt_geometry.selection import select_voxels
 
 class Selection(unittest.TestCase):
  def setUp(self):

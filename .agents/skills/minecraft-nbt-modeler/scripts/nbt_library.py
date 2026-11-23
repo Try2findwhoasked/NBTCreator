@@ -142,7 +142,7 @@ class InvalidCoordinateDescription(ValueError):
 
 def saved_coordinates(source):
  """Resolve version-owned coordinates before any adjacent legacy sidecar."""
- from nbt_web_paths import project_paths
+ from nbt_project.web_paths import project_paths
  source=Path(source).resolve()
  version=project_paths(source)['version']
  if version.name=='nbt_models':return None

@@ -33,7 +33,7 @@ def binary_wall_mask_hash(source):
 
 def source_binding(source):
     from nbt_library import saved_coordinates_hash
-    from nbt_web_paths import project_paths
+    from nbt_project.web_paths import project_paths
     from nbt_working_model import managed_manifest
 
     source=Path(source)
@@ -323,7 +323,7 @@ def review_source(review,value):
             index=next((index for index in range(len(parts)-1,-1,-1) if parts[index]=='nbt_models'),None)
             if index is None:return source
             source=Path(*parts[index:])
-        from nbt_web_paths import workspace_path
+        from nbt_project.web_paths import workspace_path
         resolved=workspace_path(workspace,source)
         if resolved.is_relative_to(workspace/'nbt_models'):return resolved
     if source.is_absolute():return source
@@ -374,14 +374,14 @@ def record_user_approval(review,user_message,user_reviewed_thumbnails=False):
 
 def operation_candidates(model,operation,protected=()):
     candidates=_operation_candidates(model,operation,protected)
-    from nbt_change_policy import clip_protected
+    from nbt_composition.change_policy import clip_protected
     writable=clip_protected(operation,candidates,protected)
     if operation.get('kind') in ('box','beam','frame') and 'overwrite' in operation and not operation.get('write_group'):
         if type(operation['overwrite']) is not bool:raise ValueError('覆盖现有方块须为布尔开关')
         if not operation['overwrite']:
             occupied=[p for p,value in writable if model.get(p) not in AIR_NAMES and model.get(p)!=value]
             if occupied:
-                from nbt_change_policy import WriteConflict
+                from nbt_composition.change_policy import WriteConflict
                 raise WriteConflict('目标位置已有方块；移动构件，或勾选“允许AI构件覆盖现有方块”：'+str(occupied[:8]), 'occupied', occupied)
     return candidates
 
@@ -407,7 +407,7 @@ def _operation_candidates(model,operation,protected=()):
             target=tuple(p[i]+delta[i] for i in range(3))
             if not model.in_bounds(target):raise ValueError('移动目标超出建筑边界')
             if target not in source and model.get(target) not in AIR_NAMES and model.get(p) not in AIR_NAMES:
-                from nbt_change_policy import WriteConflict
+                from nbt_composition.change_policy import WriteConflict
                 raise WriteConflict('移动目标已有方块，请先腾空目标区域','occupied',[target])
             if model.get(p) not in AIR_NAMES:edits[target]=model.get(p)
         return sorted(edits.items())
@@ -482,7 +482,7 @@ def refine(review_dir,plan,output_dir,*,task_session=None,actor='external_agent'
         if not operation.get('enabled',True):
             summary.append(dict(label=operation['label'],kind=operation['kind'],skipped=True,reason='disabled',candidate_writes=0))
             continue
-        from nbt_operation_scope import scoped_operation,enforce_scope
+        from nbt_composition.operation_scope import scoped_operation,enforce_scope
         operation,bounds=scoped_operation(operation,model.size)
         classification=operation.get('classification','body' if operation['kind']=='auto_floor' else 'inherit')
         if classification not in ('inherit','wall','body'):raise ValueError('Invalid detail classification')
@@ -504,7 +504,7 @@ def refine(review_dir,plan,output_dir,*,task_session=None,actor='external_agent'
             edits,floor_report=auto_floor_plan(model,operation,config,protected)
         else:
             edits=operation_candidates(model,operation,protected)
-        from nbt_change_policy import enforce_overwrite, clip_protected
+        from nbt_composition.change_policy import enforce_overwrite, clip_protected
         operation=enforce_scope(bounds,operation,edits)
         edits=clip_protected(operation,edits,protected)
         enforce_overwrite(model,walls,operation,edits,write_owners)
@@ -523,7 +523,7 @@ def refine(review_dir,plan,output_dir,*,task_session=None,actor='external_agent'
         if pattern_report is not None:summary[-1]['pattern']=pattern_report
         if floor_report is not None:summary[-1]['auto_floor']=floor_report
         if modelling_report is not None:summary[-1]['modelling']=modelling_report
-    from nbt_change_policy import enforce_changes,change_sets
+    from nbt_composition.change_policy import enforce_changes,change_sets
     budget=config.get('max_changed_blocks',4096)
     difference=enforce_changes(original,model.blocks,old_walls,walls,protected=protected,maximum=budget,require_change=True)
     geometry_changed,layers_changed=change_sets(original,model.blocks,old_walls,walls)
@@ -561,7 +561,7 @@ def refine(review_dir,plan,output_dir,*,task_session=None,actor='external_agent'
         from contextlib import nullcontext
         from nbt_agent_tasks import publication
         from nbt_snbt import save_snbt
-        from nbt_web_paths import project_paths
+        from nbt_project.web_paths import project_paths
         source=Path(record['source'])
         baseline=read_master(source)[0] if source.suffix.lower()=='.snbt' else None
         master=out/'master/model.snbt'

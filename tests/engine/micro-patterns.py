@@ -14,10 +14,10 @@ from PIL import Image,ImageDraw
 ROOT=Path(__file__).resolve().parents[2];SCRIPTS=ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'
 sys.path.insert(0,str(SCRIPTS))
 from nbt_structure_agent import dispatch,build
-from nbt_microfit import regions,options_for,reference
+from nbt_pattern.microfit import regions,options_for,reference
 from nbt_model import state
 from nbt_collision import collision_cells
-from nbt_cylinder_pattern import cylinder_geometry,touches_backing
+from nbt_mounting.cylinder_pattern import cylinder_geometry,touches_backing
 from nbt_tools import transformed_state
 from nbt_assembly import Volume
 from nbt_refine import save_master
@@ -307,7 +307,7 @@ class MicroPatterns(unittest.TestCase):
         self.assertEqual(sha(source),target['source_sha256'])
 
     def test_cylinder_corners_keep_all_eighteen_rings_without_reducing_copies(self):
-        from nbt_cylinder_fit import half_cells,topology,components
+        from nbt_mounting.cylinder_fit import half_cells,topology,components
         result=dispatch(self.root,'pattern_microfit',dict(surface='cylinder',diameter=7,size_uv=[2,2],
             sample=self.sample,tile_counts=[6,3],gap_uv=[0,1]))
         self.assertEqual(result['microfit']['tile_counts'],[6,3])

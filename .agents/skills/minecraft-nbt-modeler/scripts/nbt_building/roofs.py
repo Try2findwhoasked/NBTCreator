@@ -1,7 +1,7 @@
 """Parametric roof skins, including curved hip profiles and lifted eave corners."""
 import math
 from nbt_model import AIR_NAMES,state
-from nbt_placement import finish_plan
+from nbt_geometry.placement import finish_plan
 
 
 def roof_bounds(op):

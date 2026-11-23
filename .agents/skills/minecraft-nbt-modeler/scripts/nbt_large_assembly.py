@@ -442,7 +442,7 @@ def main():
             request=json.loads(args.request.read_text(encoding='utf-8-sig'))
             if args.action == 'import':result=import_assembly(args.workspace,request)
             else:
-                from nbt_assembly_handoff import create_slice,merge_slices
+                from nbt_composition.assembly_handoff import create_slice,merge_slices
                 result=(create_slice if args.action=='slice' else merge_slices)(args.workspace,request)
         else:
             source = _workspace_path(args.workspace.resolve(), str(args.source))

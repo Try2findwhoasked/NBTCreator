@@ -13,8 +13,8 @@ from PIL import Image,ImageDraw
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_reference_views import register_reference,load_reference,fit_profile,save_fit,verify_fit
-from nbt_reference_projection import compare_reference,verify_comparison
-from nbt_reference_camera import prepare_cameras,verify_cameras
+from nbt_review.reference_projection import compare_reference,verify_comparison
+from nbt_review.reference_camera import prepare_cameras,verify_cameras
 
 
 class ReferenceViews(unittest.TestCase):
@@ -182,11 +182,11 @@ class ReferenceViews(unittest.TestCase):
   self.assertEqual(front_metrics['model_contour_coverage'],1.0)
   self.assertIsNone(result['views']['top']['metrics']['reference_contour_coverage'])
  def test_projection_refuses_source_mutated_during_comparison(self):
-  from nbt_reference_projection import _project
+  from nbt_review.reference_projection import _project
   request=self.projection_request();source=Path(request['source'])
   def mutate(*args):
    result=_project(*args);source.write_bytes(source.read_bytes()+b' ');return result
-  with patch('nbt_reference_projection._project',side_effect=mutate):
+  with patch('nbt_review.reference_projection._project',side_effect=mutate):
    with self.assertRaisesRegex(ValueError,'变化'):compare_reference(self.root,request)
   self.assertFalse((self.root/request['output']/'comparison.json').exists())
  def test_projection_preserves_a_real_hole_as_a_separate_local_error(self):
@@ -272,7 +272,7 @@ class ReferenceViews(unittest.TestCase):
   checked=subprocess.run([*base,'verify-cameras','--bundle',result['bundle'],'--sha256',result['bundle_sha256']],
                          capture_output=True,text=True,encoding='utf8',timeout=45)
   self.assertEqual(checked.returncode,0,checked.stdout+checked.stderr);self.assertTrue(json.loads(checked.stdout)['valid'])
-  from nbt_reference_camera import checked_registered_camera
+  from nbt_review.reference_camera import checked_registered_camera
   camera=Path(result['bundle']).parent/result['views']['front']['file']
   with self.assertRaisesRegex(ValueError,'尺寸'):checked_registered_camera(self.root,result['bundle'],result['bundle_sha256'],camera,128,64)
  def test_registered_cameras_bind_explicit_lighting_parameters(self):

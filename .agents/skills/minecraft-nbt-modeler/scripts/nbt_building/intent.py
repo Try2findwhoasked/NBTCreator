@@ -43,7 +43,7 @@ def validate_intent(plan, parts):
 def check_use_face(model, binding, space, stop):
     """Check a horizontal approach to the actual, transformed working face."""
     from nbt_building.plan import surface
-    from nbt_scene_interfaces import FACES
+    from nbt_composition.scene_interfaces import FACES
     spec, feet = stop['use_face'], stop['feet']
     result = dict(**spec, feet=feet, passed=False)
     if not space.standing(feet):

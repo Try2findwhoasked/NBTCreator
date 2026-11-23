@@ -14,9 +14,9 @@ from nbt_structure_agent import dispatch,build
 from nbt_assembly import Volume
 from nbt_refine import save_master
 from nbt_selection_edit import sha
-from nbt_surface_mount import NORMALS
+from nbt_mounting.surface_mount import NORMALS
 from nbt_detail_control import compile_plan,simulate_plan,default_settings
-from nbt_pattern_quality import assess
+from nbt_pattern.quality import assess
 
 
 class PatternIntegration(unittest.TestCase):

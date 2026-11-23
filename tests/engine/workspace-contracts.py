@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[2];ENGINE=ROOT/'.agents/skills/minecraft-n
 from nbt_capabilities import capabilities
 from nbt_exposure import MISE_TASK,apply as expose,import_knowledge
 from nbt_workspace import migrate
-from nbt_request_paths import read_request,metadata_path
+from nbt_project.request_paths import read_request,metadata_path
 from nbt_detail_control import default_settings,compile_plan,preview_effect
 from nbt_refine import save_master
 from nbt_assembly import Volume

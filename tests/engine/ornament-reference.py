@@ -10,8 +10,8 @@ from PIL import Image,ImageDraw
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_microfit import reference
-from nbt_pattern_panel import sample_input
+from nbt_pattern.microfit import reference
+from nbt_pattern.panel import sample_input
 
 
 class PhysicalReference(unittest.TestCase):

@@ -3,7 +3,7 @@ import hashlib
 import json
 
 from nbt_model import AIR_NAMES,state
-from nbt_surface_mount import _full
+from nbt_mounting.surface_mount import _full
 
 PROFILES=('curve_ring_segment','curve_dark_seam','curve_rib','curve_window_column','curve_diagonal_band','curve_skirt_segment')
 CAPS=('square','low_step','high_step')

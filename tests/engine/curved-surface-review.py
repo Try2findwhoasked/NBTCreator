@@ -16,9 +16,9 @@ sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
 
 import nbt_asset_libraries as libraries
 from nbt_assembly import Volume
-from nbt_blind_review import prepare_review
+from nbt_review.blind_review import prepare_review
 from nbt_components import store
-from nbt_curve_components import compose_curve_mask
+from nbt_mounting.curve_components import compose_curve_mask
 from nbt_curved_surface import plan_curve, verify_curve
 from nbt_reference_views import register_reference, save_fit
 from nbt_snbt import save_snbt

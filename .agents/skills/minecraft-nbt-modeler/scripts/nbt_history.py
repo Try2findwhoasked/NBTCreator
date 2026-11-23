@@ -3,7 +3,7 @@ import argparse,copy,hashlib,json,os,re,shutil,subprocess,time,uuid
 from contextlib import contextmanager
 from datetime import datetime,timezone
 from pathlib import Path,PurePosixPath
-from nbt_web_paths import project_paths,reserve_version
+from nbt_project.web_paths import project_paths,reserve_version
 
 ENGINE=Path(__file__).resolve().parents[1]
 SHA=re.compile(r'^[a-f0-9]{64}$')
@@ -31,7 +31,7 @@ def history_source(source):
 def relative(workspace,file):return Path(file).resolve().relative_to(workspace).as_posix()
 def model_file(workspace,value):
     if not isinstance(value,(str,Path)):raise ValueError('请选择建筑主模型')
-    from nbt_web_paths import workspace_path
+    from nbt_project.web_paths import workspace_path
     file=workspace_path(workspace,value)
     if not file.is_relative_to(workspace/'nbt_models'):raise ValueError('版本历史只管理当前工作区 nbt_models 内的建筑')
     return file
@@ -316,7 +316,7 @@ class History:
                 publish_head(self.workspace, model_file(self.workspace,node['source']))
             return dict(version=self.summary(node),commit=commit,unchanged=commit==head,current=state['current'].get(node['building']))
     def list(self,source=None):
-        from nbt_web_paths import workspace_path
+        from nbt_project.web_paths import workspace_path
         state,head=self.state();building=None
         if source:building=project_paths(model_file(self.workspace,source))['workdir']
         versions=[self.summary(node,verify=bool(source)) for node in state['versions'].values()

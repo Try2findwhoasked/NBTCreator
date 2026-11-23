@@ -53,7 +53,7 @@ class Parametric(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'保护'):paste_plan(model,dict(op,overwrite=True),{target})
   with self.assertRaises(ValueError):dispatch(self.root,'structure_place',dict(id=item['id'],content_sha256=item['content_sha256'],position=[0,0,0],size=[3,3,3]))
  def test_ornament_profiles_motifs_and_query_filters(self):
-  from nbt_ornament import PROFILES
+  from nbt_pattern.ornament import PROFILES
   selected=dispatch(self.root,'parametric_list',dict(kind='wall',ornament_profile='gothic'))
   self.assertEqual(len(selected['kinds']),1);self.assertEqual(set(selected['ornament_profiles']),{'gothic'})
   hashes=[]

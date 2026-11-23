@@ -11,7 +11,7 @@ from nbt_assembly import Volume
 from nbt_refine import save_master
 from nbt_large_assembly import AssemblyVolume, save_assembly
 from nbt_reference_views import register_reference
-from nbt_reference_camera import prepare_cameras
+from nbt_review.reference_camera import prepare_cameras
 from nbt_snbt import save_snbt
 from PIL import Image
 import hashlib

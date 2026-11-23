@@ -7,9 +7,9 @@ ROOT=Path(__file__).resolve().parents[2]
 if 'nbt_structure_agent' not in sys.modules:
     sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_compute import info
-from nbt_deform import warp_pixels
-from nbt_field_compute import sample
-from nbt_spectral import smooth
+from nbt_geometry.deform import warp_pixels
+from nbt_geometry.field_compute import sample
+from nbt_pattern.spectral import smooth
 from nbt_structure_agent import dispatch
 
 

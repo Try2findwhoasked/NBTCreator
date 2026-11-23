@@ -8,7 +8,7 @@ from nbt_refine import save_master,read_master
 from nbt_structure_agent import dispatch,build
 from nbt_selection_edit import sha
 from nbt_detail_control import default_settings,compile_plan,simulate_plan
-from nbt_pattern_assets import load
+from nbt_pattern.assets import load
 from nbt_modeling_session import ModellingSession
 import nbt_selection_edit
 

@@ -11,7 +11,7 @@ from nbt_selection_edit import sha
 from nbt_assembly import Volume
 from nbt_refine import save_master
 from nbt_collision import check_routes
-import nbt_micro_alignment,nbt_pattern_panel,nbt_collision
+import nbt_pattern.micro_alignment as nbt_micro_alignment,nbt_pattern.panel as nbt_pattern_panel,nbt_collision
 
 
 class TransportTests(unittest.TestCase):

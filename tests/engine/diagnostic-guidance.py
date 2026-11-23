@@ -8,9 +8,9 @@ import unittest
 ROOT=Path(__file__).resolve().parents[2];SCRIPTS=ROOT/'.agents/skills/minecraft-nbt-modeler/scripts';sys.path.insert(0,str(SCRIPTS))
 from nbt_assembly import Volume
 from nbt_refine import save_master
-from nbt_walk_view import inspect_walk
+from nbt_review.walk_view import inspect_walk
 from nbt_diagnostics import explain
-from nbt_protection_view import ProtectionConflict
+from nbt_review.protection_view import ProtectionConflict
 
 class Guidance(unittest.TestCase):
  def setUp(self):

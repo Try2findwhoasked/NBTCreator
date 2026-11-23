@@ -14,12 +14,12 @@ ENGINE = os.environ.get('NBTCREATOR_MIGRATION_ENGINE') or (
 )
 sys.path.insert(0, str(ENGINE))
 
-from nbt_constraints import archive_directory_revision, dispatch, save_directory_rule
+from nbt_project.constraints import archive_directory_revision, dispatch, save_directory_rule
 from nbt_detail_control import catalog
 from nbt_project_batch import write
 from nbt_prompts import read_prompt, scan
-from nbt_rooms import GROUPS, ROOMS, ROOM_FILE, SHAPE_NAMES, UNASSIGNED, component_name, enclosed, init_layout, room_info
-from nbt_web_paths import project_paths, workspace_path
+from nbt_project.rooms import GROUPS, ROOMS, ROOM_FILE, SHAPE_NAMES, UNASSIGNED, component_name, enclosed, init_layout, room_info
+from nbt_project.web_paths import project_paths, workspace_path
 
 STATE = Path('nbt_models/_migration/constraint-room-progress.json')
 MAPPING = Path('nbt_models/_migration/room-layout.json')

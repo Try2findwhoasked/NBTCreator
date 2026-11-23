@@ -12,7 +12,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_fit_shapes import FIT_SHAPES, FitShape, fine_options, project_shape
-from nbt_microfit import options_for
+from nbt_pattern.microfit import options_for
 from nbt_model import state
 from nbt_modeling_session import engine_revision
 from nbt_refine import read_master

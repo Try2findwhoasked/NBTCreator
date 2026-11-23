@@ -9,8 +9,8 @@ from itertools import product
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
 from nbt_structure_agent import dispatch,build
-from nbt_object_library import library
-from nbt_object_scene import halfcells,SIX
+from nbt_assets.object_library import library
+from nbt_composition.object_scene import halfcells,SIX
 from nbt_components import placement,paste_plan
 from nbt_assembly import Volume
 from nbt_collision import check_routes

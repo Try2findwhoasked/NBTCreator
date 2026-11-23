@@ -17,7 +17,7 @@ from nbt_model import Model
 from nbt_refine import read_master
 from nbt_registry import effective
 from nbt_snbt import write_binary
-from nbt_wavelet_eave import detail_bands
+from nbt_building.wavelet_eave import detail_bands
 from nbt_working_model import ModelConflict, WorkingModel, file_hash
 
 

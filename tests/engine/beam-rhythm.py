@@ -11,7 +11,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'))
-from nbt_beam_rhythm import z_amplitudes
+from nbt_building.beam_rhythm import z_amplitudes
 from nbt_refine import read_master
 from nbt_working_model import ModelConflict, WorkingModel, model_hash
 
