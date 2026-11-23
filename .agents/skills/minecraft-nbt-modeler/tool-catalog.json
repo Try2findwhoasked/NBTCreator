@@ -1082,15 +1082,6 @@
   "tool_routes": {
     "创作起步": [
       {
-        "title": "比较整栋空间与通路布局",
-        "call": "architect layout-search --request <请求JSON>",
-        "contract": "capabilities --architect-action layout-search",
-        "guide": "architecture-workflow.md",
-        "input": "基于同一粗模方案，用 variables 枚举 XZ 位移，或用 graph 声明空间关系与摆位候选。",
-        "result": "给出通过实际通路和使用面检查的候选，以及各次尝试的失败证据。",
-        "next": "选定候选后将其 plan 交给 architect plan-build，在构造和装饰深化后保存制作版。"
-      },
-      {
         "title": "从零起整栋初稿（亭子、入口、空间和构件）",
         "call": "architect plan-build --request <请求JSON>",
         "contract": "capabilities --architect-action plan-build",
@@ -1098,6 +1089,15 @@
         "input": "按用途选尺寸、空间、材质、开口和机位。入口亭示例内含 save_draft，会发布制作版；只编译和检查时省略。",
         "result": "返回建筑编译与检查；保存时另有 saved、next.request 和 revision_request。",
         "next": "保存后把 next.request 原样交给 architect review-prepare；续版用 revision_request。"
+      },
+      {
+        "title": "比较整栋空间与通路布局",
+        "call": "architect layout-search --request <请求JSON>",
+        "contract": "capabilities --architect-action layout-search",
+        "guide": "architecture-workflow.md",
+        "input": "基于同一粗模方案，用 variables 枚举 XZ 位移，或用 graph 声明空间关系与摆位候选。",
+        "result": "给出通过实际通路和使用面检查的候选，以及各次尝试的失败证据。",
+        "next": "选定候选后将其 plan 交给 architect plan-build，在构造和装饰深化后保存制作版。"
       },
       {
         "title": "复杂整栋的分层、面积与必经连接",
