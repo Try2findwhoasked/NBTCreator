@@ -58,7 +58,7 @@ async function boot(){
  let initialPreferences
  const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler'),retrieve:async input=>{const response=await net.fetch(new URL('/__detail__/retrieve/read',serverUrl).href,{method:'POST',headers:{'content-type':'application/json',origin:new URL(serverUrl).origin},body:JSON.stringify(input),redirect:'error'});const data=await response.json();if(!response.ok)throw Error(data.error||'参考集合无法读取');return data}})
  const workspaceApi=createWorkspaceApi({cancel:()=>{api?.cancel();exposureProcess.cancel()}})
- api=createApiService({captureWorkflowContext:(key,request)=>workspaceApi.guardContext(()=>internalAI.capture(key,request)),workflowContext:(key,{snapshot,...request})=>workspaceApi.guardContext(()=>internalAI.context(key,request,snapshot)),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args),validateCandidate:(candidateValidator=require('./ai-candidate-validator.cjs').createCandidateValidator({root,python,directory:app.getPath('userData'),getWorkspace:()=>workspace}))})
+ api=createApiService({briefModel:()=>workspaceApi.guardContext(async()=>{const settings=await preferences.load();return settings.creationMode==='maximum'?settings.qualityModel:settings.economyModel}),captureWorkflowContext:(key,request)=>workspaceApi.guardContext(()=>internalAI.capture(key,request)),workflowContext:(key,{snapshot,...request})=>workspaceApi.guardContext(()=>internalAI.context(key,request,snapshot)),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args),validateCandidate:(candidateValidator=require('./ai-candidate-validator.cjs').createCandidateValidator({root,python,directory:app.getPath('userData'),getWorkspace:()=>workspace}))})
  await api.load()
  for(const [channel,handler]of Object.entries({'api-config':()=>api.publicConfig(),'api-save':input=>api.save(input),'api-models':()=>api.models(),'api-cancel':input=>api.cancel(input?.requestId)}))ipcMain.handle('nbt:'+channel,(event,input)=>{allowed(event);return workspaceApi.run(()=>handler(input))})
  // Electron serializes thrown errors without custom fields. Return a bounded
@@ -121,7 +121,11 @@ async function boot(){
   return workspaceApi.run(async()=>{
   if(input?.scope==='internal')return internalAI.preview(input.id)
   if(input?.scope!=='external')throw Error('Unknown knowledge scope')
-  if(input.entry)return {title:'当前工作区对外Skill入口',recipient:'由外部Codex/文件式Skill Agent读取，不自动发给内部API。',text:await fs.readFile(path.join(workspace,'.agents/skills/nbtcreator-workspace/SKILL.md'),'utf8')}
+  if(input.entry){
+   const agent=input.entry==='agent'
+   const name=agent?'nbtcreator-agent':'nbtcreator-workspace'
+   return {title:agent?'外部 Agent 触发 Skill':'当前工作区对外Skill入口',recipient:'由外部 Codex 或文件式 Skill Agent 在当前工作区读取。',text:await fs.readFile(path.join(workspace,'.agents/skills',name,'SKILL.md'),'utf8')}
+  }
   const config=await exposure('show');let file,title
   if(input.group){const group=config.groups.find(g=>g.id===input.group);if(!group||!config.enabled_groups.includes(group.id)||!group.files.includes(input.file))throw Error('Unknown skill reference');file=path.join(root,'.agents/skills/minecraft-nbt-modeler/references',input.file);title=input.file}
   else {

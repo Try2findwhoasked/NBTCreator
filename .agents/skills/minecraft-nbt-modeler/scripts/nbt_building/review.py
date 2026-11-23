@@ -344,10 +344,10 @@ def verify_for_return(workspace,review,expected):
                 coverage_complete=notes['coverage_complete'],game='not_checked')
 
 
-def compare(workspace,request):
+def compare(workspace,request,*,allow_detached=False):
     from nbt_project.web_paths import project_paths
     file,pack=load_pack(workspace,request);model=load_model(workspace,request)
-    if project_paths(inside(workspace,pack['source']))['workdir']!=project_paths(model.source)['workdir']:raise ValueError('问题回查需要同一建筑的新制作版')
+    if not allow_detached and project_paths(inside(workspace,pack['source']))['workdir']!=project_paths(model.source)['workdir']:raise ValueError('问题回查需要同一建筑的新制作版')
     notes_file=file.parent/'review-notes.json'
     if file_hash(notes_file)!=request['notes_sha256']:raise ValueError('待回查的问题记录已变化')
     notes=json.loads(notes_file.read_text(encoding='utf8'));binding=model.architecture;results=[]

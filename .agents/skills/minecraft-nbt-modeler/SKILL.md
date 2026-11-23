@@ -25,6 +25,7 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 | 已有模型修改 | 读真实源、保护、阶段及[意见证据](references/agent-feedback.md)。初稿必要修正继续做；用户看过对应图像并明确批准后，才进入[精修流程](references/refinement.md)。 |
 | 检查、看图与交付 | [验证](references/validation-workflow.md)、[渲染](references/rendering.md)；保存与定稿见[SNBT](references/snbt-authoring.md)，交付和存放按各自链接继续读取。 |
 | 接手工作台任务或续作 | 已有 ID 时直接按来源读取紧凑任务：提示词工作台用 `task-client inspect prompts <id>`，应用回传的建筑修改任务用 `task-client inspect tasks <id>`。按需展开并核对源。已选定任务时按[本地任务客户端](references/agent-protocol.md#本地任务客户端)领取、续租和回传。 |
+| 已领取的整栋初稿 | 按交接绑定的性价比或极限效果执行。从[完整创作流程](references/creation-workflows.md)读取任务简报，提交方案或 WorkingModel，按同一验证和实图审阅流程交付。 |
 | 接口解释、工具维护或回归 | 当前实现、相应接口与[维护要求](references/state-and-maintenance.md)；扩展见[注册器](references/extensions.md)。不默认生成建筑、打开 GUI 或重读全部设计专题。 |
 
 其余专题及内容归属见[知识库任务路线](references/knowledge-map.md)。按任务读取适用完整章节，已读且未变化的内容可沿用。已获准委派时，基本要求见[整体流程](references/whole-model-workflow.md)；委派专题启用或用户明确指定时再读[委派与阅读](references/delegation-and-review.md)。

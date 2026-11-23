@@ -94,7 +94,7 @@ function localSmallStructure(result,context){
  for(const op of p.operations)for(const key of ['lo','hi','start','end'])if(op[key])op[key]=op[key].map((v,i)=>v+context.lo[i])
  return {...validateSmallStructure(translated,context),structure_name:result.structure_name,camera:result.camera}
 }
-function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext=async()=>null,captureWorkflowContext,validateCandidate:validateLocal=async()=>{}}){
+function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext=async()=>null,captureWorkflowContext,briefModel=async()=>'',validateCandidate:validateLocal=async()=>{}}){
  const file=path.join(directory,'api-settings.json');let config={...defaults},encrypted=null,modelBusy=false,saving=false;const transports=new Set(),scheduler=createAiScheduler({limit:()=>config.maxConcurrent})
  async function load(){if(scheduler.size||modelBusy||saving)return publicConfig();try{const saved=JSON.parse(await fs.readFile(file,'utf8'));config=configOf(saved.config);encrypted=saved.encryptedKey||null}catch{config={...defaults};encrypted=null}return publicConfig()}
  function publicConfig(){return {...structuredClone(config),hasKey:!!encrypted}}
@@ -151,7 +151,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
   const taskPrompt=promptBuilder(input.mode,context,promptOptions)
   const revisesProse=input.mode==='prompt'&&context?.task==='design_prose'&&!!context.original_text
   let system=(config.outputCharLimit?`最终结果限制为 ${config.outputCharLimit} 字（Unicode字符，含空白和JSON标点）；不计可分离的思考与说明。`:'最终结果不设应用字数限制。')+'返回完整最终结果，不输出思考。JSON任务返回一个完整对象；文字任务可用单独的<final>与</final>包围正文。'+(revisesProse?'':'保留必要设计，超长时先合并重复内容。')+'\n'+taskPrompt
-  const internal=await token.workflowPromise;if(token.cancelled)throw Error('API 请求已取消')
+  const {internal,model}=await token.prepared;if(token.cancelled)throw Error('API 请求已取消')
   if(internal?.retrieved_assets?.length&&input.mode==='component'){const references=[...context.references];for(const item of internal.retrieved_assets){const old=references.find(ref=>ref.id===item.id);if(old&&old.content_sha256!==item.content_sha256)throw Error('引用资产已变化，请重新选择');if(!old)references.push(item)}context=componentContext({...context,references})}
   const {retrieved_assets,attachViewport,base_rules,workflow_steps,...providerWorkflow}=internal??{}
   const referenceFields={...(internal?.reference_sources?{reference_sources:internal.reference_sources}:{}),...(internal?.knowledge_delivery?{knowledge_delivery:internal.knowledge_delivery}:{})}
@@ -182,7 +182,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    }
    system+=' 严格按response_format的JSON Schema返回完整紧凑JSON。Schema不取代本地保护、预算、源哈希、真实预览或用户显式导出。'
   }
-  const payload={model:config.model,messages:[{role:'system',content:system},{role:'user',content:JSON.stringify({instruction:input.instruction,context:apiContext,...(target?{preview_failure:target.evidence}:{}),...(internal?{internal_workflow:providerWorkflow}:{})})}],max_tokens:input.mode==='prompt'?6144:12288,stream:false}
+  const payload={model:model||config.model,messages:[{role:'system',content:system},{role:'user',content:JSON.stringify({instruction:input.instruction,context:apiContext,...(target?{preview_failure:target.evidence}:{}),...(internal?{internal_workflow:providerWorkflow}:{})})}],max_tokens:input.mode==='prompt'?6144:12288,stream:false}
   if(new URL(config.baseUrl).hostname==='api.deepseek.com'&&['deepseek-flash','deepseek-v4-pro'].includes(config.model)&&config.requestOptions.thinking===undefined&&config.requestOptions.reasoning_effort===undefined)payload.thinking={type:'disabled'}
   Object.assign(payload,config.requestOptions)
   if(config.tokenParameter==='max_completion_tokens'){payload.max_completion_tokens=payload.max_tokens;delete payload.max_tokens}
@@ -291,6 +291,7 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
  async function generate(input,options={}){
   if(modelBusy||saving)throw Error('API 连接测试或配置保存进行中，请稍后重试')
   const frozen=structuredClone(input)
+  const usesBriefModel=frozen.mode==='workbench'&&frozen.context?.task==='brief'||frozen.mode==='prompt'&&frozen.context?.task==='design_prose'
   const workflowKey=frozen.mode==='workbench'&&['draft','brief'].includes(frozen.context?.task)?'draft':frozen.mode
   const topic=frozen.context?.project
   const reference={retrieval:frozen.retrieval,instruction:[frozen.instruction,topic?.name,topic?.theme,topic?.purpose,frozen.context?.user_requirements].filter(value=>typeof value==='string').map(value=>value.slice(0,12000)).join('\n')}
@@ -301,7 +302,6 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    scheduler.cancel(requestId)
   },totalLimit)})
   const generation=scheduler.run(requestId,async token=>{
-   token.workflowPromise=token.prepared
    metrics=token.metrics
    let onCancel
    const cancelled=new Promise((_,reject)=>{
@@ -311,7 +311,10 @@ function createApiService({directory,safeStorage,fetchImpl=fetch,workflowContext
    })
    try{return await Promise.race([generateCore(frozen,token),cancelled])}catch(error){error.api_metrics=token.metrics;throw error}
    finally{token.controller.signal.removeEventListener('abort',onCancel);token.metrics.service_total_ms=Math.round(performance.now()-token.started)}
-  },snapshot=>captureWorkflowContext?workflowContext(workflowKey,{...reference,snapshot}):snapshot,()=> (captureWorkflowContext??workflowContext)(workflowKey,reference))
+  },async({snapshot,model})=>({internal:captureWorkflowContext?await workflowContext(workflowKey,{...reference,snapshot}):snapshot,model}),async()=>{
+   const [snapshot,model]=await Promise.all([(captureWorkflowContext??workflowContext)(workflowKey,reference),usesBriefModel?briefModel():null])
+   return {snapshot,model}
+  })
   try{return await Promise.race([generation,deadline])}finally{clearTimeout(timer)}
  }
  return {load,save,models,generate,cancel:id=>{const found=scheduler.cancel(id);if(id===undefined)for(const controller of transports)controller.abort();return found||id===undefined},publicConfig,state:scheduler.state}

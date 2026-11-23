@@ -110,3 +110,7 @@ mise exec -- node tests/node/task-cancel.mjs --output build/task-cancel-check
 4. 移动时同步检查相对导入、仓库根目录推导、fixture 调用、套件、验收和当前文档。
 
 [CI 工作流](../.github/workflows/portable.yml)与[产品验收清单](../config/product-acceptance.json)是不同范围的显式执行清单。`docs/archive/` 保留当时的历史路径和结果，不作为当前命令入口。
+
+## 创作模式回归
+
+在仓库根目录运行 `mise run test -- creation-workflows`。引擎回归使用临时创作工作区、冻结 CLI 和 Chromium 实际出图，覆盖强模型升级、局部失败、原请求重试、A/B 比选和制作版回传。桌面回归通过本机模拟接口核对模型档位及提示词入口。模型回复和观察记录为测试数据。

@@ -1059,6 +1059,7 @@
     "finalize": "nbt_finalize.py",
     "machine": "nbt_machine.py",
     "task-client": "nbt_task_client.py",
+    "creation": "nbt_creation.py",
     "architect": "nbt_architect.py",
     "session": "nbt_engine_session.py"
   },
@@ -1224,6 +1225,12 @@
         "call": "task-client inspect <prompts 或 tasks> <任务编号>",
         "input": "提示词任务用 prompts，已有建筑修改任务用 tasks。",
         "result": "默认返回任务阶段、来源核对与下一步；按 expand 视图展开，再用 task-client start 明确领取。"
+      },
+      {
+        "title": "执行已领取的建筑初稿",
+        "call": "creation --session <会话名> start",
+        "input": "从已领取的提示词读取冻结模式。极限效果用 --request 显式登记要探索的设计轴。",
+        "result": "本地编译或接收 WorkingModel，回读、检查、出图并保存证据。按模式处理单候选或匿名 A/B 审阅；选用后另存制作版。"
       }
     ],
     "工作区与运行时": [

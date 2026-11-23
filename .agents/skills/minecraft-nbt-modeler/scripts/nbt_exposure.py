@@ -13,6 +13,7 @@ from functools import wraps
 from nbt_capabilities import capabilities
 ENGINE=Path(__file__).resolve().parents[1]
 MISE_ENTRY='.agents/skills/nbtcreator-workspace/nbt.py'
+AGENT_ENTRY='.agents/skills/nbtcreator-agent/SKILL.md'
 KNOWLEDGE_BYTES=2*1024*1024
 CONFIG_BYTES=256*1024
 MISE_TASK='.mise/conf.d/nbtcreator.toml'
@@ -20,7 +21,7 @@ MISE_COMMAND='mise run nbt --'
 MISE_DIRECT=f'mise run ./{MISE_ENTRY} --'
 MISE_CONFIG=f'# NBTCreator generated workspace task\n[tasks.nbt]\ndescription = "Run NBTCreator in this workspace"\nfile = "{MISE_ENTRY}"\n'.encode('utf8')
 GROUPS={
- 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','simple-building','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','architect-tools','architecture-workflow','whole-building-planning','ai-creative-preferences','version-history','snbt-authoring']),
+ 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','simple-building','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','creation-workflows','architect-tools','architecture-workflow','whole-building-planning','ai-creative-preferences','version-history','snbt-authoring']),
  'architecture':('建筑风格、场所与构造',['architecture-knowledge-base','structure-atlas','design-grammar','architectural-bays','classical-columns']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
@@ -314,7 +315,7 @@ def show(workspace):
         return dict(config_error=str(failure),config_sha256=sha,enabled_groups=[],custom_knowledge=[],groups=[],registration_issues=[])
     caps=capabilities()
     return dict(config,config_sha256=sha,registration_issues=issues,custom_issues=custom_issues(workspace,config['custom_knowledge']),groups=[dict(id=key,label=label,required=key=='core',files=[p+'.md' for p in files]) for key,(label,files) in GROUPS.items()],
-                facade='.agents/skills/nbtcreator-workspace/SKILL.md',launcher=mise_launcher(workspace),
+                facade='.agents/skills/nbtcreator-workspace/SKILL.md',agent_facade=AGENT_ENTRY,launcher=mise_launcher(workspace),
                 tool_count=len(caps['tools']),capabilities_sha256=caps['capabilities_sha256'])
 
 
@@ -357,8 +358,9 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         '# 当前工作区建模接口','',
         f'在创作项目根目录运行 `{launcher} <命令>`。下文省略该前缀。无需启动 Electron；资产在 `nbt_models/`。','',
         '## 先处理交接任务','',
-        '有任务 ID 就先读紧凑视图：提示词工作台用 `task-client inspect prompts <id>`，建筑修改用 `task-client inspect tasks <id>`。按返回的 `source_matches`、`next` 和 `expand` 行动；源已变化则停下，明确选定任务后才领取。不用先查全量工具。',
-        '只知道任务 ID 时用 `task --id <id> --view compact` 自动识别类型。用 `task-client list --pending` 查找两类待领取任务。有旧候选时读 `--view candidates`，用 `task-client check-candidate` 核对新任务、亲缘和审阅证据，领取后再用 `reuse-candidate` 登记。','',
+        '读紧凑视图：提示词用 `task-client inspect prompts <id>`，修改用 `task-client inspect tasks <id>`。核对 `source_matches`，按 `next` 与 `expand` 继续。选定任务后再领取。',
+        '只知道编号时用 `task --id <id> --view compact`。待办用 `task-client list --pending`。旧候选用 `--view candidates`，以 `check-candidate` 核对后用 `reuse-candidate` 登记。','',
+        '- 整栋初稿的触发入口是 [nbtcreator-agent](../nbtcreator-agent/SKILL.md)。',
         '## 没有交接任务时','',
         f'- 整栋初稿用 `architect plan-build --request <JSON文件>`，查 `capabilities --architect-action plan-build`。填 `save_draft` 后返回制作版与 `next.request`。见{link("simple-building")}与{link("architecture-workflow")}。[归卷阁样例]({relative}/assets/examples/reading-loft/README.md)。',
         '- 复杂整栋先用 `architect layout-check`，见知识索引。',
@@ -367,7 +369,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         '- 查已有尖拱等资产：`asset-libraries browse --request <JSON文件>`，文件写 `{"query":"尖拱","limit":4}`。查 `asset-libraries --help`。得到带来源及版本绑定的命中，保留整组绑定用于预览。',
         '- 其他任务先查 `capabilities --routes`，再按[任务路线和已启用资料](knowledge.md)选读。已知命令用 `<命令> --help`；单个 JSON 工具查 `capabilities --agent-tool <名称>`。',
         '- 读取回执时同时看退出码、业务状态和源绑定。候选 `validate` 用 `result.passed`；建筑简报失败后把 `report.path` 指向的完整报告交给 `diagnostics`。',
-        f'- 题材和主要构件确定后，按{link("spatial-detail-design")}中的「方块配色复核」选主材与收边。已获准委派且宿主支持时并行选材，用实纹理小样反馈后将具体方块状态写回建筑方案。',
+        f'- 按{link("spatial-detail-design")}的「方块配色复核」选主材与收边，用实纹理小样核对后将方块状态写回方案。',
         '- `paths` 返回冻结引擎位置，`paths --runtime` 核对解释器和出图依赖。移动项目后的恢复参数查 `paths --help`；用 `exposure show` 查看资料缺项。',
         f'- 查参考读{link("reference-retrieval")}：`retrieve search --request <JSON文件>` 后凭 `receipt` 和 `R1` 取证。查历史原文加 `source_kind: library`，不必先查库编号。只在用户要求时联网。',
         '- 创作偏好按 `ai-style prompt --workflow <区域>` 读取。用户本次要求优先，不更改保护或批准。','',
@@ -398,6 +400,58 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         index.extend(f"- {item['label']}（{item['id']}）：{item['error']}" for item in issues)
     return '\n'.join(lines)+'\n','\n'.join(index)+'\n'
 
+def agent_entry(launcher, relative):
+    return f"""---
+name: nbtcreator-agent
+description: 触发 NBTCreator 本地整栋建筑初稿流程。用任务编号接续工作台交接，或从明确的建筑要求新建任务，运行性价比或极限效果模式并交付实图审阅。
+---
+
+# 运行 NBTCreator 建造 Agent
+
+从当前创作项目根目录运行 `{launcher} <命令>`。下文省略命令前缀。用 `paths` 核对当前工作区和冻结引擎。读取 [完整创作流程]({relative}/references/creation-workflows.md) 中适用的阶段。需要建模与资料接口时读 [当前工作区建模入口](../nbtcreator-workspace/SKILL.md)。
+
+## 确定要运行的任务
+
+- 有任务编号时用 `task --id <编号> --view compact` 核对阶段、来源和交接模式。只读规划、已有建筑的修改或精修按该任务返回的入口处理。
+- 用户要接手待办时，用 `task-client list --kind prompts --pending` 发现任务。按用户已经给出的编号、建筑名或选择定位；有多个合理匹配时先核对任务。
+- 用户直接要求制作新的整栋建筑时，按 [直接建立任务]({relative}/references/creation-workflows.md#从外部对话直接建立初稿任务) 将其原文与硬条件登记为提示词并交接。只编写要求时交付稿件供审阅。
+
+## 运行与回传
+
+1. 用 `task-client --session <会话> start prompts <编号> --owner <执行者>` 领取已选任务。已有本会话时先查状态并沿用，以 `keepalive` 保持长任务租约。
+2. 用 `creation --session <会话> start` 读冻结简报。极限效果附带设计轴 JSON；用 `brief --expand` 核对完整需求和约束。按该任务的模型档位和批次继续。
+3. 按简报提交建筑方案或 WorkingModel，查看失败定位与下一步。本地故障用原请求 `retry`；来源或租约变化时重核任务。按要求查看真实候选图，解决影响用途的缺口后再选用。
+4. 用 `select`、`publish`、`observe` 和 `finish` 交付入选制作版；极限效果先完成匿名比选。向用户展示制作版实图和检查结论。精修须经用户对这份实图明确同意，定稿 NBT 由用户明确要求后独立导出。
+"""
+
+
+def write_facade(facade, generated, marker, backup_subdir=None):
+    from nbt_knowledge.libraries import atomic
+    facade.mkdir(parents=True,exist_ok=True)
+    try:previous=json.loads(marker.read_text(encoding='utf8'))
+    except (FileNotFoundError,ValueError):previous={}
+    if not isinstance(previous,dict):previous={}
+    backup=None
+    for name,text in generated.items():
+        target=facade/name
+        payload=text.encode('utf8')
+        if target.is_file():
+            current=target.read_bytes()
+            # Older Windows writes used CRLF with a manifest of the LF bytes.
+            normalized=current.replace(b'\r\n',b'\n')
+            if current!=payload and normalized!=payload and previous.get(name) not in {
+                    hashlib.sha256(current).hexdigest(),hashlib.sha256(normalized).hexdigest()}:
+                if backup is None:
+                    backup=marker.parent/'skill-backups'/uuid.uuid4().hex
+                    if backup_subdir:
+                        backup=backup/backup_subdir
+                    backup.mkdir(parents=True)
+                shutil.copy2(target,backup/name)
+        temp=target.with_name(target.name+'.tmp');temp.write_bytes(payload);temp.replace(target)
+        if name=='nbt.py' and os.name!='nt':target.chmod(target.stat().st_mode|0o111)
+    atomic(marker,json.dumps({name:hashlib.sha256(text.encode('utf8')).hexdigest() for name,text in generated.items()},indent=2).encode('utf8'))
+
+
 @config_write
 def apply(workspace,config=None):
     current=parse_config(config_bytes(workspace))
@@ -415,7 +469,7 @@ def sync_config(workspace,raw_config):
     file=folder/'skill-exposure.json'
     config=selected_config(raw_config,[])
     runtime=sync_runtime(workspace)
-    facade=workspace/'.agents/skills/nbtcreator-workspace';facade.mkdir(parents=True,exist_ok=True)
+    facade=workspace/'.agents/skills/nbtcreator-workspace'
     relative=os.path.relpath(runtime,facade).replace('\\','/')
     launcher=mise_launcher(workspace,install=True)
     entry_text,index_text=facade_knowledge(runtime,facade,workspace,relative,config,launcher)
@@ -444,25 +498,10 @@ task_file=os.environ.get('MISE_TASK_FILE')
 workspace=entry.parents[3] if task_file and Path(task_file).resolve()==entry else Path.cwd()
 raise SystemExit(subprocess.call([sys.executable,'-B',str(engine/'scripts'/script),*args],cwd=workspace))
 '''.replace('ENGINE_RELATIVE',repr(relative)).replace('ENTRY_COMMAND',repr(launcher))
-    generated={'SKILL.md':entry_text,'knowledge.md':index_text,'nbt.py':wrapper}
-    marker=folder/'facade-manifest.json'
-    try:previous=json.loads(marker.read_text(encoding='utf8'))
-    except (FileNotFoundError,ValueError):previous={}
-    backup=None
-    for name,text in generated.items():
-        target=facade/name
-        payload=text.encode('utf8')
-        if target.is_file():
-            current=target.read_bytes()
-            # Older Windows writes used CRLF with a manifest of the LF bytes.
-            normalized=current.replace(b'\r\n',b'\n')
-            if current!=payload and normalized!=payload and previous.get(name) not in {
-                    hashlib.sha256(current).hexdigest(),hashlib.sha256(normalized).hexdigest()}:
-                if backup is None:backup=folder/'skill-backups'/uuid.uuid4().hex;backup.mkdir(parents=True)
-                shutil.copy2(target,backup/name)
-        temp=target.with_name(target.name+'.tmp');temp.write_bytes(payload);temp.replace(target)
-        if name=='nbt.py' and os.name!='nt':target.chmod(target.stat().st_mode|0o111)
-    marker.write_text(json.dumps({name:hashlib.sha256(text.encode('utf8')).hexdigest() for name,text in generated.items()},indent=2),encoding='utf8')
+    write_facade(facade,{'SKILL.md':entry_text,'knowledge.md':index_text,'nbt.py':wrapper},folder/'facade-manifest.json')
+    agent=workspace/AGENT_ENTRY
+    agent_relative=os.path.relpath(runtime,agent.parent).replace('\\','/')
+    write_facade(agent.parent,{'SKILL.md':agent_entry(launcher,agent_relative)},folder/'agent-facade-manifest.json',agent.parent.name)
     from nbt_knowledge.libraries import atomic
     from nbt_paths import python_versions
     metadata=json.loads((runtime/'runtime-manifest.json').read_text(encoding='utf8'))

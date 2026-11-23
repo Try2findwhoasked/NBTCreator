@@ -220,6 +220,7 @@ run = [
   "node tests/run-suite.mjs architecture-workflow",
   "node tests/run-suite.mjs --prebuilt architecture-preview",
   "node tests/run-suite.mjs --prebuilt contextual-facade-preview",
+  "node tests/run-suite.mjs --prebuilt creation-workflows",
   "node tests/run-suite.mjs --prebuilt building-quality",
   "node tests/run-suite.mjs beam-rhythm",
   "node tests/run-suite.mjs wavelet-eave",

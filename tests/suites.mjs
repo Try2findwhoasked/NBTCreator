@@ -76,6 +76,11 @@ export const suites = {
     buildWeb,
     node('tests/desktop/contextual-facade-preview.mjs'),
   ],
+  'creation-workflows': [
+    buildWeb,
+    python('-B', 'tests/engine/creation-workflows.py'),
+    node('tests/desktop/creation-workflows-desktop.mjs'),
+  ],
   'asset-batches': [
     buildWeb,
     python('tests/engine/asset-batches.py'),

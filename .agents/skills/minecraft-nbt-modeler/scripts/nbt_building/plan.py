@@ -416,17 +416,17 @@ def preflight(workspace,request):
     return dict(parts=parts,read_only=True,scope='individual_parts',asset_written=False)
 
 
-def build(workspace,request):
+def build(workspace,request,*,return_model=False):
     from nbt_runtime.modeling_session import engine_revision_scope
 
     with engine_revision_scope() as verify_revision:
-        result = _build(workspace, request, verify_revision)
+        result = _build(workspace, request, verify_revision, return_model=return_model)
         if 'save_draft' not in request and not request.get('output'):
             verify_revision()
         return result
 
 
-def _build(workspace, request, verify_revision):
+def _build(workspace, request, verify_revision, *, return_model=False):
     from nbt_composition.working_model import ModelConflict,WorkingModel,value_at,model_hash
     from nbt_composition.object_scene import engine_hash
     from nbt_building.construction_systems import CONSTRUCTION_SYSTEMS, beam_link, bearing_block
@@ -600,7 +600,7 @@ def _build(workspace, request, verify_revision):
                                           expected_plan_sha256=result['plan_sha256'])
     if 'quality' in plan:
         result['quality'] = from_model(original, validation=report)
-    return result
+    return (original, result) if return_model else result
 
 
 def argument(value,path):

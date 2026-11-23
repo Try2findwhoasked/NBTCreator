@@ -1133,7 +1133,7 @@ def main():
             result=save(args.workspace,read_json(args.request))
         elif args.command == 'prompt-publish':
             from nbt_prompts import publish
-            data=read_json(args.request);result=publish(args.workspace,data['index'],data['id'],data['revision'])
+            data=read_json(args.request);result=publish(args.workspace,data['index'],data['id'],data['revision'],creation=data.get('creation'))
         elif args.command == 'prompt-library':
             from nbt_prompts import handoff_statuses,library_list,read_prompt,remove_prompt,organize_prompts
             data=read_json(args.request)

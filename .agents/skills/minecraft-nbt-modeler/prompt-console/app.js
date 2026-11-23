@@ -465,6 +465,33 @@
    project.extras=String(p.extras??'').split('\n').filter(line=>!line.startsWith('源文件 SHA256：')).join('\n');
    return {project,...(doc.constraints?.length?{constraints:C.clone(doc.constraints)}:{}),task:mode==='draft'?'draft':'controls',...(mode==='draft'?{brief_scope:{editable_fields:briefFields(doc)}}:{}),existing_model:!!p.source,...(doc.design_standard?{project_standard:C.standardText(doc)}:{}),...(doc.user_requirements?{user_requirements:doc.user_requirements}:{}),operations:doc.operations.map(C.aiOperation)};
  }
+ async function externalDraftRequest(){
+   if(aiRunning||pending.size||C.validate(state).length)throw Error('请先完成当前操作并修正方案参数');
+   const before=requestBinding(state,'draft'),id=state.export_id??=crypto.randomUUID().replaceAll('-',''),originalProse=proseBaseline();
+   const design=sanitizedDesign(state,'draft'),bound=NbtConstraintContract.resolve(state.constraints??[]);
+   const locked=['buildingShape','size','footprint'].filter(key=>bound[key]!==undefined);
+   if(state.project.source||design.project.size_policy==='fixed')locked.push('size');
+   const request=await NbtPromptAIInput.externalRequest(JSON.stringify([id,before,originalProse]),
+     {...design,...(originalProse?{original_design_text:originalProse}:{})},state.workbench?.instruction??'',locked);
+   if(id!==state.export_id||before!==requestBinding(state,'draft')||originalProse!==proseBaseline())throw Error('方案已改变，请重新复制起草请求');
+   return {request,before};
+ }
+ $('prompt-external-copy').onclick=async()=>{try{
+   const {request}=await externalDraftRequest();
+   const text=JSON.stringify(request,null,2);
+   try{await navigator.clipboard.writeText(text);$('prompt-external-copy-fallback').hidden=true;aiMessage('起草请求已复制');}
+   catch{$('prompt-external-copy-fallback').hidden=false;const field=$('prompt-external-request');field.value=text;field.select();aiMessage('已选中起草请求，可按 Ctrl+C 复制');}
+ }catch(error){aiMessage(error.message,true);}};
+ $('prompt-external-import').onclick=async()=>{try{
+   if(state.proposal_draft)throw Error('请先采用或放弃现有建议');
+   const {request,before}=await externalDraftRequest();
+   const result=NbtPromptAIInput.readExternalSuggestion($('prompt-external-reply').value,request);
+   adoptProposal(state,result,'draft');
+   state.proposal_draft=proposalDraft(before,'draft',result);
+   $('prompt-external-reply').value='';
+   $('prompt-ai-sources').replaceChildren();
+   restoreCandidate();update();aiMessage('外部设计建议已导入，可逐项对照后采用。');
+ }catch(error){aiMessage(error.message,true);}};
  $('prompt-ai-generate').onclick=async()=>{
    if(aiRunning)return;const epoch=++aiEpoch;
    try{
@@ -498,7 +525,7 @@
      }
      if(mode==='draft')NbtPromptAIInput.assertPatch(base.project,patch,briefFields(base));
      const next=C.clone(base);if(patch.buildingShape&&mode!=='draft'){if(!C.buildingShapes[patch.buildingShape]||base.project.source&&patch.buildingShape!==base.project.buildingShape)throw Error('建筑形状无效，或已有模型形状不能由 AI 改写');C.applyShape(next.project,patch.buildingShape);}for(const [key,value]of Object.entries(patch)){if(key!=='size'&&(typeof value!=='string'||value.length>4000))throw Error('设计字段需为有效文字');next.project[key]=value;}
-     if(proposal.operations!==undefined)next.operations=proposal.operations;
+     if(mode!=='draft'&&proposal.operations!==undefined)next.operations=proposal.operations;
      if(mode==='draft'){
        if(!Object.keys(patch).length)throw Error('需要至少一项设计建议');
        if(proposal.operations!==undefined&&(!Array.isArray(proposal.operations)||proposal.operations.length))throw Error('提示词编写只采用设计要求；具体工具步骤请使用高级工具模式');
