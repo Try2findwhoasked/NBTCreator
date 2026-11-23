@@ -10,6 +10,14 @@ class WriteConflict(ValueError):
         self.details = dict(kind=kind, positions=[list(p) for p in positions[:8]], total=len(positions))
 
 
+class ChangePolicyError(ValueError):
+    def __init__(self, message, kind, *, positions=(), total):
+        super().__init__(message)
+        self.kind = kind
+        self.positions = positions
+        self.total = total
+
+
 def enforce_overwrite(model, walls, operation, edits, owners):
     """A new component may layer its own writes, but cannot claim old solids."""
     group=operation.get('write_group')
@@ -59,10 +67,14 @@ def reserved_position(positions, boxes):
 def enforce_changes(before,after,old_walls,walls,protected=(),maximum=None,require_change=False):
     geometry,layers=change_sets(before,after,old_walls,walls)
     changed=geometry|layers;touched=sorted(changed&set(protected))
-    if touched:raise ValueError('几何或墙层归属触及保护区：'+str(touched[:20]))
+    if touched:
+        raise ChangePolicyError('几何或墙层归属触及保护区：'+str(touched[:20]),
+                                'PROTECTED_SPACE', positions=touched[:20], total=len(touched))
     if maximum is not None:
         if type(maximum) is not int or maximum<0:raise ValueError('变化上限必须为非负整数')
-        if len(changed)>maximum:raise ValueError(f'几何或层归属共变化{len(changed)}格，超过上限{maximum}')
+        if len(changed)>maximum:
+            raise ChangePolicyError(f'几何或层归属共变化{len(changed)}格，超过上限{maximum}',
+                                    'CHANGE_BUDGET', total=len(changed))
     if require_change and not changed:raise ValueError('没有实际几何或层归属变化')
     return dict(changed_blocks=len(geometry),wall_membership_changes=len(layers),changed_positions=len(changed))
 

@@ -183,7 +183,8 @@ for _tool in ('parametric_compile', 'pattern_compile', 'pattern_microfit', 'surf
               'bay_compile', 'vault_compile', 'tracery_compile', 'facade_compile', 'field_compile', 'scene_compile'):
     RECIPE_COMPILERS.register(_tool, _AgentRecipe(_tool))
 
-for _method in ('install', 'preflight_update', 'update', 'remove', 'detach', 'patch', 'apply_operations', 'seal', 'open_declared'):
+for _method in ('install', 'preflight_update', 'update', 'remove', 'detach', 'patch', 'apply_operations',
+                'beam_rhythm', 'adopt_beam_rhythm', 'seal', 'open_declared'):
     MODEL_ACTIONS.register(_method, _ModelAction(_method))
 
 

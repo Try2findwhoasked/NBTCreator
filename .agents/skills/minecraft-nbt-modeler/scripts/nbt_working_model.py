@@ -19,7 +19,7 @@ import tempfile
 from nbt_assembly import Volume
 from nbt_model import AIR, AIR_NAMES, state
 from nbt_modeling_session import canonical
-from nbt_change_policy import change_sets, enforce_changes, reserved_position
+from nbt_change_policy import ChangePolicyError, change_sets, enforce_changes, reserved_position
 
 _publication_locks = ContextVar('working_model_publication_locks', default=frozenset())
 
@@ -328,7 +328,7 @@ class WorkingModel:
         self._unchanged()
         edits = list(edits)
         if len(edits) > self.limits['max_written_positions']:
-            raise ValueError('操作写入量超过上限')
+            raise ChangePolicyError('操作写入量超过上限', 'WRITE_BUDGET', total=len(edits))
         candidate = empty_volume(self.model.size)
         candidate.blocks = dict(self.model.blocks)
         walls, seen, conflicts = set(self.walls), set(), []
@@ -374,11 +374,14 @@ class WorkingModel:
         """Check every expected old state, then swap one complete candidate."""
         staged = self._stage_edits(edits)
         candidate, walls, _, _ = staged
+        self._check_edit_policies(candidate, walls, self.instances if instances is None else instances)
+        return self._adopt_edits(staged, instances)
+
+    def _check_edit_policies(self, candidate, walls, instances):
         # Declared routes are checked against the entire host, including free voxels.
         if self.context.get('require_routes'):
             self._routes(candidate)
-        self._instance_policy(candidate, walls, instances if instances is not None else self.instances)
-        return self._adopt_edits(staged, instances)
+        self._instance_policy(candidate, walls, instances)
 
     def _adopt_edits(self, staged, instances):
         candidate, walls, difference, total = staged
@@ -423,10 +426,13 @@ class WorkingModel:
 
     def _compile(self, recipe, transform):
         from nbt_extensions import compile_recipe
-        from nbt_components import placement
         component, result = compile_recipe(self.workspace, recipe)
+        return self._place_compiled(recipe, transform, component, result)
+
+    def _place_compiled(self, recipe, transform, component, result):
+        from nbt_components import placement
         if len(component['blocks']) > self.limits['max_component_blocks']:
-            raise ValueError('构件方块数超过上限')
+            raise ChangePolicyError('构件方块数超过上限', 'COMPONENT_BUDGET', total=len(component['blocks']))
         if set(transform) - {'position', 'quarter_turns', 'mirror'}:
             raise ValueError('未知构件变换字段')
         placed = placement(component, transform['position'], self.model.size,
@@ -455,7 +461,13 @@ class WorkingModel:
             raise ValueError('覆盖开关须为布尔值')
         transform = dict(position=list(point(position)), quarter_turns=quarter_turns, mirror=mirror)
         values, compiled = self._compile(recipe, transform)
-        occupied = {point(row['pos']): name for name, item in self.instances.items() for row in item['baseline'] if row['owned']}
+        instance, edits = self._install_rows(identifier, recipe, transform, values, compiled, self._owned_positions(), overwrite)
+        return self._commit_edits(edits, self.instances | {identifier: instance})
+
+    def _owned_positions(self):
+        return {point(row['pos']): name for name, item in self.instances.items() for row in item['baseline'] if row['owned']}
+
+    def _install_rows(self, identifier, recipe, transform, values, compiled, occupied, overwrite=False):
         rows, edits, conflicts = [], [], []
         for p, after in sorted(values.items()):
             before = value_at(self.model, self.walls, p)
@@ -466,9 +478,15 @@ class WorkingModel:
             edits.append(dict(pos=list(p), before=before, after=after))
         if conflicts:
             raise ModelConflict('INSTALL_OCCUPIED', conflicts)
-        instances = deepcopy(self.instances)
-        instances[identifier] = dict(recipe=deepcopy(recipe), transform=transform, baseline=rows, compiled=compiled)
-        return self._commit_edits(edits, instances)
+        return dict(recipe=recipe, transform=transform, baseline=rows, compiled=compiled), edits
+
+    def beam_rhythm(self, goal, preview=None):
+        from nbt_beam_rhythm import BeamRhythm
+        return BeamRhythm(self, goal).search(preview)
+
+    def adopt_beam_rhythm(self, goal, pitch, start_z, candidate_sha256):
+        from nbt_beam_rhythm import BeamRhythm
+        return BeamRhythm(self, goal).adopt(pitch, start_z, candidate_sha256)
 
     def _stage_update(self, identifier, recipe, transform):
         if identifier not in self.instances:
