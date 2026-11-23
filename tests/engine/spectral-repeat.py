@@ -98,6 +98,7 @@ class SpectralRepeat(unittest.TestCase):
         self.assertEqual(validated['content_sha256'], expected)
         listing = dispatch(self.root, 'parametric_list', dict(kind='spectral_repeat'))
         self.assertEqual(listing['kinds'][0]['mount'], 'repeat_x')
+        self.assertEqual(listing['kinds'][0]['styles'], {})
 
 
 if __name__ == '__main__':

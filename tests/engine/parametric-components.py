@@ -7,8 +7,8 @@ from nbt_assets.components import paste_plan
 from nbt_assembly import Volume
 from nbt_building.parametric import KINDS
 
-# Planar UV stencils use the dedicated contract tested in curve-stencils.py.
-STYLED_KINDS = tuple(kind for kind in KINDS if kind != "curve_stencil")
+# Planar stencils and spectral repeats use their own parameter contracts and test suites.
+STYLED_KINDS = tuple(kind for kind in KINDS if kind not in ("curve_stencil", "spectral_repeat"))
 
 class Parametric(unittest.TestCase):
  def setUp(self):
