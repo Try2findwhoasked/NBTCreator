@@ -1,0 +1,36 @@
+{
+  "version": "reading-loft-benchmark-1",
+  "candidate_budget": 2,
+  "review_views": ["outside", "entry_player", "cabinet"],
+  "cases": {
+    "open-activity": {
+      "version": 1,
+      "task": "建造一座有门厅、收卷台、楼梯和夹层书柜的归卷阁。管理员从门口进入，在收卷台的操作面收卷，再由梯脚登上夹层，在书柜操作面归架。保留指定入口、梯脚与梯顶站位。",
+      "max_changed_positions": null,
+      "review_question": "从外观和来路机位，哪版的入口更易辨识？可以记录平局。"
+    },
+    "blocked-stair": {
+      "version": 1,
+      "task": "修复归卷阁夹层梯口被书柜占住的问题。保留入口和收卷台到楼梯的路线，让管理员能在梯顶落脚，继续走到书柜操作面归架。",
+      "max_changed_positions": 24,
+      "review_question": "从相同来路观察建筑入口和夹层书柜，哪版的空间关系更易辨识？可以记录平局。"
+    },
+    "wrong-side": {
+      "version": 1,
+      "task": "只把管理员在收卷台的停靠点改到实际操作面一侧，保留其余停靠点、现有方块和墙层。即使从台后能走到楼梯，台后也不能作为收卷站位。",
+      "max_changed_positions": 24,
+      "review_question": "从外观和入口机位，哪版的入口更易辨识？可以记录平局。"
+    },
+    "cabinet-trim": {
+      "version": 1,
+      "task": "仅将夹层书柜顶部三格深色橡木下半砖换成云杉下半砖。保留其余方块、墙层、两个操作面和从入口、收卷台经梯口到书柜的既有路线。",
+      "max_changed_positions": 3,
+      "edit": {
+        "positions": [[4, 7, 24], [5, 7, 24], [6, 7, 24]],
+        "previous_state": "minecraft:dark_oak_slab[type=bottom]",
+        "state": "minecraft:spruce_slab[type=bottom]"
+      },
+      "review_question": "从同一个书柜机位看压条与书格的关系，你更喜欢哪版？可以记录平局。"
+    }
+  }
+}

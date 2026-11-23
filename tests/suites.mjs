@@ -108,6 +108,7 @@ export const suites = {
     node('--test', 'tests/node/batch-links.test.cjs'),
     node('tests/desktop/batch-workspaces-desktop.mjs'),
   ],
+  'building-generation-benchmark': [python('-B', 'tests/engine/building-generation-benchmark.py')],
   'building-quality': [
     buildWeb,
     python('-B', 'tests/engine/building-quality.py'),
