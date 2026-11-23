@@ -82,6 +82,8 @@ def normalize(plan):
         if row.get('space') and row['space'] not in spaces:raise ValueError('构件引用的功能空间不存在：'+row['id'])
     from nbt_building.intent import validate_intent
     validate_intent(plan, valid_parts)
+    from nbt_building.quality_plan import items
+    items(plan)
     return plan
 
 
@@ -132,6 +134,14 @@ def resolve(plan):
         for pose in room['samples']:
             if pose[1]!=room['feet_y'] or any(not room['lo'][i]<=pose[i]<=room['hi'][i]+1 for i in range(3)):
                 raise ValueError('空间站位与声明层级或范围不一致：'+room['id'])
+    measured_roles = {
+        role for feature in result.get('quality', {}).get('style', []) for site in feature['sites']
+        for member in site.get('quantitative', {}).get('members', []) for role in member['roles']
+    }
+    for role in sorted(measured_roles):
+        material = result['style']['materials'][role]
+        if not isinstance(material, str) or state(material) in AIR_NAMES:
+            raise ValueError('风格量化材质角色须为可放置的方块状态：' + role)
     return result
 
 
@@ -346,8 +356,9 @@ def preflight(workspace,request):
 
 
 def build(workspace,request):
-    from nbt_working_model import WorkingModel,value_at,model_hash
+    from nbt_working_model import ModelConflict,WorkingModel,value_at,model_hash
     from nbt_building.construction_systems import CONSTRUCTION_SYSTEMS
+    from nbt_building.quality import BLOCKING_CODES, assess, from_model
     plan=select(workspace,request);resolved=resolve(plan);workspace=Path(workspace).resolve()
     source=request.get('source')
     if source:
@@ -391,7 +402,14 @@ def build(workspace,request):
         scratch.install(identifier,wrapped_recipe(workspace,part),part['position'],quarter_turns=part.get('quarter_turns',0),mirror=part.get('mirror'))
         binding['parts'][part['id']]=identifier;binding['generated_instances'].append(identifier)
     for stair in resolved['stairs']:
-        voxels,receipt=CONSTRUCTION_SYSTEMS.resolve('stair_system')(scratch.model,stair,budget)
+        try:
+            voxels,receipt=CONSTRUCTION_SYSTEMS.resolve('stair_system')(scratch.model,stair,budget)
+        except ModelConflict as error:
+            if error.code == 'STAIR_ROUTE_FAILED':
+                geometry = error.conflicts[0]['report']['geometry_sha256']
+                error.quality = assess(resolved, binding['sha256'], geometry,
+                                       conflicts=error.conflicts, code=error.code)
+            raise
         identifiers=install_geometry(scratch,'stair_'+stair['id'],voxels)
         binding['generated_instances']+=identifiers;binding['systems'][stair['id']]=receipt;binding['stairs'][stair['id']]=identifiers
     for relation in resolved['connections']:
@@ -405,7 +423,14 @@ def build(workspace,request):
     from nbt_whole_validation import requires_enclosure
     if requires_enclosure(scratch.context):
         scratch.seal()
-    scratch.open_declared()
+    try:
+        scratch.open_declared()
+    except ModelConflict as error:
+        if error.code in BLOCKING_CODES:
+            geometry = error.conflicts[0].get('report', error.conflicts[0]).get('geometry_sha256')
+            error.quality = assess(resolved, binding['sha256'], geometry,
+                                   conflicts=error.conflicts, code=error.code)
+        raise
     # Engine-declared carving updates every generated part's current baseline.
     # Retain owned-air records so the next rebuild can safely remove the same group.
     for identifier in binding['generated_instances']:
@@ -415,10 +440,31 @@ def build(workspace,request):
     edits=[dict(pos=list(p),before=value_at(original.model,original.walls,p),after=value_at(scratch.model,scratch.walls,p)) for p in sorted(positions)
         if value_at(original.model,original.walls,p)!=value_at(scratch.model,scratch.walls,p)]
     original._instance_policy(scratch.model,scratch.walls,original.instances)
-    original._commit_edits(edits,instances=scratch.instances)
+    try:
+        original._commit_edits(edits,instances=scratch.instances)
+    except ModelConflict as error:
+        if error.code in BLOCKING_CODES:
+            from nbt_building.intent import check_intent
+            from nbt_collision import _Space
+            error.quality = assess(resolved, binding['sha256'], scratch.model.fingerprint(),
+                validation=dict(architecture=dict(checks=check_intent(scratch, binding, resolved, _Space(scratch.model)))),
+                conflicts=error.conflicts,
+                code=error.code, volume=scratch.model, style_geometry=(scratch, binding))
+        raise
     original.phase='opened';original.model.stage='opened';original.preopening=deepcopy(scratch.preopening);original._closed=deepcopy(scratch._closed)
     original._architecture=binding;original._saved=None
-    report=original.validate()
+    try:
+        # Standalone validation always checks these routes. Obtain its
+        # structured witness even when the edit-time route policy is disabled.
+        if not original.context.get('require_routes'):
+            original._routes(original.model)
+        report=original.validate()
+    except ModelConflict as error:
+        if error.code in BLOCKING_CODES:
+            error.quality = assess(resolved, binding['sha256'], original.model.fingerprint(),
+                validation=dict(architecture=check_model(original, binding)), conflicts=error.conflicts,
+                code=error.code, volume=original.model, style_geometry=(original, binding))
+        raise
     if not report['architecture']['passed']:raise ValueError('建筑方案实际检查未通过：'+json.dumps(report['architecture'],ensure_ascii=False))
     result=dict(plan_sha256=binding['sha256'],checks=report,model=original.inspect(),asset_written=False,approval_created=False,nbt_exported=False)
     if request.get('output'):
@@ -428,6 +474,8 @@ def build(workspace,request):
         result['saved'] = saved
         result['revision_request'] = dict(source=saved['source'], source_sha256=saved['source_sha256'],
                                           expected_plan_sha256=result['plan_sha256'])
+    if 'quality' in plan:
+        result['quality'] = from_model(original, validation=report)
     return result
 
 
@@ -441,18 +489,27 @@ def argument(value,path):
 
 @DESIGN_CHECKS.register('palette')
 def palette_rule(model,binding,resolved,rule):
-    allowed=set()
-    from nbt_microfit import companions,options_for
-    for role in rule['roles']:
-        if role not in resolved['style']['materials']:raise ValueError('材质角色不存在：'+role)
-        value=state(resolved['style']['materials'][role]);allowed.add(effective_name(value))
-        for shaped,_ in options_for(value,companions(value,'wall',None),'wall')[0]:
-            if shaped:allowed.add(effective_name(shaped))
+    allowed=material_role_names(resolved,rule['roles'])
     violations=[]
     for name in rule['parts']:
         _,positions=actual_part(model,binding,name)
         violations.extend(dict(part=name,pos=list(p),state=model.model.get(p)) for p in sorted(positions) if effective_name(model.model.get(p)) not in allowed)
     return dict(id=rule['id'],kind='palette',passed=not violations,violations=violations[:32])
+
+
+def material_role_names(resolved, roles):
+    from nbt_microfit import companions,options_for
+
+    allowed = set()
+    for role in roles:
+        if role not in resolved['style']['materials']:
+            raise ValueError('材质角色不存在：' + role)
+        value = state(resolved['style']['materials'][role])
+        allowed.add(effective_name(value))
+        for shaped, _ in options_for(value, companions(value, 'wall', None), 'wall')[0]:
+            if shaped:
+                allowed.add(effective_name(shaped))
+    return allowed
 
 
 def effective_name(value):

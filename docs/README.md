@@ -15,6 +15,7 @@ NBTCreator 的文档按使用指南、开发维护和历史记录归类。首次
 | [共享工作区](guides/SHARED_WORKSPACE.md) | 目录、知识路由、运行时同步、协作与评论校验 |
 | [设置与更新](guides/SETTINGS_AND_UPDATES.md) | 偏好保存、Skill 入口、下载校验与手动更新 |
 | [房间质量辅助模型](guides/ROOM_QUALITY.md) | 评分公式、资料完整性、使用入口和局限 |
+| [整栋建筑质量评分](../.agents/skills/minecraft-nbt-modeler/references/building-quality.md) | 五维试用评分、真实图像证据、阻塞定位和续版复验 |
 | [已知问题](KNOWN_ISSUES.md) | 问题状态、现有证据与尚未验证的范围 |
 
 ## 开发维护

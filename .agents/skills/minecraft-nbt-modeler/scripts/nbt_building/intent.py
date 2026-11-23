@@ -51,7 +51,8 @@ def check_use_face(model, binding, space, stop):
     try:
         contact = surface(model, binding, spec)
     except ValueError as error:
-        return dict(result, reason='missing_or_unverified_interface', detail=str(error))
+        return dict(result, reason='missing_or_unverified_interface', detail=str(error),
+                    interface_code=getattr(error, 'code', None))
     axis, sign = FACES[contact['face']]
     if axis == 1:
         return dict(result, reason='horizontal_approach_requires_vertical_face')

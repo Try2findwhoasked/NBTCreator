@@ -29,6 +29,7 @@
     "test:curve-stencils": "python -B tests/engine/curve-stencils.py",
     "test:architecture-workflow": "python -B tests/engine/architecture-workflow.py",
     "test:architecture-preview": "npm run build:web && node tests/desktop/architecture-preview.mjs",
+    "test:building-quality": "npm run build:web && python -B tests/engine/building-quality.py && node tests/desktop/building-quality.mjs",
     "test:extensions": "python -B tests/engine/extensions.py",
     "test:model-preview": "npm run build:web && node tests/desktop/working-model-render.mjs && node tests/desktop/large-assembly-desktop.mjs",
     "test:engine-session": "node --test tests/node/engine-session.test.mjs",

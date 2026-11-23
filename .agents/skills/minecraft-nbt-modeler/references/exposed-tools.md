@@ -144,6 +144,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 校验候选快照 | `validate --request <请求JSON> --snapshot <候选快照> --output <新检查目录>` | 同一次 control preview 的原始编辑请求与回执的 result.snapshot（after.json）。 | 写 validation.json，检查源绑定、实际改动、保护和几何。以 result.passed 判定是否通过。 |
 | 复验已保存的制作源 | `model --request <请求JSON>` | JSON 填 source、source_sha256 和 validate:true。路径与哈希从保存回执 result.saved 取。 | 返回 result.validation。只检查时省略 actions 和 save_draft。 |
 | 复验建筑及绑定方案 | `architect plan-check --request <请求JSON>` | JSON 填绑定过建筑方案的 source 和 source_sha256。 | 返回 validation、绑定方案和 plan_sha256。 |
+| 评估整栋建筑或复核续版质量 | `architect quality-check / quality-compare --request <请求JSON>` | 制作源和哈希，可选 review-record 的审阅绑定。对照时提供上一版或失败回执绑定。 | 返回五维评分、证据覆盖、优先问题和同条件分差。可用 --compact-report 保留完整回执。 |
 | 查询制作源是否可编辑 | `control inspect --source <制作源>` | 现有制作源路径。 | result.editing_ready 表示是否具备编辑条件，context_readiness 给出上下文缺失或失配的原因。 |
 
 ### 构件

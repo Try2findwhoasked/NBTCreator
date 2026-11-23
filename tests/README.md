@@ -24,6 +24,7 @@
 | API、AI 本地协议与引擎会话 | `mise run test -- api` |
 | 内部 Agent 起草、润色和提示词交接 | `mise run test -- prompt-archive` |
 | 桌面冒烟 | `mise run test -- desktop` |
+| 整栋建筑质量评分、归卷阁真实出图与桌面报告 | `mise run test -- building-quality` |
 | 工作区契约与路径选择 | `mise run test -- workspace` |
 | 可移植引擎合成回归 | `mise run nbt -- regress --output <新目录>` |
 | 建模工具与操作参数 | `mise run test -- modelling` |
@@ -40,6 +41,21 @@
 | 外部资产库的离线、完整性与回滚 | `mise run assets:test` |
 | 外部资产库桌面流程 | `mise run assets:desktop` |
 | 工作台旅程、焦点与窗口布局 | `mise run ui:test` |
+
+整栋评分的留出样例使用归卷院和折角铜顶展馆。从源码根目录先执行 `mise run ci:build`，再执行 `mise exec -- node tests/desktop/building-quality.mjs --held-out` 生成制作源、审阅包和真实渲染。在读取图像后，用 `review-record` 的量表观察字段登记评审。
+
+风格量化专项可在构建前端后运行 `mise exec -- node tests/desktop/building-quality.mjs --style`。命令生成四个已落盘的梁架对照，核对 CLI 与桌面结果，写出 `style-results.json` 和桌面截图。
+
+### 等预算试验验收
+
+从源码根目录运行 `mise exec -- python -B tests/support/building-quality-trial.py <试验目录>/coordinator.json` 校验已经冻结的两组输入。各组应共用制作源、技术回执、机位和修改预算。技术回执使用 `plan-check` 中的技术检查结果，两组分别追加房间评分与整栋评分。试验协调文件保留分组和验收目标，供协调员核对。
+
+加入 `--records <试验目录>/rounds.json` 可汇总独立修改和盲评。该 JSON 顶层按样例 ID 分组。每例有两个字段。
+
+- `rounds` 按组 ID 记录 `input_sha256`、`agent`、独立的 `run_id`、`rounds: 1`、`elapsed_seconds` 和 `outcome`。后者采用 `quality-check` 的请求对象。续版直接来自共同初稿，检查用回读的方块与墙层计算实际改动量。
+- `blind` 由协调员记录 `reviewer_knew_groups: false` 及 `votes`。每条投票写 `reviewer`，并使用 `{path, sha256}` 分别绑定本轮 `reference review-prepare` 的私有 `binding` 和 `review-record` 的 `record`。两种路径都以创作工作区为准。用户与独立 Agent 分别投票。用交换顺序后的匿名包再请同一评审 Agent 作答，同时把该盲审评审的分项等级转记到各制作版的 `architect review-record`。
+
+输出保留同机位修复率、用户与 Agent 偏好、平局、交换顺序的一致性、必要路线回归和修改成本。缺回执、不同条件或超出改动预算时可查验收缺项。替换默认反馈还需在整栋专项回归中通过必要路线和操作面反例。
 
 单独运行一个检查：
 

@@ -109,7 +109,7 @@ def reading_loft(blocked=False, wrong_side=False):
         ]))
     windows = [dict(lo=[x, 4, 2], hi=[x + 3, 6, 2], state="glass") for x in (3, 14)]
     windows.extend(dict(lo=[19, 3, z], hi=[19, 6, z + 3], state="glass") for z in (7, 15))
-    return dict(
+    plan = dict(
         schema_version=1, name="归卷阁", size=[21, 16, 28],
         style=dict(name="木架灰瓦阅览阁", materials=dict(frame="stripped_spruce_log", counter="birch_slab[type=bottom]")),
         context=dict(mode="standalone", openings=[dict(id="entry", lo=[9, 2, 2], hi=[11, 5, 2], facing="north")],
@@ -148,4 +148,66 @@ def reading_loft(blocked=False, wrong_side=False):
                           dict(id="desk_edge", purpose="台面薄边与台前站位", position=[13.5, 3.5, 9], views=["counter"]),
                           dict(id="stair_exit", purpose="梯顶与平台交接净空", position=[5.5, 5.1, 19.5], views=["landing"]),
                           dict(id="shelf_face", purpose="书格使用面与压顶", position=[5.5, 6.1, 24], views=["cabinet"])],
+    )
+    plan["views"].extend([
+        dict(id="entry_player", layer="structure", feet=[10.5, 2, .5], target=[10.5, 4.5, 6.5], fov=75,
+             minimum_visible=.1),
+        dict(id="rear_eaves", layer="structure", eye=[27, 13, 35], target=[10, 9, 25], target_part="tiled_roof",
+             fov=65, minimum_visible=.1),
+    ])
+    plan["quality"] = quality_checklist()
+    return plan
+
+
+def quality_checklist():
+    def standard(name, goal, views):
+        return dict(id=name, target=dict(position=[10.5, 5, 8]), goal=goal, views=views)
+
+    def detail(identifier, position, view, relationship, joint, use):
+        return dict(id=identifier, target=dict(position=position), criteria=[
+            dict(id="relationships", goal=relationship, views=[view]),
+            dict(id="joints", goal=joint, views=[view]),
+            dict(id="legibility", goal=use, views=[view]),
+        ])
+
+    def leg(identifier, views, turn, wayfinding, purpose):
+        return dict(id=identifier, criteria=[
+            dict(id="turning_stops", goal=turn, views=views),
+            dict(id="wayfinding", goal=wayfinding, views=views),
+            dict(id="purpose_fit", goal=purpose, views=views),
+        ])
+
+    return dict(
+        rubric="building-quality-v1", revision="reading-loft-2", stage="draft",
+        requirements=[dict(id="return_books", required=True, stage="draft",
+            goal="有完整收卷台、上楼停靠及归架柜，从三个适用机位可核对",
+            views=["counter", "landing", "cabinet"])],
+        aesthetics=[
+            standard("massing", "屋顶和主体比例协调，入口整体可读", ["outside", "entry_player"]),
+            standard("hierarchy", "山墙中跨入口和阅读窗构成主次", ["outside", "entry_player"]),
+            standard("materials_light", "灰瓦、灰白墙面和木框形成稳定层次", ["outside", "frame"]),
+            standard("view_coherence", "保留顶构，外部到展卷空间的主题连续", ["outside", "entry_player", "frame"]),
+        ],
+        activities=[dict(id="file_books", required=True, requirements=["return_books"], segments=[
+            leg("desk_to_stair", ["counter", "entry_player"], "台前能转身并在梯前停靠",
+                "从台前能辨识厅内楼梯", "收卷离台后可直接到梯脚"),
+            leg("stair_to_landing", ["landing"], "梯顶能转向且出口净空",
+                "登梯时可辨认平台边缘和护栏端头", "负卷步行可连续登梯并在夹层站稳"),
+            leg("landing_to_shelf", ["landing", "cabinet"], "平台和柜前可停靠、转向",
+                "从夹层出口可辨识柜面朝向", "归架者可沿平台走到书柜正面"),
+        ])],
+        style=[dict(id="continuous_eaves", goal="山面有明确深色封檐，沿边连续收口", sites=[
+            dict(id="front", target=dict(position=[10, 12, 0]), goal="前山面灰瓦下连续深木封檐",
+                 views=["outside"]),
+            dict(id="rear", target=dict(position=[10, 12, 27]), goal="后山面封檐与前山面连续同色",
+                 views=["rear_eaves"]),
+        ])],
+        details=[
+            detail("entry", [10.5, 2, 2.5], "entry_player", "入口阔度与木柱、墙厚有清晰层次",
+                   "墙边与地面交接平整", "从入口能识别厅内方向"),
+            detail("stair_head", [5.5, 5.1, 19.5], "landing", "踏步与平台高度协调",
+                   "梯顶护边干净止于平台", "保留梯顶出入口和转身位"),
+            detail("archive", [5.5, 6.1, 24], "cabinet", "书格、柜身和压条尺度适合站立使用",
+                   "压条与柜体端头收齐", "从平台可识别书柜操作侧"),
+        ],
     )
