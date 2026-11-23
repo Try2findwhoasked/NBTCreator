@@ -1,6 +1,7 @@
 """Shared inspection, snapshot, preview and regression entrypoint; no approval shortcut."""
 import os
 import argparse
+from dataclasses import dataclass
 import hashlib
 import json
 from pathlib import Path
@@ -11,48 +12,76 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def inspect_source(source, provenance=None, cameras=None):
+@dataclass(frozen=True)
+class SnapshotSource:
+    path: Path
+    model: object
+    walls: set
+    binding: dict
+    geometry_sha256: str
+
+    @property
+    def assembly(self):
+        return self.binding.get('source_kind') == 'assembly'
+
+    def verify(self):
+        if not preview_source_matches(self.path, self.binding):
+            raise ValueError('Source or wall mask changed while preparing the snapshot')
+
+
+def load_snapshot_source(source):
     from nbt_refine import binary_wall_mask_hash, digest, read_master
     from nbt_large_assembly import is_assembly_source, read_assembly
-    from nbt_registry import effective, normalize, registry
+
     source = Path(source)
     assembly = is_assembly_source(source)
     if assembly and source.is_symlink():
         raise ValueError('组装清单不能是符号链接')
     source = source.resolve()
-    source_hash = digest(source)
-    mask_hash = binary_wall_mask_hash(source)
+    binding = dict(source_sha256=digest(source), binary_wall_mask_sha256=binary_wall_mask_hash(source))
     model, walls = read_assembly(source) if assembly else read_master(source)
+    if assembly:
+        binding['source_kind'] = 'assembly'
+        binding['assembly_partitions'] = [dict(file=name, sha256=sha) for name, sha in model._assembly_binding[2]]
+    return SnapshotSource(source, model, walls, binding, model.fingerprint())
+
+
+def inspect_source(source, provenance=None, cameras=None, *, loaded=None):
+    from nbt_registry import effective, normalize, registry
+
+    loaded = loaded or load_snapshot_source(source)
+    source = loaded.path
+    model, walls = loaded.model, loaded.walls
     effective_blocks = []
     for p, value in sorted(model.blocks.items()):
         name, props = effective(value)
         effective_blocks.append([list(p), normalize(dict(Name=name, Properties=props))])
-    result = dict(name=source.name, source=str(source), source_sha256=source_hash, binary_wall_mask_sha256=mask_hash,
-                  geometry_sha256=model.fingerprint(), size=list(model.size), blocks=effective_blocks,
+    result = dict(name=source.name, source=str(source), source_sha256=loaded.binding['source_sha256'],
+                  binary_wall_mask_sha256=loaded.binding['binary_wall_mask_sha256'],
+                  geometry_sha256=loaded.geometry_sha256, size=list(model.size), blocks=effective_blocks,
                   wall_positions=sorted(walls), cameras=cameras or [],
                   registry_sha256=registry()['blocks_sha256'],
                   state_semantics='Version defaults applied for display only; source is unchanged',
                   verification=dict(block_states=True, seal='not_checked', routes='not_checked',
                                     saodg49='not_checked', game='not_checked', design='pending_visual_review'))
-    if assembly:
+    if loaded.assembly:
         result['source_kind'] = 'assembly'
-        result['assembly_partitions'] = [dict(file=name, sha256=sha) for name, sha in model._assembly_binding[2]]
+        result['assembly_partitions'] = loaded.binding['assembly_partitions']
     if provenance:
         trace = json.loads(Path(provenance).read_text(encoding='utf8'))
-        if trace['geometry_sha256'] != model.fingerprint():
+        if trace['geometry_sha256'] != loaded.geometry_sha256:
             raise ValueError('Provenance belongs to another geometry version')
         result['owners'] = [[','.join(map(str, p)), op] for p, op in trace['owners']]
         result['operations'] = trace['operations']
-    if not preview_source_matches(source, result):
-        raise ValueError('Source or wall mask changed while preparing the snapshot')
+    loaded.verify()
     return result
 
 
-def write_snapshot(source, output, provenance=None, cameras=None):
+def write_snapshot(source, output, provenance=None, cameras=None, *, loaded=None):
     output = Path(output).resolve()
     if output.exists():
         raise FileExistsError('Keep reviewed snapshots; choose a new output')
-    result = inspect_source(source, provenance, cameras)
+    result = inspect_source(source, provenance, cameras, loaded=loaded)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf8')
     return result

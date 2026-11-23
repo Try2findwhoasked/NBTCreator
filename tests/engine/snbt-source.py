@@ -7,8 +7,10 @@ from nbt_refine import read_master,save_master
 from nbt_snbt import save_snbt,read_snbt,write_binary,root,convert,N
 from nbt_finalize import finalize
 from nbt_web_revision import convert_web_json
-from nbt_detail_control import default_settings,catalog
+from nbt_detail_control import default_settings,catalog,open_source,source_snapshot
+import nbt_refine
 import nbt_snbt
+import nbt_large_assembly
 
 class ParsedSourceCache(unittest.TestCase):
  def setUp(self):
@@ -66,6 +68,74 @@ class ParsedSourceCache(unittest.TestCase):
    self.assertLess(tracemalloc.get_traced_memory()[1],1024*1024)
   finally:
    tracemalloc.stop()
+
+class SourceOpen(unittest.TestCase):
+ def setUp(self):
+  temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup);self.folder=Path(temporary.name).resolve()
+  self.model=Volume((8,8,8));self.model.box([0,0,0],[7,1,7],'stone_bricks');self.walls={(0,0,0)}
+
+ def test_open_decodes_each_source_format_once_and_matches_manual_snapshot(self):
+  formats={'model.snbt':save_snbt,'model.nbt':write_binary,'model.master.json.gz':save_master}
+  camera=dict(id='whole',eye=[12,8,-8],target=[4,2,4],cuts=[['y',1,'above']])
+  cameras=self.folder/'cameras.json';cameras.write_text(json.dumps([camera]),encoding='utf8')
+  for index,(name,save) in enumerate(formats.items()):
+   with self.subTest(format=name):
+    source=self.folder/name
+    save(source,self.model,self.walls)
+    nbt_snbt.clear_parsed_sources()
+    with patch.object(nbt_refine,'read_master',wraps=read_master) as load,patch.object(N,'parse_nbt',wraps=N.parse_nbt) as parse:
+     opened=open_source(dict(source=source,preview_mode='3d'),self.folder/f'open-{index}')
+     self.assertEqual(load.call_count,1)
+     if name.endswith('.snbt'):self.assertEqual(parse.call_count,1)
+    self.assertNotIn('preview_error',opened)
+    self.assertEqual(opened['info']['source_sha256'],opened['source_sha256'])
+    self.assertEqual(opened['info']['geometry_sha256'],self.model.fingerprint())
+    self.assertEqual(opened['cameras'][0]['cuts'],[dict(axis='y',position=1,removed_side='above')])
+    manual=source_snapshot(dict(source=source,cameras=cameras),self.folder/f'manual-{index}')
+    self.assertEqual(Path(manual['snapshot']).read_bytes(),Path(opened['snapshot']).read_bytes())
+
+ def test_open_uses_images_when_available_and_falls_back_to_3d(self):
+  source=self.folder/'model.snbt';save_snbt(source,self.model,self.walls)
+  request=dict(source=source,preview_mode='images')
+  with patch('nbt_detail_control.preview_images',return_value=['preview.png']):
+   opened=open_source(request,self.folder/'images')
+  self.assertEqual(opened['info']['images'],['preview.png'])
+  self.assertNotIn('snapshot',opened)
+  self.assertFalse((self.folder/'images').exists())
+  self.assertTrue(Path(open_source(request,self.folder/'fallback')['snapshot']).is_file())
+
+ def test_assembly_opens_once_and_rechecks_its_partition_hashes(self):
+  report=nbt_large_assembly.save_assembly(self.folder/'assembly',self.model,self.walls,[
+   dict(offset=[0,0,0],size=[4,8,8]),dict(offset=[4,0,0],size=[4,8,8]),
+  ])
+  source=Path(report['source'])
+  with patch.object(nbt_large_assembly,'read_assembly',wraps=nbt_large_assembly.read_assembly) as load:
+   opened=open_source(dict(source=source),self.folder/'assembled')
+   self.assertEqual(load.call_count,1)
+  self.assertTrue(opened['read_only_view'])
+  snapshot=json.loads(Path(opened['snapshot']).read_bytes())
+  self.assertEqual(snapshot['source_kind'],'assembly')
+  self.assertEqual(len(snapshot['assembly_partitions']),2)
+  self.assertEqual(snapshot['geometry_sha256'],opened['info']['geometry_sha256'])
+  part=source.parent/snapshot['assembly_partitions'][0]['file']
+  def replace_partition(*_):
+   part.write_bytes(part.read_bytes()+b'\n')
+   return []
+  with patch('nbt_detail_control.preview_images',side_effect=replace_partition):
+   with self.assertRaisesRegex(ValueError,'Source or wall mask changed'):
+    open_source(dict(source=source),self.folder/'stale-assembly')
+  self.assertFalse((self.folder/'stale-assembly/snapshot.json').exists())
+
+ def test_open_rejects_source_changed_after_loading(self):
+  source=self.folder/'model.snbt';save_snbt(source,self.model,self.walls)
+  def replace_source(*_):
+   source.write_bytes(source.read_bytes().replace(b'stone_bricks',b'quartz_block'))
+   return []
+  with patch('nbt_detail_control.preview_images',side_effect=replace_source):
+   with self.assertRaisesRegex(ValueError,'Source or wall mask changed'):
+    open_source(dict(source=source),self.folder/'stale')
+  self.assertFalse((self.folder/'stale/snapshot.json').exists())
+
 
 class SnbtSource(unittest.TestCase):
  def setUp(self):

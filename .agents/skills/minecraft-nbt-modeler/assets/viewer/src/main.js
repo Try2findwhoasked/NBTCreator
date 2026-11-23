@@ -161,10 +161,12 @@ async function main() {
     }
     return { pos, state: paletteIds.get(value) }
   })
-  let activeBlocks = indexed
-  let activeLayer = 'all'
-  let activeCuts = []
-  let filterKey = JSON.stringify([activeLayer, activeCuts])
+  const initialView = getParam('initial_view', '0') === '1' && snapshot.cameras?.length
+    ? normalizeView(snapshot.cameras[0], size) : null
+  let activeLayer = initialView?.layer ?? 'all'
+  let activeCuts = initialView?.cuts ?? []
+  let activeBlocks = filteredBlocks(activeLayer, activeCuts, false)
+  let filterKey = JSON.stringify([activeLayer, activeCuts, false])
   let meshBuilds = 1
   let renderedFrames = 0
   const started = performance.now()
@@ -180,7 +182,7 @@ async function main() {
       sky:{...preset.sky,zenithColor:background,horizonColor:background,groundColor:background,sunGlowIntensity:0,stars:{enabled:false}},
       disc:{...preset.disc,coreIntensity:0,glowIntensity:0},fog:{...preset.fog,color:background,density:0}}
   }
-  const renderer = new ThreeStructureRenderer(canvas, new Structure(size, palette, indexed), withBookshelfModels(pack), {
+  const renderer = new ThreeStructureRenderer(canvas, new Structure(size, palette, activeBlocks), withBookshelfModels(pack), {
     chunkSize: 16, useInvisibleBlockBuffer: false, asyncBuild: true,
     asyncChunkBuildTimeMs: 8, sunlight: sunlight(lightingMode),
   })
@@ -298,11 +300,16 @@ async function main() {
     updateLightingButton(lightingToggle, lightingMode)
     setLightingUrl(lightingMode)
   }
+  function filteredBlocks(nextLayer, cuts, onlyDifferences) {
+    if (nextLayer === 'all' && !cuts.length && !onlyDifferences) return indexed
+    return indexed.filter(({ pos }) => includesBlock(pos, cuts) &&
+      (nextLayer === 'all' || (nextLayer === 'walls') === walls.has(pos.join(','))) &&
+      (!onlyDifferences || differenceLookup?.has(pos)))
+  }
   async function applyFilter(nextLayer, cuts) {
     const key = JSON.stringify([nextLayer, cuts,differenceOnly])
     if (key === filterKey) return
-    const blocks = indexed.filter(({ pos }) => includesBlock(pos, cuts) &&
-      (nextLayer === 'all' || (nextLayer === 'walls') === walls.has(pos.join(',')))&&(!differenceOnly||differenceLookup?.has(pos)))
+    const blocks = filteredBlocks(nextLayer, cuts, differenceOnly)
     if (blocks.length !== activeBlocks.length || blocks.some((block, index) => block !== activeBlocks[index])) {
       renderer.setStructure(new Structure(size, palette, blocks))
       meshBuilds += 1
@@ -403,6 +410,12 @@ async function main() {
     renderer.setViewport(0, 0, rect.width, rect.height, pixelRatio)
     return true
   }
+  if (initialView) {
+    setLighting(initialView.lighting, initialView.lighting_options ?? null)
+    setCamera(initialView)
+    layer.value = activeLayer
+    cutValue.textContent = `${activeCuts.length ? JSON.stringify(activeCuts) : '完整模型'} · ${activeLayer}`
+  }
   resize()
   // Mesh chunks are built asynchronously. Show the viewport as soon as the
   // first chunks exist instead of keeping a blocking cover until all finish.
@@ -488,7 +501,7 @@ async function main() {
       lookup.clear();next.blocks.forEach(([p,value])=>lookup.set(p.join(','),value));owners.clear()
       for(const [position,owner] of next.owners??[])owners.set(position,owner)
       document.getElementById('build-name').textContent=next.name;document.getElementById('build-stats').textContent=`${size.join(' x ')} | ${indexed.length.toLocaleString()} blocks`;document.getElementById('source-hash').textContent=`源 SHA256: ${next.source_sha256}`
-      const blocks=indexed.filter(({pos})=>includesBlock(pos,activeCuts)&&(activeLayer==='all'||(activeLayer==='walls')===walls.has(pos.join(',')))&&(!differenceOnly||differenceLookup?.has(pos)))
+      const blocks=filteredBlocks(activeLayer,activeCuts,differenceOnly)
       renderer.setStructure(new Structure(size,palette,blocks));meshBuilds+=1;await renderer.whenReady();activeBlocks=blocks
       updateDifferenceOverlay();protection.update(protectionData,protectionConflicts,activeCuts,protectionEnabled);walk.update(walkData,walkOptions,activeCuts)
       draw();return metadata()

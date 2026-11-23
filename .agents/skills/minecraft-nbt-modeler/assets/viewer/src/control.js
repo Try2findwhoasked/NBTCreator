@@ -489,7 +489,7 @@ async function runJob(kind, overrides = {}) {
     $('result-log').textContent = kind==='validate'
       ? Object.entries(result.checks).map(([key,value])=>`${value.passed?'通过':'未通过'} · ${key}${value.error?'：'+value.error:''}`).join('\n')+'\n只检查当前修改预览，未写出正式建筑。'
       : kind === 'snapshot'
-      ? `已载入 ${result.size.join(' × ')} 建筑，共 ${result.cameras.length} 个观察角度。\n`+(result.read_only_view?(result.context_warning||'当前仅作几何查看，尚无完整坐标/保护配置；没有执行通路或导出验收。'):'当前显示为所选模型；调整左侧设置不会直接改动建筑。')
+      ? snapshotMessage(result)
       : kind === 'plan' ? `${result.operations} 项操作已编译。\n`+(result.estimates ?? []).map(e=>`${e.kind}：${e.writes} 个候选写入`).join('\n')+(result.warning?'\n估算未完成，完整原因见高级记录。':'\n这些是候选统计，不是已执行结果。')
       : result.changed_blocks !== undefined ? `新版本修改了 ${result.changed_blocks} 个方块${result.wall_membership_changes?'，另有 '+result.wall_membership_changes+' 个墙层归属变化':''}，原建筑保留。` : '结果已保存至本次独立任务目录。'
     $('advanced-log').textContent=JSON.stringify(result,null,2)
@@ -519,7 +519,12 @@ async function runJob(kind, overrides = {}) {
     return result
   } catch(error) { if(error.name!=='AbortError'&&['prepare','apply'].includes(kind))$('advanced-review').open=true;throw error } finally { busy(false) }
 }
-async function loadViewer(result, isNewVersion = false) {
+function snapshotMessage(result) {
+  const detail = result.read_only_view ? result.context_warning : '当前显示为所选模型；调整左侧设置不会直接改动建筑。'
+  return `已载入 ${result.size.join(' × ')} 建筑，共 ${result.cameras.length} 个观察角度。\n`+
+    (detail||'当前仅作几何查看，尚无完整坐标/保护配置；没有执行通路或导出验收。')
+}
+async function loadViewer(result, isNewVersion = false, useInitialView = false) {
   await feedbackAutosave?.flush()
   state.viewerModelKey=result.model_key
   result={...result,cameras:(result.cameras??[]).map(camera=>({...camera,cuts:(camera.cuts??[]).map(c=>Array.isArray(c)?{axis:c[0],position:c[1],removed_side:c[2]}:c)}))}
@@ -536,9 +541,19 @@ async function loadViewer(result, isNewVersion = false) {
   $('view-cut').max=result.size[1]-1;$('view-cut').value=result.size[1]-1;$('cut-value').textContent='完整'
   const frame=$('viewer');frame.hidden=false;$('empty-view').hidden=true
   await new Promise((resolve,reject) => {
-    let timer=setTimeout(()=>reject(new Error('三维预览初始化超时')),60000)
-    frame.onload=async()=>{try{if(generation!==state.viewerGeneration){clearTimeout(timer);resolve();return};await frame.contentWindow.nbtModeler.ready;if(generation!==state.viewerGeneration){clearTimeout(timer);resolve();return};if(result.cameras.length)await frame.contentWindow.nbtModeler.renderView(result.cameras[0]);clearTimeout(timer);resolve()}catch(error){clearTimeout(timer);reject(error)}}
-    frame.src=`/?model_key=${encodeURIComponent(result.model_key)}&embedded=1&quality=${$('three-quality').value}&pixelRatio=0.75&maxFps=24`
+    const timer=setTimeout(()=>reject(new Error('三维预览初始化超时')),60000)
+    frame.onload=async()=>{
+      try{
+        if(generation!==state.viewerGeneration)return resolve()
+        const view=frame.contentWindow.nbtModeler
+        await view.ready
+        if(generation!==state.viewerGeneration)return resolve()
+        if(useInitialView)await view.meshReady
+        else if(result.cameras.length)await view.renderView(result.cameras[0])
+        resolve()
+      }catch(error){reject(error)}finally{clearTimeout(timer)}
+    }
+    frame.src=`/?model_key=${encodeURIComponent(result.model_key)}&embedded=1&quality=${$('three-quality').value}&pixelRatio=0.75&maxFps=24`+(useInitialView?'&initial_view=1':'')
   })
   protectionView?.refresh();walkView?.sync();syncSelectionRange();$('pick-material').disabled=false;$('pick-coordinate').disabled=false;syncPicking()
   state.viewerFeedbackId=result.feedback_id;await activateViewerFeedback(result.feedback_id)
@@ -559,13 +574,29 @@ async function loadModel(preserve=false){
   catch(error){editSession?.resume();throw error}
   }finally{unlockEditorRecovery();protectionView?.refresh()}
 }
+async function openModelJob(source) {
+  const cancelEpoch = state.cancelEpoch ?? 0
+  const {id} = await api('jobs', {kind:'open', request:{
+    source, context:$('context').value.trim(), cameras:$('cameras').value.trim(),
+    image_limit:state.imageLimit, preview_mode:state.defaultPreviewMode==='images'?'images':'3d',
+  }})
+  if(cancelEpoch!==(state.cancelEpoch??0))await api('cancel',{})
+  const job = await api('jobs/'+id+'?wait=1')
+  $('jobs').textContent = `${job.kind} · ${job.status} · ${job.directory}`
+  if(job.status==='cancelled'||cancelEpoch!==(state.cancelEpoch??0))throw new DOMException(job.error||'任务已取消','AbortError')
+  if(job.status!=='complete')throw new Error(job.error??'打开建筑失败')
+  return job.result
+}
 async function loadModelCore(preserve = false) {
   state.selectionEditPicking=null;state.walkPicking=false;state.aiPlacing=null;state.assetPicking=null;state.lastAIGroup=null
   stashDraft();imageMode();busy(true)
   try {
     status('正在打开建筑及门口、通路等保护设置…')
     const previousHash=state.info?.source_sha256
-    const info=await api('inspect',{source:$('source').value.trim(),image_limit:state.imageLimit});state.info=info
+    const source=$('source').value.trim()
+    const opened=preserve?{info:await api('inspect',{source,image_limit:state.imageLimit})}:await openModelJob(source)
+    const {info}=opened
+    state.info=info
     projectManager.checked(info)
     if(info.agent_handoff){
       const shared=info.agent_handoff
@@ -580,9 +611,16 @@ async function loadModelCore(preserve = false) {
     $('model-summary').textContent=`${info.size.join(' × ')} · ${info.solid_blocks.toLocaleString()} 个实体方块 · ${info.wall_blocks.toLocaleString()} 个单独记录的墙体方块`+(info.unknown_shapes.length?`。${info.unknown_shapes.length} 类方块暂时无法自动检查能否通行。可以先生成方案，生成新建筑前仍需通过检查。`:'')+(info.conservative_obstacles?.length?`。${info.conservative_obstacles.length} 类细件仅按保守障碍检查通路，不作为可站立地面，不代表精确碰撞或游戏验收。`:'')
     if(info.editing_ready===false)$('model-summary').textContent+=(info.context_readiness?.scope==='read_only_assembly'?'。当前仅可查看；':'。当前可查看和标注；修改前需补齐坐标配置：')+[...(info.context_readiness?.missing??[]),...(info.context_readiness?.errors??[])].join('、')
     renderMaterials();if(!preserve||previousHash!==info.source_sha256)resetSettingsHistory();gallery(info.images);if(!preserve||previousHash!==info.source_sha256)state.bundle=''
+    if(opened.preview_error)throw new Error(opened.preview_error)
+    if(opened.model_key){
+      status('正在显示 3D 预览…')
+      $('result-log').textContent=snapshotMessage(opened)
+      const {info: _, ...preview}=opened
+      $('advanced-log').textContent=JSON.stringify(preview,null,2)
+      await loadViewer(preview,false,true)
+      status('3D 预览已打开。')
+    }else status(state.images.length?'图片已打开。点击上方缩略图切换视角，点击大图标位置、写修改意见。':'这座建筑还没有对应的图片。可点击“为原建筑生成预览图”，或打开 3D 查看。')
   } finally { busy(false) }
-  status(state.images.length?'图片已打开。点击上方缩略图切换视角，点击大图标位置、写修改意见。':'这座建筑还没有对应的图片。可点击“为原建筑生成预览图”，或打开 3D 查看。')
-  if(!preserve&&(state.defaultPreviewMode!=='images'||!state.images.length))await runJob('snapshot')
 }
 
 let catalogEpoch=0

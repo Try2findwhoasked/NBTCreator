@@ -60,8 +60,9 @@ try{
   const live=await until(()=>api('jobs/'+id),job=>job.status==='running'&&job.phase===phase&&Number.isSafeInteger(job.backend_pid))
   assert.equal(alive(live.backend_pid),true)
   observations.push({id,kind,phase,pid:live.backend_pid,live_before_cancel:true})
+  const completion=kind==='open'?api('jobs/'+id+'?wait=1'):null
   await api('cancel',{})
-  const job=await api('jobs/'+id)
+  const job=await (completion??api('jobs/'+id))
   assert.equal(job.status,'cancelled');assert.equal(job.cancel_requested,true);assert.ok(job.completed_at);assert.equal(job.result,undefined)
   assert.equal(alive(live.backend_pid),false)
   const persisted=JSON.parse(await fs.readFile(path.join(job.directory,'job.json'),'utf8'))
@@ -82,6 +83,8 @@ try{
  await nextTask();checks.slot_is_reusable_immediately_after_cancel=true
  await cancelled('preview','preview');checks.real_processing_cancelled_not_failed=true
  await nextTask();checks.slot_reusable_after_processing_cancel=true
+ await cancelled('open','open')
+ await nextTask();checks.open_wait_resolves_after_cancellation_and_releases_slot=true
  const failed=await api('jobs',{kind:'preview',request:{source:tiny,context:path.join(fixture,'missing-context.json'),settings}})
  const failure=await until(()=>api('jobs/'+failed.id),job=>job.status!=='running')
  assert.equal(failure.status,'failed');assert.equal(failure.cancel_requested,undefined)

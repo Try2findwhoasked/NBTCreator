@@ -374,10 +374,17 @@ def preview_images(source, geometry_hash, image_limit=8):
 
 
 def inspect_source(source, image_limit=8):
-    from nbt_large_assembly import is_assembly_source,read_assembly,verify_assembly_binding
-    source = Path(source).resolve(); assembly=is_assembly_source(source)
-    model, walls = read_assembly(source) if assembly else read_master(source)
-    geometry_hash = model.fingerprint()
+    from nbt_task import load_snapshot_source
+
+    loaded = load_snapshot_source(source)
+    info = inspect_loaded_source(loaded, image_limit)
+    loaded.verify()
+    return info
+
+
+def inspect_loaded_source(loaded, image_limit):
+    source, model, walls = loaded.path, loaded.model, loaded.walls
+    geometry_hash = loaded.geometry_sha256
     counts = Counter(model.blocks.values())
     from nbt_collision import bounded_obstacle, ENVELOPE_VERSION
     unknown = [dict(state=value, count=count, reason=collision_cells(value)[1])
@@ -393,12 +400,15 @@ def inspect_source(source, image_limit=8):
         data = read_json(context) if context else {}
         if not isinstance(data,dict):data={}
     except (OSError,ValueError):data={}
-    readiness=(dict(ready=False,missing=['context'],errors=[context_error],scope='schema_only')
-               if context_error else context_readiness(model,context,source))
-    if assembly:
-        verify_assembly_binding(model)
+    if loaded.assembly:
         readiness=dict(ready=False,missing=[],errors=['组装源的桌面编辑尚未接入；可使用 model 命令修改'],scope='read_only_assembly')
-    return dict(source=str(source), source_sha256=digest(source), workdir=str(project_paths(source)['workdir']), version_dir=str(project_paths(source)['version']), geometry_sha256=model.fingerprint(),
+    elif context_error:
+        readiness=dict(ready=False,missing=['context'],errors=[context_error],scope='schema_only')
+    else:
+        readiness=context_readiness(model,context,source)
+    paths = project_paths(source)
+    return dict(source=str(source), source_sha256=loaded.binding['source_sha256'], workdir=str(paths['workdir']),
+                version_dir=str(paths['version']), geometry_sha256=geometry_hash,
                 projections=projections,size=list(model.size), solid_blocks=len(model.blocks), wall_blocks=len(walls),
                 context=context, cameras=cameras, images=images, unknown_shapes=unknown,
                 conservative_obstacles=conservative,obstacle_envelope_version=ENVELOPE_VERSION if conservative else None,
@@ -974,14 +984,15 @@ def render_source(request, output):
     return dict(status='source_rendered', output=str(output), images=[str(target/item['image']) for item in manifest['images']])
 
 
-def source_snapshot(request, output):
-    from nbt_task import write_snapshot
-    from nbt_large_assembly import is_assembly_source,read_assembly
-    source = Path(request['source']).resolve(); assembly=is_assembly_source(source)
-    model, _ = read_assembly(source) if assembly else read_master(source)
-    readiness=context_readiness(model,request.get('context'),source)
-    if assembly:
+def source_snapshot(request, output, *, loaded=None, readiness=None):
+    from nbt_task import load_snapshot_source, write_snapshot
+
+    loaded = loaded or load_snapshot_source(request['source'])
+    source, model = loaded.path, loaded.model
+    if loaded.assembly:
         readiness=dict(ready=False,missing=[],errors=['组装源的桌面编辑尚未接入；可使用 model 命令修改'],scope='read_only_assembly')
+    elif readiness is None:
+        readiness=context_readiness(model,request.get('context'),source)
     context_warning=''
     if readiness['ready']:
         try:
@@ -995,7 +1006,7 @@ def source_snapshot(request, output):
         except (OSError,ValueError):raw=None
         raw=raw or [dict(id='whole',role='whole',eye=[sx*1.5,sy*1.5,-sz],target=[sx/2,sy/2,sz/2],cuts=[])]
         context_warning=('组装源当前仅支持桌面只读查看；修改请使用 model 命令'
-                         if assembly else '当前只读查看：坐标配置还需补齐 '+', '.join(readiness['missing']+readiness['errors']))
+                         if loaded.assembly else '当前只读查看：坐标配置还需补齐 '+', '.join(readiness['missing']+readiness['errors']))
     views = []
     for i, camera in enumerate(raw):
         view = {k: camera[k] for k in ('eye', 'target', 'up', 'fov', 'role', 'layer', 'lighting', 'cut_y') if k in camera}
@@ -1003,9 +1014,39 @@ def source_snapshot(request, output):
         view['cuts'] = [dict(axis=c[0], position=c[1], removed_side=c[2]) if isinstance(c, list) else c for c in camera.get('cuts', [])]
         views.append(view)
     output = reserve_output(output)
-    result = write_snapshot(source, output/'snapshot.json', cameras=views)
+    result = write_snapshot(source, output/'snapshot.json', cameras=views, loaded=loaded)
     return dict(status='baseline_snapshot', snapshot=str(output/'snapshot.json'), source_sha256=result['source_sha256'],
                 geometry_sha256=result['geometry_sha256'], size=result['size'], cameras=views,read_only_view=not readiness['ready'],context_warning=context_warning)
+
+
+def open_source(request, output):
+    """Read the source once for the editor's metadata and initial view."""
+    from nbt_task import load_snapshot_source
+
+    mode = request.get('preview_mode', '3d')
+    if mode not in ('images', '3d'):
+        raise ValueError('无效的建筑预览方式')
+    loaded = load_snapshot_source(request['source'])
+    info = inspect_loaded_source(loaded, request.get('image_limit', 8))
+    result = dict(info=info)
+    if mode == 'images' and info['images']:
+        loaded.verify()
+        return result
+
+    context = request.get('context') or info['context']
+    cameras = request.get('cameras') or info['cameras']
+    # Opening a new model initializes the budget to the source's suggestion.
+    snapshot_request = dict(request, context=context, cameras=cameras,
+                            source_sha256=info['source_sha256'],
+                            settings=dict(max_changed_blocks=info['suggested_budget']))
+    readiness = info['context_readiness'] if context == info['context'] else None
+    try:
+        result.update(source_snapshot(snapshot_request, output, loaded=loaded, readiness=readiness))
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        # The editor can still present source information after a preview error.
+        loaded.verify()
+        result['preview_error'] = str(error)
+    return result
 
 
 def prompt_export(request):
@@ -1054,7 +1095,7 @@ def main():
     cmd = sub.add_parser('batches');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['create','import','list','get','record','run','ack','locate','discover'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('feedback-tasks');cmd.add_argument('--workspace',type=Path,required=True);cmd.add_argument('--action',choices=['list','create','update','merge','evidence'],required=True);cmd.add_argument('--request',type=Path,required=True)
     cmd = sub.add_parser('validate'); cmd.add_argument('--request',type=Path,required=True);cmd.add_argument('--snapshot',type=Path,required=True);cmd.add_argument('--output',type=Path,required=True)
-    for name in ('plan', 'prepare', 'render', 'snapshot', 'preview', 'compare'):
+    for name in ('plan', 'prepare', 'render', 'snapshot', 'open', 'preview', 'compare'):
         cmd = sub.add_parser(name); cmd.add_argument('--request', type=Path, required=True); cmd.add_argument('--output', type=Path, required=True)
     cmd = sub.add_parser('revision', help='Save the next version in the source building directory')
     cmd.add_argument('--request', type=Path, required=True)
@@ -1182,6 +1223,7 @@ def main():
             result=convert_web_json(args.request)
         elif args.command == 'preview': result = preview_effect(read_request(args.request), args.output)
         elif args.command == 'snapshot': result = source_snapshot(read_request(args.request), args.output)
+        elif args.command == 'open': result = open_source(read_request(args.request), args.output)
         elif args.command == 'compare':
             from nbt_review.compare import compare_sources
             result=compare_sources(read_request(args.request),args.output)

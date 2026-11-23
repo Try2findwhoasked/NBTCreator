@@ -84,12 +84,15 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   const jobFinished=Symbol('jobFinished')
   const cancelledError=()=>Object.assign(new Error('任务已取消；已生成的诊断文件保留'),{code:'NBTCREATOR_CANCELLED'})
   function checkpoint(job){if(job?.cancel_requested)throw cancelledError()}
-  async function registerSnapshot(file,source,job){
+  async function registerSnapshot(file,source,job,openedInfo){
     checkpoint(job)
     const bytes=await fs.readFile(file),snapshot=JSON.parse(bytes),id=randomUUID()
     checkpoint(job)
-    const info=modelInfo.get(source) ?? await invoke(['inspect','--source',source],undefined,undefined,job)
+    const info=openedInfo ?? openedSource(source) ?? await invoke(['inspect','--source',source],undefined,undefined,job)
     checkpoint(job)
+    if(openedInfo&&(!sameSource(info.source,snapshot.source)||info.source_sha256!==snapshot.source_sha256||info.geometry_sha256!==snapshot.geometry_sha256)){
+      throw Error('建筑版本与初始预览不一致，请重新打开')
+    }
     modelInfo.set(source,info)
     bindings.set(id,{kind:'3d',workdir:info.workdir,version_dir:info.version_dir,source,source_sha256:snapshot.source_sha256,geometry_sha256:snapshot.geometry_sha256,
       size:snapshot.size,snapshot:file,snapshot_sha256:createHash('sha256').update(bytes).digest('hex')})
@@ -154,16 +157,25 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     }
     return images
   }
+  async function registerOpenedModel(source, info, job) {
+    const [handoff, images] = await Promise.all([handoffInfo(info,workspace),registerImages(info.images,info,job)])
+    checkpoint(job)
+    await catalogStore.record(info)
+    checkpoint(job)
+    Object.assign(info,{agent_handoff:handoff,images})
+    modelInfo.set(source,info)
+    return info
+  }
   async function launchJob(input) {
     if(closing)throw new Error('建模服务正在关闭')
     if (activeJob) throw new Error('A job is already running; wait or cancel it first')
     const kind = input.kind
     if(kind==='batch')return launchProjectBatch(input)
-    if (!['plan', 'prepare', 'render', 'snapshot', 'apply', 'preset', 'preview', 'revision', 'validate', 'compare', 'walk-inspect','room-score'].includes(kind)) throw new Error('Unknown job kind')
+    if (!['plan', 'prepare', 'render', 'snapshot', 'open', 'apply', 'preset', 'preview', 'revision', 'validate', 'compare', 'walk-inspect','room-score'].includes(kind)) throw new Error('Unknown job kind')
     const request = input.request
     request.source = localPath(request.source)
     if(request.context)request.context=localPath(request.context)
-    else if(!['snapshot','compare','walk-inspect','room-score'].includes(kind))throw new Error('修改、验证或导出需要门口/路线等坐标保护配置；缺少配置时可先打开3D只读查看')
+    else if(!['snapshot','open','compare','walk-inspect','room-score'].includes(kind))throw new Error('修改、验证或导出需要门口/路线等坐标保护配置；缺少配置时可先打开3D只读查看')
     if(kind==='compare'){if(typeof request.reference_source!=='string'||!request.reference_source)throw new Error('请选择要比较的已有版本');request.reference_source=localPath(request.reference_source)}
     if (request.cameras) request.cameras = localPath(request.cameras)
     const checkedSnapshot=['validate','walk-inspect','room-score'].includes(kind)?snapshots.get(input.snapshot_key):null
@@ -211,11 +223,12 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         }
         checkpoint(job)
         result.source=request.source
+        if(kind==='open')result.info=await registerOpenedModel(request.source,result.info,job)
         if(result.baseline_snapshot){const key=randomUUID();snapshots.set(key,result.baseline_snapshot);result.baseline_key=key;result.baseline_feedback_id=await registerSnapshot(result.baseline_snapshot,result.reference_source??request.source,job)}
         if (result.snapshot) {
           checkpoint(job)
+          result.feedback_id=await registerSnapshot(result.snapshot,request.source,job,kind==='open'?result.info:undefined)
           const key = randomUUID(); snapshots.set(key, result.snapshot); result.model_key = key
-          result.feedback_id=await registerSnapshot(result.snapshot,request.source,job)
         }
         checkpoint(job)
         if (result.images?.length) {
@@ -237,7 +250,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
       } catch (error) { job.error = job.cancel_requested?cancelledError().message:error.message;if(error.details)job.error_details=error.details;job.status = job.cancel_requested||error.code==='NBTCREATOR_CANCELLED'?'cancelled':'failed' }
       finally {
         job.completed_at = new Date().toISOString(); delete job.child;delete job.backend_pid
-        try{await fs.writeFile(path.join(directory, 'job.json'), JSON.stringify(job, null, 2))}
+        try{await fs.writeFile(path.join(directory, 'job.json'), JSON.stringify(serialJob(job), null, 2))}
         catch(error){job.persistence_error=error.message}
         if(activeJob===job)activeJob=null
       }
@@ -266,8 +279,12 @@ export async function startDetailServer({ workspace, output, python = 'python', 
       job.completed_at=new Date().toISOString();await fs.writeFile(path.join(directory,'job.json'),JSON.stringify(job,null,2)).catch(error=>{job.persistence_error=error.message});if(activeJob===job)activeJob=null
     }})();return {id}
   }
-  function serialJob(job) {
+  function serialJob(job, includeOpenInfo = false) {
     const { child, ...rest } = job
+    if(job.kind==='open'&&job.result&&!includeOpenInfo){
+      const {info, ...summary}=job.result
+      rest.result=summary
+    }
     return rest
   }
   function terminate(child){
@@ -426,11 +443,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
         const input = await body(req)
         const source=localPath(input.source)
         const result = await invoke(['inspect', '--source', source,'--image-limit',String(input.image_limit ?? 8)])
-        await catalogStore.record(result)
-        modelInfo.set(source,result)
-        result.agent_handoff = await handoffInfo(result,workspace)
-        result.images = await registerImages(result.images,result)
-        json(res, result)
+        json(res,await registerOpenedModel(source,result))
       } else if(req.method==='POST'&&url.pathname==='/__detail__/protection-mask'){
         const input=await body(req),info=openedSource(localPath(input.source));if(!info||info.source_sha256!==input.source_sha256)throw Error('请先打开当前版本再查看保护区')
         const system=path.join(outputRoot,'system');await fs.mkdir(system,{recursive:true});const file=path.join(system,'protection-'+randomUUID()+'.json');await fs.writeFile(file,JSON.stringify({source:info.source,source_sha256:info.source_sha256,context:input.context?localPath(input.context):''}))
@@ -563,11 +576,14 @@ export async function startDetailServer({ workspace, output, python = 'python', 
           await fs.writeFile(path.join(job.directory,'job.json'),JSON.stringify(job,null,2));json(res,{id:job.id})
         }
       } else if (req.method === 'POST' && url.pathname === '/__detail__/jobs') json(res, await launchJob(await body(req)), 202)
-      else if (req.method === 'GET' && url.pathname === '/__detail__/jobs') json(res, [...jobs.values()].map(serialJob))
+      else if (req.method === 'GET' && url.pathname === '/__detail__/jobs') json(res, [...jobs.values()].map(job=>serialJob(job)))
       else if(req.method==='GET'&&url.pathname==='/__detail__/workers')json(res,{items:[...ownedChildren].filter(child=>Number.isSafeInteger(child.pid)&&child.exitCode===null&&child.signalCode===null).map(child=>({pid:child.pid,...workerInfo.get(child)}))})
       else if (req.method === 'POST' && url.pathname === '/__detail__/cancel') { await cancel(); json(res, { ok: true }) }
       else if (req.method === 'GET' && url.pathname.startsWith('/__detail__/jobs/')) {
-        const job = jobs.get(url.pathname.split('/').at(-1)); if (!job) throw new Error('Unknown job'); json(res, serialJob(job))
+        const job = jobs.get(url.pathname.split('/').at(-1)); if (!job) throw new Error('Unknown job')
+        const waitForOpen=job.kind==='open'&&url.searchParams.get('wait')==='1'
+        if(waitForOpen)await job[jobFinished]
+        json(res, serialJob(job,waitForOpen))
       } else if (req.method === 'GET' && url.pathname.startsWith('/__detail__/asset/')) {
         const file = assets.get(url.pathname.split('/').at(-1)); if (!file) throw new Error('Unknown artifact')
         res.setHeader('Content-Type', file.endsWith('.png') ? 'image/png' : file.endsWith('.jpg') ? 'image/jpeg' : file.endsWith('.md') ? 'text/markdown; charset=utf-8' : file.endsWith('.nbt') ? 'application/octet-stream' : 'application/json; charset=utf-8')

@@ -33,6 +33,18 @@ try{
  },10000)
  await page.waitForFunction(()=>window.detailControl?.state.info&&!window.detailControl.state.busy,undefined,{timeout:60000})
  clearTimeout(diagnostic)
+ const initial=await page.evaluate(()=>{
+  const view=document.querySelector('#viewer').contentWindow.nbtModeler,info=window.detailControl.state.info
+  return {camera:view.metadata().camera,cuts:view.metadata().cuts,meshBuilds:view.metadata().mesh_builds,
+    source:view.metadata().source_sha256,geometry:view.metadata().geometry_sha256,infoSource:info.source_sha256,infoGeometry:info.geometry_sha256,
+    requests:performance.getEntriesByType('resource').map(entry=>new URL(entry.name).pathname+new URL(entry.name).search)}
+ })
+ assert.ok(initial.camera.eye.every((value,index)=>Math.abs(value-[70,42,-20][index])<.001))
+ assert.deepEqual(initial.cuts,[{axis:'y',position:13,removed_side:'above'}])
+ assert.equal(initial.meshBuilds,1)
+ assert.equal(initial.source,initial.infoSource);assert.equal(initial.geometry,initial.infoGeometry)
+ assert.equal(initial.requests.filter(route=>route.startsWith('/__detail__/jobs/')&&route.endsWith('?wait=1')).length,1)
+ assert.ok(!initial.requests.includes('/__detail__/inspect'));checks.editor_open_uses_one_bound_snapshot_and_one_initial_mesh=true
  assert.equal(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isMinimized()),true);checks.automation_stays_minimized=true
  assert.equal(await page.locator('#desktop-source').count(),1);assert.ok((await page.locator('#desktop-workspace-label').textContent()).includes(workspace));checks.native_bridge_and_workspace=true
  assert.equal((await page.evaluate(()=>window.nbtDesktop.info())).frontend,'production');assert.equal(await page.evaluate(()=>performance.getEntriesByType('resource').some(r=>r.name.includes('/@vite/')||r.name.includes('/src/control.js'))),false);checks.production_frontend_without_dev_client=true
