@@ -140,8 +140,24 @@ def compile_tracery(workspace,args):
     return result
 
 
+def facade_materials(args):
+    material = full(args.get('material', 'bricks'))
+    trim = full(args.get('trim', 'smooth_sandstone'))
+    glass = full(args.get('glass', 'glass'))
+    if 'glass' not in glass:
+        raise ValueError('窗墙玻璃须为已知完整玻璃方块')
+    sill = state(args.get('sill_material', 'sandstone_slab[type=bottom]'))
+    occupied, reason = collision_cells(sill)
+    if reason or set(occupied) != {(x, 0, z) for x in (0, 1) for z in (0, 1)}:
+        raise ValueError('窗台材质须为受支持的下半砖')
+    return material, trim, glass, sill
+
+
 def compile_facade(workspace, args):
-    """A repeated facade with real recessed apertures and projecting sills."""
+    """Compile the fixed count facade or resolve a contextual width first."""
+    if 'contextual' in args:
+        from nbt_building.contextual_facade import compile_contextual_facade
+        return compile_contextual_facade(workspace, args)
     bays, storeys = args.get('bays', 3), args.get('storeys', 2)
     opening_width, opening_height = args.get('opening', [3, 4])
     pier = args.get('pier_width', 2)
@@ -154,15 +170,7 @@ def compile_facade(workspace, args):
     depth = recess + 2
     if max(width, height) > 64:
         raise ValueError('单个窗墙构件宽高最多64格，请按实际跨间组合')
-    material = full(args.get('material', 'bricks'))
-    trim = full(args.get('trim', 'smooth_sandstone'))
-    glass = full(args.get('glass', 'glass'))
-    if 'glass' not in glass:
-        raise ValueError('窗墙玻璃须为已知完整玻璃方块')
-    sill = state(args.get('sill_material', 'sandstone_slab[type=bottom]'))
-    occupied, reason = collision_cells(sill)
-    if reason or set(occupied) != {(x, 0, z) for x in (0, 1) for z in (0, 1)}:
-        raise ValueError('窗台材质须为受支持的下半砖')
+    material, trim, glass, sill = facade_materials(args)
     writer = Writer([width, height, depth])
     openings = []
     for storey in range(storeys):

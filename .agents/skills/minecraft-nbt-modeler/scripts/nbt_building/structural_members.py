@@ -33,7 +33,8 @@ def grain(value,axis):
     return value
 
 
-def generate(kind,form,size,box,primary,accent):
+def generate(kind,form,size,box,primary,accent,*,window_sill=None):
+    """A composite may supply its own validated recessed-window sill state."""
     if kind=='frame' and form['profile'] in WINDOW_PROFILES:
         from nbt_building.window_frames import generate as generate_window
         return generate_window(form,size,box,primary,accent)
@@ -102,10 +103,12 @@ def generate(kind,form,size,box,primary,accent):
             name,_=effective(glass)
             if name not in ('minecraft:glass','minecraft:tinted_glass') and not name.endswith('_stained_glass'):
                 raise ValueError('玻璃材质须使用原版完整玻璃方块')
-            sill=state(form.get('sill_material','smooth_quartz_slab[type=top,waterlogged=false]'))
-            name,props=effective(sill)
-            if not name.endswith('_slab') or props.get('type')!='top' or props.get('waterlogged')!='false':
-                raise ValueError('前挑窗台须为未含水的顶部半砖')
+            sill=window_sill
+            if sill is None:
+                sill=state(form.get('sill_material','smooth_quartz_slab[type=top,waterlogged=false]'))
+                name,props=effective(sill)
+                if not name.endswith('_slab') or props.get('type')!='top' or props.get('waterlogged')!='false':
+                    raise ValueError('前挑窗台须为未含水的顶部半砖')
             box([b,0,front],[x-b,b-1,z],grain(accent,'x'))
             box([0,0,0],[x,0,0],sill)
             part('sill',[0,0,0],[x,b-1,z])

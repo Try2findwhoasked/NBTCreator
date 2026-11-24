@@ -23044,7 +23044,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "facade_compile": {
-      "description": "生成真实凹窗、窗台与层带的参数化立面候选，返回开口坐标，支持对象图和完整工作模型。",
+      "description": "生成凹窗与层带立面候选。可指定跨数，或按净面宽和固定门洞排窗并保留转角柱。返回局部开口坐标，支持建筑方案、对象图和完整工作模型。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -23057,7 +23057,62 @@ globalThis.NbtToolCatalog = {
           "bays": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 8
+            "maximum": 8,
+            "description": "固定重复跨数。与 contextual 互斥。"
+          },
+          "contextual": {
+            "type": "object",
+            "description": "按净面宽排窗。先保留门框和转角柱，再独立分配门左右的剩余宽度。",
+            "additionalProperties": false,
+            "required": [
+              "width",
+              "entry"
+            ],
+            "properties": {
+              "width": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64,
+                "description": "含两端柱的立面总宽，单位为格。"
+              },
+              "entry": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "x",
+                  "width",
+                  "height"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 63,
+                    "description": "门洞首格的局部 X，门框从 X-1 开始。"
+                  },
+                  "width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64,
+                    "description": "门洞净宽。不含各一格的侧框。"
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64,
+                    "description": "从局部 Y=0 起算的门洞净高。"
+                  }
+                }
+              },
+              "column_material": {
+                "type": "string",
+                "description": "转角柱及窗间柱的完整方块状态，默认 trim。"
+              },
+              "beam_material": {
+                "type": "string",
+                "description": "连续水平梁的完整方块状态，默认 trim。梁端使用 trim。"
+              }
+            }
           },
           "storeys": {
             "type": "integer",
