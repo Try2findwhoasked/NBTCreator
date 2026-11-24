@@ -41,12 +41,15 @@
 | 曲面 UV 模板、端部、方向与配方编译 | `mise run test -- curve-stencils` |
 | 偏心曲面代表样段、四个材质机位、保护拒绝及审阅绑定 | `mise exec -- python -B tests/engine/curved-surface-review.py` |
 | 建筑方案闭环 | `mise run test -- architecture-workflow` |
+| 建筑活动失败回放、差分缩减和源保护 | `mise run test -- building-failure-replay` |
 | 模块化对象、结构杆件与窗框 | `mise run test -- modular` |
 | 外部资产库的离线、完整性与回滚 | `mise run test -- asset-libraries` |
 | 外部资产库桌面流程 | `mise run test -- unified-assets` |
 | 工作台旅程、焦点与窗口布局 | `mise run test -- studio-redesign` |
 
 整栋评分的留出样例使用归卷院和折角铜顶展馆。从源码根目录先执行 `mise run ci:build`，再执行 `mise exec -- node tests/desktop/building-quality.mjs --held-out` 生成制作源、审阅包和真实渲染。在读取图像后，用 `review-record` 的量表观察字段登记评审。
+
+加上 `--output <全新目录>` 保留失败回放回归的隔离工作区和 `results.json`。堵梯口和错站柜台侧的包均可用各自的 `replay.json` 从普通 CLI 复跑。用法见[建筑活动失败回放](../.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md#建筑活动失败回放)。
 
 风格量化专项可在构建前端后运行 `mise exec -- node tests/desktop/building-quality.mjs --style`。命令生成四个已落盘的梁架对照，核对 CLI 与桌面结果，写出 `style-results.json` 和桌面截图。
 

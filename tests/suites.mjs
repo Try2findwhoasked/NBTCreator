@@ -66,6 +66,7 @@ export const suites = {
     node('tests/desktop/architecture-preview.mjs'),
   ],
   'architecture-workflow': [python('-B', 'tests/engine/architecture-workflow.py')],
+  'building-failure-replay': [python('-B', 'tests/engine/building-failure-replay.py')],
   'asset-batches': [
     buildWeb,
     python('tests/engine/asset-batches.py'),

@@ -1294,6 +1294,14 @@ globalThis.NbtToolCatalog = {
         "next": "需要看图时把 next.request 交给 review-prepare。"
       },
       {
+        "title": "回放并缩减建筑活动失败",
+        "call": "architect failure-replay --request <请求JSON>",
+        "contract": "capabilities --architect-action failure-replay",
+        "guide": "architecture-workflow.md",
+        "input": "通过版 source、源与方案哈希、失败方案或差分组、活动失败判据及检查预算。",
+        "result": "返回原始与缩减失败、候选检查和极小性覆盖。指定 output 可保存可复跑回放包。"
+      },
+      {
         "title": "评估整栋建筑或复核续版质量",
         "call": "architect quality-check / quality-compare --request <请求JSON>",
         "input": "制作源和哈希，可选 review-record 的审阅绑定。对照时提供上一版或失败回执绑定。",
@@ -33283,6 +33291,196 @@ globalThis.NbtToolCatalog = {
         "required": [
           "source",
           "source_sha256"
+        ]
+      },
+      "failure-replay": {
+        "description": "从同一通过版重建受控方案差分，复验指定活动失败并在检查预算内缩减。",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          },
+          "expected_plan_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          },
+          "expected_binding_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}",
+            "description": "由生成的 replay.json 提供，校验原回放包绑定。"
+          },
+          "failed_plan": {
+            "type": "object",
+            "description": "完整建筑方案，使用 capabilities --architecture 的 plan 契约。与 groups 二选一。"
+          },
+          "groups": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 128,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "[a-zA-Z0-9_-][a-zA-Z0-9_.-]{0,127}"
+                },
+                "edits": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 128,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "field": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "description": "方案顶层字段。画布、上下文及方案格式版本固定。"
+                      },
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80,
+                        "description": "按已有 ID 替换完整记录，省略时修改整个顶层字段。"
+                      },
+                      "value": {
+                        "description": "替换值。仅顶层字段可以通过省略 value 删除。"
+                      }
+                    },
+                    "required": [
+                      "field"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "edits"
+              ]
+            },
+            "description": "不可重叠的原子方案差分组。与 failed_plan 二选一。"
+          },
+          "failure": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "route_segment"
+                    ]
+                  },
+                  "activity": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 127
+                  },
+                  "reason": {
+                    "enum": [
+                      "invalid_start_pose",
+                      "invalid_or_obstructed_feet_pose",
+                      "no_safe_half_grid_connector",
+                      "unreachable_with_walking_and_half_block_steps"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "activity",
+                  "index",
+                  "reason"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "use_face"
+                    ]
+                  },
+                  "activity": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 127
+                  },
+                  "part": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "object": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "interface": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "reason": {
+                    "enum": [
+                      "wrong_side",
+                      "too_far",
+                      "outside_working_face",
+                      "approach_obstructed",
+                      "invalid_standing_pose",
+                      "horizontal_approach_requires_vertical_face"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "activity",
+                  "index",
+                  "part",
+                  "interface",
+                  "reason"
+                ]
+              }
+            ],
+            "description": "同一活动 ID、零起始路段或停靠序号，以及实际失败原因。"
+          },
+          "max_checks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 128,
+            "description": "候选检查上限，含零差分重建与完整失败方案。"
+          },
+          "output": {
+            "type": "string",
+            "pattern": "[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}",
+            "description": "新回放包目录名，位于当前创作项目 nbt_models/_workspaces/failure_replays 下。"
+          }
+        },
+        "required": [
+          "source",
+          "source_sha256",
+          "expected_plan_sha256",
+          "failure",
+          "max_checks"
         ]
       },
       "quality-check": {

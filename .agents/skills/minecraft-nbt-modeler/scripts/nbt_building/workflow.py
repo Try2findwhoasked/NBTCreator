@@ -19,6 +19,7 @@ for name,module,handler in (
     ('plan-save','nbt_building.plan','save'),('plan-get','nbt_building.plan','stored'),
     ('part-preflight','nbt_building.plan','preflight'),
     ('plan-build','nbt_building.plan','build'),('review-prepare','nbt_building.review','prepare'),
+    ('failure-replay','nbt_building.failure_replay','run'),
     ('review-record','nbt_building.review','record'),('review-compare','nbt_building.review','compare'),
     ('quality-check','nbt_building.quality_review','check'),('quality-compare','nbt_building.quality_review','compare'),
     ('game-checklist','nbt_building.review','game_checklist'),('game-record','nbt_building.review','game_record')):
