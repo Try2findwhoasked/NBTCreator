@@ -1102,6 +1102,15 @@ globalThis.NbtToolCatalog = {
         "next": "保存后把 next.request 原样交给 architect review-prepare；续版用 revision_request。"
       },
       {
+        "title": "比较整栋粗布局与活动路线",
+        "call": "architect layout-search --request <请求JSON>",
+        "contract": "capabilities --architect-action layout-search",
+        "guide": "architecture-workflow.md",
+        "input": "用同一粗种子的 spaces 和 activities 声明空间图的边，为 graph.variants 提供粗放置。位移枚举使用 variables。",
+        "result": "返回候选计划、通过证据和失败位置。空间图候选按请求顺序返回。",
+        "next": "选定通过的候选，将其 plan 交给 architect plan-build。"
+      },
+      {
         "title": "按明确几何装配，或打开制作源续版",
         "call": "model --request <请求JSON>",
         "contract": "capabilities --model",
@@ -31142,6 +31151,482 @@ globalThis.NbtToolCatalog = {
         "required": [
           "id"
         ]
+      },
+      "layout-search": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "plan": {
+            "type": "object",
+            "description": "使用现有的 architecture.plan。可省略装饰配方作为粗布局种子。与 plan_id 二选一。"
+          },
+          "plan_id": {
+            "type": "string",
+            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+            "maxLength": 32
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                  "maxLength": 32
+                },
+                "targets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "part",
+                          "stair",
+                          "space",
+                          "space-extent",
+                          "stop",
+                          "route-target",
+                          "review-location"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 127
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "id"
+                    ]
+                  },
+                  "minItems": 1,
+                  "maxItems": 32
+                },
+                "offsets": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": -293,
+                      "maximum": 293
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                  },
+                  "minItems": 1,
+                  "maxItems": 24
+                }
+              },
+              "required": [
+                "id",
+                "targets",
+                "offsets"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 8,
+            "description": "组合 XZ 位移。保留原型字段与距离排序。与 graph 二选一。"
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "space": {
+                  "type": "string",
+                  "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                  "maxLength": 32
+                },
+                "minimum": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 86436
+                },
+                "maximum": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 86436
+                }
+              },
+              "required": [
+                "space",
+                "minimum",
+                "maximum"
+              ]
+            },
+            "minItems": 0,
+            "maxItems": 128
+          },
+          "adjacency": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "spaces": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                    "maxLength": 32
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "max_gap": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 584
+                }
+              },
+              "required": [
+                "spaces",
+                "max_gap"
+              ]
+            },
+            "minItems": 0,
+            "maxItems": 128,
+            "description": "位移模式的 XZ 投影距离约束。空间图通过 graph.edges 声明同层邻接和跨层关系。"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "graph": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "edges": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "adjacent",
+                        "vertical"
+                      ],
+                      "description": "adjacent 检查同层侧边。vertical 引用一段按 spaces 顺序跨层的活动通路。"
+                    },
+                    "spaces": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
+                    },
+                    "max_gap": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 293,
+                      "description": "仅用于 adjacent。允许两空间之间有这么多列方块，默认 0。"
+                    },
+                    "activity": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "segment": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 127,
+                      "description": "从 0 开始，指向该活动相邻两个站位组成的路段。"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "spaces"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 64
+              },
+              "variants": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                      "maxLength": 32
+                    },
+                    "spaces": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "lo": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "hi": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "samples": {
+                            "type": "array",
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "number",
+                                "minimum": -588,
+                                "maximum": 588
+                              },
+                              "minItems": 3,
+                              "maxItems": 3
+                            },
+                            "minItems": 1,
+                            "maxItems": 32
+                          }
+                        },
+                        "required": [
+                          "id"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    },
+                    "parts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "position": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "quarter_turns": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3
+                          }
+                        },
+                        "required": [
+                          "id"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    },
+                    "stairs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "lo": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "hi": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "start": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "end": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "width": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 7
+                          },
+                          "centre": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -293,
+                              "maximum": 587
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          }
+                        },
+                        "required": [
+                          "id"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    },
+                    "stops": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "activity": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "index": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 127
+                          },
+                          "feet": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -588,
+                              "maximum": 588
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          }
+                        },
+                        "required": [
+                          "activity",
+                          "index",
+                          "feet"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    },
+                    "route_targets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                            "maxLength": 32
+                          },
+                          "feet": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -588,
+                              "maximum": 588
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "feet"
+                        ]
+                      },
+                      "minItems": 1,
+                      "maxItems": 128
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 8
+              }
+            },
+            "required": [
+              "edges",
+              "variants"
+            ],
+            "description": "引用同一计划的空间、活动和粗构件。每个候选独立从种子应用绝对放置。与 variables 二选一。"
+          }
+        },
+        "description": "比较同一粗建筑种子的有限布局。选择 variables 或 graph，公共建模验证通过的候选提供 plan。"
       },
       "plan-build": {
         "type": "object",

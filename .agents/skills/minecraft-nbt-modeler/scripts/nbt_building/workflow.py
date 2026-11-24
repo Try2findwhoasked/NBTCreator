@@ -18,6 +18,7 @@ class Action:
 for name,module,handler in (
     ('plan-save','nbt_building.plan','save'),('plan-get','nbt_building.plan','stored'),
     ('part-preflight','nbt_building.plan','preflight'),
+    ('layout-search','nbt_building.layout','search'),
     ('plan-build','nbt_building.plan','build'),('review-prepare','nbt_building.review','prepare'),
     ('review-record','nbt_building.review','record'),('review-compare','nbt_building.review','compare'),
     ('quality-check','nbt_building.quality_review','check'),('quality-compare','nbt_building.quality_review','compare'),
