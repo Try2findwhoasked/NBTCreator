@@ -8,12 +8,14 @@ import runpy
 import subprocess
 import sys
 import tempfile
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / '.agents/skills/minecraft-nbt-modeler'
 sys.path.insert(0, str(SKILL / 'scripts'))
 
+from nbt_building import failure_replay
 from nbt_building.failure_replay import coverage, reduce_groups
 
 
@@ -73,6 +75,35 @@ def verify_bundle(workspace, result):
         if attempt['status'] == 'same_failure':
             assert not item['passed']
     return target / 'replay.json'
+
+
+def assert_bundle_publish_is_retryable(workspace):
+    output = failure_replay.output_path(workspace, 'retry')
+    replay = dict(max_checks=3)
+    report = dict(status='same_failure')
+    receipts = dict(original=dict(code='ROUTE_FAILED'))
+    with patch.object(failure_replay, 'atomic', side_effect=OSError('simulated report write failure')):
+        try:
+            failure_replay.publish(workspace, output, replay, report, receipts)
+        except OSError as error:
+            assert str(error) == 'simulated report write failure'
+        else:
+            raise AssertionError('expected the report write to fail')
+    assert not output.exists()
+    assert list(output.parent.iterdir()) == []
+
+    retry = failure_replay.output_path(workspace, 'retry')
+    result = failure_replay.publish(workspace, retry, replay, report, receipts)
+    assert json.loads(verify_bundle(workspace, result).read_bytes()) == replay
+    before = {file.name: checksum(file) for file in retry.iterdir()}
+    try:
+        failure_replay.publish(workspace, retry, dict(max_checks=1), report, receipts)
+    except FileExistsError:
+        pass
+    else:
+        raise AssertionError('a competing writer replaced the published bundle')
+    assert {file.name: checksum(file) for file in retry.iterdir()} == before
+    assert list(retry.parent.iterdir()) == [retry]
 
 
 def exercise(output):
@@ -203,6 +234,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, help='Retain evidence in a new isolated output directory')
     args = parser.parse_args()
+    with tempfile.TemporaryDirectory(prefix='nbt-replay-publish-') as workspace:
+        assert_bundle_publish_is_retryable(Path(workspace).resolve())
     if args.output is None:
         with tempfile.TemporaryDirectory(prefix='nbt-building-replay-') as output:
             exercise(Path(output))

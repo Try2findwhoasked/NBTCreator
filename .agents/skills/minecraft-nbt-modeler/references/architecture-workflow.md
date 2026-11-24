@@ -171,7 +171,7 @@ Agent 把自然语言设计转为以下数据，而不是直接猜一串工具�
 
 回放先尝试撤回成批差分，再检查剩余组的真子集。 `single_removal_minimal` 表示逐个撤回一组都得到确定的非目标结论。只有所有真子集都得到这样的结论时才设置 `inclusion_minimal`。未检查或无法判断的子集会阻止这项声明。两项声明均受当前差分粒度和静态判据约束。[Zeller 与 Hildebrandt 的差分调试论文](https://www.st.cs.uni-saarland.de/publications/files/zeller-tse-2002.pdf)
 
-请求指定 `output` 时，使用 `nbt_models/_workspaces/failure_replays/<output>` 中的新目录。完整包以 `report.json` 为索引，记录各次检查、原始及缩减证据指针、文件哈希和覆盖。用 `replay.json` 直接重跑，核对 `binding_sha256`、`trace_sha256`、`candidate_checks` 和 `remaining_groups`。绑定覆盖源及版本清单、通过和失败方案、差分、判据、预算和引擎。包依赖原制作版本及其工作区。对修改后的输入可发起新请求。检查结果通过 JSON 状态返回，CLI 参数或目标目录无效时返回非零。包写入失败时报告 `bundle_error`，可换新目录重跑。
+请求指定 `output` 时，使用 `nbt_models/_workspaces/failure_replays/<output>` 中的新目录。完整包以 `report.json` 为索引，记录各次检查、原始及缩减证据指针、文件哈希和覆盖。用 `replay.json` 直接重跑，核对 `binding_sha256`、`trace_sha256`、`candidate_checks` 和 `remaining_groups`。绑定覆盖源及版本清单、通过和失败方案、差分、判据、预算和引擎。包依赖原制作版本及其工作区。对修改后的输入可发起新请求。检查结果通过 JSON 状态返回，CLI 参数或目标目录无效时返回非零。回放包写完整后才发布到目标目录。写入失败时报告 `bundle_error`，目标目录仍可用时可同名重跑。
 
 ```powershell
 mise run nbt -- architect failure-replay --request replay-request.json

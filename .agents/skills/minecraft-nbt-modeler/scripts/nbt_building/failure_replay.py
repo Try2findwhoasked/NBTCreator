@@ -2,6 +2,7 @@
 from copy import deepcopy
 from itertools import combinations
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from nbt_building import plan, workflow
 from nbt_building.quality import BLOCKING_CODES, route_state
@@ -236,17 +237,23 @@ def output_path(workspace, name):
 
 
 def publish(workspace, output, replay, report, receipts):
-    output.mkdir(parents=True, exist_ok=False)
-    files = {}
-    for name, value in dict(receipts, replay=replay).items():
-        raw = (canonical(value) + '\n').encode('utf8') if name == 'replay' else encode(value)
-        file = output / f'{name}.json'
-        with file.open('xb') as stream:
-            stream.write(raw)
-        files[name] = dict(path=file.name, sha256=digest(raw))
-    report = dict(report, files=files)
-    raw = encode(report)
-    atomic(output / 'report.json', raw)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(prefix='.replay-', dir=output.parent) as temporary:
+        stage = Path(temporary) / 'bundle'
+        stage.mkdir()
+        files = {}
+        for name, value in dict(receipts, replay=replay).items():
+            raw = (canonical(value) + '\n').encode('utf8') if name == 'replay' else encode(value)
+            file = stage / f'{name}.json'
+            with file.open('xb') as stream:
+                stream.write(raw)
+            files[name] = dict(path=file.name, sha256=digest(raw))
+        report = dict(report, files=files)
+        raw = encode(report)
+        atomic(stage / 'report.json', raw)
+        if output.exists() or output.is_symlink():
+            raise FileExistsError('回放包目录已存在：' + str(output))
+        stage.rename(output)
     return dict(report, bundle=dict(path=relative(workspace, output), report_sha256=digest(raw)))
 
 
