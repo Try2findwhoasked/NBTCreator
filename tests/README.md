@@ -26,6 +26,7 @@
 | 内部 Agent 起草、润色和提示词交接 | `mise run test -- prompt-archive` |
 | 桌面冒烟 | `mise run test -- desktop` |
 | 整栋建筑质量评分、归卷阁真实出图与桌面报告 | `mise run test -- building-quality` |
+| 整栋生成与修改基准 | `mise run test -- building-generation-benchmark` |
 | 工作区契约与路径选择 | `mise run test -- workspace` |
 | 可移植引擎合成回归 | `mise run nbt -- regress --output <新目录>` |
 | 建模工具与操作参数 | `mise run test -- modelling` |
@@ -60,6 +61,8 @@
 - `blind` 由协调员记录 `reviewer_knew_groups: false` 及 `votes`。每条投票写 `reviewer`，并使用 `{path, sha256}` 分别绑定本轮 `reference review-prepare` 的私有 `binding` 和 `review-record` 的 `record`。两种路径都以创作工作区为准。用户与独立 Agent 分别投票。用交换顺序后的匿名包再请同一评审 Agent 作答，同时把该盲审评审的分项等级转记到各制作版的 `architect review-record`。
 
 输出保留同机位修复率、用户与 Agent 偏好、平局、交换顺序的一致性、必要路线回归和修改成本。缺回执、不同条件或超出改动预算时可查验收缺项。替换默认反馈还需在整栋专项回归中通过必要路线和操作面反例。
+
+固定自然语言任务、脚本化复验、外部布局候选和待评图包见[整栋生成与修改基准](../docs/development/BUILDING_GENERATION_BENCHMARK.md)。
 
 单独运行一个检查：
 
