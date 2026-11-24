@@ -66,6 +66,7 @@ export const suites = {
     node('tests/desktop/architecture-preview.mjs'),
   ],
   'architecture-workflow': [python('-B', 'tests/engine/architecture-workflow.py')],
+  'terrain-site-selection': [python('-B', 'tests/engine/terrain-site-selection.py')],
   'asset-batches': [
     buildWeb,
     python('tests/engine/asset-batches.py'),
