@@ -1,4 +1,4 @@
-import {recipeSpacingTarget,recipeHasStyle} from '../components/component-recipe-controls.mjs'
+import {createSpectralControls,recipeSpacingTarget,recipeHasStyle} from '../components/component-recipe-controls.mjs'
 import './library-asset-preview.css'
 
 export function createAssetPreview({figure,overview,parameterHost,api,active,onState}){
@@ -22,6 +22,8 @@ export function createAssetPreview({figure,overview,parameterHost,api,active,onS
  <label>节奏间距<input id="asset-recipe-spacing" type="number" min="1" max="64" step="1"></label></div>
  <details><summary>构造细节与高级参数</summary><label>构造参数 JSON<textarea id="asset-recipe-form" rows="5" maxlength="20000" spellcheck="false"></textarea></label>
  <label>装饰参数 JSON<textarea id="asset-recipe-ornament" rows="3" maxlength="20000" spellcheck="false"></textarea></label></details>`
+ const spectralControls=createSpectralControls('asset-recipe')
+ parameters.querySelector('.asset-recipe-size').after(spectralControls.element)
  const refresh=document.createElement('button')
  refresh.type='button';refresh.id='asset-preview-refresh';refresh.textContent='更新预览'
  const status=document.createElement('p')
@@ -37,21 +39,25 @@ export function createAssetPreview({figure,overview,parameterHost,api,active,onS
  parameters.addEventListener('input',dirty)
  parameters.addEventListener('change',dirty)
  function fill(args){
+  const spectral=args.kind==='spectral_repeat'
+  spectralControls.fill(args)
+  parameters.querySelector('details').hidden=spectral
   $('asset-recipe-name').value=args.name??item.name
   for(const [index,axis]of ['x','y','z'].entries())$('asset-recipe-'+axis).value=args.size[index]
   $('asset-recipe-material').value=args.material??'stone_bricks'
   $('asset-recipe-material-label').textContent=args.kind==='curve_stencil'?'模板标记材质':'主材'
   $('asset-recipe-accent').value=args.accent??'polished_andesite'
-  $('asset-recipe-material').closest('label').hidden=args.kind==='railing'
-  $('asset-recipe-accent').closest('label').hidden=args.kind==='railing'||args.kind==='curve_stencil'
+  $('asset-recipe-material').closest('label').hidden=spectral||args.kind==='railing'
+  $('asset-recipe-accent').closest('label').hidden=spectral||args.kind==='railing'||args.kind==='curve_stencil'
   $('asset-recipe-style').value=args.style??'classic'
   $('asset-recipe-style').disabled=!recipeHasStyle(args,item.controls)
-  $('asset-recipe-style').closest('label').hidden=args.kind==='curve_stencil'
+  $('asset-recipe-style').closest('label').hidden=spectral||args.kind==='curve_stencil'
   const target=recipeSpacingTarget(args,item.controls)
   $('asset-recipe-spacing').disabled=!target
-  $('asset-recipe-spacing').closest('label').hidden=args.kind==='curve_stencil'
+  $('asset-recipe-spacing').closest('label').hidden=spectral||args.kind==='curve_stencil'
   $('asset-recipe-spacing').value=target?target.reduce((value,key)=>value?.[key],args)??3:3
-  $('asset-recipe-z').readOnly=args.kind==='curve_stencil'
+  $('asset-recipe-y').readOnly=spectral
+  $('asset-recipe-z').readOnly=spectral||args.kind==='curve_stencil'
   $('asset-recipe-form').value=JSON.stringify(args.form??{},null,2)
   $('asset-recipe-ornament').value=JSON.stringify(args.ornament??{},null,2)
  }
@@ -63,6 +69,7 @@ export function createAssetPreview({figure,overview,parameterHost,api,active,onS
   const name=$('asset-recipe-name').value.trim()
   if(!name)throw Error('请填写生成名称')
   Object.assign(args,{name,size})
+  if(args.kind==='spectral_repeat')return Object.assign(args,spectralControls.read())
   if(args.kind!=='railing'){
    args.material=$('asset-recipe-material').value.trim()
    if(args.kind!=='curve_stencil')args.accent=$('asset-recipe-accent').value.trim()

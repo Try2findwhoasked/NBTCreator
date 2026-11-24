@@ -56,6 +56,10 @@ flowchart LR
 
 整栋初稿可用 `plan-build` 从结构化方案构建，也可用 `WorkingModel` 脚本直接表达需要细粒度控制的构造。两条路径的制作版都进入同一套回读、验证和审阅流程。独立构件走构件入口，执行适用的验证。密闭、是否开洞及洞口净尺寸按当前项目配置，SAODG 专用约束随选用的扩展生效。参见[建筑方案](../../.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md)与[工作模型](../../.agents/skills/minecraft-nbt-modeler/references/working-model.md)。
 
+复杂整栋可以先用 `layout-search` 比较粗模。它组合楼梯、工位与空间的候选位移，按面积、邻接、实测通路及操作面筛选，返回可继续编辑的方案。选定后再生成梁架与饰件。单纯补拍使用 `review-prepare` 的 `view_overrides`。[粗布局入口](../../.agents/skills/minecraft-nbt-modeler/references/architecture-workflow.md#先比较粗布局)
+
+续版在一次请求内共享引擎版本指纹，制作版发布前复核。只依赖字面参数的结构构件可复用上一版的编译结果。构件输入、实例证据或引擎变动时重编，开洞中改变过的构件也重编。内置跨梁和托座在实际承托面及目标占用满足原条件时复用。候选按建模顺序重新装配，切洞、保护区和整栋通路继续按实际几何验证。回执的 `rebuild` 记录复用及重新生成的构件和连接。[续版编译](../../.agents/skills/minecraft-nbt-modeler/scripts/nbt_building/plan.py)
+
 归卷阁提供编排回归用例。外部 Skill 按任务选读对应案例段落，例如楼梯出口、室内站位或操作面的验证。布局、尺度、风格及机位由 Agent 按当前项目决定。参见[归卷阁样例](../../.agents/skills/minecraft-nbt-modeler/assets/examples/reading-loft/README.md)。
 
 脚本出图后将机位标为待看，实际看图后才登记观察。用户批准触发精修，用户明确要求定稿后才导出正式 NBT。机器接口和脚本接续这些阶段的记录。参见[机器协议](../../.agents/skills/minecraft-nbt-modeler/references/agent-protocol.md)。

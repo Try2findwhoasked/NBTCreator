@@ -1093,6 +1093,15 @@ globalThis.NbtToolCatalog = {
   "tool_routes": {
     "创作起步": [
       {
+        "title": "比较整栋空间与通路布局",
+        "call": "architect layout-search --request <请求JSON>",
+        "contract": "capabilities --architect-action layout-search",
+        "guide": "architecture-workflow.md",
+        "input": "填粗模方案、楼梯和工位的可选 XZ 位移、空间面积与邻接条件。",
+        "result": "给出通过实际通路和使用面检查的候选，以及各次尝试的失败证据。",
+        "next": "选定候选后将其 plan 交给 architect plan-build，在构造和装饰深化后保存制作版。"
+      },
+      {
         "title": "从零起整栋初稿（亭子、入口、空间和构件）",
         "call": "architect plan-build --request <请求JSON>",
         "contract": "capabilities --architect-action plan-build",
@@ -1943,7 +1952,8 @@ globalThis.NbtToolCatalog = {
               "arch",
               "frame",
               "pedestal",
-              "curve_stencil"
+              "curve_stencil",
+              "spectral_repeat"
             ]
           },
           "ornament_profile": {
@@ -1962,7 +1972,7 @@ globalThis.NbtToolCatalog = {
       }
     },
     "parametric_compile": {
-      "description": "编译参数化模块候选：柱式、外置楼梯扶手、独立栏杆、梁、托架、拱框、门窗框、基座及家具。配方见parametric_list.object_library；不改当前建筑。",
+      "description": "编译参数化模块候选：可调周期与相位的建筑重复频谱、柱式、外置楼梯扶手、独立栏杆、梁、托架、拱框、门窗框、基座及家具。配方见parametric_list.object_library；不改当前建筑。",
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -1990,7 +2000,8 @@ globalThis.NbtToolCatalog = {
               "arch",
               "frame",
               "pedestal",
-              "curve_stencil"
+              "curve_stencil",
+              "spectral_repeat"
             ]
           },
           "size": {
@@ -2002,7 +2013,103 @@ globalThis.NbtToolCatalog = {
             },
             "minItems": 3,
             "maxItems": 3,
-            "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+            "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+          },
+          "period": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 64,
+            "description": "重建周期（格）"
+          },
+          "phase": {
+            "type": "integer",
+            "minimum": -64,
+            "maximum": 64,
+            "description": "沿 +X 平移的格数"
+          },
+          "spectrum": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "samples",
+              "height",
+              "depth",
+              "palette",
+              "channels"
+            ],
+            "properties": {
+              "samples": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "palette": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                "minItems": 1,
+                "maxItems": 4096
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "cells",
+                    "coefficients"
+                  ],
+                  "properties": {
+                    "cells": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 4095
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "minItems": 0,
+                      "maxItems": 4096
+                    },
+                    "coefficients": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": -1,
+                          "maximum": 1
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
+                      },
+                      "minItems": 2,
+                      "maxItems": 33
+                    }
+                  }
+                },
+                "minItems": 1,
+                "maxItems": 64
+              }
+            },
+            "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
           },
           "style": {
             "type": "string",
@@ -3610,7 +3717,8 @@ globalThis.NbtToolCatalog = {
               "arch",
               "frame",
               "pedestal",
-              "curve_stencil"
+              "curve_stencil",
+              "spectral_repeat"
             ]
           },
           "size": {
@@ -3622,7 +3730,103 @@ globalThis.NbtToolCatalog = {
             },
             "minItems": 3,
             "maxItems": 3,
-            "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+            "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+          },
+          "period": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 64,
+            "description": "重建周期（格）"
+          },
+          "phase": {
+            "type": "integer",
+            "minimum": -64,
+            "maximum": 64,
+            "description": "沿 +X 平移的格数"
+          },
+          "spectrum": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "samples",
+              "height",
+              "depth",
+              "palette",
+              "channels"
+            ],
+            "properties": {
+              "samples": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 64
+              },
+              "palette": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                "minItems": 1,
+                "maxItems": 4096
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "cells",
+                    "coefficients"
+                  ],
+                  "properties": {
+                    "cells": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 4095
+                        },
+                        "minItems": 3,
+                        "maxItems": 3
+                      },
+                      "minItems": 0,
+                      "maxItems": 4096
+                    },
+                    "coefficients": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "number",
+                          "minimum": -1,
+                          "maximum": 1
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
+                      },
+                      "minItems": 2,
+                      "maxItems": 33
+                    }
+                  }
+                },
+                "minItems": 1,
+                "maxItems": 64
+              }
+            },
+            "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
           },
           "style": {
             "type": "string",
@@ -5233,7 +5437,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -5363,7 +5568,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -5375,7 +5581,103 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64,
+                "description": "重建周期（格）"
+              },
+              "phase": {
+                "type": "integer",
+                "minimum": -64,
+                "maximum": 64,
+                "description": "沿 +X 平移的格数"
+              },
+              "spectrum": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "samples",
+                  "height",
+                  "depth",
+                  "palette",
+                  "channels"
+                ],
+                "properties": {
+                  "samples": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "cells",
+                        "coefficients"
+                      ],
+                      "properties": {
+                        "cells": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4095
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "minItems": 0,
+                          "maxItems": 4096
+                        },
+                        "coefficients": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1,
+                              "maximum": 1
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "minItems": 2,
+                          "maxItems": 33
+                        }
+                      }
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  }
+                },
+                "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
               },
               "style": {
                 "type": "string",
@@ -6976,7 +7278,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -7341,7 +7644,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -7353,7 +7657,103 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64,
+                "description": "重建周期（格）"
+              },
+              "phase": {
+                "type": "integer",
+                "minimum": -64,
+                "maximum": 64,
+                "description": "沿 +X 平移的格数"
+              },
+              "spectrum": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "samples",
+                  "height",
+                  "depth",
+                  "palette",
+                  "channels"
+                ],
+                "properties": {
+                  "samples": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "cells",
+                        "coefficients"
+                      ],
+                      "properties": {
+                        "cells": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4095
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "minItems": 0,
+                          "maxItems": 4096
+                        },
+                        "coefficients": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1,
+                              "maximum": 1
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "minItems": 2,
+                          "maxItems": 33
+                        }
+                      }
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  }
+                },
+                "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
               },
               "style": {
                 "type": "string",
@@ -9162,7 +9562,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -9174,7 +9575,103 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64,
+                "description": "重建周期（格）"
+              },
+              "phase": {
+                "type": "integer",
+                "minimum": -64,
+                "maximum": 64,
+                "description": "沿 +X 平移的格数"
+              },
+              "spectrum": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "samples",
+                  "height",
+                  "depth",
+                  "palette",
+                  "channels"
+                ],
+                "properties": {
+                  "samples": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "cells",
+                        "coefficients"
+                      ],
+                      "properties": {
+                        "cells": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4095
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "minItems": 0,
+                          "maxItems": 4096
+                        },
+                        "coefficients": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1,
+                              "maximum": 1
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "minItems": 2,
+                          "maxItems": 33
+                        }
+                      }
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  }
+                },
+                "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
               },
               "style": {
                 "type": "string",
@@ -10917,7 +11414,8 @@ globalThis.NbtToolCatalog = {
                         "arch",
                         "frame",
                         "pedestal",
-                        "curve_stencil"
+                        "curve_stencil",
+                        "spectral_repeat"
                       ]
                     },
                     "size": {
@@ -10929,7 +11427,103 @@ globalThis.NbtToolCatalog = {
                       },
                       "minItems": 3,
                       "maxItems": 3,
-                      "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                      "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                    },
+                    "period": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "maximum": 64,
+                      "description": "重建周期（格）"
+                    },
+                    "phase": {
+                      "type": "integer",
+                      "minimum": -64,
+                      "maximum": 64,
+                      "description": "沿 +X 平移的格数"
+                    },
+                    "spectrum": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "samples",
+                        "height",
+                        "depth",
+                        "palette",
+                        "channels"
+                      ],
+                      "properties": {
+                        "samples": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 64
+                        },
+                        "height": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 64
+                        },
+                        "depth": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 64
+                        },
+                        "palette": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 512
+                          },
+                          "minItems": 1,
+                          "maxItems": 4096
+                        },
+                        "channels": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "cells",
+                              "coefficients"
+                            ],
+                            "properties": {
+                              "cells": {
+                                "type": "array",
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 4095
+                                  },
+                                  "minItems": 3,
+                                  "maxItems": 3
+                                },
+                                "minItems": 0,
+                                "maxItems": 4096
+                              },
+                              "coefficients": {
+                                "type": "array",
+                                "items": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "number",
+                                    "minimum": -1,
+                                    "maximum": 1
+                                  },
+                                  "minItems": 2,
+                                  "maxItems": 2
+                                },
+                                "minItems": 2,
+                                "maxItems": 33
+                              }
+                            }
+                          },
+                          "minItems": 1,
+                          "maxItems": 64
+                        }
+                      },
+                      "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
                     },
                     "style": {
                       "type": "string",
@@ -12612,7 +13206,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -12624,7 +13219,103 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64,
+                "description": "重建周期（格）"
+              },
+              "phase": {
+                "type": "integer",
+                "minimum": -64,
+                "maximum": 64,
+                "description": "沿 +X 平移的格数"
+              },
+              "spectrum": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "samples",
+                  "height",
+                  "depth",
+                  "palette",
+                  "channels"
+                ],
+                "properties": {
+                  "samples": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "cells",
+                        "coefficients"
+                      ],
+                      "properties": {
+                        "cells": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4095
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "minItems": 0,
+                          "maxItems": 4096
+                        },
+                        "coefficients": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1,
+                              "maximum": 1
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "minItems": 2,
+                          "maxItems": 33
+                        }
+                      }
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  }
+                },
+                "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
               },
               "style": {
                 "type": "string",
@@ -14229,7 +14920,8 @@ globalThis.NbtToolCatalog = {
                   "arch",
                   "frame",
                   "pedestal",
-                  "curve_stencil"
+                  "curve_stencil",
+                  "spectral_repeat"
                 ]
               },
               "size": {
@@ -14241,7 +14933,103 @@ globalThis.NbtToolCatalog = {
                 },
                 "minItems": 3,
                 "maxItems": 3,
-                "description": "曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+                "description": "频谱的 X 跨度为1～64格、高深与原始 YZ 截面一致。曲面 UV 模板为 XY 轴1～64格、Z 为1格；矩形梁跨度3～32、截面1～32；其他构件每轴3～32，柱高最多64。"
+              },
+              "period": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 64,
+                "description": "重建周期（格）"
+              },
+              "phase": {
+                "type": "integer",
+                "minimum": -64,
+                "maximum": 64,
+                "description": "沿 +X 平移的格数"
+              },
+              "spectrum": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "samples",
+                  "height",
+                  "depth",
+                  "palette",
+                  "channels"
+                ],
+                "properties": {
+                  "samples": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 64
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 64
+                  },
+                  "palette": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "minItems": 1,
+                    "maxItems": 4096
+                  },
+                  "channels": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "cells",
+                        "coefficients"
+                      ],
+                      "properties": {
+                        "cells": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 4095
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          "minItems": 0,
+                          "maxItems": 4096
+                        },
+                        "coefficients": {
+                          "type": "array",
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "number",
+                              "minimum": -1,
+                              "maximum": 1
+                            },
+                            "minItems": 2,
+                            "maxItems": 2
+                          },
+                          "minItems": 2,
+                          "maxItems": 33
+                        }
+                      }
+                    },
+                    "minItems": 1,
+                    "maxItems": 64
+                  }
+                },
+                "description": "沿局部 X 轴一个原始周期。每个通道记录一种 YZ 截面的 [y,z,材质索引] 和归一化单侧实数 FFT 的 [实部,虚部]，从直流起按频次递增。"
               },
               "style": {
                 "type": "string",
@@ -31141,6 +31929,168 @@ globalThis.NbtToolCatalog = {
         },
         "required": [
           "id"
+        ]
+      },
+      "layout-search": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "plan": {
+            "type": "object",
+            "description": "使用现有的 architecture.plan。可省略装饰配方作为粗布局种子。与 plan_id 二选一。"
+          },
+          "plan_id": {
+            "type": "string",
+            "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+            "maxLength": 32
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                  "maxLength": 32
+                },
+                "targets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "part",
+                          "stair",
+                          "space",
+                          "space-extent",
+                          "stop",
+                          "route-target",
+                          "review-location"
+                        ]
+                      },
+                      "id": {
+                        "type": "string",
+                        "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                        "maxLength": 32
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 127
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "id"
+                    ]
+                  },
+                  "minItems": 1,
+                  "maxItems": 32
+                },
+                "offsets": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": -293,
+                      "maximum": 293
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                  },
+                  "minItems": 1,
+                  "maxItems": 24
+                }
+              },
+              "required": [
+                "id",
+                "targets",
+                "offsets"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 8
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "space": {
+                  "type": "string",
+                  "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                  "maxLength": 32
+                },
+                "minimum": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 86436
+                },
+                "maximum": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 86436
+                }
+              },
+              "required": [
+                "space",
+                "minimum",
+                "maximum"
+              ]
+            },
+            "minItems": 0,
+            "maxItems": 128
+          },
+          "adjacency": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "spaces": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "[a-zA-Z][a-zA-Z0-9_-]{0,31}",
+                    "maxLength": 32
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "max_gap": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 584
+                }
+              },
+              "required": [
+                "spaces",
+                "max_gap"
+              ]
+            },
+            "minItems": 0,
+            "maxItems": 128
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          }
+        },
+        "required": [
+          "variables"
         ]
       },
       "plan-build": {

@@ -378,6 +378,87 @@
       "type": "parametric_recipe"
     },
     {
+      "bytes": 424,
+      "category": "洞口与边框",
+      "id": "gdmc-hall-portico-frame",
+      "name": "镇政厅 · 金合欢木敞廊框",
+      "path": "assets/recipes/frame/gdmc-hall-portico-frame.json",
+      "sha256": "fdca1abf1ca2c70057758c5462418612879e169b7975a01c51034790b93bf643",
+      "status": "stable",
+      "tags": [
+        "GDMC",
+        "敞廊",
+        "镇政厅",
+        "frame"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 5413,
+      "category": "频谱 · 屋顶构件",
+      "id": "gdmc-hall-roof-pinnacles",
+      "name": "镇政厅 · 石砖尖饰列",
+      "path": "assets/recipes/spectral_repeat/gdmc-hall-roof-pinnacles.json",
+      "sha256": "ad36489e0d8bdbf7e759fa662574dc20ad0b9edb77671f283ec1019e6967c582",
+      "status": "stable",
+      "tags": [
+        "GDMC",
+        "频谱",
+        "尖饰",
+        "镇政厅"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 4088,
+      "category": "频谱 · 连续窗列",
+      "id": "gdmc-hall-window-bays",
+      "name": "镇政厅 · 侧廊连续窗",
+      "path": "assets/recipes/spectral_repeat/gdmc-hall-window-bays.json",
+      "sha256": "55e36aa246580cc6f7378913cbbb99d5ac840e0988e8e24e8cbb4cba141ebccb",
+      "status": "stable",
+      "tags": [
+        "GDMC",
+        "频谱",
+        "窗列",
+        "镇政厅"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 2202,
+      "category": "书架与陈设",
+      "id": "gdmc-library-bookcase-wall",
+      "name": "图书馆 · 三联书架墙",
+      "path": "assets/recipes/spectral_repeat/gdmc-library-bookcase-wall.json",
+      "sha256": "7827aace1c77ceeb33269cccb143c0ead55ee1e6805d9e3574c30f8e04ab5fae",
+      "status": "stable",
+      "tags": [
+        "gdmc",
+        "书架墙",
+        "频谱",
+        "spectral-repeat"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 1853,
+      "category": "频谱 · 建筑纹样",
+      "id": "gdmc-stall-striped-awning",
+      "name": "集市摊位 · 红黄条纹挑篷",
+      "path": "assets/recipes/spectral_repeat/gdmc-stall-striped-awning.json",
+      "sha256": "7ad58eb00ca416b30b8827350a233e802600bc5e252ca55cf810e3976ed996bd",
+      "status": "stable",
+      "tags": [
+        "GDMC",
+        "频谱",
+        "纹样",
+        "条纹",
+        "挑篷"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
       "bytes": 187,
       "category": "家具与陈设",
       "id": "lantern-classic",
@@ -387,6 +468,41 @@
       "status": "stable",
       "tags": [
         "lantern"
+      ],
+      "type": "parametric_recipe"
+    },
+    {
+      "bytes": 45216,
+      "category": "中殿拱顶",
+      "id": "original-nave-rib-vault",
+      "name": "青藤石肋 · 四分拱顶",
+      "path": "assets/components/vault/original-nave-rib-vault.json",
+      "sha256": "ba71d2655f1af3783ca23cd7044dd60ded0bbcd4a854c01ee64aadd1da9946a7",
+      "status": "stable",
+      "tags": [
+        "vault",
+        "原创",
+        "四分肋拱",
+        "卷叶",
+        "拱心"
+      ],
+      "type": "component"
+    },
+    {
+      "bytes": 112151,
+      "category": "中殿拱顶",
+      "id": "original-nave-vault-rhythm",
+      "name": "青藤石肋 · 连跨拱顶频谱",
+      "path": "assets/recipes/spectral_repeat/original-nave-vault-rhythm.json",
+      "sha256": "4931adc74cd8c1b8bfb7ce7af97f7905e1faf8db5e691fbc041963541bd925f5",
+      "status": "stable",
+      "tags": [
+        "vault",
+        "原创",
+        "中殿",
+        "卷叶",
+        "频谱",
+        "spectral-repeat"
       ],
       "type": "parametric_recipe"
     },
@@ -1767,14 +1883,14 @@
     }
   ],
   "compatibility": {
-    "app_min": "4.3.1",
+    "app_min": "5.1.1",
     "minecraft": "1.20.1"
   },
-  "description": "模块化建筑配方与数据构件；含宫廷金饰主题窗框、柱式、陈设及原创浮雕/镶地。须实际预览，安装后另验通路、承托和游戏效果。",
+  "description": "模块化建筑配方与构件，含宫廷金饰窗框、柱式、陈设、浮雕和镶地。gdmc-* 五件改编自 williamcwi/GDMC 镇政厅、图书馆和集市摊位。青藤石肋单跨与连跨频谱取自项目原创的方块拱顶。Copyright 2019 Wai Ip Chu，Apache-2.0。改动包括裁取、Java 1.20.1 方块状态换算、按截面做傅里叶变换和敞廊材质统一。原作 https://github.com/williamcwi/GDMC/tree/4aeb4b80264f1c0d80867b6fc9efbb5b2e962727/schematics 。许可 https://www.apache.org/licenses/LICENSE-2.0 。其余资产沿用 LicenseRef-NBTCreator-Project。安装后另验通路、承托和游戏效果。",
   "id": "nbtcreator.modular",
   "kind": "nbtcreator.asset-library",
-  "license": "LicenseRef-NBTCreator-Project",
+  "license": "LicenseRef-NBTCreator-Project AND Apache-2.0",
   "name": "NBTCreator 模块化建筑资产库",
   "schema_version": 1,
-  "version": "1.1.0"
+  "version": "1.2.0"
 }

@@ -1,0 +1,300 @@
+{
+  "arguments": {
+    "kind": "spectral_repeat",
+    "name": "镇政厅 · 石砖尖饰列",
+    "period": 5,
+    "phase": 0,
+    "size": [
+      25,
+      8,
+      3
+    ],
+    "spectrum": {
+      "channels": [
+        {
+          "cells": [
+            [
+              0,
+              0,
+              2
+            ],
+            [
+              0,
+              1,
+              2
+            ],
+            [
+              0,
+              2,
+              2
+            ]
+          ],
+          "coefficients": [
+            [
+              0.2,
+              0.0
+            ],
+            [
+              0.2,
+              0.0
+            ],
+            [
+              0.2,
+              0.0
+            ]
+          ]
+        },
+        {
+          "cells": [
+            [
+              1,
+              0,
+              6
+            ],
+            [
+              1,
+              1,
+              6
+            ],
+            [
+              1,
+              2,
+              6
+            ],
+            [
+              2,
+              0,
+              6
+            ],
+            [
+              2,
+              1,
+              6
+            ],
+            [
+              2,
+              2,
+              6
+            ],
+            [
+              3,
+              1,
+              6
+            ],
+            [
+              4,
+              1,
+              2
+            ]
+          ],
+          "coefficients": [
+            [
+              0.2,
+              0.0
+            ],
+            [
+              0.061803398875,
+              -0.190211303259
+            ],
+            [
+              -0.161803398875,
+              -0.117557050458
+            ]
+          ]
+        },
+        {
+          "cells": [
+            [
+              0,
+              1,
+              1
+            ],
+            [
+              1,
+              0,
+              6
+            ],
+            [
+              1,
+              2,
+              6
+            ],
+            [
+              2,
+              0,
+              6
+            ],
+            [
+              2,
+              2,
+              6
+            ],
+            [
+              3,
+              0,
+              6
+            ],
+            [
+              3,
+              2,
+              6
+            ],
+            [
+              4,
+              0,
+              4
+            ],
+            [
+              4,
+              1,
+              6
+            ],
+            [
+              4,
+              2,
+              3
+            ],
+            [
+              5,
+              1,
+              6
+            ],
+            [
+              6,
+              1,
+              0
+            ],
+            [
+              7,
+              1,
+              0
+            ]
+          ],
+          "coefficients": [
+            [
+              0.2,
+              0.0
+            ],
+            [
+              -0.161803398875,
+              -0.117557050458
+            ],
+            [
+              0.061803398875,
+              0.190211303259
+            ]
+          ]
+        },
+        {
+          "cells": [
+            [
+              1,
+              0,
+              6
+            ],
+            [
+              1,
+              1,
+              6
+            ],
+            [
+              1,
+              2,
+              6
+            ],
+            [
+              2,
+              0,
+              6
+            ],
+            [
+              2,
+              1,
+              6
+            ],
+            [
+              2,
+              2,
+              6
+            ],
+            [
+              3,
+              1,
+              6
+            ],
+            [
+              4,
+              1,
+              5
+            ]
+          ],
+          "coefficients": [
+            [
+              0.2,
+              0.0
+            ],
+            [
+              -0.161803398875,
+              0.117557050458
+            ],
+            [
+              0.061803398875,
+              -0.190211303259
+            ]
+          ]
+        },
+        {
+          "cells": [
+            [
+              0,
+              0,
+              5
+            ],
+            [
+              0,
+              1,
+              5
+            ],
+            [
+              0,
+              2,
+              5
+            ]
+          ],
+          "coefficients": [
+            [
+              0.2,
+              0.0
+            ],
+            [
+              0.061803398875,
+              0.190211303259
+            ],
+            [
+              -0.161803398875,
+              0.117557050458
+            ]
+          ]
+        }
+      ],
+      "depth": 3,
+      "height": 8,
+      "palette": [
+        "minecraft:cobblestone_wall[east=none,north=none,south=none,up=true,waterlogged=false,west=none]",
+        "minecraft:glowstone",
+        "minecraft:stone_brick_stairs[facing=east,half=bottom,shape=straight,waterlogged=false]",
+        "minecraft:stone_brick_stairs[facing=north,half=bottom,shape=straight,waterlogged=false]",
+        "minecraft:stone_brick_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]",
+        "minecraft:stone_brick_stairs[facing=west,half=bottom,shape=straight,waterlogged=false]",
+        "minecraft:stone_bricks"
+      ],
+      "samples": 5
+    }
+  },
+  "controls": {
+    "spacing": false,
+    "style": false
+  },
+  "kind": "nbtcreator.parametric-recipe",
+  "schema_version": 1
+}

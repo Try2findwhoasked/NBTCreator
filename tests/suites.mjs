@@ -98,6 +98,7 @@ export const suites = {
     python('-B', 'tests/engine/building-quality.py'),
     node('tests/desktop/building-quality.mjs'),
   ],
+  'building-repair': [python('-B', 'tests/support/building-repair-trial.py')],
   'catalog': [
     python('tests/engine/catalog-nbt.py'),
     node('tests/desktop/catalog-desktop.mjs'),
@@ -123,6 +124,7 @@ export const suites = {
   ],
   'curve-components': [python('-B', 'tests/engine/curve-components.py')],
   'curve-stencils': [python('-B', 'tests/engine/curve-stencils.py')],
+  'spectral-repeat': [python('-B', 'tests/engine/spectral-repeat.py')],
   'curved-surface': [python('-B', 'tests/engine/curved-surface.py')],
   'desktop': [
     node('--test', 'tests/node/render-pack.test.mjs'),
@@ -194,6 +196,7 @@ export const suites = {
   ],
   'modular': [
     python('-B', 'tests/engine/modular-objects.py'),
+    python('-B', 'tests/engine/spectral-repeat.py'),
     python('-B', 'tests/engine/structural-members.py'),
     python('-B', 'tests/engine/window-frames.py'),
   ],

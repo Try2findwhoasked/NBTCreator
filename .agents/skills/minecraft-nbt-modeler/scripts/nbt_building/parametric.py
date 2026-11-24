@@ -5,7 +5,7 @@ from nbt_model import state, AIR_NAMES
 
 KINDS = {'pillar':'装饰柱','stairs':'楼梯','table':'桌子','wall':'墙面装饰','ceiling':'吊顶装饰',
          'plant':'盆栽','shelf':'置物架','bench':'长凳','planter':'长花槽','lantern':'灯架',
-         'curve_stencil':'曲面 UV 平面模板'}
+         'curve_stencil':'曲面 UV 平面模板','spectral_repeat':'建筑重复频谱'}
 from nbt_building.modular_objects import KINDS as MODULAR_KINDS
 KINDS.update(MODULAR_KINDS)
 STYLES = {'classic':'框架与收边','stepped':'层叠与加厚','open':'减少封闭面并保留骨架'}
@@ -19,8 +19,11 @@ def listing(arguments=None, workspace=None):
     from nbt_assets.object_library import library
     from nbt_building.object_forms import PROFILES as FORM_PROFILES
     arguments=arguments or {}
+    mounts = {'spectral_repeat': 'repeat_x', 'curve_stencil': 'curve_uv_xy', 'wall': 'wall_back_z0',
+              'bracket': 'back_z0_top_support', 'beam': 'span_end_supports', 'ceiling': 'ceiling_top'}
     return dict(schema_version=1,column_orders=ORDERS,object_library=library(arguments.get('kind'), workspace=workspace),form_profiles=FORM_PROFILES,architectural_samples=ARCHITECTURAL_SAMPLES,themes=THEMES,form_fields=FORM_FIELDS,parameters=definitions()['parametric_compile']['parameters'],
-                kinds=[dict(kind=k,name=v,styles={} if k=='curve_stencil' else STYLES,mount='curve_uv_xy' if k=='curve_stencil' else 'wall_back_z0' if k=='wall' else 'back_z0_top_support' if k=='bracket' else 'span_end_supports' if k=='beam' else 'ceiling_top' if k=='ceiling' else 'floor') for k,v in KINDS.items() if not arguments.get('kind') or arguments['kind']==k],
+                kinds=[dict(kind=k, name=v, styles={} if k in ('curve_stencil','spectral_repeat') else STYLES,
+                            mount=mounts.get(k, 'floor')) for k,v in KINDS.items() if not arguments.get('kind') or arguments['kind']==k],
                 ornament_profiles={k:v for k,v in PROFILES.items() if not arguments.get('ornament_profile') or arguments['ornament_profile']==k},
                 coordinates='局部XYZ，包含两端；曲面模板位于XY平面且Z=0；墙饰背面Z=0，楼梯沿+Z上升；放置旋转、镜像由structure_place处理',
                 model_modified=False)
@@ -28,6 +31,11 @@ def listing(arguments=None, workspace=None):
 def compile_object(workspace, arguments):
     from nbt_agent.structure import _schema, definitions, build
     _schema(arguments,definitions()['parametric_compile']['parameters'],'参数化构件')
+    if arguments['kind']=='spectral_repeat':
+        from nbt_building.spectral_repeat import compile_repeat
+        return compile_repeat(workspace,arguments)
+    if arguments.keys() & {'spectrum','period','phase'}:
+        raise ValueError('spectrum、period 和 phase 仅用于建筑重复频谱')
     if arguments['kind']=='curve_stencil':
         from nbt_building.curve_stencils import compile_stencil
         return compile_stencil(workspace,arguments)

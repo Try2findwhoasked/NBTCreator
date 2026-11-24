@@ -312,6 +312,59 @@ class ArchitectureWorkflow(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'父指纹'):
             dispatch(self.workspace,'plan-build',dict(plan=changed,source=second['saved']['source'],source_sha256=file_hash(second['saved']['source']),expected_plan_sha256=first['plan_sha256']))
 
+    def test_build_scans_engine_once_then_rechecks_before_publication(self):
+        from unittest.mock import patch
+        from nbt_runtime import modeling_session
+
+        with patch.object(modeling_session, '_scan_engine_revision',
+                          wraps=modeling_session._scan_engine_revision) as scan:
+            first = self.make()
+        self.assertEqual(scan.call_count, 2)
+        self.assertTrue(first['checks']['architecture']['passed'])
+
+        source = Path(first['saved']['source'])
+        building = source.parent.parent.parent
+        old_versions = set(building.iterdir())
+        revised = plan()
+        revised['style']['materials']['structure'] = 'polished_andesite'
+        request = dict(first['revision_request'], plan=revised, save_draft={})
+        with patch.object(modeling_session, '_scan_engine_revision',
+                          side_effect=[(('engine', 'before'),), (('engine', 'after'),)]):
+            with self.assertRaisesRegex(ValueError, '引擎版本在构建期间发生变化'):
+                dispatch(self.workspace, 'plan-build', request)
+        self.assertEqual(set(building.iterdir()), old_versions)
+        self.assertEqual(file_hash(source), first['saved']['source_sha256'])
+        rebuilt = dispatch(self.workspace, 'plan-build', request)
+        self.assertTrue(rebuilt['checks']['architecture']['passed'])
+
+    def test_incremental_parts_match_full_rebuild_and_refresh_connected_beam(self):
+        first = self.make()
+        revised = plan()
+        left = next(part for part in revised['parts'] if part['id'] == 'left')
+        left['position'][0] -= 1
+        from unittest.mock import patch
+        from nbt_building.plan import wrapped_recipe
+
+        with patch('nbt_building.plan.wrapped_recipe', wraps=wrapped_recipe) as compile_part:
+            incremental = dispatch(self.workspace, 'plan-build',
+                                   dict(first['revision_request'], plan=revised))
+        full = dispatch(self.workspace, 'plan-build', dict(plan=revised))
+        self.assertEqual([call.args[1]['id'] for call in compile_part.call_args_list], ['left'])
+        self.assertEqual(incremental['rebuild']['reused_parts'], ['porch', 'platform', 'right', 'roof_post'])
+        self.assertEqual(incremental['rebuild']['reused_connections'], ['roof_bearing'])
+        self.assertEqual(incremental['rebuild']['compiled_connections'], ['main_beam'])
+        for field in ('geometry_sha256', 'model_sha256'):
+            self.assertEqual(incremental['model'][field], full['model'][field])
+        self.assertEqual(incremental['checks']['architecture'], full['checks']['architecture'])
+        joint = 'joint_main_beam_0_0_0'
+        self.assertNotEqual(incremental['model']['instances'][joint]['recipe'],
+                            first['model']['instances'][joint]['recipe'])
+        bearing = first['model']['instances']['joint_roof_bearing_0_0_0']
+        obstruction = bearing['recipe']['arguments']['operations'][0]['voxels'][0][:3]
+        revised['parts'].append(box_part('obstruction', obstruction, [1, 1, 1]))
+        with self.assertRaisesRegex(ValueError, '托座越界或占用已有几何'):
+            dispatch(self.workspace, 'plan-build', dict(first['revision_request'], plan=revised))
+
     def test_concurrent_plan_rebuilds_publish_only_one_child(self):
         from concurrent.futures import ThreadPoolExecutor
         from nbt_composition.working_model import ModelConflict

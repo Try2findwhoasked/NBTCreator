@@ -63,7 +63,7 @@
 
 bytes 与哈希须由实际文件生成，示例中的数值和占位符不可直接发布。库必需字段为 schema_version、kind、id、name、version、license、assets；可选 description（最多2000字）及 compatibility。compatibility 可含 minecraft、app_min、app_max；Minecraft 仅支持1.20.1，应用上下限为闭区间。省略 compatibility 表示作者接受当前协议的1.20.1默认目标。
 
-当前引擎按应用版本 4.3.1 检查上述边界。此前引擎错误地固定使用 3.1.0；因此升级后，原来侥幸通过、但 `app_max` 小于 4.3.1 的库会被拒绝，已验证的缓存和本地副本仍保留。应由库维护者发布兼容版本，再显式刷新；不要删除用户数据或绕过版本声明。
+当前引擎按应用版本 5.1.1 检查上述边界。使用 `spectral_repeat` 的库应声明 `app_min` 至少为 `5.1.1`。升级遇到版本不兼容时，已有缓存和本地副本仍保留，库维护者可发布兼容版本供用户显式刷新。
 
 每库1～512项资产，单项最多8MiB，总量最多32MiB；清单最多2MiB，每工作区最多32个外部库。库和资产 id 为1～96个小写英文、数字、点、横线或下划线，首位须为英文或数字。资产名称最多80字，分类最多80字，标签最多16个、每个32字。status 可为 draft、stable、recommended、deprecated，省略为 stable。状态描述作者推荐程度，不构成审阅或游戏验证证明。
 

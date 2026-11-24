@@ -1,5 +1,6 @@
 """Bounded, process-local reuse of pure modelling results. Never caches writes."""
 from collections import OrderedDict
+from contextlib import contextmanager
 from contextvars import ContextVar
 from copy import deepcopy
 from functools import lru_cache
@@ -53,6 +54,7 @@ class ModellingSession:
 
 _default=ModellingSession()
 _active=ContextVar('nbt_modelling_session',default=None)
+_engine_snapshot = ContextVar('nbt_engine_snapshot', default=None)
 def current():return _active.get() or _default
 def canonical(value):return json.dumps(value,sort_keys=True,ensure_ascii=False,separators=(',',':'),allow_nan=False)
 
@@ -62,10 +64,36 @@ def _file_digest(file,size,mtime,ctime):return sha256(Path(file).read_bytes()).h
 
 
 def engine_revision():
+    snapshot = _engine_snapshot.get()
+    return _scan_engine_revision() if snapshot is None else snapshot
+
+
+@contextmanager
+def engine_revision_scope():
+    """Reuse one revision during a request and expose its publication guard."""
+    revision = engine_revision()
+
+    def verify():
+        if _scan_engine_revision() != revision:
+            raise ValueError('引擎版本在构建期间发生变化，请重新运行当前请求')
+
+    token = _engine_snapshot.set(revision)
+    try:
+        yield verify
+    finally:
+        _engine_snapshot.reset(token)
+
+
+def _scan_engine_revision():
     # Include implementation, registry and contract changes in cache identity.
     # Python implementation updates still require restarting the process.
     directory=Path(__file__).resolve().parents[1]
     files=[*directory.rglob('*.py'),directory.parent/'tool-catalog.json',directory.parent/'references/block-registry-1.20.1.json']
     from nbt_extensions import revision_token
     registrations=sha256(canonical(revision_token()).encode('utf8')).hexdigest()
-    return tuple((p.relative_to(directory.parent).as_posix(),_file_digest(str(p),p.stat().st_size,p.stat().st_mtime_ns,p.stat().st_ctime_ns)) for p in sorted(files))+(('extension_registry',registrations),)
+    entries = []
+    for path in sorted(files):
+        stat = path.stat()
+        file_digest = _file_digest(str(path), stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+        entries.append((path.relative_to(directory.parent).as_posix(), file_digest))
+    return (*entries, ('extension_registry', registrations))

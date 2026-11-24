@@ -1,5 +1,5 @@
 import {presets} from './component-presets.mjs'
-import {recipeSpacingTarget} from './component-recipe-controls.mjs'
+import {createSpectralControls,recipeHasStyle,recipeSpacingTarget} from './component-recipe-controls.mjs'
 import {requestAI,previewAI,cancelAI} from '../ai-request.js'
 
 export function initComponentAuthor({actions,api,created}){
@@ -24,7 +24,11 @@ export function initComponentAuthor({actions,api,created}){
  const references=document.createElement('button');references.id='component-references';references.type='button';references.textContent='检索并选择参考';$('component-generate').after(references);const referenceSources=document.createElement('div');referenceSources.id='component-reference-sources';referenceSources.className='ai-reference-sources';$('component-status').before(referenceSources);references.onclick=()=>{try{window.nbtReferencePicker.open({workflow:'component',query:$('component-instruction').value,size:context().size}).catch(error=>status(error.message,true))}catch(error){status(error.message,true)}};window.addEventListener('nbt-reference-change',event=>{if(event.detail==='component'){invalidate();const selected=window.nbtReferencePicker?.summary('component')??[];references.textContent='检索并选择参考'+(selected.length?'（'+selected.length+'）':'');references.title=selected.map(item=>item.label).join('、')}})
  let candidate=null,binding=null,epoch=0,phase=null
  const status=(message,error=false)=>{$('component-status').textContent=message;$('component-status').classList.toggle('error',error)}
- const fingerprint=()=>JSON.stringify(['component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec'].map(id=>$(id).value).concat(window.nbtReferencePicker?.receipt('component')??null))
+ const fingerprint=()=>JSON.stringify([
+  ...['component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec'].map(id=>$(id).value),
+  ...Array.from(dialog.querySelectorAll('#component-presets input,#component-presets select'),element=>element.value),
+  window.nbtReferencePicker?.receipt('component')??null
+ ])
  function invalidate(){candidate=null;binding=null;$('component-write').disabled=true}
  function lock(value,kind=null){phase=value?kind:null;for(const id of ['component-generate','component-generate-save','component-copy-agent','component-preview','component-name','component-size-x','component-size-y','component-size-z','component-reference','component-instruction','component-spec','component-references'])$(id).disabled=value;for(const element of dialog.querySelectorAll('#component-presets input,#component-presets select,#component-presets button'))element.disabled=value;updatePresetControls(value);$('component-close').disabled=value&&kind==='write';$('component-write').disabled=value||!candidate||binding!==fingerprint()||dialog.dataset.mode==='view'}
  function context(){const name=$('component-name').value.trim(),size=['x','y','z'].map(axis=>Number($('component-size-'+axis).value));if(!name||name.length>80||!size.every(n=>Number.isInteger(n)&&n>=1&&n<=64))throw Error('请填写名称和1～64格的整数尺寸');return {name,size,references:[]}}
@@ -59,15 +63,72 @@ export function initComponentAuthor({actions,api,created}){
  const presetPanel=document.createElement('fieldset');presetPanel.id='component-presets';presetPanel.innerHTML='<legend>参数化模块库（无需 AI）</legend><label>构件<select id="component-preset-kind">'+Object.entries(presets).map(([key,name])=>`<option value="${key}">${name}</option>`).join('')+'</select></label><label>对象配方<select id="component-preset-recipe"><option value="">自定义基础模块</option></select></label><label>样式<select id="component-preset-style"><option value="classic">经典</option><option value="stepped">层叠</option><option value="open">通透</option></select></label><label>主材<input id="component-preset-material" value="stone_bricks"></label><label>收边材质<input id="component-preset-accent" value="polished_andesite"></label><label>节奏间距<input id="component-preset-spacing" type="number" min="2" max="8" value="3"></label><button id="component-preset-preview" type="button">预览参数化构件</button><p>选择配方会填入建议尺寸，之后可调整。柱高最多64格；矩形梁截面支持1格，其余尺寸按配方范围调整。楼梯配方包含外置扶手与平台，放置后须检查玩家通路、承托和净空。拱框与门窗框保留开口，不会挖除已有墙体。</p>';dialog.querySelector('.component-author-form').append(presetPanel)
  let objectLibrary=[]
  const railMaterials=document.createElement('div');railMaterials.id='component-preset-rail-materials';railMaterials.hidden=true;railMaterials.innerHTML='<label>扶手立柱 / 格构材质<input id="component-preset-post" placeholder="留空：按样式选木质或金属栏体"></label><label>扶手压顶材质<input id="component-preset-cap" placeholder="留空：按样式选轻薄扶手面"></label>';presetPanel.querySelector('#component-preset-preview').before(railMaterials)
+ const spectralControls=createSpectralControls('component-preset')
+ railMaterials.before(spectralControls.element)
  const selectedRecipe=()=>objectLibrary.find(row=>row.id===$('component-preset-recipe').value)?.arguments
  function spacingTarget(args){return recipeSpacingTarget(args,objectLibrary.find(row=>row.id===$('component-preset-recipe').value)?.controls)}
- function updatePresetControls(disabled=false){const args={...(selectedRecipe()??{kind:$('component-preset-kind').value}),style:$('component-preset-style').value};const controls=objectLibrary.find(row=>row.id===$('component-preset-recipe').value)?.controls;$('component-preset-spacing').disabled=disabled||!spacingTarget(args);$('component-preset-style').disabled=disabled||controls?.style===false||args.kind==='curve_stencil'||Boolean(args.form&&!['railing','beam','bracket','arch','frame','pedestal'].includes(args.kind));$('component-preset-style').closest('label').hidden=args.kind==='curve_stencil';$('component-preset-spacing').closest('label').hidden=args.kind==='curve_stencil';$('component-size-z').readOnly=args.kind==='curve_stencil';railMaterials.hidden=!(args.kind==='railing'||args.form?.handrail);$('component-preset-material').closest('label').hidden=args.kind==='railing';$('component-preset-accent').closest('label').hidden=args.kind==='railing'||args.kind==='curve_stencil';if(dialog.dataset.mode==='create')$('component-footer-hint').textContent=args.kind==='curve_stencil'?'平面模板须结合实际曲面生成并审阅候选。':'查看预览后保存到构件库，可在建筑中放置复用。'}
- function refreshLibrary(){$('component-preset-recipe').replaceChildren(new Option('自定义基础模块',''),...objectLibrary.filter(row=>row.arguments.kind===$('component-preset-kind').value&&row.status!=='draft').map(row=>new Option((row.status==='recommended'?'推荐 · ':'')+row.name,row.id)));updatePresetControls(Boolean(phase))}
+ function updatePresetControls(disabled=false){
+  const selection=selectedRecipe()
+  const args={...(selection??{kind:$('component-preset-kind').value}),style:$('component-preset-style').value}
+  const controls=objectLibrary.find(row=>row.id===$('component-preset-recipe').value)?.controls
+  const spectral=args.kind==='spectral_repeat',curve=args.kind==='curve_stencil'
+  $('component-preset-spacing').disabled=disabled||!spacingTarget(args)
+  $('component-preset-style').disabled=disabled||curve||!recipeHasStyle(args,controls)
+  $('component-preset-style').closest('label').hidden=spectral||curve
+  $('component-preset-spacing').closest('label').hidden=spectral||curve
+  $('component-size-y').readOnly=spectral
+  $('component-size-z').readOnly=spectral||curve
+  railMaterials.hidden=!(args.kind==='railing'||args.form?.handrail)
+  $('component-preset-material').closest('label').hidden=spectral||args.kind==='railing'
+  $('component-preset-accent').closest('label').hidden=spectral||curve||args.kind==='railing'
+  $('component-preset-preview').disabled=disabled||(spectral&&!selection)
+  if(dialog.dataset.mode==='create')$('component-footer-hint').textContent=curve?'平面模板须结合实际曲面生成并审阅候选。':'查看预览后保存到构件库，可在建筑中放置复用。'
+ }
+ function refreshLibrary(){
+  const kind=$('component-preset-kind').value
+  const recipes=objectLibrary.filter(row=>row.arguments.kind===kind&&row.status!=='draft')
+  const placeholder=kind==='spectral_repeat'?'请选择频谱配方':'自定义基础模块'
+  $('component-preset-recipe').replaceChildren(new Option(placeholder,''),...recipes.map(row=>new Option((row.status==='recommended'?'推荐 · ':'')+row.name,row.id)))
+  spectralControls.fill(null)
+  updatePresetControls(Boolean(phase))
+ }
  $('component-preset-kind').addEventListener('change',()=>{refreshLibrary();invalidate()})
- $('component-preset-recipe').addEventListener('change',()=>{const args=selectedRecipe();if(args){$('component-name').value=args.name;for(const [i,axis]of ['x','y','z'].entries())$('component-size-'+axis).value=args.size[i];$('component-preset-style').value=args.style??'classic';$('component-preset-material').value=args.material??'stone_bricks';$('component-preset-accent').value=args.accent??'polished_andesite';const target=spacingTarget(args);$('component-preset-spacing').value=target?target.reduce((value,key)=>value?.[key],args)??3:3}$('component-preset-post').value=args?.form?.handrail?.material??args?.form?.post_material??'';$('component-preset-cap').value=args?.form?.handrail?.cap_material??args?.form?.rail_material??'';updatePresetControls();invalidate()})
+ $('component-preset-recipe').addEventListener('change',()=>{const args=selectedRecipe();spectralControls.fill(args);if(args){$('component-name').value=args.name;for(const [i,axis]of ['x','y','z'].entries())$('component-size-'+axis).value=args.size[i];$('component-preset-style').value=args.style??'classic';$('component-preset-material').value=args.material??'stone_bricks';$('component-preset-accent').value=args.accent??'polished_andesite';const target=spacingTarget(args);$('component-preset-spacing').value=target?target.reduce((value,key)=>value?.[key],args)??3:3}$('component-preset-post').value=args?.form?.handrail?.material??args?.form?.post_material??'';$('component-preset-cap').value=args?.form?.handrail?.cap_material??args?.form?.rail_material??'';updatePresetControls();invalidate()})
  $('component-preset-style').addEventListener('change',()=>updatePresetControls())
  for(const element of presetPanel.querySelectorAll('input,select'))element.addEventListener('input',invalidate)
- $('component-preset-preview').onclick=safe(async token=>{const selected=selectedRecipe(),kind=$('component-preset-kind').value;if(kind==='curve_stencil'&&!selected)throw Error('请先选择具体曲面模板配方');const args={...structuredClone(selected??{}),kind,name:context().name,size:context().size};if(kind!=='curve_stencil')args.style=$('component-preset-style').value;if(args.kind!=='railing'){args.material=$('component-preset-material').value.trim();if(kind!=='curve_stencil')args.accent=$('component-preset-accent').value.trim()}if(args.kind==='railing'||args.form?.handrail){const owner=args.kind==='railing'?(args.form??={}):args.form.handrail;for(const [id,key]of [['component-preset-post',args.kind==='railing'?'post_material':'material'],['component-preset-cap',args.kind==='railing'?'rail_material':'cap_material']]){const value=$(id).value.trim();if(value)owner[key]=value;else delete owner[key]}}const target=spacingTarget(args);if(target){let owner=args;for(const key of target.slice(0,-1))owner=owner[key]??={};owner[target.at(-1)]=Number($('component-preset-spacing').value)}const {spec}=await call('parametric_compile',args);$('component-spec').value=JSON.stringify(spec,null,2);await preview(spec,token)})
+ $('component-preset-preview').onclick=safe(async token=>{
+  const selected=selectedRecipe(),kind=$('component-preset-kind').value
+  if(kind==='curve_stencil'&&!selected)throw Error('请先选择具体曲面模板配方')
+  const {name,size}=context()
+  const args={...structuredClone(selected??{}),kind,name,size}
+  if(kind==='spectral_repeat'){
+   if(!selected)throw Error('请先选择频谱配方')
+   Object.assign(args,spectralControls.read())
+  }else{
+   if(kind!=='curve_stencil')args.style=$('component-preset-style').value
+   if(kind!=='railing'){
+    args.material=$('component-preset-material').value.trim()
+    if(kind!=='curve_stencil')args.accent=$('component-preset-accent').value.trim()
+   }
+   if(kind==='railing'||args.form?.handrail){
+    const owner=kind==='railing'?(args.form??={}):args.form.handrail
+    for(const [id,key] of [['component-preset-post',kind==='railing'?'post_material':'material'],['component-preset-cap',kind==='railing'?'rail_material':'cap_material']]){
+     const value=$(id).value.trim()
+     if(value)owner[key]=value
+     else delete owner[key]
+    }
+   }
+   const target=spacingTarget(args)
+   if(target){
+    let owner=args
+    for(const key of target.slice(0,-1))owner=owner[key]??={}
+    owner[target.at(-1)]=Number($('component-preset-spacing').value)
+   }
+  }
+  const {spec}=await call('parametric_compile',args)
+  $('component-spec').value=JSON.stringify(spec,null,2)
+  await preview(spec,token)
+ })
  $('component-preview').onclick=safe(async token=>{const spec=JSON.parse($('component-spec').value);await preview(spec,token)})
  $('component-generate-save').onclick=()=>generate(true)
  $('component-generate').onclick=()=>generate(false)

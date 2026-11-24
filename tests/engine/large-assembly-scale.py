@@ -15,6 +15,7 @@ from nbt_project.history import History
 from nbt_composition.working_model import WorkingModel
 from nbt_composition.working_model import ModelConflict
 from nbt_composition.assembly_handoff import create_slice,merge_slices
+from nbt_runtime.modeling_session import ModellingSession
 from nbt_snbt import read_snbt,save_snbt
 
 
@@ -71,11 +72,22 @@ def main():
     assert len(revised.blocks)==expected+1 and revised.get((200,49,200))=='minecraft:gold_block' and revised_walls==walls
     assert verify_assembly_binding(loaded)
     done('history_patch_save_and_reopen')
+    columns = (145,147,149,151)
+    host = dict(source=saved['source'], source_sha256=saved['source_sha256'], context=context)
+    pieces = [dict(region=dict(lo=[144,0,0],hi=[153,9,2]), write_bounds=dict(lo=[x,0,0],hi=[x+1,9,2]),
+                   output=f'nbt_models/_workspaces/assembly-handoffs/scale-{index}')
+              for index, x in enumerate(columns)]
+    with ModellingSession(workspace):
+        sequential = [create_slice(workspace, dict(host, **piece)) for piece in pieces]
+    done('four_single_slice_issues')
+    with ModellingSession(workspace):
+        issued_batch = create_slice(workspace, dict(host, slices=[
+            dict(piece, output=piece['output']+'-batch') for piece in pieces]))['slices']
+    assert [row['manifest_sha256'] for row in sequential] == [row['manifest_sha256'] for row in issued_batch]
+    done('one_four_slice_issue')
+
     slices=[]
-    for index,x in enumerate((145,147,149,151)):
-        issued=create_slice(workspace,dict(source=saved['source'],source_sha256=saved['source_sha256'],context=context,
-            region=dict(lo=[144,0,0],hi=[153,9,2]),write_bounds=dict(lo=[x,0,0],hi=[x+1,9,2]),
-            output=f'nbt_models/_workspaces/assembly-handoffs/scale-{index}'))
+    for index,(x, issued) in enumerate(zip(columns, issued_batch)):
         piece,mask=read_snbt(issued['baseline']);piece.put((x-144,8,0),'gold_block')
         if index==1:piece.put((4,3,1),'stone')
         candidate=workspace/f'scale-candidate-{index}.snbt';candidate_receipt=save_snbt(candidate,piece,mask)
@@ -86,13 +98,15 @@ def main():
     except ModelConflict as error:
         if error.code!='SLICE_PROTECTED':raise
     else:raise AssertionError('楼梯净空冲突未被拒绝')
+    done('protected_merge_rejected')
     piece,mask=read_snbt(slices[1]['candidate']);piece.put((4,3,1),'air')
     repaired=workspace/'scale-candidate-repaired.snbt';repaired_receipt=save_snbt(repaired,piece,mask)
     slices[1].update(candidate=str(repaired),candidate_sha256=repaired_receipt['source_sha256'])
     merged=merge_slices(workspace,request)
     assert merged['changed_positions']==4 and merged['routes']['passed'] and merged['routes']['legs'][0]['report']['passed']
+    done('four_slice_merge')
     assert merge_slices(workspace,request)['saved']['source']==merged['saved']['source']
-    done('four_slice_conflict_repair_and_retry')
+    done('idempotent_merge_retry')
     cameras=output/'cameras.json'
     view=dict(role='合成组装全景',eye=[450,330,-400],target=[150,120,150],fov=48)
     cameras.write_text(json.dumps([dict(id='overview',**view),dict(id='section',cuts=[dict(axis='y',position=100,removed_side='above')],**view)]),encoding='utf8')

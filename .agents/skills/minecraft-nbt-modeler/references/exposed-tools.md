@@ -99,6 +99,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 
 | 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
 | --- | --- | --- | --- | --- |
+| 比较整栋空间与通路布局 | 命令 `architect layout-search --request <请求JSON>` | `capabilities --architect-action layout-search`<br>[请求与用例](architecture-workflow.md) | 填粗模方案、楼梯和工位的可选 XZ 位移、空间面积与邻接条件。 | 给出通过实际通路和使用面检查的候选，以及各次尝试的失败证据。<br>选定候选后将其 plan 交给 architect plan-build，在构造和装饰深化后保存制作版。 |
 | 从零起整栋初稿（亭子、入口、空间和构件） | 命令 `architect plan-build --request <请求JSON>` | `capabilities --architect-action plan-build`<br>[请求与用例](simple-building.md) | 按用途选尺寸、空间、材质、开口和机位。入口亭示例内含 save_draft，会发布制作版；只编译和检查时省略。 | 返回建筑编译与检查；保存时另有 saved、next.request 和 revision_request。<br>保存后把 next.request 原样交给 architect review-prepare；续版用 revision_request。 |
 | 按明确几何装配，或打开制作源续版 | 命令 `model --request <请求JSON>` | `capabilities --model`<br>[请求与用例](simple-building.md) | 新建填 size（XYZ 格数），已有制作版从原保存回执取 source 和 source_sha256；按需要填 actions。 | 返回模型摘要及操作结果；validate:true 复验，save_draft 另存 SNBT。<br>核对 result.validation（启用时）及 result.saved（保存时）；制作源用 render --source 出图。 |
 
@@ -221,7 +222,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | structure_place | 按锚点、旋转、镜像生成放置操作；不实际写建筑，仍须control preview/validate和显式新版本导出。 |
 | structure_save | 直接保存模型生成的资产：spec、component或绑定预览三选一；本地校验和真实预览后入库为待审阅资产，生成资产批次清单。保留手动导入，不产生NBT或设计批准。 |
 | parametric_list | 查询参数化模块、可直接编译的对象配方库、柱式与扶手样式、参数及安装边界；只读。 |
-| parametric_compile | 编译参数化模块候选：柱式、外置楼梯扶手、独立栏杆、梁、托架、拱框、门窗框、基座及家具。配方见parametric_list.object_library；不改当前建筑。 |
+| parametric_compile | 编译参数化模块候选：可调周期与相位的建筑重复频谱、柱式、外置楼梯扶手、独立栏杆、梁、托架、拱框、门窗框、基座及家具。配方见parametric_list.object_library；不改当前建筑。 |
 | parametric_preview | 按参数编译并生成真实独立构件候选与缩略图；不入库、不批准、不写建筑。 |
 | parametric_contract | 由可信调用方给定硬约束，返回供模型输出使用的JSON Schema及语义门禁说明；模型回复不能修改该契约。 |
 | parametric_validate | 使用调用方保留的硬约束验收模型proposal，再运行共享编译器；超限拒绝，不截断、不降级、不写建筑。 |

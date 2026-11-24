@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.agents/skills/minecraft-nbt-modeler/scripts'))
@@ -50,6 +51,23 @@ class Handoff(unittest.TestCase):
   request=self.request();request['write_bounds']['lo']=[-1,0,0]
   with self.assertRaisesRegex(ValueError,'可写'):create_slice(self.root,request)
   self.assertFalse((self.root/request['output']).exists())
+
+ def test_batch_reuses_host_and_routes_and_preserves_individual_manifests(self):
+  from nbt_composition import assembly_handoff
+
+  request=self.request()
+  host={key: request.pop(key) for key in ('source', 'source_sha256', 'context')}
+  pieces=[request, dict(request, output=request['output']+'-second',
+                        region=dict(lo=[0,0,0],hi=[6,4,2]))]
+  singles=[create_slice(self.root, dict(host, **piece)) for piece in pieces]
+  with patch.object(WorkingModel, 'open', wraps=WorkingModel.open) as opened, patch.object(
+      assembly_handoff, '_route_report', wraps=assembly_handoff._route_report) as routes:
+   batch=create_slice(self.root, dict(host, slices=pieces))
+   self.assertEqual(opened.call_count, 1)
+   self.assertEqual(routes.call_count, 1)
+  self.assertEqual(batch['slices'], singles)
+  with self.assertRaisesRegex(ValueError, '各自独立'):
+   create_slice(self.root, dict(host, slices=[pieces[0], pieces[0]]))
 
  def test_software_source_root_is_never_a_slice_workspace(self):
   with self.assertRaisesRegex(ValueError,'源码目录'):

@@ -21,7 +21,7 @@ MAX_ASSET = 8 * 1024 * 1024
 MAX_TOTAL = 32 * 1024 * 1024
 LIMIT = 512
 DOWNLOAD_WORKERS = 4
-APP_VERSION = (5, 1, 0)
+APP_VERSION = (5, 1, 1)
 ACTIONS = ('list', 'browse', 'discover', 'add', 'refresh', 'enable', 'remove', 'rollback',
            'read', 'import', 'thumbnail', 'preview', 'resolve', 'place', 'copy')
 
@@ -385,12 +385,23 @@ def discover(source):
 
 
 def cache_asset(workspace, source, asset, deadline):
+    """Cache one entry for callers of the public nbt_asset_libraries module."""
+    cache_asset_group(workspace, source, [asset], deadline)
+
+
+def cache_asset_group(workspace, source, entries, deadline):
+    # One worker owns each blob. Every distinct source path is still resolved,
+    # and a cold cache verifies the bytes at every path before publishing.
+    try: existing = cached(workspace, entries[0]['sha256'])
+    except (OSError, ValueError): existing = None
+    for asset in entries:
+        if time.monotonic() >= deadline: fail('TIME_LIMIT', '库刷新超过60秒，请稍后重试')
+        location = child_location(source, asset['path'])
+        content = existing if existing is not None else fetch(location, MAX_ASSET, deadline=deadline)
+        payload(asset, content)
     if time.monotonic() >= deadline: fail('TIME_LIMIT', '库刷新超过60秒，请稍后重试')
-    try: content = cached(workspace, asset['sha256'])
-    except (OSError, ValueError): content = fetch(child_location(source, asset['path']), MAX_ASSET, deadline=deadline)
-    payload(asset, content)
-    if time.monotonic() >= deadline: fail('TIME_LIMIT', '库刷新超过60秒，请稍后重试')
-    blob(workspace, content)
+    if existing is None:
+        blob(workspace, content)
 
 
 def synchronize(workspace, config, entry, expected=None):
@@ -418,8 +429,11 @@ def synchronize(workspace, config, entry, expected=None):
     # Bounded I/O avoids paying a full network round trip serially for every
     # small JSON file. Cache writes stay content-addressed; state activates only
     # after every future succeeds. Errors cancel queued work, preserving active.
+    groups = {}
+    for asset in data['assets']:
+        groups.setdefault(asset['sha256'], []).append(asset)
     executor = ThreadPoolExecutor(max_workers=DOWNLOAD_WORKERS, thread_name_prefix='nbt-assets')
-    futures = [executor.submit(cache_asset, workspace, actual[0], asset, deadline) for asset in data['assets']]
+    futures = [executor.submit(cache_asset_group, workspace, actual[0], entries, deadline) for entries in groups.values()]
     try:
         for future in as_completed(futures, timeout=max(.01, deadline - time.monotonic())): future.result()
     except FuturesTimeoutError:
@@ -478,17 +492,26 @@ def preview_engine():
     return digest(canonical(engine_revision()).encode('utf8'))
 
 
-def thumbnail_paths(workspace, asset_sha256, engine):
+def asset_camera_hint(entry):
+    if 'vault' in entry.get('tags', []):
+        return dict(azimuth=28, elevation=-64)
+    return None
+
+
+def thumbnail_paths(workspace, asset_sha256, engine, camera_hint=None):
     root = cache_root(workspace)
-    key = digest(encode(dict(asset_sha256=asset_sha256, engine=engine, thumbnail_version=1)))
+    binding = dict(asset_sha256=asset_sha256, engine=engine, thumbnail_version=1)
+    if camera_hint is not None:
+        binding['camera'] = camera_hint
+    key = digest(encode(binding))
     image = resolved_path(root / 'previews' / (key + '.jpg'))
     receipt = image.with_suffix('.json')
     if not image.is_relative_to(root): fail('UNSAFE_PATH', '预览缓存路径越界')
     return image, receipt
 
 
-def checked_thumbnail(workspace, asset_sha256, engine):
-    image, receipt = thumbnail_paths(workspace, asset_sha256, engine)
+def checked_thumbnail(workspace, asset_sha256, engine, camera_hint=None):
+    image, receipt = thumbnail_paths(workspace, asset_sha256, engine, camera_hint)
     try:
         record = decode(fetch(str(receipt), MAX_MANIFEST))
         if digest(fetch(str(image), MAX_ASSET)) == record['image_sha256']:
@@ -528,7 +551,7 @@ def browse(workspace, *, query=None, limit=6):
                 item = row(data, entry, content, source['id'])
                 item.update(manifest_sha256=key, source_name='应用自带' if source['id']=='bundled' else data['name'],
                             review_status='pending_visual_review')
-                if engine is not None:item['thumbnail']=checked_thumbnail(workspace,entry['sha256'],engine)
+                if engine is not None:item['thumbnail']=checked_thumbnail(workspace,entry['sha256'],engine,asset_camera_hint(entry))
                 if entry['type'] == 'parametric_recipe': item['size'] = deepcopy(item['arguments']['size'])
                 if query is None:prepared.append(item)
                 else:
@@ -638,17 +661,20 @@ def asset_action(workspace, action, request):
     if any(field not in request for field in ('source_id', 'version', 'manifest_sha256')):
         fail('INVALID_REQUEST', '使用素材须同时提供来源、版本和清单哈希')
     result = read_asset(workspace, request)
+    camera_hint = asset_camera_hint(result['asset'])
     if action == 'thumbnail':
         engine = preview_engine()
-        image, receipt = thumbnail_paths(workspace, result['asset']['sha256'], engine)
-        cached_image = checked_thumbnail(workspace, result['asset']['sha256'], engine)
+        image, receipt = thumbnail_paths(workspace, result['asset']['sha256'], engine, camera_hint)
+        cached_image = checked_thumbnail(workspace, result['asset']['sha256'], engine, camera_hint)
         if not cached_image:
             from nbt_assets.components import thumbnail
             data, _, _ = materialize(workspace, result)
             image.parent.mkdir(parents=True, exist_ok=True)
             temporary = image.with_name('.'+uuid.uuid4().hex+'.jpg')
             try:
-                thumbnail(data, temporary)
+                from nbt_agent.structure import _camera
+                camera = _camera(data, camera_hint) if camera_hint is not None else None
+                thumbnail(data, temporary, camera=camera)
                 raw = temporary.read_bytes(); atomic(image, raw)
                 atomic(receipt, encode(dict(image_sha256=digest(raw), content_sha256=data['content_sha256'],
                     size=data['size'], anchor=data['anchor'], block_count=len(data['blocks']))))
@@ -658,7 +684,7 @@ def asset_action(workspace, action, request):
     data, spec, args = materialize(workspace, result, request.get('arguments'))
     if action == 'preview':
         from nbt_agent.structure import preview
-        candidate = preview(workspace, data, spec)
+        candidate = preview(workspace, data, spec, camera_hint=camera_hint)
         return dict(candidate, anchor=data['anchor'], library_asset=result['asset'], arguments=args, approval_created=False)
     if action in ('resolve', 'place', 'copy'):
         if sha(request.get('content_sha256')) != data['content_sha256']:
