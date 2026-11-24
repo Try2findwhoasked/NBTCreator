@@ -1,4 +1,5 @@
 import './batch-workspaces.css'
+import {mountAuthoringWorkflow} from './authoring-workflow.js'
 
 const statusNames={authoring:'制作中',review:'待审阅',delivered:'已交付',failed:'未完成',cancelled:'已取消'}
 const roleNames={gallery:'图册',archive:'压缩包',report:'报告／清单',script:'脚本',design:'设计资料',preview:'预览图',other:'其他文件'}
@@ -42,6 +43,8 @@ export function initBatchWorkspaces({host,api,getModels,openModel,previewModel,r
   detail.append(element('h3',task.name),element('p',`${statusNames[task.status]} · ${new Date(task.updated_at).toLocaleString('zh-CN')}`),pathRow(task.absolute_workspace))
   const actions=element('div',undefined,'batch-link-actions');actions.append(button('打开批次文件夹',()=>native(task,'workspace')),button('复制批次路径',()=>copy(task.absolute_workspace)),button('全部标为已查看',async()=>{await api('batches/ack',{id:task.id,all:true});await refresh()}));detail.append(actions)
   detail.append(element('p','脚本、设计、验证、预览和中间稿放在本批次；正式模型仍在形状／名称／版本目录。这里的交付状态不代表用户已批准精修或完成验收。','batch-workspace-note'))
+  mountAuthoringWorkflow(detail,task,{api,button,getDraft:source=>getModels().find(model=>key(model.source)===key(source)),
+   openDraft:async model=>{dialog.close();await openModel(model)}})
   const models=element('section');models.append(element('h4','关联模型'))
   appendPages(models,task.models,item=>{
    const row=element('article',undefined,'batch-linked-item');row.dataset.modelId=item.id;row.classList.toggle('batch-item-new',item.is_new);row.append(element('strong',item.name),element('small',`${item.kind==='formal'?'正式模型':'中间稿（仅预览）'} · ${item.size.join(' × ')} · ${fileNames[item.file_status]}${item.is_new?' · 新增':''}`),pathRow(item.absolute_source))

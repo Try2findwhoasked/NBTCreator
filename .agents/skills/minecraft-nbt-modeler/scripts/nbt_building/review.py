@@ -231,29 +231,44 @@ def load_observations(workspace, file, pack, pack_sha256, notes_sha256):
     return notes
 
 
-def record(workspace,request):
-    file,pack=load_pack(workspace,request);manifest_file=inside(workspace,request['render_manifest'])
+def verified_render(workspace, cameras_file, source_sha256, geometry_sha256, manifest_path, expected_sha256=None, source_path=None):
+    manifest_file=inside(workspace,manifest_path)
     manifest_sha256=file_hash(manifest_file)
+    if expected_sha256 is not None and manifest_sha256!=expected_sha256:raise ValueError('出图清单已变化')
     manifest=json.loads(manifest_file.read_text(encoding='utf8'))
-    if manifest.get('status')!='complete' or manifest.get('source_sha256')!=pack['source_sha256'] or manifest.get('cameras_sha256')!=pack['cameras_sha256']:
+    if manifest.get('status')!='complete' or manifest.get('source_sha256')!=source_sha256 or manifest.get('cameras_sha256')!=file_hash(cameras_file):
         raise ValueError('实际出图未完成或源/相机绑定不一致')
     snapshot_file=(manifest_file.parent/manifest.get('snapshot_file','snapshot.json')).resolve()
     if not snapshot_file.is_relative_to(manifest_file.parent.resolve()) or file_hash(snapshot_file)!=manifest.get('snapshot_sha256'):raise ValueError('出图快照指纹不符')
     snapshot=json.loads(snapshot_file.read_text(encoding='utf8'))
-    if snapshot.get('source_sha256')!=pack['source_sha256']:raise ValueError('出图快照引用了其他制作源')
-    views={row['id']:row for row in pack['views']};images={}
-    requested={row['id']:row for row in json.loads((file.parent/pack['cameras']).read_text(encoding='utf8'))}
+    if snapshot.get('source_sha256')!=source_sha256:raise ValueError('出图快照引用了其他制作源')
+    if source_path is not None and (not snapshot.get('source') or inside(workspace,snapshot['source'])!=source_path):
+        raise ValueError('出图快照路径不属于本次落盘源')
+    if snapshot.get('geometry_sha256')!=geometry_sha256 or manifest.get('geometry_sha256')!=geometry_sha256:raise ValueError('渲染几何指纹与制作源不符')
+    images={}
+    requested={row['id']:row for row in json.loads(cameras_file.read_text(encoding='utf8'))}
     for image in manifest['images']:
         path=inside(workspace,manifest_file.parent/image['image']);metadata_file=inside(workspace,manifest_file.parent/image['metadata'])
         if not path.is_relative_to(manifest_file.parent.resolve()) or not metadata_file.is_relative_to(manifest_file.parent.resolve()):raise ValueError('出图文件路径越界')
         metadata=json.loads(metadata_file.read_text(encoding='utf8'));identifier=metadata['id']
-        if identifier not in views or file_hash(path)!=image['sha256'] or metadata.get('image_sha256')!=image['sha256']:raise ValueError('图像缺失、变化或与机位不符')
+        if identifier not in requested or file_hash(path)!=image['sha256'] or metadata.get('image_sha256')!=image['sha256']:raise ValueError('图像缺失、变化或与机位不符')
         if identifier in images:raise ValueError('出图机位ID重复')
         expected=requested[identifier];actual=metadata.get('requested_view',{})
         if metadata.get('snapshot_sha256')!=manifest['snapshot_sha256'] or metadata.get('image')!=image['image'] or any(actual.get(key)!=value for key,value in expected.items()):raise ValueError('图片元数据与实际快照或请求机位不一致')
         content=path.read_bytes()
         if not content.startswith(b'\x89PNG\r\n\x1a\n') or len(content)<24 or int.from_bytes(content[16:20],'big')!=manifest['width'] or int.from_bytes(content[20:24],'big')!=manifest['height']:raise ValueError('图片格式或分辨率与出图回执不一致')
         images[identifier]=dict(path=relative(workspace,path),sha256=image['sha256'],metadata=relative(workspace,metadata_file),metadata_sha256=file_hash(metadata_file))
+    if set(images)!=set(requested):raise ValueError('实际图像未完整覆盖审阅机位')
+    if file_hash(manifest_file)!=manifest_sha256:raise ValueError('出图清单在核对期间变化')
+    return manifest_file,manifest_sha256,manifest,images
+
+
+def record(workspace,request):
+    file,pack,model=load_pack_model(workspace,request)
+    binding=model.architecture
+    manifest_file,manifest_sha256,_,images=verified_render(workspace,file.parent/pack['cameras'],pack['source_sha256'],
+        model.model.fingerprint(),request['render_manifest'])
+    views={row['id']:row for row in pack['views']}
     if set(images)!=set(views):raise ValueError('实际图像未完整覆盖审阅机位')
     observed={row['image'] for row in request['observations']}
     if len(observed)!=len(request['observations']):raise ValueError('图像观察重复')
@@ -261,8 +276,6 @@ def record(workspace,request):
     from nbt_building.intent import observed_locations
     covered_locations, missing_locations, manual = observed_locations(pack, request['observations'])
     if len({row['id'] for row in request['issues']})!=len(request['issues']):raise ValueError('问题ID重复')
-    model=load_model(workspace,dict(source=pack['source'],source_sha256=pack['source_sha256']));binding=model.architecture
-    if snapshot.get('geometry_sha256')!=model.model.fingerprint() or manifest.get('geometry_sha256')!=snapshot['geometry_sha256']:raise ValueError('渲染几何指纹与制作源不符')
     issues=[]
     for issue in request['issues']:
         if any(views[name]['layer']!=issue['layer'] for name in issue['images'] if name in views):raise ValueError('问题层级与图像层级不一致')

@@ -65,22 +65,32 @@ def compile_operations(operations,lo,hi,size,overwrite):
     settings=default_settings();settings['operations']=result;compile_plan(settings,list(size))
     return result
 
+def encode_context(model,walls,lo,hi,*,exact_states=False):
+    from math import prod
+    from nbt_model import AIR_NAMES
+    from nbt_registry import effective,normalize
+    if prod(b-a+1 for a,b in zip(lo,hi))>65536:
+        raise ValueError('选区至多65536格，请缩小选区')
+    palette=[];ids={};runs=[];count=0
+    points=sorted(((p,value) for p,value in model.blocks.items() if all(lo[i]<=p[i]<=hi[i] for i in range(3))),key=lambda pair:(pair[0][1],pair[0][2],pair[0][0]))
+    for p,value in points:
+        if value in AIR_NAMES:continue
+        if not exact_states:
+            name,props=effective(value)
+            value=normalize(dict(Name=name,Properties=props))
+        index=ids.setdefault(value,len(palette))
+        if index==len(palette):palette.append(value)
+        x,y,z=[p[i]-lo[i] for i in range(3)];wall=1 if p in walls else 0;count+=1
+        if runs and runs[-1][1:3]==[y,z] and runs[-1][0]+runs[-1][3]==x and runs[-1][4:]==[index,wall]:runs[-1][3]+=1
+        else:runs.append([x,y,z,1,index,wall])
+    result=dict(schema_version=1,geometry_sha256=model.fingerprint(),size=[hi[i]-lo[i]+1 for i in range(3)],palette=palette,runs=runs,solid_blocks=count,air_omitted=True)
+    if len(runs)>4096 or len(palette)>512 or len(json.dumps(result).encode('utf8'))>128*1024:raise ValueError('选区方块数据过多，请缩小选区；未截断或发送部分数据')
+    return result
+
 def dispatch(action,request,snapshot=None):
     source,source_hash,model,walls,lo,hi,snapshot_hash=load_selection(request,snapshot)
     if action=='context':
-        from nbt_registry import effective,normalize
-        palette=[];ids={};runs=[];count=0
-        points=sorted(((p,value) for p,value in model.blocks.items() if all(lo[i]<=p[i]<=hi[i] for i in range(3))),key=lambda pair:(pair[0][1],pair[0][2],pair[0][0]))
-        for p,value in points:
-            name,props=effective(value)
-            if name in ('minecraft:air','minecraft:cave_air','minecraft:void_air'):continue
-            value=normalize(dict(Name=name,Properties=props));id=ids.setdefault(value,len(palette))
-            if id==len(palette):palette.append(value)
-            x,y,z=[p[i]-lo[i] for i in range(3)];wall=1 if p in walls else 0;count+=1
-            if runs and runs[-1][1:3]==[y,z] and runs[-1][0]+runs[-1][3]==x and runs[-1][4:]==[id,wall]:runs[-1][3]+=1
-            else:runs.append([x,y,z,1,id,wall])
-        result=dict(schema_version=1,geometry_sha256=model.fingerprint(),size=[hi[i]-lo[i]+1 for i in range(3)],palette=palette,runs=runs,solid_blocks=count,air_omitted=True)
-        if len(runs)>4096 or len(palette)>512 or len(json.dumps(result).encode('utf8'))>128*1024:raise ValueError('选区方块数据过多，请缩小选区；未截断或发送部分数据')
+        result=encode_context(model,walls,lo,hi)
     elif action=='compile':
         operations=compile_operations(request.get('operations'),lo,hi,model.size,request.get('allow_overwrite',True))
         result=dict(operations=operations,source_sha256=source_hash,geometry_sha256=model.fingerprint(),asset_written=False)

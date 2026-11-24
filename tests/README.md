@@ -38,6 +38,8 @@
 | 单开间檐底小波移植、真实方块回读、轮廓与接缝拒绝 | `mise run test -- wavelet-eave` |
 | 大型组装、四片楼梯冲突、恢复及同机位渲染 | `mise run test -- large-assembly` |
 | 三视配准、回投影与匿名审阅绑定 | `mise run test -- reference-views` |
+| 分区制作、受限会话、旧值补丁、原子合模 | `mise run test -- authoring-run`、`authoring-delegation`、`authoring-merge` |
+| 合成旅店和工业桥廊实图、桌面恢复和保存 | `mise run test -- authoring-review`、`authoring-workflow` |
 | 曲面实际宿主、分层叠放、纹样、背衬与候选回放 | `mise run test -- curved-surface` |
 | 曲面构件切片、来源绑定与离线回放 | `mise run test -- curve-components` |
 | 曲面 UV 模板、端部、方向与配方编译 | `mise run test -- curve-stencils` |

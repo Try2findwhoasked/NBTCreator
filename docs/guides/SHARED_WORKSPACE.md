@@ -40,6 +40,8 @@ NBTCreator 沿用原 minecraft-nbt-modeler 的模型与导出协议。主模型 
 
 同步工作区后，在当前项目的 Agent 对话中调用 **`$nbtcreator-agent 继续任务 <编号>`** 可接手已交接的初稿。也可以调用 `$nbtcreator-agent` 并提供明确的建筑要求，从对话直接启动创作。入口在 `.agents/skills/nbtcreator-agent/SKILL.md`，和工作区建模 Skill 共用同一套冻结命令。工作台的「外部建造助手」可以预览触发 Skill。[创作方式、任务登记与回传](../../.agents/skills/minecraft-nbt-modeler/references/creation-workflows.md)
 
+多区建模可以在同一制作批次冻结参考图、普通 SNBT 和空间接口。一级签发区域，二级划分构件批次，三级读授权方块页并回传旧值补丁。桌面从「制作批次」继续核对候选和实景观察。独立家具及单处宿主编辑沿用构件或选区入口。[参考图与分区建模](../../.agents/skills/minecraft-nbt-modeler/references/authoring-workflow.md)
+
 首次创作在提示词方案页编写和审阅设计要求，再“确认并交接”，任务保存在对应建筑的 `提示词方案/任务/`。Agent 通过 `prompts tasks --after <cursor>` 发现新增任务，`prompts task --id <id>` 读取正文及经哈希检查的方案；进度通过 `prompts task-status` 登记。默认方案不要求具体工具步骤，详见[首次创作](PROMPT_CREATION.md)。
 
 已有建筑可在模型编辑页调好参数后点击“生成 Agent 修改方案”→“复制给 Agent”；Agent 读取当前源、参数、意见和保护配置，完成实际修改后在原建筑工作文件夹内另建下一版本目录。应用刷新列表后选择新版本，不需要再次执行同一修改。保存任务和登记完成均不自动启动 Agent，也不表示用户已验收建筑。

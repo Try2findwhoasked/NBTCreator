@@ -17,6 +17,7 @@ import { createFeedbackStore } from './feedback-store.mjs'
 import {createCatalogStore} from './catalog-store.mjs'
 import {createProjectStages} from './project-stages.mjs'
 import {createEditSessionRoutes} from './edit-session-routes.mjs'
+import {createAuthoringRoutes} from './authoring-routes.mjs'
 import {createCommandStore} from './command-store.mjs'
 import {referenceSources} from './reference-sources.mjs'
 import {cleanApiMetrics,cleanTimings} from './ai-metrics.mjs'
@@ -311,10 +312,12 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     if(child)await terminate(child)
     await job[jobFinished]
   }
+  const authoringRoutes = createAuthoringRoutes({workspace, outputRoot, body, json, invoke})
   const viewer = await createViewerServer({ port, frontendMode, modelResolver: key => snapshots.get(key), apiHandler: async (req, res, url) => {
     if (!url.pathname.startsWith('/__detail__/')) return false
     try {
       if(await editSessionRoutes(req,res,url))return true
+      if(await authoringRoutes(req,res,url))return true
       if (req.method === 'POST' && url.pathname === '/__detail__/resolve-request') { json(res,absoluteRequest((await body(req)).request,workspace))
       } else if (url.pathname === '/__detail__/project-stage' && req.method==='POST') {
         const input=await body(req);json(res,await projectStages.save(localPath(input.source),input.stage))

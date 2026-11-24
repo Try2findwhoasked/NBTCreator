@@ -47,6 +47,8 @@ flowchart LR
 
 外部 Skill 默认载入创作相关资料，软件维护与接口扩展按工作区启用。建筑书库独立索引并按任务检索。紧凑任务视图、增量诊断和本地任务客户端已接入共享 CLI。整栋初稿通过 `creation` 读取已冻结的工作区模式，并组织编译、回读、验证、审阅、发布与回传。 [创作协议](../../.agents/skills/minecraft-nbt-modeler/references/creation-workflows.md)
 
+分区协作通过 `machine` 的 `authoring.*` 方法进入同一引擎。`nbt_project/authoring_runs.py` 在批次尝试中持有 `authoring.json`，`nbt_agent/authoring_tasks.py` 复用租约、fence 和幂等回执。`authoring_views.py` 根据已登记工作包投影提示词、动作和字段。`nbt_composition/authoring_merge.py` 复用 `WorkingModel.patch` 和整栋发布锁，`nbt_review/authoring_review.py` 用固定机位比较基线和候选或落盘版。Electron 在制作批次中读取相同协议和经过哈希核对的图片。[参考图与分区建模](../../.agents/skills/minecraft-nbt-modeler/references/authoring-workflow.md)
+
 | 顺序 | 脚本负责 | Agent 负责 |
 | --- | --- | --- |
 | 1. 紧凑任务视图 | `prompts.get` 的 `compact` 视图读取冻结表单摘录、阶段、约束、保护范围摘要、源匹配和上一条已发布修订差异。正文、结构化表单、操作计划和坐标可分别展开。 | 理解意图、识别冲突、选择须展开的资料。 |

@@ -26527,6 +26527,403 @@ globalThis.NbtToolCatalog = {
       ]
     },
     "methods": {
+      "authoring.create": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "mode": "string",
+          "task": "string"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "mode",
+          "task"
+        ],
+        "mutation": true
+      },
+      "authoring.inspect": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "view": "string"
+        },
+        "required": [
+          "batch_id",
+          "run_id"
+        ],
+        "mutation": false
+      },
+      "authoring.brief": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "package_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "section": "string",
+          "ref": "string"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "package_id",
+          "package_revision",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": false
+      },
+      "authoring.block_state": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "package_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "state": "string"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "package_id",
+          "package_revision",
+          "lease_token",
+          "fence",
+          "state"
+        ],
+        "mutation": false
+      },
+      "authoring.report_region": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "package_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "summary": "string",
+          "candidates": "array",
+          "blockers": "array"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "package_id",
+          "package_revision",
+          "lease_token",
+          "fence",
+          "summary",
+          "candidates"
+        ],
+        "mutation": true
+      },
+      "authoring.bind_reference": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "run_revision": "integer",
+          "pack": "object"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "run_revision",
+          "pack"
+        ],
+        "mutation": true
+      },
+      "authoring.bind_baseline": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "run_revision": "integer",
+          "source": "string",
+          "source_sha256": "string",
+          "spaces": "array",
+          "layout": "object",
+          "protected_boxes": "array",
+          "interfaces": "array",
+          "coordinates": "object"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "run_revision",
+          "source",
+          "source_sha256",
+          "spaces"
+        ],
+        "mutation": true
+      },
+      "authoring.issue": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "run_revision": "integer",
+          "parent_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "packages": "array"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "run_revision",
+          "parent_id",
+          "package_revision",
+          "lease_token",
+          "fence",
+          "packages"
+        ],
+        "mutation": true
+      },
+      "authoring.reissue": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "run_revision": "integer",
+          "parent_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "target_id": "string",
+          "target_revision": "integer",
+          "package": "object"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "run_revision",
+          "parent_id",
+          "package_revision",
+          "lease_token",
+          "fence",
+          "target_id",
+          "target_revision",
+          "package"
+        ],
+        "mutation": true
+      },
+      "authoring.claim": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "package_id": "string",
+          "package_revision": "integer",
+          "owner": "string",
+          "ttl_seconds": "integer"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "package_id",
+          "package_revision",
+          "owner"
+        ],
+        "mutation": true
+      },
+      "authoring.heartbeat": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "package_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "ttl_seconds": "integer"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "package_id",
+          "package_revision",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "authoring.release": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "package_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "package_id",
+          "package_revision",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": true
+      },
+      "authoring.context": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "package_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "page": "integer"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "package_id",
+          "package_revision",
+          "lease_token",
+          "fence"
+        ],
+        "mutation": false
+      },
+      "authoring.submit": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "package_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "read_sha256": "string",
+          "patches": "array",
+          "components": "array",
+          "evidence": "array",
+          "page_receipts": "array"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "package_id",
+          "package_revision",
+          "lease_token",
+          "fence",
+          "read_sha256",
+          "patches",
+          "components"
+        ],
+        "mutation": true
+      },
+      "authoring.plan_merge": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "run_revision": "integer",
+          "package_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "parent_source_sha256": "string",
+          "candidates": "array"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "run_revision",
+          "package_id",
+          "package_revision",
+          "lease_token",
+          "fence",
+          "parent_source_sha256",
+          "candidates"
+        ],
+        "mutation": true
+      },
+      "authoring.save_draft": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "run_revision": "integer",
+          "package_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "parent_source_sha256": "string",
+          "candidates": "array",
+          "merge_sha256": "string",
+          "technical_trial": "string",
+          "name_zh": "string",
+          "review_sha256": "string"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "run_revision",
+          "package_id",
+          "package_revision",
+          "lease_token",
+          "fence",
+          "parent_source_sha256",
+          "candidates",
+          "merge_sha256"
+        ],
+        "mutation": true
+      },
+      "authoring.prepare_review": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "run_revision": "integer",
+          "package_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "merge_sha256": "string",
+          "views": "array",
+          "target": "string"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "run_revision",
+          "package_id",
+          "package_revision",
+          "lease_token",
+          "fence",
+          "merge_sha256",
+          "views"
+        ],
+        "mutation": true
+      },
+      "authoring.record_observation": {
+        "fields": {
+          "batch_id": "string",
+          "run_id": "string",
+          "run_revision": "integer",
+          "package_id": "string",
+          "package_revision": "integer",
+          "lease_token": "string",
+          "fence": "integer",
+          "merge_sha256": "string",
+          "pack_sha256": "string",
+          "manifests": "object",
+          "observations": "array",
+          "issues": "array",
+          "previous_review_sha256": "string"
+        },
+        "required": [
+          "batch_id",
+          "run_id",
+          "run_revision",
+          "package_id",
+          "package_revision",
+          "lease_token",
+          "fence",
+          "merge_sha256",
+          "pack_sha256",
+          "manifests",
+          "observations"
+        ],
+        "mutation": true
+      },
       "tasks.list": {
         "fields": {
           "source": "string"

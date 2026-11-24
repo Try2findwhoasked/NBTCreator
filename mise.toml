@@ -215,6 +215,11 @@ run = "pwsh -NoProfile -File scripts/ci-model-delivery.ps1"
 description = "Verify building authoring, model and SNBT workflows"
 env = { DEBUG = "pw:browser", NBTCREATOR_TEST_SNBT = "1" }
 run = [
+  "node tests/run-suite.mjs authoring-run",
+  "node tests/run-suite.mjs authoring-delegation",
+  "node tests/run-suite.mjs authoring-merge",
+  "node tests/run-suite.mjs --prebuilt authoring-review",
+  "node tests/run-suite.mjs --prebuilt authoring-workflow",
   "node tests/run-suite.mjs roof-curves",
   "python -B tests/engine/architectural-bay.py",
   "node tests/run-suite.mjs architecture-workflow",

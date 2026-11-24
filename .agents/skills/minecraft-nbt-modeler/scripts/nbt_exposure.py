@@ -21,7 +21,7 @@ MISE_COMMAND='mise run nbt --'
 MISE_DIRECT=f'mise run ./{MISE_ENTRY} --'
 MISE_CONFIG=f'# NBTCreator generated workspace task\n[tasks.nbt]\ndescription = "Run NBTCreator in this workspace"\nfile = "{MISE_ENTRY}"\n'.encode('utf8')
 GROUPS={
- 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','simple-building','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','creation-workflows','architect-tools','architecture-workflow','whole-building-planning','ai-creative-preferences','version-history','snbt-authoring']),
+ 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','simple-building','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','creation-workflows','authoring-workflow','architect-tools','architecture-workflow','whole-building-planning','ai-creative-preferences','version-history','snbt-authoring']),
  'architecture':('建筑风格、场所与构造',['architecture-knowledge-base','structure-atlas','design-grammar','architectural-bays','classical-columns']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
@@ -352,6 +352,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         ('已有资产保存与放置',['component-assets','reusable-recipes'],'先查询与预览，放置只生成受保护的候选。'),
         ('保存、续版与交付',['snbt-authoring','version-history','output-storage'],'默认保存SNBT；定稿NBT必须明确要求。'),
         ('任务领取与结果回传',['agent-protocol','agent-task-return'],'用 task-client 查看、领取及回传指定任务，自动管理租约和幂等重放。'),
+        ('多区建模或明确要求分工',['authoring-workflow'],'在制作批次冻结参考图和 SNBT，按工作包读取范围和回执。'),
         ('单工具检查与维护',['state-and-maintenance'],'只读当前实现及所改专题，不默认生成建筑。'),
         ('注册器与接口扩展',['extensions'],'新增公共能力时再读注册与目录同步要求。')]
     lines=['---','name: nbtcreator-workspace','description: 当前创作项目的 Minecraft NBT 建模、任务交接与验证入口。','---','',
