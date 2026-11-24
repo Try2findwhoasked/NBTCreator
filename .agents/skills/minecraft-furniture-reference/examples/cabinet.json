@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "name": "深门矮柜",
+  "category": "cabinet",
+  "source": {
+    "kind": "synthetic",
+    "title": "Independently authored cabinet fixture"
+  },
+  "size": [
+    2,
+    2,
+    1
+  ],
+  "front": "north",
+  "parts": [
+    {
+      "id": "case",
+      "role": "台面",
+      "material": "浅桦木",
+      "feature": "横向薄桦木台面",
+      "evidence": "synthetic"
+    },
+    {
+      "id": "doors",
+      "role": "双面板",
+      "material": "深木",
+      "feature": "贴地双储物格，有独立的正面与边框",
+      "evidence": "synthetic"
+    }
+  ],
+  "joins": [
+    [
+      "case",
+      "doors"
+    ]
+  ],
+  "cameras": [
+    {
+      "id": "front",
+      "role": "正面",
+      "eye": [
+        1,
+        1.62,
+        -4.5
+      ],
+      "target": [
+        1,
+        1,
+        0.5
+      ],
+      "fov": 52,
+      "lighting": "day"
+    },
+    {
+      "id": "front-left",
+      "role": "左前斜视",
+      "eye": [
+        -2.5,
+        1.62,
+        -3.1
+      ],
+      "target": [
+        1,
+        1,
+        0.5
+      ],
+      "fov": 52,
+      "lighting": "day"
+    },
+    {
+      "id": "front-right",
+      "role": "右前斜视",
+      "eye": [
+        4.5,
+        1.62,
+        -3.1
+      ],
+      "target": [
+        1,
+        1,
+        0.5
+      ],
+      "fov": 52,
+      "lighting": "day"
+    }
+  ],
+  "candidates": {
+    "main": {
+      "design": "两格高室内辨识夹具",
+      "regions": [
+        { "part": "case", "lo": [ 0, 1, 0 ], "hi": [ 1, 1, 0 ], "state": "birch_slab[type=bottom,waterlogged=false]" },
+        { "part": "doors", "lo": [ 0, 0, 0 ], "hi": [ 1, 0, 0 ], "state": "barrel[facing=north,open=false]" }
+      ]
+    }
+  },
+  "gameplay": "采用原版木桶块表达储物格。未验证游戏内打开和库存。"
+}

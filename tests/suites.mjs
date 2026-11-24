@@ -176,6 +176,7 @@ export const suites = {
     python('-B', 'tests/engine/ornament-reference.py'),
     python('-B', 'tests/engine/fine-collision-envelopes.py'),
   ],
+  'furniture-reference': [python('-B', 'tests/engine/furniture-reference.py')],
   'generated-assets': [
     buildWeb,
     python('tests/engine/generated-assets.py'),

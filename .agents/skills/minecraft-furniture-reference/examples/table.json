@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "name": "四脚浅面餐桌",
+  "category": "table",
+  "source": {
+    "kind": "synthetic",
+    "title": "Independently authored table fixture"
+  },
+  "size": [
+    3,
+    2,
+    2
+  ],
+  "front": "north",
+  "parts": [
+    {
+      "id": "top",
+      "role": "桌面",
+      "material": "浅桦木",
+      "feature": "横向薄面",
+      "evidence": "synthetic"
+    },
+    {
+      "id": "legs",
+      "role": "四脚",
+      "material": "深云杉",
+      "feature": "细脚之间留空",
+      "evidence": "synthetic"
+    }
+  ],
+  "joins": [
+    [
+      "top",
+      "legs"
+    ]
+  ],
+  "cameras": [
+    {
+      "id": "front",
+      "role": "正面",
+      "eye": [
+        1.5,
+        1.62,
+        -4
+      ],
+      "target": [
+        1.5,
+        1,
+        1
+      ],
+      "fov": 52,
+      "lighting": "day"
+    },
+    {
+      "id": "front-left",
+      "role": "左前斜视",
+      "eye": [
+        -2,
+        1.62,
+        -2.6
+      ],
+      "target": [
+        1.5,
+        1,
+        1
+      ],
+      "fov": 52,
+      "lighting": "day"
+    },
+    {
+      "id": "front-right",
+      "role": "右前斜视",
+      "eye": [
+        5,
+        1.62,
+        -2.6
+      ],
+      "target": [
+        1.5,
+        1,
+        1
+      ],
+      "fov": 52,
+      "lighting": "day"
+    }
+  ],
+  "candidates": {
+    "main": {
+      "design": "两格高室内辨识夹具",
+      "regions": [
+        { "part": "top", "lo": [ 0, 1, 0 ], "hi": [ 2, 1, 1 ], "state": "birch_slab[type=bottom,waterlogged=false]" },
+        { "part": "legs", "lo": [ 0, 0, 0 ], "hi": [ 0, 0, 0 ], "state": "spruce_fence[east=false,north=false,south=false,west=false,waterlogged=false]" },
+        { "part": "legs", "lo": [ 0, 0, 1 ], "hi": [ 0, 0, 1 ], "state": "spruce_fence[east=false,north=false,south=false,west=false,waterlogged=false]" },
+        { "part": "legs", "lo": [ 2, 0, 0 ], "hi": [ 2, 0, 0 ], "state": "spruce_fence[east=false,north=false,south=false,west=false,waterlogged=false]" },
+        { "part": "legs", "lo": [ 2, 0, 1 ], "hi": [ 2, 0, 1 ], "state": "spruce_fence[east=false,north=false,south=false,west=false,waterlogged=false]" }
+      ]
+    }
+  },
+  "gameplay": "静态桌形。细脚间通透，未验证玩家交互或栅栏邻接更新。"
+}

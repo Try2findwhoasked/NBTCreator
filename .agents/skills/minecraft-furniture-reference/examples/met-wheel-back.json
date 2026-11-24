@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "name": "轮背照片参考椅",
+  "category": "chair",
+  "source": {
+    "kind": "photo",
+    "title": "Side chair (1986.288), The Metropolitan Museum of Art",
+    "url": "https://www.metmuseum.org/art/collection/search/1657",
+    "image_url": "https://collectionapi.metmuseum.org/api/collection/v1/iiif/1657/16163/main-image",
+    "license": "Public Domain, The Met Open Access",
+    "credit": "The Metropolitan Museum of Art, Friends of the American Wing Fund, 1986",
+    "sha256": "4f29804191096a1b85d240c95d92691a09c96a3d15ba6b9b46929faa6dadaefa"
+  },
+  "size": [
+    1,
+    2,
+    2
+  ],
+  "front": "north",
+  "parts": [
+    {
+      "id": "seat",
+      "role": "坐面",
+      "material": "深色木",
+      "feature": "照片的薄座面，优先保留前缘低于背部",
+      "evidence": "visible"
+    },
+    {
+      "id": "post",
+      "role": "座下支承",
+      "material": "深色木",
+      "feature": "后腿上端和榫口被遮挡，以后方块概括支承。四条独立椅腿在一格座宽压缩为座下轮廓",
+      "evidence": "inferred"
+    },
+    {
+      "id": "back",
+      "role": "椅背",
+      "material": "深色木与透空",
+      "feature": "照片靠背有透空圆环和中央花饰，此尺度以直立格栅表达主要透空",
+      "evidence": "visible"
+    }
+  ],
+  "joins": [
+    [
+      "seat",
+      "post"
+    ],
+    [
+      "post",
+      "back"
+    ]
+  ],
+  "cameras": [
+    {
+      "id": "front",
+      "role": "正面",
+      "eye": [
+        0.5,
+        1.62,
+        -4
+      ],
+      "target": [
+        0.5,
+        1,
+        1
+      ],
+      "fov": 52,
+      "lighting": "day"
+    },
+    {
+      "id": "front-left",
+      "role": "左前斜视",
+      "eye": [
+        -3,
+        1.62,
+        -2.6
+      ],
+      "target": [
+        0.5,
+        1,
+        1
+      ],
+      "fov": 52,
+      "lighting": "day"
+    },
+    {
+      "id": "front-right",
+      "role": "右前斜视",
+      "eye": [
+        4,
+        1.62,
+        -2.6
+      ],
+      "target": [
+        0.5,
+        1,
+        1
+      ],
+      "fov": 52,
+      "lighting": "day"
+    }
+  ],
+  "candidates": {
+    "lattice": {
+      "design": "四孔橡木活板门表达透空靠背",
+      "regions": [
+        { "part": "seat", "lo": [ 0, 0, 0 ], "hi": [ 0, 0, 0 ], "state": "dark_oak_slab[type=bottom,waterlogged=false]" },
+        { "part": "post", "lo": [ 0, 0, 1 ], "hi": [ 0, 0, 1 ], "state": "dark_oak_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]" },
+        { "part": "back", "lo": [ 0, 1, 1 ], "hi": [ 0, 1, 1 ], "state": "oak_trapdoor[facing=north,half=bottom,open=true,powered=false,waterlogged=false]" }
+      ]
+    },
+    "panel": {
+      "design": "同色实心深橡木靠背",
+      "regions": [
+        { "part": "seat", "lo": [ 0, 0, 0 ], "hi": [ 0, 0, 0 ], "state": "dark_oak_slab[type=bottom,waterlogged=false]" },
+        { "part": "post", "lo": [ 0, 0, 1 ], "hi": [ 0, 0, 1 ], "state": "dark_oak_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]" },
+        { "part": "back", "lo": [ 0, 1, 1 ], "hi": [ 0, 1, 1 ], "state": "dark_oak_trapdoor[facing=north,half=bottom,open=true,powered=false,waterlogged=false]" }
+      ]
+    }
+  },
+  "gameplay": "静态室内椅形，未配置坐姿。活板门姿态和邻接更新未在游戏内验证。"
+}

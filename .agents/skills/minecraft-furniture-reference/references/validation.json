@@ -1,0 +1,350 @@
+{
+  "base_commit": "022943e17bbae328c4c88763f9b6627b59cbf15c",
+  "review_eye_y": 1.62,
+  "examples": {
+    "met": {
+      "size": [
+        1,
+        2,
+        2
+      ],
+      "source": {
+        "kind": "photo",
+        "title": "Side chair (1986.288), The Metropolitan Museum of Art",
+        "url": "https://www.metmuseum.org/art/collection/search/1657",
+        "image_url": "https://collectionapi.metmuseum.org/api/collection/v1/iiif/1657/16163/main-image",
+        "license": "Public Domain, The Met Open Access",
+        "credit": "The Metropolitan Museum of Art, Friends of the American Wing Fund, 1986",
+        "sha256": "4f29804191096a1b85d240c95d92691a09c96a3d15ba6b9b46929faa6dadaefa"
+      },
+      "spec_sha256": "a9151ade477e1cba2502239170553cd3db415f0a8ff3bfa01491ce1bf1257907",
+      "cameras_sha256": "23568238be3698d4c12d14a274d3e1271aed5b7875485c18aad63dc49ec17851",
+      "receipt_sha256": [
+        "7f16687636fde31da4d09c8087e8bcf297cf49480ec20cdf01676d408b2fe540",
+        "c0f9b7f84055410b516ce0eb3867a54d82c97613cb8df8b6e45931def793fb6c"
+      ],
+      "comparison_sha256": "ac785357d09e97f9b0d4d7386cff12c04bc95e310c1890148465b402765c87f9",
+      "comparison": {
+        "spec_sha256": "a9151ade477e1cba2502239170553cd3db415f0a8ff3bfa01491ce1bf1257907",
+        "candidates": {
+          "lattice": {
+            "coordinates_states_wall_layer_equal": true,
+            "snbt_sha256_equal": true,
+            "geometry_sha256": "c60362166e0a183fc1b4af4e8f038b920a05c2d90cc6e13d54ffbae8bb901878",
+            "rendered_views": {
+              "front.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              },
+              "front-left.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              },
+              "front-right.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              }
+            }
+          },
+          "panel": {
+            "coordinates_states_wall_layer_equal": true,
+            "snbt_sha256_equal": true,
+            "geometry_sha256": "a863b658b245ba93a1d114a3562f1d46fb3700b6f93f7d0ce8c09c77e1fc51a4",
+            "rendered_views": {
+              "front.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              },
+              "front-left.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              },
+              "front-right.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              }
+            }
+          }
+        },
+        "between_candidates": {
+          "front.png": {
+            "total_pixels": 460800,
+            "changed_pixels": 13150
+          },
+          "front-left.png": {
+            "total_pixels": 460800,
+            "changed_pixels": 12825
+          },
+          "front-right.png": {
+            "total_pixels": 460800,
+            "changed_pixels": 12824
+          }
+        }
+      },
+      "candidates": {
+        "lattice": {
+          "block_count": 3,
+          "source_sha256": "14cbd3aa6b79286a11da2d07ee7815d63976a0cbd11719076ce222df12e0b81f",
+          "component_sha256": "a424ccfc8e9fe8634664888d6d0e20963b250aedf8fa46d1d931b2c3efbd39b6",
+          "ledger_sha256": "4e0f92041bff2587c29d35ecc99adef341b4116fc5a70b568a08c66b5ee0ba18",
+          "geometry_sha256": "c60362166e0a183fc1b4af4e8f038b920a05c2d90cc6e13d54ffbae8bb901878",
+          "render": {
+            "browser": "156.0.8078.4",
+            "images": {
+              "front.png": "30937b8fa081dff4a9fc9b25673998f1f564e7ea2027949d660418c0aa37f98d",
+              "front-left.png": "17a6ec25fb9978bed1400b6e5631588555ebf4851089d7cc25d7bffbbee7b9b5",
+              "front-right.png": "5dd34f2d70481b1960efc2658376c0f0963828b0767db3b08404495c24a90cd6"
+            },
+            "manifest_sha256": "94e5961723b05943c2d63b902968c02c00909dc52f9f9d2f7af8113a5da95ea3"
+          },
+          "second_render_manifest_sha256": "e485d0d572427401065ff965f3f8f70a218d8d475a9c649d543b31161c28c52f"
+        },
+        "panel": {
+          "block_count": 3,
+          "source_sha256": "219414e2a0c250b70dc952632ecac9b39e4dfb89a04b3b7f181810dc3e3a432f",
+          "component_sha256": "c21b596a825911296e1a6f6c37dc75bd41d664057a538c9da3ebebafbde20526",
+          "ledger_sha256": "e24fc1a625afbf2d4b1f0ebc629436214ff7297f7287f7c817cd5f995b294711",
+          "geometry_sha256": "a863b658b245ba93a1d114a3562f1d46fb3700b6f93f7d0ce8c09c77e1fc51a4",
+          "render": {
+            "browser": "156.0.8078.4",
+            "images": {
+              "front.png": "d9484531925bd6a4c9fb867afc430a1906e73bd321b75b1cfdc5e468b697ebef",
+              "front-left.png": "35000eb74e77927e42d9a5f6bce5fcfcb0811160c7ceb3d4af6f184bfb0ddcf4",
+              "front-right.png": "c1b9098dad2c8532c17e487755425d492098085bcc00bd34d559ecb725fe5d76"
+            },
+            "manifest_sha256": "3b19474df3cedafa28be6308026d0d4cf9dd6857efc07b6bb43dd4be68bec3fb"
+          },
+          "second_render_manifest_sha256": "b3f7ace203b240390873f84bdaeb424b872c980134793bc0cd0d472a0504452c"
+        }
+      }
+    },
+    "chair": {
+      "size": [
+        1,
+        2,
+        2
+      ],
+      "source": {
+        "kind": "synthetic",
+        "title": "Independently authored chair fixture"
+      },
+      "spec_sha256": "fd97af43f4a4305a2fb83de02c1170d8635861760a5364f6ec1ca5d2a5ae3bc5",
+      "cameras_sha256": "23568238be3698d4c12d14a274d3e1271aed5b7875485c18aad63dc49ec17851",
+      "receipt_sha256": [
+        "257dd29fe1bd72bdd9aabb97864f106325b676fef778b3be65c689fe03c6ae00",
+        "05ad36fc384751db4e2685d53674c0bd5c4f0dbdfaec92c64f402da8f8ee3ad7"
+      ],
+      "comparison_sha256": "2ffc545ad07ab35ca692a191e430119d73d9130b13aaa0968e57a4f5b7373b66",
+      "comparison": {
+        "spec_sha256": "fd97af43f4a4305a2fb83de02c1170d8635861760a5364f6ec1ca5d2a5ae3bc5",
+        "candidates": {
+          "main": {
+            "coordinates_states_wall_layer_equal": true,
+            "snbt_sha256_equal": true,
+            "geometry_sha256": "1abc1979b4484f83799bee63e1f41c781c45de8e9cabf075f9649d25607679e4",
+            "rendered_views": {
+              "front.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              },
+              "front-left.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              },
+              "front-right.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              }
+            }
+          }
+        },
+        "between_candidates": {}
+      },
+      "candidates": {
+        "main": {
+          "block_count": 3,
+          "source_sha256": "68645a4684141cfc83bb4e6777476f174792a7c708abff3decefa05845db90e3",
+          "component_sha256": "45ca798d5f984453a69df00fac7013393b18d12157d10811ecdf80bceb1882f6",
+          "ledger_sha256": "d6c88d0caed9bc1ce0ecd5fb2a2eec1510394270f7cb21ce6404a7e5bfad0773",
+          "geometry_sha256": "1abc1979b4484f83799bee63e1f41c781c45de8e9cabf075f9649d25607679e4",
+          "render": {
+            "browser": "156.0.8078.4",
+            "images": {
+              "front.png": "787582ae097c9b5e95268fe18911086aaee1be9f8e3b80cde4e07d174ef9fb6f",
+              "front-left.png": "7a779f5268f1436f8c35d3e10f513581b8f3811fce6280ab0c9d5fe810f92f28",
+              "front-right.png": "457c1b02428ecdbd23fd0f3bdcb3a85c8a6bf3594374e6e9354e3af988953a2c"
+            },
+            "manifest_sha256": "501e9cbd185d393a0fde3cb92144886b735470053a56d21f91c0db922b4a600b"
+          },
+          "second_render_manifest_sha256": "f6d1a42ea5cebcd493605c70987f9d0ba2ef32a3dc0d4fc4b5aad953f7615706"
+        }
+      }
+    },
+    "table": {
+      "size": [
+        3,
+        2,
+        2
+      ],
+      "source": {
+        "kind": "synthetic",
+        "title": "Independently authored table fixture"
+      },
+      "spec_sha256": "42eb58f2744e0ed1c1e31dc629ce9d13ae59e1a20b8c2603959655fed3ffcaa3",
+      "cameras_sha256": "4d7b1cd55d1a1a60c1f29c7fc11b1069d462f17d545ed3d86c388ab15a2981c8",
+      "receipt_sha256": [
+        "ea646006c8f2ce580f928612c3dd80513f2a74a2b547a9400b8d22346e8ea55b",
+        "25fa19623f4a74d9ec5c531e61d8cf128bdd8887080fec140e096f0966c20aec"
+      ],
+      "comparison_sha256": "ff42e9da2f62b642c453ad7bf814eae2b4d96f45300ecfcc0f93c7ae3feef1ea",
+      "comparison": {
+        "spec_sha256": "42eb58f2744e0ed1c1e31dc629ce9d13ae59e1a20b8c2603959655fed3ffcaa3",
+        "candidates": {
+          "main": {
+            "coordinates_states_wall_layer_equal": true,
+            "snbt_sha256_equal": true,
+            "geometry_sha256": "5a878fcc4886e603250723c3f825f33b08274be61f01ba8e6c72bf116e9612f7",
+            "rendered_views": {
+              "front.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              },
+              "front-left.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              },
+              "front-right.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              }
+            }
+          }
+        },
+        "between_candidates": {}
+      },
+      "candidates": {
+        "main": {
+          "block_count": 10,
+          "source_sha256": "b19f30ef2a0e211ff8ae066fd403b314cac7c1d25df7b95dc00a121f728cd9c5",
+          "component_sha256": "d2544d1e6662b06d1ae0739fe810562d5bfd6ab4720a1764fd233c02e2a8fb9c",
+          "ledger_sha256": "a8673953d1bc28626cec459fe40c8acea1bc066cab94c908a8f0c3cd00dca24e",
+          "geometry_sha256": "5a878fcc4886e603250723c3f825f33b08274be61f01ba8e6c72bf116e9612f7",
+          "render": {
+            "browser": "156.0.8078.4",
+            "images": {
+              "front.png": "d70995a0e0ba069baafeab0d70eebfecfa711f75ec173e722174b4c61314747f",
+              "front-left.png": "ca248855bf4a58dae896a54ea839fe8ea1b11ca5bafad03aa37df33f3d908b06",
+              "front-right.png": "b14277f99b547d695cef8d2150ff572c406c9e7f4393cafe78d1aa8c7fa71f5c"
+            },
+            "manifest_sha256": "1a9f67ecb11fe0bad4686f505157a9bddd4357e9ebeb196a672daef118376458"
+          },
+          "second_render_manifest_sha256": "02f3a70d273127bd7e9cb68b4c66b59e5d27180f849419c5031bcaa78d9d7334"
+        }
+      }
+    },
+    "cabinet": {
+      "size": [
+        2,
+        2,
+        1
+      ],
+      "source": {
+        "kind": "synthetic",
+        "title": "Independently authored cabinet fixture"
+      },
+      "spec_sha256": "f66e44e122ea6820628f706a4fddb8da8ffb9a7e8e02c34df88a8162579fff05",
+      "cameras_sha256": "823d2efa8d1b9e3aa14321788b0f7fba71c7d1d2b19708b544a7f5aea56a7bae",
+      "receipt_sha256": [
+        "d2477cde0d1559153738264ccfdda4ede65efd15d9cf84be1638411f63225603",
+        "688fb1dc3eea367e928df90ad08eb363c7f14d5bfde35b00b7fec7bf1e5cdbf5"
+      ],
+      "comparison_sha256": "4835f6916fd28362693e9c38e1de1d215cc8ac3f690ee5aa8c78a62a2f9ba5be",
+      "comparison": {
+        "spec_sha256": "f66e44e122ea6820628f706a4fddb8da8ffb9a7e8e02c34df88a8162579fff05",
+        "candidates": {
+          "main": {
+            "coordinates_states_wall_layer_equal": true,
+            "snbt_sha256_equal": true,
+            "geometry_sha256": "1753018bb2e8215d934b89638b058cbd601095aee5d34c0c8137f8a973b8fdad",
+            "rendered_views": {
+              "front.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              },
+              "front-left.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              },
+              "front-right.png": {
+                "sha256_equal": true,
+                "total_pixels": 460800,
+                "changed_pixels": 0
+              }
+            }
+          }
+        },
+        "between_candidates": {}
+      },
+      "candidates": {
+        "main": {
+          "block_count": 4,
+          "source_sha256": "706a74797a6968238bae502d1377afd532829fc3f0016c8f05f2183f7f9187bc",
+          "component_sha256": "b64094ea0caa4c3dce7da1aa7609e6d44347c7762832dfee243b3c83a32159d7",
+          "ledger_sha256": "b68977b89359c5886bbaa24da312a5593fca781d23587ac1e6ec5a12763c87c4",
+          "geometry_sha256": "1753018bb2e8215d934b89638b058cbd601095aee5d34c0c8137f8a973b8fdad",
+          "render": {
+            "browser": "156.0.8078.4",
+            "images": {
+              "front.png": "3d715c726262e1d4568e6bdcc083d9c3556309cd93b992c29fbed965e6086740",
+              "front-left.png": "b0a15fa794c738183128f4f1726ad9c0710267a4f4feac8dd134f90c3b959709",
+              "front-right.png": "c998ce5cd82e4f42d0583b412d4ac5e01e720b17c22b6aceceaeee020855425c"
+            },
+            "manifest_sha256": "e90f0883508c9c3bef899c05a4790020369d3bf11dd638f05440539038de869d"
+          },
+          "second_render_manifest_sha256": "383dab3e891c739a28bff9db4af19b194758183e77759cfb10cb08c8bd0429c0"
+        }
+      }
+    }
+  },
+  "runtime": {
+    "engine_sha256": "c39073580f1c73affaf494eaa3e207cb6e55f4208faf422d75245ae2f0da10a7",
+    "workflow_sha256": "1b42e09b2a6baeb5f338987d271111280ddd7f67483e814e7279f1b2109eb027",
+    "python": {
+      "version": "3.14.7",
+      "packages": {
+        "numpy": "2.4.2",
+        "Pillow": "12.1.0",
+        "nbtlib": "2.0.4"
+      }
+    },
+    "runtime_bundle_sha256": null,
+    "playwright": "1.64.1",
+    "renderer_sha256": "2927ff103a6c41ae1bc8450532fcf36c18502141df0acd7ad2ba9d10909ebb74",
+    "renderer_node": "v24.19.0",
+    "frontend_manifest_sha256": "ce22cc304b6352bb2350139f17de78c5bc30e92cc8af2994a86293ee920b1111"
+  },
+  "room": {
+    "cameras.json": "e22e91c2b28a57f6b347973849aaefb16fbc13428d104825df488b8feede5c1e",
+    "render/render_manifest.json": "fb7abaa7ade491c48e87602b7f209e27de75b185fa65bcbe107c870b48ed428b",
+    "render/room-oblique.json": "d342dba8fa467fecf897573ad1e3a6d8f0d9618dc031297e2caf9dc5eb737c50",
+    "render/room-oblique.png": "b77466700d1a56a118c39e24c566fb8a5f43bb963e340a3ae266b794386a878e",
+    "render/room.json": "c26becb6c368c7226c80fde891f4e210885ca3d0ed68b4763e9bcd34f3900e18",
+    "render/room.png": "551e7bb06113e220a0360a0408f3c40281ded7f1debea3d03856af87a8afe0e8",
+    "render/snapshot.json": "9c044195bf34faf587958e4ecd123897b43717cba3e136277b6ca84477d3e2df",
+    "room.snbt": "781ba1b6601c27a0c23e885c1b089db4776ce881e6090ca840e5ce776e11a08b"
+  }
+}
