@@ -352,6 +352,11 @@ export const suites = {
     node('tests/desktop/walk-desktop.mjs'),
   ],
   'wavelet-eave': [python('-B', 'tests/engine/wavelet-eave.py')],
+  'whole-building-planning': [
+    python('-B', 'tests/engine/whole-building-planning.py'),
+    buildWeb,
+    node('tests/desktop/whole-building-planning.mjs'),
+  ],
   'workbench-ui': [
     buildWeb,
     node('tests/desktop/workbench-ui-desktop.mjs'),

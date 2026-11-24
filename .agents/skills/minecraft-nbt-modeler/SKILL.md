@@ -1,6 +1,6 @@
 ---
 name: minecraft-nbt-modeler
-description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构件与纹样。支持完整主模型、参数化对象关系、碰撞通路和真实预览；整栋建筑先审阅初稿，再按确认精修与显式定稿。
+description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构件与纹样。支持整栋量化规划、完整主模型、参数化对象关系、碰撞通路和真实预览；整栋建筑先审阅初稿，再按确认精修与显式定稿。
 ---
 
 # Minecraft NBT 建模
@@ -15,6 +15,7 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 | --- | --- |
 | 整栋初稿：纯文字 | 选最能说明用途的一次活动，先一起布置主件、配套、操作侧和去往下一站的路线。放入主模型，从玩家来路看动作能否读出来，再把做法用于相同用途的空间。见[沿实际使用路线审细部](references/spatial-detail-design.md#沿实际使用路线审细部)与[归卷阁样例](assets/examples/reading-loft/README.md)。 |
 | 整栋初稿：有参考图 | 先读轮廓和开间，再选图上可辨的一跨窗、檐口或材质交接，把深度、支承和方块朝向一起做出来。标出背面与室内的补全依据，以接近原图的方向看整体，再看[代表细部](references/spatial-detail-design.md#沿实际使用路线审细部)。 |
+| 复杂整栋规划或局部重排 | 先按[整栋量化规划](references/whole-building-planning.md)登记逐层体量、面积和必经连接，检查手写或自动候选。绑定建筑方案后，从同一制作源复验实际净地面和通路。 |
 | 简单独立整栋初稿 | 按[短路线](references/simple-building.md)直接使用共享主模型或可执行建筑方案。多层、结构接口和专门操作面转入复杂审阅。 |
 | 判断室内用途或建筑群的通行关系 | 室内从真实脚位核对[操作面与使用侧](references/architecture-workflow.md#操作面与使用侧)。多栋从总览走到街口、支路、门槛和室内，按[建筑群与多层选图](references/architecture-workflow.md#建筑群与多层选图)实测。交付时摘取当前审阅记录中的覆盖摘要。 |
 | 独立构件或主模型装配 | [工作模型](references/working-model.md)、[参数化构件](references/parametric-components.md)；需要稳定 ID、尺寸引用和联动时读[对象图](references/object-scenes.md)。只做适用的尺寸、状态、占用、接触和预览检查。 |

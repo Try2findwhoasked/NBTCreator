@@ -1102,6 +1102,15 @@ globalThis.NbtToolCatalog = {
         "next": "保存后把 next.request 原样交给 architect review-prepare；续版用 revision_request。"
       },
       {
+        "title": "复杂整栋的分层、面积与必经连接",
+        "call": "architect layout-check --request <请求JSON>",
+        "contract": "capabilities --architect-action layout-check",
+        "guide": "whole-building-planning.md",
+        "input": "用 program 与 layout 预检布局；用 source 和 source_sha256 回读成品。",
+        "result": "返回目标、实测值、通过状态及楼层和问题坐标。",
+        "next": "用 layout-search 生成候选，用 layout-prepare 把选择绑定到建筑方案。"
+      },
+      {
         "title": "按明确几何装配，或打开制作源续版",
         "call": "model --request <请求JSON>",
         "contract": "capabilities --model",
@@ -26818,6 +26827,11 @@ globalThis.NbtToolCatalog = {
     }
   },
   "architecture": {
+    "layout_actions": [
+      "layout-check",
+      "layout-search",
+      "layout-prepare"
+    ],
     "schema_version": 1,
     "description": "建筑方案、风格约束、构造生成、三尺度视图与版本绑定评审。所有结果保持人工看图和显式定稿边界。",
     "cli": "architect <action> --request <JSON>",
@@ -26825,6 +26839,23 @@ globalThis.NbtToolCatalog = {
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "planning": {
+          "type": "object",
+          "required": [
+            "program",
+            "layout"
+          ],
+          "properties": {
+            "program": {
+              "type": "object"
+            },
+            "layout": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "description": "可选的整栋规划绑定。program 与 layout 的完整字段见 architect layout-check。"
+        },
         "schema_version": {
           "type": "integer",
           "enum": [
@@ -28995,6 +29026,638 @@ globalThis.NbtToolCatalog = {
       }
     },
     "actions": {
+      "layout-check": {
+        "type": "object",
+        "properties": {
+          "program": {
+            "type": "object",
+            "required": [
+              "schema_version",
+              "size",
+              "entry",
+              "levels",
+              "spaces",
+              "relations"
+            ],
+            "properties": {
+              "schema_version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1
+              },
+              "size": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 294
+                }
+              },
+              "entry": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 294
+                }
+              },
+              "levels": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "feet_y",
+                    "ceiling_y",
+                    "footprint"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "feet_y": {
+                      "type": "number",
+                      "minimum": 0.5,
+                      "maximum": 293
+                    },
+                    "ceiling_y": {
+                      "type": "number",
+                      "minimum": 1,
+                      "maximum": 294
+                    },
+                    "footprint": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 32,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "lo",
+                          "hi"
+                        ],
+                        "properties": {
+                          "lo": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点起始格。"
+                          },
+                          "hi": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点结束格。"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "voids": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 32,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "lo",
+                          "hi"
+                        ],
+                        "properties": {
+                          "lo": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点起始格。"
+                          },
+                          "hi": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点结束格。"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "reserved": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 32,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "lo",
+                          "hi"
+                        ],
+                        "properties": {
+                          "lo": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点起始格。"
+                          },
+                          "hi": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点结束格。"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "envelope": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 32,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "lo",
+                          "hi"
+                        ],
+                        "properties": {
+                          "lo": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点起始格。"
+                          },
+                          "hi": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点结束格。"
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "description": "可选的实体围护边界。只检脚位到顶界区间内的实体；与房间可用轮廓分开。"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "spaces": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 120,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "level",
+                    "purpose"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "level": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "purpose": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "room",
+                        "circulation",
+                        "open"
+                      ]
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "user",
+                        "project",
+                        "design"
+                      ]
+                    },
+                    "note": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1000
+                    },
+                    "min_area": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 86436
+                    },
+                    "max_area": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 86436
+                    },
+                    "target_area": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 86436
+                    },
+                    "min_span": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 294
+                    },
+                    "min_reachable_area": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 86436,
+                      "description": "从声明入口实际可达的地面格数下限。"
+                    },
+                    "min_headroom": {
+                      "type": "number",
+                      "minimum": 1.8,
+                      "maximum": 294,
+                      "description": "该空间可站地面上的最小净高。"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "relations": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 240,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "kind",
+                    "from",
+                    "to"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "adjacent",
+                        "wall",
+                        "door",
+                        "stair",
+                        "route"
+                      ]
+                    },
+                    "from": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "to": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "user",
+                        "project",
+                        "design"
+                      ]
+                    },
+                    "note": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1000
+                    },
+                    "min_width": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 294
+                    },
+                    "max_length": {
+                      "type": "number",
+                      "minimum": 0.5,
+                      "maximum": 100000
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "entry_space": {
+                "type": "string",
+                "pattern": "[a-z][a-z0-9_-]{0,63}",
+                "description": "可选的入口所属空间。适用时检查从这里通往所有功能空间的布局连通性。"
+              },
+              "max_extent": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 294
+                },
+                "description": "实际成品全部实体的最大 XYZ 包围尺寸。"
+              }
+            },
+            "additionalProperties": false,
+            "description": "整栋规划任务书。区域使用世界 XZ 方块格，脚位使用 XYZ。楼层顶界不含其所在标高。"
+          },
+          "layout": {
+            "type": "object",
+            "required": [
+              "spaces"
+            ],
+            "properties": {
+              "spaces": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 120,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "regions"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "regions": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 32,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "lo",
+                          "hi"
+                        ],
+                        "properties": {
+                          "lo": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点起始格。"
+                          },
+                          "hi": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 293
+                            },
+                            "description": "世界 XZ 含端点结束格。"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "feet": {
+                      "type": "array",
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 294
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "links": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 240,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    },
+                    "opening": {
+                      "type": "object",
+                      "required": [
+                        "lo",
+                        "hi"
+                      ],
+                      "properties": {
+                        "lo": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 293
+                          },
+                          "description": "世界 XZ 含端点起始格。"
+                        },
+                        "hi": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 293
+                          },
+                          "description": "世界 XZ 含端点结束格。"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "from_feet": {
+                      "type": "array",
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 294
+                      }
+                    },
+                    "to_feet": {
+                      "type": "array",
+                      "minItems": 3,
+                      "maxItems": 3,
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 294
+                      }
+                    },
+                    "stair": {
+                      "type": "string",
+                      "pattern": "[a-z][a-z0-9_-]{0,63}"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false,
+            "description": "具体布局。直通门用与空间相隔的一格墙内开口，跨层连接用两端空间的脚位和可选楼梯系统 ID。"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "[a-f0-9]{64}"
+          }
+        },
+        "additionalProperties": false,
+        "description": "检查任务书和布局，或回读指定哈希的 SNBT 制作源并复测当前规划。",
+        "anyOf": [
+          {
+            "type": "object",
+            "required": [
+              "program",
+              "layout"
+            ],
+            "properties": {
+              "program": {},
+              "layout": {}
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "source",
+              "source_sha256"
+            ],
+            "properties": {
+              "source": {},
+              "source_sha256": {}
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "layout-search": {
+        "type": "object",
+        "properties": {
+          "program": {
+            "type": "object",
+            "description": "参见 architect layout-check 的 program 字段。"
+          },
+          "baseline": {
+            "type": "object",
+            "description": "局部或完整基线布局。跨层连接从 links 读取固定的上下层停靠点。"
+          },
+          "locked": {
+            "type": "array",
+            "maxItems": 120,
+            "items": {
+              "type": "string",
+              "pattern": "[a-z][a-z0-9_-]{0,63}"
+            }
+          },
+          "max_steps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "candidate_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          }
+        },
+        "required": [
+          "program"
+        ],
+        "additionalProperties": false,
+        "description": "在整数网格内搜索可行候选，可锁定已有空间并保留跨层连接。"
+      },
+      "layout-prepare": {
+        "type": "object",
+        "properties": {
+          "program": {
+            "type": "object",
+            "description": "参见 architect layout-check 的 program 字段。"
+          },
+          "layout": {
+            "type": "object",
+            "description": "参见 architect layout-check 的 layout 字段。"
+          },
+          "plan": {
+            "type": "object",
+            "description": "已有或待填写空间的可执行建筑方案模板。"
+          }
+        },
+        "required": [
+          "program",
+          "layout",
+          "plan"
+        ],
+        "additionalProperties": false,
+        "description": "将选中的布局绑定到建筑方案并提供空间区域与站位。返回候选，交给 plan-build 生成并实测。"
+      },
       "part-preflight": {
         "type": "object",
         "properties": {
@@ -29039,6 +29702,23 @@ globalThis.NbtToolCatalog = {
             "type": "object",
             "additionalProperties": false,
             "properties": {
+              "planning": {
+                "type": "object",
+                "required": [
+                  "program",
+                  "layout"
+                ],
+                "properties": {
+                  "program": {
+                    "type": "object"
+                  },
+                  "layout": {
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "可选的整栋规划绑定。program 与 layout 的完整字段见 architect layout-check。"
+              },
               "schema_version": {
                 "type": "integer",
                 "enum": [
@@ -31151,6 +31831,23 @@ globalThis.NbtToolCatalog = {
             "type": "object",
             "additionalProperties": false,
             "properties": {
+              "planning": {
+                "type": "object",
+                "required": [
+                  "program",
+                  "layout"
+                ],
+                "properties": {
+                  "program": {
+                    "type": "object"
+                  },
+                  "layout": {
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "可选的整栋规划绑定。program 与 layout 的完整字段见 architect layout-check。"
+              },
               "schema_version": {
                 "type": "integer",
                 "enum": [

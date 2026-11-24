@@ -100,6 +100,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
 | --- | --- | --- | --- | --- |
 | 从零起整栋初稿（亭子、入口、空间和构件） | 命令 `architect plan-build --request <请求JSON>` | `capabilities --architect-action plan-build`<br>[请求与用例](simple-building.md) | 按用途选尺寸、空间、材质、开口和机位。入口亭示例内含 save_draft，会发布制作版；只编译和检查时省略。 | 返回建筑编译与检查；保存时另有 saved、next.request 和 revision_request。<br>保存后把 next.request 原样交给 architect review-prepare；续版用 revision_request。 |
+| 复杂整栋的分层、面积与必经连接 | 命令 `architect layout-check --request <请求JSON>` | `capabilities --architect-action layout-check`<br>[请求与用例](whole-building-planning.md) | 用 program 与 layout 预检布局；用 source 和 source_sha256 回读成品。 | 返回目标、实测值、通过状态及楼层和问题坐标。<br>用 layout-search 生成候选，用 layout-prepare 把选择绑定到建筑方案。 |
 | 按明确几何装配，或打开制作源续版 | 命令 `model --request <请求JSON>` | `capabilities --model`<br>[请求与用例](simple-building.md) | 新建填 size（XYZ 格数），已有制作版从原保存回执取 source 和 source_sha256；按需要填 actions。 | 返回模型摘要及操作结果；validate:true 复验，save_draft 另存 SNBT。<br>核对 result.validation（启用时）及 result.saved（保存时）；制作源用 render --source 出图。 |
 
 ### 局部修改

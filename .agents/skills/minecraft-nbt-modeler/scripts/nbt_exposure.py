@@ -20,7 +20,7 @@ MISE_COMMAND='mise run nbt --'
 MISE_DIRECT=f'mise run ./{MISE_ENTRY} --'
 MISE_CONFIG=f'# NBTCreator generated workspace task\n[tasks.nbt]\ndescription = "Run NBTCreator in this workspace"\nfile = "{MISE_ENTRY}"\n'.encode('utf8')
 GROUPS={
- 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','simple-building','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','architect-tools','architecture-workflow','ai-creative-preferences','version-history','snbt-authoring']),
+ 'core':('工作流、验收与协作（按任务读取）',['knowledge-map','simple-building','whole-model-workflow','player-scale','design-principles','spatial-detail-design','validation-workflow','collision-envelopes','refinement','delivery-workflow','output-storage','exposed-tools','agent-feedback','comment-tasks','prompt-archive','batch-workspaces','selection-edit','reference-retrieval','diagnostic-guidance','agent-task-return','agent-protocol','architect-tools','architecture-workflow','whole-building-planning','ai-creative-preferences','version-history','snbt-authoring']),
  'architecture':('建筑风格、场所与构造',['architecture-knowledge-base','structure-atlas','design-grammar','architectural-bays','classical-columns']),
  'organic':('洞穴与自由形空间',['organic-spaces']),
  'linked':('多空间与跨层联动',['linked-spaces']),
@@ -329,6 +329,7 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
     routes=[
         ('整栋初稿：纯文字',['simple-building','spatial-detail-design'],'先按代表活动布置主件、配套、操作侧和下一站。在主模型上从玩家来路看清这组关系；细节参考读沿实际使用路线审细部。'),
         ('整栋初稿：有参考图',['simple-building','spatial-detail-design'],'从轮廓和开间选一处能辨认的交接，先做进深、材料与支承，再按实际构造重复；背面与室内的补全单记理由。'),
+        ('复杂整栋的面积与多层布局',['whole-building-planning'],'检查分层、面积和连接，比较候选后再绑定制作源复验。'),
         ('简单独立整栋初稿',['simple-building'],'已有几何用 model；需要记录空间、构件和审阅绑定时用 architect plan-build。'),
         ('室内用途与建筑群验收',['architecture-workflow'],'室内用 use_face 查操作侧、工作高度与净距；街区沿主街、支路、门槛走到室内，按用途查公共与服务路线。多层布局可另出逐层平面与纵剖。'),
         ('建筑方案、构造与审阅闭环',['architecture-workflow'],'设计参数驱动真实构件；三层出图、问题定位、源绑定回查和游戏验收分别执行。'),
@@ -359,8 +360,9 @@ def facade_knowledge(runtime, facade, workspace, relative, config, launcher):
         '有任务 ID 就先读紧凑视图：提示词工作台用 `task-client inspect prompts <id>`，建筑修改用 `task-client inspect tasks <id>`。按返回的 `source_matches`、`next` 和 `expand` 行动；源已变化则停下，明确选定任务后才领取。不用先查全量工具。',
         '只知道任务 ID 时用 `task --id <id> --view compact` 自动识别类型。用 `task-client list --pending` 查找两类待领取任务。有旧候选时读 `--view candidates`，用 `task-client check-candidate` 核对新任务、亲缘和审阅证据，领取后再用 `reuse-candidate` 登记。','',
         '## 没有交接任务时','',
-        f'- 起一座带入口的亭子等整栋初稿：`architect plan-build --request <JSON文件>`。查 `capabilities --architect-action plan-build`；{link("simple-building")}的入口亭示例含 `save_draft`，会保存制作版并给 `next.request`。复杂布局见{link("architecture-workflow")}，另有[归卷阁样例]({relative}/assets/examples/reading-loft/README.md)。',
-        '- 已有明确几何要装配或续版：`model --request <JSON文件>`，用 `capabilities --model` 查契约。返回模型及操作结果，指定 `save_draft` 时另存制作版。',
+        f'- 整栋初稿用 `architect plan-build --request <JSON文件>`，查 `capabilities --architect-action plan-build`。填 `save_draft` 后返回制作版与 `next.request`。见{link("simple-building")}与{link("architecture-workflow")}。[归卷阁样例]({relative}/assets/examples/reading-loft/README.md)。',
+        '- 复杂整栋先用 `architect layout-check`，见知识索引。',
+        '- 装配或续版用 `model --request <JSON文件>`，查 `capabilities --model`。指定 `save_draft` 另存制作版。',
         f'- 给旧建筑局部换材：`selection-edit context --request <JSON文件>` 读取实际选区，取得局部方块和几何哈希。按{link("selection-edit")}编译局部步骤，再在同一上下文中预览和验证。',
         '- 查已有尖拱等资产：`asset-libraries browse --request <JSON文件>`，文件写 `{"query":"尖拱","limit":4}`。查 `asset-libraries --help`。得到带来源及版本绑定的命中，保留整组绑定用于预览。',
         '- 其他任务先查 `capabilities --routes`，再按[任务路线和已启用资料](knowledge.md)选读。已知命令用 `<命令> --help`；单个 JSON 工具查 `capabilities --agent-tool <名称>`。',

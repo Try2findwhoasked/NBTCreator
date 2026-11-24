@@ -1,0 +1,88 @@
+#building-planning-dialog {
+  width: min(1100px, 96vw);
+}
+
+#building-planning-dialog h2 {
+  margin: 0;
+}
+
+.planning-columns {
+  display: grid;
+  grid-template-columns: minmax(260px, 2fr) minmax(350px, 3fr);
+  gap: 22px;
+}
+
+.planning-actions,
+.planning-views,
+.planning-candidates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.planning-views label {
+  flex: 1 1 98px;
+}
+
+.planning-body textarea {
+  font-family: ui-monospace, monospace;
+  white-space: pre;
+}
+
+.planning-body fieldset {
+  border: 1px solid var(--ui-line);
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+.planning-area {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+#building-planning-dialog .planning-lock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#building-planning-dialog .planning-lock input {
+  width: auto;
+  margin: 0;
+}
+
+.planning-body canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 12px;
+  background: var(--ui-panel);
+  border: 1px solid var(--ui-line);
+  border-radius: 8px;
+}
+
+.planning-candidates [aria-pressed="true"] {
+  border-color: currentColor;
+  font-weight: 600;
+}
+
+.planning-finding {
+  display: block;
+  width: 100%;
+  margin-bottom: 4px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.planning-finding[data-status="failed"] {
+  color: var(--ui-danger, #b44739);
+}
+
+@media (max-width: 800px) {
+  .planning-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

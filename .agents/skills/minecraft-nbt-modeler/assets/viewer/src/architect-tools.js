@@ -1,4 +1,5 @@
 import './architect-tools.css'
+import { initBuildingPlanning } from './building-planning.js'
 import {floatingDetails,chevron} from './floating-panel.js'
 const element=(tag,text,cls)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node}
 const action=(text,id,run)=>{const b=element('button',text);b.type='button';b.id=id;b.onclick=run;return b}
@@ -9,6 +10,7 @@ export function initArchitectTools({api,context,getVisible,openModel,refresh,com
  async function perform(sheet,run){if(sheet.dialog.dataset.pending)return;sheet.dialog.dataset.pending='true';sheet.body.inert=true;sheet.dialog.setAttribute('aria-busy','true');const controls=[...sheet.dialog.querySelectorAll('button,input,select,textarea')].map(node=>[node,node.disabled]);for(const [node]of controls)node.disabled=true;try{await run()}catch(error){sheet.message.textContent=error.message;sheet.message.classList.add('error')}finally{delete sheet.dialog.dataset.pending;sheet.body.inert=false;sheet.dialog.setAttribute('aria-busy','false');for(const [node,disabled]of controls)if(node.isConnected)node.disabled=disabled;if(sheet===norms)removeStandard.disabled=!applied?.snapshot}}
  function say(sheet,text){sheet.message.textContent=text;sheet.message.classList.remove('error')}
  const menu=element('details',undefined,'library-filter-menu');menu.id='architect-tools-menu';menu.innerHTML='<summary>建筑工具'+chevron+'</summary>';const menuBody=element('div',undefined,'architect-tool-menu');menuBody.id='architect-tools-menu-content';menu.append(menuBody);document.getElementById('project-native-actions').append(menu);floatingDetails(menu,menuBody,{minimum:200})
+ menuBody.append(initBuildingPlanning({ api, context, openMenu: () => { menu.open = false } }))
  const norms=sheet('project-standards-dialog','项目设计规范','统一同一项目的建筑语言。新建方案引用当前修订，已有方案保留原来的规范快照。'),form=element('div',undefined,'architect-fields'),fields={};norms.body.append(form)
  for(const [key,label]of Object.entries(labels)){const field=element('label',label),input=element(key==='name'?'input':'textarea');input.id='design-standard-'+key;input.maxLength=4000;if(key!=='name')input.rows=3;field.append(input);form.append(field);fields[key]=input}
  const overrideLabel=element('label','当前建筑的例外（优先于项目规范）','architect-override'),override=element('textarea');override.id='design-standard-override';override.maxLength=4000;override.rows=3;override.placeholder='例如：这座茶馆允许木构外廊，其他建筑仍沿用石构。';overrideLabel.append(override);norms.body.append(overrideLabel,element('p','参考说明会写入提示词；文件内容不会自动读取。更新项目规范后，已有方案需明确重新引用。','muted'))

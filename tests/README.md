@@ -25,6 +25,7 @@
 | API、AI 本地协议与引擎会话 | `mise run test -- api` |
 | 内部 Agent 起草、润色和提示词交接 | `mise run test -- prompt-archive` |
 | 桌面冒烟 | `mise run test -- desktop` |
+| 整栋规划、锁定搜索、SNBT 回读与桌面平面剖面 | `mise run test -- whole-building-planning` |
 | 整栋建筑质量评分、归卷阁真实出图与桌面报告 | `mise run test -- building-quality` |
 | 工作区契约与路径选择 | `mise run test -- workspace` |
 | 可移植引擎合成回归 | `mise run nbt -- regress --output <新目录>` |

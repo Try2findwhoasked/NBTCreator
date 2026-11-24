@@ -232,6 +232,8 @@ class Contracts(unittest.TestCase):
    index = (facade / 'knowledge.md').read_text(encoding='utf8')
    self.assertIn('整栋初稿：纯文字', index)
    self.assertIn('整栋初稿：有参考图', index)
+   self.assertIn('architect layout-check', entry)
+   self.assertIn('references/whole-building-planning.md', index)
    for reference in ('design-grammar.md','architecture-knowledge-base.md','structure-atlas.md',
                      'organic-spaces.md','linked-spaces.md'):
     self.assertNotIn(reference,entry)
@@ -239,6 +241,10 @@ class Contracts(unittest.TestCase):
    paths = subprocess.check_output([sys.executable, str(facade / 'nbt.py'), 'paths'], cwd=root)
    example = Path(json.loads(paths)['engine']) / 'assets/examples/reading-loft'
    self.assertIn(os.path.relpath(example / 'README.md', facade).replace(os.sep, '/'), entry)
+   planning = example.parent / 'whole-building-planning.json'
+   checked = subprocess.check_output([sys.executable, str(facade / 'nbt.py'), 'architect',
+                                      'layout-check', '--request', str(planning)], cwd=root)
+   self.assertTrue(json.loads(checked)['passed'])
    result = subprocess.run([sys.executable, '-B', str(example / 'run.py'), 'blocked'], cwd=root, capture_output=True)
    self.assertEqual(result.returncode, 1)
    receipt, = root.glob('nbt_models/_workspaces/examples/*/plan-build-result.json')

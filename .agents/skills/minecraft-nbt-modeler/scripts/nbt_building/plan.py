@@ -84,6 +84,9 @@ def normalize(plan):
     validate_intent(plan, valid_parts)
     from nbt_building.quality_plan import items
     items(plan)
+    if 'planning' in plan:
+        from nbt_building.planning_geometry import attach_layout
+        attach_layout(plan)
     return plan
 
 
@@ -360,6 +363,9 @@ def build(workspace,request):
     from nbt_building.construction_systems import CONSTRUCTION_SYSTEMS
     from nbt_building.quality import BLOCKING_CODES, assess, from_model
     plan=select(workspace,request);resolved=resolve(plan);workspace=Path(workspace).resolve()
+    if 'planning' in resolved:
+        from nbt_building.planning_geometry import before_build
+        before_build(resolved)
     source=request.get('source')
     if source:
         if not request.get('source_sha256'):raise ValueError('已有制作源须提供source_sha256')
@@ -623,7 +629,14 @@ def check_model(model,binding):
     for rule in resolved['rules']:
         try:checks.append(DESIGN_CHECKS.resolve(rule['kind'])(model,binding,resolved,rule))
         except (ValueError,KeyError,TypeError) as error:checks.append(dict(id=rule['id'],kind=rule['kind'],passed=False,error=str(error)))
+    planning = {}
+    if 'planning' in resolved:
+        from nbt_building.planning_geometry import assess_geometry
+        report = assess_geometry(model, resolved['planning'], binding)
+        checks.extend(report['layout_checks'])
+        checks.extend(report['checks'])
+        planning['planning'] = report
     return dict(passed=all(row['passed'] for row in checks),plan_sha256=binding['sha256'],checks=checks,
-        style='declared_rules_checked' if resolved['rules'] else 'not_machine_verified',
+        **planning, style='declared_rules_checked' if resolved['rules'] else 'not_machine_verified',
         textual_standards='bound_snapshot_only' if plan.get('standards_snapshot') else 'not_bound',
         aesthetics='requires_visual_review',structural_load='not_checked',game='not_checked')
