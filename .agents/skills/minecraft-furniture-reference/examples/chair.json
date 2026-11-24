@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "name": "低背云杉椅",
+  "category": "chair",
+  "source": {
+    "kind": "synthetic",
+    "title": "Independently authored chair fixture"
+  },
+  "size": [
+    1,
+    2,
+    2
+  ],
+  "front": "north",
+  "parts": [
+    {
+      "id": "seat",
+      "role": "坐面",
+      "material": "云杉",
+      "feature": "低阶前缘",
+      "evidence": "synthetic"
+    },
+    {
+      "id": "post",
+      "role": "背下支承",
+      "material": "云杉",
+      "feature": "座后窄脚",
+      "evidence": "synthetic"
+    },
+    {
+      "id": "back",
+      "role": "椅背",
+      "material": "云杉",
+      "feature": "薄竖背",
+      "evidence": "synthetic"
+    }
+  ],
+  "joins": [
+    [
+      "seat",
+      "post"
+    ],
+    [
+      "post",
+      "back"
+    ]
+  ],
+  "cameras": [
+    {
+      "id": "front",
+      "role": "正面",
+      "eye": [
+        0.5,
+        1.62,
+        -4
+      ],
+      "target": [
+        0.5,
+        1,
+        1
+      ],
+      "fov": 52,
+      "lighting": "day"
+    },
+    {
+      "id": "front-left",
+      "role": "左前斜视",
+      "eye": [
+        -3,
+        1.62,
+        -2.6
+      ],
+      "target": [
+        0.5,
+        1,
+        1
+      ],
+      "fov": 52,
+      "lighting": "day"
+    },
+    {
+      "id": "front-right",
+      "role": "右前斜视",
+      "eye": [
+        4,
+        1.62,
+        -2.6
+      ],
+      "target": [
+        0.5,
+        1,
+        1
+      ],
+      "fov": 52,
+      "lighting": "day"
+    }
+  ],
+  "candidates": {
+    "main": {
+      "design": "两格高室内辨识夹具",
+      "regions": [
+        { "part": "seat", "lo": [ 0, 0, 0 ], "hi": [ 0, 0, 0 ], "state": "spruce_slab[type=bottom,waterlogged=false]" },
+        { "part": "post", "lo": [ 0, 0, 1 ], "hi": [ 0, 0, 1 ], "state": "spruce_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]" },
+        { "part": "back", "lo": [ 0, 1, 1 ], "hi": [ 0, 1, 1 ], "state": "spruce_trapdoor[facing=north,half=bottom,open=true,powered=false,waterlogged=false]" }
+      ]
+    }
+  },
+  "gameplay": "静态椅形，未配置坐姿。"
+}
