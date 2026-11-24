@@ -46,7 +46,9 @@ def serve(workspace,source,sink):
                     else:raise ValueError('未开放的会话方法')
                 response=dict(id=identity,ok=True,result=result)
         except (ValueError,KeyError,TypeError,OSError,AssertionError) as error:
+            from nbt_composition.scene_relations import scene_error_fields
             response=dict(id=identity,ok=False,error=str(error)[:1000],code='VALIDATION_ERROR')
+            response.update(scene_error_fields(error))
             if getattr(error,'issue',None):response['issue']=error.issue
         response['metrics']=dict(engine_ms=round((perf_counter()-started)*1000,3),cache=dict(session.stats))
         payload=json.dumps(response,ensure_ascii=False,allow_nan=False).encode('utf8')

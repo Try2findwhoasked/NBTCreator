@@ -13,7 +13,7 @@
 | scene_compile | 编译 graph，返回完整 spec、对象边界、依赖顺序、哈希和检查结果，不写文件 |
 | scene_save | 显式保存对象图及编译快照的新版本，不修改建筑，不定稿 NBT |
 | scene_read | 读取 id 的当前版本；给 version 可读取历史快照，校验不可变文件哈希 |
-| scene_update | 绑定 id / revision / version，修改已有对象、联动重算并返回候选；须另用 scene_save 保存 |
+| scene_update | 绑定 id / revision / version，预览对象、纹样或关系锁的修改，返回联动候选与方块差分，或可定位的冲突 |
 
 其中三个纯查询/候选动作 `scene_compile`、`scene_read`、`scene_update` 也可通过 `session` 连续调用；`scene_save` 使用单次命令，保留明确的保存边界。会话与参数化工具入口见 [参数化建模](modeling-sessions.md#建模会话与结果复用)。
 
@@ -93,10 +93,32 @@ scene_update 使用保存回执的 id / revision / version，并给 changes。�
 
 接受候选后，将返回的 graph、graph_sha256、content_sha256 和 parent 交给 scene_save。保存检查父版本并原子更新 head；并发者若已提交则拒绝旧父版本，不覆盖、不自动合并。旧版本继续可读。该接口不提供机器任务提交接口的幂等回执；响应不确定时先读当前版本，不盲目重复保存。
 
+## 关系锁、差分与冲突
+
+版本 1 的图可以声明最多 32 项 `relation_locks`，每项使用唯一 ID。下面的柱脚位于场景坐标 `[2,0,4]`，屋顶接合到梁的 `roof_seat`。
+
+```json
+[
+  {"id":"left_foot","kind":"fixed_position","object":"left","interface":"base","position_half":[4,0,8]},
+  {"id":"roof_join","kind":"interface_contact","object":"roof","target":{"object":"beam","interface":"roof_seat"}}
+]
+```
+
+- `fixed_position` 比较旋转、定位后场景世界坐标中的一个点。带 `interface` 时取实际暴露接口两个切向轴的最小半格坐标，法向轴取 `plane_half`。省略 `interface` 时使用实际占用边界的最小角，三个坐标均乘 2。半格值 4 表示方块坐标 2。这里的原点是对象图原点。此锁固定所选锚点，仍允许柱顶、截面和非锚点几何改变。
+- `interface_contact` 要求子对象的每个实际半格连通块沿接口法向接到指定面。对子对象改用 `lo` 时，此锁仍验证接合。若 `attach` 和 `span` 的原生成关系仍在，它们的坐标推导与接触检查同时生效。接触面积可以变化，回读中的 `contact_face_count` 是相邻的半格面数量。
+
+`scene_update` 用 `add_locks` 添加定义，用 `release_locks` 列出要解除的 ID。只改锁也可保存语义版本。保留的定义沿父版本传递，修改定义时用新 ID 添加并明确解除旧 ID。保存带解除动作的候选时，将回执的 `release_locks` 一同交给 `scene_save`，它会校验实际移除的 ID。直接编译完整图再绑定父版本保存也受相同检查。成功候选和保存回读均可在 `verification.relation_locks` 查看实测值。
+
+成功预览的 `affected_objects` 是依赖传播范围，`geometry_changed_objects` 列出位置、状态或墙层实际改变的对象。`block_diff` 按场景 XYZ 升序给出位置及前后 `[方块状态,墙层归属]`，空位为 `null`。其中 `counts` 统计新增、移除和替换，`sha256` 绑定完整差分，`entries` 默认返回 256 项。按同一父版本和修改携带 `diff_offset:next_offset` 可续读，`diff_limit` 可设 1～2048。小于图谱原预算的本次预算可用 `max_changed_blocks` 预检。决定撤销候选时无需调用其他命令，头版本与宿主都没有写入。
+
+CLI 失败退出 1。关系锁失败用 `code` 与 `conflicts` 返回锁 ID、对象、预期与实测位置或具名接触数据。几何和保护检查已完成时，失败回执仍提供只读 `preview` 差分。只有通过全部必要检查、已知每项锁的结果，并核验冲突子集及移除唯一成员后的可行性时，才返回 `conflict_proof.status:verified_inclusion_minimal`。预览根据给定修改与当前依赖生成一个确定候选，证明限定在这个候选，空子集使用同一几何作为见证。承托、保护、未知碰撞等失败给定位证据。可给 `timeout_ms`（1～120000）在预览阶段边界复核用时，超时回执含阶段与父版本。
+
+设计取自保存既有几何关系的思路，以及用一致性与可行子集核对解释的定义。[Gleicher, Integrating Constraints and Direct Manipulation](https://graphics.cs.wisc.edu/Papers/1992/Gle92/integrat.pdf) · [Junker, QuickXplain](https://cdn.aaai.org/AAAI/2004/AAAI04-027.pdf)
+
 ## 约束和建筑接入
 
 graph 可给 reserved_boxes、protected_boxes、routes 和 max_changed_blocks。保留空间禁止任何对象占用；保护区允许保存现有几何，但联动更新不得改变其中的方块状态或墙层。routes 为 start 和非空 targets 数组，采用原半格玩家碰撞引擎；检查失败则不返回通过候选。续版必须保留原总尺寸、保留/保护区域、路线及预算约束。
 
 对象的实际方块不得重叠，即使材质相同。新增连接、位移导致的旧块移除与新块增加都计入修改；还会复核未受影响对象，拒绝意外几何变化。scene_update 失败不会保存头记录，旧快照不变。
 
-spec 可交给 structure_preview 生成真实预览，之后使用已有资产保存和放置接口。scene_save 只保存对象图，不能让当前建筑跟着自动变化。写回建筑仍需绑定它的真实源、安装环境、保护与通路，另存新版本；完整建筑的密闭、开口、看图确认和定稿流程保持不变。实际看图和游戏验收不能由图谱的 verification 字段替代。
+spec 可交给 structure_preview 生成真实预览，之后使用已有资产保存和放置接口。scene_save 只保存对象图，不能让当前建筑跟着自动变化。关系锁的续版约束适用于场景保存，宿主按自己的放置变换及保护条件校验。写回建筑仍需绑定它的真实源、安装环境、保护与通路，另存新版本；完整建筑的密闭、开口、看图确认和定稿流程保持不变。实际看图和游戏验收不能由图谱的 verification 字段替代。
