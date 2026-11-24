@@ -10,7 +10,7 @@
     },
     "kind": "curve_stencil",
     "material": "stone_bricks",
-    "name": "曲面环段平面模板",
+    "name": "环段模板（用于曲面）",
     "size": [16, 6, 1]
   },
   "controls": {"spacing": false, "style": false},

@@ -3,7 +3,7 @@
     "form": {"curve_offset": 1, "curve_width": 1, "profile": "curve_dark_seam"},
     "kind": "curve_stencil",
     "material": "stone_bricks",
-    "name": "曲面暗缝平面模板",
+    "name": "暗缝模板（用于曲面）",
     "size": [16, 3, 1]
   },
   "controls": {"spacing": false, "style": false},

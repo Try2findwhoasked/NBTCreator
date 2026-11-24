@@ -9,7 +9,7 @@
     },
     "kind": "curve_stencil",
     "material": "stone_bricks",
-    "name": "曲面裙边分片平面模板",
+    "name": "裙边分片模板（用于曲面）",
     "size": [18, 10, 1]
   },
   "controls": {"spacing": false, "style": false},

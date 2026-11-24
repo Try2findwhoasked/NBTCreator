@@ -3,10 +3,10 @@
   "libraries": [
     {
       "id": "nbtcreator.modular",
-      "manifest_sha256": "85ac139acf5f8918223da8738a9dd5be59457072cec1776b371c92d95a569c9c",
+      "manifest_sha256": "586041f9e2e22da7f8ad70488c213eb5f43bebe1b79bae1cef441182e53c9565",
       "name": "NBTCreator 模块化建筑资产库",
       "path": "library.json",
-      "version": "1.2.0"
+      "version": "1.2.1"
     }
   ],
   "name": "NBTCreator 拓展库清单",
