@@ -163,12 +163,13 @@ def prepare_locations(model, plan, cameras, view_checks):
     result = []
     for location in plan.get('review_locations', []):
         candidates = []
-        for identifier in location['views']:
+        eligible = [identifier for identifier in location['views'] if identifier in camera_map]
+        for identifier in eligible:
             camera = camera_map[identifier]
             visibility = visible_location(model, camera['eye'], location['position'], camera['target'], camera['fov'])
             candidates.append(dict(view=identifier, passed=checks[identifier]['passed'] and visibility['passed'], visibility=visibility))
         result.append(dict(
-            **location, candidates=candidates, passed=any(row['passed'] for row in candidates),
+            dict(location, views=eligible), candidates=candidates, passed=any(row['passed'] for row in candidates),
             scope='sampled_point_visibility', visual_status='awaiting_actual_observation',
         ))
     return result

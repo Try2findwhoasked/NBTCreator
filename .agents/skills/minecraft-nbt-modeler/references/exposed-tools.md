@@ -191,7 +191,8 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 
 | 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
 | --- | --- | --- | --- | --- |
-| 准备建筑审阅 | 命令 `architect review-prepare --request <请求JSON>` | `capabilities --architect-action review-prepare` | JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换失败机位。 | 复验保存源并写审阅包及相机；coverage_passed 是机位覆盖检查，visual_status 表示仍待看图（完整回执在 coverage 下）。<br>运行回执的 render_command 出图，保留同份回执的 review_record_bindings。 |
+| 准备建筑审阅 | 命令 `architect review-prepare --request <请求JSON>` | `capabilities --architect-action review-prepare` | JSON 填 source、source_sha256 和新的 output 目录。补拍可用 view_overrides 按原 ID 替换机位，单独出图时用 view_ids 选择机位。 | 复验保存源并写审阅包及相机；coverage_passed 是机位覆盖检查，visual_status 表示仍待看图（完整回执在 coverage 下）。<br>运行回执的 render_command 出图，保留同份回执的 review_record_bindings。 |
+| 推荐建筑审阅补拍机位 | 命令 `architect review-recommend --request <请求JSON>` | `capabilities --architect-action review-recommend` | 填原审阅 pack、pack_sha256 和新 output。可填已登记的 notes_sha256、待补位置及搜索预算。 | 按半格脚位和实际模型估计取景，返回推荐机位、预计覆盖与待补原因。<br>有推荐时将 next.request 交给 review-prepare，再出图并实际查看。 |
 | 从制作源渲染实际图片 | 命令 `render --source <制作源> --cameras <相机JSON> --output <新目录>` | `render --help` | 使用保存回执的制作源；建筑审阅沿用 review-prepare 生成的相机。 | 写 PNG 和 render_manifest.json；检查 status:complete 及源、相机、图像哈希。<br>打开实际图像，建筑审阅用 review-record 登记观察。 |
 | 从候选快照渲染实际图片 | 命令 `render --snapshot <候选after.json> --cameras <相机JSON> --output <新目录>` | `render --help` | 快照来自 control preview 的 result.snapshot；对比前后时沿用相机，给两次出图各选新目录。 | 生成绑定候选快照的 PNG 与渲染清单。<br>打开图片并核对候选绑定；改动仍需通过候选验证。 |
 | 登记建筑看图观察 | 命令 `architect review-record --request <请求JSON>` | `capabilities --architect-action review-record` | 原样取 review-prepare 的 review_record_bindings，再填实际看图得出的 observations 和 issues（无问题填 []）。 | 写观察记录，返回覆盖与交付摘要。精修另须用户看过对应图像并明确同意。 |
