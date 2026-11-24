@@ -11,7 +11,7 @@
     },
     "kind": "curve_stencil",
     "material": "stone_bricks",
-    "name": "曲面斜搭带平面模板",
+    "name": "斜搭带模板（用于曲面）",
     "size": [18, 12, 1]
   },
   "controls": {"spacing": false, "style": false},

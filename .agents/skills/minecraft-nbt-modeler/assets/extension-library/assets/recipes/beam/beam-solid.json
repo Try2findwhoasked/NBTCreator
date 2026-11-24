@@ -4,7 +4,7 @@
       "profile": "solid"
     },
     "kind": "beam",
-    "name": "整梁",
+    "name": "实心矩形梁",
     "size": [
       13,
       4,

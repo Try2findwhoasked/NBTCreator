@@ -79,12 +79,12 @@
       "type": "parametric_recipe"
     },
     {
-      "bytes": 225,
+      "bytes": 234,
       "category": "梁与承托",
       "id": "beam-solid",
-      "name": "整梁",
+      "name": "实心矩形梁",
       "path": "assets/recipes/beam/beam-solid.json",
-      "sha256": "b11f0022552ef3ee2bc839c33077e857e8d4c2bebb7136a5227dfb661d68c331",
+      "sha256": "12b6116e070c032b781dc1917818ed96b5ca94fca9d1f443021258b7a655f8eb",
       "status": "stable",
       "tags": [
         "beam"
@@ -235,12 +235,12 @@
       "type": "parametric_recipe"
     },
     {
-      "bytes": 345,
+      "bytes": 351,
       "category": "曲面平面模板",
       "id": "curve-dark-seam",
-      "name": "曲面暗缝平面模板",
+      "name": "暗缝模板（用于曲面）",
       "path": "assets/recipes/curve_stencil/curve-dark-seam.json",
-      "sha256": "b92726d6d34ab6ec58822a7799e6c3ef1c56f0a65cc2d77ce7aea0da79eabe70",
+      "sha256": "06b3652c367ccc2f873040cf0ab1b04c2b9f2fa869e83767e9be0f6e26b3da0c",
       "status": "stable",
       "tags": [
         "curve-stencil"
@@ -248,12 +248,12 @@
       "type": "parametric_recipe"
     },
     {
-      "bytes": 501,
+      "bytes": 507,
       "category": "曲面平面模板",
       "id": "curve-diagonal-band",
-      "name": "曲面斜搭带平面模板",
+      "name": "斜搭带模板（用于曲面）",
       "path": "assets/recipes/curve_stencil/curve-diagonal-band.json",
-      "sha256": "830c694481558c21cdd6b86726ab5b8e3538a9e7577001c12b4c33b2ab9f16e0",
+      "sha256": "764539886125c57739a4d132e8123f714853263fd48e54d95f601861cbae84f2",
       "status": "stable",
       "tags": [
         "curve-stencil"
@@ -261,12 +261,12 @@
       "type": "parametric_recipe"
     },
     {
-      "bytes": 474,
+      "bytes": 480,
       "category": "曲面平面模板",
       "id": "curve-ring-segment",
-      "name": "曲面环段平面模板",
+      "name": "环段模板（用于曲面）",
       "path": "assets/recipes/curve_stencil/curve-ring-segment.json",
-      "sha256": "1c4306964469c011a90b77479b1e773bc25030467d15ecba1f47b486e5481371",
+      "sha256": "bb0d1e95704eaa4f61c33d720076d34eb56dcb00b5fb119fe39aac9dc65381c4",
       "status": "stable",
       "tags": [
         "curve-stencil"
@@ -274,12 +274,12 @@
       "type": "parametric_recipe"
     },
     {
-      "bytes": 447,
+      "bytes": 453,
       "category": "曲面平面模板",
       "id": "curve-skirt-segment",
-      "name": "曲面裙边分片平面模板",
+      "name": "裙边分片模板（用于曲面）",
       "path": "assets/recipes/curve_stencil/curve-skirt-segment.json",
-      "sha256": "49943e39461aa5935a81e5cce979c0dffb7f641af5cb5ad2061198d422ab9dda",
+      "sha256": "52f4a5b26d5b1bbdad1cbefb556342d2d3ff0b7ee61d46a8930cfe503c0473b8",
       "status": "stable",
       "tags": [
         "curve-stencil"
@@ -287,12 +287,12 @@
       "type": "parametric_recipe"
     },
     {
-      "bytes": 465,
+      "bytes": 471,
       "category": "曲面平面模板",
       "id": "curve-vertical-rib",
-      "name": "曲面竖肋平面模板",
+      "name": "竖肋模板（用于曲面）",
       "path": "assets/recipes/curve_stencil/curve-vertical-rib.json",
-      "sha256": "8270397500c4eb5d56e3af7f458cd5f0d0cff497ac300a4433fe6f9126c59ea1",
+      "sha256": "998f64ba76c06ccb37a0b344e8b15be25b00462c4f4014fc6aa3617696736e6d",
       "status": "stable",
       "tags": [
         "curve-stencil"
@@ -300,12 +300,12 @@
       "type": "parametric_recipe"
     },
     {
-      "bytes": 475,
+      "bytes": 481,
       "category": "曲面平面模板",
       "id": "curve-window-column",
-      "name": "曲面窗列平面模板",
+      "name": "窗列模板（用于曲面）",
       "path": "assets/recipes/curve_stencil/curve-window-column.json",
-      "sha256": "0c2bf915a1a23a053e4aae0a8e65b545783bb4236aeac28e3ec6975e15b47fe9",
+      "sha256": "d3ec435f56eb1f0e396091285e7651c2243938c23e736d1aa9ddb2b8a7511392",
       "status": "stable",
       "tags": [
         "curve-stencil"
@@ -489,12 +489,12 @@
       "type": "component"
     },
     {
-      "bytes": 112151,
+      "bytes": 112154,
       "category": "中殿拱顶",
       "id": "original-nave-vault-rhythm",
-      "name": "青藤石肋 · 连跨拱顶频谱",
+      "name": "青藤石肋 · 可调连跨肋拱顶",
       "path": "assets/recipes/spectral_repeat/original-nave-vault-rhythm.json",
-      "sha256": "4931adc74cd8c1b8bfb7ce7af97f7905e1faf8db5e691fbc041963541bd925f5",
+      "sha256": "7610592659212c1ef85efadf614eab548f8a6b2b99da824606565867878829f0",
       "status": "stable",
       "tags": [
         "vault",
@@ -1016,7 +1016,7 @@
       "bytes": 40228,
       "category": "华丽窗框",
       "id": "ornate-window-classical-cornice-component",
-      "name": "齿饰檐口古典窗套（构件）",
+      "name": "齿饰檐口古典窗套",
       "path": "assets/components/windows/ornate-window-classical-cornice-component.json",
       "sha256": "9dae2f761c3ef39f44c42b68e5a84ba2ea188abd1dc8011e8d912b318c10ce6a",
       "status": "recommended",
@@ -1048,7 +1048,7 @@
       "bytes": 62865,
       "category": "华丽窗框",
       "id": "ornate-window-classical-divided-component",
-      "name": "山花分格宫廷窗（构件）",
+      "name": "山花分格宫廷窗",
       "path": "assets/components/windows/ornate-window-classical-divided-component.json",
       "sha256": "4210dfad5972b55ee9e90e3f2e5485ec356c5985be71b56b8df0ee29f648fb26",
       "status": "recommended",
@@ -1080,7 +1080,7 @@
       "bytes": 43888,
       "category": "华丽窗框",
       "id": "ornate-window-classical-pediment-component",
-      "name": "三角山花与线脚窗套（构件）",
+      "name": "三角山花与线脚窗套",
       "path": "assets/components/windows/ornate-window-classical-pediment-component.json",
       "sha256": "c16c3b27af17228539feab585701392a48b4680d8ab2809c680f24575ac38524",
       "status": "recommended",
@@ -1112,7 +1112,7 @@
       "bytes": 56748,
       "category": "华丽窗框",
       "id": "ornate-window-gothic-clear-component",
-      "name": "玫瑰与双尖拱窗棂（构件）",
+      "name": "玫瑰与双尖拱窗棂",
       "path": "assets/components/windows/ornate-window-gothic-clear-component.json",
       "sha256": "6ac12c143228e68134a35012571a3d46e3c1cefad0b711c660636996ae22821b",
       "status": "recommended",
@@ -1144,7 +1144,7 @@
       "bytes": 87808,
       "category": "华丽窗框",
       "id": "ornate-window-gothic-gilded-component",
-      "name": "黑金玫瑰宫廷尖拱窗（构件）",
+      "name": "黑金玫瑰宫廷尖拱窗",
       "path": "assets/components/windows/ornate-window-gothic-gilded-component.json",
       "sha256": "c9729a72d94612d4a26c1e35867da339d13cc6d633f7dfc73f5047be457800d8",
       "status": "recommended",
@@ -1176,7 +1176,7 @@
       "bytes": 87798,
       "category": "华丽窗框",
       "id": "ornate-window-gothic-lapis-component",
-      "name": "蓝金彩玻玫瑰尖拱窗（构件）",
+      "name": "蓝金彩玻玫瑰尖拱窗",
       "path": "assets/components/windows/ornate-window-gothic-lapis-component.json",
       "sha256": "9e380a5aac0fd79d64612999676d1a616b8551912d6f82bf032474c48ec9e849",
       "status": "recommended",
@@ -1208,7 +1208,7 @@
       "bytes": 44384,
       "category": "华丽窗框",
       "id": "ornate-window-round-single-component",
-      "name": "圆拱券与楔石窗（构件）",
+      "name": "圆拱券与楔石窗",
       "path": "assets/components/windows/ornate-window-round-single-component.json",
       "sha256": "b64951e23942ca4dbc2619dbba75725e7a3e3bda8047e58210a48d8ae9fb8e64",
       "status": "recommended",
@@ -1240,7 +1240,7 @@
       "bytes": 44394,
       "category": "华丽窗框",
       "id": "ornate-window-round-twin-component",
-      "name": "双光圆拱石窗（构件）",
+      "name": "双光圆拱石窗",
       "path": "assets/components/windows/ornate-window-round-twin-component.json",
       "sha256": "735f9887d3691f3700b64a47afe5d165fe55e0018dc00f2b069fb88caa0be52d",
       "status": "recommended",
@@ -1272,7 +1272,7 @@
       "bytes": 7182,
       "category": "华丽窗框",
       "id": "ornate-window-timber-four-component",
-      "name": "四格木窗与前挑窗台（构件）",
+      "name": "四格木窗与前挑窗台",
       "path": "assets/components/windows/ornate-window-timber-four-component.json",
       "sha256": "29fddbc80e408bce94d39aa80b94d844345f131fb3ca2c5ccb8b6e665f715f1d",
       "status": "recommended",
@@ -1304,7 +1304,7 @@
       "bytes": 18324,
       "category": "华丽窗框",
       "id": "ornate-window-timber-sixteen-component",
-      "name": "十六格高窗与双层窗扇（构件）",
+      "name": "十六格高窗与双层窗扇",
       "path": "assets/components/windows/ornate-window-timber-sixteen-component.json",
       "sha256": "c406d5c591f4c912e0e8eb385705cb6e2c7705a3449194e43c8d86777a8b61b7",
       "status": "recommended",
@@ -1336,7 +1336,7 @@
       "bytes": 14745,
       "category": "华丽窗框",
       "id": "ornate-window-timber-twelve-component",
-      "name": "十二格上下木窗（构件）",
+      "name": "十二格上下木窗",
       "path": "assets/components/windows/ornate-window-timber-twelve-component.json",
       "sha256": "c7cf33e48fe2f4cfbdee652e6f58b5003655cac69b4763bbd6b0e070a2423a53",
       "status": "recommended",
@@ -1778,12 +1778,12 @@
       "type": "parametric_recipe"
     },
     {
-      "bytes": 526,
+      "bytes": 532,
       "category": "楼梯与护栏",
       "id": "stairs-straight-baluster",
-      "name": "直梯 · 立柱扶手",
+      "name": "直跑楼梯 · 立柱扶手",
       "path": "assets/recipes/stairs/stairs-straight-baluster.json",
-      "sha256": "b25500f69540ede4400617578ea0e83523a8cec6339edc432b0a7b3d739cd6d5",
+      "sha256": "d9508161e25951815b5315ef60394df6b8fda897555a774a9f8ebc6c1aba75b1",
       "status": "draft",
       "tags": [
         "stairs"
@@ -1791,12 +1791,12 @@
       "type": "parametric_recipe"
     },
     {
-      "bytes": 528,
+      "bytes": 534,
       "category": "楼梯与护栏",
       "id": "stairs-straight-horizontal",
-      "name": "直梯 · 横档扶手",
+      "name": "直跑楼梯 · 横档扶手",
       "path": "assets/recipes/stairs/stairs-straight-horizontal.json",
-      "sha256": "ec96d17fd2cd3ab9bfeb0208414f2f9a66b233e9fdfcd18bbc71b849be1b31ee",
+      "sha256": "94afe7dc895406a210656a83806bf54f3e339998c861a0c8ae33a61542c7d4a0",
       "status": "recommended",
       "tags": [
         "stairs"
@@ -1804,12 +1804,12 @@
       "type": "parametric_recipe"
     },
     {
-      "bytes": 525,
+      "bytes": 531,
       "category": "楼梯与护栏",
       "id": "stairs-straight-lattice",
-      "name": "直梯 · 格构扶手",
+      "name": "直跑楼梯 · 格构扶手",
       "path": "assets/recipes/stairs/stairs-straight-lattice.json",
-      "sha256": "0533990ae9f58bc0ab61b144a80cd9a15eaae84ef2e0b1df3b5185a68de648d2",
+      "sha256": "9174466ace77ba7d220a8725e64b40c61380d4903c3732ec2ae4b206e980791e",
       "status": "draft",
       "tags": [
         "stairs"
@@ -1892,5 +1892,5 @@
   "license": "LicenseRef-NBTCreator-Project AND Apache-2.0",
   "name": "NBTCreator 模块化建筑资产库",
   "schema_version": 1,
-  "version": "1.2.0"
+  "version": "1.2.1"
 }
