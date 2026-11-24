@@ -16,6 +16,7 @@
 | 用户看图后批准精修 | [精修流程](refinement.md) | 实际修改的专题；批准继续绑定对应源和图像 |
 | 保存制作源、续版或交付 | [SNBT与定稿](snbt-authoring.md)、[版本历史](version-history.md) | [交付](delivery-workflow.md)、[存放](output-storage.md) |
 | 协作、批注或维护接口 | 对应任务的[机器接口](agent-protocol.md)、[批注](agent-feedback.md)或[维护](state-and-maintenance.md) | [扩展注册器](extensions.md)、[会话](modeling-sessions.md)；不因此加载全部创作知识 |
+| 多区建模或明确要求分工 | [参考图与分区建模](authoring-workflow.md) | 工作包简报按层级读取；单件家具仍走构件或选区 |
 
 先按入口选择本次路线，再读取当前任务需要的章节。原型库供按场所选择。独立纹样、构件和工具维护走各自路线。
 

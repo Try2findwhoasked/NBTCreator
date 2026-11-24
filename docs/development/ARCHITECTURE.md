@@ -45,6 +45,8 @@ flowchart LR
 
 ### 外部 Agent 脚本化路线
 
+分区协作通过 `machine` 的 `authoring.*` 方法进入同一引擎。`nbt_project/authoring_runs.py` 在批次尝试中持有 `authoring.json`，`nbt_agent/authoring_tasks.py` 复用租约、fence 和幂等回执。`authoring_views.py` 根据已登记工作包投影提示词、动作和字段。`nbt_composition/authoring_merge.py` 复用 `WorkingModel.patch` 和整栋发布锁，`nbt_review/authoring_review.py` 用固定机位比较基线和候选或落盘版。Electron 在制作批次中读取相同协议和经过哈希核对的图片。[参考图与分区建模](../../.agents/skills/minecraft-nbt-modeler/references/authoring-workflow.md)
+
 外部 Skill 默认载入创作相关资料，软件维护与接口扩展按工作区启用。纹样入口仍直接提示 `pattern_microfit` 的适用场景，度量实现已从位图适配层抽出，供拟合复用。建筑书库独立索引并按任务检索。紧凑任务视图、增量诊断和本地任务客户端已接入共享 CLI。统一的整栋初稿入口为后续设计。
 
 | 顺序 | 脚本负责 | Agent 负责 |

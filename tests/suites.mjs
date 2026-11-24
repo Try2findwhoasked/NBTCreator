@@ -4,6 +4,11 @@ const buildWeb = node('scripts/build-web.mjs')
 
 export const suites = {
   'agent-protocol': [python('-B', 'tests/engine/agent-protocol.py')],
+  'authoring-run': [python('-B', 'tests/engine/authoring-run.py')],
+  'authoring-delegation': [python('-B', 'tests/engine/authoring-delegation.py')],
+  'authoring-merge': [python('-B', 'tests/engine/authoring-merge.py')],
+  'authoring-review': [buildWeb, python('-B', 'tests/engine/authoring-review.py')],
+  'authoring-workflow': [buildWeb, node('tests/desktop/authoring-workflow.mjs')],
   'agent-return': [
     buildWeb,
     python('tests/engine/agent-task-return.py'),

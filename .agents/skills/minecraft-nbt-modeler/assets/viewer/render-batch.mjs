@@ -58,6 +58,9 @@ export async function renderBatch(options) {
     if (frozenSnapshot !== model) await fs.writeFile(frozenSnapshot, snapshotBytes, { flag: 'wx' })
     report.snapshot_file = 'snapshot.json'
     viewer = await createViewerServer({ model: frozenSnapshot, port: 0 })
+    if (viewer.frontend === 'production') {
+      report.frontend_sha256 = hash(await fs.readFile(new URL('./web-dist/frontend-manifest.json', import.meta.url)))
+    }
     browser = await launchRenderBrowser(options.browserExecutable)
     report.browser_version = browser.version()
     const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1, acceptDownloads: false })
