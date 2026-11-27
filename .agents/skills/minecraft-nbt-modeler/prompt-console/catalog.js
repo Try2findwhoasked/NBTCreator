@@ -26559,11 +26559,13 @@ globalThis.NbtToolCatalog = {
         "mutation": true
       },
       "model.commit": {
+        "description": "Save a candidate as a production draft. For a claimed task, pass task_lease with id, lease_token and fence from tasks.claim, or pass the name of an existing local task_session.",
         "fields": {
           "model": "object",
           "candidate_sha256": "string",
           "save": "object",
-          "task_session": "string"
+          "task_session": "string",
+          "task_lease": "object"
         },
         "required": [
           "model",

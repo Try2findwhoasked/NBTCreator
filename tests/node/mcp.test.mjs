@@ -82,6 +82,41 @@ test('stdio lifecycle, declared capabilities, bounded tools and workload isolati
   assert.equal(missing.status().state, 'unavailable')
 })
 
+test('claimed model changes can be committed and returned through stdio alone', { skip: Boolean(archive) }, async t => {
+  const { dir } = await workspace(t)
+  const client = connect(t, dir, ['--allow-write'])
+  const model = { size: [8, 6, 8], kind: 'component' }
+  const candidate = await call(client, 'model.candidate', { model })
+  assert.equal(candidate.ok, true, JSON.stringify(candidate.error))
+  const base = await call(client, 'model.commit', { model, candidate_sha256: candidate.data.candidate_sha256,
+    save: { name_zh: '修改任务建筑' }, request_id: requestId() })
+  assert.equal(base.ok, true, JSON.stringify(base.error))
+  const binding = { source: base.data.source, source_sha256: base.data.source_sha256 }
+  const task = await call(client, 'tasks.create', { ...binding, name: '修订任务', request_id: requestId() })
+  assert.equal(task.ok, true, JSON.stringify(task.error))
+  const claimed = await call(client, 'tasks.claim', { id: task.data.id, owner: '代理', request_id: requestId() })
+  assert.equal(claimed.ok, true, JSON.stringify(claimed.error))
+  const task_lease = { id: task.data.id, lease_token: claimed.data.lease_token, fence: claimed.data.lease.fence }
+  const edited = { ...binding, actions: [{ method: 'patch', changes: [
+    { pos: [1, 1, 1], before: ['minecraft:air', false], after: ['minecraft:stone', false] }
+  ] }] }
+  const proposed = await call(client, 'model.candidate', { model: edited })
+  assert.equal(proposed.ok, true, JSON.stringify(proposed.error))
+  const commit = { model: edited, candidate_sha256: proposed.data.candidate_sha256, save: {} }
+  const badFence = await call(client, 'model.commit', { ...commit, request_id: requestId(),
+    task_lease: { ...task_lease, fence: task_lease.fence + 1 } })
+  assert.equal(badFence.error.code, 'LEASE_FENCE_CONFLICT')
+  const request = { ...commit, task_lease, request_id: requestId() }
+  const saved = await call(client, 'model.commit', request)
+  assert.equal(saved.ok, true, JSON.stringify(saved.error))
+  assert.deepEqual(await call(client, 'model.commit', request), saved)
+  const returned = await call(client, 'tasks.record', { ...task_lease, revision: claimed.data.revision,
+    new_source: saved.data.source, new_source_sha256: saved.data.source_sha256,
+    summary: '增加一格石块', request_id: requestId() })
+  assert.equal(returned.ok, true, JSON.stringify(returned.error))
+  assert.equal(returned.data.status, 'completed')
+})
+
 test('MCP handshake and stdio framing negotiate versions and exit on EOF', { skip: Boolean(archive) }, async t => {
   const { dir } = await workspace(t)
   const child = spawn(process.execPath, [sourceEntry, '--workspace', dir], { windowsHide: true })

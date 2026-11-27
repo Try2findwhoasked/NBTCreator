@@ -39,6 +39,8 @@ Windows 终端可用 `NBTCreator-MCP.cmd --workspace "D:\Projects\建筑 工作�
 
 服务通过 `initialize` 协商 MCP 版本，然后接收 `notifications/initialized`。工具以 `tools/list` 所列为准。默认允许查询和生成审阅辅助产物。`--allow-write` 开放 machine 写入，必须提供稳定的 `request_id`。`--package-session` 从宿主指定的 JSON 读取工作包邀请或租约。此时工具列表和每次操作按引擎的工作包权限检查，并仅提供该工作包可用的制作动作。认领后的租约应由宿主写回同一会话文件，凭据通过服务启动配置和机器接口管理。
 
+对于建筑修改任务，调用 `tasks.claim` 后，将任务的 `id`、回执中的 `lease_token` 和 `lease.fence` 一并放入 `model.commit` 的 `task_lease`。提交后用该租约、最新任务修订号以及新制作源和 SHA256 调用 `tasks.record`。已有本地任务会话也可继续传 `task_session`，一次提交只提供其中一种。
+
 超时、取消和进程异常后，写入结果可能需要回读。按 machine 契约查询当前状态，或用相同 `request_id` 和相同参数查询或恢复原来的操作。桌面会在随后收到请求时重启服务，已经发出的请求由调用方处理回执。
 
 ## 桌面 renderer

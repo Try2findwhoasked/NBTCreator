@@ -25,7 +25,7 @@
 | `model.inspect` | `model`，可含 `positions` | `model.samples[].value` 为 `[规范方块状态, 墙层布尔值]`，`source` 包含原制作源、哈希、修订和 `source_kind`。 |
 | `model.candidate` | `model`，可含 `actions` | `candidate_sha256`、`model.model_sha256`、`diff`、`validation`。差异包含几何格数、墙层格数及最多 32 个全局位置样本。 |
 | `model.preview` | 同一 `model`、`candidate_sha256`、`cameras` | `source`、`snapshot`、`cameras` 及各自 SHA‑256，`source_kind` 为 `master` 或 `assembly`。`visual_review` 为 `pending`。 |
-| `model.commit` | 同一 `model`、`candidate_sha256`、`save`，可选 `task_session` | `source`、`source_sha256`、`revision`、`history_pending`、`draft_only`。`task_session` 引用已领取的本地修改会话。 |
+| `model.commit` | 同一 `model`、`candidate_sha256`、`save`，可选 `task_session` 或 `task_lease` | `source`、`source_sha256`、`revision`、`history_pending`、`draft_only`。`task_session` 引用已领取的本地修改会话。`task_lease` 接收 `tasks.claim` 或 `tasks.heartbeat` 对应的 `{id, lease_token, fence}`。 |
 
 最小候选请求如下。预览沿用同一 `model` 和指纹，加入机位数组。新建筑提交在 `save` 中提供 `name_zh`，续版可用原有名称。模型操作里的预览路径应改用 `model.preview` 的服务分配目录。受限分区会话继续由 `authoring.*` 处理。
 

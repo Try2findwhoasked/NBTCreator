@@ -112,6 +112,16 @@ def repair_history(workspace, result):
 def commit(workspace, args):
     from nbt_composition.object_scene import atomic
 
+    session = args.get('task_session')
+    if 'task_lease' in args:
+        if session is not None:
+            protocol.error('INVALID_REQUEST', 'task_session 和 task_lease 只能提供其中一项')
+        session = args['task_lease']
+        if (not isinstance(session, dict) or set(session) != {'id', 'lease_token', 'fence'}
+                or type(session['fence']) is not int or session['fence'] < 1
+                or any(not isinstance(session[key], str) or not re.fullmatch(r'[a-f0-9]{32}', session[key])
+                       for key in ('id', 'lease_token'))):
+            protocol.error('INVALID_REQUEST', 'task_lease 须包含任务 id、lease_token 和 fence')
     model_contract = catalog()['working_model']['parameters']['properties']
     with operation(workspace, 'commit', args) as (_, marker, index):
         _schema(args['save'], model_contract['save_draft'], '制作版信息')
@@ -131,10 +141,10 @@ def commit(workspace, args):
                 atomic(marker, protocol.canonical(index))
 
             if target is not None and target.exists():
-                saved = VersionStore(workspace).recover_commit(target, intent, args.get('task_session'))
+                saved = VersionStore(workspace).recover_commit(target, intent, session)
             else:
                 working = checked_candidate(workspace, args)
-                saved = working.save_draft(**args['save'], task_session=args.get('task_session'), _remember_target=remember_target)
+                saved = working.save_draft(**args['save'], task_session=session, _remember_target=remember_target)
             result = saved_version(workspace, saved)
         protocol.receipt(workspace, index, 'model.commit', args, result)
         atomic(marker, protocol.canonical(index))

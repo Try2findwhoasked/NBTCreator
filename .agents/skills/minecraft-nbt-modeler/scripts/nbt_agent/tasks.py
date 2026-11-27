@@ -178,16 +178,21 @@ def publication(workspace,building,source,session,actor):
                     protocol.error('LEASE_REQUIRED','该建筑有有效租约；使用领取会话保存，或释放租约后重试',
                                    details={'id':task['id'],'lease':protocol.public_lease(task)})
         else:
-            from nbt_agent.task_client import TaskClient
-            client=TaskClient(workspace,session);state=client.load()
-            if state['kind']!='tasks' or state['phase']!='active' or state.get('pending'):
-                protocol.error('SESSION_NOT_ACTIVE','保存修改任务制作版须使用有效的建筑修改任务会话')
-            task=task_for(workspace,index,state['id']);base=verify(workspace,task)
+            if isinstance(session, dict):
+                params = session
+            else:
+                from nbt_agent.task_client import TaskClient
+                client = TaskClient(workspace, session)
+                state = client.load()
+                if state['kind'] != 'tasks' or state['phase'] != 'active' or state.get('pending'):
+                    protocol.error('SESSION_NOT_ACTIVE', '保存修改任务制作版须使用有效的建筑修改任务会话')
+                params = client.lease_params(state)
+            task = task_for(workspace, index, params['id'])
+            base = verify(workspace, task)
             if source is None or project_paths(base)['workdir']!=building:
                 protocol.error('RETURN_LINEAGE_MISMATCH','制作版与会话的原建筑不匹配')
             if source!=base:return_parent(workspace,base,source)
             def check():
-                params=client.lease_params(state)
                 protocol.check_lease(task,params,required=True)
                 return dict(task_id=task['id'],fence=params['fence'],source_sha256=task['source_sha256'])
         check()
