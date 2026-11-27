@@ -146,7 +146,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
 | --- | --- | --- | --- | --- |
 | 导入并核验大型组装制作源 | 命令 `assembly import --request <JSON>` |  | 指定画布、工作区内 SNBT 分区、各自 SHA256 与全局偏移；输出为新建筑版本的 master 目录。 | 逐份回读并登记历史；可用 assembly inspect、model 和 render 操作，定稿导出仍须独立支持。 |
-| 签发和回装协作切片 | 多步流程 `assembly slice --request <JSON> / assembly merge --request <JSON>` | [请求与用例](large-assembly.md) | 签发时绑定主稿、范围和必要路线；回装时提供原签发清单哈希及各候选哈希。 | 复核可写域、重叠、保护和全局路线后保存一个新制作版；不批准或导出。 |
+| 大型组装与协作切片 | 多步流程 `assembly slice --request <JSON> / assembly merge --request <JSON>` | [请求与用例](large-assembly.md) | 签发时绑定主稿、范围和必要路线；回装时提供原签发清单哈希及各候选哈希。 | 复核可写域、重叠、保护和全局路线后保存一个新制作版；不批准或导出。 |
 
 ### 任务与交接
 
