@@ -67,7 +67,8 @@ class Registries(unittest.TestCase):
         self.assertEqual(set(AGENT_TOOLS),set(catalog()['agent_tools']))
         self.assertEqual(set(MODEL_ACTIONS),set(catalog()['working_model']['actions']))
         self.assertIn('pattern_repeat_detect', AGENT_TOOLS)
-        self.assertEqual(len(RECIPE_COMPILERS),11)
+        recipe_tools = catalog()['working_model']['actions']['install']['properties']['recipe']['properties']['tool']['enum']
+        self.assertEqual(set(RECIPE_COMPILERS), set(recipe_tools))
         self.assertIn('structure',RECIPE_COMPILERS)
         self.assertNotIn('structure_save',RECIPE_COMPILERS)
 

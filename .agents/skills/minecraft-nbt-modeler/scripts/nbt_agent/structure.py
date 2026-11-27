@@ -162,6 +162,16 @@ def _handle_field_compile(workspace,tool,arguments):
     return compile_field(workspace,arguments)
 
 
+def _handle_surface_fit(workspace, tool, arguments):
+    from nbt_geometry.surface_fitting import fit_surface
+    return fit_surface(arguments)
+
+
+def _handle_surface_compile(workspace, tool, arguments):
+    from nbt_geometry.surface_compile import compile_surface
+    return compile_surface(workspace, arguments)
+
+
 def _handle_pattern_warp(workspace,tool,arguments):
     from nbt_geometry.deform import create_warped
     return create_warped(workspace,arguments)

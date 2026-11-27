@@ -113,6 +113,8 @@ python (Join-Path $engine.scripts 'nbt_tools.py') --source <完整主稿> --oper
 
 geometry 新增三个 shape，仍经过相同布尔、裁剪、保护和预算路径。`section_sweep` 用 vertices（局部UV简单多边形）、points（全局XYZ折线）及 up（默认Y）生成各段定截面棱柱的并集。U=normalize(up×tangent)，V=tangent×U；平行 up 的路径段拒绝。转角使用平帽棱柱并集，不自动斜接，急弯可能缺角，须看图检查。`loft` 用严格递增 y 的 sections，每项 vertices 为全局XZ简单多边形；各截面顶点数和顺序对应，逐体素高度线性插值，拒绝采样到的自交截面。`revolve` 将 profile 的半径/相对高度多边形绕 centre 的Y轴旋转，可用 start_angle/sweep_angle 做部分圆周；半径不得负。三者只生成体素几何，不自动安排楼梯、壳厚或承重。
 
+双向弯曲的屋面、侧向弯曲的壳体或锁定四边的曲面，可用 [自由曲面拟合与方块壳体](freeform-surfaces.md) 从三维样点和边界拟合，再编译为独立构件候选。
+
 ## 参数化屋顶
 
 `roof=curved_hip` 生成连续曲面四坡。`curve_power` 调整从檐部到脊线的曲率，`eave_lift` 提升四边檐口，`corner_lift` 使四角另行渐变起翘。三项默认分别为2、0、0。曲面在实际边列取样，生成时连接相邻顶皮高度差，可选择 blocks、slabs 或 stairs。檐口与翼角参数仅用于此模式。

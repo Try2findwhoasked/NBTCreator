@@ -19,6 +19,7 @@ description: 制作、修改和检查 Minecraft Java 1.20.1 的 NBT 建筑、构
 | 简单独立整栋初稿 | 按[短路线](references/simple-building.md)直接使用共享主模型或可执行建筑方案。多层、结构接口和专门操作面转入复杂审阅。 |
 | 判断室内用途或建筑群的通行关系 | 室内从真实脚位核对[操作面与使用侧](references/architecture-workflow.md#操作面与使用侧)。多栋从总览走到街口、支路、门槛和室内，按[建筑群与多层选图](references/architecture-workflow.md#建筑群与多层选图)实测。交付时摘取当前审阅记录中的覆盖摘要。 |
 | 独立构件或主模型装配 | [工作模型](references/working-model.md)、[参数化构件](references/parametric-components.md)；需要稳定 ID、尺寸引用和联动时读[对象图](references/object-scenes.md)。只做适用的尺寸、状态、占用、接触和预览检查。 |
+| 用三维样点或边界生成曲面 | [自由曲面拟合与方块壳体](references/freeform-surfaces.md)，先核对样点与边界，再编译、预览和装配。 |
 | 纹样来源与拟合 | 准备图源读[纹样来源](references/pattern-authoring.md)；已有图源读[纹样拟合](references/pattern-fitting.md)的对应模式。复杂主纹采用 ornate 和明确门槛，分数不代替实际看图。 |
 | 整栋初稿包含主题纹样 | 地面嵌纹、屏风边饰、墙面徽记等，从整体路线转入纹样来源与拟合。用实际承载面和观察位置验证，交付时列出已落实和待补的纹样。 |
 | 安装到已有建筑 | [贴面安装](references/surface-mounting.md)；先绑定真实源、上下文与安装面，再生成候选。持续组合、修改与制作版保存回到工作模型。 |

@@ -151,6 +151,8 @@ MODEL_ACTIONS = HandlerRegistry('model_actions')
 _TOOL_GROUPS = {
     '_handle_compute_info': ('compute_info',),
     '_handle_field_compile': ('field_compile',),
+    '_handle_surface_fit': ('surface_fit',),
+    '_handle_surface_compile': ('surface_compile',),
     '_handle_pattern_warp': ('pattern_warp',),
     '_handle_architecture': ('tracery_compile', 'vault_compile', 'bay_compile', 'facade_compile'),
     '_handle_mount_batch': ('mount_batch', 'surface_decorate'),
@@ -181,7 +183,8 @@ for _handler, _tools in _TOOL_GROUPS.items():
 
 RECIPE_COMPILERS.register('structure', _structure_recipe)
 for _tool in ('parametric_compile', 'pattern_compile', 'pattern_microfit', 'surface_decorate',
-              'bay_compile', 'vault_compile', 'tracery_compile', 'facade_compile', 'field_compile', 'scene_compile'):
+              'bay_compile', 'vault_compile', 'tracery_compile', 'facade_compile', 'field_compile',
+              'surface_compile', 'scene_compile'):
     RECIPE_COMPILERS.register(_tool, _AgentRecipe(_tool))
 
 for _method in ('install', 'preflight_update', 'update', 'remove', 'detach', 'patch', 'apply_operations',

@@ -1186,6 +1186,26 @@ globalThis.NbtToolCatalog = {
         "next": "把 auto_roof 填入 operations[].kind，形态和尺寸按单项契约填写。"
       }
     ],
+    "自由曲面": [
+      {
+        "title": "拟合自由曲面",
+        "call": "components agent --tool surface_fit --request <JSON>",
+        "contract": "capabilities --agent-tool surface_fit",
+        "guide": "freeform-surfaces.md",
+        "input": "给出带 UV 的三维样点、四条 Bézier 边界，或同时提供两者。",
+        "result": "返回控制网格、样点误差和边界锁定状态。",
+        "next": "把返回的 patch 交给 surface_compile。"
+      },
+      {
+        "title": "将自由曲面编译为方块壳体",
+        "call": "components agent --tool surface_compile --request <JSON>",
+        "contract": "capabilities --agent-tool surface_compile",
+        "guide": "freeform-surfaces.md",
+        "input": "提供控制网格、本地画布、材质和可选厚度。",
+        "result": "返回结构 spec、可复用配方、细分误差上界和方块连通数据。",
+        "next": "用 structure_preview 查看，或将 recipe 放入完整工作模型。"
+      }
+    ],
     "曲面纹样": [
       {
         "title": "规划和核对曲面样段",
@@ -20407,6 +20427,7 @@ globalThis.NbtToolCatalog = {
                             "vault_compile",
                             "bay_compile",
                             "field_compile",
+                            "surface_compile",
                             "span_beam",
                             "facade_compile"
                           ]
@@ -20933,6 +20954,7 @@ globalThis.NbtToolCatalog = {
                             "vault_compile",
                             "bay_compile",
                             "field_compile",
+                            "surface_compile",
                             "span_beam",
                             "facade_compile"
                           ]
@@ -21532,6 +21554,7 @@ globalThis.NbtToolCatalog = {
                         "vault_compile",
                         "bay_compile",
                         "field_compile",
+                        "surface_compile",
                         "span_beam",
                         "facade_compile"
                       ]
@@ -23565,6 +23588,244 @@ globalThis.NbtToolCatalog = {
         "additionalProperties": false,
         "properties": {},
         "required": []
+      }
+    },
+    "surface_fit": {
+      "description": "从带 UV 的三维样点和/或四条锁定边界拟合张量积 Bézier 曲面，返回控制网格与样点误差。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "samples": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4096,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "uv": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "position": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "number",
+                    "minimum": -1024,
+                    "maximum": 1024
+                  }
+                }
+              },
+              "required": [
+                "uv",
+                "position"
+              ]
+            },
+            "description": "带参数坐标的三维观测点。"
+          },
+          "boundaries": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "v0": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 6,
+                "items": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "number",
+                    "minimum": -1024,
+                    "maximum": 1024
+                  }
+                },
+                "description": "沿 U 增长的 V=0 边"
+              },
+              "v1": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 6,
+                "items": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "number",
+                    "minimum": -1024,
+                    "maximum": 1024
+                  }
+                },
+                "description": "沿 U 增长的 V=1 边"
+              },
+              "u0": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 6,
+                "items": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "number",
+                    "minimum": -1024,
+                    "maximum": 1024
+                  }
+                },
+                "description": "沿 V 增长的 U=0 边"
+              },
+              "u1": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 6,
+                "items": {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "number",
+                    "minimum": -1024,
+                    "maximum": 1024
+                  }
+                },
+                "description": "沿 V 增长的 U=1 边"
+              }
+            },
+            "required": [
+              "v0",
+              "v1",
+              "u0",
+              "u1"
+            ]
+          },
+          "degree": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "description": "U、V 两个方向的次数。仅样点输入默认 [3,3]，含边界时默认取每个方向的最高边界次数。"
+          },
+          "max_error": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2048,
+            "description": "可选的最大样点三维距离，单位为格。"
+          }
+        },
+        "required": []
+      }
+    },
+    "surface_compile": {
+      "description": "将 Bézier 控制网格体素化成可预览和装配的曲面壳体，返回结构 spec、离散误差上界与方块连通数据。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "patch": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "control_points": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 6,
+                "items": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 6,
+                  "items": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "items": {
+                      "type": "number",
+                      "minimum": -1024,
+                      "maximum": 1024
+                    }
+                  }
+                },
+                "description": "外层 U 行、内层 V 列，XYZ 为构件本地坐标。"
+              }
+            },
+            "required": [
+              "control_points"
+            ]
+          },
+          "size": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            },
+            "description": "曲面及厚度的显式画布，单位为格。"
+          },
+          "anchor": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 63
+            },
+            "description": "可选的构件放置锚点，须位于画布内。"
+          },
+          "thickness": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 16,
+            "description": "可选的对称总厚度，默认 0，此时只保留与曲面三角网格相交的体素。"
+          },
+          "tolerance": {
+            "type": "number",
+            "minimum": 0.02,
+            "maximum": 0.5,
+            "description": "曲面到三角化的允许偏差，单位为格，默认 0.1。"
+          },
+          "material": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 192
+          },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "body",
+              "wall"
+            ]
+          },
+          "max_changed_blocks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65536
+          }
+        },
+        "required": [
+          "patch",
+          "size"
+        ]
       }
     },
     "field_compile": {
@@ -27395,6 +27656,8 @@ globalThis.NbtToolCatalog = {
       "bay_compile",
       "compute_info",
       "field_compile",
+      "surface_fit",
+      "surface_compile",
       "facade_compile"
     ],
     "candidate_only": true,
@@ -28443,6 +28706,7 @@ globalThis.NbtToolCatalog = {
                   "vault_compile",
                   "tracery_compile",
                   "field_compile",
+                  "surface_compile",
                   "scene_compile",
                   "facade_compile"
                 ]
@@ -28525,6 +28789,7 @@ globalThis.NbtToolCatalog = {
                   "vault_compile",
                   "tracery_compile",
                   "field_compile",
+                  "surface_compile",
                   "scene_compile",
                   "facade_compile"
                 ]
@@ -28611,6 +28876,7 @@ globalThis.NbtToolCatalog = {
                   "vault_compile",
                   "tracery_compile",
                   "field_compile",
+                  "surface_compile",
                   "scene_compile",
                   "facade_compile"
                 ]
@@ -29239,6 +29505,7 @@ globalThis.NbtToolCatalog = {
                       "vault_compile",
                       "tracery_compile",
                       "field_compile",
+                      "surface_compile",
                       "scene_compile",
                       "facade_compile"
                     ]
@@ -32102,6 +32369,7 @@ globalThis.NbtToolCatalog = {
                             "vault_compile",
                             "tracery_compile",
                             "field_compile",
+                            "surface_compile",
                             "scene_compile",
                             "facade_compile"
                           ]
@@ -34707,6 +34975,7 @@ globalThis.NbtToolCatalog = {
                             "vault_compile",
                             "tracery_compile",
                             "field_compile",
+                            "surface_compile",
                             "scene_compile",
                             "facade_compile"
                           ]

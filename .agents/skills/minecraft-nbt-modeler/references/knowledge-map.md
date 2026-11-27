@@ -10,6 +10,7 @@
 | 从用途形成简单独立初稿 | [简单独立建筑初稿](simple-building.md) | 复杂空间与构造按需读[整体流程](whole-model-workflow.md)、[玩家尺度](player-scale.md)、[创作原则](design-principles.md)、[空间细节](spatial-detail-design.md)及[建筑方案](architecture-workflow.md)对应章节 |
 | 整栋初稿有地面嵌纹、屏风边饰或墙面徽记 | [纹样来源](pattern-authoring.md)、[纹样拟合](pattern-fitting.md)中的适用章节 | 选定代表单元、承载面和观看距离，回主模型出近景并复核通路 |
 | 把设计落实为完整主模型 | [建筑方案闭环](architecture-workflow.md)、[工作模型](working-model.md) | [参数化构件](parametric-components.md)、[对象图](object-scenes.md)、[通用几何](modelling-tools.md) |
+| 从三维样点或边界生成曲面 | [自由曲面拟合与方块壳体](freeform-surfaces.md) | 已有宿主上的凸饰、切槽与嵌纹用 [曲面纹样](curved-surface.md) |
 | 制作或准备图案来源 | [纹样来源与制作](pattern-authoring.md) | [频域预处理](pattern-spectral.md)；已有合适图源时直接拟合 |
 | 将图案拟合成方块 | [纹样拟合与质量](pattern-fitting.md)的适用模式 | 扩展形状、圆柱及复杂主纹验收章节 |
 | 把构件装到现有建筑 | [贴面安装](surface-mounting.md) | [对象图](object-scenes.md)中的依赖联动；持续修改仍回到工作模型 |
