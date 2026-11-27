@@ -1,6 +1,7 @@
+import {downloadFields, effectiveStatus, labels, statuses} from '../task-record-summary.mjs'
+
 export function initTaskRecords(){
- const $=id=>document.getElementById(id),labels={batch:'批量预览与检查',ai:'AI 构建 / 方案',plan:'生成修改方案',preview:'效果预览',open:'打开建筑',snapshot:'载入3D模型',render:'纹理出图',revision:'导出建筑新版本',prepare:'生成审阅图',apply:'已确认精修',preset:'保存参数',validate:'检查候选效果',compare:'只读版本对比','walk-inspect':'玩家尺度与通路检查'},statuses={running:'运行中',complete:'已完成',failed:'失败',cancelled:'已取消'}
- const effectiveStatus=job=>(job.kind==='validate'&&job.result?.passed===false||job.kind==='walk-inspect'&&job.result?.report?.passed===false||job.kind==='batch'&&job.result?.progress?.failed>0)?'failed':job.status
+ const $=id=>document.getElementById(id)
  const phaseName=job=>({capture:'视口截图',api:'API 生成',preview:'本地预览'}[job.phase]??(job.kind==='ai'?'AI 请求':'本地任务'))
  const text=(tag,value,cls)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=value;if(cls)e.className=cls;return e}
  const objectName=job=>{const source=job.source??job.result?.source??'',model=window.detailControl?.state.models?.find(item=>item.source===source);if(model)return [model.name,model.version].filter(Boolean).join(' / ');const parts=source.split(/[\\/]/);parts.pop();while(['master','masters','runtime','parts'].includes(parts.at(-1)))parts.pop();return parts.length>1?parts.slice(-2).join(' / '):'当前会话'}
@@ -27,13 +28,15 @@ export function initTaskRecords(){
    if(Number.isFinite(m.validation_ms))body.append(text('p','返回格式与参数检查 '+seconds(m.validation_ms),'muted'))
    if(Number.isFinite(m.operation_changes))body.append(text('p','AI增量修改 '+m.operation_changes+' 个工具步骤，其余步骤由本地保留。'))
   }
- let records=[],timer=null,loading=false,selected=null,detailSignature='';const cards=new Map()
- const dialog=document.createElement('dialog');dialog.id='task-detail-dialog';dialog.className='task-detail-dialog';dialog.innerHTML='<header><h2>任务详情</h2><button type="button" id="task-detail-close">关闭</button></header><div id="task-detail-body"></div>';document.body.append(dialog);$('task-detail-close').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{selected=null;detailSignature=''})
- function description(job){const r=job.result??{},parts=[];if(job.kind==='walk-inspect'&&r.report)return (r.report.passed?'静态步行通过':r.report.search_limit_reached?'达到搜索上限，未完成检查':'存在未通过或未确定项目')+' · '+r.report.targets.length+' 个终点 · 不写建筑';if(Number.isFinite(r.changed_blocks))parts.push(`${r.changed_blocks} 个方块变化`);if(r.operations!==undefined)parts.push(`${Array.isArray(r.operations)?r.operations.length:r.operations} 项操作`);if(r.wall_membership_changes)parts.push(`${r.wall_membership_changes} 个墙层归属变化`);if(r.runtime_files?.length)parts.push(`${r.runtime_files.length} 份 NBT`);if(job.kind==='ai')parts.push(job.screenshot?'已附视口截图':'仅文字');if(r.preview_only)parts.push('仅预览');return (job.kind==='ai'?[r.summary,job.events?.at(-1)?.message].filter(Boolean).join(' · '):r.summary)||parts.join(' · ')||'查看详情了解执行过程与输出。'}
+ const pageSize = 50
+ const cards = new Map()
+ let offset = 0, timer, searchTimer, listRequest, etag, selected, detailRequest, detailSignature = ''
+ const dialog=document.createElement('dialog');dialog.id='task-detail-dialog';dialog.className='task-detail-dialog';dialog.innerHTML='<header><h2>任务详情</h2><button type="button" id="task-detail-close">关闭</button></header><div id="task-detail-body"></div>';document.body.append(dialog);$('task-detail-close').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{detailRequest?.abort();selected=null;detailSignature=''})
+ function description(job){const r=job.result??{},parts=[];if(job.kind==='walk-inspect'&&r.report)return (r.report.passed?'静态步行通过':r.report.search_limit_reached?'达到搜索上限，未完成检查':'存在未通过或未确定项目')+' · '+(r.report.target_count ?? r.report.targets.length)+' 个终点 · 不写建筑';if(Number.isFinite(r.changed_blocks))parts.push(`${r.changed_blocks} 个方块变化`);if(r.operations!==undefined)parts.push(`${Array.isArray(r.operations)?r.operations.length:r.operations} 项操作`);if(r.wall_membership_changes)parts.push(`${r.wall_membership_changes} 个墙层归属变化`);const runtimeCount=r.runtime_count??r.runtime_files?.length;if(runtimeCount)parts.push(`${runtimeCount} 份 NBT`);if(job.kind==='ai')parts.push(job.screenshot?'已附视口截图':'仅文字');if(r.preview_only)parts.push('仅预览');return (job.kind==='ai'?[r.summary,(job.last_message??job.events?.at(-1)?.message)].filter(Boolean).join(' · '):r.summary)||parts.join(' · ')||'查看详情了解执行过程与输出。'}
  function timing(job){const start=new Date(job.created_at),end=job.completed_at?new Date(job.completed_at):null;return `${start.toLocaleString('zh-CN')} · ${end?((end-start)/1000).toFixed(1)+' 秒':'正在处理'}`}
- function downloads(job){const r=job.result??{},files=[...(r.nbt_downloads??[])];for(const [key,name,file]of [['master_download','SNBT 制作源','model.snbt'],['plan_download','操作计划','plan.json'],['validation_download','候选检查报告','validation.json'],['difference_download','差异报告','difference.json'],['report_download','通路检查报告','walk-inspection.json']])if(r[key])files.push({name,url:r[key],file});return files}
- function fillDetail(){
-  const job=records.find(job=>job.id===selected);if(!job)return;const signature=JSON.stringify(job);if(signature===detailSignature)return;detailSignature=signature
+ function downloads(job){const r=job.result??{},files=[...(r.nbt_downloads??[])];for(const [key,name,file]of downloadFields)if(r[key])files.push({name,url:r[key],file});return files}
+ function fillDetail(job){
+  const signature=JSON.stringify(job);if(signature===detailSignature)return;detailSignature=signature
   const body=$('task-detail-body'),scroll=body.scrollTop,technicalOpen=body.querySelector('details')?.open??false;body.replaceChildren();dialog.querySelector('h2').textContent=job.label??labels[job.kind]??job.kind
   body.append(text('p',timing(job),'task-time'),text('p',description(job),'task-entry-summary'));if(job.kind==='ai'){const m=job.api_metrics;body.append(text('h3','请求信息'),text('p',`${phaseName(job)} · ${statuses[effectiveStatus(job)]??job.status}${job.model?' · '+job.model:''}`));if(m)body.append(text('p',`${m.attempts??1} 次 API 请求${m.retried_compact?'（包含一次精简重试）':''}${Number.isFinite(m.completion_tokens)?' · 返回 '+m.completion_tokens+' tokens':''}${Number.isFinite(m.reasoning_tokens)?' · 其中思考 '+m.reasoning_tokens+' tokens':''}${Number.isFinite(m.total_tokens)?' · 合计 '+m.total_tokens+' tokens':''}`));body.append(text('p','API 返回候选后，还要经过本地校验和预览。此处完成不代表正式建筑已导出。','muted'))}if(job.instruction)body.append(text('h3','本次要求'),text('p',job.instruction,'task-instruction'));if(job.error)body.append(text('p',phaseName(job)+'未完成：'+job.error,'task-entry-error'))
    if(job.backend_exit){const e=job.backend_exit;body.append(text('h3','本地工具进程'),text('p',e.phase+' · 退出 '+(e.exit_hex??e.exit_code??e.signal)+' · 返回 '+e.stdout_bytes+' 字节'));if(!e.stdout_bytes&&e.exit_code!==0)body.append(text('p','进程结束前没有返回结果；不是已完成的模型，也不能据此判断AI响应有问题。','muted'))}
@@ -53,26 +56,100 @@ export function initTaskRecords(){
   const links=text('div',undefined,'task-file-links');for(const file of downloads(job)){const a=text('a',file.name);a.href=file.url;a.download=file.file??file.name;links.append(a)}if(links.children.length)body.append(text('h3','下载产物'),links)
   const technical=text('details');technical.open=technicalOpen;technical.append(text('summary','技术记录（JSON）'),text('pre',JSON.stringify(job,null,2)));body.append(technical);body.scrollTop=scroll
  }
- function render(){
-  const query=$('task-search').value.toLowerCase(),filter=$('task-filter').value,shown=records.filter(job=>(filter==='all'||effectiveStatus(job)===filter)&&(!query||JSON.stringify([job.kind,job.label,job.instruction,labels[job.kind],effectiveStatus(job),job.directory,job.result?.output,job.error]).toLowerCase().includes(query))).slice(0,100),list=$('task-list'),wanted=new Set(shown.map(job=>job.id))
-  $('task-list-summary').textContent=`当前会话 ${records.length} 项 · 显示 ${shown.length} 项`
-  const oldEmpty=list.querySelector('.task-empty'),filtered=!!query||filter!=='all'
+ async function loadDetail(job) {
+  detailRequest?.abort()
+  const request = detailRequest = new AbortController()
+  try {
+   const response = await fetch('/__detail__/jobs/' + encodeURIComponent(job.id), { signal: request.signal })
+   if (!response.ok) throw Error('任务详情加载失败')
+   const detail = await response.json()
+   if (!request.signal.aborted && selected?.id === job.id) {
+    selected = {...job, status: detail.status}
+    fillDetail(detail)
+   }
+  } catch (error) {
+   if (!request.signal.aborted) $('task-detail-body').replaceChildren(text('p', error.message))
+  }
+ }
+
+ function render({items: shown, total, matched}) {
+  const list=$('task-list'), wanted=new Set(shown.map(job=>job.id))
+  $('task-list-summary').textContent=`当前会话 ${total} 项 · 匹配 ${matched} 项`
+  $('task-pages').hidden = matched <= pageSize
+  $('task-previous').disabled = offset === 0
+  $('task-next').disabled = offset + pageSize >= matched
+  $('task-page').textContent = `第 ${offset / pageSize + 1} / ${Math.max(1, Math.ceil(matched / pageSize))} 页`
+  const oldEmpty=list.querySelector('.task-empty'),filtered=!!$('task-search').value.trim()||$('task-filter').value!=='all'
   if(shown.length||oldEmpty?.dataset.filtered!==String(filtered))oldEmpty?.remove()
   for(const [id,entry]of cards)if(!wanted.has(id)){entry.card.remove();cards.delete(id)}
   let previous=null
   for(const job of shown){
-   let entry=cards.get(job.id);if(!entry){const card=text('article',undefined,'task-entry');card.dataset.taskId=job.id;card.innerHTML='<div class="task-entry-header"><strong></strong><span></span></div><p class="task-time"></p><p class="task-entry-summary"></p><p class="task-entry-error" hidden></p><p class="task-location"></p><button type="button" class="task-details-button">查看详情与产物</button>';card.querySelector('button').onclick=()=>{selected=job.id;detailSignature='';fillDetail();dialog.showModal()};entry={card,signature:''};cards.set(job.id,entry)}
-   const signature=JSON.stringify(job);if(signature!==entry.signature){entry.signature=signature;const card=entry.card,title=objectName(job)+' · '+(job.kind==='revision'&&job.result?.draft_only?'保存 SNBT 制作版':job.label??labels[job.kind]??job.kind);card.querySelector('strong').textContent=title;card.querySelector('strong').title=title;const state=card.querySelector('.task-entry-header span');state.className='task-state '+effectiveStatus(job);state.textContent=job.kind==='ai'&&job.status==='failed'?phaseName(job)+'未完成':job.kind==='validate'&&job.result?.passed===false?'需改参数':job.kind==='walk-inspect'&&job.result?.report?.passed===false?(job.result.report.search_limit_reached?'检查未完成':'需核对通路'):statuses[effectiveStatus(job)]??job.status;card.querySelector('.task-time').textContent=new Date(job.created_at).toLocaleString('zh-CN');card.querySelector('.task-entry-summary').textContent=description(job)+'。'+nextAction(job);const error=card.querySelector('.task-entry-error');error.hidden=!job.error;error.textContent=job.error??'';error.title=job.error??'';const location=job.result?.output??job.directory??'';card.querySelector('.task-location').textContent=location;card.querySelector('.task-location').title=location;const count=downloads(job).length;card.querySelector('button').textContent=count?`查看结果（${count} 份文件）`:effectiveStatus(job)==='failed'?'查看问题与下一步':'查看详情'}
+   let entry=cards.get(job.id);if(!entry){const card=text('article',undefined,'task-entry');card.dataset.taskId=job.id;card.innerHTML='<div class="task-entry-header"><strong></strong><span></span></div><p class="task-time"></p><p class="task-entry-summary"></p><p class="task-entry-error" hidden></p><p class="task-location"></p><button type="button" class="task-details-button">查看详情与产物</button>';card.querySelector('button').onclick=()=>{selected=entry.job;detailSignature='';dialog.querySelector('h2').textContent=selected.label??labels[selected.kind]??selected.kind;$('task-detail-body').replaceChildren(text('p','正在加载任务详情'));dialog.showModal();void loadDetail(selected)};entry={card,signature:''};cards.set(job.id,entry)}
+   entry.job=job
+   const signature=JSON.stringify(job);if(signature!==entry.signature){entry.signature=signature;const card=entry.card,title=objectName(job)+' · '+(job.kind==='revision'&&job.result?.draft_only?'保存 SNBT 制作版':job.label??labels[job.kind]??job.kind);card.querySelector('strong').textContent=title;card.querySelector('strong').title=title;const state=card.querySelector('.task-entry-header span');state.className='task-state '+effectiveStatus(job);state.textContent=job.kind==='ai'&&job.status==='failed'?phaseName(job)+'未完成':job.kind==='validate'&&job.result?.passed===false?'需改参数':job.kind==='walk-inspect'&&job.result?.report?.passed===false?(job.result.report.search_limit_reached?'检查未完成':'需核对通路'):statuses[effectiveStatus(job)]??job.status;card.querySelector('.task-time').textContent=new Date(job.created_at).toLocaleString('zh-CN');card.querySelector('.task-entry-summary').textContent=description(job)+'。'+nextAction(job);const error=card.querySelector('.task-entry-error');error.hidden=!job.error;error.textContent=job.error??'';error.title=job.error??'';const location=job.result?.output??job.directory??'';card.querySelector('.task-location').textContent=location;card.querySelector('.task-location').title=location;const count=job.downloadCount;card.querySelector('button').textContent=count?`查看结果（${count} 份文件）`:effectiveStatus(job)==='failed'?'查看问题与下一步':'查看详情'}
    const expected=previous?previous.nextElementSibling:list.firstElementChild;if(expected!==entry.card)list.insertBefore(entry.card,expected);previous=entry.card
   }
   if(!shown.length&&!list.querySelector('.task-empty')){
    const empty=text('section',undefined,'task-empty');empty.dataset.filtered=String(filtered)
    empty.append(text('h3',filtered?'没有匹配的运行记录':'还没有运行记录'),text('p',filtered?'清除搜索和筛选，查看本次会话的其他操作。':'生成预览、检查修改或保存建筑后，可在这里查看结果与文件位置。'))
-   const next=text('button',filtered?'清除搜索与筛选':'打开建筑库');next.type='button';next.onclick=()=>{if(filtered){$('task-search').value='';$('task-filter').value='all';render();$('task-search').focus()}else window.creatorWorkspace.select('project')};empty.append(next);list.append(empty)
+   const next=text('button',filtered?'清除搜索与筛选':'打开建筑库');next.type='button';next.onclick=()=>{if(filtered){$('task-search').value='';$('task-filter').value='all';resetList();$('task-search').focus()}else window.creatorWorkspace.select('project')};empty.append(next);list.append(empty)
   }
-  if(dialog.open)fillDetail()
+  const updated = selected && shown.find(job => job.id === selected.id)
+  if (dialog.open && updated && updated.revision !== selected.revision) void loadDetail(updated)
+  if (dialog.open && selected?.status === 'running' && !updated) void loadDetail(selected)
  }
- async function refresh(){if(loading)return;loading=true;try{const response=await fetch('/__detail__/jobs');if(!response.ok)throw Error('任务记录加载失败');records=(await response.json()).reverse();render()}catch(e){$('task-list-summary').textContent=e.message}finally{loading=false}}
- $('task-search').oninput=render;$('task-filter').onchange=render;$('refresh-task-list').onclick=refresh
- window.addEventListener('creator-workspace-change',event=>{clearInterval(timer);dialog.close();if(event.detail==='tasks'){refresh();timer=setInterval(refresh,1500)}})
+
+ async function refresh(reset = false) {
+  if (reset) {
+   listRequest?.abort()
+   etag = undefined
+  } else if (listRequest) return
+  const request = listRequest = new AbortController()
+  const params = new URLSearchParams({view: 'summary', limit: pageSize, offset,
+   status: $('task-filter').value, q: $('task-search').value})
+  try {
+   const response = await fetch('/__detail__/jobs?' + params, {
+    signal: request.signal, headers: etag ? {'If-None-Match': etag} : {}
+   })
+   if (response.status === 304) return
+   if (!response.ok) throw Error('任务记录加载失败')
+   const page = await response.json()
+   if (request.signal.aborted) return
+   if (offset && offset >= page.matched) {
+    offset = Math.max(0, Math.ceil(page.matched / pageSize) - 1) * pageSize
+    void refresh(true)
+    return
+   }
+   etag = response.headers.get('ETag')
+   render(page)
+  } catch (error) {
+   if (!request.signal.aborted) $('task-list-summary').textContent = error.message
+  } finally {
+   if (listRequest === request) listRequest = undefined
+  }
+ }
+
+ function resetList() {
+  clearTimeout(searchTimer)
+  offset = 0
+  void refresh(true)
+ }
+ $('task-search').oninput = () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(resetList, 200)
+ }
+ $('task-filter').onchange = resetList
+ $('refresh-task-list').onclick = () => void refresh(true)
+ $('task-previous').onclick = () => { offset = Math.max(0, offset - pageSize); void refresh(true) }
+ $('task-next').onclick = () => { offset += pageSize; void refresh(true) }
+ window.addEventListener('creator-workspace-change', event => {
+  clearInterval(timer)
+  clearTimeout(searchTimer)
+  listRequest?.abort()
+  dialog.close()
+  if (event.detail === 'tasks') {
+   void refresh(true)
+   timer = setInterval(refresh, 1500)
+  }
+ })
 }

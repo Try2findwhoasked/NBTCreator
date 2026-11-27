@@ -1,4 +1,5 @@
 import {workerExit,parseWorkerResult} from './backend-result.mjs'
+import {matchesJob, statuses, summarizeJob} from './task-record-summary.mjs'
 import {portableRequest,absoluteRequest} from './portable-paths.mjs'
 import {handoffInfo,writeHandoff} from './agent-handoff.mjs'
 // Local detail-control API. All work uses argument arrays and data-only requests.
@@ -83,6 +84,31 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   let closing=false,closePromise
   const feedback = createFeedbackStore(binding=>{if(!binding.version_dir)throw new Error('请重新打开建筑以识别版本目录');return path.join(binding.version_dir,'修改意见')},binding=>[...(binding.workdir?[path.join(binding.workdir,'修改意见')]:[]),path.join(workspace,'build/nbt_feedback')])
   const jobFinished=Symbol('jobFinished')
+  const jobRevision=Symbol('jobRevision')
+  let jobsRevision = 0
+  const jobChanged = job => { job[jobRevision] = ++jobsRevision }
+
+  function listJobSummaries(req, res, params) {
+    const query = (params.get('q') ?? '').trim().toLowerCase()
+    const filter = params.get('status') ?? 'all'
+    const limit = Number(params.get('limit') ?? 50)
+    const offset = Number(params.get('offset') ?? 0)
+    if (query.length > 200 || filter !== 'all' && !Object.hasOwn(statuses, filter) ||
+        !Number.isSafeInteger(limit) || limit < 1 || limit > 100 ||
+        !Number.isSafeInteger(offset) || offset < 0) throw Error('任务列表参数无效')
+    const etag = '"' + createHash('sha256').update(JSON.stringify([jobsRevision, query, filter, limit, offset])).digest('hex') + '"'
+    res.setHeader('ETag', etag)
+    if (req.headers['if-none-match'] === etag) {
+      res.writeHead(304, { 'Cache-Control': 'no-store' })
+      res.end()
+      return
+    }
+    const matching = [...jobs.values()].filter(job => matchesJob(job, query, filter))
+    const start = Math.max(0, matching.length - offset - limit)
+    const end = Math.max(0, matching.length - offset)
+    const items = matching.slice(start, end).reverse().map(job => summarizeJob(job, job[jobRevision]))
+    json(res, { items, total: jobs.size, matched: matching.length })
+  }
   const cancelledError=()=>Object.assign(new Error('任务已取消；已生成的诊断文件保留'),{code:'NBTCREATOR_CANCELLED'})
   function checkpoint(job){if(job?.cancel_requested)throw cancelledError()}
   async function registerSnapshot(file,source,job,openedInfo){
@@ -186,7 +212,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     const directory = path.join(outputRoot, 'jobs', id)
     const requestPath = path.join(directory, 'request.json')
     const job = { id, kind, status: 'running', created_at: new Date().toISOString(), directory, source:request.source, source_sha256:request.source_sha256 }
-    jobs.set(id, job); activeJob = job
+    jobs.set(id, job); activeJob = job; jobChanged(job)
     job[jobFinished]=(async () => {
       try {
         await fs.mkdir(directory, { recursive: true })
@@ -251,6 +277,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
       } catch (error) { job.error = job.cancel_requested?cancelledError().message:error.message;if(error.details)job.error_details=error.details;job.status = job.cancel_requested||error.code==='NBTCREATOR_CANCELLED'?'cancelled':'failed' }
       finally {
         job.completed_at = new Date().toISOString(); delete job.child;delete job.backend_pid
+        jobChanged(job)
         try{await fs.writeFile(path.join(directory, 'job.json'), JSON.stringify(serialJob(job), null, 2))}
         catch(error){job.persistence_error=error.message}
         if(activeJob===job)activeJob=null
@@ -268,7 +295,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
   }
   async function launchProjectBatch(input){
     if(typeof input.queue_id!=='string'||!/^[a-f0-9]{32}$/.test(input.queue_id))throw Error('批量任务编号无效')
-    const id=randomUUID(),directory=path.join(outputRoot,'jobs',id),job={id,kind:'batch',status:'running',created_at:new Date().toISOString(),directory,queue_id:input.queue_id};jobs.set(id,job);activeJob=job
+    const id=randomUUID(),directory=path.join(outputRoot,'jobs',id),job={id,kind:'batch',status:'running',created_at:new Date().toISOString(),directory,queue_id:input.queue_id};jobs.set(id,job);activeJob=job;jobChanged(job)
     job[jobFinished]=(async()=>{const file=path.join(directory,'request.json');try{
       await fs.mkdir(directory,{recursive:true});await fs.writeFile(file,JSON.stringify({id:input.queue_id}));checkpoint(job)
       const queue=await invoke(['project-batch','--workspace',workspace,'--action','run','--request',file],path.join(directory,'backend.log'),undefined,job);checkpoint(job)
@@ -277,7 +304,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
     }catch(error){job.status=job.cancel_requested?'cancelled':'failed';job.error=error.message}
     finally{
       if(job.cancel_requested&&!closing)await projectBatch('cancel',{id:input.queue_id}).catch(()=>{})
-      job.completed_at=new Date().toISOString();await fs.writeFile(path.join(directory,'job.json'),JSON.stringify(job,null,2)).catch(error=>{job.persistence_error=error.message});if(activeJob===job)activeJob=null
+      job.completed_at=new Date().toISOString();jobChanged(job);await fs.writeFile(path.join(directory,'job.json'),JSON.stringify(job,null,2)).catch(error=>{job.persistence_error=error.message});if(activeJob===job)activeJob=null
     }})();return {id}
   }
   function serialJob(job, includeOpenInfo = false) {
@@ -563,7 +590,7 @@ export async function startDetailServer({ workspace, output, python = 'python', 
           const id=randomUUID(),directory=path.join(outputRoot,'jobs',id)
           await fs.mkdir(directory,{recursive:true})
           const job={id,kind:'ai',workflow:input.workflow,label:String(input.label||'AI构建').slice(0,200),instruction:String(input.instruction||'').slice(0,12000),model:String(input.model||'').slice(0,150),provider:String(input.provider||'').slice(0,100),screenshot:input.screenshot===true,status:'running',created_at:new Date().toISOString(),directory,events:[{time:new Date().toISOString(),message:'AI请求已创建'}]}
-          jobs.set(id,job);await fs.writeFile(path.join(directory,'job.json'),JSON.stringify(job,null,2));json(res,{id})
+          jobs.set(id,job);jobChanged(job);await fs.writeFile(path.join(directory,'job.json'),JSON.stringify(job,null,2));json(res,{id})
         }else{
           const job=jobs.get(input.id);if(!job||job.kind!=='ai')throw Error('Unknown AI activity')
           const message=String(input.message||'').slice(0,2000)
@@ -576,10 +603,14 @@ export async function startDetailServer({ workspace, output, python = 'python', 
             if(input.api_metrics)job.api_metrics=cleanApiMetrics(input.api_metrics)
             if(input.timings)job.timings={...job.timings,...cleanTimings(input.timings)}
           }else throw Error('Unknown AI activity action')
+          jobChanged(job)
           await fs.writeFile(path.join(job.directory,'job.json'),JSON.stringify(job,null,2));json(res,{id:job.id})
         }
       } else if (req.method === 'POST' && url.pathname === '/__detail__/jobs') json(res, await launchJob(await body(req)), 202)
-      else if (req.method === 'GET' && url.pathname === '/__detail__/jobs') json(res, [...jobs.values()].map(job=>serialJob(job)))
+      else if (req.method === 'GET' && url.pathname === '/__detail__/jobs') {
+        if (url.searchParams.get('view') === 'summary') listJobSummaries(req, res, url.searchParams)
+        else json(res, [...jobs.values()].map(job => serialJob(job)))
+      }
       else if(req.method==='GET'&&url.pathname==='/__detail__/workers')json(res,{items:[...ownedChildren].filter(child=>Number.isSafeInteger(child.pid)&&child.exitCode===null&&child.signalCode===null).map(child=>({pid:child.pid,...workerInfo.get(child)}))})
       else if (req.method === 'POST' && url.pathname === '/__detail__/cancel') { await cancel(); json(res, { ok: true }) }
       else if (req.method === 'GET' && url.pathname.startsWith('/__detail__/jobs/')) {
