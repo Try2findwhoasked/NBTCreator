@@ -118,6 +118,13 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 从参数生成构件 | 命令 `components agent --tool parametric_compile --request <请求JSON>` | `capabilities --agent-tool parametric_compile`<br>[请求与用例](parametric-components.md) | 按构件形态选 kind、尺寸和材料；具体参数见单项契约。 | 返回编译构件候选及几何信息。<br>用 parametric_preview 获取可查看的候选，再选择安装或显式保存资产。 |
 | 查询屋顶等建模操作 | 命令 `capabilities --operations` | `capabilities --operation auto_roof` | 从操作清单选 kind，屋顶取 auto_roof；结构配方另查 capabilities --recipe structure。 | 操作清单返回名称和提示，单项查询返回参数。<br>把 auto_roof 填入 operations[].kind，形态和尺寸按单项契约填写。 |
 
+### 自由曲面
+
+| 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
+| --- | --- | --- | --- | --- |
+| 拟合自由曲面 | 命令 `components agent --tool surface_fit --request <JSON>` | `capabilities --agent-tool surface_fit`<br>[请求与用例](freeform-surfaces.md) | 给出带 UV 的三维样点、四条 Bézier 边界，或同时提供两者。 | 返回控制网格、样点误差和边界锁定状态。<br>把返回的 patch 交给 surface_compile。 |
+| 将自由曲面编译为方块壳体 | 命令 `components agent --tool surface_compile --request <JSON>` | `capabilities --agent-tool surface_compile`<br>[请求与用例](freeform-surfaces.md) | 提供控制网格、本地画布、材质和可选厚度。 | 返回结构 spec、可复用配方、细分误差上界和方块连通数据。<br>用 structure_preview 查看，或将 recipe 放入完整工作模型。 |
+
 ### 曲面纹样
 
 | 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
@@ -250,6 +257,8 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | vault_compile | 按共享拱曲面生成半格券顶、真实递进凹格及相连对角肋架；参数与源图绑定保留。 |
 | bay_compile | 由统一跨宽、跨深、起拱和拱高联动柱、连续拱套、墙窗、曲面凹格与多色齐平地砖。 |
 | compute_info | 检查CPU/CuPy CUDA后端，执行真实设备探测；不安装依赖、不修改模型。 |
+| surface_fit | 从带 UV 的三维样点和/或四条锁定边界拟合张量积 Bézier 曲面，返回控制网格与样点误差。 |
+| surface_compile | 将 Bézier 控制网格体素化成可预览和装配的曲面壳体，返回结构 spec、离散误差上界与方块连通数据。 |
 | field_compile | 在显式画布采样有界体场图；支持CSG、超椭球、gyroid及组合扭转/弯曲/渐缩/剪切/波浪/仿射，CPU/GPU返回纯候选。 |
 | pattern_warp | 对绑定纹样进行逆采样透视/旋涡/波浪/放射重复，保留RGBA配色、创建独立资产；不修改原图，变换后须重新拟合和检查拓扑。 |
 | facade_compile | 生成真实凹窗、窗台与层带的参数化立面候选，返回开口坐标，支持对象图和完整工作模型。 |

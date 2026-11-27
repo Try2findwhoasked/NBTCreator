@@ -163,6 +163,7 @@ export const suites = {
     python('-B', 'tests/engine/ornament-reference.py'),
     python('-B', 'tests/engine/fine-collision-envelopes.py'),
   ],
+  'freeform-surfaces': [python('-B', 'tests/engine/freeform-surfaces.py')],
   'generated-assets': [
     buildWeb,
     python('tests/engine/generated-assets.py'),

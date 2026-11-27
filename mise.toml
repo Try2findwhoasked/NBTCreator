@@ -185,6 +185,7 @@ run = [
   "node tests/run-suite.mjs curve-stencils",
   "node tests/run-suite.mjs curve-components",
   "node tests/run-suite.mjs curved-surface",
+  "node tests/run-suite.mjs freeform-surfaces",
   "node tests/run-suite.mjs pattern-repeat",
 ]
 

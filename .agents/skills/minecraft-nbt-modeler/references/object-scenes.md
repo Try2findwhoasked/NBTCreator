@@ -21,7 +21,7 @@
 
 graph 包含 schema_version=1、name、size 和 objects。每个对象有 id、recipe，并在 lo、attach 与 span 中选择一种定位。lo 是**旋转后局部画布的最小角，即局部零点**，不同于 structure_place 的锚点坐标；构件带留白时，真实占用边界会内缩，以编译结果 bounds 为准。完整模型的安装和安全续版见[统一工作模型](working-model.md)。
 
-recipe.tool 可选 `parametric_compile`、`pattern_compile`、`pattern_microfit`、`surface_decorate`、`tracery_compile`、`vault_compile`、`bay_compile`、`field_compile`、`span_beam` 或 `structure`；arguments 分别使用对应工具参数，structure 则接受已有结构 spec，span_beam 使用下文跨梁参数。surface_decorate 保留宿主配方和饰面安装参数，适合柱芯嵌纹、墙面与吊顶镶嵌，避免将拟合结果烘焙成失去纹样来源的纯结构。[联动跨间](architectural-bays.md)工具可作为单个对象保留内部柱拱墙顶和纹样配方，参数变化时一起重算。原参数 Schema、合法方块及工具限制继续生效。对象不支持用显式空气覆盖其他对象。
+recipe.tool 可选 `parametric_compile`、`pattern_compile`、`pattern_microfit`、`surface_decorate`、`tracery_compile`、`vault_compile`、`bay_compile`、`field_compile`、`surface_compile`、`span_beam` 或 `structure`；arguments 分别使用对应工具参数，structure 则接受已有结构 spec，span_beam 使用下文跨梁参数。surface_decorate 保留宿主配方和饰面安装参数，适合柱芯嵌纹、墙面与吊顶镶嵌，避免将拟合结果烘焙成失去纹样来源的纯结构。[联动跨间](architectural-bays.md)工具可作为单个对象保留内部柱拱墙顶和纹样配方，参数变化时一起重算。原参数 Schema、合法方块及工具限制继续生效。对象不支持用显式空气覆盖其他对象。
 
 ## 纹样资产与配方联动
 

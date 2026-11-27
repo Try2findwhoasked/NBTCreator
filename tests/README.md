@@ -39,6 +39,7 @@
 | 分区制作、受限会话、旧值补丁、原子合模 | `mise run test -- authoring-run`、`authoring-delegation`、`authoring-merge` |
 | 合成旅店和工业桥廊实图、桌面恢复和保存 | `mise run test -- authoring-review`、`authoring-workflow` |
 | 曲面实际宿主、分层叠放、纹样、背衬与候选回放 | `mise run test -- curved-surface` |
+| 自由曲面样点拟合、锁边、壳体体素化与 CLI 预览装配 | `mise run test -- freeform-surfaces` |
 | 曲面构件切片、来源绑定与离线回放 | `mise run test -- curve-components` |
 | 曲面 UV 模板、端部、方向与配方编译 | `mise run test -- curve-stencils` |
 | 偏心曲面代表样段、四个材质机位、保护拒绝及审阅绑定 | `mise exec -- python -B tests/engine/curved-surface-review.py` |
