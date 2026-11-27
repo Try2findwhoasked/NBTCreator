@@ -13,6 +13,7 @@
 | `windows-x64-portable.zip` | 首次使用，完整解压后运行 `NBTCreator.exe` |
 | `windows-x64-app-update.zip` | 更新已有应用，需保留兼容运行环境 |
 | `windows-x64-runtime.zip` | 与应用更新包解压到同一父目录，合并同名文件夹 |
+| `NBTCreator-Agent-<版本>-windows-x64.zip` | 在 Node.js 和 Python 环境中直接运行 MCP 服务 |
 
 便携包内置 mise 和 Chromium，Electron 提供 Node。使用环境中已有的 Python 和 Git，已验证 Python 3.14。在解压后的包目录执行以下命令，再启动应用：
 
@@ -24,6 +25,8 @@ python -m pip install -r resources/app/.agents/skills/minecraft-nbt-modeler/requ
 可用 `NBTCREATOR_PYTHON` 和 `NBTCREATOR_GIT` 指向特定可执行文件。更新时关闭应用并保留原创作工作区。由旧版迁移时，可把新完整包解压到新目录，使用原有创作工作区。
 
 便携包目录下可运行 `mise.cmd --version`。从实际创作项目根目录调用包内的 `NBT工具.cmd task --id <任务编号> --view compact`，可读取提示词或建筑修改任务。不知道编号时用 `NBT工具.cmd task-client list --pending`。该入口经内置 mise 启动共享 CLI，读取任务使用当前工作目录。
+
+独立 Agent 包内含实纹理 viewer、Playwright 和锁定的 Chromium。MCP 客户端用 Node.js 启动 `scripts/mcp/server.mjs`，传入明确的 `--workspace`。Windows 终端也可运行包里的 `NBTCreator-MCP.cmd`。依赖安装、权限、工具与产物契约见[本地 MCP 使用说明](docs/development/MCP.md)。
 
 ## 持续集成与测试包
 

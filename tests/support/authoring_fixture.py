@@ -1,5 +1,6 @@
 """Synthetic two-level inn and protocol calls used by authoring regressions."""
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -10,7 +11,7 @@ from uuid import uuid4
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
-ENGINE = ROOT / '.agents/skills/minecraft-nbt-modeler/scripts'
+ENGINE = Path(os.environ.get('NBTCREATOR_TEST_ENGINE_SCRIPTS') or ROOT / '.agents/skills/minecraft-nbt-modeler/scripts')
 sys.path.insert(0, str(ENGINE))
 
 from nbt_agent.machine import dispatch

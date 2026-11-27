@@ -31,6 +31,10 @@ run = "npm run sync:tools"
 description = "Build the Windows portable package or an unpacked directory"
 run = "npm run package:portable --"
 
+[tasks."package:agent"]
+description = "Build the independent Windows MCP Agent package"
+run = "node scripts/release/agent-build.mjs"
+
 [tasks."migrate:constraints"]
 description = "Plan, apply or verify an explicit constraint-room copy migration"
 run = "python -B tools/constraint-room-migration/migrate.py"
@@ -152,6 +156,7 @@ run = [
   "npm run verify:archive",
   "node tests/run-suite.mjs test-runner",
   "node tests/run-suite.mjs api",
+  "node tests/run-suite.mjs mcp",
   "python tests/engine/portable-contracts.py",
   "node tests/run-suite.mjs workspace",
   "node --test tests/node/prompt-creation.mjs tests/node/agent-handoff.test.mjs tests/node/internal-ai.test.cjs tests/node/component-move.mjs tests/node/updater.test.cjs tests/node/app-settings.test.cjs",

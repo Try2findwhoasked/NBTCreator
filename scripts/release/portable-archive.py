@@ -23,7 +23,7 @@ def pack(source,output,kind="full"):
         relative=file.relative_to(source).as_posix();valid_name(relative)
         # Runtime probes can create engine bytecode in a tested directory.
         # Omit this disposable cache without deleting or changing the input.
-        if relative.startswith('resources/app/.agents/skills/minecraft-nbt-modeler/') and '__pycache__' in PurePosixPath(relative).parts:continue
+        if '__pycache__' in PurePosixPath(relative).parts:continue
         is_runtime=not (relative.startswith('resources/app/') and not relative.startswith('resources/app/runtime/') or relative in {'portable-info.json','mise.cmd','NBT工具.cmd','Portable说明.txt'})
         if kind=='application' and is_runtime or kind=='runtime' and not is_runtime:continue
         parts=PurePosixPath(relative).parts
@@ -31,12 +31,16 @@ def pack(source,output,kind="full"):
             raise ValueError('Private/generated content in portable package: '+relative)
         files.append(dict(path=source.name+'/'+relative,bytes=file.stat().st_size,sha256=digest(file)))
     expected={f['path'] for f in files}
-    requirements={'full':['NBTCreator.exe','resources/app/runtime/browser/chrome.exe','resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md'],'application':['resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md'],'runtime':['NBTCreator.exe','resources/app/runtime/browser/chrome.exe']}
+    requirements={'full':['NBTCreator.exe','resources/app/runtime/browser/chrome.exe','resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md'],'application':['resources/app/.agents/skills/minecraft-nbt-modeler/SKILL.md'],'runtime':['NBTCreator.exe','resources/app/runtime/browser/chrome.exe'],
+                  'agent':['NBTCreator-MCP.cmd','scripts/mcp/server.mjs','runtime/browser/chrome.exe',
+                           '.agents/skills/minecraft-nbt-modeler/tool-catalog.json',
+                           '.agents/skills/minecraft-nbt-modeler/assets/viewer/web-dist/frontend-manifest.json',
+                           '.agents/skills/minecraft-nbt-modeler/assets/viewer/node_modules/playwright/package.json']}
     if kind in {'full','runtime'}:
         requirements[kind].extend(['resources/app/runtime/mise/mise.exe','resources/app/runtime/mise/LICENSE.txt'])
         if any(f['path'].startswith(source.name+'/resources/app/runtime/'+tool+'/') for f in files for tool in ('python','git')):
             raise ValueError('Portable runtime must use external Python and Git')
-    if kind in {'full','application'}:requirements[kind].append('mise.cmd')
+    if kind in {'full','application'}:requirements[kind].extend(['mise.cmd','resources/app/scripts/mcp/server.mjs'])
     for required in requirements[kind]:
         if source.name+'/'+required not in expected:raise ValueError('Missing portable dependency: '+required)
     output.parent.mkdir(parents=True,exist_ok=True)
@@ -62,7 +66,7 @@ def unpack(archive,destination):
     print(json.dumps(dict(passed=True,directory=str(destination/manifest['root']),files=len(expected))))
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('command',choices=['pack','unpack']);p.add_argument('--kind',choices=['full','application','runtime'],default='full');p.add_argument('--source',type=Path);p.add_argument('--output',type=Path,required=True)
+    p=argparse.ArgumentParser();p.add_argument('command',choices=['pack','unpack']);p.add_argument('--kind',choices=['full','application','runtime','agent'],default='full');p.add_argument('--source',type=Path);p.add_argument('--output',type=Path,required=True)
     a=p.parse_args()
     if a.command=='pack':pack(a.source,a.output,a.kind)
     else:unpack(a.source,a.output)

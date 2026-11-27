@@ -1,5 +1,18 @@
 const {contextBridge,ipcRenderer}=require('electron')
 contextBridge.exposeInMainWorld('nbtDesktop',Object.freeze({
+  mcp: Object.freeze({
+    status:()=>ipcRenderer.invoke('nbt:mcp-status'),
+    listTools:()=>ipcRenderer.invoke('nbt:mcp-list'),
+    callTool:input=>ipcRenderer.invoke('nbt:mcp-call',input),
+    cancel:requestId=>ipcRenderer.invoke('nbt:mcp-cancel',requestId),
+    readArtifact:uri=>ipcRenderer.invoke('nbt:mcp-artifact',uri),
+    onStatus:callback=>{
+      if(typeof callback!=='function')throw TypeError('MCP status listener must be a function')
+      const listener=(_event,status)=>callback(status)
+      ipcRenderer.on('nbt:mcp-status-event',listener)
+      return ()=>ipcRenderer.removeListener('nbt:mcp-status-event',listener)
+    }
+  }),
   internalAIConfig:()=>ipcRenderer.invoke('nbt:internal-ai-config'),
   internalAISave:input=>ipcRenderer.invoke('nbt:internal-ai-save',input),
   internalAIImport:()=>ipcRenderer.invoke('nbt:internal-ai-import'),

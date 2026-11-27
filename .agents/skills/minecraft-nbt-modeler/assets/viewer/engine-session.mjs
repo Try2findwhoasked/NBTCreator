@@ -51,6 +51,6 @@ export function createEngineSession({workspace,python='python',script=path.resol
    signal?.addEventListener('abort',task.abort,{once:true});queue.push(task);pump()
   })
  }
- async function close(){closed=true;clearTimeout(idleTimer);for(const task of queue.splice(0)){task.signal?.removeEventListener('abort',task.abort);task.reject(failure('建模会话已关闭','ENGINE_CLOSED'))}const child=stop();finish(failure('建模会话已关闭','ENGINE_CLOSED'));if(child&&child.exitCode===null&&child.signalCode===null)await new Promise(resolve=>child.once('close',resolve))}
+ async function close(){closed=true;clearTimeout(idleTimer);for(const task of queue.splice(0)){task.signal?.removeEventListener('abort',task.abort);task.reject(failure('建模会话已关闭','ENGINE_CLOSED'))}ref('ref');const child=stop();finish(failure('建模会话已关闭','ENGINE_CLOSED'));if(child&&child.exitCode===null&&child.signalCode===null)await new Promise(resolve=>child.once('close',resolve))}
  return {request,close,state:()=>({running:!!current,queued:queue.length,starts,closed})}
 }

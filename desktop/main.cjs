@@ -5,12 +5,13 @@ const {createRoomMigration}=require('./room-migration.cjs')
 const {createInternalAI}=require('./internal-ai.cjs')
 const {createApiService}=require('./api-service.cjs')
 const {createWorkspaceApi}=require('./workspace-api.cjs')
+const {createDesktopMcp,errorResponse:mcpErrorResponse}=require('./mcp-bridge.cjs')
 const {selectWorkspace,normalizeWorkspace}=require('./workspace.cjs')
 const path=require('node:path')
 const fs=require('node:fs/promises')
 const root=path.resolve(__dirname,'..')
 const automationMinimized=process.env.NBTCREATOR_AUTOMATION==='1'&&process.env.NBTCREATOR_AUTOMATION_VISIBLE!=='1'
-let window,worker,serverUrl,api,candidateValidator,closing=false,workspace,frontend
+let window,worker,serverUrl,api,mcp,closing=false,workspace,frontend
 async function flushEditor(){
  if(!window||window.isDestroyed()||window.webContents.isDestroyed())return
  let timer
@@ -27,7 +28,7 @@ function allowed(event){if(!window||event.sender!==window.webContents||event.sen
 async function recordConfig(){let value=path.relative(app.getPath('userData'),workspace);if(path.isAbsolute(value))value=workspace;await fs.writeFile(path.join(app.getPath('userData'),'settings.json'),JSON.stringify({workspace:value,path_base:'settings',workspace_source:'manual'},null,2))}
 const exposure=(command,...options)=>exposureProcess.run(workspace,command,options)
 async function startBackend(){
- return new Promise((resolve,reject)=>{
+ await new Promise((resolve,reject)=>{
   const instance=utilityProcess.fork(path.join(__dirname,'worker.mjs'),[],{cwd:root,stdio:'pipe'})
   worker=instance;let settled=false
   const timeout=setTimeout(()=>{instance.kill();reject(Error('Backend start timeout'))},30000)
@@ -39,11 +40,20 @@ async function startBackend(){
   instance.on('exit',code=>{clearTimeout(timeout);if(!settled)reject(Error('Backend exited: '+code));else if(!closing&&worker===instance)dialog.showErrorBox('NBTCreator','建模服务已退出，请重新启动应用。')})
   instance.postMessage({type:'start',workspace,python,frontendMode:arg('--frontend')||(app.isPackaged?'production':'auto'),output:path.join(workspace,'nbt_models/_workspaces/desktop')})
  })
+ const base=workspace
+ const connection=await createDesktopMcp({root,workspace:base,executable:process.execPath,version:app.getVersion(),
+  onDiagnostic:text=>process.stderr.write(text),onStatus:status=>{
+   if(mcp!==connection||closing||!window||window.isDestroyed()||!trustedDestination(window.webContents.getURL()))return
+   window.webContents.send('nbt:mcp-status-event',status)
+  }})
+ if(closing||workspace!==base){await connection.close();return}
+ mcp=connection
+ void connection.start().catch(error=>console.error('NBTCreator MCP:',error.message))
 }
 async function stopBackend(){
- await candidateValidator?.close()
- const active=worker;if(!active)return;worker=null
- await new Promise(resolve=>{const timer=setTimeout(()=>{active.kill();resolve()},5000);active.once('exit',()=>{clearTimeout(timer);resolve()});active.postMessage({type:'stop'})})
+ const connection=mcp;mcp=null
+ const active=worker;worker=null
+ await Promise.all([connection?.close(),active&&new Promise(resolve=>{const timer=setTimeout(()=>{active.kill();resolve()},5000);active.once('exit',()=>{clearTimeout(timer);resolve()});active.postMessage({type:'stop'})})])
 }
 function trustedDestination(url){try{return serverUrl&&new URL(url).origin===new URL(serverUrl).origin}catch{return false}}
 async function boot(){
@@ -56,9 +66,32 @@ async function boot(){
  const preferences=createAppSettings(()=>path.join(workspace,'.nbtcreator')),updater=createUpdater({directory:app.getPath('userData'),version:app.getVersion(),safeStorage,fetchImpl:(...args)=>net.fetch(...args)})
  const migration=createRoomMigration({root,python,dataDirectory:app.getPath('userData'),download:updater.migrationTool})
  let initialPreferences
- const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler'),retrieve:async input=>{const response=await net.fetch(new URL('/__detail__/retrieve/read',serverUrl).href,{method:'POST',headers:{'content-type':'application/json',origin:new URL(serverUrl).origin},body:JSON.stringify(input),redirect:'error'});const data=await response.json();if(!response.ok)throw Error(data.error||'参考集合无法读取');return data}})
- const workspaceApi=createWorkspaceApi({cancel:()=>{api?.cancel();exposureProcess.cancel()}})
- api=createApiService({briefModel:()=>workspaceApi.guardContext(async()=>{const settings=await preferences.load();return settings.creationMode==='maximum'?settings.qualityModel:settings.economyModel}),captureWorkflowContext:(key,request)=>workspaceApi.guardContext(()=>internalAI.capture(key,request)),workflowContext:(key,{snapshot,...request})=>workspaceApi.guardContext(()=>internalAI.context(key,request,snapshot)),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args),validateCandidate:(candidateValidator=require('./ai-candidate-validator.cjs').createCandidateValidator({root,python,directory:app.getPath('userData'),getWorkspace:()=>workspace}))})
+ const internalAI=createInternalAI({workspace:()=>workspace,skill:path.join(root,'.agents/skills/minecraft-nbt-modeler'),retrieve:async input=>{
+  const response=await mcp.call('retrieve.read',{request:input})
+  if(!response.ok)throw Error(response.error.message)
+  return response.data
+ }})
+ const workspaceApi=createWorkspaceApi({cancel:()=>{api?.cancel();exposureProcess.cancel();mcp?.cancelAll()}})
+ const validateCandidate=require('./ai-candidate-validator.cjs').createCandidateValidator({call:async(input,signal)=>{
+  const response=await mcp.call('candidate.validate',input,{signal})
+  return response.ok?{ok:true,result:response.data}:{ok:false,code:response.error.code,error:response.error.message,issue:response.error.details?.issue}
+ }})
+ api=createApiService({briefModel:()=>workspaceApi.guardContext(async()=>{const settings=await preferences.load();return settings.creationMode==='maximum'?settings.qualityModel:settings.economyModel}),captureWorkflowContext:(key,request)=>workspaceApi.guardContext(()=>internalAI.capture(key,request)),workflowContext:(key,{snapshot,...request})=>workspaceApi.guardContext(()=>internalAI.context(key,request,snapshot)),directory:app.getPath('userData'),safeStorage,fetchImpl:(...args)=>net.fetch(...args),validateCandidate})
+ for(const [channel,handler] of Object.entries({
+  'mcp-status':connection=>connection.status(),
+  'mcp-list':connection=>connection.names(),
+  'mcp-call':(connection,input)=>connection.rendererCall(input),
+  'mcp-artifact':(connection,input)=>connection.readArtifact(input),
+  'mcp-cancel':(connection,input)=>connection.cancel(input)
+ }))ipcMain.handle('nbt:'+channel,async(event,input)=>{
+  allowed(event)
+  try{
+   if(!mcp)throw Object.assign(Error('MCP 工作区会话尚未启动'),{code:'SERVICE_UNAVAILABLE'})
+   const connection=mcp
+   if(channel==='mcp-status'||channel==='mcp-cancel')return handler(connection,input)
+   return await workspaceApi.run(()=>handler(connection,input))
+  }catch(error){return mcpErrorResponse(error)}
+ })
  await api.load()
  for(const [channel,handler]of Object.entries({'api-config':()=>api.publicConfig(),'api-save':input=>api.save(input),'api-models':()=>api.models(),'api-cancel':input=>api.cancel(input?.requestId)}))ipcMain.handle('nbt:'+channel,(event,input)=>{allowed(event);return workspaceApi.run(()=>handler(input))})
  // Electron serializes thrown errors without custom fields. Return a bounded
@@ -214,6 +247,6 @@ async function boot(){
  })
  await window.loadURL(serverUrl);window.webContents.setZoomFactor(initialPreferences.zoom/100);window.setTitle('NBTCreator · NBT 建筑工作台');if(automationMinimized)window.minimize();else window.show()
 }
-app.on('before-quit',event=>{if(!closing){event.preventDefault();closing=true;api?.cancel();exposureProcess.cancel();flushEditor().finally(()=>stopBackend()).finally(()=>app.quit())}})
+app.on('before-quit',event=>{if(!closing){event.preventDefault();closing=true;api?.cancel();exposureProcess.cancel();mcp?.cancelAll();flushEditor().finally(()=>stopBackend()).finally(()=>app.quit())}})
 app.on('window-all-closed',()=>app.quit())
 app.whenReady().then(boot).catch(error=>{console.error(error.stack||error.message);if(!process.env.NBTCREATOR_AUTOMATION)dialog.showErrorBox('NBTCreator 启动失败',error.stack||error.message);app.quit()})

@@ -3,6 +3,8 @@ const python = (...args) => ['python', ...args]
 const buildWeb = node('scripts/build-web.mjs')
 
 export const suites = {
+  'mcp': [buildWeb, node('--test', 'tests/node/mcp.test.mjs')],
+  'mcp-desktop': [buildWeb, node('tests/desktop/mcp-desktop.mjs')],
   'agent-protocol': [python('-B', 'tests/engine/agent-protocol.py')],
   'authoring-run': [python('-B', 'tests/engine/authoring-run.py')],
   'authoring-delegation': [python('-B', 'tests/engine/authoring-delegation.py')],

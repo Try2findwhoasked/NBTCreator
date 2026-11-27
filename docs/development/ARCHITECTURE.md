@@ -1,5 +1,7 @@
 # NBTCreator 架构与文件结构
 
+本地 MCP、桌面 preload 接口及独立 Agent 安装见[本地 MCP 与桌面进程](MCP.md)。
+
 当前包版本见 [package.json](../../package.json)。桌面和外部 Agent 共用 Minecraft Java 1.20.1 建模引擎，通过项目文件衔接。
 
 ## 运行架构

@@ -4,6 +4,7 @@ import path from 'node:path'
 import {execFileSync} from 'node:child_process'
 import {createRequire} from 'node:module'
 import {root,skill,python} from '../paths.mjs'
+import {copyPinnedChromium} from './chromium.mjs'
 if(process.platform!=='win32'||process.arch!=='x64')throw Error('Build portable on Windows x64')
 const index=process.argv.indexOf('--out'),out=path.resolve(root,index<0?'dist/portable':process.argv[index+1])
 const directoryOnly=process.argv.includes('--directory-only')
@@ -15,11 +16,8 @@ const require=createRequire(path.join(skill,'assets/viewer/package.json'))
 if(!appOnly){
 execFileSync(python,[path.join(root,'scripts/release/vendor-mise.py'),'--destination',path.join(appRoot,'runtime/mise'),'--cache',path.join(root,'build/downloads')],{stdio:'inherit',windowsHide:true})
 
-const cli=path.join(path.dirname(require.resolve('playwright/package.json')),'cli.js')
 const env={...process.env,PLAYWRIGHT_BROWSERS_PATH:path.join(root,'build/portable-browser')}
-execFileSync(process.execPath,[cli,'install','chromium','--no-shell'],{env,stdio:'inherit'})
-const browser=execFileSync(process.execPath,['-e',"console.log(require(process.argv[1]).chromium.executablePath())",require.resolve('playwright')],{env,encoding:'utf8'}).trim()
-await fs.cp(path.dirname(browser),path.join(appRoot,'runtime/browser'),{recursive:true,errorOnExist:true,force:false})
+await copyPinnedChromium(path.join(appRoot,'runtime/browser'),env)
 }
 const lock=JSON.parse(await fs.readFile(path.join(root,'config/portable-runtime.json'),'utf8'))
 const runtimeId=createHash('sha256').update(JSON.stringify({lock,electron:JSON.parse(await fs.readFile(path.join(root,'package.json'),'utf8')).devDependencies.electron,playwright:JSON.parse(await fs.readFile(require.resolve('playwright/package.json'),'utf8')).version})).digest('hex').slice(0,16)
@@ -42,4 +40,7 @@ const tool=await fs.readFile(path.join(root,'tools/constraint-room-migration/mig
 const toolName=`NBTCreator-${version}-constraint-room-migration.py`
 await fs.writeFile(path.join(out,toolName),tool)
 await fs.writeFile(path.join(out,toolName+'.sha256'),createHash('sha256').update(tool).digest('hex')+'  '+toolName+'\n')
+if(!appOnly)execFileSync(process.execPath,[path.join(root,'scripts/release/agent-build.mjs'),'--prebuilt','--out',out],{
+  env:{...process.env,PLAYWRIGHT_BROWSERS_PATH:path.join(root,'build/portable-browser')},stdio:'inherit',windowsHide:true
+})
 }
