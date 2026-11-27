@@ -17,6 +17,100 @@ class Contracts(unittest.TestCase):
   self.source=self.w/'nbt_models/single/契约测试/v01/master/model.snbt';self.source.parent.mkdir(parents=True);m=Volume((8,6,8));m.box((0,0,0),(7,0,7),'stone_bricks');save_master(self.source,m,set())
  def request(self,**params):return dict(request_id=uuid.uuid4().hex,**params)
  def create(self):return dispatch(self.w,'create',self.request(source=str(self.source),source_sha256=hashlib.sha256(self.source.read_bytes()).hexdigest(),name='合成任务'))
+ def model_call(self,method,params,request_id=None):
+  return machine(self.w,dict(protocol_version=1,method='model.'+method,params=params,
+                            **({'request_id':request_id} if request_id else {})))
+
+ def test_model_candidate_commit_replay_and_parent_conflict(self):
+  new=dict(kind='component',size=[8,6,8])
+  first=self.model_call('candidate',dict(model=new))['data']
+  self.assertEqual(first['diff']['changed_positions'],0)
+  self.assertEqual(list(self.w.glob('nbt_models/standalone/*')),[])
+  args=dict(model=new,candidate_sha256=first['candidate_sha256'],save=dict(name_zh='机器首版'))
+  self.assertEqual(self.model_call('commit',dict(args,candidate_sha256='0'*64),uuid.uuid4().hex)['error']['code'],'STALE_CANDIDATE')
+  key=uuid.uuid4().hex
+  saved=self.model_call('commit',args,key)
+  self.assertTrue(saved['ok'],saved)
+  self.assertEqual(self.model_call('commit',args,key),saved)
+  self.assertEqual(self.model_call('commit',dict(args,save=dict(name_zh='另名')),key)['error']['code'],'IDEMPOTENCY_CONFLICT')
+  source={k:saved['data'][k] for k in ('source','source_sha256')}
+  self.assertEqual(self.model_call('inspect',dict(model=source))['data']['source']['revision'],saved['data']['revision'])
+  base=dict(source,positions=[[1,1,1]])
+  requests=[dict(base,actions=[dict(method='patch',changes=[dict(pos=[1,1,1],before=['minecraft:air',False],
+                   after=[block,False])])]) for block in ('minecraft:stone','minecraft:granite')]
+  proposals=[]
+  for request in requests:
+   response=self.model_call('candidate',dict(model=request))
+   self.assertTrue(response['ok'],response)
+   self.assertEqual(response['data']['diff']['changed_positions'],1)
+   proposals.append(dict(model=request,candidate_sha256=response['data']['candidate_sha256'],save={}))
+  self.assertTrue(self.model_call('commit',proposals[0],uuid.uuid4().hex)['ok'])
+  self.assertEqual(self.model_call('commit',proposals[1],uuid.uuid4().hex)['error']['code'],'STALE_PARENT')
+  self.assertFalse(saved['data']['nbt_exported'])
+  self.assertFalse(saved['data']['approval_created'])
+
+ def test_model_preview_binds_materialized_source_and_rechecks_the_parent(self):
+  model=dict(source=str(self.source),source_sha256=hashlib.sha256(self.source.read_bytes()).hexdigest(),
+             kind='component',actions=[dict(method='patch',changes=[dict(pos=[1,1,1],
+             before=['minecraft:air',False],after=['minecraft:stone',True])])])
+  proposed=self.model_call('candidate',dict(model=model))['data']
+  candidate=proposed['candidate_sha256']
+  cameras=[dict(id='overview',eye=[10,7,10],target=[2,1,2])]
+  request=dict(model=model,candidate_sha256=candidate,cameras=cameras)
+  key=uuid.uuid4().hex
+  preview=self.model_call('preview',request,key)
+  self.assertTrue(preview['ok'],preview)
+  self.assertEqual(self.model_call('preview',request,key),preview)
+  value=preview['data']
+  self.assertEqual(value['model_sha256'],proposed['model']['model_sha256'])
+  for field in ('source','snapshot','cameras'):
+   self.assertEqual(hashlib.sha256((self.w/value[field]).read_bytes()).hexdigest(),value[field+'_sha256'])
+  snapshot=json.loads((self.w/value['snapshot']).read_bytes())
+  self.assertEqual(Path(snapshot['source']),self.w.resolve()/value['source'])
+  self.assertEqual(snapshot['wall_positions'],[[1,1,1]])
+  self.assertEqual(value['visual_review'],'pending')
+  self.assertEqual(list(self.source.parents[2].glob('v_model_*')),[])
+  self.assertFalse(value['approval_created'])
+  camera_file=self.w/value['cameras']
+  camera_file.write_bytes(camera_file.read_bytes()+b' ')
+  self.assertEqual(self.model_call('preview',request,key)['error']['code'],'RECEIPT_CHANGED')
+  commit=self.model_call('commit',dict(model=model,candidate_sha256=candidate,save=dict(name_zh='机器预览')),uuid.uuid4().hex)
+  self.assertTrue(commit['ok'],commit)
+  self.assertEqual(self.model_call('preview',request,uuid.uuid4().hex)['error']['code'],'STALE_PARENT')
+
+ def test_model_commit_recovers_published_target_before_receipt_without_recompiling(self):
+  new=dict(kind='component',size=[8,6,8])
+  candidate=self.model_call('candidate',dict(model=new))['data']['candidate_sha256']
+  args=dict(model=new,candidate_sha256=candidate,save=dict(name_zh='机器恢复'))
+  key=uuid.uuid4().hex
+  with patch('nbt_agent.model_actions.protocol.receipt',side_effect=OSError('lost after publish')):
+   self.assertEqual(self.model_call('commit',args,key)['error']['code'],'IO_ERROR')
+  building=self.w/'nbt_models/standalone/机器恢复'
+  original,=building.glob('v_model_*')
+  with patch('nbt_agent.model_actions.prepare',side_effect=AssertionError('recompiled published candidate')):
+   recovered=self.model_call('commit',args,key)
+  self.assertTrue(recovered['ok'],recovered)
+  self.assertEqual(self.w/recovered['data']['output'],original)
+  self.assertEqual(self.model_call('commit',args,key),recovered)
+
+ def test_model_commit_recovers_renamed_target_and_repairs_history(self):
+  new=dict(kind='component',size=[8,6,8])
+  candidate=self.model_call('candidate',dict(model=new))['data']['candidate_sha256']
+  args=dict(model=new,candidate_sha256=candidate,save=dict(name_zh='机器补登'))
+  key=uuid.uuid4().hex
+  with patch('nbt_project.model_versions._write_head',side_effect=OSError('lost after rename')):
+   self.assertEqual(self.model_call('commit',args,key)['error']['code'],'IO_ERROR')
+  building=self.w/'nbt_models/standalone/机器补登'
+  original,=building.glob('v_model_*')
+  with patch('nbt_project.history.record_produced_version',return_value={'recorded':False,'error':'git offline'}):
+   pending=self.model_call('commit',args,key)
+  self.assertTrue(pending['data']['history_pending'],pending)
+  complete=self.model_call('commit',args,key)
+  self.assertTrue(complete['ok'],complete)
+  self.assertFalse(complete['data']['history_pending'],complete)
+  self.assertEqual(self.w/complete['data']['output'],original)
+  self.assertEqual(self.model_call('commit',args,key),complete)
+
  def test_client_first_read_guides_both_tasks_without_expanding_payloads(self):
   task=self.create();identifier=task['id'];compact=inspect(self.w,'tasks',identifier)
   self.assertEqual(compact['stage'],'modification');self.assertIs(compact['source_matches'],True)
@@ -446,7 +540,7 @@ class Contracts(unittest.TestCase):
 import sys
 from pathlib import Path
 sys.path.insert(0,sys.argv[1])
-import nbt_composition.working_model as model
+import nbt_project.model_versions as model
 import nbt_agent.tasks as tasks
 workspace,source,building=map(Path,sys.argv[2:5])
 original=model.publication_lock

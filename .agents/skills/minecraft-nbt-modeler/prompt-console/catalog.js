@@ -26527,6 +26527,51 @@ globalThis.NbtToolCatalog = {
       ]
     },
     "methods": {
+      "model.inspect": {
+        "fields": {
+          "model": "object"
+        },
+        "required": [
+          "model"
+        ],
+        "mutation": false
+      },
+      "model.candidate": {
+        "fields": {
+          "model": "object"
+        },
+        "required": [
+          "model"
+        ],
+        "mutation": false
+      },
+      "model.preview": {
+        "fields": {
+          "model": "object",
+          "candidate_sha256": "string",
+          "cameras": "array"
+        },
+        "required": [
+          "model",
+          "candidate_sha256",
+          "cameras"
+        ],
+        "mutation": true
+      },
+      "model.commit": {
+        "fields": {
+          "model": "object",
+          "candidate_sha256": "string",
+          "save": "object",
+          "task_session": "string"
+        },
+        "required": [
+          "model",
+          "candidate_sha256",
+          "save"
+        ],
+        "mutation": true
+      },
       "authoring.create": {
         "fields": {
           "batch_id": "string",

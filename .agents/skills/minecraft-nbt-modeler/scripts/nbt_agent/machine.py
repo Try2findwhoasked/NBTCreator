@@ -31,7 +31,10 @@ def dispatch(workspace,request,*,session=None):
         args=dict(params)
         if definition['mutation']:args['request_id']=request_id
         namespace,action=method.split('.',1)
-        if namespace=='tasks':
+        if namespace=='model':
+            from nbt_agent import model_actions
+            result=model_actions.dispatch(workspace,action,args)
+        elif namespace=='tasks':
             import nbt_agent.tasks as nbt_agent_tasks
             result=nbt_agent_tasks.dispatch(workspace,action,args)
         elif namespace=='prompts':

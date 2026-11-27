@@ -438,6 +438,37 @@ class LargeAssembly(unittest.TestCase):
         self.assertIn('fixture',restored.instances)
         self.assertEqual(restored.model.get((298,296,298)),'minecraft:gold_block')
 
+    def test_machine_preview_and_commit_share_a_global_assembly_candidate(self):
+        from nbt_agent.machine import dispatch
+
+        model = AssemblyVolume((300, 384, 300))
+        pos = (299, 295, 299)
+        model.put(pos, 'stone')
+        layout = [dict(offset=[294,294,294],size=[6,90,6])]
+        base = save_assembly(self.root/'nbt_models/standalone/machine/v01/master', model, {pos}, layout)
+        request = {key:base[key] for key in ('source','source_sha256')}
+        request['actions'] = [dict(method='patch',changes=[dict(pos=list(pos),before=['minecraft:stone',True],
+                                                               after=['minecraft:gold_block',False])])]
+
+        def call(method, **params):
+            result = dispatch(self.root, dict(protocol_version=1, method='model.'+method,
+                request_id='assembly-machine-'+method, params=dict(model=request, **params)))
+            self.assertTrue(result['ok'], result)
+            return result['data']
+
+        candidate = call('candidate')
+        token = candidate['candidate_sha256']
+        preview = call('preview', candidate_sha256=token,
+                       cameras=[dict(id='test',eye=[308,303,285],target=list(pos))])
+        saved = call('commit', candidate_sha256=token, save=dict(name_zh='跨分区机器候选'))
+        self.assertEqual(candidate['model']['model_sha256'], preview['model_sha256'])
+        self.assertEqual(preview['source_kind'], 'assembly')
+        for result in (preview, saved):
+            master, walls = read_assembly(self.root/result['source'])
+            self.assertEqual(master.get(pos), 'minecraft:gold_block')
+            self.assertNotIn(pos, walls)
+        self.assertEqual(read_assembly(base['source'])[0].get(pos), 'minecraft:stone')
+
     def test_routes_cross_a_partition_and_blocked_candidate_is_rejected(self):
         from nbt_collision import check_routes
         from nbt_composition.working_model import WorkingModel, ModelConflict

@@ -68,7 +68,7 @@ def registered_building(workspace,record):
     return root
 
 def return_parent(workspace,source,target):
-    from nbt_composition.working_model import managed_manifest
+    from nbt_project.model_versions import managed_manifest
     source_paths,target_paths=project_paths(source),project_paths(target)
     if target_paths['version']==source_paths['version'] or target_paths['workdir']!=source_paths['workdir']:
         protocol.error('RETURN_LINEAGE_MISMATCH','回传制作版必须是同一建筑的新派生版本')
@@ -94,7 +94,7 @@ def verify_source(workspace,data):
     return source
 
 def check_publication_owner(workspace,index,task,target,request):
-    from nbt_composition.working_model import managed_manifest
+    from nbt_project.model_versions import managed_manifest
     manifest=managed_manifest(target)
     expected=dict(task_id=task['id'],fence=request.get('fence'),source_sha256=task['source_sha256'])
     if manifest:
@@ -152,12 +152,12 @@ def repair_return_history(workspace,identifier,return_id):
         return record_return_history(workspace,data,entry)
 
 def task_building_lock(workspace,index,identifier):
-    from nbt_composition.working_model import publication_lock
+    from nbt_project.model_versions import publication_lock
     return publication_lock(workspace,registered_building(workspace,index_entry(index,identifier)))
 
 @contextmanager
 def publication(workspace,building,source,session,actor):
-    from nbt_composition.working_model import publication_lock
+    from nbt_project.model_versions import publication_lock
     workspace,building=Path(workspace).resolve(),Path(building).resolve()
 
     if session is None and source is None:
@@ -278,7 +278,8 @@ def discover(workspace,data):
 def candidate_evidence(workspace,index,data,request):
     from nbt_building.plan import fingerprint,normalize
     from nbt_project.prompts import completion_evidence
-    from nbt_composition.working_model import managed_manifest,WorkingModel
+    from nbt_project.model_versions import managed_manifest
+    from nbt_composition.working_model import WorkingModel
 
     old=task_for(workspace,index,request['from_task'])
     target=inside(workspace,request['new_source'])

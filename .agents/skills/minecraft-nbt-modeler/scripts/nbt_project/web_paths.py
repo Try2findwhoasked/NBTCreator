@@ -63,22 +63,32 @@ def project_paths(source):
     if match:return dict(workdir=parent.parent,version=parent,prefix=match[1],width=len(match[2]))
     if parent.name=='refined':return dict(workdir=parent.parent,version=parent,prefix='refined_v',width=1)
     return dict(workdir=parent,version=parent,prefix=None,width=2)
-def reserve_version(source,workdir=None):
+def reserve_version(source,workdir=None,*,stage=None):
     info=project_paths(source);root=Path(workdir).resolve() if workdir else info['workdir']
     skill=Path(__file__).resolve().parents[2]
     if root==skill or skill in root.parents or root==Path(root.anchor):raise ValueError('请选择实际建筑工作文件夹')
     root.mkdir(parents=True,exist_ok=True)
+
+    def allocate(target):
+        if stage is None:
+            target.mkdir()
+        else:
+            if target.exists():
+                raise FileExistsError(target)
+            stage.rename(target)
+        return root,target
+
     if info['prefix']:
         prefix=info['prefix'];numbers=[int(m.group(1)) for p in root.iterdir() if (m:=re.fullmatch(re.escape(prefix)+r'(\d+)',p.name))]
         number=max(numbers,default=0)+1
         while True:
             target=root/(prefix+str(number).zfill(info['width']))
-            try:target.mkdir();return root,target
+            try:return allocate(target)
             except FileExistsError:number+=1
     base=root/'versions';base.mkdir(exist_ok=True)
     stamp=datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d_%H%M%S_web_edit')
     number=1
     while True:
         target=base/(stamp if number==1 else stamp+'_'+str(number))
-        try:target.mkdir();return root,target
+        try:return allocate(target)
         except FileExistsError:number+=1

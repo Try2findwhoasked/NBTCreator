@@ -275,7 +275,7 @@ class WorkingModels(unittest.TestCase):
 
     def test_failure_before_publication_exposes_no_partial_version(self):
         m = self.new(kind='component')
-        with patch('nbt_composition.working_model.os.rename', side_effect=OSError('synthetic rename failure')):
+        with patch('nbt_project.model_versions.os.rename', side_effect=OSError('synthetic rename failure')):
             with self.assertRaises(OSError):
                 m.save_draft('发布失败')
         self.assertFalse(list((self.root / 'nbt_models').rglob('*.snbt')))
@@ -894,6 +894,23 @@ class WorkingModels(unittest.TestCase):
             history.current(a['history']['version']['id'])
         self.assertEqual(history.state()[1],before)
         self.assertEqual(m._read_head(m._building)['revision'],b['revision'])
+
+    def test_failed_history_restore_never_exposes_a_version_directory(self):
+        from nbt_project.history import History
+        from unittest.mock import patch
+
+        original = self.new(kind='component').save_draft('中断恢复')
+        history = History(self.root)
+        before = history.state()[1]
+        building = Path(original['output']).parent
+        folders = set(building.iterdir())
+        with patch('nbt_project.history.history_source', side_effect=ValueError('restore roundtrip failed')):
+            with self.assertRaisesRegex(ValueError, 'restore roundtrip failed'):
+                history.derive(original['history']['version']['id'])
+        self.assertEqual(history.state()[1], before)
+        self.assertEqual(set(building.iterdir()), folders)
+        restored = history.derive(original['history']['version']['id'])
+        self.assertNotEqual(restored['source'], original['source'])
 
     def test_desktop_and_cli_from_the_same_parent_have_one_winner(self):
         from concurrent.futures import ThreadPoolExecutor

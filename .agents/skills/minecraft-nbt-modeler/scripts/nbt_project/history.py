@@ -3,6 +3,7 @@ import argparse,copy,hashlib,json,os,re,shutil,subprocess,time,uuid
 from contextlib import contextmanager
 from datetime import datetime,timezone
 from pathlib import Path,PurePosixPath
+from tempfile import TemporaryDirectory
 from nbt_project.web_paths import project_paths,reserve_version
 
 ENGINE=Path(__file__).resolve().parents[2]
@@ -185,7 +186,7 @@ class History:
             building=parent_node['building']
         if previous:
             if parent and parent!=previous.get('parent'):
-                from nbt_composition.working_model import managed_manifest
+                from nbt_project.model_versions import managed_manifest
                 manifest = managed_manifest(source)
                 repair = (previous.get('parent') is None and manifest
                     and manifest.get('parent_source')
@@ -261,7 +262,7 @@ class History:
         return {k:node.get(k) for k in ['id','building','source','version','source_sha256','geometry_sha256','size','parent','actor','message','tasks','comments','created_at','updated_at','acceptance','release']}|dict(absolute_source=str(source),format='assembly' if node.get('source_kind')=='assembly' else source.suffix.lower().lstrip('.'),file_count=len(node['files']),bytes=sum(item['bytes'] for item in node['files'].values()),source_exists=exists,source_matches=matches)
     def snapshot_chain(self, state, source, expected=None):
         """Fill managed ancestors in parent order, including interrupted records."""
-        from nbt_composition.working_model import managed_manifest
+        from nbt_project.model_versions import managed_manifest
         pending, seen = [], set()
         parent = None
         while source:
@@ -295,12 +296,12 @@ class History:
 
     def record(self,request):
         if 'set_current' in request and type(request['set_current']) is not bool:raise ValueError('当前工作版选项须为布尔值')
-        from nbt_composition.working_model import publication_lock, publish_head
+        from nbt_project.model_versions import publication_lock, publish_head
         building = project_paths(model_file(self.workspace, request['source']))['workdir']
         with publication_lock(self.workspace, building), self.lock():
             state,head=self.state();before=encode(state)
             # A managed draft carries its original parent even on a later retry.
-            from nbt_composition.working_model import managed_manifest
+            from nbt_project.model_versions import managed_manifest
             manifest = managed_manifest(model_file(self.workspace, request['source']))
             parent_source = manifest.get('parent_source') if manifest else request.get('parent_source')
             if parent_source:
@@ -347,7 +348,7 @@ class History:
         except UnicodeError:raise ValueError('历史文件不是 UTF-8 文本：'+name) from None
         return dict(id=identifier,name=name,sha256=item['sha256'],text=content)
     def current(self,identifier):
-        from nbt_composition.working_model import publication_lock, publish_head, managed_manifest
+        from nbt_project.model_versions import publication_lock, publish_head, managed_manifest
         initial,_=self.state();selected=self.lookup(initial,identifier)
         with publication_lock(self.workspace,project_paths(model_file(self.workspace,selected['source']))['workdir']), self.lock():
             state,head=self.state();node=self.lookup(state,identifier);summary=self.summary(node)
@@ -358,8 +359,50 @@ class History:
             commit=head if unchanged else self.commit(state,head,'设为当前工作版：'+node['version'])
             publish_head(self.workspace,model_file(self.workspace,node['source']))
             return dict(current=identifier,commit=commit,unchanged=unchanged)
+    def restore_archive(self, node, target):
+        from nbt_project.model_versions import digest as model_digest, managed_manifest, write_json
+
+        for name,item in node['files'].items():
+            if PurePosixPath(name).parts[0] in {'修改意见','Agent交接','提示词方案'} or name=='conversion.json':continue
+            output=owned(target,target/safe_name(name));output.parent.mkdir(parents=True,exist_ok=True)
+            with output.open('xb') as stream:stream.write(self.object_file(item['sha256']).read_bytes())
+        derived=target/safe_name(node['source_file'])
+        model,walls=history_source(derived)
+        if model.fingerprint()!=node['geometry_sha256']:raise ValueError('恢复的主模型回读不一致')
+        if derived.suffix.lower()!='.snbt' and node.get('source_kind')!='assembly':
+            from nbt_snbt import save_snbt
+            derived=target/'master/model.snbt';save_snbt(derived,model,walls)
+        manifest_file=target/'model-version.json'
+        if manifest_file.is_file():
+            manifest=json.loads(manifest_file.read_text(encoding='utf8'))
+            manifest.pop('revision')
+            manifest.pop('agent_publication', None)
+            manifest.update(parent_source=node['source'],
+                parent_source_sha256=node['source_sha256'],actor='human')
+            original=json.loads(self.object_file(node['files']['model-version.json']['sha256']).read_text(encoding='utf8'))
+            manifest['parent_revision']=original['revision']
+            write_json(target/'changes.json',dict(changes=[]))
+            manifest['files']['changes.json']=file_hash(target/'changes.json')
+            manifest['revision']=model_digest(manifest)
+            write_json(manifest_file,manifest)
+        description=target/'room_description.json'
+        if description.is_file():
+            from nbt_library import register_building
+            meta=json.loads(description.read_text(encoding='utf8'))
+            if manifest_file.is_file():
+                meta['model_revision']=manifest['revision']
+                write_json(description,meta)
+            mode=meta.get('mode')
+            if mode not in {'standalone','saodg'} and (target/'coordinates.json').is_file():
+                from nbt_library import canonical_context
+                mode=canonical_context(target/'coordinates.json').get('mode')
+            if meta.get('name_zh'):
+                register_building(derived,meta['name_zh'],meta.get('cells'),mode=mode if mode in {'standalone','saodg'} else None,cell_size=meta.get('cell_size',48))
+        managed_manifest(derived)
+        return derived.relative_to(target)
+
     def derive(self,identifier,message='从历史版本继续编辑'):
-        from nbt_composition.working_model import publication_lock, publish_head, digest as model_digest, write_json
+        from nbt_project.model_versions import publication_lock, publish_head
         initial,_=self.state();selected=self.lookup(initial,identifier)
         with publication_lock(self.workspace,project_paths(model_file(self.workspace,selected['source']))['workdir']), self.lock():
             state,head=self.state();node=self.lookup(state,identifier)
@@ -367,44 +410,15 @@ class History:
             for name,item in [*node['files'].items(),*node.get('context',{}).items()]:
                 safe_name(name);file=self.object_file(item['sha256'])
                 if not file.is_file() or file.stat().st_size!=item['bytes'] or file_hash(file)!=item['sha256']:raise ValueError('历史归档缺失或已变化：'+name)
-            source=model_file(self.workspace,node['source']);_,target=reserve_version(source)
-            for name,item in node['files'].items():
-                if PurePosixPath(name).parts[0] in {'修改意见','Agent交接','提示词方案'} or name=='conversion.json':continue
-                output=owned(target,target/safe_name(name));output.parent.mkdir(parents=True,exist_ok=True)
-                with output.open('xb') as stream:stream.write(self.object_file(item['sha256']).read_bytes())
-            derived=target/safe_name(node['source_file'])
-            model,walls=history_source(derived)
-            if model.fingerprint()!=node['geometry_sha256']:raise ValueError('恢复的主模型回读不一致')
-            if derived.suffix.lower()!='.snbt' and node.get('source_kind')!='assembly':
-                from nbt_snbt import save_snbt
-                derived=target/'master/model.snbt';save_snbt(derived,model,walls)
-            manifest_file=target/'model-version.json'
-            if manifest_file.is_file():
-                manifest=json.loads(manifest_file.read_text(encoding='utf8'))
-                manifest.pop('revision')
-                manifest.update(parent_source=node['source'],
-                    parent_source_sha256=node['source_sha256'],actor='human')
-                original=json.loads(self.object_file(node['files']['model-version.json']['sha256']).read_text(encoding='utf8'))
-                manifest['parent_revision']=original['revision']
-                write_json(target/'changes.json',dict(changes=[]))
-                manifest['files']['changes.json']=file_hash(target/'changes.json')
-                manifest['revision']=model_digest(manifest)
-                write_json(manifest_file,manifest)
-            description=target/'room_description.json'
-            if description.is_file():
-                from nbt_library import register_building
-                meta=json.loads(description.read_text(encoding='utf8'))
-                if manifest_file.is_file():
-                    meta['model_revision']=manifest['revision']
-                    write_json(description,meta)
-                mode=meta.get('mode')
-                if mode not in {'standalone','saodg'} and (target/'coordinates.json').is_file():
-                    from nbt_library import canonical_context
-                    mode=canonical_context(target/'coordinates.json').get('mode')
-                if meta.get('name_zh'):
-                    register_building(derived,meta['name_zh'],meta.get('cells'),mode=mode if mode in {'standalone','saodg'} else None,cell_size=meta.get('cell_size',48))
-            from nbt_composition.working_model import managed_manifest
-            managed_manifest(derived)
+            source = model_file(self.workspace, node['source'])
+            building = project_paths(source)['workdir']
+            staging = owned(self.workspace, self.workspace / '.nbtcreator/model-staging')
+            staging.mkdir(parents=True, exist_ok=True)
+            with TemporaryDirectory(dir=staging) as temporary:
+                stage = Path(temporary) / building.relative_to(self.workspace) / 'restored'
+                name = self.restore_archive(node, stage)
+                _, target = reserve_version(source, stage=stage)
+            derived = target / name
             new,_=self.snapshot(state,dict(source=str(derived),parent=identifier,message=message,actor='human',tasks=[]));state['current'][node['building']]=new['id']
             commit=self.commit(state,head,'派生版本：'+message)
             publish_head(self.workspace,derived)

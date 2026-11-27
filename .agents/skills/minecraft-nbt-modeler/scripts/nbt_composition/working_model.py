@@ -5,95 +5,22 @@ the existing structure contract; every host write passes the same diff policy.
 Saving publishes a complete SNBT authoring version, never a binary NBT export.
 """
 from copy import copy, deepcopy
-from contextlib import contextmanager
-from contextvars import ContextVar
 import argparse
-import hashlib
 import json
 import math
-import os
 from pathlib import Path
 import re
 import tempfile
 
 from nbt_assembly import Volume
 from nbt_model import AIR, AIR_NAMES, state
-from nbt_runtime.modeling_session import canonical
 from nbt_composition.change_policy import ChangePolicyError, change_sets, enforce_changes, reserved_position
 from nbt_project.request_paths import read_request_json
-
-_publication_locks = ContextVar('working_model_publication_locks', default=frozenset())
-
-
-@contextmanager
-def publication_lock(workspace, building):
-    """The CLI and desktop publisher use the same reentrant building lock."""
-    from nbt_project.prompts import index_lock
-    workspace, building = Path(workspace).resolve(), Path(building).resolve()
-    key = str(building)
-    if key in _publication_locks.get():
-        yield
-        return
-    building.mkdir(parents=True, exist_ok=True)
-    with index_lock(workspace, building, timeout=30):
-        token = _publication_locks.set(_publication_locks.get() | {key})
-        try:
-            yield
-        finally:
-            _publication_locks.reset(token)
-
-
-def digest(value):
-    return hashlib.sha256(canonical(value).encode('utf8')).hexdigest()
-
-
-def file_hash(file):
-    return hashlib.sha256(Path(file).read_bytes()).hexdigest()
-
-
-def write_json(file, value):
-    file = Path(file)
-    file.parent.mkdir(parents=True, exist_ok=True)
-    file.write_text(canonical(value) + '\n', encoding='utf8')
-
-
-def managed_manifest(source):
-    """Recognize managed drafts even when their manifest has been lost."""
-    from nbt_project.web_paths import project_paths
-    source = Path(source).resolve()
-    version = project_paths(source)['version']
-    description = version / 'room_description.json'
-    metadata = json.loads(description.read_text(encoding='utf8')) if description.is_file() else {}
-    managed = ((version / 'model-version.json').exists() or version.name.startswith('v_model_')
-        or (version / 'model-instances.json').exists() or metadata.get('model_revision'))
-    if not managed:
-        return None
-    if not (version / 'model-version.json').is_file():
-        raise ValueError('受管制作版本缺少清单')
-    manifest = verify_version(version)
-    if source != version / manifest.get('master', 'master/model.snbt'):
-        raise ModelConflict('MODEL_SOURCE_MISMATCH', [dict(source=str(source))])
-    return manifest
-
-
-def head_file(workspace, building):
-    workspace = Path(workspace).resolve()
-    key = digest(Path(building).resolve().relative_to(workspace).as_posix())
-    return workspace / '.nbtcreator/model-heads' / (key + '.json')
-
-
-def publish_head(workspace, source):
-    from nbt_composition.object_scene import atomic
-    from nbt_project.web_paths import project_paths
-    source = Path(source).resolve()
-    manifest = managed_manifest(source)
-    head = dict(revision=manifest['revision'] if manifest else None,
-        source=source.relative_to(Path(workspace).resolve()).as_posix())
-    file = head_file(workspace, project_paths(source)['workdir'])
-    file.parent.mkdir(parents=True, exist_ok=True)
-    atomic(file, canonical(head).encode('utf8'))
-    return head
-
+# Re-export version helpers through the existing Python entry points.
+from nbt_project.model_versions import (
+    ModelConflict, VersionStore, digest, file_hash, head_file, managed_manifest,
+    publication_lock, publish_head, require_authoring_workspace, verify_version, write_json,
+)
 
 def constraint_context(context):
     # Camera changes carry no permission to relax modelling constraints.
@@ -123,22 +50,6 @@ def empty_volume(size):
     return Volume(size)
 
 
-class ModelConflict(ValueError):
-    def __init__(self, code, conflicts):
-        self.code, self.conflicts = code, conflicts
-        super().__init__(code + ': ' + canonical(conflicts[:32]))
-
-    @property
-    def recovery(self):
-        if self.code == 'STALE_SOURCE':
-            return dict(input='source, source_sha256',
-                        next_check='重新打开任务所指制作源，核对版本、保护与审阅绑定后再生成请求。')
-        if self.code == 'STALE_PARENT':
-            return dict(input='source, source_sha256',
-                        next_check='读取当前制作版及父版本记录，确认改动仍适用于任务后，从当前版本重建续版请求。')
-        return None
-
-
 class WorkingModel:
     """An explicit, process-local working copy of a complete authoring model."""
 
@@ -148,6 +59,7 @@ class WorkingModel:
         if kind == 'component' and any(n > 64 for n in size):
             raise ValueError('独立构件每轴最多64格；完整建筑使用 building')
         self.workspace = Path(workspace).resolve()
+        self._versions = VersionStore(self.workspace)
         self.model, self.walls = empty_volume(size), set()
         self._baseline, self._baseline_walls = empty_volume(size), set()
         context_binding = None
@@ -840,7 +752,17 @@ class WorkingModel:
             samples=samples,
             asset_written=False, approval_created=False)
 
-    def preview(self, output, cameras):
+    def diff_summary(self, sample_limit=32):
+        from heapq import nsmallest
+
+        geometry, layers = change_sets(self._baseline.blocks, self.model.blocks, self._baseline_walls, self.walls)
+        changed = geometry | layers
+        samples = [dict(pos=list(p), before=value_at(self._baseline, self._baseline_walls, p),
+                        after=value_at(self.model, self.walls, p)) for p in nsmallest(sample_limit, changed)]
+        return dict(changed_positions=len(changed), geometry_positions=len(geometry),
+                    wall_positions=len(layers), samples=samples, truncated=len(samples)<len(changed))
+
+    def preview(self, output, cameras, *, published_output=None):
         if not self._assembly_binding and any(n > 294 for n in self.model.size):
             raise ValueError('大型模型预览须先绑定组装制作源')
         from nbt_refine import save_master
@@ -856,7 +778,8 @@ class WorkingModel:
             source = output / 'candidate.snbt'
             save_master(source, self.model, self.walls)
         snapshot = output / 'snapshot.json'
-        write_snapshot(source, snapshot, cameras=cameras)
+        published_source = Path(published_output) / source.relative_to(output) if published_output else None
+        write_snapshot(source, snapshot, cameras=cameras, published_source=published_source)
         write_json(output / 'cameras.json', cameras)
         candidate_sha = model_hash(self.model, self.walls)
         result = dict(source=str(source.resolve()), snapshot=str(snapshot.resolve()), cameras=str((output / 'cameras.json').resolve()),
@@ -878,102 +801,52 @@ class WorkingModel:
         return head_file(self.workspace, building)
 
     def _read_head(self, building):
-        from nbt_project.web_paths import prior_workspace_paths,workspace_path
-        candidates=[building,*prior_workspace_paths(self.workspace,building)]
-        files=[file for folder in candidates if (file:=self._head_file(folder)).is_file()]
-        if not files:return None
-        file=max(files,key=lambda current:current.stat().st_mtime_ns)
-        head=json.loads(file.read_text(encoding='utf8'))
-        return dict(head,source=workspace_path(self.workspace,head['source']).relative_to(self.workspace).as_posix())
+        return self._versions.read_head(building)
 
     def _history_source(self, building):
-        from nbt_project.history import History, digest as history_digest
-        from nbt_project.web_paths import prior_workspace_paths,workspace_path
-        try:
-            history = History(self.workspace)
-            data, _ = history.state()
-            for folder in [building,*prior_workspace_paths(self.workspace,building)]:
-                key=history_digest(Path(folder).relative_to(self.workspace).as_posix().encode())[:24]
-                current=data['current'].get(key)
-                if current:return workspace_path(self.workspace,data['versions'][current]['source']).relative_to(self.workspace).as_posix()
-            return None
-        except (OSError, ValueError):
-            return None
+        return self._versions.history_source(building)
 
     def _assert_parent(self, building):
-        from nbt_project.web_paths import workspace_path
-        head = self._read_head(building)
-        history_source = self._history_source(building)
-        source = self.source.relative_to(self.workspace).as_posix() if self.source else None
-        if head != self._opened_head or history_source != self._opened_history_source:
-            raise ModelConflict('STALE_PARENT', [dict(expected=self._opened_head, current=head)])
-        current = head['source'] if head else history_source
-        if current is not None and current != source:
-            raise ModelConflict('STALE_PARENT', [dict(source=source, current=current)])
-        # History can lag only along the selected draft's verified parent chain.
-        ancestor = source
-        seen = set()
-        while history_source and ancestor != history_source and ancestor not in seen:
-            seen.add(ancestor)
-            manifest = managed_manifest(workspace_path(self.workspace,ancestor)) if ancestor else None
-            ancestor = manifest.get('parent_source') if manifest else None
-            if ancestor:ancestor=workspace_path(self.workspace,ancestor).relative_to(self.workspace).as_posix()
-        if history_source and ancestor != history_source:
-            raise ModelConflict('STALE_PARENT', [dict(source=source, history=history_source)])
-        return head, history_source
+        return self._versions.assert_parent(building, self.source, self._opened_head, self._opened_history_source)
 
     def _content_token(self):
         return digest([model_hash(self.model, self.walls), self.instances, self.context, self.phase, self.preopening, self.kind, self._architecture])
 
     def _history_receipt(self, target, manifest, building):
-        master = manifest.get('master','master/model.snbt')
-        source = target / master
-        receipt = dict(source=str(source.resolve()), source_sha256=manifest['files'][master],
-            revision=manifest['revision'], output=str(target.resolve()),
-            draft_only=True, nbt_exported=False, approval_created=False)
-        head = self._read_head(building)
-        try:
-            from nbt_project.history import record_produced_version
-            parent = self.workspace / manifest['parent_source'] if manifest.get('parent_source') else None
-            receipt['history'] = record_produced_version(self.workspace, source, parent=parent, actor=manifest.get('actor', 'external_agent'),
-                message='保存受管组合制作版', set_current=bool(head and head['source'] == source.relative_to(self.workspace).as_posix()))
-            if receipt['history'].get('recorded') is False:
-                raise ValueError(receipt['history'].get('error', '历史登记未完成'))
-            receipt['history_pending'] = False
-        except (OSError, ValueError) as error:
-            receipt.update(history_pending=True, history_error=str(error))
-        return receipt
+        return self._versions.history_receipt(target, manifest, building)
 
-    def save_draft(self, name_zh=None, shape='standalone', attachments=None, actor='external_agent', task_session=None, before_publish=None, *, _draft_directory=None, _staged=False):
+    def validate_for_save(self):
+        from nbt_composition.whole_validation import interior_probe_error
+
         if not self._assembly_binding and any(n > 294 for n in self.model.size):
             raise ValueError('大型模型保存须先绑定组装制作源')
-        from nbt_library import LABELS, shape_of
-        from nbt_refine import save_master, read_master
-        from nbt_composition.object_scene import atomic
-        from nbt_agent.tasks import publication
-        from nbt_composition.whole_validation import interior_probe_error
         self._unchanged()
         probe_error = interior_probe_error(self.model, self.context)
         if probe_error:
             raise ValueError(probe_error)
+        return self.validate()
+
+    def save_draft(self, name_zh=None, shape='standalone', attachments=None, actor='external_agent', task_session=None,
+                   before_publish=None, *, _draft_directory=None, _staged=False, _remember_target=None):
+        from nbt_library import LABELS, shape_of
+        from nbt_refine import save_master, read_master
+        from nbt_agent.tasks import publication
         if actor not in ('human', 'external_agent', 'internal_ai', 'import'):
             raise ValueError('制作版来源无效')
-        report = self.validate()
+        report = self.validate_for_save()
         if self._saved and self._saved['token'] == self._content_token() and not attachments:
             target = Path(self._saved['receipt']['output'])
             manifest = verify_version(target)
             with publication(self.workspace,self._building,self.source,task_session,actor):
                 if before_publish is not None:before_publish()
-                receipt = self._history_receipt(target, manifest, self._building)
+                receipt = (self._saved['receipt'] if self._saved['receipt'].get('staged')
+                           else self._history_receipt(target, manifest, self._building))
             self._saved['receipt'] = receipt
             head = self._read_head(self._building)
             if head and head.get('source') == self.source.relative_to(self.workspace).as_posix():
                 self._opened_history_source = self._history_source(self._building)
             return receipt
-        engine = Path(__file__).resolve().parents[2]
-        software = engine.parents[2] if engine.parent.name == 'skills' else None
-        if self.workspace == software or self.workspace == engine or self.workspace.is_relative_to(engine):
-            raise ValueError('制作版保存在实际创作工作区，不写入软件源码或安装目录')
+        require_authoring_workspace(self.workspace)
         if self._building:
             building = self._building
             from nbt_project.web_paths import project_paths
@@ -1030,46 +903,15 @@ class WorkingModel:
                 parent_source_sha256=self.source_sha256, engine_sha256=engine_hash(), files=files)
             if self._assembly_binding:
                 manifest.update(master=master,source_kind='assembly')
-            with publication(self.workspace,building,self.source,task_session,actor) as check_lease:
-                producer = check_lease()
-                if producer:
-                    manifest['agent_publication'] = producer
-                manifest['revision'] = digest(manifest)
-                target = building / ('v_model_' + manifest['revision'][:24])
-                write_json(stage / 'model-version.json', manifest)
-                write_json(stage / 'room_description.json', dict(schema_version=1, name_zh=name_zh, shape=shape, shape_zh=LABELS[shape],
-                    display_name=name_zh + '-' + LABELS[shape], description_zh=name_zh + '-' + LABELS[shape],
-                    master=master, master_file_sha256=files[master], geometry_sha256=self.model.fingerprint(),
-                    size=list(self.model.size), cells=self.context.get('cells', []), cell_size=self.context.get('cell_size',48), mode=self.context.get('mode'), context_file='coordinates.json',
-                    status='authoring', model_revision=manifest['revision']))
-                self._unchanged()
-                if before_publish is not None:before_publish()
-                head = self._read_head(building)
-                history_source = self._history_source(building)
-                # Retrying the same immutable result may repair history, but never
-                # moves a newer head backwards.
-                existing_target = target.exists()
-                if not existing_target:
-                    self._assert_parent(building)
-                    check_lease()
-                    os.rename(stage, target)
-                actual_manifest = verify_version(target)
-                if actual_manifest['revision'] != manifest['revision']:
-                    raise ValueError('制作版本目录已被其他内容占用')
-                # Recover an interrupted rename→head publication, provided its
-                # parent is still current. A retry cannot rewind a newer head.
-                current = head['source'] if head else history_source
-                if (head == self._opened_head and history_source == self._opened_history_source
-                        and (current == manifest.get('parent_source') or current is None)):
-                    if existing_target:check_lease()
-                    new_head = dict(revision=manifest['revision'], source=(target / master).relative_to(self.workspace).as_posix())
-                    head_file = self._head_file(building)
-                    head_file.parent.mkdir(parents=True, exist_ok=True)
-                    atomic(head_file, canonical(new_head).encode('utf8'))
-                receipt = (dict(output=str(target), source=str(target/master), source_sha256=files[master],
-                                revision=manifest['revision'], model_sha256=manifest['model_sha256'],
-                                geometry_sha256=self.model.fingerprint(), staged=True)
-                           if _staged else self._history_receipt(target, manifest, building))
+            description = dict(schema_version=1, name_zh=name_zh, shape=shape, shape_zh=LABELS[shape],
+                display_name=name_zh + '-' + LABELS[shape], description_zh=name_zh + '-' + LABELS[shape],
+                master=master, master_file_sha256=files[master], geometry_sha256=self.model.fingerprint(),
+                size=list(self.model.size), cells=self.context.get('cells', []), cell_size=self.context.get('cell_size',48),
+                mode=self.context.get('mode'), context_file='coordinates.json', status='authoring')
+            with self._versions.commit(stage, building, manifest, description, source=self.source,
+                    opened_head=self._opened_head, opened_history_source=self._opened_history_source,
+                    task_session=task_session, recheck_source=self._unchanged, before_publish=before_publish,
+                    staged=_staged, remember_target=_remember_target) as (target, receipt):
                 self.source, self.source_sha256 = target / master, files[master]
                 self._building, self._opened_head = building, self._read_head(building)
                 self._opened_history_source = self._history_source(building)
@@ -1173,39 +1015,33 @@ def world_objects(objects, component, transform):
     return result
 
 
-def verify_version(version):
-    """Verify immutable authoring inputs; previews and exports are derived."""
-    version = Path(version).resolve()
-    data = json.loads((version / 'model-version.json').read_text(encoding='utf8'))
-    body = {key: value for key, value in data.items() if key != 'revision'}
-    if data.get('schema_version') != 1 or digest(body) != data.get('revision'):
-        raise ValueError('制作版本清单指纹不一致')
-    master = data.get('master','master/model.snbt')
-    if master not in ('master/model.snbt','master/assembly.json') or (master=='master/assembly.json') != (data.get('source_kind')=='assembly'):
-        raise ValueError('制作版本主稿类型无效')
-    required = {master, 'model-instances.json', 'coordinates.json', 'validation/working-model.json'}
-    if data.get('phase') not in ('design','sealed','opened') or data.get('kind') not in ('building','component'):
-        raise ValueError('制作版本阶段或类型无效')
-    if data['phase'] == 'sealed':
-        required.add('master/preopening.snbt')
-    if not required.issubset(data.get('files', {})):
-        raise ValueError('制作版本清单缺少必要文件')
-    for name, expected in data['files'].items():
-        file = version / name
-        if not file.resolve().is_relative_to(version) or file.is_symlink() or not file.is_file() or file_hash(file) != expected:
-            raise ValueError('制作版本文件已变化：' + name)
-    if master == 'master/assembly.json':
-        from nbt_composition.large_assembly import assembly_manifest
-        path,raw,_,parts = assembly_manifest(version / master)
-        if hashlib.sha256(raw).hexdigest()!=data['files'][master]:
-            raise ValueError('制作版本组装清单已变化')
-        for file,sha,_,_ in parts:
-            name = file.relative_to(version).as_posix()
-            if data['files'].get(name) != sha or file_hash(file)!=sha:
-                raise ValueError('制作版本清单缺少组装分区或哈希不一致：'+name)
-        if file_hash(path)!=data['files'][master]:
-            raise ValueError('校验期间制作版本组装清单已变化')
-    return data
+def prepare_request(workspace, request):
+    """Compile a caller's actions against the same work model used by Python callers."""
+    from nbt_runtime.catalog import catalog
+    from nbt_agent.structure import _schema
+    contract = catalog()['working_model']
+    _schema(request, contract['parameters'], '工作模型请求')
+    if request.get('source'):
+        if not request.get('source_sha256'):
+            raise ValueError('已有模型请求须绑定 source_sha256')
+        model = WorkingModel.open(workspace, request['source'], request.get('context'),
+            source_sha256=request['source_sha256'], kind=request.get('kind', 'building'), limits=request.get('limits'))
+    else:
+        if 'size' not in request:
+            raise ValueError('新建工作模型须提供 size（XYZ 格数）；打开已有制作版须提供 source 和 source_sha256。')
+        model = WorkingModel(workspace, request['size'], request.get('context'), request.get('kind', 'building'), request.get('limits'))
+    results = []
+    from nbt_extensions import MODEL_ACTIONS
+    for action in request.get('actions', []):
+        action = dict(action)
+        method = action.get('method')
+        schema = contract['actions'].get(method)
+        if schema is None or method not in MODEL_ACTIONS:
+            raise ValueError('未知工作模型操作')
+        _schema(action,schema,'工作模型操作')
+        action.pop('method')
+        results.append(MODEL_ACTIONS.resolve(method)(model, action))
+    return model, results
 
 
 def main():
@@ -1217,29 +1053,7 @@ def main():
     args = parser.parse_args()
     try:
         request = read_request_json(args.request, max_bytes=8*1024*1024)
-        from nbt_runtime.catalog import catalog
-        from nbt_agent.structure import _schema
-        _schema(request, catalog()['working_model']['parameters'], '工作模型请求')
-        if request.get('source'):
-            if not request.get('source_sha256'):
-                raise ValueError('已有模型请求须绑定 source_sha256')
-            model = WorkingModel.open(args.workspace, request['source'], request.get('context'),
-                source_sha256=request['source_sha256'], kind=request.get('kind', 'building'), limits=request.get('limits'))
-        else:
-            if 'size' not in request:
-                raise ValueError('新建工作模型须提供 size（XYZ 格数）；打开已有制作版须提供 source 和 source_sha256。')
-            model = WorkingModel(args.workspace, request['size'], request.get('context'), request.get('kind', 'building'), request.get('limits'))
-        results = []
-        from nbt_extensions import MODEL_ACTIONS
-        for action in request.get('actions', []):
-            action = dict(action)
-            method = action.get('method')
-            schema = catalog()['working_model']['actions'].get(method)
-            if schema is None or method not in MODEL_ACTIONS:
-                raise ValueError('未知工作模型操作')
-            _schema(action,schema,'工作模型操作')
-            action.pop('method')
-            results.append(MODEL_ACTIONS.resolve(method)(model, action))
+        model, results = prepare_request(args.workspace, request)
         result = dict(model=model.inspect(positions=request.get('positions')), actions=results)
         if request.get('validate'):
             result['validation'] = model.validate()

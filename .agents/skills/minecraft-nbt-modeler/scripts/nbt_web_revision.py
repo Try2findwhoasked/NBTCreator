@@ -31,7 +31,7 @@ def resolve_request(file):
 
 def convert_web_json(input_file,workdir=None):
     request_file,request,expected=resolve_request(input_file)
-    from nbt_composition.working_model import publication_lock
+    from nbt_project.model_versions import publication_lock
     from nbt_project.history import source_workspace
     source=Path(request['source']).resolve()
     workspace=source_workspace(source)

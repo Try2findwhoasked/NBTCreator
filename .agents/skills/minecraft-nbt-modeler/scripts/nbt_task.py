@@ -77,11 +77,13 @@ def inspect_source(source, provenance=None, cameras=None, *, loaded=None):
     return result
 
 
-def write_snapshot(source, output, provenance=None, cameras=None, *, loaded=None):
+def write_snapshot(source, output, provenance=None, cameras=None, *, loaded=None, published_source=None):
     output = Path(output).resolve()
     if output.exists():
         raise FileExistsError('Keep reviewed snapshots; choose a new output')
     result = inspect_source(source, provenance, cameras, loaded=loaded)
+    if published_source is not None:
+        result['source'] = str(Path(published_source).resolve())
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf8')
     return result
