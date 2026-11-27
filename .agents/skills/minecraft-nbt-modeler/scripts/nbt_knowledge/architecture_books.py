@@ -9,9 +9,11 @@ import re
 import sqlite3
 from tempfile import TemporaryDirectory
 
+from nbt_knowledge import tutorial_packs
 from nbt_knowledge.text_search import chunks, han_bigrams
 
 INDEX = 'architecture.sqlite'
+TUTORIAL_INDEX_SCHEMA = 2
 MAX_DOCUMENT_BYTES = 8*1024**2
 MAX_MANIFEST_BYTES = 2*1024**2
 MAX_LIBRARY_BYTES = 256*1024**2
@@ -66,12 +68,17 @@ def manifest(library):
     if data.get('schema_version') != 1 or not isinstance(books, list) or not 1 <= len(books) <= 1000:
         raise ValueError('Architecture library has no supported book manifest')
     portable = name == 'knowledge.json'
+    tutorial = None
     if portable:
         identifier, version = data.get('id'), data.get('version')
         if not isinstance(identifier, str) or not IDENTIFIER.fullmatch(identifier):
             raise ValueError('Invalid knowledge library id')
         if not isinstance(version, str) or not version.strip() or len(version) > 80:
             raise ValueError('Invalid knowledge library version')
+        if data.get('package_kind') == tutorial_packs.KIND:
+            if (library/name).is_symlink():
+                raise ValueError('教程知识包清单不能使用符号链接')
+            tutorial = tutorial_packs.release(tutorial_packs.read_manifest(raw))
     selected = {}
     paths = set()
     for book in books:
@@ -94,7 +101,7 @@ def manifest(library):
             or not re.fullmatch(r'[0-9a-f]{64}', str(book.get('sha256', '')))
             or not isinstance(book.get('title'), str) or not book['title'].strip() or len(book['title']) > 250):
             raise ValueError('Invalid knowledge document metadata')
-        normalized = {**book}
+        normalized = {key: value for key, value in book.items() if key != 'tutorial'}
         for key in ('author', 'source', 'edition', 'region', 'source_type', 'language', 'license'):
             value = book.get(key, book.get('rights', '') if key == 'license' else '')
             if not isinstance(value, str) or len(value) > 1000:
@@ -108,17 +115,22 @@ def manifest(library):
         normalized['styles'] = styles
         normalized['library_id'] = data['id'] if portable else 'architecture-books'
         normalized['version'] = data['version'] if portable else ''
+        if tutorial:
+            normalized['tutorial'] = tutorial_packs.document_metadata(normalized, tutorial)
         paths.add(relative.casefold())
         selected[identifier] = normalized
     if sum(book['bytes'] for book in selected.values()) > MAX_LIBRARY_BYTES:
         raise ValueError('Architecture library exceeds the indexing size limit')
+    if tutorial:
+        tutorial_packs.check_links(selected.values())
     return selected, hashlib.sha256(raw).hexdigest()
 
 
 def source(library, book):
     library = library.resolve()
-    file = (library/book['file']).resolve()
-    if not file.is_relative_to(library):
+    declared = library/book['file']
+    file = declared.resolve()
+    if not file.is_relative_to(library) or ('tutorial' in book and file != declared):
         raise ValueError('Book resolves outside the selected library')
     if not 1 <= book['bytes'] <= MAX_DOCUMENT_BYTES or file.stat().st_size != book['bytes']:
         raise ValueError('Book size changed: '+book['file'])
@@ -131,10 +143,16 @@ def source(library, book):
 
 def sections(book, text):
     lines = text.splitlines()
-    start = next((i+1 for i,line in enumerate(lines) if START.match(line.strip())), 0)
-    end = next((i for i in range(start,len(lines)) if END.match(lines[i].strip())), len(lines))
-    marked = ['# '+line.strip() if HEADING.match(line.strip()) and len(line)<120 else line
-              for line in lines[start:end]]
+    if 'tutorial' in book:
+        start = tutorial_packs.body_start(lines)
+        marked = lines[start:]
+        if not any(line.strip() for line in marked):
+            raise ValueError('教程卡正文为空')
+    else:
+        start = next((i+1 for i,line in enumerate(lines) if START.match(line.strip())), 0)
+        end = next((i for i in range(start,len(lines)) if END.match(lines[i].strip())), len(lines))
+        marked = ['# '+line.strip() if HEADING.match(line.strip()) and len(line)<120 else line
+                  for line in lines[start:end]]
     doc = dict(id=str(book['id']), label=book['title'], sha256=book['sha256'],
                locator=book['file'], text='\n'.join(marked))
     for piece in chunks(doc):
@@ -142,7 +160,7 @@ def sections(book, text):
         passage = lines[lo-1:hi]
         populated = [line for line in passage if line.strip()]
         page_entries = sum(bool(PAGE_LIST.search(line)) for line in populated)
-        if page_entries >= 2 and page_entries * 2 >= len(populated):
+        if 'tutorial' not in book and page_entries >= 2 and page_entries * 2 >= len(populated):
             continue
         original = '\n'.join(passage)
         yield (book['id'], lo, hi, piece['heading'], original[:2600], len(original)>2600)
@@ -157,14 +175,16 @@ def build(library, index=None):
     with TemporaryDirectory(dir=index.parent) as tmp:
         file = Path(tmp)/INDEX
         with closing(sqlite3.connect(file)) as db, db:
-            db.execute('CREATE TABLE meta (manifest_sha256 TEXT NOT NULL)')
-            db.execute('INSERT INTO meta VALUES (?)', (receipt,))
+            db.execute('CREATE TABLE meta (manifest_sha256 TEXT NOT NULL, tutorial_schema INTEGER NOT NULL)')
+            db.execute('INSERT INTO meta VALUES (?, ?)', (receipt, TUTORIAL_INDEX_SCHEMA))
             db.execute('CREATE VIRTUAL TABLE passages USING fts5(book UNINDEXED, first UNINDEXED, last UNINDEXED, heading, text, han)')
             for book in books.values():
                 _, original = source(library, book)
+                title = book['title'] if 'tutorial' in book else ''
                 for identifier, first, last, heading, passage, _ in sections(book, original):
-                    han = ' '.join(han_bigrams(heading+' '+passage))
-                    db.execute('INSERT INTO passages VALUES (?,?,?,?,?,?)', (identifier,first,last,heading,passage,han))
+                    terms = ' '.join(han_bigrams(' '.join((title, heading, passage))))
+                    db.execute('INSERT INTO passages VALUES (?,?,?,?,?,?)',
+                               (identifier, first, last, heading, passage, (title+' '+terms).strip()))
                     count += 1
         file.replace(index)
     return dict(books=len(books), passages=count, manifest_sha256=receipt)
@@ -190,12 +210,17 @@ def describe(book):
     return {key: book[key] for key in ('title','author','styles','region','edition','source_type','source','sha256','language','license','year') if key in book}
 
 
-def index_manifest(index):
+def index_receipt(db, tutorial=False):
+    fields = 'manifest_sha256, tutorial_schema' if tutorial else 'manifest_sha256'
+    row = db.execute(f'SELECT {fields} FROM meta').fetchone()
+    if not row or (tutorial and row[1] != TUTORIAL_INDEX_SCHEMA):
+        raise sqlite3.DatabaseError('Missing or outdated knowledge index metadata')
+    return row[0]
+
+
+def index_manifest(index, *, tutorial=False):
     with closing(sqlite3.connect(index.as_uri()+'?mode=ro', uri=True)) as db:
-        row = db.execute('SELECT manifest_sha256 FROM meta').fetchone()
-        if not row:
-            raise sqlite3.DatabaseError('Missing architecture index metadata')
-        return row[0]
+        return index_receipt(db, tutorial)
 
 
 def search(library, query, style=None, limit=8, *, index=None, region=None, year=None, catalog=None):
@@ -203,28 +228,37 @@ def search(library, query, style=None, limit=8, *, index=None, region=None, year
     if not 1 <= limit <= 20 or not 1 <= len(query.strip()) <= 300:
         raise ValueError('Query must have 1–300 characters, with 1–20 results')
     books, receipt = catalog if catalog is not None else manifest(library)
+    tutorial = 'tutorial' in next(iter(books.values()))
     eligible = [identifier for identifier,book in books.items()
                 if (not style or style.casefold() in (tag.casefold() for tag in book['styles']))
                 and (not region or region.casefold() in book['region'].casefold())
                 and (not year or 'year' in book and year[0] <= book['year'] <= year[1])]
     match = expression(query)
-    hits = []
+    hits, errors = [], {}
     if eligible and match:
         filters = ','.join('?' for _ in eligible)
         with closing(sqlite3.connect((index or library/INDEX).as_uri()+'?mode=ro', uri=True)) as db:
-            if db.execute('SELECT manifest_sha256 FROM meta').fetchone() != (receipt,):
+            if index_receipt(db, tutorial) != receipt:
                 raise ValueError('Book manifest changed; rebuild the offline index')
             rows = db.execute(f'''SELECT book, first, last, heading, text FROM passages
                                  WHERE passages MATCH ? AND book IN ({filters})
                                  ORDER BY bm25(passages, 0, 0, 0, 2, 1, 1), rowid LIMIT ?''',
-                              (match, *eligible, limit))
+                              (match, *eligible, -1 if tutorial else limit))
             verified = {}
             for identifier,first,last,heading,text in rows:
                 book = books[identifier]
                 if identifier not in verified:
-                    _, original = source(library, book)
-                    verified[identifier] = original.splitlines()
+                    try:
+                        _, original = source(library, book)
+                        verified[identifier] = original.splitlines()
+                    except (OSError, ValueError):
+                        if 'tutorial' not in book:
+                            raise
+                        verified[identifier] = None
+                        errors[identifier] = '教程卡原文已变化或不可用，请核对发行包'
                 lines = verified[identifier]
+                if lines is None:
+                    continue
                 if not 1 <= first <= last <= len(lines):
                     raise ValueError('Indexed passage differs from its source; rebuild the offline index')
                 original = '\n'.join(lines[first-1:last])
@@ -232,7 +266,10 @@ def search(library, query, style=None, limit=8, *, index=None, region=None, year
                     raise ValueError('Indexed passage differs from its source; rebuild the offline index')
                 hits.append(dict(book=identifier, **describe(book), heading=heading, line_start=first,
                                  line_end=last, text=text, clipped=len(original)>2600))
-    return dict(style=style, hits=hits, evidence_type='historical_reference', manifest_sha256=receipt)
+                if len(hits) == limit:
+                    break
+    return dict(style=style, hits=hits, evidence_type='historical_reference', manifest_sha256=receipt,
+                **({'document_errors': errors} if errors else {}))
 
 
 def main(argv=None):

@@ -239,6 +239,48 @@ class Retrieval(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'停用'):self.call('read',**query,**receipt)
   self.assertEqual(self.call('read',id=original['id'],sha256=original['sha256'])['sources'][1]['citation'],'R2')
 
+ def test_tutorial_package_metadata_survives_offline_receipts_and_changed_cards_are_isolated(self):
+  folder=self.root/'tutorials'; cards=folder/'cards'; cards.mkdir(parents=True)
+  evidence=dict(source_id='fixture.roof',sha256='a'*64,status='visible',modality='image',
+                path='workspace/evidence/roof.png',record_key='roof',locator=dict(kind='figure',number=7))
+  docs=[]
+  for slug,title in (('roof','坡屋顶'),('wall','半木墙')):
+   raw=f'---\nid: kb-{slug}\n---\n# 施工流程\n接缝标记 {slug}。\n'.encode('utf8')
+   file=cards/f'{slug}.md';file.write_bytes(raw)
+   docs.append(dict(id=slug,card_id='kb-'+slug,file=f'cards/{slug}.md',title=title,bytes=len(raw),
+                    sha256=hashlib.sha256(raw).hexdigest(),kind='component',confidence='E2',review_status='checked',
+                    source_type='minecraft-tutorial-card',applicability=dict(version='unknown'),
+                    related_card_ids=['kb-wall'] if slug=='roof' else [],evidence=[evidence]))
+  manifest=dict(schema_version=1,package_kind='minecraft_tutorial_cards',id='fixture',version='1.0.0',documents=docs)
+  path=folder/'knowledge.json';path.write_text(json.dumps(manifest),encoding='utf8')
+  def run(route,**request):
+   return dispatch(self.root,route,dict(workflow='prompt',**request),audience='external_agent')
+  with patch('urllib.request.urlopen',side_effect=AssertionError('offline tutorial lookup accessed the network')):
+   status=run('library',action='add',path='tutorials')
+   self.assertEqual((status['package_id'],status['package_version'],status['status']),('fixture','1.0.0','ready'))
+   title_hit,=run('search',source_kind='library',query='坡屋顶')['knowledge']
+   self.assertEqual((title_hit['tutorial']['card_id'],title_hit['heading']),('kb-roof','施工流程'))
+   found=run('search',source_kind='library',query='接缝标记')
+   roof=next(item for item in found['knowledge'] if item['tutorial']['card_id']=='kb-roof')
+   self.assertEqual(roof['line_start'],4)
+   selected=dict(receipt=found['receipt'],ref=roof['ref'])
+   original=run('source',**selected)
+   self.assertEqual(original['tutorial']['evidence'],[evidence])
+   collection=run('bundle',receipt=found['receipt'],selected=[roof['ref']])
+   receipt={key:collection[key] for key in ('id','sha256')}
+   read=run('read',**receipt)
+   self.assertEqual(read['sources'][0]['tutorial'],roof['tutorial'])
+   self.assertEqual(read['sources'][0]['manifest_sha256'],status['manifest_sha256'])
+  (cards/'roof.md').write_bytes(b'damaged')
+  with self.assertRaisesRegex(ValueError,'原文已变化'):run('read',**receipt)
+  isolated=run('search',source_kind='library',query='接缝标记',limit=1)
+  self.assertEqual([hit['tutorial']['card_id'] for hit in isolated['knowledge']],['kb-wall'])
+  self.assertEqual(isolated['search_scope']['libraries_in_scope'],1)
+  rejected=dict(evidence,path='workspace/../credentials.json')
+  docs[0]['evidence']=[rejected];path.write_text(json.dumps(manifest),encoding='utf8')
+  self.assertEqual(run('library')['libraries'][0]['status'],'unavailable')
+  with self.assertRaisesRegex(ValueError,'相对位置'):run('library',action='build',id=status['id'])
+
  def test_changed_or_corrupt_library_leaves_other_sources_available_and_can_reindex(self):
   left,manifest,first=self.library('one');_,_,second=self.library('two','# 窗洞\n常见玫瑰窗使用石条和玻璃。\n')
   query=dict(query='玫瑰窗',workflow='prompt');initial=self.call('search',**query)['knowledge'];self.assertEqual(len(initial),2)

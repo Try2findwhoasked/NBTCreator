@@ -97,9 +97,12 @@ def status(workspace, item, flow):
         entries, receipt = books.manifest(location)
         current = index_path(workspace, item['id'])
         result.update(documents=len(entries), manifest_sha256=receipt)
+        tutorial = next(iter(entries.values())).get('tutorial')
+        if tutorial:
+            result.update({key: tutorial[key] for key in ('package_kind', 'package_id', 'package_version')})
         if not current.is_file():
             result.update(status='not_indexed', message='书库尚未建立索引')
-        elif books.index_manifest(current) != receipt:
+        elif books.index_manifest(current, tutorial=bool(tutorial)) != receipt:
             result.update(status='stale', message='书库清单已变化，请更新索引')
         else:
             result['status'] = 'ready'
@@ -199,6 +202,7 @@ def citation(item, document_id, book, receipt, hit):
         passage_sha256=hashlib.sha256(hit['text'].encode('utf8')).hexdigest(),
         reference_type='architecture_library', library_name=item['name'],
         bibliography=bibliography(book), reason='已启用书库中的建筑术语或原文匹配',
+        **({'tutorial': book['tutorial']} if 'tutorial' in book else {}),
     )
 
 
@@ -219,6 +223,8 @@ def search(workspace, flow, query, limit, request):
             matched = books.search(location, query.strip()[:300], limit=min(limit*2, 20), index=index, catalog=(entries,receipt), **criteria)
             groups.append([citation(item, f'library:{identifier}:{hit["book"]}', entries[hit['book']], receipt, hit)
                            for hit in matched['hits']])
+            errors.extend(dict(id=identifier, name=item['name'], document_id=f'library:{identifier}:{document}',
+                               message=message) for document, message in matched.get('document_errors', {}).items())
         except ERRORS:
             errors.append(dict(id=identifier, name=item['name'], message='书库或索引已变化、不可用，请检查来源或更新索引'))
     return groups, errors
@@ -255,6 +261,9 @@ def verify_citations(workspace, flow, citations):
             item, book, text = document(workspace, flow, *key, items=items)
             documents[key] = (item, book, text)
         item, book, text = documents[key]
+        if 'tutorial' in book and 'tutorial' not in selected:
+            # Accept previously stored citations produced before tutorial metadata was projected.
+            book = {field: value for field, value in book.items() if field != 'tutorial'}
         current = next((citation(item,key[0],book,key[1],dict(line_start=first,line_end=last,
                         heading=heading,text=passage,clipped=clipped))
                         for _,first,last,heading,passage,clipped in books.sections(book,text)

@@ -139,7 +139,7 @@ def search(workspace,request,*,audience='internal_ai'):
                library_query_truncated=library_scope and len(keywords.strip())>300,
                explicit_keywords='keywords' in request,indexed_query=search_text,query_selection=query_detail,
                continued_passages=continuations,skill_documents_searched=documents_searched)
-    if library_scope:scope['libraries_in_scope']=len(groups)+len(library_errors)
+    if library_scope:scope['libraries_in_scope']=len(groups)+sum('document_id' not in error for error in library_errors)
     if not selected:
         notes=['当前工作流和筛选条件下没有匹配摘录；可用本地短关键词或构造别称重新检索。']
         if source_kind in (None,'skill') and not documents_searched and not (request.get('library_id') or request.get('filters')):
@@ -221,7 +221,7 @@ def provider_result(bundle,references):
         descriptor={key:item[key] for key in ('kind','label')}
         descriptor.update(citation=citation,id=item['id'],sha256=item.get('sha256',item.get('content_sha256')))
         if item['kind']=='knowledge':
-            fields=('heading','line_start','line_end','clipped','reference_type','library_name','manifest_sha256','passage_sha256','bibliography')
+            fields=('heading','line_start','line_end','clipped','reference_type','library_name','manifest_sha256','passage_sha256','bibliography','tutorial')
             descriptor.update({key:item[key] for key in fields if key in item})
             positions={key:item[key] for key in ('line_start','line_end') if key in item}
             knowledge.append(dict(citation=citation,label=item['label'],content=item['text'],sha256=item['sha256'],**positions))
@@ -239,6 +239,7 @@ def external_receipt(workspace,found):
              for index,item in enumerate(found['knowledge']+found['assets'],1)}
     if not sources:return dict(found,receipt=None)
     raw=encode(dict(workflow=found['workflow'],query=found['query'],size=found['size'],sources=sources))
+    if len(raw)>512*1024:raise ValueError('检索回执超过存储上限，请减少 limit 或使用更短的检索词')
     identifier=digest(raw)[:32];file=receipt_file(workspace,identifier)
     with_existing=False
     if file.is_file():
@@ -246,7 +247,7 @@ def external_receipt(workspace,found):
     if not with_existing:libraries.atomic(file,raw)
     refs={item['id']:ref for ref,item in sources.items()}
     def compact(item):
-        fields=('label','heading','text','reason','reference_type','library_name','line_start','line_end','clipped','size','rotations','asset_id','content_sha256')
+        fields=('label','heading','text','reason','reference_type','library_name','line_start','line_end','clipped','size','rotations','asset_id','content_sha256','tutorial')
         projection=dict(ref=refs[item['id']],**{key:item[key] for key in fields if key in item})
         bibliography=item.get('bibliography',{})
         if bibliography:
@@ -338,6 +339,8 @@ def dispatch(workspace,action,request,*,audience='internal_ai'):
             item,book,text=libraries.document(workspace,flow,identifier,request.get('manifest_sha256'),request.get('sha256'))
             result=dict(id=identifier,label=book['title'],sha256=book['sha256'],locator='library:'+item['name']+'/'+book['file'],
                         text=text,bibliography=libraries.bibliography(book))
+            if 'tutorial' in book:
+                result.update(tutorial=book['tutorial'],manifest_sha256=request['manifest_sha256'])
             return source_window(result,request,bounded=audience=='external_agent',default_line=default_line)
         issues=[]
         for doc in documents(workspace,flow,audience,issues):
