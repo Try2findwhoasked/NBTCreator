@@ -1243,7 +1243,7 @@ globalThis.NbtToolCatalog = {
       },
       {
         "intent": "assembly_slices",
-        "title": "签发和回装协作切片",
+        "title": "大型组装与协作切片",
         "guide": "large-assembly.md",
         "call": "assembly slice --request <JSON> / assembly merge --request <JSON>",
         "call_kind": "多步流程",
