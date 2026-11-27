@@ -261,8 +261,8 @@ class History:
             except OSError:matches=False
         return {k:node.get(k) for k in ['id','building','source','version','source_sha256','geometry_sha256','size','parent','actor','message','tasks','comments','created_at','updated_at','acceptance','release']}|dict(absolute_source=str(source),format='assembly' if node.get('source_kind')=='assembly' else source.suffix.lower().lstrip('.'),file_count=len(node['files']),bytes=sum(item['bytes'] for item in node['files'].values()),source_exists=exists,source_matches=matches)
     def snapshot_chain(self, state, source, expected=None):
-        """Fill managed ancestors in parent order, including interrupted records."""
-        from nbt_project.model_versions import managed_manifest
+        """Fill verified ancestors in parent order, including interrupted records."""
+        from nbt_project.model_versions import managed_manifest, parent_binding
         pending, seen = [], set()
         parent = None
         while source:
@@ -278,15 +278,15 @@ class History:
                     break
                 if file_hash(source) != expected:
                     raise ValueError('制作父版本源已变化')
-            manifest = managed_manifest(source)
+            manifest = parent_binding(self.workspace, source)
             pending.append(source)
-            if not manifest or not manifest.get('parent_source'):
+            if not manifest.get('parent_source'):
                 break
             ancestor = model_file(self.workspace, manifest['parent_source'])
             if project_paths(ancestor)['workdir'] != project_paths(source)['workdir']:
                 raise ValueError('制作父版本必须属于同一建筑')
             ancestor_manifest = managed_manifest(ancestor) if ancestor.is_file() else None
-            if ancestor_manifest and ancestor_manifest['revision'] != manifest.get('parent_revision'):
+            if ancestor_manifest and 'parent_revision' in manifest and ancestor_manifest['revision'] != manifest['parent_revision']:
                 raise ValueError('制作父版本身份与清单不一致')
             source, expected = ancestor, manifest.get('parent_source_sha256')
         for file in reversed(pending):
@@ -294,27 +294,39 @@ class History:
             parent = node['id']
         return state['versions'][parent], bool(pending)
 
+    def commit_current(self, state, head, node, message, *, changed=False):
+        from nbt_project.model_versions import prepare_history_head, publish_head
+        source = model_file(self.workspace, node['source'])
+        prepared = prepare_history_head(self.workspace, source, node, state)
+        changed |= state['current'].get(node['building']) != node['id']
+        state['current'][node['building']] = node['id']
+        commit = self.commit(state, head, message) if changed else head
+        if prepared:
+            publish_head(self.workspace, source)
+        return commit
+
     def record(self,request):
         if 'set_current' in request and type(request['set_current']) is not bool:raise ValueError('当前工作版选项须为布尔值')
-        from nbt_project.model_versions import publication_lock, publish_head
+        from nbt_project.model_versions import publication_lock, parent_binding
         building = project_paths(model_file(self.workspace, request['source']))['workdir']
         with publication_lock(self.workspace, building), self.lock():
             state,head=self.state();before=encode(state)
             # A managed draft carries its original parent even on a later retry.
-            from nbt_project.model_versions import managed_manifest
-            manifest = managed_manifest(model_file(self.workspace, request['source']))
-            parent_source = manifest.get('parent_source') if manifest else request.get('parent_source')
+            binding = parent_binding(self.workspace, model_file(self.workspace, request['source']))
+            parent_source = binding.get('parent_source', request.get('parent_source'))
             if parent_source:
-                parent,_ = self.snapshot_chain(state,parent_source,manifest.get('parent_source_sha256') if manifest else None)
+                parent,_ = self.snapshot_chain(state,parent_source,binding.get('parent_source_sha256'))
                 if request.get('parent') and request['parent'] != parent['id']:
                     raise ValueError('父版本与制作清单不一致')
                 request = dict(request,parent=parent['id'])
             node,changed=self.snapshot(state,request)
             if node.get('source_kind')=='assembly' and not self.summary(node)['source_matches']:raise ValueError('组装来源在登记期间发生变化')
-            if request.get('set_current',False):state['current'][node['building']]=node['id']
-            commit=self.commit(state,head,'版本记录：'+node['message']) if encode(state)!=before else head
-            if request.get('set_current',False):
-                publish_head(self.workspace, model_file(self.workspace,node['source']))
+            message = '版本记录：' + node['message']
+            changed = encode(state) != before
+            if request.get('set_current', False):
+                commit = self.commit_current(state, head, node, message, changed=changed)
+            else:
+                commit = self.commit(state, head, message) if changed else head
             return dict(version=self.summary(node),commit=commit,unchanged=commit==head,current=state['current'].get(node['building']))
     def list(self,source=None):
         from nbt_project.web_paths import workspace_path
@@ -348,17 +360,13 @@ class History:
         except UnicodeError:raise ValueError('历史文件不是 UTF-8 文本：'+name) from None
         return dict(id=identifier,name=name,sha256=item['sha256'],text=content)
     def current(self,identifier):
-        from nbt_project.model_versions import publication_lock, publish_head, managed_manifest
+        from nbt_project.model_versions import publication_lock
         initial,_=self.state();selected=self.lookup(initial,identifier)
         with publication_lock(self.workspace,project_paths(model_file(self.workspace,selected['source']))['workdir']), self.lock():
             state,head=self.state();node=self.lookup(state,identifier);summary=self.summary(node)
             if not summary['source_matches']:raise ValueError('该版本文件缺失或已变化，可从历史归档另存恢复')
-            managed_manifest(model_file(self.workspace,node['source']))
-            unchanged=state['current'].get(node['building'])==identifier
-            state['current'][node['building']]=identifier
-            commit=head if unchanged else self.commit(state,head,'设为当前工作版：'+node['version'])
-            publish_head(self.workspace,model_file(self.workspace,node['source']))
-            return dict(current=identifier,commit=commit,unchanged=unchanged)
+            commit = self.commit_current(state, head, node, '设为当前工作版：'+node['version'])
+            return dict(current=identifier,commit=commit,unchanged=commit==head)
     def restore_archive(self, node, target):
         from nbt_project.model_versions import digest as model_digest, managed_manifest, write_json
 
@@ -402,7 +410,7 @@ class History:
         return derived.relative_to(target)
 
     def derive(self,identifier,message='从历史版本继续编辑'):
-        from nbt_project.model_versions import publication_lock, publish_head
+        from nbt_project.model_versions import publication_lock
         initial,_=self.state();selected=self.lookup(initial,identifier)
         with publication_lock(self.workspace,project_paths(model_file(self.workspace,selected['source']))['workdir']), self.lock():
             state,head=self.state();node=self.lookup(state,identifier)
@@ -419,9 +427,8 @@ class History:
                 name = self.restore_archive(node, stage)
                 _, target = reserve_version(source, stage=stage)
             derived = target / name
-            new,_=self.snapshot(state,dict(source=str(derived),parent=identifier,message=message,actor='human',tasks=[]));state['current'][node['building']]=new['id']
-            commit=self.commit(state,head,'派生版本：'+message)
-            publish_head(self.workspace,derived)
+            new,_=self.snapshot(state,dict(source=str(derived),parent=identifier,message=message,actor='human',tasks=[]))
+            commit = self.commit_current(state, head, new, '派生版本：'+message, changed=True)
             return dict(source=str(derived),version=self.summary(new),commit=commit,parent=identifier,source_unchanged=True,approval='not_granted_by_history')
 
 def dispatch(workspace,action,request):

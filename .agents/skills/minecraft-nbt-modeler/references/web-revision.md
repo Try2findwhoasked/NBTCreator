@@ -22,6 +22,8 @@ mise run nbt -- control revision --request "D:/实际路径/保存的效果设�
 
 ### 旧式源
 
+旧版转换通过回读后推进建筑的当前版本。Git 归档失败时，回执中的 `history_pending` 和 `history_error` 标记待登记状态。恢复 Git 后可用 `history record --source <最新制作源> --set-current` 补登记，历史会按转换回执补齐父链。
+
 从源路径识别原建筑目录。已有编号前缀按同前缀最大编号递增，例如 `v05` 之后分配 `v06`，`detail_v02` 之后分配 `detail_v03`。无编号时创建 `versions/YYYY-MM-DD_HHmmss_web_edit[_序号]/`，时间使用 Asia/Shanghai。历史布局需要指定工作文件夹时，独立脚本的 `--workdir` 指向同一工作区 `nbt_models/` 内的实际建筑目录。
 
 - `master/model.snbt` 保存完整主模型和显式墙层。同目录的 `wall_mask.json` 提供墙层副本。

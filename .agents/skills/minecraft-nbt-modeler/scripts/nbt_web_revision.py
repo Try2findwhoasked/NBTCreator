@@ -111,7 +111,8 @@ def _convert_web_json(input_file,workdir,resolved):
             raise ValueError('转换期间源制作版坐标发生变化，请重新预览')
         if working:
             return save_managed_revision(working,config,request,input_file,draft_only)
-        work,target=reserve_version(source,workdir)
+        work, target = root, Path(scratch) / 'version'
+        target.mkdir()
         input_hash=digest(input_file) if Path(input_file).is_file() else digest(request_file)
         receipt=dict(schema_version=1,status='writing',source=str(source),source_sha256=source_hash,
             input=str(Path(input_file).resolve()),input_sha256=input_hash,settings_sha256=canonical(settings),
@@ -151,18 +152,36 @@ def _convert_web_json(input_file,workdir,resolved):
             if description:
                 register_building(authored,read_json(description)['name_zh'],cells,mode='standalone' if standalone else None,cell_size=config.get('cell_size',48))
             receipt.update(status='complete',master=str(authored),runtime_parts=0,runtime_files=[],delivery_nbt=0,geometry_sha256=model.fingerprint(),source_unchanged=True,source_format='snbt',draft_only=draft_only)
-            write_json(target/'conversion.json',receipt)
         except Exception as error:
             receipt.update(status='failed',error=str(error));write_json(target/'conversion.json',receipt);raise
+        from nbt_agent.tasks import publication
+        from nbt_composition.object_scene import atomic
         from nbt_project.history import source_workspace,record_produced_version
-        workspace=source_workspace(authored)
+        from nbt_project.model_versions import publish_head
+        workspace = source_workspace(source)
+        parent = source if project_paths(source)['workdir'] == work else None
+        with publication(workspace, work, parent, None, 'human'):
+            if digest(source) != source_hash:
+                raise ValueError('保存期间原稿变化，请重新预览')
+            master_relative = authored.relative_to(target)
+            _, target = reserve_version(source, workdir, stage=target)
+            authored = target / master_relative
+            receipt.update(output=str(target), master=str(authored),
+                           master_source=authored.relative_to(workspace).as_posix(),
+                           master_sha256=saved['source_sha256'],
+                           parent_source=parent.relative_to(workspace).as_posix() if parent else None)
+            atomic(target/'conversion.json', (json.dumps(receipt, ensure_ascii=False, indent=2)+'\n').encode('utf8'))
+            publish_head(workspace, authored)
         try:
             release_converted_version(workspace,receipt,saved['source_sha256'])
         finally:
             message='定稿并导出 NBT' if receipt.get('finalized') else '保存 SNBT 制作版'
-            receipt['history']=record_produced_version(workspace,authored,parent=source,message=message,
+            receipt['history']=record_produced_version(workspace,authored,parent=parent,message=message,
                                                        actor='human',set_current=True)
-            write_json(target/'conversion.json',receipt)
+            receipt['history_pending'] = receipt['history'].get('recorded') is False
+            if receipt['history_pending']:
+                receipt['history_error'] = receipt['history']['error']
+            atomic(target/'conversion.json', (json.dumps(receipt, ensure_ascii=False, indent=2)+'\n').encode('utf8'))
         return receipt
 
 

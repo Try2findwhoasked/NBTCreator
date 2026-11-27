@@ -85,12 +85,49 @@ def publish_head(workspace, source):
 
 
 def _write_head(workspace, building, source, revision):
-    from nbt_composition.object_scene import atomic
     head = dict(revision=revision, source=source.relative_to(Path(workspace).resolve()).as_posix())
+    _store_head(workspace, building, head)
+    return head
+
+
+def _store_head(workspace, building, data):
+    from nbt_composition.object_scene import atomic
     file = head_file(workspace, building)
     file.parent.mkdir(parents=True, exist_ok=True)
-    atomic(file, canonical(head).encode('utf8'))
-    return head
+    atomic(file, canonical(data).encode('utf8'))
+
+
+def prepare_history_head(workspace, source, node, history_state):
+    """Make a selection visible when the Git ref selects its history node."""
+    from nbt_project.web_paths import project_paths
+    building = project_paths(source)['workdir']
+    current = VersionStore(workspace).read_head(building, history_state=history_state)
+    manifest = managed_manifest(source)
+    selection = dict(source=source.relative_to(workspace).as_posix(),
+                     revision=manifest['revision'] if manifest else None)
+    if current == selection:
+        return False
+    _store_head(workspace, building, dict(previous=current, selection=selection,
+                                         history_building=node['building'], history_id=node['id']))
+    return True
+
+
+def parent_binding(workspace, source):
+    """Read parent evidence from managed versions and new legacy conversions."""
+    from nbt_project.web_paths import project_paths, workspace_path
+    manifest = managed_manifest(source)
+    if manifest:
+        return manifest
+    receipt = project_paths(source)['version'] / 'conversion.json'
+    if not receipt.is_file():
+        return {}
+    data = json.loads(receipt.read_text(encoding='utf8'))
+    if (data.get('status') != 'complete' or not data.get('parent_source') or not data.get('master_source')
+            or not data.get('master_sha256') or workspace_path(workspace, data['master_source']) != source):
+        return {}
+    if file_hash(source) != data['master_sha256']:
+        raise ValueError('旧版转换的制作源已变化')
+    return dict(parent_source=data['parent_source'], parent_source_sha256=data['source_sha256'])
 
 
 class ModelConflict(ValueError):
@@ -148,13 +185,21 @@ class VersionStore:
     def __init__(self, workspace):
         self.workspace = Path(workspace).resolve()
 
-    def read_head(self, building):
+    def read_head(self, building, *, history_state=None):
         from nbt_project.web_paths import prior_workspace_paths,workspace_path
         candidates=[building,*prior_workspace_paths(self.workspace,building)]
         files=[file for folder in candidates if (file:=head_file(self.workspace, folder)).is_file()]
         if not files:return None
         file=max(files,key=lambda current:current.stat().st_mtime_ns)
         head=json.loads(file.read_text(encoding='utf8'))
+        if 'selection' in head:
+            from nbt_project.history import History
+            if history_state is None:
+                history_state, _ = History(self.workspace).state()
+            selected = history_state['current'].get(head['history_building']) == head['history_id']
+            head = head['selection'] if selected else head['previous']
+        if head is None:
+            return None
         return dict(head,source=workspace_path(self.workspace,head['source']).relative_to(self.workspace).as_posix())
 
     def history_source(self, building):
@@ -186,9 +231,9 @@ class VersionStore:
         seen = set()
         while history_source and ancestor != history_source and ancestor not in seen:
             seen.add(ancestor)
-            manifest = managed_manifest(workspace_path(self.workspace,ancestor)) if ancestor else None
-            ancestor = manifest.get('parent_source') if manifest else None
-            if ancestor:ancestor=workspace_path(self.workspace,ancestor).relative_to(self.workspace).as_posix()
+            binding = parent_binding(self.workspace, workspace_path(self.workspace, ancestor)) if ancestor else {}
+            parent = binding.get('parent_source')
+            ancestor = workspace_path(self.workspace, parent).relative_to(self.workspace).as_posix() if parent else None
         if history_source and ancestor != history_source:
             raise ModelConflict('STALE_PARENT', [dict(source=source, history=history_source)])
         return head, history_source
@@ -258,38 +303,38 @@ class VersionStore:
         from nbt_agent.tasks import publication
 
         master = manifest.get('master', 'master/model.snbt')
-        with publication(self.workspace, building, source, task_session, manifest['actor']) as check_lease:
-            producer = check_lease()
-            if producer:
-                manifest['agent_publication'] = producer
-            manifest['revision'] = digest(manifest)
-            target = building / ('v_model_' + manifest['revision'][:24])
-            write_json(stage / 'model-version.json', manifest)
-            write_json(stage / 'room_description.json', dict(description, model_revision=manifest['revision']))
-            recheck_source()
+        with publication_lock(self.workspace, building):
             if before_publish is not None:
                 before_publish()
-
-            existing = target.exists()
-            if not existing:
-                self.assert_parent(building, source, opened_head, opened_history_source)
-                check_lease()
-                if remember_target is not None:
-                    remember_target(target, manifest['revision'], opened_head, opened_history_source)
-                os.rename(stage, target)
-            if verify_version(target)['revision'] != manifest['revision']:
-                raise ValueError('制作版本目录已被其他内容占用')
-            if existing and remember_target is not None:
-                remember_target(target, manifest['revision'], opened_head, opened_history_source)
-
-            @contextmanager
-            def confirm_publication():
-                if existing:
+            with publication(self.workspace, building, source, task_session, manifest['actor']) as check_lease:
+                producer = check_lease()
+                if producer:
+                    manifest['agent_publication'] = producer
+                manifest['revision'] = digest(manifest)
+                target = building / ('v_model_' + manifest['revision'][:24])
+                write_json(stage / 'model-version.json', manifest)
+                write_json(stage / 'room_description.json', dict(description, model_revision=manifest['revision']))
+                recheck_source()
+                existing = target.exists()
+                if not existing:
+                    self.assert_parent(building, source, opened_head, opened_history_source)
                     check_lease()
-                yield
+                    if remember_target is not None:
+                        remember_target(target, manifest['revision'], opened_head, opened_history_source)
+                    os.rename(stage, target)
+                if verify_version(target)['revision'] != manifest['revision']:
+                    raise ValueError('制作版本目录已被其他内容占用')
+                if existing and remember_target is not None:
+                    remember_target(target, manifest['revision'], opened_head, opened_history_source)
 
-            # Recover an interrupted rename to head update only while the parent is current.
-            self.advance_head(building, target, manifest, opened_head, opened_history_source, confirm_publication)
+                @contextmanager
+                def confirm_publication():
+                    if existing:
+                        check_lease()
+                    yield
+
+                # Recover an interrupted rename to head update only while the parent is current.
+                self.advance_head(building, target, manifest, opened_head, opened_history_source, confirm_publication)
             receipt = (dict(output=str(target), source=str(target / master), source_sha256=manifest['files'][master],
                             revision=manifest['revision'], model_sha256=manifest['model_sha256'],
                             geometry_sha256=description['geometry_sha256'], staged=True)

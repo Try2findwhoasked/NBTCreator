@@ -680,6 +680,101 @@ class WorkingModels(unittest.TestCase):
             self.assertNotEqual(saved['source'], derived['source'])
             self.assertEqual(WorkingModel.open(self.root, saved['source']).model.get((3, 2, 3)), 'minecraft:stone')
 
+    def test_history_selection_recovers_on_either_side_of_git_commit(self):
+        from nbt_project.history import History
+        from nbt_project.model_versions import VersionStore
+
+        model = self.new(kind='component')
+        self.put(model, [1, 1, 1], 'stone')
+        first = model.save_draft('历史切换中断')
+        self.put(model, [2, 1, 1], 'stone')
+        second = model.save_draft()
+        history = History(self.root)
+        first_id = first['history']['version']['id']
+        building = model._building
+        with patch.object(history, 'commit', side_effect=OSError('Git ref update interrupted')):
+            with self.assertRaises(OSError):
+                history.current(first_id)
+        reopened = VersionStore(self.root)
+        self.assertEqual(reopened.read_head(building)['source'], reopened.history_source(building))
+        self.assertEqual((self.root / reopened.read_head(building)['source']).resolve(), Path(second['source']))
+
+        with patch('nbt_project.model_versions._write_head', side_effect=OSError('head cleanup interrupted')):
+            with self.assertRaises(OSError):
+                history.current(first_id)
+        reopened = VersionStore(self.root)
+        self.assertEqual(reopened.read_head(building)['source'], reopened.history_source(building))
+        self.assertEqual((self.root / reopened.read_head(building)['source']).resolve(), Path(first['source']))
+        continued = WorkingModel.open(self.root, first['source'])
+        self.put(continued, [3, 1, 1], 'stone')
+        self.assertFalse(continued.save_draft()['history_pending'])
+
+    def test_legacy_desktop_advances_head_with_git_unavailable(self):
+        from nbt_detail_control import default_settings
+        from nbt_project.history import History
+        from nbt_web_revision import convert_web_json
+        import os
+
+        source = self.legacy_room()
+        history = History(self.root)
+        original = history.record(dict(source=str(source), set_current=True))
+        settings = default_settings()
+        settings['operations'] = [dict(kind='box', label='修改', classification='body',
+                                      lo=[6, 2, 6], hi=[6, 2, 6], state='stone')]
+        request = self.root / 'desktop-request.json'
+
+        def save_from(master):
+            request.write_text(json.dumps(dict(source=str(master), source_sha256=file_hash(master),
+                context=str(Path(master).parent.parent / 'coordinates.json'), settings=settings, draft_only=True)),
+                encoding='utf8')
+            return convert_web_json(request)
+
+        with patch.dict(os.environ, {'NBTCREATOR_GIT': str(self.root / 'missing-git.exe')}):
+            first = save_from(source)
+            self.assertTrue(first['history_pending'])
+            with self.assertRaisesRegex(ModelConflict, 'STALE_PARENT'):
+                save_from(source)
+            second = save_from(first['master'])
+            self.assertTrue(second['history_pending'])
+        self.assertEqual([Path(row['output']).name for row in (first, second)], ['v02', 'v03'])
+
+        repaired = history.record(dict(source=second['master'], set_current=True))
+        parent = history.get(repaired['version']['parent'])['version']
+        self.assertEqual(Path(parent['absolute_source']), Path(first['master']))
+        self.assertEqual(parent['parent'], original['version']['id'])
+
+    def test_history_archive_does_not_hold_the_workspace_task_lock(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Event
+        from nbt_agent import tasks
+        from nbt_project import history
+
+        first = self.new(kind='component')
+        first.save_draft('甲楼')
+        other = self.new(kind='component').save_draft('乙楼')
+        task = tasks.dispatch(self.root, 'create', dict(source=other['source'],
+            source_sha256=other['source_sha256'], name='乙楼修改'))
+        self.put(first, [1, 1, 1], 'stone')
+        entered, release = Event(), Event()
+        archive = history.record_produced_version
+
+        def pause_archive(*args, **kwargs):
+            entered.set()
+            if not release.wait(15):
+                raise TimeoutError('test archive was not released')
+            return archive(*args, **kwargs)
+
+        with patch.object(history, 'record_produced_version', side_effect=pause_archive):
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                pending = pool.submit(first.save_draft)
+                try:
+                    self.assertTrue(entered.wait(15))
+                    claimed = tasks.dispatch(self.root, 'claim', dict(id=task['id'], owner='乙楼制作'))
+                    self.assertEqual(claimed['status'], 'in_progress')
+                finally:
+                    release.set()
+                self.assertFalse(pending.result(timeout=15)['history_pending'])
+
     def test_legacy_desktop_cannot_publish_from_a_stale_parent(self):
         from nbt_web_revision import convert_web_json
         from nbt_detail_control import default_settings

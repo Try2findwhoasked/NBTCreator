@@ -837,8 +837,9 @@ class WorkingModel:
         if self._saved and self._saved['token'] == self._content_token() and not attachments:
             target = Path(self._saved['receipt']['output'])
             manifest = verify_version(target)
-            with publication(self.workspace,self._building,self.source,task_session,actor):
-                if before_publish is not None:before_publish()
+            with publication_lock(self.workspace, self._building):
+                with publication(self.workspace,self._building,self.source,task_session,actor):
+                    if before_publish is not None:before_publish()
                 receipt = (self._saved['receipt'] if self._saved['receipt'].get('staged')
                            else self._history_receipt(target, manifest, self._building))
             self._saved['receipt'] = receipt
