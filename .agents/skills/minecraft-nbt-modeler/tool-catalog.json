@@ -1091,6 +1091,16 @@
         "next": "保存后把 next.request 原样交给 architect review-prepare；续版用 revision_request。"
       },
       {
+        "intent": "reference_first",
+        "title": "先看整栋外观与重点房间，再按选定参考搭建",
+        "call": "creation --session <会话名> start --request <请求JSON>",
+        "contract": "creation --help",
+        "guide": "creation-workflows.md",
+        "input": "领取初稿任务，声明 reference_roles。宿主展示外观及重点房间，再登记用户选择和工作区参考文件。",
+        "result": "简报返回图集、选择和导入阶段，可跨会话接续。",
+        "next": "依次 reference-show、reference-choose、reference-import。制作版保存后实际查看并展示从落盘 SNBT 渲染的室内图。"
+      },
+      {
         "title": "比较整栋空间与通路布局",
         "call": "architect layout-search --request <请求JSON>",
         "contract": "capabilities --architect-action layout-search",
@@ -1220,7 +1230,9 @@
         "result": "逐份回读并登记历史；可用 assembly inspect、model 和 render 操作，定稿导出仍须独立支持。"
       },
       {
+        "intent": "assembly_slices",
         "title": "签发和回装协作切片",
+        "guide": "large-assembly.md",
         "call": "assembly slice --request <JSON> / assembly merge --request <JSON>",
         "call_kind": "多步流程",
         "input": "签发时绑定主稿、范围和必要路线；回装时提供原签发清单哈希及各候选哈希。",
@@ -1245,6 +1257,17 @@
         "call": "task-client inspect <prompts 或 tasks> <任务编号>",
         "input": "提示词任务用 prompts，已有建筑修改任务用 tasks。",
         "result": "默认返回任务阶段、来源核对与下一步；按 expand 视图展开，再用 task-client start 明确领取。"
+      },
+      {
+        "intent": "authoring_regions",
+        "title": "多区建模或明确要求分工",
+        "call": "batches create / batches run / machine --request <JSON>",
+        "call_kind": "多步流程",
+        "contract": "machine --schema",
+        "guide": "authoring-workflow.md",
+        "input": "在制作批次建立 authoring 尝试，冻结完整普通 SNBT、空间与共享接口，并按需要登记参考图。",
+        "result": "工作包按授权读局部页和裁片，回传含旧方块及墙层的补丁，协调方预检、审阅并保存统一制作版。",
+        "next": "从落盘制作版重新核验室内实图。需要独立局部 SNBT 文件交接时使用大型分片路线。"
       },
       {
         "title": "执行已领取的建筑初稿",

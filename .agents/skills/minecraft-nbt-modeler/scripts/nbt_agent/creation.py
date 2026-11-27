@@ -7,6 +7,7 @@ from nbt_agent.creation_execution import (Execution, StageError, prepare_review,
     reference, saved_binding)
 from nbt_agent.creation_inputs import evidence, fields, gates, local_repair, model_request, options, routes, text
 from nbt_agent.creation_policy import describe
+from nbt_agent import creation_references
 from nbt_agent.protocol import error
 from nbt_agent.task_client import TaskClient
 from nbt_building.plan import build, fingerprint
@@ -66,6 +67,9 @@ class Creation:
             error('CREATION_NOT_STARTED', '请先运行 creation start')
         return read(self.file)
 
+    def reference_file(self, state):
+        return self.directory.parent / f"references-{state['revision']}.json"
+
     def save(self, state):
         write(self.file, state)
 
@@ -74,13 +78,25 @@ class Creation:
         frozen = self.frozen()
         policy = describe(frozen['task'].get('creation'))
         self.directory.mkdir(parents=True, exist_ok=True)
-        with index_lock(self.workspace,self.directory):
+        with index_lock(self.workspace,self.directory.parent):
+            self.live()
+            ref_file = self.reference_file(frozen['task'])
+            stored_roles = read(ref_file)['roles'] if ref_file.is_file() else None
+            roles = policy.get('reference_roles') or stored_roles
+            if roles and request:
+                if 'reference_roles' in request and request['reference_roles'] != roles:
+                    raise ValueError('必选参考部位已在任务中冻结')
+                request = dict(request, reference_roles=roles)
             if self.file.is_file():
                 state = self.state()
                 if request and request != state['options']:
                     error('IDEMPOTENCY_CONFLICT', '当前会话已冻结不同的比较条件')
             else:
+                if roles:
+                    request = dict(request, reference_roles=roles)
                 request = options(self.workspace, policy, request)
+                if 'reference_roles' in request and not ref_file.is_file():
+                    write(ref_file, dict(roles=request['reference_roles']))
                 state = dict(schema_version=1, task=self.id, revision=frozen['task']['revision'], policy=policy,
                              options=request, requests=routes(policy), attempts=[], ready={})
                 self.save(state)
@@ -106,6 +122,10 @@ class Creation:
                       local_retries=[dict(slot=slot,request=reference(self.directory/'attempts'/row['id']/'request.json'))
                                      for slot,row in interrupted.items()],
                       expand=['text','document','plan','context'], approval_created=False)
+        if refs := creation_references.status(self.reference_file(state), state, workspace=self.workspace):
+            result['concept_references'] = refs
+            if refs['phase'] != 'ready':
+                result['requests'] = []
         if expand:
             result['design']= {key:document['project'][key] for key in compact['brief']}
             result['prompt']=frozen['text']
@@ -117,7 +137,12 @@ class Creation:
         counts = dict(candidates=len(state['attempts']), local_retries=sum(row.get('local_retries',0) for row in state['attempts']),
                       reported_model_calls=sum(row.get('model_usage',{}).get('calls',0) for row in state['attempts']),
                       usage_reports=sum('model_usage' in row for row in state['attempts']))
-        return dict(state, metrics=counts, workflow_file=reference(self.file), approval_created=False, nbt_exported=False)
+        result = dict(state, metrics=counts, workflow_file=reference(self.file), approval_created=False, nbt_exported=False)
+        if refs := creation_references.status(self.reference_file(state), state, workspace=self.workspace):
+            result['concept_references'] = refs
+            if refs['phase'] != 'ready':
+                result['requests'] = []
+        return result
 
     def next_request(self, state, slot):
         return next((row for row in state['requests'] if row['slot']==slot), None)
@@ -294,7 +319,7 @@ class Creation:
                 return dict(completion,status='completed',approval_created=False,nbt_exported=False)
         self.live()
         self.state()
-        with index_lock(self.workspace,self.directory):
+        with index_lock(self.workspace,self.directory.parent):
             self.live()
             state=self.state()
             try:
@@ -305,6 +330,11 @@ class Creation:
                 if isinstance(failure,ModelConflict):
                     raise
                 raise ModelConflict('STALE_SOURCE',[dict(reason=str(failure))]) from failure
+            reference_file = self.reference_file(state)
+            if action in ('reference_show', 'reference_choose', 'reference_import'):
+                return creation_references.update(self, reference_file, state, action, request)
+            if action in ('candidate','retry','escalate','publish'):
+                creation_references.require_ready(self.workspace, creation_references.status(reference_file, state))
             if action in ('candidate','retry'):
                 return self.candidate(state,request,working,retry=action=='retry')
             if action=='escalate':

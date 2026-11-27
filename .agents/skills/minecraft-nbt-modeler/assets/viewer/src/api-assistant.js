@@ -98,7 +98,8 @@ export function initApiAssistant(hooks){
     heading.textContent=`${group.files.length} 份文档 · 查看内容`;files.append(heading,...group.files.map(file=>button(file,{group:group.id,file})))
     card.append(label,summary,files);return card
    }))
-   $('knowledge-status').textContent=config.notice||`助手可读取 ${groups.length} 类参考资料，${issues.size+(config.registration_issues?.length??0)} 份自定义资料待修复。`
+   const syncStatus={interrupted:'上次资料同步未完成，请重试同步。',changed:'工作区资料与生效版本有差异，请重新同步。',unsynced:'当前工作区的外部助手资料尚未同步。'}
+   $('knowledge-status').textContent=config.notice||syncStatus[config.sync?.state]||`工作区资料已同步，助手可读取 ${groups.length} 类参考资料，${issues.size+(config.registration_issues?.length??0)} 份自定义资料待修复。`
   }catch(error){$('custom-knowledge-list').replaceChildren();$('knowledge-groups').replaceChildren();$('knowledge-status').textContent=error.message}
  }
 

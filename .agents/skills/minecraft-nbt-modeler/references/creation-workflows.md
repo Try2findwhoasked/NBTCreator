@@ -17,6 +17,18 @@
 - 用 `creation --session <会话名> start [--request <请求.json>]` 冻结约束，续作看 `brief`。简报给用户硬要求原文、有效约束、设计摘录和本轮请求。用 `brief --expand` 读完整提示词和坐标上下文，也可用任务客户端分别读取 `text`、`document`、`plan` 或 `context`。
 - `requests` 中的模型 ID 沿用交接时的工作区设置。档位留空时由宿主使用其已配置的常规或强模型。外部宿主按用户已允许的服务与用量派发；本地 CLI 只生成请求说明和执行确定性步骤。宿主有真实用量时，可在候选写 `"model_usage":{"calls":1,"input_tokens":123,"output_tokens":45}`，未知字段省略。
 
+## 先展示外观和重点房间内景
+
+用户要求先选方向时，先明确用途、楼层、入口及主要动线。通过宿主向用户展示整栋外观和重点房间内景，必要时补局部装配图。先等用户选定，再搭建。已经明确选定的用户来图可按同一入口登记，沿用已明确的选择。
+
+1. 新发布任务可在 `prompts publish --creation <档位.json>` 加 `reference_roles`，已有任务可在首次 `creation start` 的请求中加。旅店示例为 `{"reference_roles":["exterior","炉厅","客房"]}`。极限效果同时传设计轴。以下 `creation` 命令均沿用已领取任务的 `--session`。
+2. 展示后运行 `reference-show --request <图集.json>`。文件形如 `{"images":[{"id":"front-a","role":"exterior","label":"外观 A"}]}`，可以先登记部分已展示图，简报会列出 `missing_roles`。补图时提交当前完整图集，覆盖所有必选部位后才接受选图。已有图像字节时每项可填 `sha256`。将每项 ID 标在用户可见的图旁。恢复会话用 `brief` 看 `concept_references`。
+3. 用户选定后运行 `reference-choose --request <选图.json>`。提供图集回执的 `gallery_sha256`、用户原话 `user_choice`、每个必选部位的 `adopted`（键为部位，值为 `{image_id,design}`）、可选的 `pending_rooms` 和 `expected_views`。换图后重新展示并取得选择。制作版随附图集与参考包哈希、采用项、待补房间和预期机位。
+4. 把选定图按原始字节交入当前工作区，按[参考图与分区建模](authoring-workflow.md#建立运行与分工)的图集结构，用 `reference-import --request <导入.json>` 传 `{"pack":{"images":[...]}}`。图片 ID 和部位须与选择一致；校对入口、梯、窗和站位，将补全和校正记入参考说明，精确拟合沿用有效正交标定。只有展示链接时保留待导入状态，补交对应图片后继续。宿主无法生图时可接入用户提供的图，并报告仍缺哪个部位。
+5. `brief` 返回 `ready` 后，将采用项落实到空间、构件、路线和机位。按本任务选用普通整栋或多区协作，指定一份正式制作版。普通整栋沿下文提交候选。多区协作可将已校验的参考数据带入 `authoring.bind_reference`，并绑定完整 SNBT 及共享接口。
+
+从正式落盘版出图并实际查看外观、入口、代表节点及保留顶构的室内玩家视角。写下炉厅的操作侧、客房站位和跨层动线所见，图像移交时附对应制作源和机位。概念和实图选相近来向；模型修改的前后对照复用同机位和渲染条件。
+
 ### 使用参考图或旧版本
 
 在 `start` 请求中加 `reference`，包含 `manifest: {path, sha256}`、`fixed` 和 `explore` 两组文字。用已登记的[三视参考](orthographic-reference.md)清单。把量读得到的轴、轮廓、尺寸或已批准部位写入 `fixed`，把图外的背面、进深、连接方式或室内写入 `explore`。已确定的 XYZ 画布可写成 `canvas_size`，编译、回读和发布都会校验。其他可验证条件应落实到方案的尺寸、路线、构造规则或取样点。

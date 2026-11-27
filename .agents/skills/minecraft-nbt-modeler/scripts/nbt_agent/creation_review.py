@@ -263,10 +263,18 @@ def publish(job,state,request):
             old._unchanged()
             job.live()
 
+        receipt=dict(task=job.id,revision=state['revision'],candidate=target['candidate'],
+                     staged_source=target['source'],working_sha256=old.inspect()['working_sha256'])
+        if state['options'].get('reference_roles'):
+            refs=read(job.reference_file(state))
+            receipt['concept_references']=dict(gallery_sha256=refs['gallery']['sha256'],
+                                               reference_pack_sha256=refs['pack']['sha256'],
+                                               adopted=refs['choice']['adopted'],
+                                               pending_rooms=refs['choice'].get('pending_rooms',[]),
+                                               expected_views=refs['choice'].get('expected_views',[]))
         with index_lock(workspace,task_index(workspace).parent):
             return draft.save_draft(name_zh=project['name'],shape=shape,_draft_directory=actual,before_publish=check_inputs,
-                attachments={'creation.json':dict(task=job.id,revision=state['revision'],candidate=target['candidate'],
-                                             staged_source=target['source'],working_sha256=old.inspect()['working_sha256'])})
+                                    attachments={'creation.json':receipt})
 
     saved=run.step('publish-draft',copy_draft)
     run.step('readback-check',lambda: readback(workspace,saved,frozen,reference_constraints),diagnostic='model')

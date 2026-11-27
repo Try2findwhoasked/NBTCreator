@@ -32,7 +32,10 @@ def evidence(workspace, value):
 
 
 def options(workspace, policy, value):
-    fields(value, optional=('axes', 'reference', 'comparison', 'retained_review'))
+    fields(value, optional=('axes', 'reference', 'comparison', 'retained_review', 'reference_roles'))
+    if 'reference_roles' in value:
+        from nbt_agent.creation_policy import validate_reference_roles
+        validate_reference_roles(value['reference_roles'])
     axes = value.get('axes', [])
     if not isinstance(axes, list) or len(axes) > 8:
         raise ValueError('最多登记 8 个要探索的设计轴')
