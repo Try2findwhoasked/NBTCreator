@@ -104,6 +104,58 @@ class CreationWorkflows(unittest.TestCase):
                         bundle=dict(path=cameras['bundle'],sha256=cameras['bundle_sha256']),width=front['width'],height=front['height']),
                     retained_review=dict(path=notes['path'],sha256=notes['sha256']))
 
+    def test_reference_choice_resumes_and_blocks_candidate_until_valid_import(self):
+        from hashlib import sha256
+        from PIL import Image
+
+        roles = ['exterior', '炉厅', '客房']
+        task, brief = self.init('concept', '选图回归', creation={'reference_roles': roles}, size=[14,9,18])
+        self.assertEqual(brief['concept_references']['phase'], 'awaiting_gallery')
+        self.assertEqual(brief['requests'], [])
+        candidate = dict(slot='1', plan={})
+        self.assertEqual(self.action('candidate', candidate, failure=True)['code'], 'REFERENCE_CHOICE_REQUIRED')
+        images = [dict(id=f'view{i}', role=role, label=role) for i, role in enumerate(roles)]
+        partial = self.action('reference-show', {'images': images[:1]})
+        self.assertEqual(partial['missing_roles'], ['炉厅', '客房'])
+        self.assertEqual(self.action('reference-choose', dict(gallery_sha256=partial['gallery']['sha256'],
+            user_choice='采用外观', adopted={}), failure=True)['code'], 'REFERENCE_CHOICE_REQUIRED')
+        gallery = self.action('reference-show', {'images': images})
+        self.cli('task-client', '--session', self.session, 'release')
+        self.session = 'concept-resumed'
+        self.cli('task-client', '--session', self.session, 'start', 'prompts', task['id'], '--owner', 'creation-test')
+        brief = self.action('start')
+        self.assertEqual(brief['concept_references'], gallery)
+        self.assertEqual(brief['requests'], [])
+
+        chosen = dict(gallery_sha256=gallery['gallery']['sha256'], user_choice='沿用这三张图',
+                      adopted={image['role']: dict(image_id=image['id'], design='保留入口或操作侧') for image in images},
+                      pending_rooms=['后厨'])
+        self.assertEqual(self.action('reference-choose', chosen)['phase'], 'awaiting_import')
+        self.assertEqual(self.action('candidate', candidate, failure=True)['code'], 'REFERENCE_CHOICE_REQUIRED')
+        for image in images:
+            file = self.workspace / (image['id'] + '.png')
+            Image.new('RGB', (32, 24), 'navy').save(file)
+            image.pop('label')
+            image.update(path=file.name, sha256=sha256(file.read_bytes()).hexdigest(),
+                         kind='concept', source={'host': 'fixture'})
+        self.assertEqual(self.action('reference-import', {'pack': {'images': images}})['phase'], 'ready')
+        self.assertTrue(self.action('brief')['requests'])
+        Image.new('RGB', (32, 24), 'red').save(self.workspace / images[0]['path'])
+        stale = self.action('brief')
+        self.assertEqual(stale['concept_references']['phase'], 'reference_changed')
+        self.assertEqual(stale['requests'], [])
+        self.assertEqual(self.action('candidate', candidate, failure=True)['code'], 'REFERENCE_CHANGED')
+        Image.new('RGB', (32, 24), 'navy').save(self.workspace / images[0]['path'])
+        self.assertEqual(self.scripted_gate()['status'], 'ready_for_review')
+        self.action('select')
+        published = self.action('publish')
+        version = Path(published['source']['source']).parents[1]
+        handoff = next(version.rglob('creation.json'))
+        binding = json.loads(handoff.read_bytes())['concept_references']
+        self.assertEqual(binding['gallery_sha256'], chosen['gallery_sha256'])
+        self.assertEqual(binding['adopted'], chosen['adopted'])
+        self.assertEqual(binding['pending_rooms'], ['后厨'])
+
     def test_economy_diagnostics_operational_retry_and_completed_review(self):
         task,brief=self.init('economy','测试归卷阁',{'quality_model':'test-strong','economy_model':'test-low'})
         self.assertEqual(brief['user_requirements'],'窗边收卷。\n管理员登梯归架。')

@@ -7,6 +7,7 @@
 | 当前要解决的问题 | 先读 | 需要时再展开 |
 | --- | --- | --- |
 | 复杂整栋或多层布局的量化约束 | [整栋建筑量化规划](whole-building-planning.md)覆盖任务书、候选生成、锁定、编译转接及成品复验 |
+| 用户要求先看整栋外观及重点房间内景 | [前置选图](creation-workflows.md#先展示外观和重点房间内景) | 选定后搭建，实际查看并交付落盘 SNBT 的室内实图 |
 | 从用途形成简单独立初稿 | [简单独立建筑初稿](simple-building.md) | 复杂空间与构造按需读[整体流程](whole-model-workflow.md)、[玩家尺度](player-scale.md)、[创作原则](design-principles.md)、[空间细节](spatial-detail-design.md)及[建筑方案](architecture-workflow.md)对应章节 |
 | 整栋初稿有地面嵌纹、屏风边饰或墙面徽记 | [纹样来源](pattern-authoring.md)、[纹样拟合](pattern-fitting.md)中的适用章节 | 选定代表单元、承载面和观看距离，回主模型出近景并复核通路 |
 | 把设计落实为完整主模型 | [建筑方案闭环](architecture-workflow.md)、[工作模型](working-model.md) | [参数化构件](parametric-components.md)、[对象图](object-scenes.md)、[通用几何](modelling-tools.md) |
@@ -15,6 +16,7 @@
 | 将图案拟合成方块 | [纹样拟合与质量](pattern-fitting.md)的适用模式 | 扩展形状、圆柱及复杂主纹验收章节 |
 | 把构件装到现有建筑 | [贴面安装](surface-mounting.md) | [对象图](object-scenes.md)中的依赖联动；持续修改仍回到工作模型 |
 | 检查和判断实际结果 | [渲染](rendering.md)、[验证流程](validation-workflow.md) | [诊断说明](diagnostic-guidance.md)、[碰撞包络边界](collision-envelopes.md) |
+| 设定整栋质量清单及续版复验 | [整栋建筑质量清单](building-quality.md) | 随建筑方案冻结条目，真实出图后登记实际观察 |
 | 用户看图后批准精修 | [精修流程](refinement.md) | 实际修改的专题；批准继续绑定对应源和图像 |
 | 保存制作源、续版或交付 | [SNBT与定稿](snbt-authoring.md)、[版本历史](version-history.md) | [交付](delivery-workflow.md)、[存放](output-storage.md) |
 | 协作、批注或维护接口 | 对应任务的[机器接口](agent-protocol.md)、[批注](agent-feedback.md)或[维护](state-and-maintenance.md) | [扩展注册器](extensions.md)、[会话](modeling-sessions.md)；不因此加载全部创作知识 |

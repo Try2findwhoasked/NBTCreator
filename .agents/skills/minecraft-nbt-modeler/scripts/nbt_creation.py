@@ -23,6 +23,9 @@ def main():
     actions=parser.add_subparsers(dest='action',required=True)
     for name, help_text in (
         ('start','冻结本轮的候选范围和比较条件'),('escalate','用已配置的强模型处理语义问题'),
+        ('reference-show','登记已经向用户展示的外观和室内参考'),
+        ('reference-choose','登记用户选中的图片与设计'),
+        ('reference-import','校验已选图片的工作区文件'),
         ('candidate','编译、回读、检查并渲染方案'),('retry','重放原请求并续跑本机失败步骤'),
         ('observe','登记真实三尺度图片观察'),('prepare-blind','生成同机位匿名 A/B 包'),
         ('record-blind','登记匿名图像比较和选择'),('select','根据观察选定一个候选'),

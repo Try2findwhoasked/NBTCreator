@@ -154,18 +154,19 @@ async function boot(){
   return workspaceApi.run(async()=>{
   if(input?.scope==='internal')return internalAI.preview(input.id)
   if(input?.scope!=='external')throw Error('Unknown knowledge scope')
+  const config=await exposure('show')
   if(input.entry){
+   if(config.sync?.state!=='active')throw Error('请先同步当前工作区的外部助手资料')
    const agent=input.entry==='agent'
    const name=agent?'nbtcreator-agent':'nbtcreator-workspace'
    return {title:agent?'外部 Agent 触发 Skill':'当前工作区对外Skill入口',recipient:'由外部 Codex 或文件式 Skill Agent 在当前工作区读取。',text:await fs.readFile(path.join(workspace,'.agents/skills',name,'SKILL.md'),'utf8')}
   }
-  const config=await exposure('show');let file,title
-  if(input.group){const group=config.groups.find(g=>g.id===input.group);if(!group||!config.enabled_groups.includes(group.id)||!group.files.includes(input.file))throw Error('Unknown skill reference');file=path.join(root,'.agents/skills/minecraft-nbt-modeler/references',input.file);title=input.file}
-  else {
-   if(typeof input.id!=='string'||!/^custom_[a-f0-9]{16}$/.test(input.id))throw Error('Unknown skill document')
-   return {...await exposure('preview','--id',input.id),recipient:'供当前工作区的外部 Agent 阅读。'}
+  if(input.group){
+   if(typeof input.group!=='string'||!/^[a-z]+$/.test(input.group)||typeof input.file!=='string'||!/^[a-z0-9-]+\.md$/i.test(input.file))throw Error('Unknown skill reference')
+   return {...await exposure('preview-topic','--id',input.group,'--topic',input.file),recipient:'供当前工作区的外部 Agent 阅读。'}
   }
-  return {title,recipient:'供当前工作区的Codex/文件式Skill Agent阅读；不会因为暴露而自动发送给内部API。',text:await fs.readFile(file,'utf8')}
+  if(typeof input.id!=='string'||!/^custom_[a-f0-9]{16}$/.test(input.id))throw Error('Unknown skill document')
+  return {...await exposure('preview','--id',input.id),recipient:'供当前工作区的外部 Agent 阅读。'}
   })
  })
  ipcMain.handle('nbt:internal-ai-config',event=>{allowed(event);return internalAI.show()})

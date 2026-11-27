@@ -212,6 +212,54 @@ class Contracts(unittest.TestCase):
    self.assertIn('/references/rendering.md',route)
    self.assertIn('查看实际图片',route)
 
+ def test_exposure_detects_and_resumes_two_interrupted_publication_boundaries(self):
+  from unittest.mock import patch
+  from nbt_exposure import preview_topic, show
+  from nbt_knowledge import libraries
+  with tempfile.TemporaryDirectory() as temp:
+   root=Path(temp).resolve()
+   self.assertEqual(show(root)['sync']['state'],'unsynced')
+   expose(root,dict(schema_version=1,enabled_groups=['core']))
+   folder=root/'.nbtcreator'
+   facade=root/'.agents/skills/nbtcreator-workspace'
+   (facade/'SKILL.md').write_text('User edits',encoding='utf8')
+   (root/'mise.toml').write_text('[tasks.nbt]\nrun = "echo local task"\n',encoding='utf8')
+   original_replace=Path.replace
+   def fail_before_launcher(path,target):
+    if Path(target)==facade/'nbt.py':
+     raise OSError('interrupted before launcher')
+    return original_replace(path,target)
+   with patch.object(Path,'replace',fail_before_launcher):
+    with self.assertRaisesRegex(OSError,'before launcher'):
+     expose(root,dict(schema_version=1,enabled_groups=['core','rendering']))
+   self.assertEqual(show(root)['sync']['state'],'interrupted')
+   self.assertNotIn('rendering',show(root)['enabled_groups'])
+   with self.assertRaisesRegex(ValueError,'先同步'):
+    preview_topic(root,'core','creation-workflows.md')
+   recovered=expose(root)
+   self.assertEqual(recovered['sync']['state'],'active')
+   self.assertIn('rendering',recovered['enabled_groups'])
+   self.assertEqual([p.read_text(encoding='utf8') for p in (folder/'skill-backups').glob('*/SKILL.md')],['User edits'])
+   original_atomic=libraries.atomic
+   def fail_before_config(path,value):
+    if path==folder/'skill-exposure.json':
+     raise OSError('interrupted before config')
+    return original_atomic(path,value)
+   with patch.object(libraries,'atomic',fail_before_config):
+    with self.assertRaisesRegex(OSError,'before config'):
+     expose(root,dict(schema_version=1,enabled_groups=['core','desktop']))
+   self.assertEqual(show(root)['sync']['state'],'interrupted')
+   self.assertNotIn('desktop',show(root)['enabled_groups'])
+   recovered=expose(root)
+   self.assertEqual(recovered['sync']['state'],'active')
+   self.assertIn('desktop',recovered['enabled_groups'])
+   active=json.loads((folder/'skill-sync-active.json').read_bytes())
+   document=folder/'runtimes'/active['runtime']/'references/creation-workflows.md'
+   self.assertEqual(preview_topic(root,'core',document.name)['text'],document.read_bytes().decode('utf8'))
+   document.write_text('modified frozen document',encoding='utf8')
+   with self.assertRaisesRegex(ValueError,'冻结资料文件已变化'):
+    preview_topic(root,'core',document.name)
+
  def test_authoring_entry_keeps_pattern_tools_and_loads_maintenance_only_when_enabled(self):
   with tempfile.TemporaryDirectory() as temp:
    root=Path(temp);expose(root,dict(schema_version=1,enabled_groups=['core']))

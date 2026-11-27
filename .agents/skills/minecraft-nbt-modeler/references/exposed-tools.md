@@ -101,6 +101,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
 | --- | --- | --- | --- | --- |
 | 从零起整栋初稿（亭子、入口、空间和构件） | 命令 `architect plan-build --request <请求JSON>` | `capabilities --architect-action plan-build`<br>[请求与用例](simple-building.md) | 按用途选尺寸、空间、材质、开口和机位。入口亭示例内含 save_draft，会发布制作版；只编译和检查时省略。 | 返回建筑编译与检查；保存时另有 saved、next.request 和 revision_request。<br>保存后把 next.request 原样交给 architect review-prepare；续版用 revision_request。 |
+| 先看整栋外观与重点房间，再按选定参考搭建 | 命令 `creation --session <会话名> start --request <请求JSON>` | `creation --help`<br>[请求与用例](creation-workflows.md) | 领取初稿任务，声明 reference_roles。宿主展示外观及重点房间，再登记用户选择和工作区参考文件。 | 简报返回图集、选择和导入阶段，可跨会话接续。<br>依次 reference-show、reference-choose、reference-import。制作版保存后实际查看并展示从落盘 SNBT 渲染的室内图。 |
 | 比较整栋空间与通路布局 | 命令 `architect layout-search --request <请求JSON>` | `capabilities --architect-action layout-search`<br>[请求与用例](architecture-workflow.md) | 基于同一粗模方案，用 variables 枚举 XZ 位移，或用 graph 声明空间关系与摆位候选。 | 给出通过实际通路和使用面检查的候选，以及各次尝试的失败证据。<br>选定候选后将其 plan 交给 architect plan-build，在构造和装饰深化后保存制作版。 |
 | 复杂整栋的分层、面积与必经连接 | 命令 `architect layout-check --request <请求JSON>` | `capabilities --architect-action layout-check`<br>[请求与用例](whole-building-planning.md) | 用 program 与 layout 预检布局；用 source 和 source_sha256 回读成品。 | 返回目标、实测值、通过状态及楼层和问题坐标。<br>用 program-layout-search 生成候选，用 layout-prepare 把选择绑定到建筑方案。 |
 | 按明确几何装配，或打开制作源续版 | 命令 `model --request <请求JSON>` | `capabilities --model`<br>[请求与用例](simple-building.md) | 新建填 size（XYZ 格数），已有制作版从原保存回执取 source 和 source_sha256；按需要填 actions。 | 返回模型摘要及操作结果；validate:true 复验，save_draft 另存 SNBT。<br>核对 result.validation（启用时）及 result.saved（保存时）；制作源用 render --source 出图。 |
@@ -145,7 +146,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 任务 | 起点 | 契约或示例 | 输入 | 产物与接续 |
 | --- | --- | --- | --- | --- |
 | 导入并核验大型组装制作源 | 命令 `assembly import --request <JSON>` |  | 指定画布、工作区内 SNBT 分区、各自 SHA256 与全局偏移；输出为新建筑版本的 master 目录。 | 逐份回读并登记历史；可用 assembly inspect、model 和 render 操作，定稿导出仍须独立支持。 |
-| 签发和回装协作切片 | 多步流程 `assembly slice --request <JSON> / assembly merge --request <JSON>` |  | 签发时绑定主稿、范围和必要路线；回装时提供原签发清单哈希及各候选哈希。 | 复核可写域、重叠、保护和全局路线后保存一个新制作版；不批准或导出。 |
+| 签发和回装协作切片 | 多步流程 `assembly slice --request <JSON> / assembly merge --request <JSON>` | [请求与用例](large-assembly.md) | 签发时绑定主稿、范围和必要路线；回装时提供原签发清单哈希及各候选哈希。 | 复核可写域、重叠、保护和全局路线后保存一个新制作版；不批准或导出。 |
 
 ### 任务与交接
 
@@ -154,6 +155,7 @@ GUI的“建模工具”支持同样的有序operations。每步 enabled 为可�
 | 按编号读取已交接的任务 | 命令 `task --id <任务编号>` |  | 从创作项目根目录运行。支持提示词和建筑修改编号。用 --view compact 查看下一步。 | 回读已校验的内容和失效附件提示。读取任务与领取、建模、精修批准分开。 |
 | 查找两类交接任务 | 命令 `task-client list --pending` |  | 省略 --pending 可看其他任务；--kind 可限定 prompts 或 tasks。 | 提供各任务的查看命令，建筑任务来源失效时返回诊断。 |
 | 查看任务记录和绑定证据 | 命令 `task-client inspect <prompts 或 tasks> <任务编号>` |  | 提示词任务用 prompts，已有建筑修改任务用 tasks。 | 默认返回任务阶段、来源核对与下一步；按 expand 视图展开，再用 task-client start 明确领取。 |
+| 多区建模或明确要求分工 | 多步流程 `batches create / batches run / machine --request <JSON>` | `machine --schema`<br>[请求与用例](authoring-workflow.md) | 在制作批次建立 authoring 尝试，冻结完整普通 SNBT、空间与共享接口，并按需要登记参考图。 | 工作包按授权读局部页和裁片，回传含旧方块及墙层的补丁，协调方预检、审阅并保存统一制作版。<br>从落盘制作版重新核验室内实图。需要独立局部 SNBT 文件交接时使用大型分片路线。 |
 | 执行已领取的建筑初稿 | 命令 `creation --session <会话名> start` |  | 从已领取的提示词读取冻结模式。极限效果用 --request 显式登记要探索的设计轴。 | 本地编译或接收 WorkingModel，回读、检查、出图并保存证据。按模式处理单候选或匿名 A/B 审阅；选用后另存制作版。 |
 
 ### 工作区与运行时
